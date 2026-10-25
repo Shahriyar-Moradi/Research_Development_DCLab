@@ -1,0 +1,184 @@
+{
+  "package": "dclab-code-v1.17",
+  "title": "The person's channel to DCLab, the DCLab panel, and the person's decisions relayed from the agent's ask (agents plan steps 1-2)",
+  "date": "2026-10-26",
+  "request": "The owner (2026-10-26 night): make DCLab Code match every agentic system already built in R&D, using and adopting them (plan ~/.claude/plans/joyful-jingling-engelbart.md); $20 more budget.",
+  "spec": "the agents plan, steps 1-2 (two channels: the agent's over MCP, the person's from DCLab Code's own page and asks)",
+  "plan": [
+    "send the person's click to DCLab's HTTP API with DCLab's own page token, marked as DCLab Code's",
+    "a DCLab panel: projects, stages, held-back result, holdout reads, forbidden columns, waits",
+    "relay a decision the agent asks for through dclab_call when the person allows it on the ask card",
+    "keep the agent off the person's channel",
+    "tests, a live check, two reviews"
+  ],
+  "decisions": [
+    {
+      "decision": "No new R&D route: DCLab Code uses DCLab's own page token from GET /api/config, as DCLab's page does",
+      "why": "the owner: use what exists; the person's routes already check everything"
+    },
+    {
+      "decision": "A decision the agent proposes is shown on the ordinary ask card with the whole request; on Allow it is sent as the person's click and the agent's own call never runs",
+      "why": "one place the person decides, the same card as every other ask"
+    },
+    {
+      "decision": "DCLab is told what each click is: dclab-code (the person's own), dclab-code:relay (the person allowed the agent's proposal), dclab-code:script (a test driver)",
+      "why": "records that say a person decided must be honest about who proposed it"
+    },
+    {
+      "decision": "Labels, consent, routing, accounts, settings, budgets and deletes are never relayed",
+      "why": "they are the person's own judgments or switches, made on DCLab's own page"
+    }
+  ],
+  "change": "dclab-code: server/dclab_person.js (DclabHttp, PERSON_ACTS, overview), GET /api/dclab/overview and POST /api/dclab/act, RELAYED_DECISIONS/NEVER_RELAYED/relayOf and the relay in guards and engine, the DCLab tab, shell and fetch rules. R&D: chat_agents refuses /api/config and /api/auth/* and hides secrets in results; agentic/server.py marks the three surfaces.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "the agent could read DCLab's page token through the bridge",
+      "scenario": "dclab_call GET /api/config returned csrf equal to the server's token",
+      "cause": "/api/config was an ordinary read",
+      "fix": "refused; secret-named values hidden in every result",
+      "test": "R&D tests/test_chat_agents.py (the token never in results; ScrubTests)",
+      "severity": "privacy"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "any local process could post the person's decisions to DCLab Code's relay",
+      "scenario": "curl GET / on 4317 gives the page token; POST /api/dclab/act recorded by person",
+      "cause": "the page token is in index.html",
+      "fix": "the relay needs the page's own Origin and same-origin fetch (a raised bar, no proof)",
+      "test": "dclab-code tests/server.test.js (another origin refused)",
+      "severity": "privacy"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "the team panel's buttons could never work for a question",
+      "scenario": "a question pause showed Approve ({approve:true}); DCLab answered 422",
+      "cause": "one button for every pause",
+      "fix": "a question takes words (team_answer); an approval takes yes or no; the pause's own text and summary shown",
+      "test": "dclab-code tests/server.test.js",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "every finished project invited a second holdout read",
+      "scenario": "after the final stage the holdout gate reads approved:false again",
+      "cause": "the gate's approval is used",
+      "fix": "no holdout gate button once the holdout was read",
+      "test": "dclab-code tests/server.test.js",
+      "severity": "leakage"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "a slow team resume was recorded as failed although it happened",
+      "scenario": "a 120 s abort while DCLab kept going",
+      "cause": "one short time limit",
+      "fix": "600 s for slow steps; a timeout is sent, outcome unknown (ok null)",
+      "test": "(code)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "the person approved a body they could not see",
+      "scenario": "the card showed 300 characters; a long reason hid gate:holdout",
+      "cause": "a cut preview",
+      "fix": "the whole body on the card; a body longer than it shows is not relayed; agent-written notebook cells never relayed",
+      "test": "dclab-code tests/units.test.js",
+      "severity": "leakage"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "defect": "run all was not marked as a holdout read",
+      "scenario": "POST /api/projects/p1/run asked as a plain decision",
+      "cause": "the holdout path list missed a bare /run",
+      "fix": "/run$ added",
+      "test": "dclab-code tests/units.test.js",
+      "severity": "leakage"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "defect": "DCLab's record did not say the agent proposed a relayed step",
+      "scenario": "a relayed approval's reason went into project memory as the human's",
+      "cause": "the relay looked like a panel click",
+      "fix": "x-dclab-surface dclab-code:relay (or :script); the team's start is never relayed",
+      "test": "dclab-code tests/server.test.js (DCLab is told)",
+      "severity": "latent"
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "defect": "an unknown outcome was recorded as success",
+      "scenario": "a relayed programme run passing 120 s: ok true and 'Done in DCLab'",
+      "cause": "the unknown case counted as no error",
+      "fix": "ok null, 'still working, follow GET /api/jobs'; 600 s for slow steps",
+      "test": "(code)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "defect": "a query was dropped silently",
+      "scenario": "a relayed POST with query {start: final} ran from the start",
+      "cause": "relayOf ignored query",
+      "fix": "a query blocks the relay",
+      "test": "dclab-code tests/units.test.js",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F11",
+      "source": "reviewer",
+      "defect": "the shell rule was easy to get around",
+      "scenario": "[::1]:8765, 127.1, a WebFetch to the token route passed",
+      "cause": "host and path patterns",
+      "fix": "any call to DCLab's ports asks; a WebFetch rule; said to be a raised bar, not a wall",
+      "test": "dclab-code tests/units.test.js",
+      "severity": "privacy"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "dclab-code tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "97 of 97 (units 39, the panel and relay server tests, Chromium page tests)",
+      "verdict": "pass"
+    },
+    {
+      "name": "R&D chat tests",
+      "gate": "the token refused and scrubbed; the surfaces marked",
+      "fixed_before_run": true,
+      "result": "tests/test_chat_agents.py 15 of 15",
+      "verdict": "pass"
+    },
+    {
+      "name": "live relay",
+      "gate": "a decision the agent asks for reaches DCLab as the person's click after Allow",
+      "fixed_before_run": true,
+      "result": "Haiku asked POST /api/projects/dc13527e853c/improve; Allow relayed it; DCLab queued the job; the visit was marked dclab-code; $0.003",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    },
+    {
+      "name": "browser pane check",
+      "gate": "the DCLab tab shows a real project",
+      "fixed_before_run": true,
+      "result": "10 stages done, held-back roc_auc 0.805 (0.789 to 0.822), holdout read 1 time, duration kept out",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The agent reaches DCLab's agents and asks for the person's decisions; the person decides on the same ask card or the DCLab panel, and DCLab records each act honestly.",
+  "lessons": [
+    "When a person approves an agent's proposal, show them all of it, and tell the system who proposed it."
+  ],
+  "risks": [
+    "any local program can read a local page's token: the guards raise the bar, they are no wall"
+  ],
+  "commits": []
+}

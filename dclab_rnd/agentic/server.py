@@ -162,8 +162,12 @@ def create_app(home=None) -> FastAPI:
         principal_token, services_token = set_current(who), context.set_services(workspace)
         visit, fresh = _visit(request)  # 19.2: one sitting of one person, renewed while they work, carried into its jobs
         try:
-            if fresh:  # A7: an external chat's call (and the routes it runs) is the chat's visit, never a person's page
-                experience.mark_new(visit, "mcp" if request.url.path.startswith("/mcp") else experience.chat_surface("web"))
+            if fresh:  # A7: an external chat's call (and the routes it runs) is the chat's visit, never a person's page; a
+                # person's click DCLab Code relays (its own button, never its model) is the person's, on the surface it came from
+                # dclab-code: their own click; dclab-code:relay: their Allow on a step the agent proposed; dclab-code:script: a test driver
+                said = request.headers.get("x-dclab-surface")
+                own = said if said in ("dclab-code", "dclab-code:relay", "dclab-code:script") else "web"
+                experience.mark_new(visit, "mcp" if request.url.path.startswith("/mcp") else experience.chat_surface(own))
             with experience.bind(visit=visit):
                 try:
                     response = await call_next(request)

@@ -78,7 +78,17 @@ AGENT_WRITES: dict[tuple[str, str], tuple[str, ...]] = {
     ("POST", "/api/projects/{project_id}/solution/proposal"): (),
     ("POST", "/api/projects/{project_id}/team"): ("approve", "answer"),  # its holdout gate and its drop question are the person's
 }
-READ_REFUSED = re.compile(r"/(rows|download|events)$|/export/(code|notebook|sft)$|/trials/\{trial_id\}/\{filename\}$")
+READ_REFUSED = re.compile(r"/(rows|download|events)$|/export/(code|notebook|sft)$|/trials/\{trial_id\}/\{filename\}$|^/api/config$|^/api/auth/")
+# Never in a chat's answer whatever the route: the page's request token and any key (a chat with them could act as the person)
+SECRET_KEYS = re.compile(r"^(csrf|token|api_?key|secret|password)$", re.I)
+
+
+def _scrub(x: Any) -> Any:
+    if isinstance(x, dict):
+        return {k: ("(hidden)" if SECRET_KEYS.match(str(k)) and isinstance(v, str) else _scrub(v)) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_scrub(v) for v in x]
+    return x
 READ_REFUSED_WHY = "This operation returns a table's rows, a file holding data, or a stream: a chat never reads it."
 PERSONS_WHY = ("This operation is the person's (an approval or a gate, a choice or a label, consent or policy, a delete, an upload, "
                "a build, or a run the route records as theirs): they do it on its DCLab page. Stages run through the project tools "
@@ -495,7 +505,7 @@ async def dclab_call(services: Any, method: str, path: str, query: dict[str, Any
     kind = response.headers.get("content-type", "").split(";")[0].strip()
     if kind == "application/json" or not response.content:
         try:
-            data = response.json() if response.content else None
+            data = _scrub(response.json()) if response.content else None
         except ValueError:
             data = response.text
         text = json.dumps(data, ensure_ascii=False, default=str)

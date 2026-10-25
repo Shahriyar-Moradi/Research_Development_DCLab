@@ -187,6 +187,30 @@ class HomeAgentOverMcpTests(McpChatCase):
         self.assertEqual(added["table"]["name"], "clients.csv")
 
 
+class PersonSurfaceTests(McpChatCase):
+    def test_a_click_relayed_by_dclab_code_starts_a_visit_on_its_surface(self):
+        for surface in ("dclab-code", "dclab-code:relay", "made-up"):
+            from starlette.testclient import TestClient
+
+            fresh = TestClient(self.app)  # a new visit each time (no visit cookie carried over)
+            r = fresh.post("/api/drafts", json={"problem": "Predict which shipments arrive late"},
+                           headers={"x-dclab-token": self.services.csrf, "x-dclab-surface": surface})
+            self.assertEqual(r.status_code, 201, r.text[:200])
+        surfaces = [e.payload.get("surface") for e in self.services.experience.read() if e.kind == "visit.started"]
+        self.assertTrue({"dclab-code", "dclab-code:relay"} <= set(surfaces), surfaces)
+        self.assertNotIn("made-up", surfaces)  # only the surfaces DCLab Code names
+        self.call("home_list", {})  # through /mcp the header changes nothing: an MCP call stays the chat's
+        self.assertNotIn("dclab-code", [e.payload.get("surface") for e in self.services.experience.read() if e.kind == "visit.started"][len(surfaces):])
+
+
+class ScrubTests(unittest.TestCase):
+    def test_secrets_are_hidden_at_any_depth(self):
+        from dclab_rnd import chat_agents
+
+        got = chat_agents._scrub({"csrf": "x", "a": {"api_key": "y", "list": [{"Token": "z", "n": 1}]}, "name": "ok"})
+        self.assertEqual(got, {"csrf": "(hidden)", "a": {"api_key": "(hidden)", "list": [{"Token": "(hidden)", "n": 1}]}, "name": "ok"})
+
+
 class ChatBuildRuleTests(McpChatCase):
     """Every build during an external chat's call goes through home_build: the Home agent's and the orchestrator's alike."""
 
@@ -287,6 +311,9 @@ class CapabilitiesOverMcpTests(McpChatCase):
         self.assertIn("error", self.call("dclab_call", {"method": "GET", "path": "/api/../etc/passwd"}))
         self.assertIn("No GET", self.call("dclab_call", {"method": "GET", "path": "/api/nothing-here"}).get("error", ""))
         self.assertTrue(self.call("dclab_call", {"method": "GET", "path": "/api/consent"})["ok"])  # reading a switch is fine
+        # The page's request token never reaches a chat (with it a chat could act as the person through another door)
+        self.assertIn("never reads", self.call("dclab_call", {"method": "GET", "path": "/api/config"}).get("error", ""))
+        self.assertNotIn(self.services.csrf, json.dumps([self.call("dclab_call", {"method": "GET", "path": p}) for p in ("/api/samples", "/api/consent", "/api/workspace")]))
         # Whatever the routes record during the chat's calls is the agent's, in the chat's visit: never a person's page visit.
         rows = self.services.audit.query(500, 0)[1]
         self.assertTrue(rows, "the routes' audit rows")
