@@ -117,7 +117,7 @@ class StructureTabularTest(TempDirTest):
             def __exit__(self, *exc):
                 return False
 
-            def parse(self, name, nrows=None):
+            def parse(self, name, nrows=None, **kwargs):
                 return pd.DataFrame() if name == "Cover" else pd.DataFrame({" amount ": [1, 2, 3], "city": ["a", "b", "c"]})
 
         path = self.write("book.xlsx", b"PK\x03\x04 not a real workbook")

@@ -292,9 +292,37 @@ def sniff_delimiter(lines: list[str]) -> str | None:
     for delimiter in candidates:
         counts = [len(row) for row in csv.reader(sample, delimiter=delimiter)]
         modal, hits = Counter(counts).most_common(1)[0]
-        if modal >= 2 and counts[0] == modal and hits >= 0.9 * len(counts):
+        lead = _lead(counts, modal)
+        if modal >= 2 and lead is not None and hits >= 0.9 * (len(counts) - lead):
             return delimiter
     return None
+
+
+MAX_TITLE_LINES = 5  # an export's title above its header ("Export of 2024-10-01", "Report: sales"), at most this many lines
+
+
+def _lead(counts: list[int], modal: int) -> int | None:
+    """Where the header is among the first lines' field counts: the first line with the table's own count, after at most
+    ``MAX_TITLE_LINES`` lines of one field each (a title); None when a line before it holds fields of its own."""
+    for i, count in enumerate(counts[:MAX_TITLE_LINES + 1]):
+        if count == modal:
+            return i
+        if count != 1:
+            return None
+    return None
+
+
+def title_lines(head: bytes, sep: str) -> int:
+    """How many physical lines (blank ones too, as pandas counts them) sit above the header: a title, not data."""
+    text = head.decode("utf-8-sig", errors="replace").splitlines()[:60]
+    counts = [len(next(csv.reader([line], delimiter=sep), [])) if line.strip() else 0 for line in text]
+    body = [c for c in counts if c]
+    if len(body) < 3:
+        return 0
+    modal = Counter(body).most_common(1)[0][0]
+    nonblank = [i for i, c in enumerate(counts) if c]
+    lead = _lead([counts[i] for i in nonblank], modal) if modal >= 2 else None
+    return nonblank[lead] if lead else 0
 
 
 # ---------------------------------------------------------------------- tabular
@@ -309,10 +337,13 @@ def _read_delimited(path: Path, head: bytes, info: dict[str, Any], client: Any, 
         info["notes"].append(f"The {suffix + ' ' if suffix else ''}file holds {DELIMITER_NAMES[sep]}-separated values; read it as a table.")
     elif sep != default:
         info["notes"].append(f"The values are separated by a {DELIMITER_NAMES[sep]}, not a {DELIMITER_NAMES[default]}.")
+    skip = title_lines(head, sep)
+    if skip:
+        info["notes"].append(f"Skipped {skip} line{'s' if skip > 1 else ''} above the header: a title, not data.")
     frame = None
     for encoding in ("utf-8-sig", "latin-1"):
         try:
-            frame = _read_csv(path, sep, encoding, max_rows, info)
+            frame = _read_csv(path, sep, encoding, max_rows, info, skip)
             break
         except UnicodeDecodeError:
             continue
@@ -325,29 +356,46 @@ def _read_delimited(path: Path, head: bytes, info: dict[str, Any], client: Any, 
         raise StructureError("The file's text encoding could not be read. Save it as UTF-8 CSV and try again.")
     if encoding == "latin-1":
         info["notes"].append("The file is not UTF-8; it was read as Latin-1, so check accented characters.")
-    header = next(csv.reader(_head_lines(head)[:1], delimiter=sep), [])
+    header = next(csv.reader([line for line in head.decode("utf-8-sig", errors="replace").splitlines()[skip:] if line.strip()][:1], delimiter=sep), [])
     if len(header) == frame.shape[1] and len({h.strip() for h in header}) < len(header):
         frame.columns = unique_names(header)  # pandas would call a repeated header "a.1"; we say "a_2"
     return frame
 
 
-def _read_csv(path: Path, sep: str, encoding: str, max_rows: int, info: dict[str, Any]) -> pd.DataFrame:
+def _read_csv(path: Path, sep: str, encoding: str, max_rows: int, info: dict[str, Any], skip: int = 0) -> pd.DataFrame:
+    """"NA" is read as text, then decided per column (``studio.na_codes``: Namibia's code among two-letter codes);
+    ``skip``: the title lines above the header."""
+    from ..studio.na_codes import READ_NA, kept_note, na_as_read
+
     try:
-        return pd.read_csv(path, sep=sep, encoding=encoding, low_memory=False, nrows=max_rows + 1)
+        frame = pd.read_csv(path, sep=sep, encoding=encoding, low_memory=False, nrows=max_rows + 1, keep_default_na=False, na_values=READ_NA,
+                            skiprows=skip or None)
     except pd.errors.ParserError:
-        bad: list[list[str]] = []
+        frame = _read_csv_skipping(path, sep, encoding, max_rows, info, READ_NA, skip)
+    frame, kept = na_as_read(frame)
+    if kept:
+        info["notes"].append(kept_note(kept))
+    return frame
 
-        def skip(fields: list[str]) -> None:  # returning None tells pandas to drop the line
-            bad.append(fields)
 
-        frame = pd.read_csv(path, sep=sep, encoding=encoding, engine="python", on_bad_lines=skip, nrows=max_rows + 1)
-        total = len(frame) + len(bad)
-        info["parse_rate"] = len(frame) / total if total else 0.0
-        info["notes"].append(f"Skipped {len(bad)} of {total:,} rows that had more fields than the header.")
-        return frame
+def _read_csv_skipping(path: Path, sep: str, encoding: str, max_rows: int, info: dict[str, Any], read_na: list[str], skip: int = 0) -> pd.DataFrame:
+    """A file whose lines do not all parse: the lines with more fields than the header skipped, and counted."""
+    bad: list[list[str]] = []
+
+    def drop(fields: list[str]) -> None:  # returning None tells pandas to drop the line
+        bad.append(fields)
+
+    frame = pd.read_csv(path, sep=sep, encoding=encoding, engine="python", on_bad_lines=drop, nrows=max_rows + 1,
+                        keep_default_na=False, na_values=read_na, skiprows=skip or None)
+    total = len(frame) + len(bad)
+    info["parse_rate"] = len(frame) / total if total else 0.0
+    info["notes"].append(f"Skipped {len(bad)} of {total:,} rows that had more fields than the header.")
+    return frame
 
 
 def _read_excel(path: Path, head: bytes, info: dict[str, Any], client: Any, max_rows: int) -> pd.DataFrame:
+    from ..studio.na_codes import READ_NA, kept_note, na_as_read
+
     try:
         book = pd.ExcelFile(path)
     except ImportError:
@@ -360,7 +408,7 @@ def _read_excel(path: Path, head: bytes, info: dict[str, Any], client: Any, max_
         frame, used = pd.DataFrame(), None
         for name in sheets:
             try:
-                frame = book.parse(name, nrows=max_rows + 1)
+                frame = book.parse(name, nrows=max_rows + 1, keep_default_na=False, na_values=READ_NA)
             except Exception:  # noqa: BLE001 - a damaged sheet; the message says what to do
                 raise StructureError(f"The sheet '{name}' could not be read. Save the workbook as CSV and upload that.") from None
             if not frame.dropna(how="all").empty:
@@ -369,6 +417,9 @@ def _read_excel(path: Path, head: bytes, info: dict[str, Any], client: Any, max_
     if used is not None and len(sheets) > 1:
         info["notes"].append(f"Read the sheet '{used}', the first of {len(sheets)} sheets that holds data; "
                              "upload other sheets as separate files.")
+    frame, kept = na_as_read(frame)
+    if kept:
+        info["notes"].append(kept_note(kept))
     return frame
 
 

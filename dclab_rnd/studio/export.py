@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .store import STAGE_KEYS
+from .na_codes import SOURCE as NA_SOURCE  # "NA" read as the studio reads it (the owner, 2026-10-25)
 
 MODEL_IMPORTS = {
     "logistic_regression": ("from sklearn.linear_model import LogisticRegression", "LogisticRegression(C=1.0, max_iter=3000)"),
@@ -82,12 +83,12 @@ def _read_code(filename: str) -> str:
     if suffix == ".parquet":
         return f"pd.read_parquet({filename!r})"
     if suffix in (".tsv", ".tab"):
-        return f"pd.read_csv({filename!r}, sep='\\t', low_memory=False)"
+        return f"na_as_read(pd.read_csv({filename!r}, sep='\\t', low_memory=False, keep_default_na=False, na_values=READ_NA))[0]"
     if suffix in (".xlsx", ".xls"):
-        return f"pd.read_excel({filename!r})"
+        return f"na_as_read(pd.read_excel({filename!r}, keep_default_na=False, na_values=READ_NA))[0]"
     if suffix == ".json":
         return f"pd.read_json({filename!r})"
-    return f"pd.read_csv({filename!r}, low_memory=False)"
+    return f"na_as_read(pd.read_csv({filename!r}, low_memory=False, keep_default_na=False, na_values=READ_NA))[0]"
 
 
 def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -150,7 +151,7 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
               "the holdout is scored once, at the end. Scores are evidence about the method, not production approval."),
         _cell("code", "import numpy as np\nimport pandas as pd\nfrom sklearn.compose import ColumnTransformer\nfrom sklearn.impute import SimpleImputer\n"
               "from sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import OneHotEncoder, StandardScaler\n"
-              f"from sklearn.metrics import {metric_import}\n{import_line}\n\nRANDOM_STATE = 42"),
+              f"from sklearn.metrics import {metric_import}\n{import_line}\n\nRANDOM_STATE = 42\n\n\n" + NA_SOURCE),
         _cell("markdown", "## 1. Load the data and apply the solution\n\nColumns unknown at the prediction moment and identifiers are removed before anything else happens."),
         _cell("code", f"frame = {_read_code(data.get('filename', 'data.csv'))}  # the project's data file\n"
               + _labels_code(project, solution)

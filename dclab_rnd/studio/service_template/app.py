@@ -8,12 +8,9 @@ never a value of the row."""
 
 from __future__ import annotations
 
-import io
-
-import pandas as pd
 from flask import Flask, jsonify, request
 
-from scorer import Scorer
+from scorer import Scorer, read_csv
 from serve_log import Log, Refused
 
 app = Flask(__name__)
@@ -52,7 +49,7 @@ def predict_csv():
     if upload is None:
         return jsonify({"error": "send the CSV as a form field named file"}), 400
     key = request.form.get("key") or request.args.get("key")
-    frame = pd.read_csv(io.BytesIO(upload.read()), dtype={key: str} if key else None)  # a key keeps its text ("007" stays "007")
+    frame = read_csv(upload.read(), scorer.meta, key)  # a key keeps its text ("007" stays "007"); "NA" as in training
     try:
         return jsonify(log.predict(frame, key))
     except Refused as error:

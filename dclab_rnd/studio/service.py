@@ -27,6 +27,7 @@ from typing import Any
 from ..expansion import runner as rn
 from . import engine
 from .data import column_kind
+from .na_codes import codes_kept  # "NA" as a code in the service's CSV, as in training (2026-10-25)
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).resolve().parent / "service_template"
@@ -134,7 +135,9 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
             "production_approved": False,
             # 34.9: the log's model and version (a fingerprint of model.pkl), and the label an outcome that is not positive has
             "model_id": project_id, "model_version": _fingerprint(out / "model.pkl"),
-            "negative_label": _negative_label(p.frame, solution) if solution.task == "binary" else None}
+            "negative_label": _negative_label(p.frame, solution) if solution.task == "binary" else None,
+            # 2026-10-25: the input columns where "NA" is a code (Namibia's), from the training table: the service's CSV reads them so
+            "na_codes": [c for c in codes_kept(p.frame) if c in {str(x) for x in bundle.X.columns}]}
     calibrator = (final.get("calibration_fit") or {}).get("calibrator")
     if calibrator and calibrator.get("method") != "none":  # 30.15: fitted on the out-of-fold scores; served beside the score, never instead of it
         meta["calibrator"] = calibrator

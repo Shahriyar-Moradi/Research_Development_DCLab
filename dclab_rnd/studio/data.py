@@ -34,16 +34,20 @@ def sha256(path: Path) -> str:
 
 
 def load_table(path: Path) -> pd.DataFrame:
+    """A table by its file's suffix; from text, "NA" decided per column (``na_codes``: Namibia's code among two-letter
+    codes, a missing value elsewhere), as the upload was read and as the exported code reads it."""
+    from .na_codes import READ_NA, na_as_read
+
     suffix = path.suffix.lower()
     if suffix == ".parquet":
         return pd.read_parquet(path)
     if suffix in (".tsv", ".tab"):
-        return pd.read_csv(path, sep="\t", low_memory=False)
+        return na_as_read(pd.read_csv(path, sep="\t", low_memory=False, keep_default_na=False, na_values=READ_NA))[0]
     if suffix in (".xlsx", ".xls"):
-        return pd.read_excel(path)
+        return na_as_read(pd.read_excel(path, keep_default_na=False, na_values=READ_NA))[0]
     if suffix == ".json":
         return pd.read_json(path)
-    return pd.read_csv(path, low_memory=False)
+    return na_as_read(pd.read_csv(path, low_memory=False, keep_default_na=False, na_values=READ_NA))[0]
 
 
 def _datetime_like(series: pd.Series) -> bool:
@@ -456,8 +460,11 @@ def attach_data(store, project_id: str, filename: str, source: dict[str, Any] | 
             except Exception:  # noqa: BLE001 — a leftover the storage never recorded: just remove the file
                 old.unlink(missing_ok=True)
     project = store.get(project_id)
+    from .na_codes import codes_kept
+
     project["data"] = {"filename": filename, "rows": int(len(frame)), "columns": [str(c) for c in frame.columns],
-                       "sha256": stored["sha256"], "profile": profile_table(frame), "card": data_card({filename: frame}, filename)}
+                       "sha256": stored["sha256"], "profile": profile_table(frame), "card": data_card({filename: frame}, filename),
+                       "na_codes": codes_kept(frame)}  # 2026-10-25: the columns where "NA" was read as a code (Namibia's), not as missing
     project["solution"], project["proposal"], project["suggestion"] = None, None, None
     project["labels"] = None  # its file was removed with the old table, and it was keyed on that table
     project["tables"] = {}  # 16.15 C: the related tables' files went with the old table too

@@ -27,6 +27,7 @@ import textwrap
 import numpy as np
 from pathlib import Path
 from typing import Any, Callable, Optional
+from .na_codes import SOURCE as NA_SOURCE  # "NA" read as the studio reads it (the owner, 2026-10-25)
 
 ROOT = Path(__file__).resolve().parents[2]
 VENDOR = {"dclab_rnd/provenance.py": "dclab_rnd/provenance.py", "dclab_rnd/expansion/__init__.py": "dclab_rnd/expansion/__init__.py",
@@ -63,6 +64,9 @@ sys.path.insert(0, str(HERE / "vendor"))  # dclab_core (and the engine's runner)
 EXPECTED = json.loads((HERE / "expected.json").read_text())
 
 
+''' + NA_SOURCE + '''
+
+
 def read_table(name):
     """A table as DCLab read it, by its file's suffix."""
     path = HERE / "data" / name
@@ -70,12 +74,12 @@ def read_table(name):
     if suffix == ".parquet":
         return pd.read_parquet(path)
     if suffix in (".tsv", ".tab"):
-        return pd.read_csv(path, sep="\\t", low_memory=False)
+        return na_as_read(pd.read_csv(path, sep="\\t", low_memory=False, keep_default_na=False, na_values=READ_NA))[0]
     if suffix in (".xlsx", ".xls"):
-        return pd.read_excel(path)
+        return na_as_read(pd.read_excel(path, keep_default_na=False, na_values=READ_NA))[0]
     if suffix == ".json":
         return pd.read_json(path)
-    return pd.read_csv(path, low_memory=False)'''
+    return na_as_read(pd.read_csv(path, low_memory=False, keep_default_na=False, na_values=READ_NA))[0]'''
 
 FOOTER = '''\
 same = value is not None and abs(float(value) - float(EXPECTED["value"])) <= 1e-6 * max(1.0, abs(float(EXPECTED["value"])))

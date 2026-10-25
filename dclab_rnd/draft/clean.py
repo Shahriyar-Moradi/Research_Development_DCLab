@@ -108,11 +108,40 @@ def _step_names(frame: pd.DataFrame) -> tuple[pd.DataFrame, Entry | None]:
                    "detail": f"Removed extra spaces and made names unique: {detail}."}
 
 
+def _na_code_columns(frame: pd.DataFrame) -> list[Any]:
+    """The text columns where "NA" is a code (``studio.na_codes``): only those holding an "NA" are asked."""
+    from ..studio.na_codes import code_column
+
+    out = []
+    for column in _text_columns(frame):
+        stripped = frame[column].map(lambda v: v.strip() if isinstance(v, str) else None)
+        if (stripped == "NA").any() and code_column(frame[column]):
+            out.append(column)
+    return out
+
+
+def _step_na_codes(frame: pd.DataFrame) -> tuple[pd.DataFrame, Entry | None]:
+    """Nothing changes: "NA" kept as a code in a column of two-letter codes (Namibia's), said in the log (the owner,
+    2026-10-25). A table-wide entry (no column of its own), as the duplicates step is: its column's step stays its own."""
+    from ..studio.na_codes import kept_note
+
+    kept = _na_code_columns(frame)
+    cells = int(sum(frame[c].map(lambda v: isinstance(v, str) and v.strip() == "NA").sum() for c in kept))
+    return frame, {"step": "na_codes", "title": "Kept 'NA' as a code", "columns": [], "changed": cells,
+                   "detail": kept_note([str(c) for c in kept]) if kept else ""}
+
+
 def _step_missing_markers(frame: pd.DataFrame) -> tuple[pd.DataFrame, Entry | None]:
+    """Markers of a missing value (N/A, null, -, ?) become missing; "NA" too, except in a column of two-letter codes,
+    where it is a code (Namibia's: ``studio.na_codes``, the owner, 2026-10-25)."""
     total, touched, seen = 0, [], set()
+    codes = set(_na_code_columns(frame))
     for column in _text_columns(frame):
         series = frame[column]
-        hits = series.map(lambda v: isinstance(v, str) and v.strip() in MISSING_MARKERS).astype(bool)
+        stripped = series.map(lambda v: v.strip() if isinstance(v, str) else None)
+        hits = stripped.isin(MISSING_MARKERS).astype(bool)
+        if column in codes:
+            hits &= stripped != "NA"
         count = int(hits.sum())
         if count:
             seen.update(str(v).strip() for v in series[hits].unique())
@@ -261,5 +290,5 @@ def _step_duplicates(frame: pd.DataFrame) -> tuple[pd.DataFrame, Entry | None]:
 
 
 STEPS: list[Callable[[pd.DataFrame], tuple[pd.DataFrame, Entry | None]]] = [
-    _step_names, _step_missing_markers, _step_trim, _step_numbers, _step_dates, _step_booleans, _step_empty, _step_duplicates,
+    _step_names, _step_na_codes, _step_missing_markers, _step_trim, _step_numbers, _step_dates, _step_booleans, _step_empty, _step_duplicates,
 ]

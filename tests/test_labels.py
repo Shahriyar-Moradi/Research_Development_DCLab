@@ -198,7 +198,7 @@ class StepTwoReviewTest(unittest.TestCase):
         meta = {"title": "", "setup_summary": "", "notes": []}
         records = {"features": {**meta, "decision": {"chosen": "raw"}, "evidence": {}}, "models": {**meta, "decision": {"chosen": "isolation_forest"}}}
         source = "".join("".join(c["source"]) for c in export.notebook(project, records)["cells"])
-        self.assertIn("labels = pd.read_csv('known_cases.csv'", source)
+        self.assertIn("labels = na_as_read(pd.read_csv('known_cases.csv'", source)  # 2026-10-25: "NA" read as the studio reads it
         self.assertIn("KEY = ['order_id']", source)
         self.assertIn("from dclab_rnd.expansion.detectors import IsolationForestDetector", source)
         with self.assertRaises(export.ExportUnsupported):

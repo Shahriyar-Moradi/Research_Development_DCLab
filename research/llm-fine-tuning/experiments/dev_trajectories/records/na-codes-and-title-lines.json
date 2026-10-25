@@ -1,0 +1,165 @@
+{
+ "package": "na-codes-and-title-lines",
+ "title": "Namibia's NA kept as a code in a column of two-letter codes, and an export's title above its header skipped",
+ "date": "2026-10-25",
+ "request": "The owner's answer: 'In a column where the other values are two-letter codes (ZA, KE, BW...), keep NA as written and say so in the cleaning log. Elsewhere NA stays missing (R's way).' Found on planted traps (benchgen v2's dirty tables) during step 5 of the 100-students plan.",
+ "spec": "One rule (dclab_rnd/studio/na_codes.py) used by every text reader of a person's table: the upload reader, a project's table, the cleaner, the exported pipeline and notebook (embedded word for word), and the scoring service.",
+ "plan": [
+  "Measure the cleaner on the planted traps.",
+  "Find every place NA becomes missing.",
+  "One self-contained rule, embedded in the exports.",
+  "Review by dclab-reviewer, every finding fixed with a test."
+ ],
+ "decisions": [
+  {
+   "decision": "Read every text table with keep_default_na=False and pandas' own markers minus NA, then decide NA per column.",
+   "why": "pandas turns NA into missing at read time, before the cleaner ever sees it; fixing only the cleaner changed nothing."
+  },
+  {
+   "decision": "The rule is two functions with no annotations and their imports inside, embedded as source in the exports.",
+   "why": "make code-check needs an exported pipeline to read data exactly as the studio did; one source, never two copies."
+  },
+  {
+   "decision": "The scoring service reads NA by a list fixed on the training table (model.json na_codes), never per batch.",
+   "why": "A one-row CSV can never show three codes; deciding per batch would make the CSV and JSON endpoints disagree on the same row."
+  },
+  {
+   "decision": "The cleaning log's entry for it is table-wide (columns []), as the duplicates step is.",
+   "why": "Every log entry becomes a ledger record per column; a per-column entry would add a second data.cleaning_step answer for the country column."
+  },
+  {
+   "decision": "The generated_v2 sets and their sealed partitions are not rebuilt.",
+   "why": "Their records hold the old rule's answer on the country trap (missing_markers, now none); a rebuild would move the committed rows; DMG-008 failed anyway, so no promoted student depends on it."
+  },
+  {
+   "decision": "The title-line fix is in the delimiter sniffer and the reader: up to five one-field lines above a header with the table's own field count.",
+   "why": "Planted files: the reader was right on 11 of 12 traps; a CSV with 'Export of 2024-10-01' above its header became one column."
+  }
+ ],
+ "change": "dclab_rnd/studio/na_codes.py (new); draft/structure.py (_read_csv, _read_csv_skipping, _read_excel, sniff_delimiter, title_lines); studio/data.py (load_table, attach_data's na_codes); draft/clean.py (_step_na_codes, _step_missing_markers); studio/code.py and studio/export.py (embedded rule); studio/service.py (model.json na_codes); service_template/scorer.py read_csv and app.py; tests/test_na_codes.py, tests/test_read_titles.py, tests/test_draft_data.py (the fake workbook takes the new arguments).",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The cleaner turned Namibia's code into missing and read versions as numbers.",
+   "scenario": "A planted country column of NA, ZA, BW, KE: 48 of 48 NA became missing; app_version 1.10 became 1.1.",
+   "cause": "NA in MISSING_MARKERS for every column; pandas' read_csv default na_values.",
+   "fix": "na_codes: NA kept in a column of two-letter codes. Versions: not asked by the owner, left open.",
+   "test": "tests/test_na_codes.py"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An existing test failed.",
+   "scenario": "test_draft_data's fake workbook parse(name, nrows) refused keep_default_na.",
+   "cause": "The fake's signature.",
+   "fix": "parse(self, name, nrows=None, **kwargs).",
+   "test": "tests/test_draft_data.py"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "NA counted toward its own code column.",
+   "scenario": "An R export with 95 NA and JR/SR suffixes: all 95 missing values kept as the category NA and called Namibia's.",
+   "cause": "code_column counted NA in the share and the distinct codes.",
+   "fix": "NA left out of both; at least three other codes, 90% of the other values.",
+   "test": "test_na_itself_never_counts_toward_the_codes"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "With pandas 3 the rule did nothing and numbers stayed text.",
+   "scenario": "infer_string: amount (1.5, NA, 2) stayed text with NA kept.",
+   "cause": "Only object columns were read.",
+   "fix": "object or StringDtype.",
+   "test": "test_pandas_text_columns_of_the_string_dtype_are_read_the_same"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The scoring service still lost Namibia, and its two endpoints disagreed.",
+   "scenario": "/predict/csv read with pandas defaults: a Namibia row arrived as NaN while /predict kept NA.",
+   "cause": "app.py's read_csv.",
+   "fix": "model.json na_codes from the training table; scorer.read_csv reads by it.",
+   "test": "test_the_scoring_service_reads_a_csv_as_training_did"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The cleaning log did not say NA was kept.",
+   "scenario": "A JSON upload with Namibia rows: an empty log.",
+   "cause": "The note lived in the reader's notes only.",
+   "fix": "A table-wide na_codes entry in the cleaning log; attach_data keeps na_codes on the project's data.",
+   "test": "test_the_cleaning_log_says_namibia_was_kept"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "About ten times slower than reading the file.",
+   "scenario": "500k rows x 20 text columns: read 4.8 s, the rule 51 s, the cleaner's markers 33 s.",
+   "cause": "Cell-by-cell checks and code_column on every column.",
+   "fix": "value_counts per column, distinct values for the number and true/false checks, code_column only where NA is present: 200k x 10 columns read 0.44 s, the rule 1.28 s.",
+   "test": "measured in the session"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Three edges read differently from pandas.",
+   "scenario": "An all-NA column became text; a spreadsheet's dates with one NA became text; 20-digit ids lost digits as floats.",
+   "cause": "The number check and no type inference.",
+   "fix": "infer_objects first, numbers judged on distinct values, values of 2**64 or more stay text.",
+   "test": "test_the_edges_read_as_pandas_reads_them"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The note said Namibia where the code may be another.",
+   "scenario": "US state codes with an R missing value: 'NA' kept and called Namibia's.",
+   "cause": "Wording.",
+   "fix": "Neutral wording: read as a code (as Namibia's is NA); if it means missing, say so.",
+   "test": "kept_note"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "An export's title line above its header made the table one column.",
+   "scenario": "'Export of 2024-10-01', a blank line, then a CSV: read as 121 rows of 1 column.",
+   "cause": "sniff_delimiter required the first line to have the table's field count.",
+   "fix": "Up to five one-field lines above a header with the table's own count are skipped, with a note.",
+   "test": "tests/test_read_titles.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "planted files",
+   "gate": "affected tests only (the owner's daytime rule)",
+   "result": "reader right on 12 of 12 traps after the fix (11 before); NA kept in code columns on upload, project read, cleaner, exports and the service",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "a table decides on its own: a small label table with too few codes reads NA as missing",
+    "version strings are still read as numbers"
+   ]
+  }
+ ],
+ "outcome": "Namibia's code survives every reader; an export's title no longer breaks a table.",
+ "lessons": [
+  "A fix in the cleaner is not a fix when the reader has already changed the value: follow the value from the file to the model.",
+  "When generated code must reproduce the studio's numbers, embed the rule's own source rather than writing it twice."
+ ],
+ "risks": [
+  "The rule lives in dclab_rnd, not dclab_core: the main product still reads NA as missing.",
+  "kinds/anomaly.py reads reviewed_cases.csv with pandas defaults."
+ ],
+ "commits": []
+}

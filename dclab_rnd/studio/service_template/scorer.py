@@ -20,6 +20,31 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "vendor"))
 
 
+# pandas' default missing markers but "NA": in the columns DCLab trained with "NA" as a code (Namibia's), it stays a code
+READ_NA = ["", "#N/A", "#N/A N/A", "#NA", "-1.#IND", "-1.#QNAN", "-NaN", "-nan", "1.#IND", "1.#QNAN", "<NA>", "N/A", "NULL", "NaN",
+           "None", "n/a", "nan", "null"]
+
+
+def read_csv(data: bytes, meta: dict[str, Any], key: str | None = None) -> pd.DataFrame:
+    """A CSV of rows to score, read as DCLab read its training table: "NA" a code in the columns ``model.json`` names
+    (``na_codes``: decided on the training table, never on a batch, which may hold one row), missing everywhere else."""
+    import io
+
+    frame = pd.read_csv(io.BytesIO(data), dtype={key: str} if key else None, keep_default_na=False, na_values=READ_NA)
+    codes = set(meta.get("na_codes") or [])
+    for column in frame.columns:
+        series = frame[column]
+        if column in codes or column == key or not (series.dtype == object or isinstance(series.dtype, pd.StringDtype)):
+            continue
+        hits = series.eq("NA").fillna(False).astype(bool)
+        if not hits.any():
+            continue
+        series = series.astype(object).mask(hits, np.nan)
+        numbers = pd.to_numeric(series, errors="coerce")
+        frame[column] = numbers if int(numbers.notna().sum()) == int(series.notna().sum()) else series
+    return frame
+
+
 class Scorer:
     def __init__(self, path: Path = HERE / "model.pkl", key: str | None = None):
         with open(path, "rb") as handle:

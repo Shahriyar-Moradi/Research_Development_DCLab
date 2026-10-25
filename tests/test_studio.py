@@ -178,7 +178,8 @@ class EngineTests(unittest.TestCase):
         self.assertIn("frame = pd.read_parquet('sim.parquet')", json.dumps(nb))
         self.assertIn(export.SYNTHETIC_NOTE, nb["cells"][0]["source"])
         self.assertIn(export.SYNTHETIC_NOTE, export.report(synthetic, records))
-        self.assertEqual(export._read_code("t.tsv"), "pd.read_csv('t.tsv', sep='\\t', low_memory=False)")
+        self.assertEqual(export._read_code("t.tsv"),  # 2026-10-25: "NA" read as the studio reads it (studio/na_codes.py)
+                         "na_as_read(pd.read_csv('t.tsv', sep='\\t', low_memory=False, keep_default_na=False, na_values=READ_NA))[0]")
         # the notebook reproduces the folds the stages recorded, then the project's setting, then 3
         self.assertRegex(json.dumps(export.notebook(project, records)), r"cv = \w+\(n_splits=3\b")  # what these stages recorded
         five = {**records, "data": {**records["data"], "evidence": {**records["data"]["evidence"], "cv_protocol": "StratifiedKFold(5, shuffle, random_state=42) on training rows"}}}
