@@ -112,6 +112,7 @@ def create_app(home=None) -> FastAPI:
     app = FastAPI(title="DCLab notebook", lifespan=lifespan, **docs)
     app.add_middleware(HostCheck, allowed_hosts=settings.hosts())  # DCLAB_ALLOWED_HOSTS adds a proxy's name (12.2)
     app.state.services = s
+    s.app = app  # A7.3: DCLab's agents behind a chat run the product's own operations in this app (chat_agents.dclab_call)
     app.state.pool = pool
     app.state.settings = settings
     app.state.store, app.state.tasks, app.state.projects, app.state.drafts, app.state.models = s.store, s.tasks, s.projects, s.drafts, s.gateway
@@ -161,8 +162,8 @@ def create_app(home=None) -> FastAPI:
         principal_token, services_token = set_current(who), context.set_services(workspace)
         visit, fresh = _visit(request)  # 19.2: one sitting of one person, renewed while they work, carried into its jobs
         try:
-            if fresh:
-                experience.mark_new(visit, "web")
+            if fresh:  # A7: an external chat's call (and the routes it runs) is the chat's visit, never a person's page
+                experience.mark_new(visit, "mcp" if request.url.path.startswith("/mcp") else experience.chat_surface("web"))
             with experience.bind(visit=visit):
                 try:
                     response = await call_next(request)

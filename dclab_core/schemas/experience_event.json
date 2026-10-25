@@ -178,7 +178,7 @@
     },
     "JsonValue": {}
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v13.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v14.json",
   "additionalProperties": false,
   "allOf": [
     {
@@ -4712,6 +4712,46 @@
                 }
               }
             }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "surface"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "surface"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "surface"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "surface"
+                  ]
+                }
+              }
+            }
           }
         ],
         "properties": {
@@ -4722,12 +4762,16 @@
               },
               "problem": {
                 "const": "person_text"
+              },
+              "surface": {
+                "const": "meta"
               }
             },
             "propertyNames": {
               "enum": [
                 "pack",
-                "problem"
+                "problem",
+                "surface"
               ]
             }
           },
@@ -4735,7 +4779,8 @@
             "propertyNames": {
               "enum": [
                 "pack",
-                "problem"
+                "problem",
+                "surface"
               ]
             }
           }
@@ -15690,8 +15735,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.experience_event.v13",
-      "default": "dclab_core.experience_event.v13",
+      "const": "dclab_core.experience_event.v14",
+      "default": "dclab_core.experience_event.v14",
       "title": "Schema Version",
       "type": "string"
     },

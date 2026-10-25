@@ -593,7 +593,7 @@ class HomeAgent:
 
     @turn
     def data_failed(self, draft_id: str, asset: dict[str, Any], error: str) -> None:
-        self.say(draft_id, f"I could not use {asset.get('name', 'that file')}: {error}", kind="text", severity="warning")
+        self.say(draft_id, f"I could not use {asset.get('name', 'that file')}: {error}", kind="text", severity="warning", asset=asset.get("id"))
         self.refresh_workflow(draft_id)
 
     @turn

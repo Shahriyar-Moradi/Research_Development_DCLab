@@ -1,0 +1,285 @@
+{
+  "package": "A7.2",
+  "title": "The Home agent behind an external chat, through the page's own routes",
+  "date": "2026-10-25",
+  "request": "The owner (2026-10-25): DCLab Code, a minimal developer app like Claude Code and Codex, must carry every capability of the R&D project behind its chat: \"all agentic systems we designed work behind the chat, as Claude's or Codex's do\"; then \"most things are available: implement, adopt and integrate them, no need to make them again\"; \"the main repo\" is this R&D repository (Research_Development_DCLab), not the main product repository.",
+  "spec": "docs/guides/AGENTIC_FOUNDATION_PLAN.md, phase A7, package A7.2",
+  "plan": [
+    "a chat scope in the registry with its own guard",
+    "home_start/message/add_data/status/build/list calling the Home agent",
+    "wait for the agent's turn and return what the page shows",
+    "record the chat's text apart from a person's",
+    "tests over MCP on files and PostgreSQL",
+    "adversarial review, then fix and review again"
+  ],
+  "decisions": [
+    {
+      "decision": "The tools go through the page's routes in the same app (httpx ASGITransport), not the agent objects: the routes already own the busy check on both stores, the background turn, the twin hook and the refusals; calling the objects re-implemented them badly (review findings 2, 4, 8, 10).",
+      "why": "the routes own the checks; a re-implementation missed four of them (review findings 2, 4, 8, 10)"
+    },
+    {
+      "decision": "A chat builds only through home_build, with the person's own words read by the Home agent's asks_to_build; home_message refuses words that ask to build, so the host (DCLab Code) can ask the person before the one holdout read.",
+      "why": "the host can only ask before a step it can see; one tool makes the holdout read visible"
+    },
+    {
+      "decision": "Text an external chat sends is that model's words: surface mcp on every event of an MCP call (a contextvar the route's tasks and threads inherit), draft.created gains surface (experience contract v14), and the conversations set leaves such drafts out (the owner's rule: another model's text is kept apart from a person's).",
+      "why": "the owner's rule: another model's text is kept apart from a person's, never taught as theirs"
+    },
+    {
+      "decision": "A file path is read on the server's machine: only without sign-in, never sealed/holdout (whole words, absolute and resolved paths), hidden, secret-looking, or inside DCLab's own folders; the bytes go through the page's upload route.",
+      "why": "the path is read as the server's user, where keys and other workspaces live"
+    },
+    {
+      "decision": "dclab-core's version bump coordinated with another session working in the same tree: it took 0.115.0, this change 0.116.0.",
+      "why": "two sessions edit dclab_core in one tree; one version each, the other session first"
+    }
+  ],
+  "change": "dclab_rnd/chat_agents.py (home tools, async, _route/_settle/_path_refusal), registry scope chat, mcp_server dispatch with experience.via('mcp'), draft.api.turn_held shared by the route and the chat, draft.created surface, data_failed names its asset, experience.chat_surface in the hooks; dclab_core experience v14 and datasets.conversations skip surface mcp.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "home_add_data read any file the server could read",
+      "scenario": "a token-holding caller passed <agent_home>/workspaces/<B>/drafts/<id>/data/clean.parquet, or a kaggle.json, and it became this workspace's table",
+      "cause": "a path was checked only for existence, suffix and sealed words",
+      "fix": "refused with sign-in on, inside DCLab's folders, hidden or secret-looking; bytes through the upload route",
+      "test": "tests/test_chat_agents.py::test_paths_the_chat_may_never_send",
+      "severity": "privacy"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "on PostgreSQL _busy always said not busy",
+      "scenario": "home_status.answering stayed false while the page's turn ran; home_message waited silently on pg_advisory_lock",
+      "cause": "the PostgreSQL turn lock has acquire (a probe) but no release, and _busy required both",
+      "fix": "draft.api.turn_held shared with the route, plus services.draft_tasks",
+      "test": "tests/test_chat_agents.py::test_a_turn_under_way_is_said_never_waited_on_forever (also --pg)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "home_add_data returned before the agent read the table",
+      "scenario": "with refresh_offers slowed by 2 s the tool returned status ready with no message; the 'Which column is the outcome?' question came later, unseen",
+      "cause": "the pipeline marks the table ready, then refreshes offers, and only then starts the agent's data_ready turn",
+      "fix": "wait for the agent's message on that asset (data_failed now names it) and a free turn",
+      "test": "tests/test_chat_agents.py::test_a_problem_to_a_built_project_through_the_chat",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "no timeout and a thread held per waiting call",
+      "scenario": "home_start/message/build ran the whole turn inside the MCP call, each holding a thread of the pool every route's to_thread shares",
+      "cause": "synchronous handlers running the turn themselves",
+      "fix": "async tools through the routes; _settle polls with asyncio.sleep up to TURN_WAIT_S and says the agent is still working",
+      "test": "tests/test_chat_agents.py::test_a_turn_under_way_is_said_never_waited_on_forever",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "the chat's text recorded half as the agent's, half as the person's, and taught as a person's",
+      "scenario": "draft.created had actor agent but every home_message became chat.person surface home; the conversations builder used draft.created's problem as a user turn whatever its actor",
+      "cause": "no channel on the events",
+      "fix": "experience.via('mcp') and chat_surface; draft.created surface (v14); the builder skips surface mcp",
+      "test": "tests/test_chat_agents.py::ChatConversationsKeptApartTests and the surface checks in the build test",
+      "severity": "latent"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "home_build read the holdout on the external model's own call",
+      "scenario": "the chat's model called home_build; quick_build started the five stages, the last reading the holdout, with no record that the person asked",
+      "cause": "the build route was called directly",
+      "fix": "person_words required and read by asks_to_build, sent as the person's message; home_message refuses build words",
+      "test": "tests/test_chat_agents.py::test_a_problem_to_a_built_project_through_the_chat",
+      "severity": "leakage"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "defect": "question options dropped",
+      "scenario": "the page showed three option buttons; the chat got only the question's text",
+      "cause": "view kept field and text only",
+      "fix": "options returned (the Home agent's own words; it never sees cell values)",
+      "test": "tests/test_chat_agents.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "defect": "some errors escaped as raw MCP errors",
+      "scenario": "HTTPException from job_room, charge_upload or submit came back as an MCP error, not {error}",
+      "cause": "the tools called the services directly",
+      "fix": "route statuses mapped to {error, status}",
+      "test": "tests/test_chat_agents.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "defect": "the sealed-name check was easy to miss or over-trigger",
+      "scenario": "a symlinked folder named sealed passed; hold-out and hold_out passed; a folder named unsealed was refused",
+      "cause": "substring check on resolved parts only",
+      "fix": "whole-word pattern on absolute and resolved parts",
+      "test": "tests/test_chat_agents.py::test_paths_the_chat_may_never_send",
+      "severity": "leakage"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "defect": "the twin was skipped",
+      "scenario": "with the owner's twin switch on, a draft driven over MCP left gaps in Claude's lane",
+      "cause": "the routes call twin_after; the tools did not",
+      "fix": "the tools go through the routes",
+      "test": "tests/test_chat_agents.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F11",
+      "source": "self",
+      "defect": "a bare yes relayed by home_message could build without the host asking",
+      "scenario": "the agent offers to build, the chat sends 'yes' with home_message, the Home agent builds; DCLab Code only asks before home_build or build words",
+      "cause": "asks_to_build reads a yes after an offer as an order",
+      "fix": "home_message refuses whatever asks_to_build reads as an order to build",
+      "test": "tests/test_chat_agents.py",
+      "severity": "leakage"
+    },
+    {
+      "id": "F12",
+      "source": "self",
+      "defect": "the event vocabulary refused a new field",
+      "scenario": "recording draft.created with a 'via' field dropped the event",
+      "cause": "the frozen contract lists each kind's fields",
+      "fix": "no ad hoc field: a versioned surface field (v14)",
+      "test": "tests/test_core_contracts.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F13",
+      "source": "measurement",
+      "defect": "the person was asked twice to build",
+      "scenario": "live, DCLab Code: Claude passed the person's literal words 'I want it built.'; the Home agent does not read them as an order, so home_build refused after the person approved, and Claude asked again with 'build it'",
+      "cause": "person_words said only 'quoted'; the Home agent reads orders by its own rule (build_order)",
+      "fix": "person_words names the words the Home agent reads, and to pass 'build it' when the person said it another way",
+      "test": "agent_runs/live_tests/2026-10-25-dclab-code-agents (live); build_order checked on each example",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F14",
+      "source": "measurement",
+      "defect": "the orchestrator's answers reached the chat empty",
+      "scenario": "live: asked for the result, the Home orchestrator answered with two result cards and one line of text; the chat saw the line only and dug the numbers out of get_results",
+      "cause": "view() passed each message's text, not its card",
+      "fix": "chat_agents._card: each card's title, facts and table (cards never hold a table's row)",
+      "test": "tests/test_chat_agents.py::test_a_problem_to_a_built_project_through_the_chat (the stages card)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F15",
+      "source": "reviewer",
+      "defect": "a build could still happen without home_build",
+      "scenario": "dclab_call POST /api/drafts/{d}/messages {text: build it} built a project; on a built draft, home_message 'the outcome should be housing' then 'yes', 'yes', 'Yes, build it' had the orchestrator build a new version",
+      "cause": "home_message's refusal only covered unbuilt drafts, and the bridge allowed the draft message and build routes",
+      "fix": "build_from_chat (every chat-driven build) refuses during an MCP call unless home_build's chat_build grant is set; the bridge refuses those routes",
+      "test": "tests/test_chat_agents.py::ChatBuildRuleTests and the bridge refusals",
+      "severity": "leakage"
+    },
+    {
+      "id": "F16",
+      "source": "reviewer",
+      "defect": "letter case got around the workspace-folder rule on macOS",
+      "scenario": "a path into the workspace with one folder name upper-cased passed _path_refusal",
+      "cause": "is_relative_to compares strings; the Mac file system ignores case",
+      "fix": "compare folders by the file system's identity (device and inode) on the given and resolved path",
+      "test": "tests/test_chat_agents.py::PathRuleTests",
+      "severity": "privacy"
+    },
+    {
+      "id": "F17",
+      "source": "reviewer",
+      "defect": "the secret-name rule refused ordinary tables and missed held-out names",
+      "scenario": "kaggle_house_prices.csv, tokens.parquet, secretary_survey.csv refused; held_out.csv accepted",
+      "cause": "a substring pattern",
+      "fix": "exact key-file names (kaggle.json, credentials.json, .env, id_rsa, *.pem...); held[-_ ]?out added",
+      "test": "tests/test_chat_agents.py::PathRuleTests",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F18",
+      "source": "reviewer",
+      "defect": "every route a chat ran started a fake web visit",
+      "scenario": "one flow recorded three visit.started {surface: web} as a person",
+      "cause": "the inner requests carried no visit, and a fresh visit was marked web",
+      "fix": "the bridge forwards the MCP call's visit; a fresh visit on /mcp or inside a chat's call is marked mcp",
+      "test": "tests/test_chat_agents.py::test_the_persons_operations_and_odd_paths_are_refused (visits)",
+      "severity": "latent"
+    },
+    {
+      "id": "F19",
+      "source": "reviewer",
+      "defect": "make check-quick would have failed",
+      "scenario": "tests/test_lineage.py expected experience v13; docs/DATA_CATALOG.md and data_catalog.json were stale",
+      "cause": "the contract bump missed two test lines and the generated catalog",
+      "fix": "v14 in the tests; make catalog",
+      "test": "tests/test_lineage.py, tests/test_data_catalog.py",
+      "severity": "gap"
+    },
+    {
+      "id": "F20",
+      "source": "reviewer",
+      "defect": "a turn a job ran lost the chat's surface",
+      "scenario": "after home_add_data the pipeline job's data-ready message was recorded with surface home (1 of 5 chat.agent events)",
+      "cause": "worker threads start without the request's contextvars",
+      "fix": "experience.origin() carries the channel; the worker re-enters experience.via for the job (never the build grant)",
+      "test": "tests/test_chat_agents.py (every chat.agent event of a chat's draft says mcp)",
+      "severity": "latent"
+    },
+    {
+      "id": "F21",
+      "source": "test",
+      "defect": "home_start could return before the agent's opening message",
+      "scenario": "in a loaded parallel run the draft was read before its first turn began, the busy check said free, and the tool returned no message",
+      "cause": "waiting only on a free turn",
+      "fix": "home_start waits for the agent's opening message too, as home_message and home_add_data wait for theirs",
+      "test": "tests/test_chat_agents.py::test_a_problem_to_a_built_project_through_the_chat (parallel run)",
+      "severity": "flaky"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "chat agents tests",
+      "gate": "every test passes on files and PostgreSQL; each review finding has a test that fails without its fix",
+      "fixed_before_run": true,
+      "result": "tests/test_chat_agents.py 10 of 10; 20 related files 454 tests on files; 7 files 204 tests on PostgreSQL",
+      "verdict": "pass"
+    },
+    {
+      "name": "live check through DCLab Code",
+      "gate": "a live session reaches the Home agent, its orchestrator, the workspace tables and the bridge, under a $1.50 cap",
+      "fixed_before_run": true,
+      "result": "all four reached in 2 turns, $0.29 (Sonnet 5.5); ROC-AUC 0.8047 (0.789 to 0.822) read once; 4 findings, fixed",
+      "verdict": "pass",
+      "cost_eur": 0.27
+    },
+    {
+      "name": "live rerun through DCLab Code",
+      "gate": "the orchestrator's result reaches the chat from its cards; one build ask",
+      "fixed_before_run": true,
+      "result": "Claude quoted the Evaluator card (ROC-AUC 0.8047, 0.789 to 0.822, 9,043 rows, read once); one build ask; $0.28",
+      "verdict": "pass",
+      "cost_eur": 0.26
+    }
+  ],
+  "outcome": "An external chat starts a Home draft, answers its questions, gives it a table, builds it on the person's words and talks to the built project's orchestrator, with the page's own checks; its words are recorded as a chat's, apart from a person's.",
+  "lessons": [
+    "Integrate through the product's routes, not its objects: the routes carry the checks a re-implementation forgets.",
+    "A guard on the host is only as good as the single path it watches: make the dangerous step one tool.",
+    "Another model's words entering a training set as a person's is a data bug; mark the channel where the request enters."
+  ],
+  "risks": [
+    "the data pipeline job may run outside the MCP call's context: its data_ready message is recorded with surface home (the conversation is skipped as a whole by draft.created's surface)"
+  ],
+  "commits": []
+}

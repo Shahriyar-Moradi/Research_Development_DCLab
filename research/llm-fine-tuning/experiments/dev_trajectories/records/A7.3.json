@@ -1,0 +1,176 @@
+{
+  "package": "A7.3",
+  "title": "Every operation of the product through one bridge, in place of hand-made wrappers",
+  "date": "2026-10-25",
+  "request": "The owner (2026-10-25): DCLab Code, a minimal developer app like Claude Code and Codex, must carry every capability of the R&D project behind its chat: \"all agentic systems we designed work behind the chat, as Claude's or Codex's do\"; then \"most things are available: implement, adopt and integrate them, no need to make them again\"; \"the main repo\" is this R&D repository (Research_Development_DCLab), not the main product repository.",
+  "spec": "docs/guides/AGENTIC_FOUNDATION_PLAN.md, phase A7, package A7.3",
+  "plan": [
+    "list the app's operations from its own OpenAPI description",
+    "run one inside the same app with the page's checks",
+    "refuse the person's own switches",
+    "keep long results in the workspace",
+    "tests"
+  ],
+  "decisions": [
+    {
+      "decision": "Seven planned wrappers (workspace_ask, evidence_ask, solution_report, lineage, programme_view, lessons, notebook_review) replaced by dclab_capabilities + dclab_call over the 174 operations: nothing copied, the list grows with the product (the owner: adopt, never rebuild).",
+      "why": "the owner: adopt and integrate, never rebuild; the API grows and the bridge follows it"
+    },
+    {
+      "decision": "The local owner's request token without sign-in, the caller's API token with it (an AUTHORIZATION contextvar from the MCP request), so each route checks the role as for any request.",
+      "why": "each route checks its own role; the bridge adds no second permission system"
+    },
+    {
+      "decision": "The person's own switches are refused whatever the caller: a chat's model never flips routing, sign-in, members, budgets, consent, the twin or team switches.",
+      "why": "those switches belong to the person or the owner, audited on their pages"
+    },
+    {
+      "decision": "Writes through the bridge run only from an allow-list of agent work and proposals (AGENT_WRITES, by route template, with body keys that stay the person's); every other write is refused, and reads run except rows, data files and streams",
+      "why": "a block list of the person's operations missed approvals, gate policy, labels and builds (review 2); the routes record their writes as the person's and their stage runs as a human's move, so a write not proven to be agent work must stay the person's"
+    },
+    {
+      "decision": "Each call is judged by the operation it reaches (the most specific template of the app's own API description), never by the raw path; a path with %-escapes, #, ? or // is refused",
+      "why": "the app routes the decoded path without its fragment: /api/%63onsent reached the consent switch"
+    }
+  ],
+  "change": "chat_agents.dclab_capabilities, dclab_call, _request/_route, _keep; services.app set by create_app; mcp_server passes the Authorization header.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "the capabilities tests ran the Home tests twice",
+      "scenario": "the capabilities class inherited the Home test class",
+      "cause": "test classes shared by inheritance",
+      "fix": "a McpChatCase base class",
+      "test": "tests/test_chat_agents.py",
+      "severity": "gap"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "defect": "a tool outside the recording functions failed the harness test",
+      "scenario": "test_agent_harness's TOOL_CALLERS whitelist did not know the chat dispatch",
+      "cause": "a new call site of the registry",
+      "fix": "dispatch inlined in build_server.call_tool",
+      "test": "tests/test_agent_harness.py",
+      "severity": "gap"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "the person's switches were reachable with %-escapes or a # fragment",
+      "scenario": "dclab_call PUT /api/%63onsent {use: train, on: true} returned 200 and flipped the workspace's training consent; /api/twin/settings%73 and /api/team/settings# turned those switches on",
+      "cause": "the refusal matched the raw path string; the app routes the decoded path without the fragment",
+      "fix": "refuse %, #, ?, // in the path; judge the operation's template from the API description",
+      "test": "tests/test_chat_agents.py::test_the_persons_operations_and_odd_paths_are_refused",
+      "severity": "privacy"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "the chat could approve gates, switch off the holdout approval and set a project's consent, recorded as the person's",
+      "scenario": "POST /api/projects/{id}/approvals {gate: solution}, PATCH /api/projects/{id} {policy: {require_holdout_approval: false}}, PATCH ... {settings: {consent: {train: true}}} each returned 200; the audit wrote approve_gate, set_policy, set_consent with actor human",
+      "cause": "a block list of the person's operations; the routes record 'human' and tell the graph validator the actor is human",
+      "fix": "an allow-list of agent writes; the audit records any route run during an MCP call as the agent's",
+      "test": "tests/test_chat_agents.py::test_the_persons_operations_and_odd_paths_are_refused",
+      "severity": "leakage"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "raw table rows reached the external model, the call log and the store",
+      "scenario": "dclab_call GET /api/drafts/{d}/assets/{a}/rows returned unmasked rows (the route's own docstring: never sent to a model), kept whole in mcp/calls.jsonl; /download saved the CSV",
+      "cause": "reads were all allowed",
+      "fix": "reads of rows, downloads, code/notebook/sft exports, trial files and streams refused",
+      "test": "tests/test_chat_agents.py::test_the_persons_operations_and_odd_paths_are_refused",
+      "severity": "privacy"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "writes through the bridge were recorded as the person's own choices",
+      "scenario": "PUT /api/drafts/{d}/solution became a correction with source person and a ledger capture of the person's choice; decide/choose, ledger blind labels and feedback were open",
+      "cause": "routes hard-code the actor 'human'",
+      "fix": "those writes are refused (not agent work); audit.record turns 'human' into the agent's during an MCP call",
+      "test": "tests/test_chat_agents.py",
+      "severity": "latent"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "defect": "every chat tool crashed in a second workspace",
+      "scenario": "with accounts on, a token for another workspace called home_start: AttributeError 'Services' object has no attribute 'app'",
+      "cause": "Pool._open copied csrf and build_from_chat to a new workspace's services, not app",
+      "fix": "services.app copied in Pool._open",
+      "test": "(code; accounts mode is not covered by a test)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "defect": "one stream route could hold a chat for 10 minutes",
+      "scenario": "dclab_call GET /api/drafts/{id}/events streams up to 600 s and the MCP call waited",
+      "cause": "stream routes were ordinary reads",
+      "fix": "/events refused with the other reads that never reach a chat",
+      "test": "tests/test_chat_agents.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "defect": "the chat could make the person's 'drop a part' decision",
+      "scenario": "the solution team paused on drop:<block>; dclab_call POST /api/projects/X/team {answer: 'drop it, no data'} ran programme.drop as 'human', past the validator's 'only a person drops a leaf', recorded as the person's in four places",
+      "cause": "the allow-list kept only 'approve' as the person's part of the team walk",
+      "fix": "'answer' is the person's too",
+      "test": "tests/test_chat_agents.py::test_the_persons_operations_and_odd_paths_are_refused",
+      "severity": "leakage"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "defect": "the chat could wipe the person's map edits and confirmation",
+      "scenario": "after the person confirmed the map on the page, dclab_call POST /api/drafts/D/map {redraw: true} dropped the confirmation, recorded as the person's redraw",
+      "cause": "the map route was allowed without its person keys",
+      "fix": "'redraw' is the person's",
+      "test": "tests/test_chat_agents.py::test_the_persons_operations_and_odd_paths_are_refused",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F11",
+      "source": "reviewer",
+      "defect": "allowed routes still wrote experience events as the person's",
+      "scenario": "job.stopped and decision.proposed (a what-if) recorded actor person during an MCP call",
+      "cause": "only the audit relabelled the actor",
+      "fix": "experience.record turns 'person' into 'agent' during an MCP call, except chat.person, draft.created and visit.started (the person's relayed words, marked surface mcp)",
+      "test": "tests/test_chat_agents.py (no person event in a chat's calls)",
+      "severity": "latent"
+    },
+    {
+      "id": "F12",
+      "source": "reviewer",
+      "defect": "a '.' path segment was judged as one route and sent as another",
+      "scenario": "POST /api/drafts/./map judged /api/drafts/{draft_id}/map, sent as /api/drafts/map (httpx drops dot segments); 49 such pairs, none reaching a refused operation today",
+      "cause": "'..' was refused, '.' was not",
+      "fix": "a '.' segment is refused",
+      "test": "tests/test_chat_agents.py::test_the_persons_operations_and_odd_paths_are_refused",
+      "severity": "latent"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "bridge tests",
+      "gate": "the bridge lists more than 150 operations, keeps a route's own status, refuses every person's switch",
+      "fixed_before_run": true,
+      "result": "174 operations listed; a 422 kept; consent, routing, tokens and the twin switch refused",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "A chat reaches every operation of the R&D product (drafts, projects, stages, decisions, lineage, lessons, reports, jobs, the intern, the teams, the twin) with the page's checks.",
+  "lessons": [
+    "An API description is already the tool list: search it instead of hand-writing wrappers."
+  ],
+  "risks": [
+    "an operation's description is only as good as its docstring; some operations may need better summaries for a chat to pick them"
+  ],
+  "commits": []
+}

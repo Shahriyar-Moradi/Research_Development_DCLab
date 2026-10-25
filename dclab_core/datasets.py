@@ -289,6 +289,9 @@ def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] 
         kinds = [e["kind"] for e in items]
         if "draft.created" not in kinds or "draft.built" not in kinds:
             continue
+        created = next(e for e in items if e["kind"] == "draft.created")
+        if (created.get("payload") or {}).get("surface", "home") != "home":
+            continue  # A7: started through an external chat (surface "mcp"): its "person" turns are that chat model's words, kept apart
         said: dict[str, list[dict[str, Any]]] = defaultdict(list)  # message id -> the feedback on it
         for e in items:
             p = e.get("payload") or {}
@@ -345,6 +348,7 @@ def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] 
                           policy="One example per built draft; grouped with the project it became, split as every set. A reply the person edited "
                                  "is the reply (the original in `edits`); a thumb up marks the example; a thumb down ends it before that reply.",
                           limits=["Text is as the export redacted it.", "A conversation not built is left out: its understanding was not accepted.",
+                                  "A conversation started through an external chat (surface mcp) is left out: its turns are that chat model's words.",
                                   "An edit is a person's wording, redacted like any text; the original agent reply stays in `edits`, not in `messages`."])
 
 

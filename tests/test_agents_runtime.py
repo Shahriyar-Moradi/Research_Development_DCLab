@@ -136,6 +136,8 @@ class DclabRegistryTests(unittest.TestCase):
         self.assertEqual(set(registry.names("draft")), {"ask_user", "record", "set_pack", "propose_workflow", "request_data", "get_profile", "get_analysis", "simulate_data", "build_solution",
                                                         "decide_point"})
         self.assertEqual(set(registry.names("session")), {"write_plan", "finish"})
+        # A7: DCLab's own agents as tools for an external chat at /mcp
+        self.assertTrue({"home_start", "home_message", "home_add_data", "home_status", "home_build", "home_list"} <= set(registry.names("chat")))
         # the research campaign's experiment tool is a closed part, absent from the open edition
         self.assertEqual(registry.names("campaign"), ["run_experiment"] if optional("agentic.campaign_tools") else [])
         for tool in registry.tools.values():
@@ -147,7 +149,8 @@ class DclabRegistryTests(unittest.TestCase):
                 if tool.move is not None:
                     moves = {"project": studio_graph.MOVES, "draft": DRAFT_MOVES.values(), "session": SESSION_MOVES.values(),
                              "campaign": ("experiment",),
-                             "home": __import__("dclab_rnd.draft.orchestrator", fromlist=["HOME_MOVES"]).HOME_MOVES}[tool.scope]
+                             "home": __import__("dclab_rnd.draft.orchestrator", fromlist=["HOME_MOVES"]).HOME_MOVES,
+                             "chat": __import__("dclab_rnd.chat_agents", fromlist=["CHAT_MOVES"]).CHAT_MOVES}[tool.scope]
                     self.assertIn(tool.move, moves)
                     self.assertEqual(tool.effect, "write")
         for old, new in LEGACY_TOOLS.items():

@@ -50,6 +50,18 @@ MAX_UPLOAD = 200 * 1024 * 1024
 STREAM_SECONDS = 600  # the browser's EventSource reconnects and resumes from Last-Event-ID
 
 
+def turn_held(drafts: DraftStore, draft_id: str) -> bool:
+    """Whether an agent turn holds this draft now, on any app instance (the turn lock: an advisory lock on PostgreSQL,
+    package 10.5, whose ``acquire`` only probes; a thread lock on files). The routes and the chat's tools (A7) ask this."""
+    lock = drafts.turn(draft_id)
+    if hasattr(lock, "release"):  # files: a re-entrant thread lock; this thread never holds it
+        if lock.acquire(blocking=False):
+            lock.release()
+            return False
+        return True
+    return not lock.acquire(0)
+
+
 def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str, asyncio.Task], traces: Any = None, services: Any = None) -> None:
     """``models`` is the model gateway (dclab_rnd.models.Gateway): each use names its purpose, so it is routed, timed and counted.
     ``traces`` (``agents.traces``) keeps a row per step of the Home agent's model turns, under the draft's id. ``jobs``
@@ -130,15 +142,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         jobs[key] = task
 
     def answering(draft_id: str) -> bool:
-        """Whether an agent turn holds this draft now, on any app instance (the turn lock: an advisory lock on
-        PostgreSQL, package 10.5; a thread lock on files). This instance's own queued turn is checked by the caller."""
-        lock = drafts.turn(draft_id)
-        if hasattr(lock, "release"):  # files: a re-entrant thread lock; this thread never holds it
-            if lock.acquire(blocking=False):
-                lock.release()
-                return False
-            return True
-        return not lock.acquire(0)
+        """Whether an agent turn holds this draft now, on any app instance. This instance's own queued turn is checked by the caller."""
+        return turn_held(drafts, draft_id)
 
     def process(draft_id: str, asset_id: str) -> None:
         """The pipeline of one asset, as a job (in a task of this process when no job table is wired)."""
@@ -166,7 +171,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         draft = drafts.create(problem[:2000], key)
         from .. import experience  # 19.3: the problem as the person first wrote it
 
-        experience.record("draft.created", "person", {"problem": problem[:2000], "pack": key}, conversation=draft["id"])
+        experience.record("draft.created", "person", {"problem": problem[:2000], "pack": key, "surface": experience.chat_surface()},
+                          conversation=draft["id"])  # A7: surface "mcp" when an external chat started it
         background(draft["id"] + ":agent", lambda: (agent(draft["id"]).start(draft["id"]), twin_after(draft["id"], "start")))
         return draft
 
@@ -1072,6 +1078,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     def build_from_chat(draft_id: str) -> dict[str, Any]:
         """The Home agent's "build it", from its own thread: the same step as the button, a refusal said as its reason."""
+        from .. import experience
+
+        if not experience.chat_may_build():  # A7: an external chat builds only through home_build (the Home agent's and the orchestrator's builds alike)
+            return {"refused": "A build asked through an external chat goes through home_build, which its host asks the person about first.",
+                    "rule": "chat_build"}
         try:
             return asyncio.run(quick_build(draft_id, inline=True))  # the agent's turn is held by this thread
         except HTTPException as exc:

@@ -232,6 +232,11 @@ def record(log: AuditLog | None, kind: str, actor: str | None = "human", who: st
     """Append one row; an audit that cannot be written is reported, and the action it records still stands."""
     if log is None:
         return
+    if (actor or "human") == "human":
+        from . import experience
+
+        if experience.chat_surface() == "mcp":  # A7: a route run by an external chat's call: the agent's, never the person's
+            actor, who = "agent", who or "external chat (MCP)"
     try:
         row = _row(kind, actor, who, **values)
         log.append([row])

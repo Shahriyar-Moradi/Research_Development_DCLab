@@ -83,17 +83,20 @@ def from_draft_event(draft_id: str, kind: str, data: dict[str, Any] | None) -> N
     data = data or {}
     ids = {"conversation": draft_id}
     if kind == "chat":
+        from . import chat_surface
+
         message = data
         text = message.get("text")
+        surface = chat_surface()  # A7: "mcp" when an external chat sent it or started the turn
         if message.get("role") == "user":
-            record("chat.person", "person", {"text": text, "surface": "home"}, **ids)
+            record("chat.person", "person", {"text": text, "surface": surface}, **ids)
         elif message.get("role") == "agent":
             question = message.get("question") or {}
             from . import last_model_request, release
 
             record("chat.agent", "agent", {"text": text, "kind": message.get("kind"), "question_field": question.get("field"),
                                            "options": [str(o)[:120] for o in question.get("options") or []][:12] or None,
-                                           "surface": "home", "message": str(message.get("id") or "")[:80] or None, "version": release(),
+                                           "surface": surface, "message": str(message.get("id") or "")[:80] or None, "version": release(),
                                            "question_source": str(question.get("source"))[:40] if question.get("source") else None},  # 28.4: "critic"
                    model_request=last_model_request() if message.get("by") == "model" else None, **ids)  # 23.10: only a reply a model wrote joins its request
     elif kind == "pipeline":

@@ -49,6 +49,7 @@ class Pool:
         if services.workspace_id != workspace_id:
             raise RuntimeError(f"the folder of workspace {workspace_id} names {services.workspace_id}")
         services.csrf = self.default.csrf
+        services.app = getattr(self.default, "app", None)  # A7: the chat's tools run the product's routes in the same app, whichever workspace
         if getattr(self.default, "build_from_chat", None) is not None:  # 25.13: "build it" in every workspace (the closure reads the request's)
             services.build_from_chat = self.default.build_from_chat
         services.worker.start()  # recovers what a dead worker left in this workspace, then runs its queue

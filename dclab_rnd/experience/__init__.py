@@ -62,6 +62,50 @@ def bind(**ids: Any) -> Iterator[dict[str, Any]]:
         _IDS.reset(token)
 
 
+# A7: the channel a request came through: "mcp" while an external chat's call runs (the turns it starts inherit it)
+_CHANNEL: contextvars.ContextVar[str | None] = contextvars.ContextVar("dclab_experience_channel", default=None)
+
+
+# Events that relay the person's own words through an external chat: kept as the person's, marked with the surface mcp
+RELAYED = frozenset({"chat.person", "draft.created", "visit.started"})
+
+
+@contextlib.contextmanager
+def via(channel: str) -> Iterator[None]:
+    """Everything recorded inside the block (and in the tasks and threads it starts) came through ``channel``."""
+    token = _CHANNEL.set(channel)
+    try:
+        yield
+    finally:
+        _CHANNEL.reset(token)
+
+
+_CHAT_BUILD: contextvars.ContextVar[bool] = contextvars.ContextVar("dclab_chat_build", default=False)
+
+
+@contextlib.contextmanager
+def chat_build() -> Iterator[None]:
+    """A build an external chat's host asked the person about (A7: ``home_build``): inside the block, and the turns it
+    starts, ``build_from_chat`` may build."""
+    token = _CHAT_BUILD.set(True)
+    try:
+        yield
+    finally:
+        _CHAT_BUILD.reset(token)
+
+
+def chat_may_build() -> bool:
+    """False while an external chat's call runs without ``chat_build``: every build there goes through ``home_build``,
+    the one call its host asks the person about before the holdout is read."""
+    return _CHANNEL.get() != "mcp" or _CHAT_BUILD.get()
+
+
+def chat_surface(default: str = "home") -> str:
+    """The surface a draft's text is recorded under: ``mcp`` when an external chat sent it (its model's words, kept apart
+    from a person's), else ``default``."""
+    return "mcp" if _CHANNEL.get() == "mcp" else default
+
+
 _QUIET: contextvars.ContextVar[bool] = contextvars.ContextVar("dclab_experience_quiet", default=False)
 
 
@@ -99,7 +143,10 @@ def origin() -> dict[str, Any]:
     """What a job carries from the request that queued it: the visit and the request, and (23.11) its trace and the span it ran in,
     which become the job's trace and its parent span."""
     ids = _ids({})
-    return {k: ids[k] for k in ("visit", "request", "trace", "span") if ids.get(k)}
+    out = {k: ids[k] for k in ("visit", "request", "trace", "span") if ids.get(k)}
+    if _CHANNEL.get():
+        out["channel"] = _CHANNEL.get()  # A7: a job queued by an external chat's call runs in its channel (never its build grant)
+    return out
 
 
 def _ids(extra: dict[str, Any]) -> dict[str, Any]:
@@ -351,6 +398,8 @@ def record(kind: str, actor: str = "system", payload: dict[str, Any] | None = No
     target = log if log is not None else current_log()
     if target is None or contract is None or _QUIET.get():
         return None
+    if actor == "person" and _CHANNEL.get() == "mcp" and kind not in RELAYED:
+        actor = "agent"  # A7: what a route does during an external chat's call is the agent's, never the person's choice
     surface = _started(_IDS.get().get("visit")) if kind != "visit.started" else None
     if surface is not None:
         record("visit.started", "person", {"surface": surface}, log=target)

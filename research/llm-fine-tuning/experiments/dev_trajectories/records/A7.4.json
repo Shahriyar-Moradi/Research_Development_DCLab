@@ -1,0 +1,47 @@
+{
+  "package": "A7.4",
+  "title": "The workspace chat's tables through /mcp; the long agents as operations",
+  "date": "2026-10-25",
+  "request": "The owner (2026-10-25): DCLab Code, a minimal developer app like Claude Code and Codex, must carry every capability of the R&D project behind its chat: \"all agentic systems we designed work behind the chat, as Claude's or Codex's do\"; then \"most things are available: implement, adopt and integrate them, no need to make them again\"; \"the main repo\" is this R&D repository (Research_Development_DCLab), not the main product repository.",
+  "spec": "docs/guides/AGENTIC_FOUNDATION_PLAN.md, phase A7, package A7.4",
+  "plan": [
+    "find which R&D agents a chat still cannot reach",
+    "pass through what no route serves",
+    "guard the long agents on the host",
+    "test"
+  ],
+  "decisions": [
+    {
+      "decision": "Of every agent in agents.harness.AGENTS and every registry scope, only the workspace chat (30.21) had no route; its three read tools pass through /mcp as they are, with a fresh Session a call (an MCP chat has no question boundary, so the shown-values budget holds per call).",
+      "why": "a chat should reach every agent; only this one had no route"
+    },
+    {
+      "decision": "The Home agent's and orchestrator's own tools (scopes draft and home) stay theirs: a chat drives those agents with home_message, never their tools directly.",
+      "why": "those tools are the agents' own; driving them directly would duplicate the orchestrator"
+    },
+    {
+      "decision": "The intern, the teams and the twin are reached through dclab_call; DCLab Code asks the person before POST .../team and the intern's sessions, which can read the holdout.",
+      "why": "the intern and the teams can run the final stage, which reads the holdout once"
+    }
+  ],
+  "change": "mcp_server lists and dispatches the registry's workspace scope; DCLab Code's guard and prompt.",
+  "findings": [],
+  "measurements": [
+    {
+      "name": "workspace tables test",
+      "gate": "a project's table listed, described and counted over MCP; a private project's never listed",
+      "fixed_before_run": true,
+      "result": "WorkspaceTablesOverMcpTests passes on files",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Partly done: the workspace's tables are reachable from a chat, masked; the long agents are reachable through the bridge; an intern job's finish and a team walk's pause over MCP are not tested yet.",
+  "lessons": [
+    "Map every agent and scope before building: most were already reachable."
+  ],
+  "risks": [
+    "the shown-values budget is per call over MCP, weaker than the workspace chat's per question",
+    "the workspace chat's grounding check (every number from a computation) does not apply to an external model's answer"
+  ],
+  "commits": []
+}

@@ -45,7 +45,8 @@ def build_server(toolbox: Toolbox):
 
     @server.list_tools()
     async def list_tools() -> list[types.Tool]:
-        specs = [s["function"] for s in toolbox.schemas()]
+        specs = [s["function"] for s in toolbox.schemas() + toolbox.registry.schemas("chat")  # A7: DCLab's agents beside the project tools
+                 + toolbox.registry.schemas("workspace")]  # A7.4: the workspace chat's read tools (30.21), which no route serves
         return [types.Tool(name=spec["name"], description=spec["description"], inputSchema=spec["parameters"]) for spec in specs]
 
     @server.call_tool()
@@ -58,10 +59,32 @@ def build_server(toolbox: Toolbox):
         error: str | None = None
         run: str | None = None
         try:
-            with experience.bind(project=project if isinstance(project, str) else None), harness.session("mcp") as current:
+            # A7: everything the call records, and the turns it starts, came through an external chat
+            with experience.via("mcp"), experience.bind(project=project if isinstance(project, str) else None), harness.session("mcp") as current:
                 run = current.run_id
                 with current.timed(name, arguments or {}) as out:
-                    out["result"] = result = await asyncio.to_thread(toolbox.call, name, arguments or {})
+                    tool = toolbox.registry.get(name)
+                    if tool is not None and tool.scope == "chat":  # A7: one of DCLab's agents, in the request's workspace services
+                        import inspect
+
+                        from . import chat_agents, context
+
+                        auth = chat_agents.AUTHORIZATION.set(_authorization(server))  # the caller's API token, for the operations it runs
+                        try:
+                            if inspect.iscoroutinefunction(tool.handler):  # the product's operations run on this loop, as the app's own
+                                out["result"] = result = await toolbox.registry.acall(name, arguments or {}, context.services(), "chat")
+                            else:  # an agent's turn holds a thread, as the routes' background turns do
+                                out["result"] = result = await asyncio.to_thread(toolbox.registry.call, name, arguments or {}, context.services(), "chat")
+                        finally:
+                            chat_agents.AUTHORIZATION.reset(auth)
+                    elif tool is not None and tool.scope == "workspace":  # A7.4: the workspace chat's tables, masked as for its own agent
+                        from . import context, workspace_chat
+
+                        # A fresh session a call: an MCP chat has no question boundary, so the shown-values budget holds per call.
+                        session = workspace_chat.Session(context.services())
+                        out["result"] = result = await asyncio.to_thread(toolbox.registry.call, name, arguments or {}, session, "workspace")
+                    else:
+                        out["result"] = result = await asyncio.to_thread(toolbox.call, name, arguments or {})
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
             raise
@@ -70,6 +93,15 @@ def build_server(toolbox: Toolbox):
         return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, default=str))]
 
     return server
+
+
+def _authorization(server: Any) -> str | None:
+    """The MCP request's Authorization header (an API token when accounts are on), or None."""
+    try:
+        request = server.request_context.request
+        return request.headers.get("authorization") if request is not None else None
+    except (LookupError, AttributeError):
+        return None
 
 
 def _keep_call(toolbox: Toolbox, run: str | None, name: str, arguments: dict[str, Any], result: Any, error: str | None = None) -> None:

@@ -7,6 +7,7 @@ workflow move it makes. Scopes say who may call it:
     draft     the Home agent, on a draft before a project exists
     session   the intern's own notes on its session (its plan, its report)
     campaign  the research campaign's one write: an experiment
+    chat      DCLab's own agents as tools for an external chat at /mcp (A7: the Home agent, ...); each agent checks its writes
 
 A call is checked against the schema before the handler runs; a bad call comes back as ``{"error": ...}`` that a
 model can read and correct, never as an exception.
@@ -24,7 +25,7 @@ from typing import Any, Callable, Protocol
 
 import jsonschema
 
-SCOPES = ("project", "draft", "session", "campaign", "workspace", "home")  # workspace: 30.21, the chat over the workspace's tables; home: the Home orchestrator's team on a built project
+SCOPES = ("project", "draft", "session", "campaign", "workspace", "home", "chat")  # workspace: 30.21, the chat over the workspace's tables; home: the Home orchestrator's team on a built project; chat: A7, DCLab's agents behind an external chat
 EFFECTS = ("read", "write")
 
 

@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.116.0 (2026-10-25)
+
+DCLab's agents behind an external chat (A7): what such a chat sends is its model's words, kept apart from a person's.
+
+- `experience` v14 (`dclab_core.experience_event.v14`, v13 read as v14): `draft.created` gains `surface` (meta): `home`
+  when a person started the draft on the page, `mcp` when an external chat (DCLab Code, Hugging Face Chat UI) started
+  it through `/mcp`; `chat.person` and `chat.agent` already carry their surface.
+- `datasets.conversations` leaves out a conversation whose `draft.created` surface is not `home` (an event without
+  the field reads as `home`): its "person" turns were written by the external chat's model, and the set teaches the
+  understanding conversation from a person's words only.
+
 ## 0.115.0 (2026-10-25)
 
 A capacity per day, filled day by day: a team that reviews 5 rides a day cannot review 15 on a busy day and none on a
