@@ -342,6 +342,10 @@ class DclabCodeSetsTest(unittest.TestCase):
             # 32.42: a background job the person stopped is their step; a script's stop is not
             line(T(14), kind="app", type="job_stop", taskId="j1", jobType="local_bash", description="python train.py", by="person"),
             line(T(15), kind="app", type="job_stop", taskId="j2", jobType="local_bash", description="make test", by="script"),
+            # dclab-code A3: a file the person opened is their step (its path never in the episode); a sealed one refused
+            line(T(16), kind="app", type="file_opened", path="src/secret_name.py", line=3, sealed=False, by="person"),
+            line(T(17), kind="app", type="file_opened", path="data/holdout.csv", line=None, sealed=True, by="person"),
+            line(T(18), kind="app", type="file_opened", path="src/x.py", line=None, sealed=False, by="script"),
         ]
         (self.home / "records" / "s_rewind01.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
         listed = json.loads((self.home / "sessions.json").read_text(encoding="utf-8"))
@@ -355,8 +359,11 @@ class DclabCodeSetsTest(unittest.TestCase):
                                ("a.py", "rewound", 0.0, ["SECOND"]),     # since it: rejected
                                ("b.py", "rewound", 0.0, ["THIRD"])])     # a file outside the repository is left out; a script's rewind judges nothing
         ep = next(e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_rewind01"))
-        self.assertEqual([x["action"] for x in ep["steps"] if x["action"].startswith("person:")], ["person:rewind", "person:stop_job"])
+        self.assertEqual([x["action"] for x in ep["steps"] if x["action"].startswith("person:")],
+                         ["person:rewind", "person:stop_job", "person:open_file", "person:open_file"])
+        self.assertEqual([x["outcome"] for x in ep["steps"] if x["action"] == "person:open_file"], ["opened", "sealed_refused"])
         self.assertNotIn("python train.py", json.dumps(ep))  # a job's description never enters the content-free episode
+        self.assertNotIn("secret_name", json.dumps(ep))  # nor a file's path
 
     def test_the_persons_steps_sit_in_the_episode(self):
         ep = next(e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_undo01"))

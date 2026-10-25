@@ -199,6 +199,11 @@ class Session:
                 # The person stopped a background job the agent left running (a training run, a test suite): their step.
                 self.person_steps.append({"order": _order(r), "action": "person:stop_job", "kind": "person_stop_job", "turn": turn, "mode": mode,
                                           "outcome": "stopped", "guard": None, "at": r.at})
+            elif t == "file_opened" and by_person(b):
+                # dclab-code A3: the person opened a file the conversation named (or they picked): their step, its path left
+                # out of the content-free episode; a sealed set's refusal is said as its outcome.
+                self.person_steps.append({"order": _order(r), "action": "person:open_file", "kind": "person_open_file", "turn": turn, "mode": mode,
+                                          "outcome": "sealed_refused" if b.get("sealed") else "opened", "guard": "sealed" if b.get("sealed") else None, "at": r.at})
             elif t == "person_command_start" and b.get("id"):
                 starts[str(b["id"])] = _order(r)
             elif t == "person_command" and by_person(b):

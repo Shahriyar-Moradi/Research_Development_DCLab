@@ -1,0 +1,108 @@
+{
+  "package": "dclab-code-v1.13",
+  "title": "Files in DCLab Code: @ names a file in the message box, a path in the conversation opens it (parity A3)",
+  "date": "2026-10-26",
+  "request": "The owner's goal (2026-10-25, restated 2026-10-26: continue non-stop): DCLab Code with the capabilities of Claude Code and Codex desktop in a calmer UI, built from the R&D project; parity plan step A3: files.",
+  "spec": "dclab-code/docs/PARITY_PLAN.md, A3",
+  "plan": [
+    "list a session's (or a project's) files as git sees them, ranked for what is typed",
+    "show one file, inside the folder only, never a sealed set",
+    "the @ picker in the message box (keys, Esc)",
+    "backticked paths and links to relative paths open the File tab at their line",
+    "record the person's look as their step (the path, never the content), and give it to R&D's store as a person step",
+    "tests, a check in the browser pane, a review"
+  ],
+  "decisions": [
+    {
+      "decision": "The file list is git's own (tracked files and new ones it does not ignore), cached 15 seconds; a folder that is no repository is walked within 20,000 files",
+      "why": "git already knows what belongs to the project: build output, virtual environments and data the person ignored stay out without a second set of rules"
+    },
+    {
+      "decision": "A sealed or holdout set is listed and marked, never shown; the File tab refuses it with its reason (403)",
+      "why": "the person may name it on purpose (the agent is then asked before it reads it); showing its rows in the app would be a read of the set"
+    },
+    {
+      "decision": "A path is a link only in backticks or as a Markdown link to a relative path; the server decides what may be shown",
+      "why": "plain prose holds dotted words (e.g., v1.2) that are no files; the agent is asked to write paths in backticks"
+    },
+    {
+      "decision": "The person's look at a file is recorded as file_opened (path, line, sealed, by) and becomes a person:open_file step in R&D's episodes, without its path",
+      "why": "the owner's rule: every act is captured for training; the content-free episode keeps no file names"
+    }
+  ],
+  "change": "dclab-code: server/files.js (FileIndex, rankFiles, readView, isSealed), GET /api/files and /api/file in server/app.js, web/files.js (mentionAt, applyMention), web/md.js (fileRef, file links), the @ picker and the File tab in web/app.js, index.html and style.css, the system prompt's line on paths. R&D: dclab_rnd/store/sets/dclab_code.py reads file_opened as person:open_file.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "looks at a file were recorded that never happened",
+      "scenario": "the File tab's refresh, leaving it and coming back, and a file opened in session A then the File tab in session B each wrote another file_opened record (B's for a file never opened there)",
+      "cause": "every draw asked the server, and the server recorded every view; the view stayed across sessions",
+      "fix": "only the click records (open=1); the view belongs to its session",
+      "test": "tests/server.test.js: files (a redraw is not a look)",
+      "severity": "latent"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "a late answer drew over the side panel",
+      "scenario": "a file link clicked, then the Changes tab before the answer came: the file replaced the diff; the browser check then found the diff's late answer drawing over the File tab too",
+      "cause": "no check after the await (in the new File tab and the older diff)",
+      "fix": "both return when another tab or file was chosen meanwhile",
+      "test": "browser pane check (Changes then File)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "a link to a sealed set was listed as not sealed",
+      "scenario": "copy.csv -> sealed/test.csv and innocent -> sealed/ showed sealed: false in the picker (the view refused both)",
+      "cause": "isSealed checked the given path only",
+      "fix": "the real path is checked too",
+      "test": "tests/units.test.js: the picker marks a link to a sealed set",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "the file list could start a git per request, keep old folders forever, and a walk could fill with a venv",
+      "scenario": "requests during a cold cache each ran git; removed copies stayed in memory; a non-repository with venv/ filled 20,000 slots with site-packages",
+      "cause": "a cache of results, never pruned; the walk's skip list and no folder limit",
+      "fix": "the cache holds the promise and drops old folders; venv, env, site-packages skipped; at most 5,000 folders opened",
+      "test": "(code)",
+      "severity": "latent"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "dclab-code tests",
+      "gate": "every test passes; each new route and helper tested",
+      "fixed_before_run": true,
+      "result": "82+ tests, page tests skipped (no Chromium here); units 33 of 33; the files route test",
+      "verdict": "pass"
+    },
+    {
+      "name": "browser pane check",
+      "gate": "the picker lists, filters, marks a sealed file, inserts on Enter, closes on Esc; a file link opens the File tab at its line; a sealed link is refused",
+      "fixed_before_run": true,
+      "result": "@tra listed src/train.py and data/train.csv; Down+Enter inserted @data/train.csv; @hold marked data/holdout.csv sealed; Esc closed the list, not the panel; src/train.py:3 opened with line 3 highlighted; data/holdout.csv refused with its reason; no script errors",
+      "verdict": "pass"
+    },
+    {
+      "name": "R&D store test",
+      "gate": "a person's look is a person step without its path; a script's is not",
+      "fixed_before_run": true,
+      "result": "tests/test_store_dclab_code_sets.py 7 of 7",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "In DCLab Code a person names a file with @ and opens any file the agent names, at its line, as in Claude Code; a sealed set stays unshown.",
+  "lessons": [
+    "Let the repository's own tool (git) decide what a project's files are."
+  ],
+  "risks": [
+    "a very large repository: git ls-files is bounded by a 15 s timeout and a 64 MB buffer",
+    "the page tests in Chromium did not run (no browser on this machine)"
+  ],
+  "commits": []
+}
