@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import platform
 import shutil
 import time
@@ -211,11 +212,22 @@ def _committee(_: Path) -> Iterator[dict[str, Any]]:
 
 
 def _homework_split(name: str, ident: str) -> Optional[str]:
-    if name != "homework_v1":
+    if not re.fullmatch(r"homework_v\d+", name):  # every writer's homework (v1, writer B's v2): the person's one split
         return None
     from ..understand_students import person_split
 
-    return person_split(f"homework_v1:{ident}")
+    return person_split(f"{name}:{ident}")
+
+
+def _journey_split(name: str, ident: str, group: str) -> str:
+    """One split per person everywhere: an exam's people are sealed, always (once sealed always sealed, as in the store:
+    spent or not, they never train; the review of S9 found sealed_v6 and workflow_sealed people in the lake's train
+    split by a hash); a dev set's are dev; a homework person's is the store's; any other by the lake's hash."""
+    if "sealed" in name:
+        return "sealed"
+    if name == "dev" or name.endswith("_dev"):
+        return "dev"
+    return _homework_split(name, ident) or _split(group)
 
 
 def _understand_spent() -> bool:
@@ -232,6 +244,8 @@ def _journeys(_: Path) -> Iterator[dict[str, Any]]:
         name = path.stem.replace("journeys_", "")
         if name.startswith("understand_sealed") and not (name == "understand_sealed" and _understand_spent()):
             continue  # S8 B2: every understanding exam's sealed people stay unread until their own gate has read them once
+        if name.endswith("_flagged"):
+            continue  # the checker's doubtful people: kept apart, their truth never a label
         for j in json.loads(path.read_text(encoding="utf-8")):
             family = j.get("family")
             expected = (j.get("expect") or {}).get("families")
@@ -242,7 +256,7 @@ def _journeys(_: Path) -> Iterator[dict[str, Any]]:
             group = f"journey:{name}:{j['id']}"
             schema = {"answer": {"labels": families, "prompt": "Which family of machine-learning problem does this person describe?",
                                  **({"multi_label": True, "cls_threshold": 0.4} if multi else {})}}
-            split = _homework_split(name, j["id"]) or _split(group)  # S8 B2: a new homework person in the one split it has everywhere
+            split = _journey_split(name, j["id"], group)  # S8 B2: a homework person in the one split it has everywhere
             yield {"sample_id": group, "decision_point": "problem.family_from_words", "split": split, "group": group,
                    "text": str(j["words"]), "schema": schema, "options": list(families), "label": accepted if multi else accepted[0],
                    "accepted": accepted, "rule_answer": None, "label_origin": "journey_truth", "set": name}

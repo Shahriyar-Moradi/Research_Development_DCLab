@@ -149,6 +149,23 @@ class CaptureTests(unittest.TestCase):
         multi = [r for r in rows if r["schema"]["answer"].get("multi_label")]
         self.assertTrue(multi and all(isinstance(r["label"], list) for r in multi))  # a programme journey: several families
 
+    def test_an_exams_people_are_sealed_and_doubtful_people_are_no_labels(self):
+        """The review of S9: sealed journeys' people were split by a hash, most of them into the lake's train split
+        (sealed_v6: 19 of 30, workflow_sealed: 22); the checker's doubtful people were labelled. Once sealed, always
+        sealed; a dev set stays dev; a flagged person is never a label."""
+        from dclab_rnd.lake import answers
+
+        splits: dict[str, set[str]] = {}
+        for r in answers.tests("journeys", self.lake):
+            splits.setdefault(r["set"], set()).add(r["split"])
+        self.assertTrue(any("sealed" in n for n in splits))
+        for name, got in splits.items():
+            if "sealed" in name:
+                self.assertEqual(got, {"sealed"}, name)
+            elif name == "dev" or name.endswith("_dev"):
+                self.assertEqual(got, {"dev"}, name)
+        self.assertFalse([n for n in splits if n.endswith("_flagged")])
+
     def test_every_answerer_says_what_its_answers_may_be_used_for(self):
         from dclab_rnd.lake import answers
 
