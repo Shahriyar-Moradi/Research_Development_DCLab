@@ -1,0 +1,1846 @@
+[
+ {
+  "id": "JV-rare_event-01",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "channel": "whatsapp",
+  "words": "salam 👋\nwe run bike couriers in Tehran, some bikers and senders make fake orders together to farm the bonus 😤\ni have the orders export + a seperate sheet of the ones our audit team caught (it has a reason column)\ncan u build anomaly detection for this?",
+  "answers": {
+   "target": "the caught ones in the audit sheet",
+   "labels": "just that sheet, a couple hundred rows",
+   "budget": "audit team checks maybe 50 a day"
+  }
+ },
+ {
+  "id": "JV-rare_event-02",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "channel": "email",
+  "words": "Dear Ms. Adeyemi,\n\nI hope this email finds you well. I head the risk unit of a parcel delivery company in Lagos. Our dispatch riders complete several thousand orders a day, and over the past year we have seen a growing number of fraudulent orders, mostly riders working with senders to claim fares for deliveries that never happened.\n\nOur investigations team has confirmed roughly 600 such cases. They are kept in a case register, separate from the orders table, with the reason for each case. We would like a classification model that scores every order so the team can focus on the riskiest ones.\n\nCould we arrange a call to discuss scope and cost?\n\nKind regards,\nTunde Bakare\nHead of Risk",
+  "answers": {
+   "target": "Whether an order is one of the confirmed fraud cases in the register",
+   "prediction_moment": "At the end of each day, before riders are paid for that day's orders",
+   "action": "The investigations team reviews the highest-scored orders and holds those riders' payouts",
+   "entity": "The rider (biker_id); some senders appear in many cases too",
+   "labels": "Yes, the case register of about 600 confirmed cases",
+   "budget": "The team can review around 70 orders per day",
+   "costs": "A missed fraud loses the fare and the bonus; a wrong flag delays an honest rider's pay by a day",
+   "data_plan": "The orders table and the case register, as two separate files"
+  }
+ },
+ {
+  "id": "JV-rare_event-03",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "channel": "web_form",
+  "words": "Detect fraudulent orders. Files: orders.csv + confirmed_cases.csv (audit). Suspect biker/sender collusion.",
+  "answers": {}
+ },
+ {
+  "id": "JV-rare_event-04",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "channel": "voice_note",
+  "words": "Oi, okay so, um, this is Rafael, I'm on the ops side of a, we deliver pharmacy orders with bikes here in São Paulo. And, uh, there's this thing where some of the riders, they, no wait, it's more like they create orders with a friend's phone, the sender phone, you know, and then they get the fare for nothing. So our fraud team made a list, like a spreadsheet, of maybe three hundred orders they confirmed, and it's separate from the big orders export. I want, I don't know, an AI that flags these. Is that anomaly detection? Whatever it's called, that.",
+  "answers": {
+   "prediction_moment": "the next morning, when the team does the review",
+   "budget": "they can look at like 40, maybe 60 a day, depends",
+   "entity": "the rider I guess, sometimes the sender"
+  }
+ },
+ {
+  "id": "JV-rare_event-05",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "channel": "it_ticket",
+  "words": "Subject: ML request - fraud flagging on courier orders\n- Requester: Payments & Risk\n- Source 1: orders table export (order_id, account_id, biker_id, biker_phone, sender_phone, terminal_ref, biker_fare, status, pickup/drop coordinates)\n- Source 2: 'confirmed_fraud' sheet from the investigations team, one row per case with a reason\n- Need: score every order, the most suspicious go to investigators\n- Priority: high, losses rising since spring\n- Location: Istanbul ops",
+  "answers": {
+   "target": "The orders listed in the confirmed_fraud sheet",
+   "entity": "biker_id",
+   "budget": "2 investigators, about 120 orders a day in total",
+   "action": "Investigators check the order and can freeze the courier's payout",
+   "costs": "Missed fraud = the fare plus the bonus lost; a false flag = about 5 minutes of an investigator",
+   "data_plan": "The orders export and the confirmed_fraud sheet"
+  }
+ },
+ {
+  "id": "JV-rare_event-06",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "channel": "manager_forward",
+  "words": "Hi there, my analyst Dewi wrote this and I'm forwarding it as-is:\n\n'we need a supervised fraud model at order level, labels come from the CS escalation list (separate xlsx), class imbalance is severe'\n\nI don't really know what that means. I run a grocery delivery business in Jakarta with our own bike couriers and I just want to stop losing money on fake deliveries. Can you help?",
+  "answers": {
+   "action": "We block the courier's payout until someone checks",
+   "family": "Find the fake deliveries",
+   "labels": "Dewi has the list from customer service, the escalations we confirmed"
+  }
+ },
+ {
+  "id": "JV-rare_event-07",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "channel": "whatsapp",
+  "words": "hola! una pregunta 😅\nwe have like 2 years of orders from our moto couriers in CDMX\nand a list of the orders that were fraud (customers complained n we checked)\nwant to know which NEW orders are fraud before we pay the guys\nclasification?",
+  "answers": {
+   "target": "fraud yes or no, from the list",
+   "prediction_moment": "before the weekly payout to couriers"
+  }
+ },
+ {
+  "id": "JV-rare_event-08",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "channel": "email",
+  "words": "Dear Dr Hallworth,\n\nI was given your name by a colleague at the chamber of commerce. I am the compliance officer of a same-day bicycle courier business in London.\n\nOur internal audit has identified around 400 orders over the last eighteen months that were fraudulent. These are recorded in a case log, apart from our orders table, with the reason for each. We would like to know whether such orders could be identified automatically, so that our small audit team can concentrate its time.\n\nI would be grateful for your thoughts on feasibility and on what data you would need.\n\nKind regards,\nFiona Marsh",
+  "answers": {
+   "prediction_moment": "At the end of each day, once the day's orders are closed and before the riders are paid",
+   "action": "The audit team reviews the flagged orders and withholds payment where fraud is confirmed",
+   "budget": "Roughly 30 orders a day",
+   "costs": "A missed fraud costs the fare and our client's trust; a false alarm costs some of an auditor's time",
+   "entity": "The rider; most cases involve a small number of riders",
+   "labels": "Yes, the case log of about 400 confirmed cases",
+   "data_plan": "The orders export and the case log, as two files",
+   "family": "Flag the orders likely to be fraud",
+   "target": "The cases in the audit log"
+  }
+ },
+ {
+  "id": "JV-rare_event-09",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "channel": "web_form",
+  "words": "fraud on biker orders. 1 table orders + 1 list of frauds found by audit. need daily list of suspicous ones",
+  "answers": {
+   "budget": "100/day"
+  }
+ },
+ {
+  "id": "JV-rare_event-10",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "channel": "voice_note",
+  "words": "Hi, hi, okay so it's Karim. We're a delivery app in Cairo, bikes mostly, and ehh we have a problem with some bikers and the terminal, the card terminal, terminal_ref I think it's called in the system. Some of them, they swipe, ehh, no, they fake the payment, I'm not sure exactly how. Anyway, the finance team found many cases and they keep it in a file, the cases file, with the reason for each one. And I want to, how you say, detect the anomalies? So every day we know which orders to check. Yalla, call me back.",
+  "answers": {
+   "labels": "the finance file, a few hundred rows",
+   "data_plan": "the orders from the system and finance's cases file"
+  }
+ },
+ {
+  "id": "JV-binary-01",
+  "kind": "binary",
+  "family": "classification",
+  "channel": "it_ticket",
+  "words": "Request type: Analytics / ML\n- Business owner: Retention department (Kraków)\n- Goal: predict for each subscriber whether they will cancel at their contract renewal\n- Data: subscribers table (subscriber_id, signup_time, plan, monthly_fee, tenure_months, support_calls, late_payments, final_refund_amount, churned)\n- Output: weekly list for the call centre\n- Deadline: end of Q1",
+  "answers": {
+   "target": "churned",
+   "prediction_moment": "About a month before the renewal date",
+   "action": "Retention calls the risky ones with an offer",
+   "costs": "A lost subscriber is worth much more than one call",
+   "entity": "The subscriber"
+  }
+ },
+ {
+  "id": "JV-binary-02",
+  "kind": "binary",
+  "family": "classification",
+  "channel": "manager_forward",
+  "words": "G'day, our membership systems guy said this: 'it's a churn classification, target is churned, beware final_refund_amount is post-event'. No idea what post-event means 😂 I just want to know which gym members are going to quit before their membership rolls over. Can you sort that?",
+  "answers": {
+   "prediction_moment": "A couple of weeks before their renewal",
+   "action": "Front desk offers them a free PT session"
+  }
+ },
+ {
+  "id": "JV-binary-03",
+  "kind": "binary",
+  "family": "classification",
+  "channel": "whatsapp",
+  "words": "yaar quick q\nwe have a music app on subscription, want to know who will NOT renew next cycle\ngot a table w subscriber_id, plan, monthly_fee, support_calls, late_payments etc + a churned col\ncan dclab do this? need it fast 🙏",
+  "answers": {
+   "target": "churned"
+  }
+ },
+ {
+  "id": "JV-binary-04",
+  "kind": "binary",
+  "family": "classification",
+  "channel": "email",
+  "words": "Sehr geehrte Damen und Herren,\n\nI am the Head of CRM at a meal-kit subscription company in Hamburg. Every month a share of our subscribers cancel when their subscription comes up for renewal.\n\nWe would like a model that, ahead of each renewal, estimates whether a subscriber will cancel, so that we can intervene in time. We hold a table of subscribers with their plan, monthly fee, tenure, number of support calls, late payments, refunds and whether they eventually churned.\n\nCould you advise whether this is feasible and what you would need from us?\n\nMit freundlichen Grüßen,\nKatrin Vogel",
+  "answers": {
+   "target": "The churned column",
+   "prediction_moment": "Two weeks before the renewal date; a refund is only paid after someone has cancelled",
+   "action": "Our CRM team sends a personal offer to subscribers at risk",
+   "entity": "The subscriber",
+   "labels": "Yes, churned records who left",
+   "budget": "About 300 offers a week",
+   "costs": "A missed churner costs months of revenue; an unnecessary offer costs a small discount",
+   "data_plan": "The subscribers table",
+   "family": "Will they cancel: yes or no"
+  }
+ },
+ {
+  "id": "JV-binary-05",
+  "kind": "binary",
+  "family": "classification",
+  "channel": "web_form",
+  "words": "Predict which subscribers cancel at renewal. SaaS. subscribers.csv",
+  "answers": {}
+ },
+ {
+  "id": "JV-binary-06",
+  "kind": "binary",
+  "family": "classification",
+  "channel": "voice_note",
+  "words": "Hello, yes, this is Wanjiru from the, we do the solar home kits on subscription, monthly, in Nairobi, and, um, what happens is people stop at the renewal, they don't renew, and then we have to go collect the kit. So I was told you can do some, eh, segmentation? No, not segmentation, prediction, like which customer will leave. We have the table: the subscriber, the plan, the fee, how many times they called support, the late payments, and if they churned. Okay. Thank you.",
+  "answers": {
+   "action": "Our field agents visit those households before the renewal",
+   "entity": "The subscriber, one per household"
+  }
+ },
+ {
+  "id": "JV-binary-07",
+  "kind": "binary",
+  "family": "classification",
+  "channel": "it_ticket",
+  "words": "Title: Churn risk at renewal\n* Team: Customer Success, Toronto\n* What: will each account cancel at its next renewal (yes/no), with a probability\n* Table: subscribers in the warehouse\n* Note: final_refund_amount gets filled after a cancellation, not sure if that matters\n* Consumers: CS managers, weekly review",
+  "answers": {
+   "target": "churned",
+   "prediction_moment": "30 days before each renewal",
+   "budget": "Each CSM can handle about 25 at-risk accounts a month",
+   "costs": "Losing an account is about a year of fees; an extra check-in costs an hour"
+  }
+ },
+ {
+  "id": "JV-binary-08",
+  "kind": "binary",
+  "family": "classification",
+  "channel": "manager_forward",
+  "words": "Hola, te reenvío lo que me dijo Javier, our data person: 'Binary target churned, low positive rate, we need calibrated probabilities at T-30 before renewal.'\n\nI only understand that we lose digital readers when the yearly renewal comes. I'm the subscriptions director of a newspaper in Valencia. Can your tool do this?",
+  "answers": {
+   "family": "Whether a reader cancels or stays",
+   "action": "Marketing sends a discount to those likely to cancel"
+  }
+ },
+ {
+  "id": "JV-binary-09",
+  "kind": "binary",
+  "family": "classification",
+  "channel": "whatsapp",
+  "words": "coucou 🙂\nwe ship dog food every month on subscription\nwhich clients will cancel at the next renewal??\ni think this is clustering? 🤔\ndata = subscribers table, theres a column churned",
+  "answers": {
+   "target": "the churned column",
+   "prediction_moment": "a week before the next box renews"
+  }
+ },
+ {
+  "id": "JV-binary-10",
+  "kind": "binary",
+  "family": "classification",
+  "channel": "email",
+  "words": "Hi Dr. Patel,\n\nI manage operations for a chain of car washes in Texas that sells unlimited monthly memberships. Too many members cancel when their membership renews, and we only find out afterwards.\n\nI'd like a dashboard that shows, before each renewal, which members are going to cancel. Our system has a subscribers table with plan, monthly fee, tenure in months, support calls, late payments, refund amounts and a churned flag.\n\nWould this be something you could build for us?\n\nThanks,\nDerek Simmons",
+  "answers": {
+   "target": "churned (yes/no)",
+   "prediction_moment": "Before the monthly renewal charge goes through",
+   "action": "Site managers offer at-risk members a free upgrade",
+   "labels": "Yes, churned",
+   "data_plan": "Export of the subscribers table"
+  }
+ },
+ {
+  "id": "JV-multiclass-01",
+  "kind": "multiclass",
+  "family": "classification",
+  "channel": "web_form",
+  "words": "Auto-route new support tickets to the right team. Ticket history has assigned_team.",
+  "answers": {}
+ },
+ {
+  "id": "JV-multiclass-02",
+  "kind": "multiclass",
+  "family": "classification",
+  "channel": "voice_note",
+  "words": "Hoi, um, so this is Sanne, I lead support at a, we make logistics software. We get, like, a few hundred tickets a day, and right now one person reads every single one and decides, okay, this goes to that team, and it takes forever. So I'd like the computer, the AI, to put each ticket in the right team's queue as soon as it comes in. We have the old tickets with the team they went to, it's the assigned_team field I think, plus the subject words and body words and some flags like mentions invoice, mentions password. Oh and resolved_by, but that's who closed it, so maybe not. Yeah.",
+  "answers": {
+   "prediction_moment": "Right when the ticket is created",
+   "action": "It goes straight into that team's queue",
+   "costs": "A wrong team means it bounces around and the customer waits a day"
+  }
+ },
+ {
+  "id": "JV-multiclass-03",
+  "kind": "multiclass",
+  "family": "classification",
+  "channel": "it_ticket",
+  "words": "Ticket #4471 - Request: ML ticket triage\n- Problem: manual triage of incoming support tickets takes ~2h every day\n- Want: a model that assigns each new ticket to one team\n- Data: tickets table, 2 years: product_area, channel, plan, subject_words, body_words, has_attachment, mentions_* flags, first_response_minutes, resolved_by, assigned_team\n- Acceptance: fewer reassignments than today\n- Office: Singapore",
+  "answers": {
+   "target": "assigned_team",
+   "prediction_moment": "At creation, before the first response",
+   "entity": "customer_id",
+   "data_plan": "The tickets table",
+   "action": "The ticket lands in that team's queue"
+  }
+ },
+ {
+  "id": "JV-multiclass-04",
+  "kind": "multiclass",
+  "family": "classification",
+  "channel": "manager_forward",
+  "words": "Hej! Forwarding from our developer Erik: 'This is multi-class text classification, label = assigned_team, watch out for first_response_minutes and resolved_by, they leak.'\n\nI don't know what any of that means. I run customer service for a furniture web shop and I just want tickets to land with the right people automatically. Tack!",
+  "answers": {
+   "action": "The ticket is sent to that team",
+   "family": "Which team should take the ticket"
+  }
+ },
+ {
+  "id": "JV-multiclass-05",
+  "kind": "multiclass",
+  "family": "classification",
+  "channel": "whatsapp",
+  "words": "hi bhai 👋\nour helpdesk is drowning\nneed something that reads a new ticket and tells which team takes it\nwe have all old tickets w the team that took it\nis this NLP??",
+  "answers": {
+   "target": "the team that took it, assigned_team",
+   "prediction_moment": "when the ticket comes in"
+  }
+ },
+ {
+  "id": "JV-multiclass-06",
+  "kind": "multiclass",
+  "family": "classification",
+  "channel": "email",
+  "words": "Dear Mr Novak,\n\nI am the Support Operations Manager at a shipping software company in Cork. Our customers contact us through several channels, and each ticket is currently reviewed by a coordinator who assigns it to one of our support teams. This creates delays, particularly at peak times.\n\nWe would like to explore an automated way of assigning each incoming ticket to the appropriate team. We hold two years of tickets with the team each was assigned to, the product area, the plan, flags for what the ticket mentions, and the words of the subject and body.\n\nI would be grateful for a short proposal.\n\nKind regards,\nAoife Byrne",
+  "answers": {
+   "target": "assigned_team",
+   "prediction_moment": "As soon as the ticket is logged, before anyone has replied",
+   "action": "The ticket goes directly to that team's queue",
+   "entity": "The customer",
+   "labels": "Yes, every closed ticket has the team it was assigned to",
+   "costs": "A misrouted ticket costs about a day; a ticket waiting for the coordinator costs a few hours",
+   "data_plan": "The tickets table",
+   "family": "One team per ticket"
+  }
+ },
+ {
+  "id": "JV-multiclass-07",
+  "kind": "multiclass",
+  "family": "classification",
+  "channel": "web_form",
+  "words": "classify tickets by team. csv w 18 cols.",
+  "answers": {
+   "target": "assigned_team"
+  }
+ },
+ {
+  "id": "JV-multiclass-08",
+  "kind": "multiclass",
+  "family": "classification",
+  "channel": "voice_note",
+  "words": "Okay, eh, good afternoon, this is Kwame from a payments app for merchants in Accra. So we want to do, like, clustering of the tickets, so the tickets go to the right team automatically. Because, no, sorry, not clustering, because we know the teams already, we have the history, which team handled each ticket. So yes. The tickets have the subject, the body, the channel, whether it mentions an error or an invoice... Please let me know.",
+  "answers": {
+   "prediction_moment": "when the merchant sends the ticket",
+   "action": "The team picks it up from their own queue"
+  }
+ },
+ {
+  "id": "JV-multiclass-09",
+  "kind": "multiclass",
+  "family": "classification",
+  "channel": "it_ticket",
+  "words": "[DATA-212] Ticket routing model\n• Reporter: Head of Support, Brno\n• Context: every new ticket is assigned to a team by hand; many get reassigned later\n• Ask: predict assigned_team at creation time\n• Inputs: only what is known when the ticket is opened\n• Data: support.tickets (ticket_id, created_at, customer_id, plan, channel, product_area, subject_words, body_words, flags, resolved_by, first_response_minutes, assigned_team)",
+  "answers": {
+   "target": "assigned_team",
+   "prediction_moment": "When the ticket is opened",
+   "action": "Auto-assign to that team",
+   "costs": "A reassignment costs about one day",
+   "entity": "customer_id",
+   "data_plan": "support.tickets",
+   "family": "assigned_team, one of several teams"
+  }
+ },
+ {
+  "id": "JV-multiclass-10",
+  "kind": "multiclass",
+  "family": "classification",
+  "channel": "manager_forward",
+  "words": "Below is what Tomas from IT wrote, I hope it is clear to you because it isn't to me:\n\n'we need a supervised model ticket -> team; features: product_area, channel, plan, the mentions_* booleans, subject and body words; don't use resolved_by'\n\nIn simple words: the computer should guess which team gets each new complaint from our parcel locker customers.",
+  "answers": {
+   "data_plan": "Tomas can send the ticket table"
+  }
+ },
+ {
+  "id": "JV-regression-01",
+  "kind": "regression",
+  "family": "regression",
+  "channel": "whatsapp",
+  "words": "hola 👋 quick one\nwe do food delivery in Bogotá\ncustomers are angry bc the ETA in the app is always wrong\nwant to predict how many minutes each delivery takes, when they order\nwe have orders w distance_km, couriers_online, weather, basket stuff + actual_minutes",
+  "answers": {
+   "target": "actual_minutes",
+   "prediction_moment": "when they hit order"
+  }
+ },
+ {
+  "id": "JV-regression-02",
+  "kind": "regression",
+  "family": "regression",
+  "channel": "email",
+  "words": "Dear Dr Lindqvist,\n\nI am Head of Operations at a group of delivery-only kitchens in Manchester. The delivery times we quote to customers are often wrong, which leads to complaints and refunds.\n\nWe would like an estimate of the delivery time for each order at the moment it is placed. Our order history includes the restaurant, the distance, the number of couriers online, the weather, the basket size and value, when the order was delivered, the courier's rating and the actual minutes it took.\n\nI would welcome your view on how to approach this.\n\nBest regards,\nTom Ashby",
+  "answers": {
+   "target": "actual_minutes",
+   "prediction_moment": "At checkout, before a courier is assigned",
+   "action": "We show the estimate to the customer in the app",
+   "costs": "Arriving late annoys customers far more than arriving early",
+   "entity": "The restaurant",
+   "data_plan": "The orders table",
+   "family": "A number of minutes"
+  }
+ },
+ {
+  "id": "JV-regression-03",
+  "kind": "regression",
+  "family": "regression",
+  "channel": "web_form",
+  "words": "ETA model: minutes from order to door. orders table.",
+  "answers": {}
+ },
+ {
+  "id": "JV-regression-04",
+  "kind": "regression",
+  "family": "regression",
+  "channel": "voice_note",
+  "words": "Hi so, uhm, I'm Petar, we're a grocery delivery, no actually it's restaurants, food, in Sofia. And the thing is the delivery time estimate, the one we show, it's just distance times something, and it's bad. So I want a proper model, the AI one, that says how long, in minutes, each order will take. We have the old orders with the actual minutes. Also the courier rating, but I think that comes after. Okay, ciao.",
+  "answers": {
+   "prediction_moment": "When the order is placed",
+   "action": "It goes on the app screen for the customer"
+  }
+ },
+ {
+  "id": "JV-regression-05",
+  "kind": "regression",
+  "family": "regression",
+  "channel": "it_ticket",
+  "words": "Request: Delivery duration prediction\n- Stakeholder: Customer Experience, Dubai\n- Target: actual_minutes (order_time to delivered_at)\n- Scoring moment: at order placement\n- Data: orders (11 columns)\n- Note: courier_rating is collected after delivery\n- Metric preference: average error in minutes",
+  "answers": {
+   "target": "actual_minutes",
+   "prediction_moment": "At order placement",
+   "action": "Shown as the promised time",
+   "costs": "10 minutes late is worse than 10 minutes early",
+   "data_plan": "The orders table",
+   "entity": "restaurant_id"
+  }
+ },
+ {
+  "id": "JV-regression-06",
+  "kind": "regression",
+  "family": "regression",
+  "channel": "manager_forward",
+  "words": "Good day! My colleague Joy says: 'it's a regression on actual_minutes, use only pre-dispatch features'. I manage the delivery fleet for our restaurants in Manila and honestly I just want to tell customers a realistic waiting time. Is this something you do?",
+  "answers": {
+   "action": "We print the promised time on the receipt and in the app",
+   "family": "How many minutes the delivery will take"
+  }
+ },
+ {
+  "id": "JV-regression-07",
+  "kind": "regression",
+  "family": "regression",
+  "channel": "whatsapp",
+  "words": "olá! 🍕\nwe deliver pizza w our own riders in Lisboa\nid like an AI that tells how long each order will take to arrive\nis that classification? we have ~1 year of orders",
+  "answers": {
+   "target": "the actual minutes it took",
+   "data_plan": "our orders table from the system"
+  }
+ },
+ {
+  "id": "JV-regression-08",
+  "kind": "regression",
+  "family": "regression",
+  "channel": "email",
+  "words": "Dear Consultant,\n\nGreetings. I am writing on behalf of a food delivery platform operating in Riyadh and Jeddah. We seek to build a predictive model for the expected delivery duration of each order, to be displayed to the customer when the order is confirmed.\n\nOur historical data contains, for each order, the restaurant, the order time, the distance in kilometres, the number of couriers online, the weather, the number of items, the order value, the delivery time, the courier's rating and the actual duration in minutes.\n\nWe would appreciate your proposal at your earliest convenience.\n\nWith best regards,\nFaisal Al-Harbi\nProduct Manager",
+  "answers": {
+   "target": "actual_minutes",
+   "prediction_moment": "When the customer confirms the order",
+   "action": "The estimate is displayed to the customer",
+   "costs": "Underestimating harms us more than overestimating",
+   "entity": "The restaurant",
+   "data_plan": "The orders table",
+   "family": "A duration in minutes"
+  }
+ },
+ {
+  "id": "JV-regression-09",
+  "kind": "regression",
+  "family": "regression",
+  "channel": "web_form",
+  "words": "predict delivery time per order at time of ordering - food delivery - have history",
+  "answers": {
+   "target": "minutes",
+   "prediction_moment": "at order time"
+  }
+ },
+ {
+  "id": "JV-regression-10",
+  "kind": "regression",
+  "family": "regression",
+  "channel": "voice_note",
+  "words": "Bon, okay, so, hi, this is Julien from a small delivery app in Montreal, restaurants mostly, and winter is killing us, the weather, so the times are crazy. I want to estimate, uh, the minutes. For each order. Before the courier even takes it. We have the weather in the table, the distance, how many couriers are online, the basket. Yeah, and the actual minutes, obviously.",
+  "answers": {
+   "costs": "If we say 30 and it's 50, they don't order again"
+  }
+ },
+ {
+  "id": "JV-places-01",
+  "kind": "places",
+  "family": "regression",
+  "channel": "it_ticket",
+  "words": "Asunto: Automated valuation model\n- Unit: Mortgage risk, Madrid\n- Need: estimated price of a flat from its location (lat, lon), size_m2, rooms, age_years\n- Training data: past sales with price\n- Usage: pre-check before the human appraisal\n- Priority: normal",
+  "answers": {
+   "target": "price",
+   "prediction_moment": "When a mortgage application comes in, before the appraisal",
+   "action": "Applications whose declared price is far from the estimate get a closer look",
+   "data_plan": "The past sales table"
+  }
+ },
+ {
+  "id": "JV-places-02",
+  "kind": "places",
+  "family": "regression",
+  "channel": "manager_forward",
+  "words": "Hi, my intern sent me this: 'spatial regression, consider spatial autocorrelation, maybe kriging or geo features'. I have no clue. What we need: when someone lists a flat on our property site in Nairobi, show them a fair price. Can you help?",
+  "answers": {
+   "target": "The price",
+   "prediction_moment": "When the listing is created"
+  }
+ },
+ {
+  "id": "JV-places-03",
+  "kind": "places",
+  "family": "regression",
+  "channel": "whatsapp",
+  "words": "γεια σου! hi 🏠\nim an agent in Athens, i have a list of flats we sold: where they are (lat lon), m2, rooms, how old, price\ncan your AI tell me what a new flat is worth??",
+  "answers": {
+   "action": "I use it when I meet the owner, to suggest the asking price"
+  }
+ },
+ {
+  "id": "JV-places-04",
+  "kind": "places",
+  "family": "regression",
+  "channel": "email",
+  "words": "Dear Dr Mertens,\n\nOur municipality, a mid-sized Dutch town, assesses the value of every residential property each year for local taxation. At present this work relies largely on manual comparison with recent sales.\n\nWe would like to evaluate a model that estimates a dwelling's value from its location, floor area, number of rooms and age, trained on recorded sales. We have a table of sold dwellings with latitude, longitude, size in square metres, rooms, age in years and the sale price.\n\nWe would value your advice on the approach and on how its accuracy should be checked.\n\nYours sincerely,\nJ. van Dijk\nValuation Department",
+  "answers": {
+   "target": "price, the recorded sale price",
+   "prediction_moment": "Each January, for every dwelling, with what is known then",
+   "action": "Assessors check the dwellings whose assessed value differs most from the estimate",
+   "costs": "An over-assessment leads to objections and appeals",
+   "data_plan": "The table of sold dwellings",
+   "family": "A number: the value in euros"
+  }
+ },
+ {
+  "id": "JV-places-05",
+  "kind": "places",
+  "family": "regression",
+  "channel": "web_form",
+  "words": "House price estimator from coords + size + rooms + age.",
+  "answers": {}
+ },
+ {
+  "id": "JV-places-06",
+  "kind": "places",
+  "family": "regression",
+  "channel": "voice_note",
+  "words": "Hello, um, I'm Linh, I work for a, we build and sell apartments in Ho Chi Minh City, and also resell. And my boss wants, like, a heatmap, no, a model, that tells the price of an apartment if you know where it is and how big. The data, we have lat and lon, the size in square meters, rooms, age in years, and the price it sold for. So, yeah, can you do that?",
+  "answers": {
+   "target": "the sold price",
+   "data_plan": "the sales sheet"
+  }
+ },
+ {
+  "id": "JV-places-07",
+  "kind": "places",
+  "family": "regression",
+  "channel": "it_ticket",
+  "words": "Story: As a seller listing a flat, I want a suggested price\n- Fields known at listing time: lat, lon, size_m2, rooms, age_years\n- Model target: price\n- Training: historical transactions table\n- Out of scope: photos, descriptions\n- Team: Listings, Warsaw",
+  "answers": {
+   "target": "price",
+   "prediction_moment": "When the seller fills in the listing",
+   "action": "We show it as a suggested price",
+   "data_plan": "Historical transactions",
+   "family": "A price"
+  }
+ },
+ {
+  "id": "JV-places-08",
+  "kind": "places",
+  "family": "regression",
+  "channel": "manager_forward",
+  "words": "Il mio collega Marco wrote: 'serve un modello di regressione per stimare il valore dell'immobile, con le coordinate'. In English: we insure homes and want to know the value of each flat from where it is, its size, rooms and age. We have a table of flats that were sold, with their price.",
+  "answers": {
+   "action": "To check the sum insured that the customer declares",
+   "family": "The value of the flat"
+  }
+ },
+ {
+  "id": "JV-places-09",
+  "kind": "places",
+  "family": "regression",
+  "channel": "whatsapp",
+  "words": "hey 👋\ni buy old flats in Tbilisi, renovate, sell\nwant to know a fair price before i buy\nhave ~3000 sold flats w lat/lon, m2, rooms, age, price\nclustering by area??",
+  "answers": {
+   "target": "price",
+   "prediction_moment": "before I make an offer"
+  }
+ },
+ {
+  "id": "JV-places-10",
+  "kind": "places",
+  "family": "regression",
+  "channel": "email",
+  "words": "Hello,\n\nI'm a mortgage broker in Melbourne. I'm after a tool that estimates the market price of an apartment from its coordinates, size, number of rooms and age, so I can sense-check what clients tell me before we apply for a loan.\n\nI've put together a spreadsheet of apartments sold in our area over the last few years with exactly those details and the sale price.\n\nIs this the kind of thing you can help with, and roughly what would it involve?\n\nCheers,\nSophie Tran",
+  "answers": {
+   "target": "The sale price",
+   "data_plan": "My spreadsheet of sold apartments",
+   "costs": "Overestimating is worse: a client could borrow too much"
+  }
+ },
+ {
+  "id": "JV-text_tabular-01",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "channel": "web_form",
+  "words": "Flag negative product reviews as they arrive. reviews table incl review_text.",
+  "answers": {}
+ },
+ {
+  "id": "JV-text_tabular-02",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "channel": "voice_note",
+  "words": "Hi, uh, annyeonghaseyo, so this is Jiwoo, I manage customer care for our online cosmetics shop in Seoul. We get many reviews, and the bad ones, the negative ones, we need to answer them fast before other customers see them. So I'd like the AI to read each review when it's posted and say if it's negative. We have the old reviews with a negative flag, the text, the category, the price, and how many reviews the person wrote before. And the shop reply, but that's ours, it comes after.",
+  "answers": {
+   "prediction_moment": "the moment it's posted",
+   "action": "The care team answers those first"
+  }
+ },
+ {
+  "id": "JV-text_tabular-03",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "channel": "it_ticket",
+  "words": "Feature request: negative review detection\n- Input: review_text plus category, price, past_reviews\n- Label: negative (historical, set by moderators)\n- Must run before a shop_reply exists\n- Downstream: priority queue for the care team\n- Team: Marketplace Trust, Leeds",
+  "answers": {
+   "target": "negative",
+   "prediction_moment": "On posting, before any reply",
+   "action": "Flagged reviews go to the top of the care queue",
+   "costs": "A missed negative review can sit unanswered for days",
+   "data_plan": "The reviews table"
+  }
+ },
+ {
+  "id": "JV-text_tabular-04",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "channel": "manager_forward",
+  "words": "Hi, sharing what our data science contractor wrote: 'sentiment analysis with tabular side features; label negative; exclude shop_reply as it is post-hoc'. My understanding is that we want to spot the unhappy reviews on our handicrafts marketplace in Jaipur as soon as they come in. Is that right?",
+  "answers": {
+   "family": "Is this review negative, yes or no",
+   "action": "The seller success team calls the seller"
+  }
+ },
+ {
+  "id": "JV-text_tabular-05",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "channel": "whatsapp",
+  "words": "che, hola!\nwe sell wine online, lots of reviews\nwant to catch the angry ones right when theyre posted\nhave a table: review_text, category, price, past_reviews, shop_reply and negative\nsentiment AI?",
+  "answers": {
+   "target": "negative"
+  }
+ },
+ {
+  "id": "JV-text_tabular-06",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "channel": "email",
+  "words": "Dear Sir or Madam,\n\nI am writing from the e-commerce division of an electronics retailer in Osaka. We receive several thousand product reviews every week, and negative reviews that remain unanswered damage both the product page and our reputation.\n\nWe wish to identify negative reviews at the moment they are posted, so that our customer service staff can respond promptly. Our archive contains each review's text, the product category, the price, the reviewer's number of past reviews, our shop's reply and a flag marking whether the review was negative.\n\nWe would be grateful to know whether you could support this project.\n\nYours faithfully,\nHiroshi Tanaka",
+  "answers": {
+   "target": "The negative column",
+   "prediction_moment": "When the review is posted, before we reply",
+   "action": "Customer service answers flagged reviews first",
+   "labels": "Yes, our moderators marked every past review",
+   "budget": "Our team can answer about 200 reviews a day",
+   "costs": "A missed negative review hurts sales of that product",
+   "data_plan": "The reviews table",
+   "family": "Negative or not"
+  }
+ },
+ {
+  "id": "JV-text_tabular-07",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "channel": "web_form",
+  "words": "reviews: negative or not? text + price + category. clasification",
+  "answers": {
+   "prediction_moment": "on posting"
+  }
+ },
+ {
+  "id": "JV-text_tabular-08",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "channel": "voice_note",
+  "words": "Hello hello, it's Chiamaka. So, ehm, we sell fashion online, and people write reviews, some of them very angry, and the shop owners, they reply late. So we want a system, like a clustering of the reviews, good and bad, to catch the bad ones quick. We already have the old reviews marked negative or not by our team. Yes. Thanks.",
+  "answers": {
+   "target": "negative",
+   "action": "An alert goes to the shop owner"
+  }
+ },
+ {
+  "id": "JV-text_tabular-09",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "channel": "it_ticket",
+  "words": "Betreff: Negative-Review-Erkennung\n- Goal: flag negative reviews at posting time\n- Data: reviews table (review_id, category, price, past_reviews, review_text, shop_reply, negative)\n- Note: shop_reply is written later by staff\n- Volume: ~1k reviews per day\n- Requester: Online shop team, Köln",
+  "answers": {
+   "target": "negative",
+   "prediction_moment": "At posting time",
+   "budget": "The care team handles about 150 a day",
+   "action": "Flagged reviews get a reply the same day",
+   "costs": "Unanswered negative reviews lower conversion",
+   "data_plan": "The reviews table",
+   "family": "negative yes/no"
+  }
+ },
+ {
+  "id": "JV-text_tabular-10",
+  "kind": "text_tabular",
+  "family": [
+   "classification",
+   "text_or_images"
+  ],
+  "channel": "manager_forward",
+  "words": "Oi! Meu analista disse: 'é classificação binária com texto + features tabulares'. I am the commercial director of an electronics marketplace in Curitiba and I only want to know which reviews are bad as soon as they are posted, before they hurt the product page.",
+  "answers": {}
+ },
+ {
+  "id": "JV-embedded-01",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "channel": "whatsapp",
+  "words": "hola!! porfa help 🙏\nour clinic gets tons of patient messages thru the portal\nneed to know which are urgent from what they write\nwe have old messages marked urgent or not (item, author, text, urgent)",
+  "answers": {
+   "action": "Urgent ones go to the nurse on duty first",
+   "prediction_moment": "when the message arrives"
+  }
+ },
+ {
+  "id": "JV-embedded-02",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "channel": "email",
+  "words": "Dear Dr Reyes,\n\nOur firm's client intake inbox in Toronto receives several hundred messages each day. Some require action within hours; most do not. At present a paralegal reads every message to decide.\n\nWe would like to identify urgent messages automatically from their content. Our archive holds each message with an identifier, its author, its text and whether it was treated as urgent.\n\nI would appreciate a brief call to discuss whether this is feasible and how its reliability would be demonstrated.\n\nSincerely,\nMargaret Okonkwo\nDirector of Operations",
+  "answers": {
+   "target": "urgent",
+   "prediction_moment": "As soon as the message reaches the inbox",
+   "action": "Urgent messages go straight to the lawyer on duty",
+   "costs": "Missing an urgent message can mean a missed court deadline",
+   "labels": "Yes, our paralegals marked each one",
+   "data_plan": "The message archive",
+   "family": "Urgent or not"
+  }
+ },
+ {
+  "id": "JV-embedded-03",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "channel": "web_form",
+  "words": "Urgency detection for support notes (text). Labelled notes available.",
+  "answers": {}
+ },
+ {
+  "id": "JV-embedded-04",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "channel": "voice_note",
+  "words": "Hi, ja, so this is Pieter at the city's service request desk in Cape Town. People send us messages about all kinds of things, and some are really urgent and some can wait. Right now Thandi reads them all. I want the computer to read the text and say urgent or not. We have the old ones, with who sent it, the text, and if it was urgent. Is that the AI thing, the language model thing? Okay, cheers.",
+  "answers": {
+   "target": "the urgent mark",
+   "action": "Urgent ones go to the emergency crew straight away"
+  }
+ },
+ {
+  "id": "JV-embedded-05",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "channel": "it_ticket",
+  "words": "Request: urgency classifier for internal support notes\n- Data: notes(item, author, text, urgent)\n- Goal: urgent flag on arrival, from the text\n- Integration: alert in our team chat\n- Priority: medium\n- Team: Platform Support, Tallinn",
+  "answers": {
+   "target": "urgent",
+   "prediction_moment": "When a note arrives",
+   "action": "An alert to the on-call engineer",
+   "data_plan": "The notes table",
+   "family": "urgent yes/no"
+  }
+ },
+ {
+  "id": "JV-embedded-06",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "channel": "manager_forward",
+  "words": "Bonjour, notre ingénieur a écrit: 'NLP text classification with embeddings, label urgent, consider author as a group to avoid leakage'. For me it's simple: I run passenger relations at an airline in Casablanca and I want to know which passenger messages are urgent, from what they wrote.",
+  "answers": {
+   "action": "Urgent ones are answered within the hour"
+  }
+ },
+ {
+  "id": "JV-embedded-07",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "channel": "whatsapp",
+  "words": "hi! 😊 our school in Penang gets lots of parent messages on the app\nsome are urgent, most not\nteachers marked the urgent ones before\ncan AI read the text n flag urgent?",
+  "answers": {
+   "target": "urgent",
+   "data_plan": "export from the app: item, author, text, urgent"
+  }
+ },
+ {
+  "id": "JV-embedded-08",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "channel": "email",
+  "words": "Dear colleague,\n\nI work at the IT service desk of a university in Bergen. We receive notes from staff and students throughout the day, and a small share of them are urgent. Today a duty officer reads every note to find those.\n\nWe would like to prioritise urgent notes automatically, based on their text. We have an archive in which each note has an identifier, its author, its text and whether it was urgent.\n\nCould you tell us whether DCLab can do this, and how we would know it works?\n\nBest regards,\nIngrid Solberg",
+  "answers": {
+   "prediction_moment": "When the note is received",
+   "action": "Urgent notes are handled first",
+   "costs": "A missed urgent note can stop an exam from starting",
+   "entity": "The author",
+   "labels": "Yes, every archived note is marked",
+   "data_plan": "The notes archive",
+   "family": "Urgent: yes or no"
+  }
+ },
+ {
+  "id": "JV-embedded-09",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "channel": "web_form",
+  "words": "need: read message text -> urgent yes/no. 4 columns.",
+  "answers": {
+   "target": "urgent"
+  }
+ },
+ {
+  "id": "JV-embedded-10",
+  "kind": "embedded",
+  "family": [
+   "text_or_images",
+   "classification"
+  ],
+  "channel": "voice_note",
+  "words": "Kia ora, so, um, it's Aroha from the vet clinic in Rotorua. We have, like, the messages from pet owners, and some are emergencies and some are just, you know, bookings and questions. We want the AI to read the text and tell us which ones are urgent. We have a spreadsheet from before with the item, the author, the text, and urgent yes or no.",
+  "answers": {
+   "action": "a vet calls back the urgent ones straight away",
+   "prediction_moment": "as the message comes in"
+  }
+ },
+ {
+  "id": "JV-anomaly-01",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "channel": "it_ticket",
+  "words": "Request: unusual-order detection\n- Data: orders table (created_date, account_id, biker_id, biker_phone, order_id, category, terminal_ref, status, biker_fare, sender_phone, source/destination coordinates)\n- No labels: nobody has reviewed past orders\n- Need: a daily list of the strangest orders for the ops lead\n- Capacity: ~50 checks per day\n- Office: Kyiv",
+  "answers": {
+   "labels": "None, nothing was ever checked",
+   "budget": "50 a day",
+   "prediction_moment": "Each morning, for yesterday's orders",
+   "action": "The ops lead checks each one",
+   "target": "No column; we want the odd ones",
+   "data_plan": "The orders table"
+  }
+ },
+ {
+  "id": "JV-anomaly-02",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "channel": "manager_forward",
+  "words": "My tech lead Minh wrote: 'unsupervised outlier detection on the orders, no ground truth'. I'm the CEO of our bike delivery company in Hanoi. I just think some riders are cheating but we have never caught one, so we have no examples. Help?",
+  "answers": {
+   "action": "Someone from ops looks at the orders on the list",
+   "budget": "Maybe 20 a day"
+  }
+ },
+ {
+  "id": "JV-anomaly-03",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "channel": "whatsapp",
+  "words": "hola!\nsomething weird is going on w our bikers in Lima, fares look strange\nnever investigated anything so no list of bad orders\njust want a list every morning of the weirdest orders\nfraud model?",
+  "answers": {
+   "labels": "no, nothing",
+   "budget": "30 per day"
+  }
+ },
+ {
+  "id": "JV-anomaly-04",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "channel": "email",
+  "words": "Dear Dr Brunner,\n\nI coordinate a bicycle courier cooperative in Zurich. Over the past months some of us have noticed irregularities in the orders: fares and routes that do not seem right. However, we have never investigated or labelled any order, so we do not know which ones, if any, are problematic.\n\nWe would like a method that highlights the most unusual orders each day so that we can review them. Our order records include the date, the account, the rider and their phone, the sender's phone, the category, the payment terminal reference, the status, the fare and the pickup and drop-off coordinates.\n\nWith thanks in advance,\nLukas Meier",
+  "answers": {
+   "prediction_moment": "Each morning, for the previous day's orders",
+   "action": "Two members review the listed orders",
+   "entity": "The rider",
+   "labels": "No, nothing is labelled",
+   "budget": "About 25 orders per day",
+   "target": "There is no outcome; we want the unusual orders",
+   "data_plan": "The orders table",
+   "family": "The most unusual orders"
+  }
+ },
+ {
+  "id": "JV-anomaly-05",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "channel": "web_form",
+  "words": "find strange orders in courier data. no fraud labels.",
+  "answers": {}
+ },
+ {
+  "id": "JV-anomaly-06",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "channel": "voice_note",
+  "words": "Assalamu alaikum, uh, this is Farhan, we do bike delivery in Dhaka, parcels, and, um, the finance people are worried, the fares, the terminal payments, something is off, but nobody ever checked, we don't have, like, a list of the bad ones. So we want the anomaly, eh, anomaly detection, to give each day the strange orders. Then we check them. That's it.",
+  "answers": {
+   "budget": "my team can check maybe 40 a day",
+   "prediction_moment": "the next morning"
+  }
+ },
+ {
+  "id": "JV-anomaly-07",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "channel": "it_ticket",
+  "words": "Subject: Outlier scoring - courier orders\n• Background: possible misuse of sender_phone / biker_phone pairs, not confirmed\n• No historical investigations, so no labels at all\n• Ask: rank yesterday's orders by how unusual they are\n• Output: top-N CSV to the audit mailbox\n• Region: Almaty",
+  "answers": {
+   "target": "Nothing to predict, only how unusual each order is",
+   "labels": "None",
+   "budget": "Top 60 each day",
+   "action": "Audit reviews the list",
+   "entity": "biker_id",
+   "data_plan": "The orders table"
+  }
+ },
+ {
+  "id": "JV-anomaly-08",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "channel": "manager_forward",
+  "words": "Ciao, the data guy (Luca) says: 'we can't do supervised, there are no labels, so it's anomaly detection'. I trust him but I don't understand. I run a food courier service in Milan and I just want to know which deliveries smell funny, ogni giorno.",
+  "answers": {
+   "action": "I call the rider's team leader",
+   "labels": "We never marked any"
+  }
+ },
+ {
+  "id": "JV-anomaly-09",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "channel": "whatsapp",
+  "words": "salut 👋\nwe have bikers delivering in Casa, ~1 year of orders\nwant to find odd stuff, like strange fares or locations\nno idea which ones are bad, never checked\nclassification maybe?",
+  "answers": {
+   "target": "none, just the odd ones",
+   "budget": "50/day"
+  }
+ },
+ {
+  "id": "JV-anomaly-10",
+  "kind": "anomaly",
+  "family": "anomaly",
+  "channel": "email",
+  "words": "Dear Sir,\n\nI am the internal auditor of a courier company in Cluj-Napoca. We would like to establish a daily review of our bike couriers' orders. At present we have no record of past irregularities, as no review has ever been carried out.\n\nI would be grateful for your advice on how to select, each day, the orders that most deserve examination, given that we cannot review them all.\n\nRespectfully,\nAndrei Popescu",
+  "answers": {
+   "labels": "No order has ever been labelled",
+   "budget": "We can examine 15 orders a day",
+   "prediction_moment": "After the day closes",
+   "data_plan": "The orders table from our dispatch system",
+   "family": "A list of the most unusual orders"
+  }
+ },
+ {
+  "id": "JV-forecasting-01",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "channel": "web_form",
+  "words": "Forecast daily units per store per product, next 14 days.",
+  "answers": {}
+ },
+ {
+  "id": "JV-forecasting-02",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "channel": "voice_note",
+  "words": "Szia, so, uh, I'm Bence, we have eight bakeries in Budapest, and every evening the shop managers guess how much to bake, and we throw away so much. Or we run out. So I want, uh, a prediction of how many of each product each store will sell tomorrow, and maybe the next days too. We have the daily sales by store and product, and if it was on promotion, and the rain, the millimetres. Because when it rains, people don't come.",
+  "answers": {
+   "target": "units sold",
+   "prediction_moment": "the evening before, for the next 7 days",
+   "action": "Managers decide how much to bake"
+  }
+ },
+ {
+  "id": "JV-forecasting-03",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "channel": "it_ticket",
+  "words": "Request: demand forecast\n- Scope: every store x product series\n- Grain: daily units\n- Horizon: next 7 days, refreshed weekly\n- Drivers: on_promotion (planned ahead), rain_mm (observed on the day)\n- Data: sales_daily (store, product, date, on_promotion, rain_mm, units, series)\n- Requester: Supply chain, Santiago",
+  "answers": {
+   "target": "units",
+   "prediction_moment": "Every Sunday night, for the next 7 days",
+   "action": "Replenishment orders for each store",
+   "data_plan": "sales_daily",
+   "family": "A forecast of units per day per series"
+  }
+ },
+ {
+  "id": "JV-forecasting-04",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "channel": "manager_forward",
+  "words": "Hi, my nephew who does data said: 'it's a multi-series time-series forecasting problem with exogenous regressors'. What I want: how much of each ice cream each of my kiosks in Split will sell every day next week, so I order right from the factory.",
+  "answers": {
+   "target": "the units",
+   "action": "I order stock from the factory"
+  }
+ },
+ {
+  "id": "JV-forecasting-05",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "channel": "whatsapp",
+  "words": "hi 👋 we have 12 coffee shops in Bangkok\nwant to predict how many of each item sells per shop per day next week\nso we prep right\nhave daily sales + promo + rain 🌧️",
+  "answers": {
+   "prediction_moment": "sunday night for the week",
+   "target": "units"
+  }
+ },
+ {
+  "id": "JV-forecasting-06",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "channel": "email",
+  "words": "Dear Ms Hughes,\n\nI am a senior buyer at a regional supermarket chain in the North of England. Our ordering of fresh products still relies on store managers' judgement, and we see both waste and empty shelves.\n\nWe need forecasts of daily unit sales for each product in each store over the next four weeks. Our data comprise daily units by store and product, a promotion flag and the daily rainfall.\n\nI would be pleased to discuss how you would approach this.\n\nYours sincerely,\nGraham Whitaker",
+  "answers": {
+   "target": "units",
+   "prediction_moment": "Every Monday morning, for the next 28 days; promotions are fixed a month ahead, rainfall is only known on the day",
+   "action": "Replenishment orders are based on it",
+   "costs": "Running out loses the sale; overstocked fresh goods are thrown away",
+   "data_plan": "The daily sales table",
+   "family": "Forecasts of daily units"
+  }
+ },
+ {
+  "id": "JV-forecasting-07",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "channel": "web_form",
+  "words": "need sales prediciton per shop & product, daily. AI.",
+  "answers": {
+   "target": "units",
+   "prediction_moment": "every friday for next week"
+  }
+ },
+ {
+  "id": "JV-forecasting-08",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "channel": "voice_note",
+  "words": "Haan, hello, so this is Rohit, I supply to many small stores in Mumbai, and, uh, we need to know how much each store will sell of each product, per day, for the next one week, so the vans get loaded correct. We have the history: store, product, date, units, the promotion, also the rain, because monsoon, you know. Is this, what do you call, classification? No? Okay, whatever it is.",
+  "answers": {
+   "action": "We load the vans from it",
+   "data_plan": "the daily sales sheet"
+  }
+ },
+ {
+  "id": "JV-forecasting-09",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "channel": "it_ticket",
+  "words": "• Need: forecast of units per store/product for the coming 14 days\n• Why: staffing and stock for promotion weeks\n• Data: daily table incl. on_promotion and rain_mm\n• Consumers: planners, garden centres, Ghent region\n• Nice to have: per-store view",
+  "answers": {
+   "target": "units",
+   "prediction_moment": "Every Monday, for the next 14 days",
+   "action": "Planners set stock and staff"
+  }
+ },
+ {
+  "id": "JV-forecasting-10",
+  "kind": "forecasting",
+  "family": "forecasting",
+  "channel": "manager_forward",
+  "words": "Forwarding Achieng's note: 'Hierarchical forecasting on store-product series; careful with rain_mm, it's only known after the fact.' I run a drinks distributor in Mombasa. I need to know how many of each drink each outlet will sell per day next week.",
+  "answers": {}
+ },
+ {
+  "id": "JV-time_to_event-01",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "channel": "whatsapp",
+  "words": "hey 🍷\nwe run a wine club subscription in Stellenbosch\nwhen someone signs up i want to know how long they'll stick around before cancelling\nsome havent cancelled yet obviously\nis that churn?",
+  "answers": {
+   "target": "days_subscribed + cancelled",
+   "prediction_moment": "at signup"
+  }
+ },
+ {
+  "id": "JV-time_to_event-02",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "channel": "email",
+  "words": "Dear Dr Holm,\n\nI am responsible for customer retention at a home security monitoring company in Aarhus. We would like to estimate, at the moment a customer signs up, how long they are likely to remain a subscriber before cancelling.\n\nMany of our customers are still active, so we do not yet know how long they will stay. Our data include each subscriber's signup date, plan, signup discount, the number of calls in their first week, their age, the months billed, the tickets raised so far, the number of days subscribed and whether they have cancelled.\n\nI look forward to your reply.\n\nVenlig hilsen,\nMette Kristensen",
+  "answers": {
+   "target": "days_subscribed, with cancelled showing who has left",
+   "prediction_moment": "At signup, before the first bill",
+   "action": "Customers expected to leave early receive a welcome call",
+   "costs": "A welcome call is cheap; losing a customer in the first months costs the installation",
+   "entity": "The subscriber",
+   "data_plan": "The subscribers table",
+   "family": "How many days until the customer cancels"
+  }
+ },
+ {
+  "id": "JV-time_to_event-03",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "channel": "web_form",
+  "words": "Predict time until cancellation for new subscribers (survival).",
+  "answers": {}
+ },
+ {
+  "id": "JV-time_to_event-04",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "channel": "voice_note",
+  "words": "Hey, okay, so, um, this is Marcus, we run online coding classes for kids in Ohio, monthly subscription, and parents sign up, and some leave after a month, some stay for years. So I want to know, when a family signs up, how long they'll probably stay. Like, a number of days. Some are still with us so we don't know their end yet. We have the signup date, plan, the discount, how many calls that first week, age, and days subscribed and cancelled. Is that a churn model? I don't know the right word.",
+  "answers": {
+   "target": "how many days they stay",
+   "action": "We give extra onboarding to the ones who'll leave early"
+  }
+ },
+ {
+  "id": "JV-time_to_event-05",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "channel": "it_ticket",
+  "words": "Request: subscriber lifetime model\n- At signup, estimate the days until cancellation\n- Many contracts are still active (no end date yet)\n- Table: subscribers (subscriber_id, signup_date, plan, signup_discount, signup_week_calls, age, months_billed, tickets_so_far, days_subscribed, cancelled)\n- Note: months_billed and tickets_so_far keep growing after signup\n- Team: Retail energy, Ljubljana",
+  "answers": {
+   "target": "days_subscribed, cancelled = left or not",
+   "prediction_moment": "At signup",
+   "action": "A retention offer for short expected lifetimes",
+   "data_plan": "The subscribers table",
+   "family": "Time to cancellation"
+  }
+ },
+ {
+  "id": "JV-time_to_event-06",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "channel": "manager_forward",
+  "words": "My analyst Lena wrote: 'survival analysis, duration = days_subscribed, event = cancelled, right-censored'. I run the membership side of a car-sharing company in Berlin. I just want to know, for every new member, roughly how long they will keep their membership.",
+  "answers": {
+   "action": "Members likely to leave early get a free month",
+   "prediction_moment": "At signup"
+  }
+ },
+ {
+  "id": "JV-time_to_event-07",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "channel": "whatsapp",
+  "words": "buenas!\nwe have a pilates studio app w monthly memberships in Medellín\nwant to estimate how many days a new member stays before they cancel\nalso there are ones still active\nAI pls 🙏",
+  "answers": {
+   "target": "days_subscribed"
+  }
+ },
+ {
+  "id": "JV-time_to_event-08",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "channel": "email",
+  "words": "Hello Dr Ahmed,\n\nI run a coffee bean subscription business in Vancouver. I would like to predict, right after someone subscribes, how long they will stay with us before they cancel. I believe this needs a classification model, but I am not an expert.\n\nOur table has the signup date, plan, any signup discount, calls in the first week, age, months billed, tickets so far, the days subscribed and a cancelled flag. Many subscribers are still active.\n\nBest wishes,\nNadia Rahman",
+  "answers": {
+   "target": "days_subscribed; cancelled tells whether they left",
+   "prediction_moment": "Right after signup",
+   "costs": "We send a welcome box; it's wasted on people who leave in the first month",
+   "data_plan": "Our subscribers table"
+  }
+ },
+ {
+  "id": "JV-time_to_event-09",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "channel": "web_form",
+  "words": "how long until a new customer cancells? subscriptions table, some still active",
+  "answers": {
+   "prediction_moment": "at signup"
+  }
+ },
+ {
+  "id": "JV-time_to_event-10",
+  "kind": "time_to_event",
+  "family": "time_to_event",
+  "channel": "voice_note",
+  "words": "سلام, um, hi, this is Reza, we have a TV subscription service, internet TV, and um, I want, for new subscribers, to know how long they will stay. Days. Before they cancel. Some are still subscribed, of course. We have the table: signup date, plan, discount, calls in the signup week, age, days subscribed, cancelled. Is that regression or, I don't know. Merci.",
+  "answers": {
+   "action": "a discount offer for those expected to leave soon",
+   "target": "days until they cancel"
+  }
+ },
+ {
+  "id": "JV-streams-01",
+  "kind": "streams",
+  "family": "streams",
+  "channel": "it_ticket",
+  "words": "Betreff: Predictive maintenance pilot\n- Assets: CNC machines, plant near Stuttgart\n- Data: sensor readings per machine over time (temperature, vibration, pressure)\n- Failures: maintenance log with failure times\n- Need: an alert some hours before a failure\n- Contact: maintenance planning",
+  "answers": {
+   "target": "A failure in the next 12 hours",
+   "prediction_moment": "Every hour, for each machine",
+   "action": "A technician inspects the machine",
+   "data_plan": "The sensor readings and the failure log",
+   "family": "An early alert per machine"
+  }
+ },
+ {
+  "id": "JV-streams-02",
+  "kind": "streams",
+  "family": "streams",
+  "channel": "manager_forward",
+  "words": "Our engineer Omar wrote: 'time-series anomaly detection on pump telemetry'. My question in plain words: can we know a pump will break before it breaks? We run the water pumping stations for a district near Amman and we have readings from every pump.",
+  "answers": {
+   "action": "We send the maintenance crew",
+   "data_plan": "Readings from each pump: temperature, vibration, pressure, with the time"
+  }
+ },
+ {
+  "id": "JV-streams-03",
+  "kind": "streams",
+  "family": "streams",
+  "channel": "whatsapp",
+  "words": "ahoj 👋\nour brewery has compressors & pumps w sensors (temp, vibration, pressure)\nwhen they break we lose a whole batch\ncan u warn us before? we log every few min",
+  "answers": {
+   "target": "a breakdown in the next hours",
+   "action": "the guy on shift checks it"
+  }
+ },
+ {
+  "id": "JV-streams-04",
+  "kind": "streams",
+  "family": "streams",
+  "channel": "email",
+  "words": "Dear Dr Salazar,\n\nI am the reliability engineer at an open-pit mine in southern Peru. Our haul trucks carry sensors that record temperature, vibration and pressure, each reading time-stamped for each truck. We also keep maintenance records of every failure.\n\nWe would like an early-warning model that tells us, ahead of time, which trucks are likely to fail, so that maintenance can be planned rather than reactive.\n\nI would be glad to share a sample of the readings.\n\nKind regards,\nJorge Quispe",
+  "answers": {
+   "target": "A failure within the next 24 hours",
+   "prediction_moment": "Every six hours, for each truck",
+   "action": "The truck goes to the workshop",
+   "costs": "An unplanned failure costs a shift of production; an unnecessary inspection costs two hours",
+   "entity": "The truck (machine)",
+   "data_plan": "The sensor readings and the failure records",
+   "family": "An early warning per machine"
+  }
+ },
+ {
+  "id": "JV-streams-05",
+  "kind": "streams",
+  "family": "streams",
+  "channel": "web_form",
+  "words": "Predict machine failure from sensor streams (temp/vib/pressure).",
+  "answers": {}
+ },
+ {
+  "id": "JV-streams-06",
+  "kind": "streams",
+  "family": "streams",
+  "channel": "voice_note",
+  "words": "Hola, eh, so I'm Lucía from a, we have cold rooms for fruit near Valencia, and the compressors, the machines, they fail sometimes at night and we lose everything. We have sensors, temperature, vibration, pressure, every few minutes. I was thinking a dashboard with red lights, but my boss said to ask you for a prediction, before it fails. And we have the dates when they broke.",
+  "answers": {
+   "prediction_moment": "all the time, like every hour",
+   "action": "call the technician on duty"
+  }
+ },
+ {
+  "id": "JV-streams-07",
+  "kind": "streams",
+  "family": "streams",
+  "channel": "it_ticket",
+  "words": "• Request: failure early warning\n• Units: elevators (machine id)\n• Signals: temperature, vibration, pressure readings with timestamps\n• Labels: breakdown records from the service log\n• Ask: risk per elevator every 6h\n• Constraint: max 10 inspections a day\n• Region: Hong Kong",
+  "answers": {
+   "budget": "10 inspections a day",
+   "target": "A breakdown before the next check",
+   "action": "An engineer visits the elevator",
+   "data_plan": "Sensor readings plus the service log"
+  }
+ },
+ {
+  "id": "JV-streams-08",
+  "kind": "streams",
+  "family": "streams",
+  "channel": "manager_forward",
+  "words": "Sir, my maintenance engineer said 'we need a model on the sensor streams to predict failure, RUL maybe'. I don't know RUL. Our looms in Faisalabad stop and we lose money. I want to know before it happens.",
+  "answers": {
+   "data_plan": "The sensor log from every loom plus the breakdown register"
+  }
+ },
+ {
+  "id": "JV-streams-09",
+  "kind": "streams",
+  "family": "streams",
+  "channel": "whatsapp",
+  "words": "hi! hotel engineering here (Doha)\nour chillers have sensors, temp vibration pressure, logged all the time\nwant an alarm BEFORE one fails, not after 😅\nis this anomaly detection?",
+  "answers": {
+   "target": "a chiller failure in the next few hours",
+   "data_plan": "the sensor log + our failure list"
+  }
+ },
+ {
+  "id": "JV-streams-10",
+  "kind": "streams",
+  "family": "streams",
+  "channel": "email",
+  "words": "Dear Sir/Madam,\n\nI am the maintenance head at a pharmaceutical plant in Pune. Our tablet presses are fitted with sensors that continuously record temperature, vibration and pressure. Unexpected breakdowns interrupt production batches and are costly.\n\nWe would like to receive a warning before a machine fails, using these sensor readings. We also keep a register of past breakdowns with their times.\n\nKindly let us know how you would proceed.\n\nRegards,\nS. Kulkarni",
+  "answers": {
+   "target": "A failure of the machine within the next 8 hours",
+   "prediction_moment": "Every hour",
+   "action": "The press is stopped and inspected",
+   "costs": "A breakdown ruins the batch; an inspection costs 30 minutes",
+   "entity": "The machine",
+   "budget": "The maintenance team can do 5 inspections per shift",
+   "data_plan": "The sensor readings and the breakdown register",
+   "family": "A warning per machine before it fails"
+  }
+ },
+ {
+  "id": "JV-entity_tables-01",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "channel": "web_form",
+  "words": "Predict which customers won't order in the next 30 days. Tables: customers, orders, tickets, addresses.",
+  "answers": {}
+ },
+ {
+  "id": "JV-entity_tables-02",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "channel": "voice_note",
+  "words": "Right, hiya, so it's Callum from the grocery app in Glasgow. What I want is, for every customer, will they go quiet, like no orders in the next month, thirty days. We've got the customers table, and their orders, all of them with dates and amounts, and the support tickets, and their addresses. So it's spread over a few tables. Is that clustering? Probably not.",
+  "answers": {
+   "target": "no order in the next 30 days",
+   "prediction_moment": "on the first of each month",
+   "action": "they get a voucher"
+  }
+ },
+ {
+  "id": "JV-entity_tables-03",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "channel": "it_ticket",
+  "words": "Request: dormancy prediction\n- Entity: customer_id\n- Label: no order within 30 days after a cutoff date\n- Sources: customers, orders (ordered_at, amount), tickets (opened_at), addresses\n- Run: monthly, at the cutoff\n- Output: list to CRM\n- Team: E-commerce, Tampere",
+  "answers": {
+   "target": "No order in the 30 days after the cutoff",
+   "prediction_moment": "On each cutoff date, with only what is known by then",
+   "action": "CRM sends a reminder",
+   "entity": "customer_id",
+   "data_plan": "Customers, orders, tickets and addresses",
+   "family": "Yes or no per customer"
+  }
+ },
+ {
+  "id": "JV-entity_tables-04",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "channel": "manager_forward",
+  "words": "Hi, our BI person Andrea wrote: 'relational, multi-table, we need per-customer features at the cutoff, label from the orders table'. In simple words: which of our business clients will not order anything in the next 30 days? We have the customer list, the orders, the complaints (tickets) and the addresses. We sell office supplies in Guadalajara.",
+  "answers": {
+   "action": "A sales rep calls them",
+   "target": "No order in the next 30 days"
+  }
+ },
+ {
+  "id": "JV-entity_tables-05",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "channel": "whatsapp",
+  "words": "marhaba 👋\nwe have an online beauty shop\nwich customers will stop ordering? like nothing in the next 30 days\ndata is in a few tables: customers, orders, tickets, addresses",
+  "answers": {
+   "prediction_moment": "every month end"
+  }
+ },
+ {
+  "id": "JV-entity_tables-06",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "channel": "email",
+  "words": "Dear Dr Kovač,\n\nI lead the loyalty programme of a DIY retailer in Vienna. We would like to identify, at regular cutoff dates, the customers who will not place an order in the following 30 days, so that we can contact them in time.\n\nOur data are held in several related tables: a customers table (customer_id, signup_date, plan, region, last_order_date, lifetime_orders), an orders table with dates and amounts, a support tickets table and an addresses table, all linked by customer_id.\n\nI would appreciate your proposal.\n\nMit freundlichen Grüßen,\nStefan Huber",
+  "answers": {
+   "target": "No order in the 30 days after each cutoff",
+   "prediction_moment": "On each cutoff date, using only the history up to that date",
+   "action": "We send a voucher to those at risk",
+   "entity": "The customer",
+   "budget": "About 2,000 vouchers a month",
+   "costs": "A voucher costs little; a lost customer costs their yearly spend",
+   "data_plan": "The four linked tables",
+   "family": "Yes or no per customer: no order within 30 days"
+  }
+ },
+ {
+  "id": "JV-entity_tables-07",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "channel": "web_form",
+  "words": "customer inactivity next 30d from several tables (orders, tickets)",
+  "answers": {
+   "target": "no order in 30 days"
+  }
+ },
+ {
+  "id": "JV-entity_tables-08",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "channel": "voice_note",
+  "words": "Hello, okay, um, I'm Nimal, we're an online pharmacy in Colombo, and customers order their medicines every month, mostly, and some just stop. I want to predict which customers won't order in the next thirty days. I have the customer table, the orders table with dates and amounts, the tickets they raised, and the addresses. My friend said it's a churn model. Is it?",
+  "answers": {
+   "action": "A pharmacist calls them",
+   "data_plan": "the four tables"
+  }
+ },
+ {
+  "id": "JV-entity_tables-09",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "channel": "it_ticket",
+  "words": "• What: per-customer flag 'no purchase in the next 30 days'\n• When: computed at monthly cutoffs\n• Data: customers + orders + tickets + addresses (joined on customer_id)\n• Caveat: last_order_date and lifetime_orders in customers hold today's values, not values as of the cutoff\n• Owner: CRM, online bookshop (Belgrade)",
+  "answers": {
+   "target": "No order in the next 30 days",
+   "prediction_moment": "At each monthly cutoff",
+   "entity": "customer_id",
+   "data_plan": "The customers, orders, tickets and addresses tables"
+  }
+ },
+ {
+  "id": "JV-entity_tables-10",
+  "kind": "entity_tables",
+  "family": "entity_tables",
+  "channel": "manager_forward",
+  "words": "Bonjour, je transfère: 'This needs point-in-time features from the order and ticket histories; label = no order in a 30-day window.' Me, I just want to know which customers of our coffee capsule shop in Geneva will forget us next month.",
+  "answers": {
+   "data_plan": "Customers, orders, tickets and addresses tables"
+  }
+ },
+ {
+  "id": "JV-segmentation-01",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "channel": "whatsapp",
+  "words": "merhaba!\nwe want to split our customers into groups by how they shop\nfor different campaigns\nhave orders_per_month, avg_basket, discount_share, days_since_last_order, channel, region etc\nis this a dashboard thing? 😅",
+  "answers": {
+   "target": "no outcome, just groups",
+   "action": "a campaign per group"
+  }
+ },
+ {
+  "id": "JV-segmentation-02",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "channel": "email",
+  "words": "Dear Dr Chen,\n\nI am the loyalty manager of a grocery chain in Ontario. We would like to divide our loyalty customers into a small number of meaningful segments based on their purchasing behaviour, so that each segment can receive its own campaign.\n\nFor each customer we hold orders per month, average basket, the share of purchases made with a discount, days since the last order, the main channel, region, signup week and whether they renewed their membership.\n\nCould you outline how you would approach this?\n\nBest regards,\nEmily Wong",
+  "answers": {
+   "target": "There is no outcome; we want groups",
+   "prediction_moment": "Now, with what we know of each customer",
+   "action": "A tailored campaign per segment",
+   "entity": "The customer",
+   "data_plan": "The customers table",
+   "family": "Groups of customers"
+  }
+ },
+ {
+  "id": "JV-segmentation-03",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "channel": "web_form",
+  "words": "customer segmentation for marketing - behaviour columns",
+  "answers": {}
+ },
+ {
+  "id": "JV-segmentation-04",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "channel": "voice_note",
+  "words": "Hola, sí, so, this is Daniela from marketing in Monterrey, and my director wants, um, personas? Like, groups of customers: the ones who buy a lot, the ones who only buy with discounts, that kind of thing. We have a table with orders per month, average basket, discount share, days since last order, channel, region, signup week, and renewed. We don't want to predict anything, no, just the groups. I think. Gracias.",
+  "answers": {
+   "action": "different emails for each group",
+   "family": "groups"
+  }
+ },
+ {
+  "id": "JV-segmentation-05",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "channel": "it_ticket",
+  "words": "Request: customer segments\n- Purpose: campaign planning for Q2\n- Data: customers (orders_per_month, avg_basket, discount_share, days_since_last_order, channel, region, signup_week, renewed)\n- Max ~6 segments, each must be explainable to marketing\n- No target variable\n- Team: CRM, Oslo",
+  "answers": {
+   "target": "None",
+   "action": "One campaign per segment",
+   "data_plan": "The customers table",
+   "family": "Segments"
+  }
+ },
+ {
+  "id": "JV-segmentation-06",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "channel": "manager_forward",
+  "words": "Hello, my marketing analyst Chloé wrote this: 'k-means or GMM on RFM-like features, choose k by silhouette'. I only want to know what kinds of customers we have, to talk to each group differently. We are a cosmetics brand in Paris.",
+  "answers": {
+   "action": "One campaign per group",
+   "target": "Nothing to predict"
+  }
+ },
+ {
+  "id": "JV-segmentation-07",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "channel": "whatsapp",
+  "words": "hi! 👋\nwe sell bike parts online from Munich\nwant to sort our customers into types (loyal ones, bargain hunters, sleepers...)\nnot predicting anything, just groups for the newsletter\ndata in one table",
+  "answers": {
+   "data_plan": "customers table: orders_per_month, avg_basket, discount_share, days_since_last_order, channel, region..."
+  }
+ },
+ {
+  "id": "JV-segmentation-08",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "channel": "email",
+  "words": "Dear Consultant,\n\nOur bubble tea chain in Taipei has a membership app with many active members. We would like to classify our members into groups according to their buying behaviour. We do not have any predefined categories; we would like the data to suggest them.\n\nFor each member we have orders per month, average basket, discount share, days since last order, channel, region, signup week and whether they renewed.\n\nKind regards,\nWei-Ling Lin",
+  "answers": {
+   "target": "No outcome column; we want the groups",
+   "prediction_moment": "Using the current data",
+   "action": "Different promotions for each group",
+   "data_plan": "The members table",
+   "family": "Segments of members"
+  }
+ },
+ {
+  "id": "JV-segmentation-09",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "channel": "web_form",
+  "words": "Cluster customers by buying behaviour, no label, max 5 groups",
+  "answers": {
+   "action": "campaigns"
+  }
+ },
+ {
+  "id": "JV-segmentation-10",
+  "kind": "segmentation",
+  "family": "segmentation",
+  "channel": "voice_note",
+  "words": "Hello, um, selam, this is Hana, we are a supermarket chain in Addis Ababa with a loyalty app, and, eh, we want to understand our customers, which types we have. Not to predict, just to put them in groups. We have how many orders per month, the basket average, the discount share, the days since the last order, the channel, the region. Then we make a campaign for each group.",
+  "answers": {}
+ },
+ {
+  "id": "JV-uplift-01",
+  "kind": "uplift",
+  "family": "uplift",
+  "channel": "it_ticket",
+  "words": "Pedido: targeting model for the coupon campaign\n- Last campaign: offer sent to a random half of customers (got_offer)\n- Outcome: bought\n- Goal: send the next offer only to customers whose buying it changes, not to those who would buy anyway\n- Data: campaign table (customer_id, age, app_user, past_purchases, tenure_months, region, got_offer, bought)\n- Team: Marketing, Porto",
+  "answers": {
+   "target": "bought, with got_offer saying who got the offer",
+   "prediction_moment": "When the list is drawn, before sending",
+   "action": "The offer goes to the top of the list",
+   "budget": "We can afford 10,000 coupons",
+   "data_plan": "Last campaign's table",
+   "family": "Who the offer would make buy"
+  }
+ },
+ {
+  "id": "JV-uplift-02",
+  "kind": "uplift",
+  "family": "uplift",
+  "channel": "manager_forward",
+  "words": "My CRM analyst Kasia wrote: 'we need incremental response modelling, treatment = got_offer, randomised'. In my words: I don't want to waste discounts on people who would buy anyway. We sell electronics in Gdańsk.",
+  "answers": {
+   "action": "Send the offer to the top of the list",
+   "data_plan": "Last campaign's table"
+  }
+ },
+ {
+  "id": "JV-uplift-03",
+  "kind": "uplift",
+  "family": "uplift",
+  "channel": "whatsapp",
+  "words": "hola!! 📚\nlast month we sent a coupon to a random half of our customers\nnow i want to know who to send it to next time\nnot the ones who buy anyway, the ones the coupon convinces\npropensity model?",
+  "answers": {
+   "target": "bought",
+   "data_plan": "table w got_offer and bought"
+  }
+ },
+ {
+  "id": "JV-uplift-04",
+  "kind": "uplift",
+  "family": "uplift",
+  "channel": "email",
+  "words": "Dear Dr Evans,\n\nI manage direct marketing for a home goods retailer in Cardiff. Our previous mailing offer was sent to a randomly selected group of customers, while the others received nothing, and we recorded who bought in both groups.\n\nWe suspect that many customers who used the offer would have bought anyway. We would like to identify the customers for whom the offer actually makes a difference, so that the next mailing goes only to them.\n\nThe table holds each customer's age, whether they use our app, past purchases, tenure in months, region, whether they received the offer and whether they bought.\n\nYours sincerely,\nRhys Morgan",
+  "answers": {
+   "target": "bought, with got_offer for who received the offer",
+   "prediction_moment": "When the mailing list is drawn, before anything is sent",
+   "action": "We mail the customers at the top of the list",
+   "budget": "About 5,000 mailings",
+   "costs": "Each mailing costs printing and postage, and the discount when used",
+   "data_plan": "The previous campaign's table",
+   "family": "Who the offer would persuade to buy"
+  }
+ },
+ {
+  "id": "JV-uplift-05",
+  "kind": "uplift",
+  "family": "uplift",
+  "channel": "web_form",
+  "words": "who to target w/ offer: those it persuades. had random test (got_offer/bought)",
+  "answers": {}
+ },
+ {
+  "id": "JV-uplift-06",
+  "kind": "uplift",
+  "family": "uplift",
+  "channel": "voice_note",
+  "words": "Hi, haan, so this is Priya from growth at a fashion app in Delhi, and, um, we do a lot of offers in the app, and my feeling is we are giving discounts to people who were going to buy anyway, you know? So last time we did a test, some got the offer, some didn't, random. And now I want, eh, a classification, or whatever, that tells me who the offer actually makes buy. Not who buys. The difference.",
+  "answers": {
+   "prediction_moment": "before the next campaign",
+   "action": "only those get the push notification"
+  }
+ },
+ {
+  "id": "JV-uplift-07",
+  "kind": "uplift",
+  "family": "uplift",
+  "channel": "it_ticket",
+  "words": "• Ask: uplift / net lift model for the app offer\n• Historical test: got_offer randomised 50/50\n• Response: bought (within the campaign window)\n• Features: age, app_user, past_purchases, tenure_months, region\n• Output: ranked customer list\n• Team: Loyalty, Seattle",
+  "answers": {
+   "target": "bought",
+   "action": "Offers go to the top of the ranked list",
+   "budget": "200k offers",
+   "costs": "Each redeemed offer costs us the discount",
+   "data_plan": "The test table"
+  }
+ },
+ {
+  "id": "JV-uplift-08",
+  "kind": "uplift",
+  "family": "uplift",
+  "channel": "manager_forward",
+  "words": "Hej, forwarding what Mads from analytics said: 'treatment effect estimation, target bought, treatment got_offer; avoid plain response models'. I'm the marketing head of a furniture shop in Copenhagen. I simply want to send the voucher only where it changes something.",
+  "answers": {
+   "family": "Who the voucher would make buy",
+   "target": "bought"
+  }
+ },
+ {
+  "id": "JV-uplift-09",
+  "kind": "uplift",
+  "family": "uplift",
+  "channel": "whatsapp",
+  "words": "hi 👋\nwe gave a free delivery offer to some customers (picked at random) last month, Kampala\nnow which customers should get it so they actually buy?\ndont want to waste it on ppl who buy anyway",
+  "answers": {
+   "data_plan": "customers table w got_offer, bought"
+  }
+ },
+ {
+  "id": "JV-uplift-10",
+  "kind": "uplift",
+  "family": "uplift",
+  "channel": "email",
+  "words": "Hello,\n\nI run marketing for an online wine retailer in Brisbane. I'd like to build an AI model that predicts who will buy when we send them an offer. Having read a bit, I understand that what matters is whether the offer causes the purchase, not just whether someone buys.\n\nIn our last campaign, a random selection of customers received the offer and the rest didn't. We have their age, app usage, past purchases, tenure, region, whether they got the offer and whether they bought.\n\nCould DCLab help with this?\n\nThanks,\nJack O'Brien",
+  "answers": {
+   "target": "bought, and got_offer for who received it",
+   "prediction_moment": "Before the next campaign is sent",
+   "action": "Only the customers the offer would persuade get it",
+   "budget": "About 8,000 offers",
+   "costs": "An offer to someone who'd buy anyway gives away margin for nothing",
+   "data_plan": "The last campaign's table",
+   "family": "Who the offer would make buy"
+  }
+ },
+ {
+  "id": "JV-ranking-01",
+  "kind": "ranking",
+  "family": "ranking",
+  "channel": "web_form",
+  "words": "Product recommendations per user from the interaction log (user_id, item_id, time, event)",
+  "answers": {}
+ },
+ {
+  "id": "JV-ranking-02",
+  "kind": "ranking",
+  "family": "ranking",
+  "channel": "voice_note",
+  "words": "Hi, so, uhm, this is Miguel, we have an online grocery app in Cebu, and the home page shows the same items to everyone, which is, honestly, dumb. I want, like, for each customer, a list of items with the ones they'll actually buy at the top. We have the log: user, item, time, and the event, what they did. Is that a recommender? Yeah, I think so.",
+  "answers": {
+   "target": "a purchase in the next two weeks",
+   "action": "the top 10 shown on the home page"
+  }
+ },
+ {
+  "id": "JV-ranking-03",
+  "kind": "ranking",
+  "family": "ranking",
+  "channel": "it_ticket",
+  "words": "Request: personalised ranking\n- Data: interactions(user_id, item_id, time, event)\n- Goal: per user, rank items by the chance of purchase in the next 14 days\n- Show the top 10 in the app\n- Evaluation: offline, on a time cutoff\n- Team: App, Rome",
+  "answers": {
+   "target": "A purchase in the next 14 days",
+   "prediction_moment": "At a fixed date, for the following two weeks",
+   "action": "The top 10 are shown",
+   "data_plan": "The interactions table",
+   "family": "A ranked list of items per user"
+  }
+ },
+ {
+  "id": "JV-ranking-04",
+  "kind": "ranking",
+  "family": "ranking",
+  "channel": "manager_forward",
+  "words": "Hi, our developer Sam wrote: 'implicit-feedback recommender, evaluate with recall@10 on a temporal split'. I just want each customer of our online bookshop in Bristol to see the books they'd actually buy first.",
+  "answers": {
+   "action": "The top 10 go on their home page"
+  }
+ },
+ {
+  "id": "JV-ranking-05",
+  "kind": "ranking",
+  "family": "ranking",
+  "channel": "whatsapp",
+  "words": "hey!\nwe sell sneakers online in Abuja\nwant every user to see the shoes theyll buy at the top 👟\nhave the activity log: user_id item_id time event\nclassification?",
+  "answers": {
+   "target": "what they buy next",
+   "action": "top 5 on the app"
+  }
+ },
+ {
+  "id": "JV-ranking-06",
+  "kind": "ranking",
+  "family": "ranking",
+  "channel": "email",
+  "words": "Dear Dr Dubois,\n\nI am the head of e-commerce at an electronics retailer in Brussels. Today, every customer sees the same product list. We would like to order the products shown to each customer so that those they are most likely to purchase in the coming two weeks appear first.\n\nOur data is an interaction log: for each event, the user, the item, the time and the type of event.\n\nWe would be interested in your approach and in how the result would be evaluated before launch.\n\nBest regards,\nClaire Peeters",
+  "answers": {
+   "target": "A purchase in the next two weeks",
+   "prediction_moment": "On the day the list is built, for the following two weeks",
+   "action": "The top 10 products are shown on the customer's page",
+   "costs": "Showing items nobody buys wastes the best spots on the page",
+   "data_plan": "The interaction log",
+   "family": "A ranked list of products per customer"
+  }
+ },
+ {
+  "id": "JV-ranking-07",
+  "kind": "ranking",
+  "family": "ranking",
+  "channel": "web_form",
+  "words": "rank items per customer so likely purchases come first. event log.",
+  "answers": {
+   "target": "purchase"
+  }
+ },
+ {
+  "id": "JV-ranking-08",
+  "kind": "ranking",
+  "family": "ranking",
+  "channel": "voice_note",
+  "words": "Assalam o alaikum, okay so I'm Ayesha, we have a home décor online shop in Karachi, and the products list is just by newest, and I want it personalised, each user sees the things they would buy. We have every interaction: user ID, item ID, time, event. My manager says a dashboard, I think it's more like a recommendation. Please guide.",
+  "answers": {
+   "prediction_moment": "for the next two weeks from now"
+  }
+ },
+ {
+  "id": "JV-ranking-09",
+  "kind": "ranking",
+  "family": "ranking",
+  "channel": "it_ticket",
+  "words": "• Need: ranking for the 'For you' section\n• Interaction log, 18 months (user_id, item_id, time, event)\n• Relevant outcome: a purchase within 14 days of the list date\n• k = 20 items shown\n• No item metadata yet\n• Team: Online store, Johannesburg",
+  "answers": {
+   "target": "A purchase within 14 days",
+   "action": "Top 20 shown in 'For you'",
+   "prediction_moment": "On the list date",
+   "data_plan": "The interaction log"
+  }
+ },
+ {
+  "id": "JV-ranking-10",
+  "kind": "ranking",
+  "family": "ranking",
+  "channel": "manager_forward",
+  "words": "My engineer Kenta wrote: 'learning-to-rank on user-item interactions; positives = purchases in a 2-week window'. I am the manager of an online toy store in Tokyo. I want each customer to see the toys they will buy first.",
+  "answers": {
+   "family": "A list of toys for each customer, best first"
+  }
+ }
+]
