@@ -1,0 +1,129 @@
+{
+ "package": "32.34",
+ "title": "DCLab Code's sets: sessions as M6 episodes, the person's judgements as M7, choices as M2 and M1 students",
+ "date": "2026-10-25",
+ "request": "Continue without stopping, and capture, record and store data for training the six models.",
+ "spec": "docs/guides/STORING_PHASE_PLAN.md, package 32.34",
+ "plan": [
+  "Read the example contracts, the state fields and the tutor before writing a builder",
+  "Turn each DCLab Code session on R&D into an episode, judgements and decisions",
+  "Register the builder in the conductor; test on a scratch store with the real keeper and shapers"
+ ],
+ "decisions": [
+  {
+   "decision": "Reuse the ledger's declared state fields (step, move, kind, method, gate_required, concern_source, rounds)",
+   "why": "a new field would change a frozen dclab_core contract; these hold bands and codes only"
+  },
+  {
+   "decision": "M6 weight silver, M7 M2 M1 gold",
+   "why": "the steps are Claude's (silver by the owner's rule); the person's choices are gold"
+  },
+  {
+   "decision": "A tool's output never enters a set",
+   "why": "it may hold a table's rows"
+  },
+  {
+   "decision": "Points dclab_code.permission and dclab_code.plan_approval in M1",
+   "why": "a little student per small choice, fitted by the tutor where rows reach the bar"
+  }
+ ],
+ "change": "dclab_rnd/store/sets/dclab_code.py (new), conductor builders step, keeper feeds, tutor's above_rule, tests/test_store_dclab_code_sets.py, STORING_PHASE_PLAN 32.34.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "a session's split differed from its Claude Code transcript's",
+   "scenario": "session a8ce6cbc: the transcript sealed, this builder train; 1,152 of 2,000 random ids split apart",
+   "cause": "split_of('session:'+id) against the shaper's split_of(raw id)",
+   "fix": "split_of(the raw SDK session id), the transcript's own key",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_the_reviews_cases",
+   "severity": "leakage",
+   "impact": "the same session's thinking in the sealed M5 set and its steps in M6 and M7 train"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "lines read out of order, so the person's decisions were lost",
+   "scenario": "a tool use at 10:59:58 and its deny at 11:00:05: the step came out auto_no_result and the deny was in no set",
+   "cause": "the shaper rewrites id-shaped strings, the lines' timestamps included, and the builder sorted by them",
+   "fix": "file order from the record id's line number; joins by tool use and request ids in two passes",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_the_reviews_cases",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "the app's own denies were stored as the person's gold labels",
+   "scenario": "Stop while a Read waits: M2 and M1 got deny with label_source person, M7 a score 0 by the person",
+   "cause": "denyAll and the abort handler record decisions nobody made",
+   "fix": "decisions by the app (by: app in new records; the three automatic texts or a decision after a stop in old ones) never enter a set; the step's outcome is cancelled",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_the_reviews_cases",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "a grade was paired with the wrong answer",
+   "scenario": "turn 1 answered A and was graded good; turn 2 was stopped and graded bad; M7 got A with score 0",
+   "cause": "the last answer was not reset after a turn's result",
+   "fix": "reset after each result; match a grade by its turn number (recorded by the app from now on)",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_the_reviews_cases",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "the tutor said a student beat a rule that does not exist",
+   "scenario": "a point with no rule scores the rule 0, so any student is above_rule",
+   "cause": "above_rule compared accuracies without asking whether the rule answered",
+   "fix": "above_rule only when the rule answered; rule_answered in the measurement",
+   "test": "",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F6",
+   "source": "test",
+   "defect": "a stopped turn ended as error_during_execution",
+   "scenario": "after Stop the SDK still sends a result",
+   "cause": "the result overwrote the stop",
+   "fix": "a turn with a stop ends as stopped",
+   "test": "tests/test_store_dclab_code_sets.py::DclabCodeSetsTest::test_the_reviews_cases",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "store tests",
+   "gate": "every store test passes, the new edge cases included",
+   "fixed_before_run": true,
+   "result": "test_store_dclab_code_sets 3, test_store_dclab_code 5, tutor, sets_others, conductor, shapers: all passed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "invented sessions, not the owner's"
+   ]
+  },
+  {
+   "name": "store check (32.18)",
+   "gate": "all checks pass",
+   "fixed_before_run": true,
+   "result": "28 of 28",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "a scratch store"
+   ]
+  }
+ ],
+ "outcome": "DCLab Code's sessions on R&D become M6 episodes and the person's gold choices M7, M2 and M1 examples, in the transcript's split.",
+ "lessons": [
+  "Never order or join on a field a shaper may rewrite: use ids and file order",
+  "A builder's split key must be the very key the shaper gives the same session elsewhere",
+  "An automatic decision recorded beside a person's must say who made it"
+ ],
+ "risks": [
+  "a command or a DCLab tool argument in a judged step could hold a value",
+  "few rows per point until the owner uses the app"
+ ],
+ "commits": []
+}

@@ -16,9 +16,10 @@ workspace) unless ``DCLAB_STORE_DCLAB_CODE`` names the folder; ``DCLAB_STORE_CLA
 other agents' sessions) or ``DCLAB_STORE_DCLAB_CODE=off`` reads nothing, and a check or test that names the agents'
 folders reads only the folder it hands over.
 
-No set builder reads these records yet (their lines are app records and SDK messages wrapped in ``message``, not a
-transcript's ``user``/``assistant`` lines), so the keeper feeds no model type; a builder that reads them must key a
-session by its ``sdkSessionId``, the same session as its Claude Code transcript, so one session never lands in two splits.
+Their own builder (``sets/dclab_code.py``, 32.34) turns them into M6 episodes, M7 judgements and M2/M1 decisions, each
+session's split keyed by its ``sdkSessionId``, the same session as its Claude Code transcript, so the two never land in
+different splits. The transcript builders (M5) skip these lines: they are app records and SDK messages wrapped in
+``message``, not a transcript's ``user``/``assistant`` lines.
 """
 
 from __future__ import annotations
@@ -95,7 +96,7 @@ def sources(env: Any) -> Iterator[Source]:
                      transform=redact, note="DCLab Code's sessions on this repository: title, project, model, cost, own copy, SDK session id")
 
 
-KEEPER = Keeper("dclab_code", (Claim("agents", "dclab_code/"),), sources, (),
+KEEPER = Keeper("dclab_code", (Claim("agents", "dclab_code/"),), sources, ("m6_stepwise_decisions", "m7_judges", "m2_workflow_decisions", "m1_students"),
                 "DCLab Code's sessions on this repository: every SDK message whole, with the person's permissions, answers and plan approvals")
 
 __all__ = ["KEEPER", "HOME", "home_folder", "sources"]

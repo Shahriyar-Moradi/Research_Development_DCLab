@@ -1,0 +1,278 @@
+{
+ "package": "dclab-code-v1",
+ "title": "DCLab Code v1: a minimal developer app for ML work on the Claude Agent SDK, following R&D live",
+ "date": "2026-10-25",
+ "request": "A developer tool like Codex and the Claude Code desktop app, with a new, simpler, more minimal UI and the same abilities, outside the R&D repository. Owner's choices: for ML developers, a new separate repository, a local web app first and a native macOS app later. Mid-build: the repository must follow R&D automatically (rules, leakage lists and tools read live, a check that fails when R&D changes them).",
+ "spec": "dclab-code repository: README.md, docs/API.md",
+ "plan": [
+  "Read the Agent SDK's real types (0.3.310) instead of relying on memory",
+  "Engine: the SDK's query() in streaming-input mode behind a small Node server",
+  "DCLab tools through R&D's MCP server, started by the app when it is down",
+  "Minimal UI: one conversation, a short session list grouped by state, changes on demand, a command palette, a status line with ML guards",
+  "Record every SDK message whole, append-only",
+  "Tests with a fake agent; live runs with a spend cap"
+ ],
+ "decisions": [
+  {
+   "decision": "Use the Claude Agent SDK as the engine, not a new agent",
+   "why": "It already has files, shell, search, subagents, sessions, permissions and MCP; rebuilding them would take months"
+  },
+  {
+   "decision": "Plain Node http + Server-Sent Events + vanilla JS, one dependency",
+   "why": "No build step, little to maintain, and a native app can use the same HTTP API later"
+  },
+  {
+   "decision": "Token + local Host/Origin check on every API call",
+   "why": "The agent can run shell commands; any web page could otherwise POST to localhost (and DNS rebinding could read it)"
+  },
+  {
+   "decision": "Sealed/holdout guard through a PreToolUse hook returning 'ask', and never 'always allow'",
+   "why": "canUseTool alone is not called for reads; DCLab's rule is that a sealed set or holdout is read once, on purpose"
+  },
+  {
+   "decision": "Read R&D's rules and leakage list live from CLAUDE.md and SEALED_GLOBS; a lock file and npm run sync-check",
+   "why": "Owner asked for the repository to follow R&D; copies drift"
+  },
+  {
+   "decision": "Holdout-using DCLab calls listed in the app's config, checked against R&D's live tool list",
+   "why": "R&D has no machine-readable flag for them; the check fails if R&D renames them"
+  },
+  {
+   "decision": "strictMcpConfig on by default",
+   "why": "Found live: user settings pulled in every Claude Code plugin's MCP server (failed or needing sign-in), 56 tools instead of about 30"
+  },
+  {
+   "decision": "Live text deltas are not recorded",
+   "why": "The final assistant message holds the same text whole; the record keeps every other message whole"
+  }
+ ],
+ "change": "A new repository: a local Node server around the Agent SDK's query() (streaming input), a vanilla-JS page, append-only session records, sealed/holdout guards, a live link to R&D's rules, leakage list and MCP tools with a sync check.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "defect": "A live event and its record had different timestamps",
+   "scenario": "Reopening a session while it streams could draw a note twice",
+   "cause": "Recorder and emit each called new Date()",
+   "fix": "Recorder.append returns its timestamp; the live event carries it",
+   "test": "tests/server.test.js: live note ts equals its record ts",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "defect": "Live permission cards had an empty summary",
+   "scenario": "A live question showed only the tool name",
+   "cause": "The live path built its own event instead of the replay mapping",
+   "fix": "Emit fromRecord(entry) for the live question too",
+   "test": "replay equals live event kinds",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "defect": "Welcome text said DCLab tools were off after they started",
+   "scenario": "Opening the app while the MCP server starts",
+   "cause": "The welcome was drawn once, before the tool check finished",
+   "fix": "Redraw the welcome on every state change",
+   "test": "seen live in the browser",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F4",
+   "source": "self",
+   "defect": "R&D's MCP server redirects /mcp to /mcp/",
+   "scenario": "An MCP client that does not follow a 307 for POST would fail",
+   "cause": "Starlette mount",
+   "fix": "Default URL with the trailing slash",
+   "test": "live: the SDK reported dclab connected",
+   "severity": "privacy"
+  },
+  {
+   "id": "F5",
+   "source": "self",
+   "defect": "Plugin MCP servers loaded into every session",
+   "scenario": "Every start waited on Snowflake, Databricks, Amplitude… servers that failed or needed sign-in",
+   "cause": "settingSources includes user settings, which enable the plugins",
+   "fix": "strictMcpConfig: true by default (config strictMcp)",
+   "test": "server test asserts strictMcpConfig",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F6",
+   "source": "self",
+   "defect": "Cost showed $0.00",
+   "scenario": "A Haiku turn cost $0.004",
+   "cause": "toFixed(2)",
+   "fix": "Three decimals under $0.10",
+   "test": "",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F7",
+   "source": "self",
+   "defect": "Conversation squeezed to 320 px with the changes drawer open",
+   "scenario": "Window 1024 px wide",
+   "cause": "Sidebar + drawer + main in one grid",
+   "fix": "Fold the sidebar under 1280 px while the drawer is open; labels never wrap",
+   "test": "",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F8",
+   "source": "self",
+   "defect": "Changing only the URL hash did not open the session",
+   "scenario": "Links and the back button",
+   "cause": "No hashchange listener",
+   "fix": "Listen for hashchange",
+   "test": "",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "One failed record write crashed the whole server",
+   "scenario": "Disk full or EACCES during a turn",
+   "cause": "handle() threw, note() threw again in catch, pump()'s promise was not awaited: unhandled rejection, exit 1",
+   "fix": "record() and setMeta() catch write errors and show one note; pump().catch logs",
+   "test": "server test: ENOSPC on sdk records, session and server go on",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "defect": "The idle close could end the agent during a background job",
+   "scenario": "A background training run outlives the turn; 20 minutes later close() ends the CLI",
+   "cause": "The idle clock started at each result and only send() cleared it",
+   "fix": "Any message restarts the clock; background_tasks_changed counted; never close while a job runs; work after a result shows as running",
+   "test": "server test: no close while a background task is listed",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "defect": "\"Always allow\" wrote permanent, sometimes broad rules",
+   "scenario": "CLI suggestions use destination localSettings; suppressAlwaysAllowRule ignored; setMode changed the mode silently",
+   "cause": "Suggestions passed through unchanged",
+   "fix": "Every suggestion rewritten to destination session; no Always when suppressAlwaysAllowRule or no suggestion; a setMode suggestion updates the shown mode",
+   "test": "server test on destinations, the shown mode and the refused broad rule",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "defect": "The sealed guard missed folder-wide reads",
+   "scenario": "grep -rn x dclab_rnd/agent_eval, head dir/*.json, rg with no path, Grep with no path; R&D's make benchmark SPLIT=test and make decision-gate",
+   "cause": "The guard looked only at names in the step",
+   "fix": "Background scan of sealed folders per project (null = ask on every sweep); Bash sweeps that reach those folders ask; Grep gets an exclude glob; R&D's sealed-evaluation commands ask",
+   "test": "units: every review case asks, narrow steps do not; live: grep -rn over a folder with a fake sealed file asked",
+   "severity": "leakage"
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "defect": "Opening a session could kill a live question",
+   "scenario": "A question arrives while the page loads a session; or two sessions opened quickly",
+   "cause": "Stale marking ran after replaying live events; any finished load cleared S.loading",
+   "fix": "Mark stale only from the record (skipping ones answered since), then replay; a load sequence number",
+   "test": "read; seen live with no regressions",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F14",
+   "source": "reviewer",
+   "defect": "The spending cap was per process, not per session",
+   "scenario": "Each idle close, crash or restart gave a fresh cap",
+   "cause": "maxBudgetUsd counts only since this query() started",
+   "fix": "Pass what is left of the session's cap; refuse to start when it is spent",
+   "test": "server test across a close",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F15",
+   "source": "reviewer",
+   "defect": "A torn record line swallowed the next record",
+   "scenario": "Crash mid-write, then a new append on the same line",
+   "cause": "No newline check",
+   "fix": "Before a session's first append in a process, add a newline if the file does not end with one",
+   "test": "units: torn line then two records, both read back",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F16",
+   "source": "reviewer",
+   "defect": "Any web page could frame the app",
+   "scenario": "A hidden frame trick-clicks Waiting on you, then Allow",
+   "cause": "No frame headers",
+   "fix": "X-Frame-Options DENY and a CSP with frame-ancestors none, scripts and styles only from self",
+   "test": "security test checks the headers",
+   "severity": "privacy"
+  },
+  {
+   "id": "F17",
+   "source": "reviewer",
+   "defect": "Guard defaults froze in config.json",
+   "scenario": "A new HOLDOUT_CALLS entry never reached an existing install",
+   "cause": "Saved guards replaced code defaults",
+   "fix": "mergeGuards: saved lists add to the defaults",
+   "test": "units",
+   "severity": "leakage"
+  },
+  {
+   "id": "F18",
+   "source": "measurement",
+   "defect": "This SDK has no Grep tool",
+   "scenario": "The model asked for Grep and got: search with grep via Bash",
+   "cause": "SDK 0.3.310 tool list has no Grep or Glob",
+   "fix": "The Bash sweep guard carries the weight; the Grep rewrite stays for versions that have it",
+   "test": "live: init tool list read from the record",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F19",
+   "source": "measurement",
+   "defect": "AskUserQuestion showed as a raw permission card",
+   "scenario": "The agent asks a multiple-choice question; Allow returned no answers",
+   "cause": "The host must collect answers and return them as updatedInput.answers",
+   "fix": "Question card with options, Other and Skip; /answers route; records question_request and question_answer",
+   "test": "server test; live: picked By time, the model received it",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "dclab-code test suite with a fake agent",
+   "gate": "every test passes before the commit",
+   "result": "28 tests passed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "a fake agent: the SDK's real behaviour is checked only in the live runs"
+   ]
+  },
+  {
+   "name": "live runs on Haiku 5.5",
+   "gate": "each live run stays under the 0.5 cap per session",
+   "result": "4 sessions, about USD 0.017 in all",
+   "verdict": "pass",
+   "limits": [
+    "a throwaway project and fake sealed files only"
+   ]
+  }
+ ],
+ "outcome": "dclab-code v1 runs locally, follows R&D live, records every step, and asks before any sealed or holdout read; pushed to a private repository.",
+ "lessons": [
+  "Read the SDK's .d.ts first: the options (strictMcpConfig, maxBudgetUsd, hooks, toolUseID) were not all in memory",
+  "Guard by what a step touches, not by tool name: the model read the 'sealed' file with Bash, not Read",
+  "Test the UI at a laptop width with every panel open",
+  "Have an independent reviewer try to break the guards and the failure paths: it found 9 real problems the tests had not covered",
+  "Check a host-side assumption live, but only on fake data when the failure would leak a sealed set"
+ ],
+ "risks": [
+  "the SDK's tool list changes between versions (Grep was gone)",
+  "the page had no tests"
+ ],
+ "commits": [
+  "dclab-code e56b9b9"
+ ]
+}

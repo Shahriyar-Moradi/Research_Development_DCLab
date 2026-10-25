@@ -70,7 +70,9 @@ def teach(layout: Optional[Layout] = None, run: Optional[str] = None) -> dict[st
             prefix = f"students/{point}/{card.name}/{card.version}/"
             measurement = {"point": point, "version": card.version, "silver_in_training": silver, "dev": card.dev.model_dump(mode="json") if card.dev else None,
                            "rule_dev": card.rule_dev.model_dump(mode="json") if card.rule_dev else None,
-                           "above_rule": bool(card.dev and card.rule_dev and card.dev.accuracy > card.rule_dev.accuracy), "promoted": False,
+                           # Only a rule that answered can be beaten: a point with no rule (DCLab Code's) scores the rule 0, not lower.
+                           "above_rule": bool(card.dev and card.rule_dev and card.rule_dev.answered > 0 and card.dev.accuracy > card.rule_dev.accuracy),
+                           "rule_answered": card.rule_dev.answered if card.rule_dev else 0, "promoted": False,
                            "why_not_promoted": "the tutor never promotes: the owner's audited switch does, on these numbers"}
             if prefix + "card.json" not in kept:
                 buf = io.BytesIO()

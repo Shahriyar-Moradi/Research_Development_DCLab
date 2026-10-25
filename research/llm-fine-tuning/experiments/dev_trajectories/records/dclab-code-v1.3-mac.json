@@ -1,0 +1,84 @@
+{
+ "package": "dclab-code-v1.3-mac",
+ "title": "DCLab Code for macOS: the page in a native WebKit window",
+ "date": "2026-10-25",
+ "request": "Continue without stopping: the owner chose a local web app first and a native macOS app after it.",
+ "spec": "dclab-code README.md, Mac app",
+ "plan": [
+  "A window around the same page, not a second UI: the engine is already behind a local API",
+  "Start the server when none answers; stop only the one the app started",
+  "A smoke test that loads the page and checks its token"
+ ],
+ "decisions": [
+  {
+   "decision": "AppKit + WebKit built with swiftc, no Xcode project",
+   "why": "no DerivedData on a disk with 8 GB free; one file to read"
+  },
+  {
+   "decision": "Find Node through the person's login shell, then known folders",
+   "why": "an app opened from Finder has a bare PATH and Node lives under nvm"
+  },
+  {
+   "decision": "Native sheets for confirm, alert and prompt; an Edit menu",
+   "why": "a WebKit view shows none of them by itself, and copy and paste need the menu"
+  }
+ ],
+ "change": "mac/main.swift, mac/build.sh, mac/smoke.sh; npm run mac and mac-smoke.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "the smoke test printed nothing",
+   "scenario": "the app ran and quit with exit 0 but the SMOKE line never appeared",
+   "cause": "print() is buffered and the app quit before it flushed",
+   "fix": "write the line unbuffered to standard output",
+   "test": "npm run mac-smoke",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "the server log went to the real folder during a test run",
+   "scenario": "DCLAB_CODE_HOME pointed at a scratch folder but the log path was fixed to ~/.dclab-code",
+   "cause": "the log path ignored the folder setting",
+   "fix": "the log follows DCLAB_CODE_HOME like the server",
+   "test": "npm run mac-smoke",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "test",
+   "defect": "a GUI app launched from a sandboxed shell quits at once",
+   "scenario": "running the binary directly exited 0 with no window and no output",
+   "cause": "the shell has no window server access; open goes through LaunchServices",
+   "fix": "the smoke test launches with open -W --env --stdout",
+   "test": "npm run mac-smoke",
+   "severity": "flaky"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Mac app smoke test",
+   "gate": "the page loads in the window with its title, composer and token, then the app quits and its server stops",
+   "result": "SMOKE OK: title DCLab Code, composer present, token of 32 characters; port 4319 free after quit",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "ad-hoc signed for this Mac only",
+    "no interaction tested in the window"
+   ]
+  }
+ ],
+ "outcome": "DCLab Code opens as a Mac app that starts its own server when needed and stops only that one.",
+ "lessons": [
+  "Test a GUI app through LaunchServices, not by running its binary from a sandboxed shell",
+  "Unbuffered output for any line a test reads just before exit"
+ ],
+ "risks": [
+  "not notarized: another Mac would block it",
+  "the page's notifications do not show inside WebKit"
+ ],
+ "commits": [
+  "dclab-code 76f35a8"
+ ]
+}

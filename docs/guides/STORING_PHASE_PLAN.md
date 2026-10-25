@@ -902,11 +902,29 @@ kept by a keeper of its own, `keepers/dclab_code.py`:
 - **where it reads:** only on the owner's machine; never on a tester's unless `DCLAB_STORE_DCLAB_CODE` names the folder;
   `DCLAB_STORE_CLAUDE_PROJECTS=off` (the tests' switch, which wins) or `DCLAB_STORE_DCLAB_CODE=off` reads nothing, and a
   check or test that names the agents' folders reads only the folder it hands over;
-- **feeds no model yet:** no set builder reads these records; one that does keys a session by its `sdkSessionId`, the
-  same session as its Claude Code transcript, so it never lands in two splits.
+- **feeds:** M6, M7, M2 and M1 through its own builder (32.34), each session keyed by its `sdkSessionId`, the same
+  session as its Claude Code transcript, so it never lands in two splits.
 - **Done when:** a record's new lines are kept with a key redacted, another folder's session only counted, and nothing is
   read in a test that did not hand a folder (`tests/test_store_dclab_code.py`); the store check (32.18) plants a key in a
   record and finds it nowhere.
+
+### 32.34 DCLab Code's sets (added 2026-10-25)
+
+`sets/dclab_code.py` turns the records 32.33 keeps into training examples, from the shaped records only, each session read
+in time order (its SDK messages, permissions, the guard's questions, answers, plan approvals, grades, outcomes):
+
+- **M6** (`m6_stepwise_decisions/dclab_code`): a session as an episode of the agent's tool steps; a step's state is bands
+  and codes only (step, the tool as a code, its family, the permission mode, whether it asked and why, the turn), its
+  action the tool's name, its outcome `auto_ok`, `allowed_ok`, `denied`, `answered`, `plan_keep` and the like; the
+  episode's outcome from the record (`merged`, `stopped`, the last turn's result). Silver weight: the steps are Claude's.
+- **M7** (`m7_judges/dclab_code_steps`, `_plans`, `_answers`): the person's judgement, gold: a step allowed or denied (its
+  command or path, why it asked), a plan approved or sent back with the note (the plan whole), a turn's answer graded.
+- **M2 and M1** (`m2_workflow_decisions/internal/<point>`, `m1_students/<point>`): the person's choices at
+  `dclab_code.permission` (allow, allow_always, deny) and `dclab_code.plan_approval` (auto, ask, keep), gold; the tutor
+  fits each point's student where its rows reach the bar.
+- **Never in a set:** a tool's output (it may hold a table's rows).
+- **Done when:** a session yields its episode, judgements and decisions with these labels and weights, no tool output in
+  any set, and one session sits in one split across every set (`tests/test_store_dclab_code_sets.py`).
 
 ## The owner's answers (2026-10-20)
 
@@ -942,7 +960,7 @@ kept by a keeper of its own, `keepers/dclab_code.py`:
 ## Order
 
 32.1 → 32.2 → 32.3 → 32.4 → 32.5 → 32.6 → 32.7 → 32.8 → 32.9 → 32.10 → 32.11 → 32.12 → 32.13 → 32.14 → 32.15 → 32.16 →
-32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 (the
+32.17 → 32.18, then 32.19 → 32.20 → 32.21 → 32.22 → 32.23 → 32.24 → 32.25, then 32.26 → 32.27 → 32.28 → 32.29, then 32.30 → 32.31, then 32.32 → 32.33 → 32.34 (the
 check, 32.18, is extended by each).
 
 Every package follows the usual steps: a test first, the reviewer, its development record and `make sft-dev`, and the
@@ -1036,6 +1054,7 @@ gate. Model spend:
     - CPU time per step;
     - a workspace reading the store's shadow students;
     - live runs of the curator and the teacher.
+- **32.34 built (2026-10-25):** DCLab Code's sessions as M6 episodes (silver), M7 judgements and M2/M1 decisions (gold).
 - **32.33 built (2026-10-25):** DCLab Code's records of sessions on this repository kept by their own keeper
   (`dclab_code/`), redacted, owner's machine only; other folders' sessions counted only; a review's 5 findings fixed.
 - **32.24 to 32.31 built (2026-10-20), a review's 17 findings fixed (dclab-core 0.99.0).**

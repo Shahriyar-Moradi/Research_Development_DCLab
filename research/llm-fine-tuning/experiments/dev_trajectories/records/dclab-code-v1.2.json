@@ -1,0 +1,69 @@
+{
+ "package": "dclab-code-v1.2",
+ "title": "DCLab Code: thinking text, turn grades and outcomes captured; page tests in a real Chromium",
+ "date": "2026-10-25",
+ "request": "Continue without stopping, and capture, record and store data for training the six models.",
+ "spec": "dclab-code README.md; R&D STORING_PHASE_PLAN 32.34",
+ "plan": [
+  "Turn on summarized thinking (records held only a signature)",
+  "Record the person's grade of each turn and the fate of a session's work",
+  "Test the page in a real browser"
+ ],
+ "decisions": [
+  {
+   "decision": "thinking adaptive with display summarized",
+   "why": "omitted thinking keeps a signature that teaches nothing; checked live that Haiku and Sonnet return text"
+  },
+  {
+   "decision": "playwright-core pinned to the Chromium R&D already installed",
+   "why": "no 300 MB browser download on a nearly full disk"
+  }
+ ],
+ "change": "config thinking; feedback and outcome records; a Good / Not good link on each finished turn; tests/page.test.js.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "the SDK's spend cap is checked only when a turn ends",
+   "scenario": "a cap of USD 0.05 and one Sonnet turn that cost USD 0.12",
+   "cause": "maxBudgetUsd stops after the turn, not during it",
+   "fix": "said in the README: a session can pass its cap by one turn",
+   "test": "",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "defect": "the session records kept no thinking text, only a signature",
+   "scenario": "every thinking block in the first live records was empty",
+   "cause": "the SDK's default display omits thinking",
+   "fix": "thinking display summarized by default (config thinking)",
+   "test": "tests/server.test.js: capture for training",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "page tests in headless Chromium",
+   "gate": "the regression test fails with the old put() and passes with the fix",
+   "result": "with the old put() 1 of 3 failed; with the fix 3 of 3 passed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "a fake agent behind the real server"
+   ]
+  }
+ ],
+ "outcome": "Each session's thinking text, the person's grades and the work's outcome are recorded, and the page is tested in a real browser.",
+ "lessons": [
+  "Probe a capture setting live before trusting it",
+  "A regression test is proven only when it fails on the old code"
+ ],
+ "risks": [
+  "thinking summaries are Claude's text: silver, evaluation only"
+ ],
+ "commits": [
+  "dclab-code 26f40b7",
+  "dclab-code 167f7e0"
+ ]
+}

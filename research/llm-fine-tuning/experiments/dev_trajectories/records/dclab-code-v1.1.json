@@ -1,0 +1,150 @@
+{
+ "package": "dclab-code-v1.1",
+ "title": "DCLab Code: plan approval card, own copies (git worktrees) and records into R&D's store",
+ "date": "2026-10-25",
+ "request": "Fix the 3 gaps first: the plan approval card, records into R&D's training store, and worktrees for parallel sessions.",
+ "spec": "dclab-code README.md; R&D STORING_PHASE_PLAN 32.33",
+ "plan": [
+  "Probe what the SDK sends for ExitPlanMode instead of guessing",
+  "Plan card with approve (auto edits / ask) or keep planning",
+  "Read R&D's store keepers; add a keeper in R&D for the app's records",
+  "Worktrees where Claude Code puts them so R&D's agents keeper keeps their transcripts",
+  "Two reviews, fixes with tests, live checks on fake data"
+ ],
+ "decisions": [
+  {
+   "decision": "Probe ExitPlanMode live (Haiku, $0.004)",
+   "why": "The typed input had no plan field; at runtime it carries plan and planFilePath"
+  },
+  {
+   "decision": "Worktrees at <repo>/.claude/worktrees/dclab-<id>",
+   "why": "R&D already excludes the folder locally and its agents keeper keeps sessions there"
+  },
+  {
+   "decision": "Link git-ignored envs (.venv, .env, node_modules) into the copy",
+   "why": "R&D commands use .venv/bin/python; a copy without it cannot run them"
+  },
+  {
+   "decision": "A separate test home and port for live checks",
+   "why": "The owner had the app running; two servers sharing sessions.json overwrite each other's index"
+  }
+ ],
+ "change": "ExitPlanMode as a plan card; a git worktree per session under .claude/worktrees with merge and remove that refuse whenever they could touch the person's work; the sealed guard extended to the copies; R&D keeper 32.33.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "put() returned nothing, so every note was empty and a saved session stopped drawing at its first note",
+   "scenario": "seen when: put() returned nothing, so every note was empty and a saved session stopped drawing at its first note",
+   "cause": "",
+   "fix": "put returns the node; one event that fails to draw never stops the rest (safeApply)",
+   "test": "seen live; no page tests yet",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "Merge wiped a merge the person had in progress",
+   "scenario": "seen when: Merge wiped a merge the person had in progress",
+   "cause": "",
+   "fix": "refuse during merge, rebase, cherry-pick, revert or bisect; abort only our own merge",
+   "test": "server test: the hand-resolved file survives",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "Merge silently replaced git-ignored files in the main folder (results/run.json)",
+   "scenario": "seen when: Merge silently replaced git-ignored files in the main folder (results/run.json)",
+   "cause": "",
+   "fix": "refuse when the branch adds a path that already exists in the main folder",
+   "test": "server test",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "The sealed guard skipped .claude (the copies) and, in a copy, never saw the main folder's git-ignored sealed rows",
+   "scenario": "seen when: The sealed guard skipped .claude (the copies) and, in a copy, never saw the main folder's git-ignored sealed rows",
+   "cause": "",
+   "fix": ".claude/worktrees counts as sealed when the project has sealed files; in a copy the main folder's sealed folders are checked too",
+   "test": "units",
+   "severity": "leakage"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "Merge target never checked",
+   "scenario": "seen when: Merge target never checked",
+   "cause": "",
+   "fix": "detached HEAD refused; another branch asks first; the confirm names the branch",
+   "test": "server test",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "Remove raced background jobs and new messages, and deleted ignored outputs without saying",
+   "scenario": "seen when: Remove raced background jobs and new messages, and deleted ignored outputs without saying",
+   "cause": "",
+   "fix": "refused while a background job runs; the agent closed and messages blocked first; ignored outputs listed before a forced removal (caches left out)",
+   "test": "server test",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "A message while the copy was being made ran in the main folder",
+   "scenario": "seen when: A message while the copy was being made ran in the main folder",
+   "cause": "",
+   "fix": "creating flag blocks messages; a restart marks a half-made copy failed; a failed create removes the half-made worktree",
+   "test": "server test",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "A plan file link inside ~/.claude/plans could point anywhere",
+   "scenario": "seen when: A plan file link inside ~/.claude/plans could point anywhere",
+   "cause": "",
+   "fix": "realpath checked against the real plans folder",
+   "test": "",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "defect": "R&D keeper would have kept other folders' sessions whole (the main product, a client's data)",
+   "scenario": "seen when: R&D keeper would have kept other folders' sessions whole (the main product, a client's data)",
+   "cause": "",
+   "fix": "R&D 32.33 keeps this repository's sessions only, counts the rest",
+   "test": "R&D tests/test_store_dclab_code.py",
+   "severity": "privacy"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "dclab-code test suite with a fake agent",
+   "gate": "every test passes before the commit",
+   "result": "34 tests passed",
+   "verdict": "pass",
+   "cost_eur": 0,
+   "limits": [
+    "merge cases on temporary repositories, not the owner's"
+   ]
+  }
+ ],
+ "outcome": "Plans are approved in a card, parallel sessions work in their own copies, and the app's records reach R&D's store for sessions on R&D only.",
+ "lessons": [
+  "Probe an SDK tool's real input before building its UI",
+  "A helper's missing return value can hide a whole class of UI: test the page, not only the server",
+  "Every git operation on the person's main folder must refuse whenever it cannot prove it changes nothing else"
+ ],
+ "risks": [
+  "a git operation on the person's main folder that changes more than it says"
+ ],
+ "commits": [
+  "dclab-code 9b5afa8",
+  "R&D f0945481"
+ ]
+}

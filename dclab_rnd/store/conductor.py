@@ -163,10 +163,10 @@ def conduct(env: Any = None, layout: Optional[Layout] = None, keepers: Optional[
                          verdict="failed" if curated["error"] else "ok")
             started = time.monotonic()  # the sets after the curators: every model type's training sets rebuilt from the records
             built: dict[str, Any] = {"name": "builders", "stage": "build", "error": None, "errors": [], "read": 0, "kept": 0, "unchanged": 0, "sets": {}}
-            from .sets import decisions as decision_sets, experiments as experiment_sets, llm as llm_sets, others as other_sets
+            from .sets import dclab_code as dclab_code_sets, decisions as decision_sets, experiments as experiment_sets, llm as llm_sets, others as other_sets
 
             for name, builder in (("decisions", decision_sets.build), ("llm", llm_sets.build), ("others", other_sets.build),
-                                  ("experiments", experiment_sets.build)):
+                                  ("experiments", experiment_sets.build), ("dclab_code", dclab_code_sets.build)):
                 try:
                     built["sets"].update(builder(layout)["sets"])
                 except Exception as exc:  # noqa: BLE001 - one builder's failure leaves the others' sets standing
