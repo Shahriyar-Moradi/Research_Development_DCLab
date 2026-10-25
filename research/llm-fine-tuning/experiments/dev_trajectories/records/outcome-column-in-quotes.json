@@ -1,0 +1,36 @@
+{
+ "package": "outcome-column-in-quotes",
+ "title": "A column named in quotes is the outcome, as one in backticks",
+ "date": "2026-10-26",
+ "request": "S9.4 live replay: embedded-007's outcome was recorded as 'The \"urgent\" column (0/1)...' and the card never got its column.",
+ "plan": [
+  "Accept straight and curly quotes where backticks were accepted; the guard for a column only mentioned stays."
+ ],
+ "change": "draft/chat.py _as_column: quotes beside backticks; tests/test_home_not_known.py.",
+ "findings": [
+  {
+   "id": "COL-1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "A column named in quotes was not read as the outcome.",
+   "scenario": "JH-embedded-007, Claude's arm: target 'The \"urgent\" column (0/1): whether the email is urgent' stayed words; the card waited on the family.",
+   "cause": "The pattern allowed backticks only.",
+   "fix": "Quotes too, in the same places.",
+   "test": "test_a_column_named_in_quotes_is_the_outcome",
+   "open": "Before and after: a column named and then said known later after a comma ('the `refund_at` column, known only after') is taken: the later-guard reads its own clause only."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Home suites and harness",
+   "gate": "9 test files and 17 harness journeys",
+   "result": "225 tests pass; 17 of 17 (HRN-050)",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  }
+ ],
+ "outcome": "The outcome named in quotes reaches its column.",
+ "lessons": [
+  "Read the model's way of quoting as the person's: both reach the same code."
+ ]
+}

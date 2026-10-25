@@ -60,6 +60,12 @@ class NotKnownTest(unittest.TestCase):
         self.store.update(self.draft["id"], lambda d: d["understanding"].update(target="orders_per_month"))
         self.assertNotEqual(card_of(self.store.get(self.draft["id"])).family.value, "segmentation")  # a column: never re-read
 
+    def test_a_column_named_in_quotes_is_the_outcome(self):  # S9.4 live: 'The "urgent" column (0/1)' stayed words
+        d = {"analysis": {"columns": [{"name": c} for c in ("item", "author", "text", "urgent")]}}
+        self.assertEqual(chat.HomeAgent._as_column(d, "target", 'The "urgent" column (0/1): whether the email is urgent'), "urgent")
+        self.assertEqual(chat.HomeAgent._as_column(d, "target", "the \u201curgent\u201d flag"), "urgent")
+        self.assertEqual(chat.HomeAgent._as_column(d, "target", "Whether the email is urgent"), "Whether the email is urgent")  # only mentioned
+
 
 if __name__ == "__main__":
     unittest.main()

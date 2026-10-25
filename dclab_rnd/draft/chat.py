@@ -344,8 +344,9 @@ class HomeAgent:
             return value
         def as_outcome(c: str) -> bool:  # 20.10's guard: named as the outcome, never one only mentioned or known later
             e = re.escape(str(c))
-            said = (f"`{c}`" in value or re.match(rf"\s*(the\s+)?((column|outcome|target|label|flag|field)\s+){{0,2}}`?{e}`?(?![\w])", value, re.I)
-                    or re.search(rf"(?<![\w])`?{e}`?\s+(column|flag|field)\b", value, re.I))
+            q = "[`\"'\u201c\u201d\u2018\u2019]?"  # a column named in backticks or quotes (S9.4 live: 'The "urgent" column (0/1)')
+            said = (f"`{c}`" in value or re.match(rf"\s*(the\s+)?((column|outcome|target|label|flag|field)\s+){{0,2}}{q}{e}{q}(?![\w])", value, re.I)
+                    or re.search(rf"(?<![\w]){q}{e}{q}\s+(column|flag|field)\b", value, re.I))
             return bool(said) and not LATER.search(clause_of(value, str(c)))
 
         named = [c for c in columns if as_outcome(str(c))]
