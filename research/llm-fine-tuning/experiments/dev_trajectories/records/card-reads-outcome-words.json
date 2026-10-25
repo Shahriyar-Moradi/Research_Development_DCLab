@@ -1,0 +1,53 @@
+{
+ "package": "card-reads-outcome-words",
+ "title": "The card reads a family from an outcome recorded in other words, where it read none",
+ "date": "2026-10-26",
+ "request": "S9.4 live replay: four people stopped at the family question after 'I don't know'; two of them were understood by Claude as clustering.",
+ "plan": [
+  "Only where the card read no family and nothing is in play, and the outcome is recorded in words that are not a column and not the person's own.",
+  "Read those words as an answer to the family question is read (the reader's families reach the card the same way)."
+ ],
+ "decisions": [
+  {
+   "decision": "Never over a reading: only a card with no family changes.",
+   "why": "The understanding rules are measured (journeys, sealed sets); a change that can only unblock keeps every measured reading."
+  }
+ ],
+ "change": "draft/card.py card_of: the outcome words read with dclab_core.conversation.read_answer('family') when the card read none; tests/test_home_not_known.py.",
+ "findings": [
+  {
+   "id": "CRD-1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "An outcome recorded as 'no outcome, clustering' left the card without a family.",
+   "scenario": "JH-segmentation-000 and -003, Claude's arm of S9.4: the card waited on 'What should DCLab give for each row?', the person said they did not know, nothing was built.",
+   "cause": "card_of read the family from the person's words only; the model's recorded outcome was never read for one.",
+   "fix": "Read the recorded outcome's words for a family only where the card read none.",
+   "test": "test_an_outcome_said_as_no_outcome_reads_the_family_where_the_card_read_none",
+   "open": "embedded-007 (a column named in quotes) and forecasting-008 (an outcome recorded as one word) stay: other findings"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the four blocked drafts of S9.4, read again",
+   "gate": "the kept drafts of the live replay, no model called",
+   "result": "segmentation-000 and -003 now read segmentation; embedded-007 and forecasting-008 still none",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "harness-eval and the card suites",
+   "gate": "17 journeys step by step; 16 test files",
+   "result": "17 of 17 (HRN-049); 357 tests pass",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  }
+ ],
+ "outcome": "A model's reading of a problem with no outcome now reaches the card when nothing else did.",
+ "lessons": [
+  "A fix that can only turn 'unknown' into a reading is the safe kind for a measured rule set."
+ ],
+ "risks": [
+  "A paraphrase read as a family the person did not mean: the meet check and the card's confirmation still stand."
+ ]
+}

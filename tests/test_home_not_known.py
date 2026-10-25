@@ -49,6 +49,17 @@ class NotKnownTest(unittest.TestCase):
         fact = card_of(self.store.get(self.draft["id"])).brief.prediction_moment
         self.assertEqual(fact.status, "stated")  # a moment the person then says is theirs
 
+    def test_an_outcome_said_as_no_outcome_reads_the_family_where_the_card_read_none(self):
+        """S9.4 live: Claude recorded "No outcome column. Unsupervised clustering to discover customer types" as the
+        outcome; the card read no family from it and waited on a question the person could not answer."""
+        def put(d):
+            d["analysis"] = {"profile": {"rows": 300, "columns": [{"name": c} for c in ("customer_id", "orders_per_month", "avg_basket")]}}
+            d.setdefault("understanding", {})["target"] = "No outcome column. Unsupervised clustering to discover customer types"
+        self.store.update(self.draft["id"], put)
+        self.assertEqual(card_of(self.store.get(self.draft["id"])).family.value, "segmentation")
+        self.store.update(self.draft["id"], lambda d: d["understanding"].update(target="orders_per_month"))
+        self.assertNotEqual(card_of(self.store.get(self.draft["id"])).family.value, "segmentation")  # a column: never re-read
+
 
 if __name__ == "__main__":
     unittest.main()

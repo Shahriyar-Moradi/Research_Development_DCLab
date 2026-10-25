@@ -132,7 +132,18 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
         inferred = problem_card(brief, words=words, data=data, answers=_answers(u))
         if inferred.family.value is not None and not inferred.in_play and inferred.family.value not in SHAPED_AS:
             return inferred
-    return problem_card(brief, words=words, data=data, family=stated, answers=_answers(u))
+    card = problem_card(brief, words=words, data=data, family=stated, answers=_answers(u))
+    target = str(u.get("target") or "")
+    if card.family.value is None and not card.in_play and target and target not in columns and target not in words:
+        # S9.4 (live): the outcome recorded in other words than the person's (a model's "no outcome column, unsupervised
+        # clustering to discover customer types") was never read for the family, and the card waited on a question the
+        # person could not answer; those words are read for a family, only where the card read nothing (never over a reading)
+        from dclab_core.conversation import read_answer
+
+        read = read_answer("family", target, columns or None)  # as an answer to the family question is read: the reader's
+        if read.get("family") in FAMILIES and read.get("family_shape_only") != "yes":  # families reach the card the same way
+            return problem_card(brief, words=words, data=data, family=read["family"], answers=_answers(u))
+    return card
 
 
 def meeting(draft: dict[str, Any], store: Any, with_fit: bool = False) -> Any:
