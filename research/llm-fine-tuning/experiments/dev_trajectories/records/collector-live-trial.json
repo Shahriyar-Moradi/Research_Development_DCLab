@@ -1,0 +1,84 @@
+{
+ "package": "collector-live-trial",
+ "title": "The collector's first live trials: Claude's priced opinion only, and real tables without an outcome recorded for their roles",
+ "date": "2026-10-25",
+ "request": "The owner's step 2: 'the collector's first live run (10 tables, Claude capped at EUR 0.5)'; if clean, switch it on with a higher monthly cap.",
+ "spec": "docs/guides/STUDENTS_100_PLAN.md S2; the owner's rules: Claude's outputs are silver and evaluation only; live runs capped and reported.",
+ "plan": [
+  "Run 10 new tables with the cap.",
+  "Read the run record and the usage log, not only the run's own figures.",
+  "Fix what the trial shows, with tests; run again."
+ ],
+ "decisions": [
+  {
+   "decision": "Silver refuses a model that is not a priced Claude.",
+   "why": "Silver is Claude's opinion by the owner's rule, and a cap binds only where a price counts the spend."
+  },
+  {
+   "decision": "The 155 mislabelled answers kept in their own file with a note, out of the file read as Claude's opinion.",
+   "why": "Every record is kept; real_shadow.compare reads that file as Claude's."
+  },
+  {
+   "decision": "A table that declares no outcome is recorded for its columns' roles only, from its derived record, no download.",
+   "why": "Most of OpenML's later uploads declare no outcome; their declared column types are the real truths the role student needs."
+  },
+  {
+   "decision": "Switched on: DCLAB_COLLECTOR=1 and DCLAB_COLLECTOR_MONTHLY_EUR=18 in .env.",
+   "why": "The owner chose a higher monthly cap than the plan's EUR 10, about the $20 given; a run's cap stays EUR 0.5."
+  }
+ ],
+ "change": "dclab_rnd/real_shadow.py (served_by, load_env, the model on each silver line, run_one's roles-only path, _tables without an outcome), dclab_rnd/collector.py (load_env; homework's bar on labelled decisions), tests/test_real_shadow.py, tests/test_collector.py.",
+ "findings": [
+  {
+   "id": "L1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The trial's silver was not Claude's and its cost was not counted.",
+   "scenario": "Run 1: 155 answers for EUR 0.00; the usage log names gpt-5.6-terra on api.openai.com with no price.",
+   "cause": "real_shadow and collector never read .env, so the shell's OpenAI key served; ModelAnswerer was named 'claude' whatever answered.",
+   "fix": "load_env in both command lines; served_by refuses anything but a priced Claude; each line records its model.",
+   "test": "test_silver_is_claudes_priced_opinion_or_nothing"
+  },
+  {
+   "id": "L2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "No new table was run on.",
+   "scenario": "Run 1: shadowed {} although 6 homework tables were gathered.",
+   "cause": "None of them declares an outcome and _tables required one, so they were never run, nor marked failed.",
+   "fix": "Roles only for a table without an outcome.",
+   "test": "test_a_table_without_an_outcome_records_its_roles_without_a_download"
+  },
+  {
+   "id": "L3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The run record called a point's homework met with no labels.",
+   "scenario": "column.is_identifier 12,753 decisions, 0 labels, bar True.",
+   "cause": "The bar counted decisions.",
+   "fix": "The bar counts decisions with a truth, and their tables.",
+   "test": "test_the_bar_counts_labelled_decisions_never_decisions_alone"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the collector, run 3",
+   "gate": "a live run capped at EUR 0.5",
+   "result": "3 homework, 1 dev and 5 sealed tables gathered, 1 copy set aside; 303 tables shadowed (6,377 decisions); 155 Claude answers (claude-sonnet-5-5) for EUR 0.3254",
+   "verdict": "pass",
+   "cost_eur": 0.3254,
+   "limits": [
+    "run 2 was skipped by the busy guard, as it should be",
+    "the exam set holds 8 of the 50 sealed tables it needs"
+   ]
+  }
+ ],
+ "outcome": "The collector runs nightly with Claude's capped opinion; tables without an outcome feed the role student.",
+ "lessons": [
+  "Read a run's spend from the usage log, not from the run's own count: a run that does not know its model's price reports zero."
+ ],
+ "risks": [
+  "The fresh exam set needs about three nights."
+ ],
+ "commits": []
+}

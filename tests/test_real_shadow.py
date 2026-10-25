@@ -191,6 +191,35 @@ class RealShadowTest(unittest.TestCase):
         lines = (self.train / "silver.jsonl").read_text().splitlines()
         self.assertEqual(len(lines), 2)  # asked twice, stopped before the third request
 
+    def test_silver_is_claudes_priced_opinion_or_nothing(self):  # 2026-10-25: an unread .env sent it to an unpriced default model
+        from types import SimpleNamespace
+
+        def advisor(model):
+            return SimpleNamespace(_client=lambda purpose: SimpleNamespace(model=model))
+        self.assertEqual(real_shadow.served_by(advisor("claude-sonnet-5-5")), "claude-sonnet-5-5")
+        for model in ("gpt-5.6-terra", "", "claude-unknown-9"):
+            with self.assertRaises(SystemExit):
+                real_shadow.served_by(advisor(model))
+
+        class Script:
+            def complete(self, messages, tools=None, max_tokens=0, **options):
+                return {"content": json.dumps({"answer": "categorical_code", "reason": "a code"}), "tool_calls": [], "usage": {}}
+        self.silver_with(Script(), cap=1.0)
+        lines = [json.loads(l) for l in (self.train / "silver.jsonl").read_text().splitlines()]
+        self.assertEqual({l["model"] for l in lines}, {"claude-sonnet-5-5"})  # each answer names the model that gave it
+
+    def test_a_table_without_an_outcome_records_its_roles_without_a_download(self):
+        from dclab_rnd.ledger import install, open_ledger
+
+        book = open_ledger(self.train)
+        install(book)
+        with mock.patch.object(real_shadow, "_download", side_effect=AssertionError("no download")):
+            out = real_shadow.run_one({**derived(1), "target": None}, real_shadow._home(self.train, True))
+        self.assertTrue(out.get("roles_only") and out["decisions"] == 1)
+        role = [r for r in book.records() if r.draft == "openml-1"]
+        self.assertEqual({r.point for r in role}, {"column.semantic_role"})
+        self.assertTrue((self.train / "done" / "1.json").is_file())
+
     def test_an_outage_stops_and_a_single_failure_is_an_abstention(self):
         class Broken:
             def complete(self, *a, **k):

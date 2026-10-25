@@ -113,7 +113,7 @@ def _tables(limit: Optional[int] = None) -> list[dict[str, Any]]:
             d = json.loads(f.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        if not d.get("failed") and d.get("target") and d.get("columns") and split_of(d["did"]) != "sealed":
+        if not d.get("failed") and d.get("columns") and split_of(d["did"]) != "sealed":  # an outcome or not: see run_one
             out.append(d)
     out.sort(key=lambda d: split_of(d["did"]) != "dev")  # the measurable tables first
     return out[:limit] if limit else out
@@ -160,6 +160,16 @@ def run_one(derived: dict[str, Any], home: Path, retry_failed: bool = False) -> 
         if not (retry_failed and done.get("failed") and any(k in done["failed"] for k in RETRY)):
             return done
     dropped = int(ledger.DROPPED.get("count", 0)) if isinstance(getattr(ledger, "DROPPED", None), dict) else 0
+    if not derived.get("target"):  # a table that declares no outcome (most of OpenML's later uploads): no solution to propose,
+        # but its columns' roles carry real truths (the uploader's types): those decisions alone, from the derived record, no download
+        with batch():
+            written = roles(derived)
+        lost = int(ledger.DROPPED.get("count", 0)) - dropped if isinstance(getattr(ledger, "DROPPED", None), dict) else 0
+        out = ({"did": did, "failed": f"{lost} records could not be written"} if lost > 0 else
+               {"did": did, "split": split_of(did), "columns": len(derived.get("columns") or {}), "decisions": written, "roles_only": True})
+        if lost <= 0:
+            marker.write_text(json.dumps(out) + "\n", encoding="utf-8")
+        return out
     try:
         frame = _download(did)
         target = derived["target"]
@@ -349,6 +359,31 @@ def compare(folders: dict[str, Path], home: Optional[Path] = None) -> dict[str, 
 # ---------------------------------------------------------------------- Claude's silver opinion on the disagreements
 
 
+def served_by(advisor: Any) -> str:
+    """The model that answers ``decision_answer``, refused unless it is Claude with a price: silver is Claude's opinion
+    (the owner's rule, 2026-10-17), and a cap binds only on a priced model (2026-10-25: a command-line run that had not
+    read .env sent 155 questions to an unpriced default model, recorded as Claude's and counted as free)."""
+    from .models.prices import price_of
+
+    client = advisor._client("decision_answer")
+    model = str(getattr(client, "model", "") or "")
+    if not model.startswith("claude"):
+        raise SystemExit(f"silver is Claude's opinion: decision_answer is served by {model or 'no model'} here "
+                         "(DCLAB_LLM_PROVIDER=anthropic and ANTHROPIC_API_KEY in .env)")
+    if price_of(model) is None:
+        raise SystemExit(f"{model} has no price in models/prices.py: a cap cannot bind on it")
+    return model
+
+
+def load_env() -> None:
+    """A command-line run reads .env as the server does (never over a value already set): the model settings live there."""
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+    load_dotenv(ROOT / ".env", override=False)
+
+
 def silver(home: Optional[Path] = None, per_point: int = 60, cap_eur: float = 3.0, seed: int = 0, log=print,
            checkpoint: Any = lambda: None) -> dict[str, Any]:
     """Claude answers a fair sample of each point's disagreements (the state only), within ``cap_eur``; kept apart. It
@@ -374,7 +409,8 @@ def silver(home: Optional[Path] = None, per_point: int = 60, cap_eur: float = 3.
         last[row["record"]] = row
     done = {rec for rec, row in last.items() if not row.get("failed")}
     advisor = GatewayAdvisor(gateway, max_tokens=600, cap_eur=cap_eur)  # 200 cut Claude's one-sentence reasons (live, 2026-10-23)
-    answerer = ModelAnswerer(advisor, list(by_point), name="claude", version="silver-1")
+    model = served_by(advisor)
+    answerer = ModelAnswerer(advisor, list(by_point), name=model, version="silver-1")
     with out_path.open("a", encoding="utf-8") as fh:
         for point, items in sorted(by_point.items()):
             rng.shuffle(items)
@@ -402,7 +438,8 @@ def silver(home: Optional[Path] = None, per_point: int = 60, cap_eur: float = 3.
                     return {"asked": dict(asked), "spent_eur": round(advisor.spent_eur(), 4), "stopped": True, "why": "failures"}
                 fh.write(json.dumps({"record": r["record"], "point": point, "where": r["where"], "subject": r["subject"], "state": r["state"],
                                      "rule": r["rule"], "students": r["students"], "claude": _yes(getattr(a, "value", None)) if a is not None else None,
-                                     "abstained": a is None, "failed": failed, "label": "silver", "use": "evaluation"}, ensure_ascii=False, default=str) + "\n")
+                                     "abstained": a is None, "failed": failed, "label": "silver", "use": "evaluation", "model": model},
+                                    ensure_ascii=False, default=str) + "\n")
                 asked[point] += 1
     return {"asked": dict(asked), "spent_eur": round(advisor.spent_eur(), 4)}
 
@@ -416,6 +453,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--per-point", type=int, default=60)
     ap.add_argument("--cap-eur", type=float, default=3.0)
     args = ap.parse_args(argv)
+    load_env()
     if args.command == "measure":
         print(json.dumps(measure(args.home), indent=1))
         return 0

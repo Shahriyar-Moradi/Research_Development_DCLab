@@ -180,7 +180,25 @@ class CollectorJobTest(unittest.TestCase):
         self.assertIs(ledger._INSTALLED.get("ledger"), fallback)  # the process as it was: its fallback ledger
         self.assertEqual(os.environ.get("DCLAB_DECISION_SHADOW"), "0")  # and its shadow setting
         hw = out["homework"]["column.semantic_role"]
-        self.assertEqual((hw["decisions"], hw["tables"], hw["bar"]), (1, 1, False))
+        self.assertEqual((hw["decisions"], hw["tables"], hw["labelled"], hw["bar"]), (1, 1, 0, False))
+
+    def test_the_bar_counts_labelled_decisions_never_decisions_alone(self):
+        from dclab_rnd.ledger import capture, install, label, open_ledger
+
+        book = open_ledger(self.train)
+        install(book)
+        self.addCleanup(install, None)
+        for i in range(320):  # 320 decisions on 32 tables, ten of them labelled by a person, one by a model
+            rec = capture._put("column.semantic_role", ("column", f"c{i}"), [capture.answer("rule", "datacard:purposes", "numeric")], "numeric",
+                               "rule", state=STATE, options=real_shadow.ROLES, draft=f"openml-{i % 32}")
+            if i < 10:
+                label(rec, "numeric", "blind", "owner", weight=2.0)
+            elif i == 10:
+                label(rec, "numeric", "model", "model:claude")
+        with mock.patch("dclab_rnd.ledger.labels.queue", return_value={"points": {}}):
+            hw = collector.homework()["column.semantic_role"]
+        self.assertEqual((hw["decisions"], hw["tables"], hw["labelled"], hw["labelled_tables"]), (320, 32, 10, 10))
+        self.assertFalse(hw["bar"])  # 320 decisions are not homework: 10 truths are
 
 
 class GatherTest(unittest.TestCase):

@@ -362,22 +362,32 @@ def _run(home: Path, record: dict[str, Any], tables: int, run_eur: float, monthl
 
 
 def homework() -> dict[str, Any]:
-    """Each point's homework in the train workspace (decisions, tables, people's labels) and how many disagreements wait
-    for a person: what the run grew and what is still missing (the plan's bar: 300 decisions from 30 tables)."""
+    """Each point's homework in the train workspace: decisions and tables recorded, how many of them carry a truth (a
+    person's label, or a measured or benchmark one; never a model's), and how many disagreements wait for a person. The
+    plan's bar is on the labelled ones (300 from 30 tables): decisions without a truth teach a student nothing."""
+    from dclab_core.ledger import PRECEDENCE
+
     from .ledger import labels, open_ledger
 
     try:
         book = open_ledger(real_shadow.TRAIN_HOME)
-        decisions, tables = Counter(), {}
+        decisions, tables, table_of = Counter(), {}, {}
         for r in book.records():
             decisions[r.point] += 1
-            tables.setdefault(r.point, set()).add(r.draft or r.project or r.dataset)
-        people = Counter(x.point for x in book.labels() if x.source in ("blind", "taught", "user_decision", "user_decision_exposed"))
+            table = r.draft or r.project or r.dataset
+            tables.setdefault(r.point, set()).add(table)
+            table_of[r.id] = (r.point, table)
+        labelled, labelled_tables = Counter(), {}
+        for x in {x.record: x for x in book.labels() if x.source in PRECEDENCE}.values():  # one truth per decision
+            point, table = table_of.get(x.record, (x.point, None))
+            labelled[point] += 1
+            labelled_tables.setdefault(point, set()).add(table)
         waiting = dict(labels.queue(book, limit=0).get("points") or {})
     except Exception as exc:  # noqa: BLE001
         return {"failed": f"{type(exc).__name__}: {str(exc)[:200]}"}
-    return {p: {"decisions": decisions[p], "tables": len(tables.get(p, ())), "people_labels": people[p], "waiting": waiting.get(p, 0),
-                "bar": decisions[p] >= 300 and len(tables.get(p, ())) >= 30} for p in sorted(decisions)}
+    return {p: {"decisions": decisions[p], "tables": len(tables.get(p, ())), "labelled": labelled[p],
+                "labelled_tables": len(labelled_tables.get(p, ())), "waiting": waiting.get(p, 0),
+                "bar": labelled[p] >= 300 and len(labelled_tables.get(p, ())) >= 30} for p in sorted(decisions)}
 
 
 def _spend(home: Path, eur: float) -> None:
@@ -513,6 +523,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--silver-per-point", type=int, default=30)
     ap.add_argument("--force", action="store_true", help="exam: build real_v2 now, before enough tables are sealed")
     args = ap.parse_args(argv)
+    real_shadow.load_env()  # the model settings live in .env, as the server reads them
     if args.command == "plan":
         out: Any = plan()
     elif args.command == "run":

@@ -355,6 +355,7 @@
     "built-chat-answers",
     "chat-export-template-check",
     "claude-only",
+    "collector-live-trial",
     "core-running-number-key",
     "evaluation-page",
     "failed-runs-kept",
@@ -412,14 +413,14 @@
     "ui-tripssource-kit",
     "username-login"
   ],
-  "total": 4201,
+  "total": 4206,
   "train": 3329,
-  "val": 872,
+  "val": 877,
   "by_task": {
-    "fix_finding": 2706,
+    "fix_finding": 2709,
     "judge_measurement": 434,
-    "plan_package": 402,
-    "retrospective": 393,
+    "plan_package": 403,
+    "retrospective": 394,
     "review_change": 266
   },
   "val_packages": [
@@ -494,6 +495,7 @@
     "RD-expansion-v1",
     "RD-sft-v3",
     "S2-collector",
+    "collector-live-trial",
     "core-running-number-key",
     "evaluation-page",
     "fix-dev-worker-supervision",
@@ -508,6 +510,12 @@
     "role-student-real-exam",
     "selfplay-every-kind"
   ],
-  "refused": [],
+  "refused": [
+    {
+      "package": "collector-live-trial",
+      "task": "judge_measurement",
+      "why": "a number the prompt does not give"
+    }
+  ],
   "validation_policy": "whole packages held out by the hash of their id (about 20%)"
 }
