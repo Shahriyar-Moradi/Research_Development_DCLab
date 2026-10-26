@@ -1,0 +1,95 @@
+{
+  "package": "dclab-code-v1.44",
+  "title": "DCLab Code redesigned in the owner's Meadow kit (HeroUI's dashboard look): one rounded frame, white cards, pill controls",
+  "date": "2026-10-26",
+  "request": "Owner, with screenshots of heroui.com's dashboard and of their own Meadow design kit: after all fixes, redesign the app with this style.",
+  "spec": "dclab-code web/style.css (the look's tokens at the top)",
+  "plan": [
+    "read the stylesheet (one file, every color a token)",
+    "new tokens: zinc greys, white cards, a green brand with dark ink, a green text accent for contrast, shadows, three radii, light and dark",
+    "the shapes: the conversation, drawer and split as floating cards; sidebar pills; pill buttons and segmented tabs; filled inputs; KPI-style stat tiles; green ticks and bars in the Jobs tab",
+    "look at it in the browser at 1440 px light and dark, and at 375 px",
+    "tests"
+  ],
+  "decisions": [
+    {
+      "decision": "only the stylesheet changes; no markup, no script",
+      "why": "the same capabilities with a new look; every test of behaviour stands as it was"
+    },
+    {
+      "decision": "two greens: the brand fill (#17c964) with dark ink on it, and a darker green (#0f9a4c) for green text on white",
+      "why": "white text on the bright green and the bright green as text on white both fail contrast"
+    },
+    {
+      "decision": "the system font until Outfit and Plus Jakarta Sans are served by the app",
+      "why": "the app's content policy allows only its own fonts; adding the files is a download the owner approves"
+    },
+    {
+      "decision": "a narrow composer wraps its controls to a second row; on a phone the git button hides",
+      "why": "a project name squeezed onto two lines, and a title cut to one letter, at the widths the drawer leaves"
+    },
+    {
+      "decision": "Meadow's own values, read from the owner's meadow.css, replace the first pass taken from a screenshot",
+      "why": "the kit is on the owner's Mac; exact colors, radii and shadows beat colors picked by eye"
+    }
+  ],
+  "change": "dclab-code web/style.css only.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "the ask card was wider than DCLab's card and the composer",
+      "scenario": "an Allow card above a DCLab draft: two edges a few pixels apart",
+      "cause": "the thread's padding sat inside the card's border",
+      "fix": "ask and command cards take the composer's width",
+      "test": "screenshot at 1440 px",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "defect": "'live-project' broke onto two lines in the composer with the drawer open",
+      "scenario": "1440 px window, Jobs tab open: the main column about 540 px",
+      "cause": "the select shrank in the flex row",
+      "fix": "the row wraps; chips never shrink",
+      "test": "screenshots at 1440 and 375 px",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "self",
+      "defect": "the session's title shrank to one letter on a phone",
+      "scenario": "375 px: the git button, Settings and the palette key took the top bar",
+      "cause": "no room rule for the top bar",
+      "fix": "the git button hides under 760 px",
+      "test": "the crumb measured 180 px at 375 px",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 144 of 144 (units 52, page 30 in Chromium, server 62)",
+      "verdict": "pass"
+    },
+    {
+      "name": "no sideways scroll on a phone",
+      "gate": "scrollWidth equals the viewport at 375 px",
+      "fixed_before_run": true,
+      "result": "375 = 375",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "DCLab Code looks like the owner's reference, light and dark, at desktop and phone widths, with every capability unchanged.",
+  "lessons": [
+    "A redesign that keeps every color a token changes one file; a green brand needs a second, darker green for text."
+  ],
+  "risks": [
+    "no web font: a machine without Inter or the Apple system font shows its own sans-serif"
+  ],
+  "commits": [
+    "dclab-code e4a5649"
+  ]
+}
