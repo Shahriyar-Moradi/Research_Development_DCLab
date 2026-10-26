@@ -32,8 +32,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import posixpath
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Iterator, Optional
 
 from ..layout import ROOT
@@ -74,6 +75,25 @@ def _inside(path: Optional[str], root: Path) -> bool:
 SCRATCH = tuple(Path(p) for p in {tempfile.gettempdir(), "/tmp", "/private/tmp", "/private/var/folders"})  # a live test's throwaway project
 
 
+def _inside_there(path: Optional[str], root: Optional[str]) -> bool:
+    """inside() for another machine's paths: compared as written (resolving them here would read this Mac's folders)."""
+    if not path or not root or not str(root).startswith("/"):
+        return False
+    p, r = PurePosixPath(posixpath.normpath(str(path))), PurePosixPath(posixpath.normpath(str(root)))
+    if len(r.parts) < 3:  # "/" or "/home" is no R&D folder: it would keep every session on that machine
+        return False
+    return p == r or r in p.parents
+
+
+def remote_homes(home: Path) -> list[Path]:
+    """The person's remote machines' records copied here by DCLab Code (2026-10-26, its Remote machines: Copy records):
+    ``<home>/remotes/<machine>/`` with ``remote.json`` (host and that machine's R&D path), ``sessions.json`` and ``records/``."""
+    base = home / "remotes"
+    if not base.is_dir() or base.is_symlink():
+        return []
+    return [d for d in sorted(base.iterdir()) if d.is_dir() and not d.is_symlink() and (d / "remote.json").is_file() and not (d / "remote.json").is_symlink()]
+
+
 def test_homes(env: Any = None) -> list[Path]:
     """DCLab Code homes of scripted live tests under ``agent_runs/live_tests/`` (the owner, 2026-10-26: keep them, as a script's
     acts): a folder with ``sessions.json``, ``records/`` and a ``config.json`` saying ``decidedBy: "script"``. A test or check
@@ -102,9 +122,10 @@ def test_homes(env: Any = None) -> list[Path]:
     return out
 
 
-def _home_sources(home: Path, root: Path, prefix: str, scripted: bool) -> Iterator[Source]:
+def _home_sources(home: Path, root: Path, prefix: str, scripted: bool, there: Optional[str] = None) -> Iterator[Source]:
     """One DCLab Code home's records and index under ``prefix``: the sessions on this repository (and, in a scripted live
-    test, on a throwaway scratch folder) kept, any other folder's counted only."""
+    test, on a throwaway scratch folder) kept, any other folder's counted only. ``there``: a remote machine's copy, whose
+    sessions are kept when inside that machine's R&D folder (its path as written there)."""
     index = home / "sessions.json"
     try:
         sessions = json.loads(index.read_text(encoding="utf-8")).get("sessions", []) if index.is_file() and not index.is_symlink() else []
@@ -112,12 +133,15 @@ def _home_sources(home: Path, root: Path, prefix: str, scripted: bool) -> Iterat
         sessions = []
     def here(s: dict[str, Any]) -> bool:
         p = s.get("projectPath")
+        if there is not None:
+            return _inside_there(p, there)
         return _inside(p, root) or (scripted and any(_inside(p, t) for t in SCRATCH))
     ours = {s.get("id") for s in sessions if isinstance(s, dict) and here(s)}
     records = home / "records"
     others = []
     what = ("a scripted live test's DCLab Code session (every act its driver's, by: script): agent episodes only, never a person's label"
-            if scripted else "a DCLab Code session on this repository: SDK messages whole and the person's decisions")
+            if scripted else "a DCLab Code session on the person's remote machine's R&D: SDK messages whole and the person's decisions"
+            if there is not None else "a DCLab Code session on this repository: SDK messages whole and the person's decisions")
     for path in sorted(records.glob("*.jsonl")) if records.is_dir() and not records.is_symlink() else ():
         if path.is_symlink() or not path.is_file():
             continue
@@ -161,9 +185,16 @@ def sources(env: Any) -> Iterator[Source]:
     if home is None:
         return
     yield from _home_sources(home, root, "dclab_code/", False)
+    for mirror in remote_homes(home):  # the person's sessions on their remote machines, copied here by DCLab Code
+        try:
+            meta = json.loads((mirror / "remote.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        rd = meta.get("rdPath") if isinstance(meta, dict) and isinstance(meta.get("rdPath"), str) else ""
+        yield from _home_sources(mirror, root, f"dclab_code/remote/{re.sub(r'[^A-Za-z0-9._-]+', '_', mirror.name)}/", False, there=rd)
 
 
 KEEPER = Keeper("dclab_code", (Claim("agents", "dclab_code/"),), sources, ("m6_stepwise_decisions", "m7_judges", "m2_workflow_decisions", "m1_students"),
                 "DCLab Code's sessions on this repository: every SDK message whole, with the person's permissions, answers and plan approvals")
 
-__all__ = ["KEEPER", "HOME", "SCRATCH", "home_folder", "sources", "test_homes"]
+__all__ = ["KEEPER", "HOME", "SCRATCH", "home_folder", "remote_homes", "sources", "test_homes"]

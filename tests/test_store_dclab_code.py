@@ -164,6 +164,37 @@ class DclabCodeTest(unittest.TestCase):
         self.assertIn("dclab_code/tests/live_tests-2026-10-26-x-home/~other-projects~counts.json", names)
         self.assertNotIn("dclab_code/records/s_other1.jsonl", names, "the owner's own rule is unchanged")
 
+    def test_a_remote_machines_copied_sessions_are_kept_as_the_persons_when_on_its_rd(self):
+        """2026-10-26: cloud sessions run on the person's own SSH machine; DCLab Code copies their records to
+        ~/.dclab-code/remotes/<machine>/. The store keeps a session there that worked in that machine's R&D folder (its
+        path as written there), as the person's own (not scripted); another folder's is counted only."""
+        from dclab_rnd.store.keepers import dclab_code
+        from dclab_rnd.store.sets import dclab_code as sets
+
+        box = self.home / "remotes" / "cloud box"
+        write(box / "remote.json", json.dumps({"name": "cloud box", "host": "me@box", "rdPath": "/home/me/R&D"}))
+        allow = {"v": "dclab_code.record.v1", "kind": "app", "type": "permission_decision", "reqId": "p_9", "decision": "allow", "by": "person"}
+        write(box / "records" / "s_far01.jsonl", json.dumps(allow) + "\n")
+        write(box / "records" / "s_far02.jsonl", "{}\n")
+        write(box / "records" / "s_far03.jsonl", "{}\n")
+        write(box / "sessions.json", json.dumps({"sessions": [
+            {"id": "s_far01", "projectPath": "/home/me/R&D", "title": "on the server's R&D"},
+            {"id": "s_far02", "projectPath": "/home/me/R&Dx", "title": "a lookalike folder"},
+            {"id": "s_far03", "projectPath": "/home/me/R&D/../client", "title": "out through .."}]}))
+        write(self.home / "remotes" / "broken" / "sessions.json", "{}")  # no remote.json: not a copy of a machine
+        self.assertEqual(dclab_code.remote_homes(self.home), [box])
+        names = [s.source for s in dclab_code.sources(self.env)]
+        self.assertIn("dclab_code/remote/cloud_box/records/s_far01.jsonl", names)
+        self.assertIn("dclab_code/remote/cloud_box/sessions.json", names)
+        self.assertFalse(any("s_far02" in n or "s_far03" in n for n in names), "another folder there: never kept")
+        self.assertIn("dclab_code/remote/cloud_box/~other-projects~counts.json", names)
+        self.conduct()
+        found = {s.sid: s for s in sets.sessions(self.layout)}
+        self.assertIn("s_far01", found)
+        self.assertFalse(found["s_far01"].scripted, "the person's own session on their machine")
+        self.assertEqual(found["s_far01"].meta.get("title"), "on the server's R&D")
+        self.assertFalse(dclab_code._inside_there("/home/me/x", "/"), "a machine claiming / as its R&D keeps nothing")
+
     def test_its_claim_does_not_overlap_the_agents_keeper(self):
         from dclab_rnd.store.keepers import standard
 

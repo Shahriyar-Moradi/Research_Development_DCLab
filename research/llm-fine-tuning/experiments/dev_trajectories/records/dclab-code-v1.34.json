@@ -1,0 +1,77 @@
+{
+  "package": "dclab-code-v1.34",
+  "title": "A remote machine's records reach R&D's store",
+  "date": "2026-10-26",
+  "request": "The owner's standing rule: capture every agent process for training; cloud sessions on the owner's SSH machine kept their records there.",
+  "spec": "docs/REMOTE.md",
+  "plan": [
+    "every DCLab Code exports its session list and records behind its token",
+    "a connected machine's records are copied here after each Connect and on a click, only what changed",
+    "R&D's store keeps the sessions on that machine's R&D as the person's"
+  ],
+  "decisions": [
+    {
+      "decision": "copy through the existing tunnel over DCLab Code's own API, not rsync",
+      "why": "no remote path or tool to know; the remote app knows its own home"
+    },
+    {
+      "decision": "keep a remote session when it worked in that machine's R&D folder, its path compared as written",
+      "why": "resolving a remote path on this Mac would read this Mac's folders"
+    },
+    {
+      "decision": "attachments and settings are never copied",
+      "why": "the store counts images only and never keeps settings"
+    }
+  ],
+  "change": "dclab-code server/remote.js (copyRecords, remoteDir), server/app.js (GET /api/records/export and /records/file/<name>, POST /api/remotes/records, a copy after each Connect, one copy at a time), web/app.js (Copy records). R&D dclab_rnd/store/keepers/dclab_code.py (remote_homes, _inside_there), dclab_rnd/store/sets/dclab_code.py (remote records are the person's), tests.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "the copy after Connect and a click could write the same files at once",
+      "scenario": "Connect, then Copy records before the first copy ends",
+      "cause": "two copies of one machine ran together",
+      "fix": "one copy per machine at a time",
+      "test": "server test copies twice; the second copies nothing",
+      "severity": "latent"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "defect": "a machine reporting / as its R&D folder would keep every session there",
+      "scenario": "rdPath '/' in remote.json",
+      "cause": "any path is inside /",
+      "fix": "an R&D folder needs at least two parts",
+      "test": "R&D store test",
+      "severity": "privacy"
+    },
+    {
+      "id": "F3",
+      "source": "self",
+      "defect": "a lookalike or .. path could pass as inside R&D",
+      "scenario": "a lookalike folder (R&Dx beside R&D) and a path that leaves R&D through ..",
+      "cause": "a text prefix compare would accept them",
+      "fix": "normalised paths compared by parts",
+      "test": "R&D store test",
+      "severity": "privacy"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 120 of 120; R&D test_store_dclab_code and its sets: 17 of 17; the copied record equals the remote's byte for byte",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Sessions run on the person's own server are kept for training like the ones on their Mac.",
+  "lessons": [
+    "When a feature moves work to another machine, move its records with it, or the training data has a hole."
+  ],
+  "risks": [
+    "not run against a real server yet",
+    "a record over 512 MB is skipped and said"
+  ],
+  "commits": []
+}

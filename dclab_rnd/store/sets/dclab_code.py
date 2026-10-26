@@ -48,6 +48,9 @@ INDEX = "dclab_code/sessions.json"
 # whole, never a person's label, even a record older than "by"
 TEST_RECORD = re.compile(r"^dclab_code/tests/([^/]+)/records/(.+)\.jsonl$")
 TEST_INDEX = re.compile(r"^dclab_code/tests/([^/]+)/sessions\.json$")
+# 2026-10-26: the person's sessions on a remote machine of theirs, copied by DCLab Code: the person's own (not scripted)
+REMOTE_RECORD = re.compile(r"^dclab_code/remote/([^/]+)/records/(.+)\.jsonl$")
+REMOTE_INDEX = re.compile(r"^dclab_code/remote/([^/]+)/sessions\.json$")
 POINT_PERMISSION = "dclab_code.permission"
 POINT_PLAN = "dclab_code.plan_approval"
 FAMILIES = {"Bash": "shell", "Read": "read", "Write": "write", "Edit": "edit", "MultiEdit": "edit", "NotebookEdit": "edit", "Glob": "search",
@@ -326,16 +329,17 @@ def sessions(layout: Layout) -> list[Session]:
     for r in _current(layout, "agents"):
         src = r.provenance.source
         test_index, test_record = TEST_INDEX.match(src), TEST_RECORD.match(src)
-        if src == INDEX or test_index:
+        remote_index, remote_record = REMOTE_INDEX.match(src), REMOTE_RECORD.match(src)
+        if src == INDEX or test_index or remote_index:
             for s in r.body.get("sessions") or []:
                 if isinstance(s, dict) and s.get("id"):
                     index[str(s["id"])] = s
                     if test_index:
                         scripted.add(str(s["id"]))
-        elif (src.startswith(PREFIX) and src.endswith(".jsonl")) or test_record:
+        elif (src.startswith(PREFIX) and src.endswith(".jsonl")) or test_record or remote_record:
             if isinstance(r.body, dict) and r.body.get("copiedFrom"):
                 continue  # dclab-code A4: a fork's copy of its source's history, kept (and counted) once, in the source
-            sid = test_record.group(2) if test_record else src[len(PREFIX):-len(".jsonl")]
+            sid = test_record.group(2) if test_record else remote_record.group(2) if remote_record else src[len(PREFIX):-len(".jsonl")]
             if test_record:
                 scripted.add(sid)
             lines[sid].append(r)
