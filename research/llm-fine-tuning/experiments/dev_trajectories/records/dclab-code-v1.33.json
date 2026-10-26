@@ -80,7 +80,7 @@
       "id": "F6",
       "source": "reviewer",
       "defect": "a tunnel killed from outside still showed connected and was reused",
-      "scenario": "pkill ssh",
+      "scenario": "the ssh process killed from outside (pkill ssh, out of memory)",
       "cause": "state ignored death by signal",
       "fix": "alive() checks the signal too",
       "test": "unit test kills it from outside; undoing the fix fails it (the first version of the test killed it from inside and passed on broken code)",
