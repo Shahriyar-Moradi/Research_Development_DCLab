@@ -676,6 +676,17 @@ class HomeAgent:
             # 28.6 (the review): the model's turn reaches take_answer only when it made no tool step; the person's choice
             # between the two readings is read here first, by code, and the model then carries the conversation on
             self.take_second_opinion(draft_id, waiting, text, then_next=False)
+        elif self.client is not None and waiting is not None and not_known(text):
+            # live (the 45 again, 2026-10-26): "I don't know" to a model's question (the review budget) was left open by the
+            # model's turn, and the walk waited on it for ever; code closes it as declined first (the field stays unknown, the
+            # build assumes what it assumes and says so), and the model then carries the conversation on
+            self.record(draft_id, waiting["field"], text)  # the plan's field: unknown, the question declined (never asked again)
+
+            def closed(d: dict[str, Any]) -> None:  # a field outside the plan (a kind's, the repeating key's) is closed here too
+                for item in d["questions"]:
+                    if item["id"] == waiting["id"] and not item.get("answered"):
+                        item["answered"], item["declined"] = text[:400], True
+            self.store.update(draft_id, closed)
         if self.client is not None:
             try:
                 self.model_turn(draft_id, text=text)

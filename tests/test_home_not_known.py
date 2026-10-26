@@ -66,6 +66,22 @@ class NotKnownTest(unittest.TestCase):
         self.assertEqual(chat.HomeAgent._as_column(d, "target", "the \u201curgent\u201d flag"), "urgent")
         self.assertEqual(chat.HomeAgent._as_column(d, "target", "Whether the email is urgent"), "Whether the email is urgent")  # only mentioned
 
+    def test_i_dont_know_to_a_models_question_closes_it_before_the_models_turn(self):
+        """The 45 live people again (2026-10-26): Claude asked the review budget, the person said they did not know, the
+        model's turn recorded nothing and the walk waited on the open question for ever."""
+        from unittest import mock
+
+        def ask(d):
+            d.setdefault("questions", []).append({"id": "q1", "field": "budget", "text": "How many flags could your team review a day?"})
+        self.store.update(self.draft["id"], ask)
+        agent = chat.HomeAgent(self.store, object())  # a model is configured: its turn is replaced below
+        with mock.patch.object(chat.HomeAgent, "model_turn", lambda *a, **k: None):
+            agent.reply(self.draft["id"], "I don't know.")
+        d = self.store.get(self.draft["id"])
+        self.assertTrue(d["questions"][0]["declined"])
+        self.assertIsNone(agent.pending(d))
+        self.assertNotIn("budget", d["understanding"])  # never "I don't know" as the budget
+
 
 if __name__ == "__main__":
     unittest.main()

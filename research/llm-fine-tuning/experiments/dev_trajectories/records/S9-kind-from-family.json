@@ -244,6 +244,16 @@
    "cause": "The engine read known-ahead columns only from the prediction moment's words; nothing asked when the moment did not say.",
    "fix": "An optional, advisory kind question: which columns are known before each forecast (numbers and yes/no columns offered, 'None of them', 'I don't know'); read as a list; no answer keeps them out, the cautious default.",
    "test": "test_a_forecast_asks_which_columns_are_known_ahead_never_blocking; harness HRN-051 17 of 17"
+  },
+  {
+   "id": "S9-21",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "An unknown answer to a model's question left it open, and a walk waited on it for ever.",
+   "scenario": "The 45 again: JH-rare_event-001 and JH-binary-001, Claude asked the review budget, the person said I don't know, the model's turn recorded nothing: 'No progress at build: A question to the person is open (budget)'.",
+   "cause": "The 'I don't know' fix closed a question only where code recorded the answer; in the model's turn the model chose what to record.",
+   "fix": "Before the model's turn, code closes the open question as declined when the reply says the person does not know; the build assumes what it assumes and says so.",
+   "test": "test_i_dont_know_to_a_models_question_closes_it_before_the_models_turn; harness HRN-052 17 of 17"
   }
  ],
  "measurements": [
@@ -311,6 +321,17 @@
    "limits": [
     "one run per person",
     "the cap stopped the run before the sixth person"
+   ]
+  },
+  {
+   "name": "all 45 people of the first live run again, on main with every fix (Claude Sonnet 5.5 beside the rules)",
+   "gate": "the same written people and seeds as the first run of 2026-10-25, played in four batches each capped at EUR 1",
+   "result": "Claude right on 26 of 45 (14 before: 12 fixed, none broken); the rules on 16 of 45 (11 before: 5 fixed, none broken). Of the 19 Claude still misses: 12 cards read another family (streams read as anomaly, uplift as classification, entity tables as classification), 3 kinds need a table the play does not attach, 2 walks waited on an open budget question after an unknown answer (fixed the same day), 1 map of mixed units, 1 forecast whose person could not say what is planned",
+   "verdict": "pass",
+   "cost_eur": 3.62,
+   "limits": [
+    "one run per person",
+    "written people, not real ones"
    ]
   }
  ],
