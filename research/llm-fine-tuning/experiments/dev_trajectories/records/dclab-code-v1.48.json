@@ -1,0 +1,22 @@
+{
+  "package": "dclab-code-v1.48",
+  "title": "The chat in Claude Code's style: grouped tool steps named by what they did, its reading rhythm, its question cards",
+  "date": "2026-10-26",
+  "request": "Owner, with a screenshot of Claude Code's desktop app: make the chat UI like Claude Code, its answering style and its question style.",
+  "spec": "dclab-code web/app.js (addStep, stepTitle, stepsHeadline), web/style.css",
+  "plan": ["read how steps, thinking and questions are drawn", "group a run of tool calls into one summary line", "name each step by what it did", "answer text and question cards", "a look in the browser; tests"],
+  "decisions": [
+    {"decision": "a command's step is named by its own description, the raw command kept one click deeper", "why": "Claude Code shows what a step did; the command and its output stay for whoever opens it"},
+    {"decision": "a failed step says Failed (Declined when the person said no) in the group's line", "why": "a failure must stay visible while the group is closed"}
+  ],
+  "change": "dclab-code ec9e7f9: web/app.js, web/style.css.",
+  "findings": [
+    {"id": "F1", "source": "self", "defect": "the steps line sat at the window's left edge, outside the conversation column", "scenario": "a session with tool calls, 1440 px: the line at x 158 while the messages started at 270", "cause": "the new margin shorthand replaced the column's automatic side margins", "fix": "only top and bottom margins set", "test": "screenshot", "severity": "behaviour"},
+    {"id": "F2", "source": "test", "defect": "the server tests failed with no space left on the device", "scenario": "the Mac's disk filled while the suite ran", "cause": "the disk, not the change: the same tests passed once space was free", "fix": "none in code; rerun after the owner freed space", "test": "server 62 of 62", "severity": "flaky"}
+  ],
+  "measurements": [{"name": "tests", "gate": "every test passes", "fixed_before_run": true, "result": "dclab-code 144 of 144 (units 52, page 30, server 62)", "verdict": "pass"}],
+  "outcome": "The conversation reads like Claude Code's: quiet step lines, clear prose, familiar question cards.",
+  "lessons": ["A margin shorthand on a centred column's child undoes its centring: set only the sides you mean."],
+  "risks": [],
+  "commits": ["dclab-code ec9e7f9"]
+}
