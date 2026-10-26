@@ -1142,6 +1142,14 @@ passes about once in twenty with a margin of zero). It promotes on `promoted` on
 is the reference: newer rows kept beside a project (`PUT /api/projects/{id}/newer-rows/{name}`), the comparison as a job
 (`POST /api/projects/{id}/retrain`), each comparison and live alert proposed as a workspace lesson for review (34.12).
 
+Since dclab-core 0.119.0 (`RetrainPolicy` v2, 2026-10-26): `promote="unless_clearly_worse"` is the default: the challenger,
+fitted on the champion's rows and newer ones, is promoted unless the window's 90% upper bound of its gain is below the
+margin (v1's rule, `only_clearly_better`, kept champions whose challengers were better later on real time-ordered tables:
+ABL-004; the new default was confirmed on other tables before it was adopted: ABL-005, 23 promotions and none worse later).
+A host that wants v1's fewer redeploys passes `promote="only_clearly_better"`; the record's `reason` says which rule decided.
+Where it goes in the main product: the same call site as `compare`; its stored policy, if any, is read as v2 (the new field
+has a default, so a v1 policy without `schema_version` loads unchanged).
+
 ## What to collect next (34.14, dclab-core 0.111.0)
 
 The library's: `dclab_core.collect.advise(columns, problem=..., y=..., predict_without=..., metric_fn=..., data_value=...,
