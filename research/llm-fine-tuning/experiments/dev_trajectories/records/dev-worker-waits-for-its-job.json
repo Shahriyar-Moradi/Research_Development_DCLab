@@ -1,0 +1,54 @@
+{
+  "package": "dev-worker-waits-for-its-job",
+  "title": "make dev's job worker waits for its running job before restarting on new code",
+  "date": "2026-10-26",
+  "request": "The owner, 2026-10-26: an intern turn in make dev failed with 'Interrupted: the worker stopped before it finished' a minute after it started.",
+  "spec": "scripts/dev.py: supervise_worker(busy=, max_hold=) holds a code-change restart while a job runs (at most 15 minutes), then restarts on the new code; serve passes busy as a count of running jobs in make dev's database (running_jobs).",
+  "plan": [
+    "Find why the worker stopped",
+    "Hold the restart while a job runs, never for ever",
+    "Test both and the query on the real database"
+  ],
+  "decisions": [
+    {
+      "decision": "Hold the restart while a job runs, at most 15 minutes",
+      "why": "other sessions edit dclab_rnd all day; a restart in the middle of a person's turn loses it, while a held one only delays new code; the limit keeps a stuck 'running' row from blocking new code for ever"
+    },
+    {
+      "decision": "Read the running jobs from the job table, and treat an unreadable table as idle",
+      "why": "the supervisor runs outside the worker; a failed read must never stop a restart"
+    }
+  ],
+  "change": "scripts/dev.py (running_jobs; supervise_worker busy and max_hold; serve passes them); tests/test_dev_script.py (2 tests)",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "owner",
+      "defect": "a person's intern turn was cut off by an unrelated code change",
+      "scenario": "the owner's turn started 10:43; another session saved dclab_rnd/store/keepers/dclab_code.py at 10:44:09; the worker restarted at 10:44:21 and the turn ended 'Interrupted: the worker stopped before it finished'",
+      "cause": "make dev restarted the job worker on any Python change under dclab_rnd, whatever it was running",
+      "fix": "a code change waits for the running job to end (at most 15 minutes), then restarts the worker on the new code",
+      "test": "tests/test_dev_script.py::DevScriptTest::test_a_code_change_waits_for_the_running_job",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests.test_dev_script",
+      "gate": "a code change while a job runs keeps the worker until the job ends, then restarts; a job that never ends releases the restart after max_hold; the old restart test unchanged",
+      "result": "16 tests pass; running_jobs read the real dclab_dev job table (0 running)",
+      "verdict": "pass",
+      "limits": [
+        "a job whose worker died stays 'running' until it is recovered: it can hold a restart up to the limit"
+      ]
+    }
+  ],
+  "outcome": "In make dev, code saved by another session no longer cuts off a running intern turn, stage run or pipeline; the new code loads when the job ends.",
+  "lessons": [
+    "A development reloader must not end work a person started: restart between jobs, not inside one"
+  ],
+  "risks": [
+    "make dev itself must be restarted once to run the new supervisor"
+  ],
+  "commits": []
+}

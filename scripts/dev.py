@@ -228,13 +228,32 @@ def _end(process, wait: float = 10) -> None:
             pass
 
 
+def running_jobs(url: str) -> int:
+    """How many jobs are running now in make dev's database (0 when it cannot be read)."""
+    try:
+        import sqlalchemy as sa
+
+        engine = sa.create_engine(url, pool_pre_ping=True)
+        try:
+            with engine.connect() as c:
+                return int(c.execute(sa.text("select count(*) from job where status = 'running'")).scalar() or 0)
+        finally:
+            engine.dispose()
+    except Exception:  # noqa: BLE001 - unreadable: treated as idle, so a code change still restarts the worker
+        return 0
+
+
 def supervise_worker(start, stop: threading.Event, every: float = 1.0, folder: Path = ROOT / "dclab_rnd", backoff: float = 2.0,
-                     max_backoff: float = 30.0, settled: float = 60.0) -> None:
+                     max_backoff: float = 30.0, settled: float = 60.0, busy=lambda: False, max_hold: float = 900.0) -> None:
     """Run the job worker and keep it running while the API runs: when it ends, say so loudly (with its exit code, or the
     signal that killed it) and start it again after a short wait that grows while it keeps failing; when a Python file
     under ``folder`` changes, restart it on the new code. Queued stage runs, pipelines and intern turns never wait for a
-    worker that is gone (2026-10-20: a worker died under memory pressure and the reload wrapper never noticed)."""
+    worker that is gone (2026-10-20: a worker died under memory pressure and the reload wrapper never noticed). While a
+    job runs (``busy``), a code change waits for it to end, at most ``max_hold`` seconds (2026-10-26: another session's
+    edit of an unrelated file restarted the worker and cut a person's intern turn off: "the worker stopped before it
+    finished")."""
     process, started, wait = start(), time.time(), backoff
+    pending: float | None = None  # when a code change arrived that waits for the running job
     try:
         last = python_changed_since(folder, 0.0) or time.time()
     except Exception:  # noqa: BLE001 — the first scan failed: start from now
@@ -247,10 +266,24 @@ def supervise_worker(start, stop: threading.Event, every: float = 1.0, folder: P
                 newer = None
             if newer is not None:
                 last = newer
-                print("code changed: the job worker restarts", flush=True)
-                _end(process)
-                process, started, wait = start(), time.time(), backoff
-                continue
+                pending = pending or time.time()
+            if pending is not None:
+                held = time.time() - pending
+                running = False
+                if held < max_hold:
+                    try:
+                        running = bool(busy())
+                    except Exception:  # noqa: BLE001 - an unreadable job table never blocks the restart
+                        running = False
+                if running:
+                    if newer is not None:
+                        print("code changed: the job worker restarts when its running job ends", flush=True)
+                else:
+                    print("code changed: the job worker restarts" + (f" (after holding {held:.0f} s for a running job)" if held >= 1 else ""), flush=True)
+                    pending = None
+                    _end(process)
+                    process, started, wait = start(), time.time(), backoff
+                    continue
             code = process.poll()
             if code is None:
                 continue
@@ -276,7 +309,7 @@ def serve(url: str, port: int, remote: bool = False) -> int:
                "--reload", "--reload-dir", "dclab_rnd", "--workers", "1", "--timeout-graceful-shutdown", "3"]  # a reload never waits on the browser's open chat streams
     print(f"API on http://127.0.0.1:{port} and a job worker (both reload on code changes, and the worker is restarted if it ends; the frontend rebuilds when {WEB_SRC.relative_to(ROOT)} changes). Ctrl-C stops.", flush=True)
     supervisor = threading.Thread(target=supervise_worker, args=(lambda: subprocess.Popen(worker_command(), cwd=ROOT, env=env, start_new_session=True), stop),
-                                  name="dclab-dev-worker", daemon=True)
+                                  kwargs={"busy": lambda: running_jobs(url) > 0}, name="dclab-dev-worker", daemon=True)
     supervisor.start()
     process = subprocess.Popen(command, cwd=ROOT, env=env)
     try:

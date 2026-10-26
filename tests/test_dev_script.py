@@ -182,6 +182,54 @@ class SafetyTests(unittest.TestCase):
         runner.join(timeout=5)
         self.assertTrue(fresh.terminate.called)  # make dev stopping ends the worker
 
+    def test_a_code_change_waits_for_the_running_job(self):
+        """2026-10-26: another session's edit restarted the worker in the middle of a person's intern turn."""
+        folder = Path(tempfile.mkdtemp())
+        (folder / "a.py").write_text("x = 1")
+        first = mock.Mock(poll=mock.Mock(return_value=None))
+        second = mock.Mock(poll=mock.Mock(return_value=None))
+        started = iter([first, second])
+        busy = threading.Event()
+        busy.set()
+        stop = threading.Event()
+        runner = threading.Thread(target=dev.supervise_worker, args=(lambda: next(started), stop, 0.05, folder, 0.05),
+                                  kwargs={"busy": busy.is_set}, daemon=True)
+        runner.start()
+        time.sleep(0.2)
+        later = time.time() + 5
+        (folder / "a.py").write_text("x = 2")
+        os.utime(folder / "a.py", (later, later))
+        time.sleep(0.5)
+        self.assertFalse(first.terminate.called)  # a job runs: the worker is kept
+        busy.clear()  # the job ended
+        deadline = time.time() + 10
+        while time.time() < deadline and second.poll.call_count == 0:
+            time.sleep(0.02)
+        self.assertTrue(first.terminate.called)  # then it restarts on the new code
+        self.assertGreater(second.poll.call_count, 0)
+        stop.set()
+        runner.join(timeout=5)
+
+    def test_a_held_restart_gives_up_waiting_after_its_limit(self):
+        folder = Path(tempfile.mkdtemp())
+        (folder / "a.py").write_text("x = 1")
+        first, second = mock.Mock(poll=mock.Mock(return_value=None)), mock.Mock(poll=mock.Mock(return_value=None))
+        started = iter([first, second])
+        stop = threading.Event()
+        runner = threading.Thread(target=dev.supervise_worker, args=(lambda: next(started), stop, 0.05, folder, 0.05),
+                                  kwargs={"busy": lambda: True, "max_hold": 0.3}, daemon=True)  # a job that never ends
+        runner.start()
+        time.sleep(0.2)
+        later = time.time() + 5
+        (folder / "a.py").write_text("x = 2")
+        os.utime(folder / "a.py", (later, later))
+        deadline = time.time() + 10
+        while time.time() < deadline and second.poll.call_count == 0:
+            time.sleep(0.02)
+        self.assertTrue(first.terminate.called)  # the new code is never kept waiting for ever
+        stop.set()
+        runner.join(timeout=5)
+
     def test_the_frontend_is_rebuilt_when_a_source_changes(self):
         folder = Path(tempfile.mkdtemp())
         (folder / "a.js").write_text("1")
