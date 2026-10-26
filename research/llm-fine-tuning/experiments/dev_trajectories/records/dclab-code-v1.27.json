@@ -1,0 +1,45 @@
+{
+  "package": "dclab-code-v1.27",
+  "title": "The agent's view of the preview: a screenshot tool",
+  "date": "2026-10-26",
+  "request": "The owner's goal: Claude Code's capabilities; Claude Code's preview gives its agent a view of the app it builds.",
+  "spec": "docs/UI_REVIEW.md 'What to build next'",
+  "plan": [
+    "an in-app MCP tool (createSdkMcpServer) that loads a local page in Chromium",
+    "a picture and the visible text",
+    "local addresses only, never this app",
+    "in every new session"
+  ],
+  "decisions": [
+    {
+      "decision": "Chromium from playwright-core, loaded only when the tool runs",
+      "why": "the page tests already install it; without it the tool says how to get it rather than breaking a session"
+    }
+  ],
+  "change": "dclab-code server/preview_tool.js (new), server/engine.js, server/app.js (ownPort), tests, docs.",
+  "findings": [],
+  "measurements": [
+    {
+      "name": "live",
+      "gate": "the agent reads a local app through the tool",
+      "fixed_before_run": true,
+      "result": "Sonnet 5.5 read the page's ROC-AUC 0.842 and 186 of 374 leavers, checked them against random calling, and said what it could not check; $0.10",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 109 of 109",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The agent sees the app it builds, as the person does.",
+  "lessons": [
+    "Give the agent the same view the person has, under the same limits."
+  ],
+  "risks": [
+    "the agent cannot click or type in the preview yet; zod is the SDK's own dependency, not declared here"
+  ],
+  "commits": []
+}

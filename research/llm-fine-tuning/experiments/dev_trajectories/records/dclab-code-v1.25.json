@@ -1,0 +1,53 @@
+{
+  "package": "dclab-code-v1.25",
+  "title": "A preview pane: the app a session runs, beside the chat",
+  "date": "2026-10-26",
+  "request": "The owner's goal: Claude Code's and Codex's capabilities; the UI review named the preview pane as the first gap.",
+  "spec": "docs/UI_REVIEW.md 'What to build next' item 1",
+  "plan": [
+    "a Preview tab in the drawer",
+    "local addresses only, allowed by the page's policy",
+    "the address suggested from the conversation",
+    "a page test in Chromium"
+  ],
+  "decisions": [
+    {
+      "decision": "Only http(s)://localhost or 127.0.0.1 are framed",
+      "why": "the app's page policy stays closed to other sites; a preview is of the person's own running app"
+    },
+    {
+      "decision": "DCLab Code's own address is refused",
+      "why": "the app inside itself would share its origin and its token"
+    }
+  ],
+  "change": "dclab-code web/index.html (the tab), web/app.js (renderPreview, previewSuggestion, palette item), web/style.css, server/app.js (frame-src for local addresses), tests/page.test.js, docs.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "the preview stayed blank in the running test app",
+      "scenario": "review-6 first screenshot",
+      "cause": "the running app predated the new frame-src policy, and DCLab's own page refuses to be framed",
+      "fix": "restart the app; the pane's note says a page that refuses framing stays blank",
+      "test": "Chromium page test frames a local page",
+      "severity": "latent"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 107 of 107",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The person sees the app a session runs beside the chat.",
+  "lessons": [
+    "A new frame needs the page's own policy to allow it: check the headers before the markup."
+  ],
+  "risks": [
+    "the agent cannot see or click the preview yet"
+  ],
+  "commits": []
+}

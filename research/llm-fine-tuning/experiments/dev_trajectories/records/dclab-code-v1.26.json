@@ -1,0 +1,53 @@
+{
+  "package": "dclab-code-v1.26",
+  "title": "MCP servers in Settings: list, add, test, remove",
+  "date": "2026-10-26",
+  "request": "The owner's goal: Claude Code's and Codex's capabilities; the UI review's next gap.",
+  "spec": "docs/UI_REVIEW.md 'What to build next'",
+  "plan": [
+    "the person's servers in config.json, checked",
+    "in every new session beside DCLab's",
+    "a test that asks an http server for its tools",
+    "a sheet section to add, test and remove"
+  ],
+  "decisions": [
+    {
+      "decision": "The settings log names the servers only",
+      "why": "an address may carry a key in its query"
+    },
+    {
+      "decision": "No password in an address; the name dclab is DCLab's",
+      "why": "a credential never in the config's address; DCLab's server is never replaced"
+    }
+  ],
+  "change": "dclab-code server/config.js (cleanMcpServers), server/app.js (settings and mcp-test), server/engine.js (the session's servers), web (the sheet's MCP section), tests, docs.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "Enter in a server field would save the whole sheet",
+      "scenario": "typing an address and pressing Enter",
+      "cause": "the sheet's Enter saved from any input",
+      "fix": "Enter in the server fields adds the server",
+      "test": "Chromium page test",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 108 of 108",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The person manages their own MCP servers in the app.",
+  "lessons": [
+    "Log a setting's name, not its value, when the value can hold a secret."
+  ],
+  "risks": [
+    "a stdio server is tested only when a session starts"
+  ],
+  "commits": []
+}
