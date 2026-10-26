@@ -1,0 +1,116 @@
+{
+  "package": "34.1-daily-ties",
+  "title": "Why the daily decision interval is narrow: ties, the day's best, or few actions (daily_ties_v1)",
+  "date": "2026-10-26",
+  "request": "The owner, 2026-10-26: test whether ties and near-ties in the one-a-day ranking explain the daily range's remaining narrowness, with a gate fixed before; keep the machine light.",
+  "spec": "dclab_rnd/daily_ties_measure.py: invented worlds with known chances read by the decision core alone (no engine), 200 worlds in each of five arms (control, ties, big_days, share, share_05); per arm the RMS z with its chi-squared interval, its centre, its coverage; big_days against share_05 by a paired bootstrap; the next step fixed in order.",
+  "plan": [
+    "Isolate the core on known worlds, as the engine calls it on a time split",
+    "Arms for ties, for a more extreme day's best, and a matched count in one pool",
+    "Review before the freeze",
+    "Run, record, push"
+  ],
+  "decisions": [
+    {
+      "decision": "Known worlds, the decision core alone",
+      "why": "the engine is heavy and the cause may be the core's; scores equal to the true chances remove the model, already ruled out by v5"
+    },
+    {
+      "decision": "A matched share_05 arm beside big_days",
+      "why": "the review: big days also means few actions (30), so a day's best is read against the same count in one pool"
+    }
+  ],
+  "change": "dclab_rnd/daily_ties_measure.py; tests/test_daily_ties_measure.py (6 tests)",
+  "findings": [
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "defect": "the 'only ties' step did not check 'only'",
+      "scenario": "control right, ties narrow, big_days narrow would have sent the run to 'break ties at random'",
+      "cause": "the branch never read big_days",
+      "fix": "it requires big_days not narrow; otherwise read the worlds",
+      "test": "tests/test_daily_ties_measure.py::DailyTiesTest::test_the_next_step_fixed_with_the_gate",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "defect": "'big_days narrower' compared two noisy numbers",
+      "scenario": "control 1.12 against big_days 1.13 would start a package about half the time when nothing differs (each RMS z over 200 worlds has a standard error near 0.06)",
+      "cause": "a point comparison",
+      "fix": "a paired bootstrap over the same worlds of the RMS z difference, its 90% interval above 0",
+      "test": "tests/test_daily_ties_measure.py::DailyTiesTest::test_the_next_step_fixed_with_the_gate",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "defect": "an off-centre arm would read as narrow",
+      "scenario": "mean z near 0.5 with the right spread gives RMS z near 1.12: 'narrow' and the wrong remedy",
+      "cause": "RMS squared is the mean squared plus the variance, and the centre was not read",
+      "fix": "an arm off-centre (|mean z| > 1.645 RMS z / sqrt(n)) routes to reading the worlds first",
+      "test": "tests/test_daily_ties_measure.py::DailyTiesTest::test_the_next_step_fixed_with_the_gate",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "defect": "'no arm narrow' claimed the method right",
+      "scenario": "200 worlds detect narrowness only above RMS z near 1.09: a control at 1.08 (0.995 to 1.17) is still consistent with the replica's 1.16",
+      "cause": "'right' read as proof",
+      "fix": "the method counts as right only when control's upper end is below 1.16; else inconclusive, more worlds",
+      "test": "tests/test_daily_ties_measure.py::DailyTiesTest::test_the_next_step_fixed_with_the_gate",
+      "severity": "gap"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "defect": "big_days was not a clean contrast",
+      "scenario": "it changes the day's extremity and also the actions (30 against about 127) and the value's steps",
+      "cause": "one arm changing two things",
+      "fix": "a share_05 arm with the same 30 actions in one pool, read against big_days",
+      "test": "tests/test_daily_ties_measure.py",
+      "severity": "gap"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "defect": "the ties arm could hardly show a tie effect, and its test read a copy of the rounding",
+      "scenario": "ties are broken by row order on rows in random order with the same chance, so the expected value and spread do not depend on which tied row is taken",
+      "cause": "by design",
+      "fix": "the limit written in the docstring and the gate; the test reads the world's own scores and counts days whose two best tie",
+      "test": "tests/test_daily_ties_measure.py::DailyTiesTest::test_the_ties_arm_holds_ties_within_days",
+      "severity": "gap"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "defect": "a world and the core's bootstrap drew from one random stream",
+      "scenario": "default_rng(seed) made the chances and outcomes, then the core's default_rng(seed) started its picks from the same bits",
+      "cause": "one seed for two uses",
+      "fix": "the world draws from default_rng([seed, 0])",
+      "test": "tests/test_daily_ties_measure.py",
+      "severity": "latent"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "defect": "no test held freeze() to a changed gate",
+      "scenario": "a manifest with another sha256 must stop the run",
+      "cause": "untested path",
+      "fix": "a test asserting SystemExit",
+      "test": "tests/test_daily_ties_measure.py::DailyTiesTest::test_a_changed_gate_is_refused",
+      "severity": "gap"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Designed and reviewed before the freeze; run next.",
+  "lessons": [
+    "Give each contrast arm one difference: a second arm matched on the other difference tells the causes apart",
+    "Read the centre before the width: an off-centre interval reads as a narrow one"
+  ],
+  "risks": [
+    "Known worlds clear the core, not the replica's model and data"
+  ],
+  "commits": []
+}
