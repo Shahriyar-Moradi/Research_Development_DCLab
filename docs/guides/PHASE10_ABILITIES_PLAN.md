@@ -341,7 +341,14 @@ or decided; nothing below blocks using them.
    all-folds interval read mean z 0.84 and 1.29 (24 and 19 of 30 inside): the latest fold's interval is 1.2 times wider,
    which alone would move 0.84 to about 0.69, so most of the gain is its centre. The rest is drift past the training
    period (positive rate 0.237 on the latest fold, 0.253 on the holdout), which no interval from past rows holds: said
-   now in the decision's `drift` note and the solution report (0.118.1). Open: measure a table without drift.
+   now in the decision's `drift` note and the solution report (0.118.1). **Without drift** (`time_decision_v3`, seeds
+   160 to 189, the replica's drift off): the share capacity **passes** every gate (26 of 30 inside, mean z -0.26); one
+   call a day keeps its centre (mean z -0.07) and width (RMS z 1.19, interval 0.98 to 1.51) but 23 of 30 inside, one
+   short of 80% (misses on both sides, 4 below and 3 above). Its step, fixed before, was to read the seeds: no pattern
+   (every miss on a seed that filled its days, widths alike), and the spread of the realised values across seeds (1.31)
+   matches the interval's own (1.38). 23 of 30 or fewer happens about 7 times in 100 under a right 90% interval, so it is
+   not established; the daily arm's RMS z was above 1 twice (1.12, 1.19). Open: a larger daily-capacity run (60 seeds)
+   before any change to the day by day interval.
 7. 34.2: ~~a daily capacity for targeting~~ done 2026-10-25 (dclab-core 0.115.0, with item 20); ~~a two-action
    replica~~ done 2026-10-26 (`dclab_core/replicas/retention_actions.py`: a call, dear and few, or an email, from a random
    test's three arms, every row's true lifts kept apart; `tests/test_retention_actions.py`). Measured on seeds 0 to 4 with

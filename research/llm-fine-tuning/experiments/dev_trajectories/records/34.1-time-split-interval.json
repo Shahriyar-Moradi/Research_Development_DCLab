@@ -184,14 +184,25 @@
         "the daily arm still fails its centre: drift past the training period",
         "one drifting replica; a table without drift is not measured"
       ]
+    },
+    {
+      "name": "time_decision_v3: the latest fold's interval on the churn replica with its drift off, 30 fresh seeds (160 to 189), on 76f83748",
+      "gate": "time_decision_gate_v3 (v1's, unchanged), per arm",
+      "result": "pooled: pass on every gate; 26 of 30 inside (2 below, 2 above), mean z -0.26, RMS z 1.07 (0.88 to 1.36); paired all-folds mean z -0.09, 27 of 30. daily: fail on coverage only; 23 of 30 inside (4 below, 3 above), mean z -0.07, RMS z 1.19 (0.98 to 1.51); paired all-folds 24 of 30, mean z 0.06. Positive rate out of fold 0.213, latest fold 0.211, holdout 0.210. Read the seeds as fixed: misses on both sides on seeds that filled their days, widths alike; the realised values' spread across seeds 1.31 against the interval's 1.38",
+      "verdict": "fail",
+      "limits": [
+        "23 of 30 or fewer happens about 7 times in 100 under a right 90% interval: the daily arm's shortfall is not established",
+        "the daily RMS z was 1.12 in v2 and 1.19 here: a larger run would tell a slightly narrow interval from chance"
+      ]
     }
   ],
-  "outcome": "On a time split the decision's interval now comes from the latest fold: with a share capacity it passes every gate on a drifting replica (mean z 0.12, from 0.84 on the same seeds), and with one call a day it improves (1.29 to 0.40) but stays above, the drift past the training period being said beside the reading.",
+  "outcome": "On a time split the decision's interval comes from the latest fold. A share capacity passes every gate with drift (v2) and without (v3). One call a day keeps its centre without drift, so v2's centre miss is consistent with the drift; its coverage fell one seed short of the gate without drift, with no pattern in the misses: open for a larger run, nothing changed.",
   "lessons": [
     "Before a measurement names a cause in its next step, check whether the test data plants another cause with the same sign",
     "A campaign must write a record for a run that fails, or a frozen campaign can never reach its verdict",
     "An interval built from the past is for a world that stays the same: on a drifting table it says so by missing on one side",
-    "When a fix also widens an interval, keep the old interval on the same seeds: the paired reading tells a better centre from a wider one"
+    "When a fix also widens an interval, keep the old interval on the same seeds: the paired reading tells a better centre from a wider one",
+    "When a gate misses by one seed with no pattern and the spreads agree, record it as not established and size the next run, rather than changing the method"
   ],
   "risks": [
     "The churn replica's drift and the fold models' weakness push the same way; the rates separate them only roughly"

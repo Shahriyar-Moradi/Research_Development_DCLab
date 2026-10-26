@@ -1,0 +1,79 @@
+{
+  "campaign": "time_decision_v3",
+  "package": "34.1",
+  "seeds": [
+    160,
+    161,
+    162,
+    163,
+    164,
+    165,
+    166,
+    167,
+    168,
+    169,
+    170,
+    171,
+    172,
+    173,
+    174,
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189
+  ],
+  "arms": {
+    "pooled": {
+      "action": "act",
+      "what": "call the customer",
+      "value_per_case": 120.0,
+      "cost_per_action": 10.0,
+      "capacity_share": 0.1,
+      "notes": "a customer kept is worth 120, a call costs 10; at most 10% of the customers called"
+    },
+    "daily": {
+      "action": "act",
+      "what": "call the customer",
+      "value_per_case": 120.0,
+      "cost_per_action": 10.0,
+      "capacity_per_day": 1.0,
+      "notes": "a customer kept is worth 120, a call costs 10; one call a day"
+    }
+  },
+  "gate": {
+    "id": "time_decision_gate_v3 (v1's, unchanged)",
+    "chosen": "the decision is chosen on every seed (an operating point; no refusal)",
+    "time_split": "every run's data stage split by time (the strategy recorded per run)",
+    "capacity": "on every seed that acted, the holdout's actions never exceed its capacity (a share of its rows with one row's rounding; or the day by day slots the record states), and the holdout was read once",
+    "coverage": "among the seeds that chose to act (at least 20), the realised value per customer lies inside the choice's 90% prediction interval on at least 80% of them",
+    "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
+    "width": "the 90% chi-squared interval of the root mean square of z contains 1 (neither too narrow nor too wide)",
+    "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
+    "next": "both arms pass: the latest fold's interval keeps its word on a time split without drift, consistent with v2's daily miss being the drift (a pass on new seeds also fits that miss being chance: it was 2.2 standard errors); centre above 0: if the folds' values rise from the first fold to the last (mean over the seeds of the last minus the first above 0), the latest fold's model, fitted on fewer rows than the final one: score the out-of-fold rows with models of the final size; otherwise read the seeds; centre below 0: correct the optimism of choosing the model; too narrow with misses on both sides: add blocks of days to the samples; too wide: sample the latest two folds",
+    "paired": "each run also keeps the interval drawn from every fold (0.115.0's) on the same rows and seed, with its z: reported beside the gate, never gated"
+  },
+  "drift": 0.0,
+  "dataset": "subscription churn (kinds binary case's replica, drift off)",
+  "objective": "Does the latest fold's interval (dclab-core 0.118.0) keep its word on a time split when the world stays the same? Thirty fresh seeds of the churn replica with its drift off, a share capacity read as one pool and a daily capacity read day by day, each against its 90% interval (v2, with the drift on, passed the share and missed the daily arm's centre above).",
+  "sha256": "42136e221027b180d9d6accee6c2f728bbacceb467298da11531f3baf7aef47f",
+  "code_sha256": "bffa79e89208d1e26dbe16f54c9d450bbe1c073e9afed32b9c0372ef8498ca23",
+  "code_files": [
+    "dclab_rnd/time_decision_measure.py",
+    "dclab_rnd/campaign_capture.py",
+    "dclab_rnd/ledger",
+    "dclab_rnd/experience"
+  ],
+  "git_commit": "76f83748227e8b4f28303bccad54233d76f68c57",
+  "frozen_at": "2026-10-26T00:22:04+00:00"
+}

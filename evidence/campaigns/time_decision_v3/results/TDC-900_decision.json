@@ -1,0 +1,101 @@
+{
+  "arms": {
+    "pooled": {
+      "seeds": 30,
+      "of": 30,
+      "gates": {
+        "chosen": true,
+        "time_split": true,
+        "capacity": true,
+        "coverage": true,
+        "centre": true,
+        "width": true
+      },
+      "acted": 30,
+      "inside_prediction_interval": 26,
+      "coverage": 0.8667,
+      "misses": {
+        "below": 2,
+        "above": 2
+      },
+      "centre": {
+        "mean_z": -0.2606,
+        "bound": 0.3003
+      },
+      "width": {
+        "rms_z": 1.0677,
+        "interval": [
+          0.8839,
+          1.3599
+        ]
+      },
+      "next": "keep the latest fold's interval on time splits, consistent with v2's daily miss being the drift",
+      "verdict": "pass",
+      "paired_all_folds": {
+        "mean_z": -0.0892,
+        "rms_z": 1.1944,
+        "inside": 27,
+        "read": 30
+      }
+    },
+    "daily": {
+      "seeds": 30,
+      "of": 30,
+      "gates": {
+        "chosen": true,
+        "time_split": true,
+        "capacity": true,
+        "coverage": false,
+        "centre": true,
+        "width": true
+      },
+      "acted": 30,
+      "inside_prediction_interval": 23,
+      "coverage": 0.7667,
+      "misses": {
+        "below": 4,
+        "above": 3
+      },
+      "centre": {
+        "mean_z": -0.0692,
+        "bound": 0.3003
+      },
+      "width": {
+        "rms_z": 1.1875,
+        "interval": [
+          0.9831,
+          1.5125
+        ]
+      },
+      "next": "read the seeds",
+      "verdict": "fail",
+      "paired_all_folds": {
+        "mean_z": 0.0556,
+        "rms_z": 1.1536,
+        "inside": 24,
+        "read": 30
+      }
+    }
+  },
+  "gate": {
+    "id": "time_decision_gate_v3 (v1's, unchanged)",
+    "chosen": "the decision is chosen on every seed (an operating point; no refusal)",
+    "time_split": "every run's data stage split by time (the strategy recorded per run)",
+    "capacity": "on every seed that acted, the holdout's actions never exceed its capacity (a share of its rows with one row's rounding; or the day by day slots the record states), and the holdout was read once",
+    "coverage": "among the seeds that chose to act (at least 20), the realised value per customer lies inside the choice's 90% prediction interval on at least 80% of them",
+    "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
+    "width": "the 90% chi-squared interval of the root mean square of z contains 1 (neither too narrow nor too wide)",
+    "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
+    "next": "both arms pass: the latest fold's interval keeps its word on a time split without drift, consistent with v2's daily miss being the drift (a pass on new seeds also fits that miss being chance: it was 2.2 standard errors); centre above 0: if the folds' values rise from the first fold to the last (mean over the seeds of the last minus the first above 0), the latest fold's model, fitted on fewer rows than the final one: score the out-of-fold rows with models of the final size; otherwise read the seeds; centre below 0: correct the optimism of choosing the model; too narrow with misses on both sides: add blocks of days to the samples; too wide: sample the latest two folds",
+    "paired": "each run also keeps the interval drawn from every fold (0.115.0's) on the same rows and seed, with its z: reported beside the gate, never gated"
+  },
+  "verdict": {
+    "pooled": "pass",
+    "daily": "fail"
+  },
+  "id": "TDC-900",
+  "experiment_id": "TDC-900",
+  "status": "completed",
+  "completed_at": "2026-10-26T01:11:42+00:00",
+  "campaign_id": "time_decision_v3"
+}
