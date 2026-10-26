@@ -51,7 +51,7 @@ class TimeDecisionTest(unittest.TestCase):
         n = len(tm.SEEDS)
         both = [dict(good, z=0.9 if i % 2 else -0.9) for i in range(n)]
         self.assertEqual(tm.judge(both)["verdict"], "pass")
-        self.assertEqual(tm.judge(both)["next"], "keep the latest fold's interval on time splits, consistent with v2's daily miss being the drift")
+        self.assertEqual(tm.judge(both)["next"], "keep the day by day interval")
         above = [dict(good, z=1.0) for _ in range(n)]  # every seed realises above the centre
         verdict = tm.judge(above)
         self.assertFalse(verdict["gates"]["centre"])
@@ -71,7 +71,14 @@ class TimeDecisionTest(unittest.TestCase):
         self.assertFalse(tm.judge(twice)["gates"]["capacity"])
         narrow = [dict(good, z=2.0 if i % 2 else -2.0, inside_prediction_interval=i % 5 != 0,
                        miss_side="inside" if i % 5 else ("above" if i % 2 else "below")) for i in range(n)]
-        self.assertEqual(tm.judge(narrow)["next"], "add blocks of days to the samples")
+        self.assertEqual(tm.judge(narrow)["next"], "add the model's fit-to-fit spread to the samples")
+        short = [dict(good, inside_prediction_interval=i % 4 != 0, z=1.0 if i % 2 else -1.0) for i in range(n)]  # 75% inside, width fine
+        self.assertEqual(tm.judge(short)["next"], "pool v3's and v4's daily seeds")
+        shifted_narrow = [dict(good, z=(1.6 if i % 2 else -1.6) + 0.25, inside_prediction_interval=i % 3 != 0,
+                               miss_side="inside" if i % 3 else ("above" if i % 2 else "below")) for i in range(n)]  # misses both sides
+        verdict = tm.judge(shifted_narrow)  # the review: a narrow interval's scattered mean z is not read as a shifted centre
+        self.assertFalse(verdict["gates"]["centre"])
+        self.assertEqual(verdict["next"], "add the model's fit-to-fit spread to the samples")
         wide = [dict(good, z=0.3 if i % 2 else -0.3) for i in range(n)]
         self.assertEqual(tm.judge(wide)["next"], "sample the latest two folds")
 
@@ -84,6 +91,7 @@ class TimeDecisionTest(unittest.TestCase):
             (scratch / "c" / "results" / "TDC-900_decision.json").write_text(json.dumps({"id": "TDC-900"}))  # never read as a run
             out = tm.report()
         self.assertEqual(out["arms"]["daily"]["seeds"], 1)
+        self.assertEqual(set(out["arms"]), set(tm.RUN_ARMS))
         self.assertFalse(out["arms"]["daily"]["gates"]["chosen"])
 
     def test_the_case_is_the_binary_kinds_apart_from_the_drift(self):

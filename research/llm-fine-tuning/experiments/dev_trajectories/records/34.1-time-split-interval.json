@@ -39,6 +39,10 @@
     {
       "decision": "time_decision_v3: the same replica with its drift off, fresh seeds, the gate unchanged",
       "why": "v2's pre-registered step: measure a table without drift, so the daily arm's miss is tested apart from the drift"
+    },
+    {
+      "decision": "time_decision_v4: the daily arm alone on 60 fresh seeds, the drift off, v1's gate unchanged",
+      "why": "the owner, 2026-10-26: run the larger daily-capacity check; v3's daily coverage was one seed short with no pattern"
     }
   ],
   "change": "dclab_rnd/time_decision_measure.py and tests/test_time_decision_measure.py (4 tests)",
@@ -160,6 +164,36 @@
       "scenario": "v3 changes the drift and the seeds at once; v2's miss was 2.2 standard errors, so a pass on new seeds also fits chance",
       "cause": "a conclusion stronger than the design",
       "fix": "worded 'consistent with v2's daily miss being the drift'",
+      "test": "tests/test_time_decision_measure.py::TimeDecisionTest::test_the_gates_and_the_next_step_fixed_with_them",
+      "severity": "gap"
+    },
+    {
+      "id": "R12",
+      "source": "reviewer",
+      "defect": "v4's step for a narrow interval would have narrowed it further",
+      "scenario": "the latest fold and the holdout both hold 600 rows: drawing 600 rows without repeats from a bootstrap draw of about 380 different rows takes the whole pool every time, removing the sample's own noise (about 1/sqrt(2) of the width)",
+      "cause": "a remedy chosen for a cause (repeated rows) that v3's paired every-fold reading already argued against (its RMS z was 1.15 with few repeats)",
+      "fix": "the step is to add the model's fit-to-fit spread (the samples use one fold model's scores, never refitted, while one call a day hangs on fine ranking); the every-fold RMS z is read to rule the pool out",
+      "test": "tests/test_time_decision_measure.py::TimeDecisionTest::test_the_gates_and_the_next_step_fixed_with_them",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R13",
+      "source": "reviewer",
+      "defect": "a narrow interval could be routed to a centre remedy",
+      "scenario": "with a true RMS z of 1.19 and a true centre of 0, |mean z| passes the bound of 0.21 about 17% of the time at N=60, sending the run to the centre's steps",
+      "cause": "the centre bound assumes RMS z 1",
+      "fix": "for routing only, a centre counts as off when |mean z| > 1.645 RMS z / sqrt(N); the gate unchanged",
+      "test": "tests/test_time_decision_measure.py::TimeDecisionTest::test_the_gates_and_the_next_step_fixed_with_them",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R14",
+      "source": "reviewer",
+      "defect": "the 'coverage short' step was the same as the fallback and left v4's question open",
+      "scenario": "46 of 60 inside with the width passing would have read the seeds again, answering neither chance nor narrow",
+      "cause": "a branch that returned the fallback's words",
+      "fix": "coverage short with the width passing pools v3's and v4's daily seeds (90), reported beside the gate",
       "test": "tests/test_time_decision_measure.py::TimeDecisionTest::test_the_gates_and_the_next_step_fixed_with_them",
       "severity": "gap"
     }
