@@ -1,0 +1,79 @@
+{
+  "package": "dclab-code-v1.45",
+  "title": "Meadow's fonts served by the app, text one pixel bigger everywhere, and DCLab Code's own logo as the app icon",
+  "date": "2026-10-26",
+  "request": "Owner: download Outfit and Plus Jakarta Sans into the app and use them as the Meadow kit does; make the font a little bigger everywhere; add a logo as the app's icon.",
+  "spec": "dclab-code web/style.css, web/fonts/, web/logo.svg, scripts/make-icon.js, mac/build.sh",
+  "plan": [
+    "the two variable fonts from Fontsource on npm (archives only, nothing installed or run), Latin and extended Latin, with their licences",
+    "@font-face rules with the packages' own character ranges",
+    "every font size and the terminal's up one pixel",
+    "a logo in Meadow's style; the sidebar, the tab icon and the Mac icon from one SVG",
+    "the icon built by a script, the build copying it in"
+  ],
+  "decisions": [
+    {
+      "decision": "the fonts are files in the app, not a link to Google Fonts",
+      "why": "the app's content policy allows only its own fonts, and it works offline"
+    },
+    {
+      "decision": "a new mark (blue square, lime pulse) instead of the Flowscope icon found on the Mac",
+      "why": "that icon is another product's; DCLab Code gets its own in the same kit's style"
+    },
+    {
+      "decision": "the icon added to the installed app in place (the same file and Info.plist key the build now adds), not a rebuild",
+      "why": "a store job was running in the app's R&D server; quitting would have interrupted it"
+    },
+    {
+      "decision": "the icon is rendered by Chromium with a transparent ground",
+      "why": "the quick-look renderer painted the corners white, which the Dock would show as a white square"
+    }
+  ],
+  "change": "dclab-code: web/fonts/ (4 woff2, 2 OFL licences), web/style.css (@font-face, sizes, the sidebar mark), web/app.js (terminal 13 px), web/logo.svg, web/logo-mark.svg, web/index.html (tab icon), scripts/make-icon.js, mac/AppIcon.icns, mac/build.sh.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "the first icon render had white opaque corners",
+      "scenario": "qlmanage's thumbnail of the SVG: corner pixel (255,255,255,255)",
+      "cause": "the renderer draws on white",
+      "fix": "Chromium screenshots with omitBackground",
+      "test": "corner pixel (0,0,0,0) in the built icns",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "fonts load",
+      "gate": "both faces loaded in the page",
+      "fixed_before_run": true,
+      "result": "Outfit 100-900 and Plus Jakarta Sans 200-800 loaded; body 15 px",
+      "verdict": "pass"
+    },
+    {
+      "name": "build",
+      "gate": "the build script makes a signed app with the icon",
+      "fixed_before_run": true,
+      "result": "a scratch build: Resources/AppIcon.icns, CFBundleIconFile AppIcon, codesign verified",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 144 of 144 after each change",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The app reads in Meadow's own faces at a slightly bigger size and carries its own logo in the sidebar, the tab and the Dock.",
+  "lessons": [
+    "Check an icon's corner pixels: a renderer's white ground looks right on a white page and wrong in the Dock."
+  ],
+  "risks": [
+    "the Dock shows the new icon only after the app is opened again"
+  ],
+  "commits": [
+    "dclab-code 4a7eb62",
+    "dclab-code af32c21"
+  ]
+}
