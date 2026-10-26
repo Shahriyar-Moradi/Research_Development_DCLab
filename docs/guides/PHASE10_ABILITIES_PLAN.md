@@ -354,7 +354,14 @@ or decided; nothing below blocks using them.
    the latest fold's smaller pool is not the cause. The next step, fixed with the gate: add the model's fit-to-fit spread
    to the samples (the holdout is scored by the final model, the samples by one fold model never refitted, and one call
    a day hangs on fine ranking). Built 2026-10-26 (dclab-core 0.120.0: 10 refits of the model on bootstrap resamples of
-   the latest fold's training rows, each sample ranked by one); measured as `time_decision_v5`.
+   the latest fold's training rows, each sample ranked by one); measured as `time_decision_v5` (60 fresh seeds):
+   **the gate passes** (52 of 60 inside, mean z -0.05, RMS z 1.11, interval 0.97 to 1.31), **but not because of the
+   refits**: on the same seeds the interval without them reads RMS z 1.12 (51 inside) and would pass too; the refits widen
+   it by 1% and move its centre by -0.08, and they are as good as the fold model (AUC 0.728 against 0.732). Without
+   refits, v4's and v5's 120 seeds read RMS z 1.16: the daily interval stays about 15% narrow, and neither drift, the
+   latest fold's smaller pool nor the model's fit-to-fit spread is the cause. The refits cost about 20 s a decision for
+   1%. Owner's decision: keep them (the gate's step) or turn them off (the paired reading); the remaining narrowness is
+   open (next candidate: the quota's few rows a day, ties in the ranking).
 7. 34.2: ~~a daily capacity for targeting~~ done 2026-10-25 (dclab-core 0.115.0, with item 20); ~~a two-action
    replica~~ done 2026-10-26 (`dclab_core/replicas/retention_actions.py`: a call, dear and few, or an email, from a random
    test's three arms, every row's true lifts kept apart; `tests/test_retention_actions.py`). Measured on seeds 0 to 4 with

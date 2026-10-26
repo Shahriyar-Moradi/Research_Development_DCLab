@@ -1,0 +1,86 @@
+{
+  "id": "TDC-138",
+  "experiment_id": "TDC-138",
+  "status": "completed",
+  "completed_at": "2026-10-26T09:37:39+00:00",
+  "campaign_id": "time_decision_v5",
+  "dataset": "subscription_churn",
+  "seed": 287,
+  "arm": "daily",
+  "split": "time",
+  "rates": {
+    "oof_positive_rate": 0.2161,
+    "latest_fold_positive_rate": 0.2283,
+    "holdout_positive_rate": 0.2067,
+    "fold_values": [
+      10.1667,
+      9.9667,
+      10.1667
+    ]
+  },
+  "decision_status": "operating_point",
+  "warning": null,
+  "chosen_share": 0.244444,
+  "capacity_share": 0.24592,
+  "expected_value_per_row": 10.1556,
+  "expected_interval": [
+    8.8078,
+    11.2778
+  ],
+  "holdout_rows": 600,
+  "holdout_actions": 137,
+  "holdout_cases_found": 57,
+  "holdout_value_per_row": 9.1167,
+  "prediction_interval": [
+    5.3667,
+    10.15
+  ],
+  "inside_prediction_interval": true,
+  "z": 0.9343,
+  "miss_side": "inside",
+  "within_capacity": true,
+  "days": {
+    "days": 138,
+    "slots": 137,
+    "slots_per_day": 1.0,
+    "partial_days": 1,
+    "most_in_a_day": 1,
+    "days_full": 137,
+    "applied": "day by day: each day's best rows, until its slots are full"
+  },
+  "days_note": null,
+  "holdout_uses": 1,
+  "prediction_interval_method": "holdout-sized samples of each bootstrap draw (600 rows, about 600 drawn, from the rows nearest the holdout, each ranked by one of 10 refits of the model, the capacity applied day by day to days of the holdout's sizes, the rows placed at random among them)",
+  "applied_as": "a quota: the highest-ranked rows the capacity allows, each worth acting on alone or ranked as high as the rows chosen; a capacity per day is chosen as one pool over the training rows and applied day by day on the holdout's days",
+  "all_folds_interval": [
+    5.5658,
+    9.5675
+  ],
+  "inside_all_folds": true,
+  "z_all_folds": 1.2744,
+  "no_refits_interval": [
+    5.7667,
+    10.1583
+  ],
+  "inside_no_refits": true,
+  "z_no_refits": 0.8647,
+  "refits_used": true,
+  "fold_auc": 0.7004,
+  "refit_auc": [
+    0.6943,
+    0.7012,
+    0.6902,
+    0.7025,
+    0.6981,
+    0.7037,
+    0.697,
+    0.698,
+    0.6895,
+    0.7035
+  ],
+  "latest_fold_rows": 600,
+  "latest_fold_is_the_last_block": true,
+  "model": "logistic_regression",
+  "seconds": 21.0,
+  "code_sha256": "7de3bae309d76a13dcf881800fdd9337dd6cc17263f8919b18060474ff0cb658"
+}

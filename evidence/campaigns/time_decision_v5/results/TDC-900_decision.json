@@ -1,0 +1,78 @@
+{
+  "arms": {
+    "daily": {
+      "seeds": 60,
+      "of": 60,
+      "gates": {
+        "chosen": true,
+        "time_split": true,
+        "capacity": true,
+        "coverage": true,
+        "centre": true,
+        "width": true
+      },
+      "acted": 60,
+      "inside_prediction_interval": 52,
+      "coverage": 0.8667,
+      "misses": {
+        "below": 5,
+        "above": 3
+      },
+      "centre": {
+        "mean_z": -0.0508,
+        "bound": 0.2124
+      },
+      "width": {
+        "rms_z": 1.1103,
+        "interval": [
+          0.9671,
+          1.3087
+        ]
+      },
+      "next": "keep the refits' spread on time splits",
+      "verdict": "pass",
+      "paired_no_refits": {
+        "mean_z": -0.1043,
+        "rms_z": 1.1167,
+        "inside": 51,
+        "read": 60
+      },
+      "left_out_without_refits": [],
+      "paired_all_folds": {
+        "mean_z": -0.0406,
+        "rms_z": 1.0593,
+        "inside": 52,
+        "read": 60
+      }
+    }
+  },
+  "gate": {
+    "id": "time_decision_gate_v5 (v1's, unchanged; the daily arm alone)",
+    "chosen": "the decision is chosen on every seed (an operating point; no refusal)",
+    "time_split": "every run's data stage split by time (the strategy recorded per run)",
+    "capacity": "on every seed that acted, the holdout's actions never exceed its capacity (a share of its rows with one row's rounding; or the day by day slots the record states), and the holdout was read once",
+    "coverage": "among the seeds that chose to act (at least 20), the realised value per customer lies inside the choice's 90% prediction interval on at least 80% of them",
+    "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
+    "width": "the 90% chi-squared interval of the root mean square of z contains 1 (neither too narrow nor too wide)",
+    "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
+    "next": "a pass: keep the refits' spread on time splits (each refit's latest-fold AUC beside the fold model's says whether weaker refits widened it); still too narrow (the width's interval above 1) with misses on both sides: out-of-bag refits on every fold's rows, each row scored only by refits whose resample left it out (never a refit scoring rows it was fitted on); too wide (the width's interval below 1): refit on subsamples without repeats; coverage below 80% with the width passing: pool v4's seeds with v5's same-method readings (no refits) and read v5's refit seeds apart; a centre off at the spread measured (routing only): above 0, models of the final size; below 0, correct the optimism of choosing the model",
+    "paired": "each run also keeps the interval drawn from every fold and the latest fold's interval without refits (v4's), on the same rows and seed, with their z: reported beside the gate, never gated",
+    "refits_used": "the gate reads only the seeds whose interval used the refits (the method says so); a seed without them is named and left out, never read as a refit seed"
+  },
+  "pooled_with_v4_daily": {
+    "method": "the latest fold's interval without refits (v4's), on v4's and v5's seeds",
+    "seeds": 120,
+    "inside": 103,
+    "coverage": 0.8583,
+    "mean_z": -0.0653,
+    "rms_z": 1.1595
+  },
+  "verdict": {
+    "daily": "pass"
+  },
+  "id": "TDC-900",
+  "experiment_id": "TDC-900",
+  "status": "completed",
+  "completed_at": "2026-10-26T09:45:45+00:00",
+  "campaign_id": "time_decision_v5"
+}

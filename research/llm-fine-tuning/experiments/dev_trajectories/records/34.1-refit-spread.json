@@ -109,11 +109,23 @@
       "severity": "gap"
     }
   ],
-  "measurements": [],
-  "outcome": "Built and reviewed; measured as time_decision_v5.",
+  "measurements": [
+    {
+      "name": "time_decision_v5: the refits' spread (dclab-core 0.120.0), 60 fresh seeds (250 to 309), one call a day, the drift off, on f2f5394d",
+      "gate": "time_decision_gate_v5 (v1's, unchanged), refit seeds only",
+      "result": "pass: 52 of 60 inside (5 below, 3 above), mean z -0.05 (bound 0.21), RMS z 1.11 (0.97 to 1.31); no seed left out without refits. Paired on the same seeds: without refits RMS z 1.12, 51 inside, mean z -0.10; from every fold RMS z 1.06, 52 inside. The refit interval is 1.012 times as wide, its centre -0.079 lower. Refit AUC 0.728 against the fold model's 0.732. v4's and v5's seeds without refits (120): 103 inside, RMS z 1.16",
+      "verdict": "pass",
+      "limits": [
+        "the pass is not the refits' doing: the same seeds pass without them",
+        "pooled without refits the daily interval stays about 15% narrow, cause not found"
+      ]
+    }
+  ],
+  "outcome": "The gate passed, but the paired reading shows the refits barely move the interval (1% wider); the pass is the seeds'. The daily interval stays about 15% narrow over 120 seeds, with drift, the pool and the fit-to-fit spread ruled out.",
   "lessons": [
     "A remedy for an interval must never let a model score rows it was fitted on: check which rows each refit sees",
-    "When a fix can widen an interval for a wrong reason (weaker refits), record what tells the reasons apart before the run"
+    "When a fix can widen an interval for a wrong reason (weaker refits), record what tells the reasons apart before the run",
+    "A pass is not a cause: the paired reading on the same seeds showed the old method would have passed too"
   ],
   "risks": [
     "Refits on 63% of the rows are weaker than the final model; the AUCs recorded say by how much"
