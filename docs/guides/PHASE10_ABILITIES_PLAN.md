@@ -361,7 +361,12 @@ or decided; nothing below blocks using them.
    refits, v4's and v5's 120 seeds read RMS z 1.16: the daily interval stays about 15% narrow, and neither drift, the
    latest fold's smaller pool nor the model's fit-to-fit spread is the cause. The refits cost about 20 s a decision for
    1%. **Off by default** (the owner, 2026-10-26: `engine.REFITS = 0`; the code and the core's `sample_scores` stay). The
-   remaining narrowness is open (next candidate: the quota's few rows a day, ties in the ranking).
+   remaining narrowness: **`daily_ties_v1`** (2026-10-26, the decision core alone on 200 invented worlds an arm, known
+   chances): the width is right in every arm: control (one call a day) RMS z 1.05 (0.97 to 1.14, below the replica's
+   1.16), ties 1.04, twenty rows a day 0.97, the matched 5% share 0.96 (their paired difference -0.07 to 0.08), the
+   10% share 0.99. Neither ties nor a day's extreme best makes the method narrow: the replica's narrowness comes from
+   its model and data. Read as the gate routed it (three arms off-centre): the realised value sits a little above the
+   interval's centre in every arm (mean z +0.10 to +0.16), a small bias of the core, open.
 7. 34.2: ~~a daily capacity for targeting~~ done 2026-10-25 (dclab-core 0.115.0, with item 20); ~~a two-action
    replica~~ done 2026-10-26 (`dclab_core/replicas/retention_actions.py`: a call, dear and few, or an email, from a random
    test's three arms, every row's true lifts kept apart; `tests/test_retention_actions.py`). Measured on seeds 0 to 4 with

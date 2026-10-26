@@ -103,8 +103,20 @@
       "severity": "gap"
     }
   ],
-  "measurements": [],
-  "outcome": "Designed and reviewed before the freeze; run next.",
+  "measurements": [
+    {
+      "name": "daily_ties_v1: the decision core alone on invented worlds, five arms of 200, on edea2546",
+      "gate": "per arm the 90% chi-squared interval of RMS z (narrow above 1, wide below, right containing it), the centre first (|mean z| > 1.645 RMS z / sqrt(n) is off), big_days against share_05 by a paired bootstrap; the next step in the gate's order",
+      "result": "every arm right in width: control RMS z 1.05 (0.97 to 1.14), mean z +0.10, coverage 0.88; ties 1.04 (0.97 to 1.14), +0.11, 0.89; big_days 0.97 (0.89 to 1.06), +0.16, 0.945; share 0.99 (0.92 to 1.08), +0.13, 0.915; share_05 0.96 (0.89 to 1.05), +0.12, 0.94; big_days minus share_05 -0.07 to 0.08. big_days, share and share_05 off-centre: the next step read the worlds",
+      "verdict": "pass",
+      "limits": [
+        "known worlds clear the core's width, not the replica's model and data",
+        "the ties arm can hardly show a tie effect by design (tied rows share their chance)",
+        "a small centre bias (mean z +0.10 to +0.16 in every arm) is found, not explained"
+      ]
+    }
+  ],
+  "outcome": "On known worlds the daily interval's width is right (control RMS z 1.05, upper end 1.14 below the replica's 1.16): neither ties nor a day's extreme best makes it narrow, so the replica's narrowness comes from its model and data. A small, consistent centre bias of the core (the realised value a little above the interval's centre) is found and open.",
   "lessons": [
     "Give each contrast arm one difference: a second arm matched on the other difference tells the causes apart",
     "Read the centre before the width: an off-centre interval reads as a narrow one"

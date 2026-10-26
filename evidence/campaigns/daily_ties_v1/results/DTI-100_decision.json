@@ -1,0 +1,88 @@
+{
+  "arms": {
+    "control": {
+      "worlds": 200,
+      "read": 200,
+      "rms_z": 1.0471,
+      "interval": [
+        0.9681,
+        1.1415
+      ],
+      "width": "right",
+      "mean_z": 0.1049,
+      "off_centre": false,
+      "coverage": 0.88
+    },
+    "ties": {
+      "worlds": 200,
+      "read": 200,
+      "rms_z": 1.044,
+      "interval": [
+        0.9651,
+        1.1381
+      ],
+      "width": "right",
+      "mean_z": 0.1098,
+      "off_centre": false,
+      "coverage": 0.89
+    },
+    "big_days": {
+      "worlds": 200,
+      "read": 200,
+      "rms_z": 0.9679,
+      "interval": [
+        0.8948,
+        1.0552
+      ],
+      "width": "right",
+      "mean_z": 0.1648,
+      "off_centre": true,
+      "coverage": 0.945
+    },
+    "share": {
+      "worlds": 200,
+      "read": 200,
+      "rms_z": 0.992,
+      "interval": [
+        0.9172,
+        1.0815
+      ],
+      "width": "right",
+      "mean_z": 0.134,
+      "off_centre": true,
+      "coverage": 0.915
+    },
+    "share_05": {
+      "worlds": 200,
+      "read": 200,
+      "rms_z": 0.9645,
+      "interval": [
+        0.8917,
+        1.0515
+      ],
+      "width": "right",
+      "mean_z": 0.1153,
+      "off_centre": true,
+      "coverage": 0.94
+    }
+  },
+  "big_days_minus_share_05": [
+    -0.0709,
+    0.0829
+  ],
+  "next": "read the worlds",
+  "verdict": "complete",
+  "gate": {
+    "id": "daily_ties_gate_v1",
+    "centre": "an arm is off-centre when |mean z| > 1.645 RMS z / sqrt(n)",
+    "width": "per arm, the 90% chi-squared interval of the root mean square of z over its 200 worlds: above 1 narrow, below 1 wide, containing 1 right; coverage reported beside it, never gated",
+    "paired": "big_days against share_05: a paired bootstrap (2,000 draws over the same worlds) of the difference of their RMS z",
+    "next": "in order: an arm off-centre: read the worlds; ties narrow, control right, big_days not narrow: break ties at random in the samples; big_days narrow, share_05 right, big_days minus share_05 above 0: resample whole days or draw m of n; big_days and share_05 narrow: a small-count correction; control right with its upper end below 1.16 and no arm narrow: read the replica's seeds; control right with its upper end at 1.16 or above: inconclusive, more worlds; otherwise read the worlds",
+    "limit": "a tie is broken by row order; the worlds' rows are in random order and tied rows share their chance, so the ties arm can hardly show a tie effect and does not clear the replica, whose holdout is in time order"
+  },
+  "id": "DTI-100",
+  "experiment_id": "DTI-100",
+  "status": "completed",
+  "completed_at": "2026-10-26T10:15:51+00:00",
+  "campaign_id": "daily_ties_v1"
+}

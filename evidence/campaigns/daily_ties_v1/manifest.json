@@ -1,0 +1,61 @@
+{
+  "campaign": "daily_ties_v1",
+  "package": "34.1",
+  "worlds": [
+    1000,
+    1199
+  ],
+  "arms": {
+    "control": {
+      "rows_per_day": 4.4,
+      "capacity_per_day": 1.0,
+      "round_to": null
+    },
+    "ties": {
+      "rows_per_day": 4.4,
+      "capacity_per_day": 1.0,
+      "round_to": 0.05
+    },
+    "big_days": {
+      "rows_per_day": 20.0,
+      "capacity_per_day": 1.0,
+      "round_to": null
+    },
+    "share": {
+      "rows_per_day": 4.4,
+      "capacity_share": 0.1,
+      "round_to": null
+    },
+    "share_05": {
+      "rows_per_day": 20.0,
+      "capacity_share": 0.05,
+      "round_to": null
+    }
+  },
+  "gate": {
+    "id": "daily_ties_gate_v1",
+    "centre": "an arm is off-centre when |mean z| > 1.645 RMS z / sqrt(n)",
+    "width": "per arm, the 90% chi-squared interval of the root mean square of z over its 200 worlds: above 1 narrow, below 1 wide, containing 1 right; coverage reported beside it, never gated",
+    "paired": "big_days against share_05: a paired bootstrap (2,000 draws over the same worlds) of the difference of their RMS z",
+    "next": "in order: an arm off-centre: read the worlds; ties narrow, control right, big_days not narrow: break ties at random in the samples; big_days narrow, share_05 right, big_days minus share_05 above 0: resample whole days or draw m of n; big_days and share_05 narrow: a small-count correction; control right with its upper end below 1.16 and no arm narrow: read the replica's seeds; control right with its upper end at 1.16 or above: inconclusive, more worlds; otherwise read the worlds",
+    "limit": "a tie is broken by row order; the worlds' rows are in random order and tied rows share their chance, so the ties arm can hardly show a tie effect and does not clear the replica, whose holdout is in time order"
+  },
+  "world": {
+    "train": 2400,
+    "test": 600,
+    "latest": 600,
+    "bootstrap": 200,
+    "value_per_case": 120.0,
+    "cost_per_action": 10.0,
+    "chances": "logistic of a normal (mean -1.5, sd 1.0): about 21% cases, as the replica"
+  },
+  "objective": "On invented worlds with known chances, is the decision core's day by day interval narrow, and is it the ties among a day's rows or the extremity of a day's best that makes it so?",
+  "sha256": "462a787e2206107b92c5325cda6cb16beda2e691a604fc4df0c996fa8603ce98",
+  "code_sha256": "d0315a19c9d474c01ddb8d9e5e36c8f1b55e4f814655b03079dc7441ad2f90f1",
+  "code_files": [
+    "dclab_rnd/daily_ties_measure.py",
+    "dclab_core/decide.py"
+  ],
+  "git_commit": "edea254694ea6664ed178837e1e3a1da9bcfa4ab",
+  "frozen_at": "2026-10-26T10:13:37+00:00"
+}
