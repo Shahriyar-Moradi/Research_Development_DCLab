@@ -1,0 +1,25 @@
+{
+  "package": "dclab-code-v1.43",
+  "title": "Databases, buckets and a Kaggle search from DCLab Code's card, as on DCLab's page",
+  "date": "2026-10-26",
+  "request": "The owner's goal: every agentic system of DCLab R&D works behind DCLab Code's chat with the same capabilities. After v1.42 a warehouse table or a bucket still meant leaving the chat for DCLab's page.",
+  "spec": "dclab-code docs/PARITY_PLAN.md (the home row)",
+  "plan": ["read R&D's connector routes and its page's dialogs (draft/api.py data_database, data_cloud, kaggle_search; core.js connectors)", "database and cloud answers with the page's bodies; the connectors' status and the Kaggle search relayed", "the card's Connect panel with the four sources", "tests, a check on a real rules-only R&D with a SQLite connection, review"],
+  "decisions": [
+    {"decision": "a database is chosen by the name of a connection DCLab's server defines; DCLab Code accepts only a name ([A-Za-z0-9_.-]) and never a URL", "why": "the connection string and its password stay on DCLab's server, as on its page; a URL typed into the card is refused before it travels"},
+    {"decision": "the connectors' status and the Kaggle search are read without owning a draft", "why": "they read only (names, booleans, notes, public search results) and touch no draft or project"}
+  ],
+  "change": "dclab-code c4305fd: server/dclab_person.js (database, cloud), server/app.js (connectors status, kaggle-search; recorded words), server/config.js and scripts/sync-check.js (the routes followed), web/draft.js (Connect panel), web/style.css, tests, docs/PARITY_PLAN.md.",
+  "findings": [
+    {"id": "F1", "source": "test", "defect": "two timing tests failed and a page test did not finish while the Mac ran at a load of about 45 from other work", "scenario": "the full suite beside another project's agent and a dclabai job: keep-awake and terminal-close failed, a page test timed out", "cause": "timing under load, not the change: each passed alone and the whole suite passed when the load fell", "fix": "none in code; the suite rerun file by file once the load fell", "test": "page 30, units 52, server 62, all pass", "severity": "flaky"}
+  ],
+  "measurements": [
+    {"name": "tests", "gate": "every test passes", "fixed_before_run": true, "result": "dclab-code 144 of 144 (page tests in Chromium), after a rerun under lower load", "verdict": "pass"},
+    {"name": "real R&D check", "gate": "a warehouse table imports through the card's channel; a write is refused", "fixed_before_run": true, "result": "SQLite connection 'warehouse': table imported and cleaned (ready); DELETE refused 422 by R&D; Kaggle search 400 (no key on the server)", "verdict": "pass"},
+    {"name": "sync-check", "gate": "every R&D agent reached; every route used exists", "fixed_before_run": true, "result": "18 of 18 agents, in sync with R&D 7e5ad49b on GitHub", "verdict": "pass"}
+  ],
+  "outcome": "Every source of DCLab's Home page is in the card: upload, Kaggle (search and name), Hugging Face, a database, a bucket, and synthetic data.",
+  "lessons": ["When a suite fails only under heavy load from other work, rerun file by file before changing code, and say so."],
+  "risks": ["Kaggle needs the owner's key on DCLab's server"],
+  "commits": ["dclab-code c4305fd"]
+}
