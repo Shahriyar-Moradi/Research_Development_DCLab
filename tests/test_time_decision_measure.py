@@ -39,6 +39,12 @@ class TimeDecisionTest(unittest.TestCase):
         self.assertEqual(daily["days"]["most_in_a_day"], 1)  # a time split's holdout, day by day
         self.assertIn("days of the holdout's sizes", daily["prediction_interval_method"])
         self.assertIn("nearest the holdout", pooled["prediction_interval_method"])  # 0.118.0: the latest fold's rows
+        for r in (pooled, daily):  # 0.120.0: each sample ranked by one of the model's refits
+            self.assertIn("refits of the model", r["prediction_interval_method"])
+            self.assertEqual(len(r["no_refits_interval"]), 2)  # v4's interval on the same seed, the paired reading
+            self.assertTrue(r["refits_used"])
+            self.assertEqual(len(r["refit_auc"]), 10)  # each refit's quality beside the fold model's
+            self.assertIsNotNone(r["fold_auc"])
         for r in (pooled, daily):  # the engine flags the latest fold: TimeSeriesSplit(3) of 2,400 rows, its last 600 out-of-fold rows
             self.assertEqual(r["latest_fold_rows"], 600)
             self.assertTrue(r["latest_fold_is_the_last_block"])
@@ -51,7 +57,7 @@ class TimeDecisionTest(unittest.TestCase):
         n = len(tm.SEEDS)
         both = [dict(good, z=0.9 if i % 2 else -0.9) for i in range(n)]
         self.assertEqual(tm.judge(both)["verdict"], "pass")
-        self.assertEqual(tm.judge(both)["next"], "keep the day by day interval")
+        self.assertEqual(tm.judge(both)["next"], "keep the refits' spread on time splits")
         above = [dict(good, z=1.0) for _ in range(n)]  # every seed realises above the centre
         verdict = tm.judge(above)
         self.assertFalse(verdict["gates"]["centre"])
@@ -71,16 +77,41 @@ class TimeDecisionTest(unittest.TestCase):
         self.assertFalse(tm.judge(twice)["gates"]["capacity"])
         narrow = [dict(good, z=2.0 if i % 2 else -2.0, inside_prediction_interval=i % 5 != 0,
                        miss_side="inside" if i % 5 else ("above" if i % 2 else "below")) for i in range(n)]
-        self.assertEqual(tm.judge(narrow)["next"], "add the model's fit-to-fit spread to the samples")
+        self.assertEqual(tm.judge(narrow)["next"], "out-of-bag refits on every fold's rows")
         short = [dict(good, inside_prediction_interval=i % 4 != 0, z=1.0 if i % 2 else -1.0) for i in range(n)]  # 75% inside, width fine
-        self.assertEqual(tm.judge(short)["next"], "pool v3's and v4's daily seeds")
+        self.assertEqual(tm.judge(short)["next"], "pool v4's and v5's daily seeds")
         shifted_narrow = [dict(good, z=(1.6 if i % 2 else -1.6) + 0.25, inside_prediction_interval=i % 3 != 0,
                                miss_side="inside" if i % 3 else ("above" if i % 2 else "below")) for i in range(n)]  # misses both sides
         verdict = tm.judge(shifted_narrow)  # the review: a narrow interval's scattered mean z is not read as a shifted centre
         self.assertFalse(verdict["gates"]["centre"])
-        self.assertEqual(verdict["next"], "add the model's fit-to-fit spread to the samples")
+        self.assertEqual(verdict["next"], "out-of-bag refits on every fold's rows")
+        unrefit = [dict(r, refits_used=False, z=5.0) for r in both[:5]] + [dict(r, refits_used=True) for r in both[5:]]
+        verdict = tm.judge(unrefit)  # the review: a seed whose refits failed is never read as a refit seed
+        self.assertEqual(len(verdict["left_out_without_refits"]), 5)
+        self.assertTrue(verdict["gates"]["width"])
         wide = [dict(good, z=0.3 if i % 2 else -0.3) for i in range(n)]
-        self.assertEqual(tm.judge(wide)["next"], "sample the latest two folds")
+        self.assertEqual(tm.judge(wide)["next"], "refit on subsamples without repeats")
+
+    def test_a_failed_refit_is_said_and_its_seed_is_marked(self):
+        """The review: a refit that fails leaves the interval as v4's, said in the note and never read as a refit seed."""
+        from dclab_rnd.expansion import runner
+
+        scratch = Path(tempfile.mkdtemp())
+        real = runner.fit_and_predict
+        calls = {"n": 0}
+
+        def broken(*args, **kwargs):  # the stages' own fits run; the decision's refits (on the eval rows only) fail
+            calls["n"] += 1
+            if kwargs.get("seed", 0) >= runner.RANDOM_STATE + 100:
+                raise RuntimeError("no fit")
+            return real(*args, **kwargs)
+
+        with mock.patch.object(tm, "CAMPAIGN", scratch / "c"), mock.patch.object(tm, "WORK", scratch / "w"), \
+                mock.patch.object(runner, "fit_and_predict", broken):
+            r = tm.run_one(0, "daily")
+        self.assertFalse(r["refits_used"])
+        self.assertIn("a refit failed (RuntimeError)", r["days_note"])
+        self.assertNotIn("refits of the model", r["prediction_interval_method"])
 
     def test_a_failed_run_is_recorded_and_counted(self):
         import json

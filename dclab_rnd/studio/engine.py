@@ -1200,6 +1200,48 @@ def _decision(p: Prepared, selected: dict[str, Any], y_test: pd.Series, predicti
         return {"decision": decision.action, "learnable": False, "warning": f"The decision could not be computed ({type(exc).__name__})"}
 
 
+REFITS = 10  # refits of the selected model behind a time split's decision interval (0.120.0)
+REFIT_SECONDS = 120.0  # the refits are skipped, and said, when ten of the latest fold's fits would take longer
+
+
+def _refit_scores(bundle: Any, selected: dict[str, Any], flagged: np.ndarray, refits: int = REFITS,
+                  group: str | None = None) -> tuple[np.ndarray | None, str | None]:
+    """The latest fold's out-of-fold rows scored again by ``refits`` refits of the selected model, each fitted on a
+    bootstrap resample of that fold's training rows (whole entities when ``group`` names them), never on a latest-fold or
+    holdout row (time_decision_v4: the daily interval was too narrow by about a fifth, the holdout being ranked by a model
+    fitted once more). A table of refits by out-of-fold rows, NaN outside the latest fold, and None; or None and why not."""
+    from dclab_rnd.expansion import runner as rn
+
+    seconds = float(((selected.get("fold_metrics") or [{}])[-1] or {}).get("fit_seconds") or 0.0)
+    if seconds * refits > REFIT_SECONDS:  # the review: a bounded cost on a large table
+        return None, f"the refits would take about {seconds * refits:.0f} s, more than {REFIT_SECONDS:.0f}"
+    try:
+        fit_idx = np.asarray(bundle.cv_splits[-1][0])
+        oof_index = np.asarray(selected["_oof_index"])
+        X_eval = bundle.X_train.iloc[oof_index[flagged]].reset_index(drop=True)
+        out = np.full((refits, len(oof_index)), np.nan)
+        rng = np.random.default_rng(rn.RANDOM_STATE)
+        units = None
+        if group and group in bundle.X_train.columns:  # the review: an entity's rows are resampled together
+            codes, _ = pd.factorize(bundle.X_train[group].iloc[fit_idx].astype(str))
+            units = [fit_idx[codes == c] for c in range(codes.max() + 1)]
+        for k in range(refits):
+            if units is not None:
+                pick = np.concatenate([units[i] for i in rng.integers(0, len(units), len(units))])
+            else:
+                pick = fit_idx[rng.integers(0, len(fit_idx), len(fit_idx))]
+            pred = rn.fit_and_predict(bundle, selected["recipe"], selected["model"], dict(selected.get("model_params") or {}) or None,
+                                      bundle.X_train.iloc[pick].reset_index(drop=True), bundle.y_train.iloc[pick].reset_index(drop=True),
+                                      X_eval, include_blocked=selected.get("include_blocked"), seed=rn.RANDOM_STATE + 100 + k)["predictions"]
+            pred = np.asarray(pred, dtype=float)
+            if pred.ndim != 1 or len(pred) != int(flagged.sum()) or not np.isfinite(pred).all():
+                return None, "a refit gave no score for some rows"
+            out[k, flagged] = pred
+        return out, None
+    except Exception as exc:  # noqa: BLE001 - the interval stands without the spread, and says why
+        return None, f"a refit failed ({type(exc).__name__})"
+
+
 def _act(p: Prepared, decision: Any, selected: dict[str, Any], oof_y: np.ndarray, groups: Any, rows_per_day: float | None,
          y_test: pd.Series, predictions: np.ndarray) -> dict[str, Any]:
     """34.4: an ``act`` decision through dclab_core's one decision core: the operating point with the highest expected value
@@ -1245,12 +1287,15 @@ def _act(p: Prepared, decision: Any, selected: dict[str, Any], oof_y: np.ndarray
                 days_test = test_days.to_numpy()
                 every = day_of(pd.concat([bundle.X_train[time_column], bundle.X_test[time_column]], ignore_index=True))
                 day_rows = every[every.isin(set(days_test))].value_counts().to_dict()  # the first day is partly training rows
-    latest = None
+    latest = refits = None
     if timed:  # the latest fold's out-of-fold rows; too few of them (a short time-and-group fold) and every fold is read
         flagged = fold_of[np.asarray(selected["_oof_index"])] == len(bundle.cv_splits) - 1
         units = len(set(np.asarray(groups)[flagged])) if groups is not None else int(flagged.sum())
         if units >= 20:
             latest = flagged
+            refits, why = _refit_scores(bundle, selected, flagged, group=p.solution.group_column)  # 0.120.0: the fit-to-fit spread
+            if refits is None:
+                days_note = ((days_note + "; ") if days_note else "") + f"the model was not refitted ({why}): the interval holds no fit-to-fit spread"
         else:
             days_note = ((days_note + "; ") if days_note else "") + (f"the latest fold holds {units} rows or entities, too few to "
                                                                        "draw the interval from: every fold's rows are read")
@@ -1259,6 +1304,7 @@ def _act(p: Prepared, decision: Any, selected: dict[str, Any], oof_y: np.ndarray
                                         folds=(fold_of[np.asarray(selected["_oof_index"])]  # 0.114.0: one model's rows a holdout-sized sample;
                                                if not timed else None),  # never a time split's (unlike) folds
                                         sample_rows=latest,  # 0.118.0: a time split's latest fold, nearest the holdout
+                                        sample_scores=refits,  # 0.120.0: each sample ranked by one refit of the model
                                         days_test=days_test, day_rows=day_rows)
     if days_note:
         out["days_note"] = days_note

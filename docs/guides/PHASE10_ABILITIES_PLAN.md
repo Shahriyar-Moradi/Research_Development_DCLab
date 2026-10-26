@@ -353,7 +353,8 @@ or decided; nothing below blocks using them.
    fifth (v3 and v4 pooled, 90 seeds: 75 inside, RMS z 1.20). The paired every-fold interval is as narrow (RMS z 1.23), so
    the latest fold's smaller pool is not the cause. The next step, fixed with the gate: add the model's fit-to-fit spread
    to the samples (the holdout is scored by the final model, the samples by one fold model never refitted, and one call
-   a day hangs on fine ranking). Not built: a package of its own (refits per draw cost time; measured as v5).
+   a day hangs on fine ranking). Built 2026-10-26 (dclab-core 0.120.0: 10 refits of the model on bootstrap resamples of
+   the latest fold's training rows, each sample ranked by one); measured as `time_decision_v5`.
 7. 34.2: ~~a daily capacity for targeting~~ done 2026-10-25 (dclab-core 0.115.0, with item 20); ~~a two-action
    replica~~ done 2026-10-26 (`dclab_core/replicas/retention_actions.py`: a call, dear and few, or an email, from a random
    test's three arms, every row's true lifts kept apart; `tests/test_retention_actions.py`). Measured on seeds 0 to 4 with

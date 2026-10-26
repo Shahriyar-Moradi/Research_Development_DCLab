@@ -145,6 +145,43 @@ class NearestRowsTest(unittest.TestCase):
         tiny = choose_operating_point(y, s, spec, groups=groups, y_test=yt, score_test=st, bootstrap=60, sample_rows=one)["holdout"]
         self.assertIsNotNone(tiny["prediction_interval"][0])
 
+    def test_refits_widen_the_interval_by_the_model_s_own_spread(self):
+        """0.120.0, time_decision_v4's next step: the samples rank their rows by one of several refits of the model, so
+        the interval holds the fit-to-fit spread the final model's ranking has (one call a day hangs on it). Widening is
+        an average, not a promise for one table (measured on five: four wider by 10 to 25%, one narrower), so three."""
+        spec = DecisionSpec(action="call", value_per_case=120, cost_per_action=10, capacity_share=0.1)
+        width = lambda h: h["prediction_interval"][1] - h["prediction_interval"][0]  # noqa: E731
+        widths = {"near": [], "refit": [], "same": []}
+        for seed in (0, 1, 2):
+            y, p, yt, st = self.drifting(seed)
+            rng = np.random.default_rng(seed + 50)
+            latest = np.arange(len(y)) >= int(0.75 * len(y))
+            s = np.clip(p + rng.normal(0, 0.15, len(p)), 0, 1)  # the model: the truth seen through one fit's noise
+            refits = np.full((8, len(y)), np.nan)
+            refits[:, latest] = np.clip(p[latest] + rng.normal(0, 0.15, (8, int(latest.sum()))), 0, 1)  # as good, ranking otherwise
+            run = lambda **kw: choose_operating_point(y, s, spec, y_test=yt, score_test=st, bootstrap=200, sample_rows=latest, **kw)["holdout"]  # noqa: E731
+            near, refit = run(), run(sample_scores=refits)
+            same = run(sample_scores=np.where(latest, s, np.nan)[None, :].repeat(4, axis=0))  # refits equal to the model
+            widths["near"].append(width(near)); widths["refit"].append(width(refit)); widths["same"].append(width(same))
+            self.assertIn("refits of the model", refit["prediction_interval_method"])
+            self.assertEqual(refit["expected_value_per_row"], near["expected_value_per_row"])  # the holdout's reading is the same
+        self.assertGreater(np.mean(widths["refit"]), np.mean(widths["near"]))  # the refits' spread is in it
+        self.assertAlmostEqual(np.mean(widths["same"]), np.mean(widths["near"]), delta=0.1 * np.mean(widths["near"]))
+
+    def test_refit_scores_are_checked(self):
+        y, s, yt, st = self.drifting(n=400, n_test=100)
+        spec = DecisionSpec(action="call", value_per_case=120, cost_per_action=10, capacity_share=0.1)
+        latest = np.arange(len(y)) >= 300
+        good = np.where(latest, s, np.nan)[None, :].repeat(3, axis=0)
+        holed = good.copy()
+        holed[0, -1] = np.nan  # a near row without a refit's score
+        for bad in ({"sample_scores": good},  # no rows to sample from: refits score the latest fold's rows only
+                    {"sample_rows": latest, "sample_scores": good[:1]},  # one refit is no spread
+                    {"sample_rows": latest, "sample_scores": good[:, :-1]},  # one score per out-of-fold row
+                    {"sample_rows": latest, "sample_scores": holed}):
+            with self.assertRaises(ValueError, msg=str(list(bad))):
+                choose_operating_point(y, s, spec, y_test=yt, score_test=st, bootstrap=20, **bad)
+
     def test_the_rows_given_are_checked(self):
         y, s, yt, st = self.drifting(n=400, n_test=100)
         spec = DecisionSpec(action="call", value_per_case=120, cost_per_action=10, capacity_share=0.1)

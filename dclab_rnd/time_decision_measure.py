@@ -1,4 +1,10 @@
-"""The decision's holdout interval on a time split (campaign ``time_decision_v4``; 34.1, plan item 6's open end).
+"""The decision's holdout interval on a time split (campaign ``time_decision_v5``; 34.1, plan item 6's open end).
+
+``time_decision_v4`` (seeds 190 to 249, the daily arm alone, the drift off) failed on width: the day by day interval
+too narrow by about a fifth (RMS z 1.20, interval 1.05 to 1.42), as narrow from every fold (1.23). Its next step, fixed
+with its gate: add the model's fit-to-fit spread to the samples (dclab-core 0.120.0: each holdout-sized sample ranked by
+one of 10 refits of the model on bootstrap resamples of the latest fold's training rows). v5 measures that on 60 fresh
+seeds (250 to 309), the gate unchanged; each run also keeps v4's interval (no refits) on the same seed.
 
 ``time_decision_v3`` (seeds 160 to 189, the replica's drift off): the share capacity passed every gate; one call a day
 kept its centre (mean z -0.07) and width (RMS z 1.19) but 23 of 30 landed inside, one short of 80%, with no pattern in
@@ -68,10 +74,10 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-CAMPAIGN_ID = "time_decision_v4"
+CAMPAIGN_ID = "time_decision_v5"
 CAMPAIGN = ROOT / "evidence" / "campaigns" / CAMPAIGN_ID
 WORK = ROOT / "agent_runs" / CAMPAIGN_ID  # each run's workspace kept whole: the store reads its sessions, ledger and runs
-SEEDS = tuple(range(190, 250))  # fresh: v1's to v3's seeds (100 to 189) and seed 0 never judge it; 60 for the daily arm's width
+SEEDS = tuple(range(250, 310))  # fresh: v1's to v4's seeds (100 to 249) and seed 0 never judge it; 60 for the daily arm's width
 DRIFT = 0.0  # the replica's drift switched off, as in v3
 RUN_ARMS = ("daily",)  # v4 measures the daily arm alone (the share arm passed with and without drift in v2 and v3)
 BASE = {"action": "act", "what": "call the customer", "value_per_case": 120.0, "cost_per_action": 10.0}
@@ -80,7 +86,7 @@ ARMS = {
     "daily": {**BASE, "capacity_per_day": 1.0, "notes": "a customer kept is worth 120, a call costs 10; one call a day"},
 }
 GATE = {
-    "id": "time_decision_gate_v4 (v1's, unchanged; the daily arm alone)",
+    "id": "time_decision_gate_v5 (v1's, unchanged; the daily arm alone)",
     "chosen": "the decision is chosen on every seed (an operating point; no refusal)",
     "time_split": "every run's data stage split by time (the strategy recorded per run)",
     "capacity": "on every seed that acted, the holdout's actions never exceed its capacity (a share of its rows with one row's "
@@ -90,16 +96,17 @@ GATE = {
     "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
     "width": "the 90% chi-squared interval of the root mean square of z contains 1 (neither too narrow nor too wide)",
     "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
-    "next": "a pass: keep the day by day interval, v3's coverage miss read as chance; too narrow (the width's interval above 1) "
-            "with misses on both sides: add the model's fit-to-fit spread to the samples (the holdout is scored by the final model, "
-            "the samples by one fold model never refitted; one call a day hangs on its fine ranking), and if the paired every-fold "
-            "RMS z is above 1 too, the latest fold's smaller pool is not the cause; coverage below 80% with the width passing: pool "
-            "v3's and v4's daily seeds (90) and read the pooled coverage and RMS z beside the gate; a centre off at the spread "
-            "measured (|mean z| above 1.645 RMS z / sqrt(N); for routing only, the gate unchanged): above 0, if the folds' values "
-            "rise from the first fold to the last, score the out-of-fold rows with models of the final size, otherwise read the "
-            "seeds; below 0, correct the optimism of choosing the model; too wide: sample the latest two folds",
-    "paired": "each run also keeps the interval drawn from every fold (0.115.0's) on the same rows and seed, with its z: reported "
-              "beside the gate, never gated",
+    "next": "a pass: keep the refits' spread on time splits (each refit's latest-fold AUC beside the fold model's says whether "
+            "weaker refits widened it); still too narrow (the width's interval above 1) with misses on both sides: out-of-bag "
+            "refits on every fold's rows, each row scored only by refits whose resample left it out (never a refit scoring rows "
+            "it was fitted on); too wide (the width's interval below 1): refit on subsamples without repeats; coverage below 80% "
+            "with the width passing: pool v4's seeds with v5's same-method readings (no refits) and read v5's refit seeds apart; "
+            "a centre off at the spread measured (routing only): above 0, models of the final size; below 0, correct the optimism "
+            "of choosing the model",
+    "paired": "each run also keeps the interval drawn from every fold and the latest fold's interval without refits (v4's), on the "
+              "same rows and seed, with their z: reported beside the gate, never gated",
+    "refits_used": "the gate reads only the seeds whose interval used the refits (the method says so); a seed without them is "
+                   "named and left out, never read as a refit seed",
 }
 MIN_ACTED = 20
 COVERAGE = 0.8
@@ -122,9 +129,9 @@ CODE_AT_START = code_sha256()
 def manifest() -> dict[str, Any]:
     body = {"campaign": CAMPAIGN_ID, "package": "34.1", "seeds": list(SEEDS), "arms": {a: ARMS[a] for a in RUN_ARMS}, "gate": GATE, "drift": DRIFT,
             "dataset": "subscription churn (kinds binary case's replica, drift off)",
-            "objective": ("Is the day by day interval on a time split right or slightly narrow? Sixty fresh seeds of the churn replica "
-                          "with its drift off, one call a day read day by day against its 90% interval drawn from the latest fold (v3: "
-                          "23 of 30 inside, centre and width passing).")}
+            "objective": ("Does the model's fit-to-fit spread (dclab-core 0.120.0) make the day by day interval on a time split right? "
+                          "Sixty fresh seeds of the churn replica with its drift off, one call a day against its 90% interval, each "
+                          "sample ranked by one of 10 refits (v4 without refits: RMS z 1.20, too narrow by about a fifth).")}
     body["sha256"] = hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
     return body
 
@@ -187,7 +194,20 @@ def run_one(seed: int, arm: str) -> dict[str, Any]:
         out = original(*args, **kwargs)
         if kwargs.get("sample_rows") is not None:
             kept["sample_rows"] = kwargs["sample_rows"]
-            kept["all_folds"] = (original(*args, **{**kwargs, "sample_rows": None}).get("holdout") or {}).get("prediction_interval")
+            refit = kwargs.get("sample_scores")
+            if refit is not None:  # each refit's AUC on the latest fold beside the fold model's (the review: weaker refits?)
+                try:
+                    from sklearn.metrics import roc_auc_score
+
+                    near = np.asarray(kwargs["sample_rows"], dtype=bool)
+                    y_near, s_near = np.asarray(args[0])[near], np.asarray(args[1], dtype=float)[near]
+                    kept["fold_auc"] = round(float(roc_auc_score(y_near, s_near)), 4)
+                    kept["refit_auc"] = [round(float(roc_auc_score(y_near, np.asarray(r, dtype=float)[near])), 4) for r in refit]
+                except Exception:  # noqa: BLE001 - a reading beside the run, never its measure
+                    pass
+            kept["all_folds"] = (original(*args, **{**kwargs, "sample_rows": None, "sample_scores": None}).get("holdout") or {}).get("prediction_interval")
+            if kwargs.get("sample_scores") is not None:  # v5: the latest fold's interval without the refits, the paired reading of v4's
+                kept["no_refits"] = (original(*args, **{**kwargs, "sample_scores": None}).get("holdout") or {}).get("prediction_interval")
         return out
 
     with recorded(work), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None), \
@@ -210,6 +230,13 @@ def run_one(seed: int, arm: str) -> dict[str, Any]:
     if inside is not None and interval[1] > interval[0]:
         z = round((realised - (interval[0] + interval[1]) / 2) / ((interval[1] - interval[0]) / 2 / 1.645), 4)
         side = "inside" if inside else "below" if realised < interval[0] else "above"
+    def paired_z(interval):  # a paired interval's inside flag and z on this run's realised value
+        if realised is None or interval is None or None in interval or not interval[1] > interval[0]:
+            return None, None
+        return (bool(interval[0] <= realised <= interval[1]),
+                round((realised - (interval[0] + interval[1]) / 2) / ((interval[1] - interval[0]) / 2 / 1.645), 4))
+
+    inside_plain, z_plain = paired_z(kept.get("no_refits"))
     all_folds = kept.get("all_folds") or [None, None]
     inside_all = z_all = None
     if realised is not None and None not in all_folds and all_folds[1] > all_folds[0]:
@@ -232,6 +259,9 @@ def run_one(seed: int, arm: str) -> dict[str, Any]:
               "days_note": d.get("days_note"), "holdout_uses": int(store.get(pid).get("holdout_uses") or 0),
               "prediction_interval_method": h.get("prediction_interval_method"), "applied_as": d.get("applied_as"),
               "all_folds_interval": all_folds, "inside_all_folds": inside_all, "z_all_folds": z_all,
+              "no_refits_interval": kept.get("no_refits"), "inside_no_refits": inside_plain, "z_no_refits": z_plain,
+              "refits_used": "refits of the model" in str(h.get("prediction_interval_method") or ""),
+              "fold_auc": kept.get("fold_auc"), "refit_auc": kept.get("refit_auc"),
               "latest_fold_rows": int(np.asarray(kept["sample_rows"]).sum()) if kept.get("sample_rows") is not None else None,
               "latest_fold_is_the_last_block": (bool(np.asarray(kept["sample_rows"])[-int(np.asarray(kept["sample_rows"]).sum()):].all())
                                                 if kept.get("sample_rows") is not None else None),
@@ -292,6 +322,8 @@ def judge(rows: list[dict[str, Any]]) -> dict[str, Any]:
     capacity = all(r.get("within_capacity") is True and r.get("holdout_uses") == 1 for r in acted)
     timed = bool(rows) and all(r.get("split") == "time" for r in rows if r.get("status") != "failed")
     read = [r for r in acted if r.get("inside_prediction_interval") is not None]
+    without_refits = [r.get("seed") for r in read if r.get("refits_used") is False]
+    read = [r for r in read if r.get("refits_used") is not False]  # the review: a seed without refits is never read as one
     inside = sum(1 for r in read if r["inside_prediction_interval"])
     zs = [float(r["z"]) for r in read if r.get("z") is not None]
     centre = width = None
@@ -317,34 +349,45 @@ def judge(rows: list[dict[str, Any]]) -> dict[str, Any]:
     # routing only (the gate is unchanged): a centre counts as off when it is off at the spread measured, so a narrow
     # interval's wider scatter of mean z is not read as a shifted centre (the review of v4)
     off = centre is not None and width is not None and abs(centre["mean_z"]) > 1.645 * width["rms_z"] / len(zs) ** 0.5
-    step = ("keep the day by day interval" if all(gates.values()) else
+    step = ("keep the refits' spread on time splits" if all(gates.values()) else
             ("score the out-of-fold rows with models of the final size" if rising else "read the seeds")
             if not gates["centre"] and off and centre["mean_z"] > 0 else
             "correct the optimism of choosing the model" if not gates["centre"] and off and centre["mean_z"] < 0 else
-            "add the model's fit-to-fit spread to the samples" if not gates["width"] and narrow and sides["below"] and sides["above"] else
-            "pool v3's and v4's daily seeds" if not gates["coverage"] and gates["width"] else
-            "sample the latest two folds" if not gates["width"] and wide else "read the seeds")
+            "out-of-bag refits on every fold's rows" if not gates["width"] and narrow and sides["below"] and sides["above"] else
+            "pool v4's and v5's daily seeds" if not gates["coverage"] and gates["width"] else
+            "refit on subsamples without repeats" if not gates["width"] and wide else "read the seeds")
     paired = [float(r["z_all_folds"]) for r in read if r.get("z_all_folds") is not None]
     verdict = ((("pass" if all(gates.values()) else "fail") if enough else "inconclusive: fewer than 20 seeds acted")
                if complete else f"not yet: {len(rows)} of {len(SEEDS)} seeds")
     return {"seeds": len(rows), "of": len(SEEDS), "gates": gates, "acted": len(acted), "inside_prediction_interval": inside,
             "coverage": round(inside / len(read), 4) if read else None, "misses": sides, "centre": centre, "width": width,
             "next": step if complete and enough else None, "verdict": verdict,
+            "paired_no_refits": _paired_summary(read, "z_no_refits", "inside_no_refits"), "left_out_without_refits": without_refits,
             "paired_all_folds": {"mean_z": round(sum(paired) / len(paired), 4) if paired else None,
                                  "rms_z": round((sum(z * z for z in paired) / len(paired)) ** 0.5, 4) if paired else None,
                                  "inside": sum(1 for r in read if r.get("inside_all_folds")), "read": len(paired)}}
 
 
+def _paired_summary(read: list[dict[str, Any]], z_key: str, inside_key: str) -> dict[str, Any]:
+    zs = [float(r[z_key]) for r in read if r.get(z_key) is not None]
+    return {"mean_z": round(sum(zs) / len(zs), 4) if zs else None, "rms_z": round((sum(z * z for z in zs) / len(zs)) ** 0.5, 4) if zs else None,
+            "inside": sum(1 for r in read if r.get(inside_key)), "read": len(zs)}
+
+
 def pooled_daily(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """v3's and v4's daily seeds together (90), reported beside the gate, never gated (the review of v4)."""
-    earlier = ROOT / "evidence" / "campaigns" / "time_decision_v3" / "results"
+    """The previous version's daily seeds with these, reported beside the gate, never gated (the review of v4)."""
+    earlier = ROOT / "evidence" / "campaigns" / "time_decision_v4" / "results"
     old = [json.loads(p.read_text()) for p in sorted(earlier.glob("TDC-[0-9]*_seed*.json"))] if earlier.exists() else []
-    both = [r for r in [*old, *rows] if r.get("arm") == "daily" and r.get("inside_prediction_interval") is not None and r.get("z") is not None]
+    # the review: one method only: v4's readings (no refits) with v5's paired no-refits readings on its own seeds
+    both = ([(bool(r["inside_prediction_interval"]), float(r["z"])) for r in old
+             if r.get("arm") == "daily" and r.get("inside_prediction_interval") is not None and r.get("z") is not None]
+            + [(bool(r["inside_no_refits"]), float(r["z_no_refits"])) for r in rows
+               if r.get("arm") == "daily" and r.get("inside_no_refits") is not None and r.get("z_no_refits") is not None])
     if not both:
         return None
-    zs = [float(r["z"]) for r in both]
-    return {"seeds": len(both), "inside": sum(1 for r in both if r["inside_prediction_interval"]),
-            "coverage": round(sum(1 for r in both if r["inside_prediction_interval"]) / len(both), 4),
+    zs = [z for _, z in both]
+    return {"method": "the latest fold's interval without refits (v4's), on v4's and v5's seeds", "seeds": len(both),
+            "inside": sum(1 for i, _ in both if i), "coverage": round(sum(1 for i, _ in both if i) / len(both), 4),
             "mean_z": round(sum(zs) / len(zs), 4), "rms_z": round((sum(z * z for z in zs) / len(zs)) ** 0.5, 4)}
 
 
@@ -352,7 +395,7 @@ def report() -> dict[str, Any]:
     folder = CAMPAIGN / "results"
     rows = [json.loads(p.read_text()) for p in sorted(folder.glob("TDC-[0-9]*_seed*.json"))] if folder.exists() else []
     out = {"arms": {arm: judge([r for r in rows if r.get("arm") == arm]) for arm in RUN_ARMS}, "gate": GATE,
-           "pooled_with_v3_daily": pooled_daily(rows)}
+           "pooled_with_v4_daily": pooled_daily(rows)}
     out["verdict"] = {arm: v["verdict"] for arm, v in out["arms"].items()}
     complete = all(v["seeds"] == len(SEEDS) for v in out["arms"].values())
     if complete and not (folder / "TDC-900_decision.json").exists():  # written once: a result is never rewritten

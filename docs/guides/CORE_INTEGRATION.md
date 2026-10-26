@@ -1078,7 +1078,9 @@ and passes its own out-of-fold scores; nothing is fitted by the library except a
   holds its days whole (a time split), `days_test` (each holdout row's day) with `day_rows` (each of those days' rows in
   the whole period, for the first day, partly training), so each day fills its own slots; any other holdout is read as
   one pool. The same for `target_by_uplift`. On a time split (0.118.0), pass `sample_rows`, the latest fold's
-  out-of-fold rows, so the holdout-sized samples come from the period nearest the holdout.
+  out-of-fold rows, so the holdout-sized samples come from the period nearest the holdout. With it (0.120.0), pass
+  `sample_scores`: the latest fold's rows scored by several refits of the host's model on resamples of that fold's
+  training rows (whole entities when rows are grouped), so the interval holds the model's fit-to-fit spread.
   The main product's `spec.objective` takes the costs through `adapters.main_product.objective_of(spec)`; a value per
   case, a cost per action and a capacity have no field there, and the result's notes say so to the person choosing on
   the operating points page.

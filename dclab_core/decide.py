@@ -243,7 +243,8 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
                            score_test: Optional[Sequence[float]] = None, value_test: Optional[Sequence[float]] = None,
                            weights: Optional[Sequence[float]] = None, bootstrap: int = BOOTSTRAP, seed: int = 0,
                            folds: Optional[Sequence[Any]] = None, days_test: Optional[Sequence[Any]] = None,
-                           day_rows: Optional[dict[Any, int]] = None, sample_rows: Optional[Sequence[bool]] = None) -> dict[str, Any]:
+                           day_rows: Optional[dict[Any, int]] = None, sample_rows: Optional[Sequence[bool]] = None,
+                           sample_scores: Optional[Any] = None) -> dict[str, Any]:
     """The number of rows to act on with the highest expected value, chosen on out-of-fold scores under the capacity,
     with its interval (a bootstrap over rows, or entities when ``groups`` are given), then read once on the holdout.
 
@@ -275,7 +276,13 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
     ``sample_rows`` (0.118.0): the out-of-fold rows the holdout-sized samples are drawn from, when the rows nearest the
     holdout tell it best: on a time split, its latest fold (time_decision_v1 measured the interval from every fold too low
     on a drifting table: the earlier folds' rows are further from the holdout's world, and their models were fitted on
-    fewer rows). With entities, an entity is drawn when its first row is among them. Not with ``folds``."""
+    fewer rows). With entities, an entity is drawn when its first row is among them. Not with ``folds``.
+
+    ``sample_scores`` (0.120.0): K score vectors for the out-of-fold rows (K at least 2), each from the model refitted on a
+    resample of its training rows, finite on every row of ``sample_rows`` (the rest unread). Each holdout-sized sample
+    ranks its rows by one refit, drawn at random, so the interval holds the fit-to-fit spread of the model's ranking: the
+    holdout is ranked by a model fitted once more, and a small capacity (one call a day) hangs on fine ranking
+    (time_decision_v4: the daily interval too narrow by about a fifth, RMS z 1.20, as wide from every fold)."""
     y, s = np.asarray(y_oof).astype(int), np.asarray(score_oof, dtype=float)
     n = len(y)
     per_row = value_per_case is not None
@@ -381,6 +388,15 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
             raise ValueError("Samples come from one fold's rows or from the rows given, not both")
         if len(near) != n or not near.any():
             raise ValueError("The rows to sample from are one flag per out-of-fold row, at least one of them set")
+    refits = None
+    if sample_scores is not None:
+        refits = np.asarray(sample_scores, dtype=float)
+        if near is None:
+            raise ValueError("Refits score the rows the samples come from: pass sample_rows too")
+        if refits.ndim != 2 or refits.shape[0] < 2 or refits.shape[1] != n:
+            raise ValueError("Refit scores are a table: at least two refits, one score per out-of-fold row")
+        if not np.isfinite(refits[:, near]).all():
+            raise ValueError("Every refit must score every row the samples come from")
     sizes = None
     if index is not None:  # an entity's rows by its code (a row with no entity has a code past the others: look up by code)
         sizes = np.zeros(int(keys.max()) + 1, dtype=int)
@@ -390,6 +406,7 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
     near_of = dict(zip(keys, key_near)) if key_near is not None else None
     inner = np.random.default_rng([seed, 1])  # its own stream: the training intervals do not move when a holdout is given
     placing = np.random.default_rng([seed, 2])  # and the days' own: with days, the samples are the same rows as without
+    picking = np.random.default_rng([seed, 3])  # and the refits' own: without refits, every other draw is as before
 
     def sample_days() -> tuple[np.ndarray, np.ndarray]:
         """A sample's rows (cut to the holdout's number) placed at random in days of the holdout's sizes."""
@@ -435,7 +452,11 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
             if day_codes is not None:  # the review of 0.115.0: whole entities may run past the holdout's rows
                 sample = sample[:n_test]
             held_rows.append(len(sample))
-            taken = sample[acted_rows(rank[sample], s[sample], value[sample], sample_days() if day_codes is not None else None)]
+            if refits is not None:  # 0.120.0: the sample ranked by one refit of the model, drawn at random
+                sc = refits[int(picking.integers(0, len(refits))), sample]
+                taken = sample[acted_rows(rank_of(sc, value[sample]), sc, value[sample], sample_days() if day_codes is not None else None)]
+            else:
+                taken = sample[acted_rows(rank[sample], s[sample], value[sample], sample_days() if day_codes is not None else None)]
             held.append(float(_gain(y[taken], value[taken], spec).sum()) / len(sample))
     ranked = np.sort(rank)[::-1]
     out: dict[str, Any] = {
@@ -490,6 +511,7 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
                                                           + (", whole entities" if index is not None else "")
                                                           + (", one fold's rows each" if fold_of is not None else "")
                                                           + (", from the rows nearest the holdout" if near is not None else "")
+                                                          + (f", each ranked by one of {len(refits)} refits of the model" if refits is not None else "")
                                                           + (", the capacity applied day by day to days of the holdout's sizes, the rows "
                                                              "placed at random among them" if day_codes is not None else "") + ")")
                                                          if len(held) >= 20 else "normal approximation of the bootstrap spread"),

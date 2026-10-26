@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.120.0 (2026-10-26)
+
+The decision's holdout interval holds the model's fit-to-fit spread.
+
+- `decide.choose_operating_point(..., sample_scores=)`: K score vectors (K at least 2) for the out-of-fold rows, each
+  from the model refitted on a resample of its training rows, finite on every `sample_rows` row. Each holdout-sized
+  sample ranks its rows by one refit drawn at random, so the interval holds the spread of the model's own ranking: the
+  holdout is ranked by a model fitted once more, and a small capacity (one call a day) hangs on fine ranking
+  (time_decision_v4: the daily interval too narrow by about a fifth, RMS z 1.20, as narrow from every fold). Refused
+  without `sample_rows`, with one refit, or with a refit missing a row. Without it every interval is as before.
+
 ## 0.119.0 (2026-10-26)
 
 - `retrain.RetrainPolicy` v2 (`dclab_core.retrain_policy.v2`): `promote`, `unless_clearly_worse` by default (the
