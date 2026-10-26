@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from typing import Any, Optional
 
-OPENAI_DEFAULT = "gpt-5.6-terra"
+GPT_DEFAULT = "gpt-5.6-terra"
 # NOOA's typed answers reach Anthropic through litellm as a forced tool call; these models refuse forced tool use
 # ("tool_choice: type tool and any are not supported"), so the campaign runs on CLAUDE_TYPED (same price as Sonnet 5.5)
 # unless DCLAB_CAMPAIGN_MODEL names another.
@@ -32,7 +32,7 @@ def choice() -> Optional[dict[str, Any]]:
         url = os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
         if blocked(url):
             return None
-        return {"provider": "openai", "model": os.environ.get("OPENAI_MODEL", OPENAI_DEFAULT), "base_url": url, "api_key": None}
+        return {"provider": "openai", "model": os.environ.get("OPENAI_MODEL", GPT_DEFAULT), "base_url": url, "api_key": None}
     return None
 
 
@@ -103,4 +103,4 @@ def bare(model: str) -> str:
     return str(model).split("/", 1)[-1]
 
 
-__all__ = ["CLAUDE_TYPED", "NO_FORCED_TOOL", "OPENAI_DEFAULT", "bare", "choice", "client_args", "endpoint", "model_for", "typed", "why_not"]
+__all__ = ["CLAUDE_TYPED", "NO_FORCED_TOOL", "GPT_DEFAULT", "bare", "choice", "client_args", "endpoint", "model_for", "typed", "why_not"]
