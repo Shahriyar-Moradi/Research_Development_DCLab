@@ -988,7 +988,7 @@ class HomeAgent:
         target = u.get("target") if u.get("target") in frame.columns else None
         return for_family(family, frame, target, said_of(u), tables=()), frame  # a draft attaches no related table by name
 
-    def kind_question(self, draft: dict[str, Any]) -> tuple[str, str, list[str], str] | None:
+    def kind_question(self, draft: dict[str, Any]) -> tuple[str, str, list[str], str, str | None, None] | None:
         """S9.3: the first field of the understood kind that only the person can give, asked once in the kind's words
         (whether an offer was random, which column names a series); None when the table shows them all."""
         from ..kinds.propose import options_for, question_for
@@ -1001,7 +1001,11 @@ class HomeAgent:
         p, frame = got
         q = question_for(p, {str(x.get("field")) for x in draft.get("questions") or []})
         u = draft.get("understanding") or {}
-        return None if q is None else (q.key, q.text, options_for(q, frame, p, u.get("target") if u.get("target") in frame.columns else None), q.why)
+        if q is None:
+            return None
+        options = options_for(q, frame, p, u.get("target") if u.get("target") in frame.columns else None)
+        # a field that only helps (a forecast's known-ahead columns) is advisory: no answer closes it, a walk goes on
+        return (q.key, q.text, options, q.why, "advisory" if q.field in p.optional else None, None)
 
     ENTITY_NO = re.compile(r"\b(no|not|independent|never|separate)\b", re.I)
     ENTITY_YES = re.compile(r"^\W*(yes|yeah|yep|yup|sure|ok(ay)?|keep|group|one side)\b", re.I)

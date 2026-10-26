@@ -28,6 +28,7 @@ class FieldProposal:
     assumed: dict[str, Any] = field(default_factory=dict)
     missing: list[str] = field(default_factory=list)
     declined: dict[str, str] = field(default_factory=dict)  # S9.3: a missing field the person did not know, with what follows
+    optional: list[str] = field(default_factory=list)  # asked when it helps, never blocking the kind (a forecast's known-ahead columns)
 
     @property
     def complete(self) -> bool:
@@ -145,6 +146,10 @@ def _forecasting(frame: pd.DataFrame, target: Optional[str]) -> FieldProposal:
     if season:
         p.fields["season"] = season
         p.why.append(f"the dates are {'daily' if season == 7 else 'monthly' if season == 12 else 'weekly'}: a season of {season}")
+    covariates = [c for c in frame.columns if c not in (target, date, p.fields.get("series_column")) and not _identifier(frame, c)
+                  and not _row_number(frame, c) and (pd.api.types.is_numeric_dtype(frame[c]) or _binary(frame, c))]
+    if covariates:  # whether each is known before the forecast (a planned promotion) or only on the day (the weather): the person's
+        p.optional.append("known_ahead")
     p.fields["horizon"] = season or 7
     p.assumed["horizon"] = (f"assumed: {p.fields['horizon']} steps ahead; how far ahead the forecast is needed is the person's to say, "
                             "on the Solution page")
@@ -357,6 +362,10 @@ _QUESTIONS = (
               "One kind of interaction is the one that counts.", PLAIN),
     KindQuestion("ranking", "relevant_event", "Which interaction counts as a success: a purchase, a click, a booking?",
                  "The ranking is judged on the interactions that count.", unknown=PLAIN),
+    KindQuestion("forecasting", "known_ahead",
+                 "Which of these are known before each forecast is made (a planned promotion, a price set ahead)? Things measured on the day, like the weather or the day's visits, are not.",
+                 "A column known ahead helps the forecast; one known only on the day would leak the future, so it is kept out unless you say so.",
+                 columns=True, unknown="kept out unless said: a column whose future is not known is never read"),
     _column_q("embedded", "text_column", "Which column holds the texts each row is about?", "The model reads the texts.", PLAIN),
     _column_q("embedded", "source_column", "Which column says where each text comes from (an author, a customer, a channel)?",
               "Texts of one source stay on one side of the split, or the score would be too good.", PLAIN),
@@ -406,6 +415,11 @@ def read_said(q: KindQuestion, words: str, frame: pd.DataFrame, fields: dict[str
     if q.field == "randomised":  # "random, not chosen" is random; "we did not run an A/B test" is not (the review of S9)
         value = _randomised(text)
         return (False, None) if value is None else (True, value)
+    if q.field == "known_ahead":  # several columns, or none at all
+        if re.search(r"\b(none|no(ne)? of (them|these)|nothing)\b", text, re.I):
+            return True, []
+        named = named_columns(text, [str(c) for c in frame.columns])
+        return (True, named) if named else (False, None)
     if q.columns:
         named = named_columns(text, [str(c) for c in frame.columns])
         return (True, named[0]) if len(named) == 1 else (False, None)
@@ -419,6 +433,12 @@ def read_said(q: KindQuestion, words: str, frame: pd.DataFrame, fields: dict[str
 def _with_said(p: FieldProposal, frame: pd.DataFrame, said: dict[str, Optional[str]]) -> FieldProposal:
     """A missing field the person answered: read from their words (with why), or, when they did not know, assumed and
     said, or left missing with what runs instead (never a silent default)."""
+    for name in [n for n in p.optional if n in said and said[n] is not None]:  # an optional field said: read, never required
+        q = QUESTIONS.get((p.kind, name))
+        read, value = read_said(q, said[name], frame, p.fields) if q else (False, None)
+        if read:
+            p.fields[name] = value
+            p.why.append(f"{name.replace('_', ' ')}: as the person said ({', '.join(value) if isinstance(value, list) and value else 'none'})")
     for name in list(p.missing):
         q = QUESTIONS.get((p.kind, name))
         if q is None or name not in said:
@@ -446,7 +466,7 @@ def question_for(p: Optional[FieldProposal], asked: Iterable[str] = ()) -> Optio
     if p is None:
         return None
     asked = set(asked)
-    for name in p.missing:
+    for name in [*p.missing, *p.optional]:  # what the kind needs first, then what only helps
         q = QUESTIONS.get((p.kind, name))
         if q is not None and q.key not in asked and name not in p.declined:
             return q
@@ -485,6 +505,8 @@ def options_for(q: KindQuestion, frame: pd.DataFrame, p: FieldProposal, target: 
         return list(q.options)
     taken = {v for v in p.fields.values() if isinstance(v, str)}
     fits = FITS.get(q.field, lambda f, c: True)
+    if q.field == "known_ahead":
+        fits = lambda f, c: c != target and (pd.api.types.is_numeric_dtype(f[c]) or _binary(f, c))  # noqa: E731
     words = {"series_column": SERIES_WORDS, "duration_column": DURATION_WORDS, "event_column": EVENT_WORDS | {"action", "type", "event"},
              "start_column": START_WORDS, "treatment_column": TREATMENT_WORDS, "text_column": TEXT_WORDS, "source_column": SOURCE_WORDS,
              "user_column": {"user", "customer", "visitor", "member", "account"}, "item_column": {"item", "product", "sku", "article"},
@@ -499,6 +521,8 @@ def options_for(q: KindQuestion, frame: pd.DataFrame, p: FieldProposal, target: 
             cols.append(c)
     order = {c: i for i, c in enumerate(cols)}
     cols.sort(key=lambda c: (c != target, not (_tokens(c) & words), order[c]))
+    if q.field == "known_ahead":
+        return cols[:2] + ["None of them", "I don't know"]
     return cols[:3] + ["I don't know"]
 
 

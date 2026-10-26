@@ -244,6 +244,24 @@ class KindFromFamilyTest(unittest.TestCase):
         got = propose_fields("forecasting", many, "sales").fields
         self.assertEqual((got["series_column"], got["season"]), ("store", 12))  # the step read on distinct dates
 
+    def test_a_forecast_asks_which_columns_are_known_ahead_never_blocking(self):
+        """S9.4 live: JH-forecasting-005 never said whether promotions are planned, and the forecast kept them out. Home
+        asks once which columns are known before the forecast; the answer is read as a list, none at all is an answer,
+        and no answer leaves every such column out (the cautious default) without stopping anything."""
+        from dclab_rnd import kinds
+        from dclab_rnd.kinds.propose import options_for, propose_fields, question_for
+
+        case = kinds.get("forecasting").case(0)
+        p = propose_fields("forecasting", case.table, case.target)
+        self.assertTrue(p.complete)  # optional: the kind is built either way
+        q = question_for(p)
+        self.assertEqual(q.key, "kind_known_ahead")
+        self.assertEqual(options_for(q, case.table, p, case.target), ["on_promotion", "rain_mm", "None of them", "I don't know"])
+        said = propose_fields("forecasting", case.table, case.target, {"known_ahead": "on_promotion is planned by marketing"})
+        self.assertEqual(said.fields["known_ahead"], ["on_promotion"])
+        self.assertEqual(propose_fields("forecasting", case.table, case.target, {"known_ahead": "none of them"}).fields["known_ahead"], [])
+        self.assertNotIn("known_ahead", propose_fields("forecasting", case.table, case.target, {"known_ahead": None}).fields)
+
 
 if __name__ == "__main__":
     unittest.main()
