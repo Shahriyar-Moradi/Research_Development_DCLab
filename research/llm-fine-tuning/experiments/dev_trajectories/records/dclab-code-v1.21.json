@@ -1,0 +1,49 @@
+{
+  "package": "dclab-code-v1.21",
+  "title": "The Home agent's build card says what DCLab will build",
+  "date": "2026-10-26",
+  "request": "The owner's goal: every R&D agent behind the chat, the person approving what they can see.",
+  "spec": "the last open item of the agents plan",
+  "plan": [
+    "read the draft through the person's channel before the build's card",
+    "add what gets built in the person's words"
+  ],
+  "decisions": [
+    {
+      "decision": "The card reads the draft as it is now and says so",
+      "why": "home_build builds the draft's current understanding; a draft that cannot be read keeps the plain card rather than blocking the build"
+    }
+  ],
+  "change": "dclab-code server/engine.js (buildShown), tests/server.test.js",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "the Home agent's build card did not say what gets built",
+      "scenario": "home_build's card: 'This may build the project and run its five stages; the last stage reads the holdout once'",
+      "cause": "the card came from the guard's fixed text",
+      "fix": "the card adds the problem, the outcome, the prediction moment, the unit, what to leave out, the costs, the budget and the table, from the draft (each at most 400 characters)",
+      "test": "dclab-code server test (the card names the outcome, the moment, the column to leave out and the table)",
+      "severity": "gap"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 105 of 105",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Both ways a chat builds a project, the understanding team and the Home agent, now show the person what gets built before they approve.",
+  "lessons": [
+    "When one path to a decision gains a clearer card, check every other path to the same decision."
+  ],
+  "risks": [
+    "the Home build's card is not keyed: a draft changed after the card is built as it is then"
+  ],
+  "commits": [
+    "52827ef"
+  ]
+}
