@@ -310,3 +310,70 @@ def test_the_campaign_runs_in_the_harness_and_its_requests_are_recorded(monkeypa
     assert phases["plan"] and phases["review"] is None  # a phase names the request it made, never an earlier one
     AuditedClient._recorded(SimpleNamespace(model="openai/m", run_id="h"), [{"role": "user", "content": "plan"}], {"input_tokens": 3, "output_tokens": 2}, 0.001, 0.5, "ok")
     assert (requests[0]["purpose"], requests[0]["run"], requests[0]["input_tokens"]) == ("campaign", "h", 3)
+
+
+def test_the_campaign_runs_on_the_products_claude_and_never_on_a_blocked_provider(monkeypatch):
+    """The owner runs Claude only (2026-10-25): with DCLAB_LLM_PROVIDER=anthropic the campaign calls the standard tier's
+    Claude through litellm's Anthropic path, with fields only OpenAI takes dropped; a blocked OpenAI is no provider."""
+    from dclab_rnd.agentic import campaign_model
+
+    for name in ("DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL",
+                 "DCLAB_BLOCK_PROVIDERS", "DCLAB_TIER_STANDARD_BASE_URL", "DCLAB_TIER_STANDARD_MODEL", "DCLAB_TIER_STANDARD_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    assert campaign_model.choice() is None
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-placeholder")
+    monkeypatch.setenv("DCLAB_BLOCK_PROVIDERS", "openai")
+    assert campaign_model.choice() is None, "the owner's block holds"
+    monkeypatch.setenv("DCLAB_LLM_PROVIDER", "anthropic")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-placeholder")
+    picked = campaign_model.choice()
+    assert picked["provider"] == "anthropic" and picked["model"] == "claude-sonnet-5", "the product's Sonnet 5.5 refuses forced tools"
+    monkeypatch.setenv("DCLAB_CAMPAIGN_MODEL", "claude-haiku-5-5")
+    assert campaign_model.choice()["model"] == "claude-haiku-5-5"
+    monkeypatch.delenv("DCLAB_CAMPAIGN_MODEL")
+    from dclab_rnd.models import live_guard
+
+    with pytest.raises(live_guard.LiveModelInTest):  # no real client inside a test unless it asks for one
+        campaign_model.client_args(picked["model"])
+    monkeypatch.setenv(live_guard.ALLOW, "1")  # this test builds the arguments only: nothing is sent
+    name, extra = campaign_model.client_args(picked["model"])
+    assert name == "anthropic/" + picked["model"] and extra == {"api_key": "anthropic-placeholder", "drop_params": True}
+    with pytest.raises(RuntimeError, match="began on openai"):
+        campaign_model.client_args(picked["model"], "openai")  # a run never moves to another provider
+    with pytest.raises(RuntimeError, match="no price"):
+        campaign_model.client_args("claude-opus-4-7")
+    assert campaign_model.model_for("claude-opus-4-7", picked) == picked["model"], "an unpriced Claude falls back to the priced one"
+    assert "anthropic.com" in campaign_model.endpoint()
+    assert campaign_model.model_for("gpt-5.6-terra", picked) == picked["model"], "a GPT name is never sent to Claude"
+    assert campaign_model.model_for("claude-haiku-5-5", picked) == "claude-haiku-5-5"
+    assert campaign_model.model_for("claude-opus-5-5", picked) == "claude-sonnet-5", "never a model that refuses the typed call"
+    monkeypatch.delenv("DCLAB_BLOCK_PROVIDERS")
+    monkeypatch.delenv("DCLAB_LLM_PROVIDER")
+    openai = campaign_model.choice()
+    assert openai["provider"] == "openai" and campaign_model.client_args("gpt-x") == ("openai/gpt-x", {})
+    monkeypatch.setenv("DCLAB_BLOCK_PROVIDERS", "openai")
+    assert campaign_model.choice() is None
+    assert campaign_model.model_for("claude-sonnet-5-5", openai) == openai["model"]
+
+
+def test_the_campaign_starts_on_claude_through_the_route(monkeypatch):
+    for name in ("OPENAI_API_KEY", "DCLAB_BLOCK_PROVIDERS", "DCLAB_TIER_STANDARD_BASE_URL", "DCLAB_TIER_STANDARD_MODEL", "DCLAB_TIER_STANDARD_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("DCLAB_LLM_PROVIDER", "anthropic")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-placeholder")
+    monkeypatch.setenv("DCLAB_NO_LIVE_MODELS", "1")
+    server = pytest.importorskip("dclab_rnd.agentic.server", reason="the product server needs pandas, which .venv-agent does not have",
+                                 exc_type=ImportError)
+    from dclab_rnd.agentic import services as services_module
+
+    launched = []
+    monkeypatch.setattr(services_module.Services, "launch", lambda self, run_id, resume=False: launched.append(run_id), raising=False)
+    with tempfile.TemporaryDirectory() as directory, TestClient(server.create_app(Path(directory))) as client:
+        cfg = client.get("/api/config").json()
+        assert cfg["api_key_configured"] is True
+        token = cfg["csrf"]
+        made = client.post("/api/runs", json={"max_experiments": 1}, headers={"X-DCLab-Token": token})
+        assert made.status_code == 201, made.text
+        run = made.json()
+        assert run["config"]["provider"] == "anthropic" and run["config"]["model"].startswith("claude-"), run["config"]
+        assert launched == [run["id"]], "started without any request leaving in this test"

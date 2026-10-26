@@ -34,14 +34,10 @@ PREDICT = PredictStrategy(config=PredictConfig(max_retries=1, max_tokens=6000, m
 
 
 def _endpoint() -> str:
-    """Where NOOA (litellm) sends requests: OPENAI_BASE_URL, else OpenAI."""
-    import os
-    url = os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
-    from ..models.live_guard import ProviderBlocked, blocked  # the owner uses Claude only (2026-10-25)
+    """Where NOOA (litellm) sends requests: the product's Claude, or an OpenAI-compatible endpoint (campaign_model)."""
+    from .campaign_model import endpoint
 
-    if blocked(url):
-        raise ProviderBlocked(f"OpenAI is blocked on this machine (DCLAB_BLOCK_PROVIDERS in .env): nothing is sent to {url}")
-    return url
+    return endpoint()
 
 class ResearchPlanner(Agent):
     """Interpret the user's research goal and make a bounded scientific agenda."""
@@ -109,8 +105,12 @@ class KnowledgeCurator(Agent):
 
 class AuditedClient(ResponsesClient):
     def __init__(self, model, store, run_id):
-        super().__init__(model="openai/" + model, store=False, max_tokens=6000,
-                         retry_config=RetryConfig(max_retries=0, rate_limit_extra_retries=0), num_retries=0)
+        from .campaign_model import client_args
+
+        begun = (store.get(run_id).get("config") or {}).get("provider") or "openai"  # a run resumes on its own provider only
+        name, extra = client_args(model, begun)  # anthropic/<model> with the product's key, or openai/<model>
+        super().__init__(model=name, store=False, max_tokens=6000,
+                         retry_config=RetryConfig(max_retries=0, rate_limit_extra_retries=0), num_retries=0, **extra)
         self.ledger, self.run_id = store, run_id
     async def acall(self, messages, **kwargs):
         run = self.ledger.get(self.run_id)
@@ -126,13 +126,13 @@ class AuditedClient(ResponsesClient):
             response = await asyncio.wait_for(super().acall(messages, **kwargs), timeout=180)
         except Exception as exc:
             outcome = f"{type(exc).__name__}: the model request failed"
-            eur = installed().record("campaign", self.model.removeprefix("openai/"), None, time.monotonic() - started, 1, outcome, base_url=_endpoint())
+            eur = installed().record("campaign", self.model.split("/", 1)[-1], None, time.monotonic() - started, 1, outcome, base_url=_endpoint())
             self._recorded(messages, None, eur, time.monotonic() - started, outcome)
             raise
         usage = response.usage or {}
         tokens = {"input_tokens": usage.get("prompt_tokens") or usage.get("input_tokens"),
                   "output_tokens": usage.get("completion_tokens") or usage.get("output_tokens")}
-        eur = installed().record("campaign", self.model.removeprefix("openai/"), tokens, time.monotonic() - started, 1, "ok", base_url=_endpoint())
+        eur = installed().record("campaign", self.model.split("/", 1)[-1], tokens, time.monotonic() - started, 1, "ok", base_url=_endpoint())
         self._recorded(messages, tokens, eur, time.monotonic() - started, "ok")
         total = self.ledger.get(self.run_id)["usage"]
         for key, value in usage.items():
@@ -149,7 +149,7 @@ class AuditedClient(ResponsesClient):
 
         if getattr(self, "session", None) is not None:
             self.session.used(tokens)
-        hooks.from_model_request({"id": experience.new_model_request(), "purpose": "campaign", "tier": None, "model": self.model.removeprefix("openai/"),
+        hooks.from_model_request({"id": experience.new_model_request(), "purpose": "campaign", "tier": None, "model": self.model.split("/", 1)[-1],
                                   "input_tokens": (tokens or {}).get("input_tokens"), "output_tokens": (tokens or {}).get("output_tokens"),
                                   "cost_eur": eur, "seconds": round(seconds, 3), "outcome": outcome, "run": self.run_id},
                                  [m for m in messages if isinstance(m, dict)] if isinstance(messages, list) else None)
@@ -159,7 +159,7 @@ async def ask(agent_type, method, client, context):
     # LangGraph's persisted context is the explicit source of memory.
     from ..models import installed
     agent = agent_type(llm=client, context={"dclab_contract": POLICY})
-    model = str(getattr(client, "model", "")).removeprefix("openai/")
+    model = str(getattr(client, "model", "")).split("/", 1)[-1]
     try:
         result = await getattr(agent, method)(json.dumps(context, ensure_ascii=False))
         dumped = result.model_dump()

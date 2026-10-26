@@ -104,11 +104,18 @@ def main():
         result = asyncio.run(worker({"action": "experiment", "plan": recipe["plan"], "max_rows": recipe["max_rows"], "repeats": recipe["repeats"], "output": str(args.output.resolve())}))
         print(json.dumps(result["metrics"], indent=2))
     else:
-        if not os.environ.get("OPENAI_API_KEY"): parser.error("OPENAI_API_KEY must be set; never pass a key as a command-line argument")
+        from .campaign_model import choice, model_for, priced, why_not
+
+        picked = choice()  # the product's Claude, or an OpenAI-compatible endpoint; never a key on the command line
+        if picked is None: parser.error(why_not())
+        if args.command == "run" and picked["provider"] == "anthropic" and not priced(model_for(args.model, picked)):
+            parser.error(f"{model_for(args.model, picked)} has no price, so the euro caps could not count it")
+        if args.command == "resume" and (store.get(args.run_id)["config"].get("provider") or "openai") != picked["provider"]:
+            parser.error(f"This run began on {store.get(args.run_id)['config'].get('provider') or 'openai'}; the campaign now runs on {picked['provider']}")
         if args.command == "run":
             request = RunRequest(project=args.project, goal=args.goal, datasets=args.datasets, model=args.model, max_experiments=args.experiments, max_rows=args.rows, repeats=args.repeats, max_minutes=args.minutes)
             run_id = uuid.uuid4().hex
-            store.create(run_id, request.model_dump())
+            store.create(run_id, {**request.model_dump(), "model": model_for(request.model, picked), "provider": picked["provider"]})
         else:
             run_id = args.run_id
             if store.get(run_id)["status"] not in ("paused", "interrupted", "failed"): parser.error("Run is not resumable")

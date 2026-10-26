@@ -52,6 +52,7 @@ PRICES: dict[str, Price] = {  # only checked prices belong here, with the date a
     "text-embedding-3-small": Price(0.02, 0.0, "2026-10-07", "developers.openai.com/api/docs/pricing, standard tier, USD per 1M tokens entered as EUR"),
     "claude-sonnet-5-5": Price(2.0, 10.0, "2026-10-15", "platform.claude.com/docs/en/about-claude/pricing, base input and output, USD per 1M tokens entered as EUR",
                                cache_read=0.05),  # the prompt-caching page, 2026-10-20: Opus 5.5 and Sonnet 5.5 read at 0.05
+    "claude-sonnet-5": Price(2.0, 10.0, "2026-10-26", "the Claude API's model table (cached 2026-10-06), base input and output, USD per 1M tokens entered as EUR"),  # the campaign's Claude (forced tool use)
     "claude-haiku-5-5": Price(0.10, 0.50, "2026-10-15", "platform.claude.com/docs/en/about-claude/pricing, prompts up to 100,000 tokens, USD per 1M tokens entered as EUR",
                               cache_read=0.1),  # the prompt-caching page, 2026-10-20: most models read at 0.1
     "gpt-6-luna": Price(0.10, 0.50, "2026-10-07", "developers.openai.com/api/docs/pricing, standard tier, USD per 1M tokens entered as EUR"),

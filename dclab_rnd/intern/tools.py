@@ -480,7 +480,20 @@ class Toolbox:
         records = self.projects.records(project_id)
         if stage:
             return compact_record(records.get(stage)) or {"error": f"{stage} has not run"}
-        return {s: compact_record(r) for s, r in records.items()} or {"error": "No stage has run yet"}
+        out = {s: compact_record(r) for s, r in records.items()}
+        if not out:
+            return {"error": "No stage has run yet"}
+        if "final" in out:  # what the project decides with the score: chosen, or amounts heard but not added (34.4)
+            from ..studio import decision as studio_decision
+
+            seen = studio_decision.view(self.projects, project_id)
+            out["decision"] = {"status": seen["status"], "stated": seen["stated"], "heard": seen["heard"], "sentence": seen["sentence"],
+                               "why_no_what_if": seen["what_if"]["why_not"]}
+            if seen["heard"] and not seen["stated"]:
+                out["decision"]["note"] = ("These amounts were heard in the person's words but are not in the solution, so nothing was "
+                                           "chosen or scored with them: the person adds them to the solution (its decision), then the final "
+                                           "stage runs again, which reads the holdout a second time.")
+        return out
 
     def decision_what_if(self, project_id: str, changes: dict[str, Any] | None = None) -> dict[str, Any]:
         from ..experience import hooks
@@ -492,7 +505,7 @@ class Toolbox:
             chosen = seen["chosen"] or {}
             keys = ("decision", "what", "share", "threshold", "ranked_by", "expected_value_per_row", "expected_value_per_row_interval",
                     "capacity_binds", "actions_per_day", "holdout", "note", "warning", "learnable")
-            return {"status": seen["status"], "stated": seen["stated"], "sentence": seen["sentence"], "what_if": seen["what_if"],
+            return {"status": seen["status"], "stated": seen["stated"], "heard": seen["heard"], "sentence": seen["sentence"], "what_if": seen["what_if"],
                     "chosen": {k: chosen[k] for k in keys if k in chosen},
                     "sensitivity": [{"term": r.get("term"), "moves_at": r.get("moves_at")} for r in (chosen.get("sensitivity") or {}).get("rows", [])]}
         try:

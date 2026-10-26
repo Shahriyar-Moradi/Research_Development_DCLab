@@ -96,14 +96,18 @@ async def configuration(s: Services = Depends(services)):
 
     who = current()
     csrf = who.csrf if who is not None and who.via == "session" and who.csrf else s.csrf  # a signed-in browser's writes carry its session's
-    doc = {"csrf": csrf, "auth": {"mode": st.auth, **(who.public() if who is not None else {"signed_in": False})}, "api_key_configured": st.openai_key_set,
+    from .. import campaign_model
+
+    picked = campaign_model.choice()  # the campaign's model: the product's Claude, or an OpenAI-compatible endpoint
+    doc = {"csrf": csrf, "auth": {"mode": st.auth, **(who.public() if who is not None else {"signed_in": False})}, "api_key_configured": picked is not None,
            "privacy": "When a model is configured, aggregate data profiles (with up to three example values per column) and scientific evidence are sent to it; "
                       "the Home agent sends summaries only. Full rows and API keys are never sent. Provider policies still apply."}
     if optional("agentic.campaign_tools") is None:  # the research campaign is the full edition's: its projects, model and commands with it
         return doc
     return {**doc, "ml_python_available": Path(st.ml_python).exists(), "default_goal": DEFAULT_GOAL,
-            "default_model": st.openai_model, "default_project": "general", "projects": project_catalog(), "datasets": catalog(),
-            "frameworks": [f"NOOA {version('nooa')} · typed Predict specialists", f"LangGraph {version('langgraph')} · durable research loop", "OpenAI · Responses API · store=false"],
+            "default_model": picked["model"] if picked else st.openai_model, "default_project": "general", "projects": project_catalog(), "datasets": catalog(),
+            "frameworks": [f"NOOA {version('nooa')} · typed Predict specialists", f"LangGraph {version('langgraph')} · durable research loop",
+                           "Claude · litellm's Anthropic path" if picked and picked["provider"] == "anthropic" else "OpenAI · Responses API · store=false"],
             "commands": {"serve": ".venv-agent/bin/python -m dclab_rnd.agentic serve",
                          # dclab:closed-begin
                          "hyperack": ".venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4",

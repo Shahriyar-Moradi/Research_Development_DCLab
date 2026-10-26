@@ -272,6 +272,28 @@ class ReviewFindingsTest(unittest.TestCase):
         self.assertIn("error", refused)  # each row has no own value here: value_scale is not this decision's number
 
 
+    def test_amounts_home_heard_but_did_not_add_are_said_by_the_agents_tools(self):
+        """A chat building from the person's words ("a call costs 5, a lost customer 300") gets a project whose solution has no
+        decision: the amounts stay a suggestion until the person adds them. The tools an agent reads first say so, and why
+        no what-if can be asked, so the chat can put it to the person instead of leaving the number out."""
+        from dclab_rnd.agents import default_registry
+        from dclab_rnd.intern.tools import Toolbox
+
+        store, pid, _ = finish(kinds.get("binary").case(0))
+        project = store.get(pid)
+        project["suggestion"] = {**(project.get("suggestion") or {}), "decision": {"action": "act", "cost_false_positive": 5.0, "cost_false_negative": 300.0, "heard_in": "action"}}
+        store.save(project)
+        box = Toolbox(store)
+        results = default_registry().call("get_results", {"project_id": pid}, scope="project", context=box)
+        self.assertEqual(results["decision"]["status"], "none")
+        self.assertEqual(results["decision"]["heard"]["cost_false_negative"], 300.0)
+        self.assertIn("states no decision", results["decision"]["why_no_what_if"])
+        self.assertIn("the person adds", results["decision"]["note"])
+        seen = default_registry().call("decision_what_if", {"project_id": pid}, scope="project", context=box)
+        self.assertEqual(seen["heard"]["cost_false_positive"], 5.0)
+        self.assertIn("final", results, "the stage records are still there")
+
+
 @unittest.skipIf(MISSING, MISSING)
 class CostMatrixDecisionTest(unittest.TestCase):
     def test_a_dear_miss_makes_the_cost_matrix_cheaper_than_the_likeliest_class(self):

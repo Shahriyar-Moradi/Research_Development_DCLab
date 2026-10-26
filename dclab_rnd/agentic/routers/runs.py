@@ -23,12 +23,19 @@ async def runs(s: Services = Depends(services)):
 
 @router.post("/api/runs", status_code=201, response_model=Run)
 async def start(request: RunRequest, s: Services = Depends(services)):
-    if not s.settings.openai_key_set:
-        raise HTTPException(409, "The research campaign runs on an OpenAI-compatible endpoint only (the product's Claude does not serve it): set OPENAI_API_KEY in the server environment or local .env, then restart. Do not paste it in a research goal.")
+    from .. import campaign_model
+
+    picked = campaign_model.choice()  # the product's Claude when it runs on Claude, else an OpenAI-compatible endpoint
+    if picked is None:
+        raise HTTPException(409, campaign_model.why_not())
+    model = campaign_model.model_for(request.model, picked)
+    if picked["provider"] == "anthropic" and not campaign_model.priced(model):
+        raise HTTPException(409, f"{model} has no price, so the euro caps could not count it (DCLAB_CAMPAIGN_MODEL)")
     if any(not task.done() for task in s.tasks.values()):
         raise HTTPException(409, "A research run is already active")
     run_id = uuid.uuid4().hex
-    run = s.store.create(run_id, request.model_dump())
+    config = {**request.model_dump(), "model": model, "provider": picked["provider"]}
+    run = s.store.create(run_id, config)
     s.launch(run_id)
     return run
 
@@ -56,8 +63,13 @@ async def resume(run_id: str, s: Services = Depends(services)):
     run = s.run(run_id)
     if run["status"] not in ("paused", "interrupted", "failed"):
         raise HTTPException(409, "This run cannot be resumed")
-    if not s.settings.openai_key_set:
-        raise HTTPException(409, "OPENAI_API_KEY is missing")
+    from .. import campaign_model
+
+    picked = campaign_model.choice()
+    if picked is None:
+        raise HTTPException(409, campaign_model.why_not())
+    if (run["config"].get("provider") or "openai") != picked["provider"]:  # a run resumes on the provider it began with
+        raise HTTPException(409, f"This run began on {run['config'].get('provider') or 'openai'}; the server now runs the campaign on {picked['provider']}")
     s.launch(run_id, True)
     return {"status": "running"}
 

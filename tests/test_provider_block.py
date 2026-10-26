@@ -41,7 +41,8 @@ class BlockTest(unittest.TestCase):
                 from dclab_rnd.agentic import agents
             except ModuleNotFoundError:  # the research campaign's libraries live in .venv-agent only
                 return
-            with mock.patch.dict(os.environ, {"OPENAI_BASE_URL": ""}), self.assertRaises(live_guard.ProviderBlocked):
+            # the owner's .env (litellm loads it on import) never makes this the Claude path
+            with mock.patch.dict(os.environ, {"OPENAI_BASE_URL": "", "DCLAB_LLM_PROVIDER": "", "ANTHROPIC_API_KEY": ""}), self.assertRaises(live_guard.ProviderBlocked):
                 agents._endpoint()  # the research campaign's own client: blocked too
 
     def test_a_live_run_that_never_read_env_takes_the_owners_settings_and_a_test_never(self):
