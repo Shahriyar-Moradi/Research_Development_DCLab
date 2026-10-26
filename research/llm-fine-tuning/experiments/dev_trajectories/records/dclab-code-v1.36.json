@@ -1,0 +1,59 @@
+{
+  "package": "dclab-code-v1.36",
+  "title": "The last R&D agent behind the chat: the orchestra spike as a command",
+  "date": "2026-10-26",
+  "request": "The owner's goal: every agentic system in R&D works behind the chat; the 28.1 spike was the only one explained, not reached.",
+  "spec": "R&D agent_runs/live_tests/2026-10-26-dclab-code-spike/README.md",
+  "plan": [
+    "a command line for the spike in R&D: start, answer, confirm; rules only; its files in a folder given",
+    "map it in sync/agents.json",
+    "live-check it from the chat"
+  ],
+  "decisions": [
+    {
+      "decision": "a command the person approves, not a chat tool",
+      "why": "a replaced prototype; the product's understanding team stays the chat's tool"
+    },
+    {
+      "decision": "--home required",
+      "why": "its checkpoints and events never land in the person's workspace by accident"
+    }
+  ],
+  "change": "R&D dclab_rnd/orchestra/spike.py (main), tests/test_orchestra.py; dclab-code sync/agents.json, docs.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "measurement",
+      "defect": "the spike does not flag a column known only after the prediction moment",
+      "scenario": "bank marketing predicted before the call: duration not flagged as a leak",
+      "cause": "the spike's summary carries no leak list (a prototype)",
+      "fix": "none in the spike: the understanding team, which replaced it and catches such leaks, is the chat's tool; said in the docs",
+      "test": "live session s_d45756ce29be",
+      "severity": "leakage"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "live",
+      "gate": "the walk runs from the chat to a confirmed end, files only in its folder",
+      "fixed_before_run": true,
+      "result": "two questions, confirmed; R&D's tracked files unchanged; $0.11",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "the command line's test passes",
+      "fixed_before_run": true,
+      "result": "test_orchestra 10 tests OK (2 skipped: PostgreSQL)",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "All 18 of R&D's agents are reached from DCLab Code's chat (7 tools, 6 routes, 5 commands); none only explained.",
+  "lessons": [
+    "Reaching a replaced prototype shows why it was replaced: run it live before calling it obsolete."
+  ],
+  "risks": [
+    "the spike misses leaks; it must not stand in for the understanding team"
+  ],
+  "commits": []
+}

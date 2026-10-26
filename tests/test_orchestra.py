@@ -3,6 +3,7 @@ resumed from a checkpoint in another process, every step and pause in the harnes
 
 import os
 import sys
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -77,6 +78,35 @@ class SpikeTests(unittest.TestCase):
         self.assertNotEqual(later["asks"].get("field"), field)  # never asked twice
         self.assertEqual(checkpoints.where(self.home, database_url="")["kind"], "sqlite")
         self.assertTrue((self.home / "orchestra" / "checkpoints.sqlite3").exists())
+
+    def test_the_spike_runs_from_a_command_line_a_chat_can_step(self):
+        """2026-10-26: DCLab Code's chat reaches the spike as a command the person approves: start, each answer, the
+        confirmation; one JSON line a call, its checkpoints in the folder it is given."""
+        import contextlib
+        import io
+
+        home = Path(tempfile.mkdtemp()) / "spike-home"
+
+        def call(*argv):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                code = spike.main(["--home", str(home), "--draft", "cli", *argv])
+            return code, json.loads(buf.getvalue().strip().splitlines()[-1])
+
+        code, out = call("--words", self.journey["words"])
+        self.assertEqual((code, out["status"], out["asks"]["kind"]), (0, "paused", "question"))
+        for _ in range(12):
+            if out["asks"]["kind"] != "question":
+                break
+            code, out = call("--answer", self.journey["answers"].get(out["asks"]["field"], "I don't know"))
+        self.assertEqual(out["asks"]["kind"], "confirmation")
+        code, out = call("--answer", "yes")
+        self.assertEqual((code, out["status"], out["confirmed"]), (0, "done", True))
+        self.assertNotIn("board", out)
+        self.assertTrue((home / "orchestra" / "checkpoints.sqlite3").exists())
+        self.assertTrue(any((home / "experience").rglob("*")), "its steps recorded in its folder")
+        code, out = call("--answer", "again")
+        self.assertEqual((code, out["status"]), (2, "refused"), "nothing to resume once done")
 
     def test_a_new_walk_needs_the_words_and_a_resume_needs_a_thread(self):
         with checkpoints.open_checkpointer(self.home, database_url="") as saver:

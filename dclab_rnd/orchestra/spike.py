@@ -180,4 +180,46 @@ class Spike:
                     "board": values.get("board")}
 
 
-__all__ = ["LIMIT", "Spike", "SpikeState"]
+def main(argv: Optional[list[str]] = None) -> int:
+    """The spike from a command line (2026-10-26, so a chat can step it with the person: DCLab Code runs this command, the
+    person answers each question in the chat): start a walk with the problem's words, resume it with each answer, then the
+    confirmation. The rules only (no model), its checkpoints and its events in ``--home`` (a folder of the person's
+    choosing), one JSON line out per call."""
+    import argparse
+    import json
+    from pathlib import Path
+
+    from .. import experience
+    from . import checkpoints
+
+    parser = argparse.ArgumentParser(prog="python -m dclab_rnd.orchestra.spike", description=main.__doc__)
+    parser.add_argument("--home", required=True, help="the folder for its checkpoints and events")
+    parser.add_argument("--draft", required=True, help="the walk's name: the same name resumes it")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--words", help="start: the problem in the person's words")
+    group.add_argument("--answer", help="resume: the person's answer, or their approval at the confirmation")
+    parser.add_argument("--columns", default="", help="start: the table's column names, comma-separated")
+    args = parser.parse_args(argv)
+    home = Path(args.home).expanduser().resolve()
+    home.mkdir(parents=True, exist_ok=True)
+    experience.install(experience.FileLog(home / "experience", "spike"))
+    try:
+        with checkpoints.open_checkpointer(home, database_url="") as saver:
+            spike = Spike(saver, home=home)
+            columns = [c.strip() for c in args.columns.split(",") if c.strip()] or None
+            out = spike.run(args.draft, args.words, columns=columns) if args.words is not None else spike.run(args.draft, resume=args.answer)
+    except ValueError as error:
+        print(json.dumps({"status": "refused", "why": str(error)}))
+        return 2
+    finally:
+        experience.install(None)
+    out.pop("board", None)  # the board is in the checkpoint; the line says what the person needs
+    print(json.dumps(out, default=str))
+    return 0
+
+
+__all__ = ["LIMIT", "Spike", "SpikeState", "main"]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
