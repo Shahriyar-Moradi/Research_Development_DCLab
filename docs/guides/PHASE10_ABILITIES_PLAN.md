@@ -366,7 +366,12 @@ or decided; nothing below blocks using them.
    1.16), ties 1.04, twenty rows a day 0.97, the matched 5% share 0.96 (their paired difference -0.07 to 0.08), the
    10% share 0.99. Neither ties nor a day's extreme best makes the method narrow: the replica's narrowness comes from
    its model and data. Read as the gate routed it (three arms off-centre): the realised value sits a little above the
-   interval's centre in every arm (mean z +0.10 to +0.16), a small bias of the core, open.
+   interval's centre in every arm (mean z +0.10 to +0.16), a small bias of the core. **`daily_centre_v1`** (800 fresh
+   worlds a decision): one call a day +0.04 (-0.02 to +0.10), inconclusive; a 5% share +0.07 (+0.01 to +0.13),
+   established and explained by the samples' skew: their mean sits above the percentile midpoint (+0.035 to +0.047 in z
+   units), and measured from the samples' mean the bias's interval reaches 0. The sampling pool is ruled out (the gap of
+   the samples' means, latest minus all, -0.05 to +0.00). The interval's edges stand; its centre is the samples' mean
+   (`samples_mean`, dclab-core 0.120.1), not the midpoint. Open: read the daily bias with more worlds, if it matters.
 7. 34.2: ~~a daily capacity for targeting~~ done 2026-10-25 (dclab-core 0.115.0, with item 20); ~~a two-action
    replica~~ done 2026-10-26 (`dclab_core/replicas/retention_actions.py`: a call, dear and few, or an email, from a random
    test's three arms, every row's true lifts kept apart; `tests/test_retention_actions.py`). Measured on seeds 0 to 4 with

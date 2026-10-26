@@ -117,8 +117,19 @@
       "severity": "gap"
     }
   ],
-  "measurements": [],
-  "outcome": "Redesigned twice on review before any run; run next.",
+  "measurements": [
+    {
+      "name": "daily_centre_v1: 800 invented worlds a decision, the decision core alone, on 0d47ff0a",
+      "gate": "per decision on its latest arm: the bias by the 90% interval of mean z_mid (established, closed inside 0.08, else inconclusive); the skew by mean (z_mid - z_mean) on the bias's side with mean z_mean reaching 0; the pool by the samples' means' gap below 0 for a bias above 0",
+      "result": "daily: mean z_mid +0.04 (-0.02 to +0.10): inconclusive; skew -0.016 to -0.007; z_mean -0.01 to +0.12. share: mean z_mid +0.07 (+0.01 to +0.13): established; skew +0.035 to +0.047; z_mean -0.03 to +0.09: the midpoint (the samples' skew). Samples' means' gap latest minus all: daily -0.05 to +0.04, share -0.05 to +0.00. RMS z: daily 1.06, share 0.98; daily_ties_v1 had read mean z +0.10 to +0.16 on 200 worlds an arm",
+      "verdict": "pass",
+      "limits": [
+        "known worlds, the core alone",
+        "the daily bias is not established at 800 worlds; daily_ties_v1's +0.10 to +0.16 was partly chance"
+      ]
+    }
+  ],
+  "outcome": "The realised value's small lead over the interval's centre is the samples' skew for a share capacity (their mean sits above the percentile midpoint); the pool is ruled out; for one call a day the bias is not established. The interval's edges stand; its centre is the samples' mean.",
   "lessons": [
     "Check a mechanism's predicted sign against a small probe before building a gate on it",
     "Size the worlds so every outcome of the gate is reachable, closing included",

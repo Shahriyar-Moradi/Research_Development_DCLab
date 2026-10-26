@@ -1,0 +1,63 @@
+{
+  "campaign": "daily_centre_v1",
+  "package": "34.1",
+  "worlds": [
+    2000,
+    2799
+  ],
+  "arms": {
+    "daily_latest": {
+      "rows_per_day": 4.4,
+      "capacity_per_day": 1.0,
+      "pool": 600
+    },
+    "daily_all": {
+      "rows_per_day": 4.4,
+      "capacity_per_day": 1.0,
+      "pool": 2400
+    },
+    "share_latest": {
+      "rows_per_day": 4.4,
+      "capacity_share": 0.05,
+      "pool": 600
+    },
+    "share_all": {
+      "rows_per_day": 4.4,
+      "capacity_share": 0.05,
+      "pool": 2400
+    }
+  },
+  "pairs": {
+    "daily": [
+      "daily_latest",
+      "daily_all"
+    ],
+    "share": [
+      "share_latest",
+      "share_all"
+    ]
+  },
+  "gate": {
+    "id": "daily_centre_gate_v1",
+    "bias": "per decision on its latest arm, the 90% bootstrap interval (2,000 draws over the 800 worlds) of mean z_mid: above 0 or below 0 established; inside -0.08 to 0.08 closed; otherwise inconclusive (more worlds)",
+    "cause": "where established: mean (z_mid - z_mean)'s interval on the bias's side of 0 and mean z_mean's interval reaching 0: the midpoint (skew): centre the interval on the samples' mean; else for a bias above 0, the paired gap of the samples' means (latest minus all, value units) with its 90% interval below 0: the small pool: draw each sample from the latest fold's own rows; else read the worlds",
+    "reported": "the all-rows arms and the centre gap, beside the gate; each decision its own verdict"
+  },
+  "world": {
+    "train": 2400,
+    "test": 600,
+    "bootstrap": 200,
+    "value_per_case": 120.0,
+    "cost_per_action": 10.0,
+    "chances": "logistic of a normal (mean -1.5, sd 1.0), as daily_ties_v1"
+  },
+  "objective": "Is the realised value's small lead over the interval's centre real, and is it the percentile midpoint (the samples' skew) or the samples' mean itself?",
+  "sha256": "b257ede863890fccfdacaac1cb093f355b865b2be1db2248bbfa505ae5efe42d",
+  "code_sha256": "29bb373a0b44565c3226a2530fd1267a10963f85a9571e4f9618fe806126c3c4",
+  "code_files": [
+    "dclab_rnd/daily_centre_measure.py",
+    "dclab_core/decide.py"
+  ],
+  "git_commit": "0d47ff0a939eeb7a7052c6b0093b74e0d5c2d03c",
+  "frozen_at": "2026-10-26T10:40:20+00:00"
+}

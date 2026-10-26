@@ -1,0 +1,102 @@
+{
+  "arms": {
+    "daily_latest": {
+      "worlds": 800,
+      "read": 800,
+      "mean_z_mid": 0.0422,
+      "mean_z_mid_interval": [
+        -0.0225,
+        0.1032
+      ],
+      "mean_z_mean_interval": [
+        -0.0109,
+        0.1154
+      ],
+      "skew_interval": [
+        -0.0162,
+        -0.0072
+      ],
+      "rms_z_mid": 1.0598
+    },
+    "daily_all": {
+      "worlds": 800,
+      "read": 800,
+      "mean_z_mid": 0.0378,
+      "mean_z_mid_interval": [
+        -0.0249,
+        0.0962
+      ],
+      "mean_z_mean_interval": [
+        -0.0128,
+        0.1073
+      ],
+      "skew_interval": [
+        -0.0162,
+        -0.0067
+      ],
+      "rms_z_mid": 1.0295
+    },
+    "share_latest": {
+      "worlds": 800,
+      "read": 800,
+      "mean_z_mid": 0.0697,
+      "mean_z_mid_interval": [
+        0.0108,
+        0.1285
+      ],
+      "mean_z_mean_interval": [
+        -0.0322,
+        0.0897
+      ],
+      "skew_interval": [
+        0.0353,
+        0.0472
+      ],
+      "rms_z_mid": 0.9755
+    },
+    "share_all": {
+      "worlds": 800,
+      "read": 800,
+      "mean_z_mid": 0.0612,
+      "mean_z_mid_interval": [
+        -0.0005,
+        0.1214
+      ],
+      "mean_z_mean_interval": [
+        -0.0339,
+        0.0862
+      ],
+      "skew_interval": [
+        0.0275,
+        0.0403
+      ],
+      "rms_z_mid": 1.0068
+    }
+  },
+  "centre_gap_latest_minus_all": {
+    "daily": [
+      -0.0477,
+      0.039
+    ],
+    "share": [
+      -0.0499,
+      0.0034
+    ]
+  },
+  "verdicts": {
+    "daily": "inconclusive: more worlds",
+    "share": "the midpoint (the samples' skew): centre the interval on the samples' mean"
+  },
+  "verdict": "complete",
+  "gate": {
+    "id": "daily_centre_gate_v1",
+    "bias": "per decision on its latest arm, the 90% bootstrap interval (2,000 draws over the 800 worlds) of mean z_mid: above 0 or below 0 established; inside -0.08 to 0.08 closed; otherwise inconclusive (more worlds)",
+    "cause": "where established: mean (z_mid - z_mean)'s interval on the bias's side of 0 and mean z_mean's interval reaching 0: the midpoint (skew): centre the interval on the samples' mean; else for a bias above 0, the paired gap of the samples' means (latest minus all, value units) with its 90% interval below 0: the small pool: draw each sample from the latest fold's own rows; else read the worlds",
+    "reported": "the all-rows arms and the centre gap, beside the gate; each decision its own verdict"
+  },
+  "id": "DCE-100",
+  "experiment_id": "DCE-100",
+  "status": "completed",
+  "completed_at": "2026-10-26T10:56:33+00:00",
+  "campaign_id": "daily_centre_v1"
+}
