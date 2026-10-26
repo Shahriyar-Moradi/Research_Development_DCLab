@@ -1,0 +1,69 @@
+{
+  "arms": {
+    "daily": {
+      "seeds": 60,
+      "of": 60,
+      "gates": {
+        "chosen": true,
+        "time_split": true,
+        "capacity": true,
+        "coverage": true,
+        "centre": true,
+        "width": false
+      },
+      "acted": 60,
+      "inside_prediction_interval": 52,
+      "coverage": 0.8667,
+      "misses": {
+        "below": 5,
+        "above": 3
+      },
+      "centre": {
+        "mean_z": -0.0264,
+        "bound": 0.2124
+      },
+      "width": {
+        "rms_z": 1.2008,
+        "interval": [
+          1.0459,
+          1.4153
+        ]
+      },
+      "next": "add the model's fit-to-fit spread to the samples",
+      "verdict": "fail",
+      "paired_all_folds": {
+        "mean_z": 0.1629,
+        "rms_z": 1.2263,
+        "inside": 51,
+        "read": 60
+      }
+    }
+  },
+  "gate": {
+    "id": "time_decision_gate_v4 (v1's, unchanged; the daily arm alone)",
+    "chosen": "the decision is chosen on every seed (an operating point; no refusal)",
+    "time_split": "every run's data stage split by time (the strategy recorded per run)",
+    "capacity": "on every seed that acted, the holdout's actions never exceed its capacity (a share of its rows with one row's rounding; or the day by day slots the record states), and the holdout was read once",
+    "coverage": "among the seeds that chose to act (at least 20), the realised value per customer lies inside the choice's 90% prediction interval on at least 80% of them",
+    "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
+    "width": "the 90% chi-squared interval of the root mean square of z contains 1 (neither too narrow nor too wide)",
+    "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
+    "next": "a pass: keep the day by day interval, v3's coverage miss read as chance; too narrow (the width's interval above 1) with misses on both sides: add the model's fit-to-fit spread to the samples (the holdout is scored by the final model, the samples by one fold model never refitted; one call a day hangs on its fine ranking), and if the paired every-fold RMS z is above 1 too, the latest fold's smaller pool is not the cause; coverage below 80% with the width passing: pool v3's and v4's daily seeds (90) and read the pooled coverage and RMS z beside the gate; a centre off at the spread measured (|mean z| above 1.645 RMS z / sqrt(N); for routing only, the gate unchanged): above 0, if the folds' values rise from the first fold to the last, score the out-of-fold rows with models of the final size, otherwise read the seeds; below 0, correct the optimism of choosing the model; too wide: sample the latest two folds",
+    "paired": "each run also keeps the interval drawn from every fold (0.115.0's) on the same rows and seed, with its z: reported beside the gate, never gated"
+  },
+  "pooled_with_v3_daily": {
+    "seeds": 90,
+    "inside": 75,
+    "coverage": 0.8333,
+    "mean_z": -0.0406,
+    "rms_z": 1.1964
+  },
+  "verdict": {
+    "daily": "fail"
+  },
+  "id": "TDC-900",
+  "experiment_id": "TDC-900",
+  "status": "completed",
+  "completed_at": "2026-10-26T07:07:20+00:00",
+  "campaign_id": "time_decision_v4"
+}

@@ -347,8 +347,13 @@ or decided; nothing below blocks using them.
    short of 80% (misses on both sides, 4 below and 3 above). Its step, fixed before, was to read the seeds: no pattern
    (every miss on a seed that filled its days, widths alike), and the spread of the realised values across seeds (1.31)
    matches the interval's own (1.38). 23 of 30 or fewer happens about 7 times in 100 under a right 90% interval, so it is
-   not established; the daily arm's RMS z was above 1 twice (1.12, 1.19). Open: a larger daily-capacity run (60 seeds)
-   before any change to the day by day interval.
+   not established; the daily arm's RMS z was above 1 twice (1.12, 1.19). **The larger run** (`time_decision_v4`, 60
+   fresh seeds, the daily arm alone, the drift off, 2026-10-26): **fail on width**: 52 of 60 inside (passes), mean z
+   -0.03 (passes), but RMS z 1.20 with its 90% interval 1.05 to 1.42: the day by day interval is too narrow by about a
+   fifth (v3 and v4 pooled, 90 seeds: 75 inside, RMS z 1.20). The paired every-fold interval is as narrow (RMS z 1.23), so
+   the latest fold's smaller pool is not the cause. The next step, fixed with the gate: add the model's fit-to-fit spread
+   to the samples (the holdout is scored by the final model, the samples by one fold model never refitted, and one call
+   a day hangs on fine ranking). Not built: a package of its own (refits per draw cost time; measured as v5).
 7. 34.2: ~~a daily capacity for targeting~~ done 2026-10-25 (dclab-core 0.115.0, with item 20); ~~a two-action
    replica~~ done 2026-10-26 (`dclab_core/replicas/retention_actions.py`: a call, dear and few, or an email, from a random
    test's three arms, every row's true lifts kept apart; `tests/test_retention_actions.py`). Measured on seeds 0 to 4 with

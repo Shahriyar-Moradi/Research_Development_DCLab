@@ -1,0 +1,66 @@
+{
+  "id": "TDC-120",
+  "experiment_id": "TDC-120",
+  "status": "completed",
+  "completed_at": "2026-10-26T05:48:48+00:00",
+  "campaign_id": "time_decision_v4",
+  "dataset": "subscription_churn",
+  "seed": 209,
+  "arm": "daily",
+  "split": "time",
+  "rates": {
+    "oof_positive_rate": 0.2083,
+    "latest_fold_positive_rate": 0.2017,
+    "holdout_positive_rate": 0.2183,
+    "fold_values": [
+      8.7833,
+      11.1833,
+      9.7833
+    ]
+  },
+  "decision_status": "operating_point",
+  "warning": null,
+  "chosen_share": 0.242778,
+  "capacity_share": 0.242795,
+  "expected_value_per_row": 10.0389,
+  "expected_interval": [
+    8.5722,
+    10.9722
+  ],
+  "holdout_rows": 600,
+  "holdout_actions": 145,
+  "holdout_cases_found": 55,
+  "holdout_value_per_row": 8.5833,
+  "prediction_interval": [
+    5.3833,
+    10.5833
+  ],
+  "inside_prediction_interval": true,
+  "z": 0.3796,
+  "miss_side": "inside",
+  "within_capacity": true,
+  "days": {
+    "days": 146,
+    "slots": 145,
+    "slots_per_day": 1.0,
+    "partial_days": 1,
+    "most_in_a_day": 1,
+    "days_full": 145,
+    "applied": "day by day: each day's best rows, until its slots are full"
+  },
+  "days_note": null,
+  "holdout_uses": 1,
+  "prediction_interval_method": "holdout-sized samples of each bootstrap draw (600 rows, about 600 drawn, from the rows nearest the holdout, the capacity applied day by day to days of the holdout's sizes, the rows placed at random among them)",
+  "applied_as": "a quota: the highest-ranked rows the capacity allows, each worth acting on alone or ranked as high as the rows chosen; a capacity per day is chosen as one pool over the training rows and applied day by day on the holdout's days",
+  "all_folds_interval": [
+    6.175,
+    10.1833
+  ],
+  "inside_all_folds": true,
+  "z_all_folds": 0.3317,
+  "latest_fold_rows": 600,
+  "latest_fold_is_the_last_block": true,
+  "model": "logistic_regression",
+  "seconds": 37.6,
+  "code_sha256": "cb9e60c668f162452ca5b56f44f9254c5e1fee504b793c0827e86ecf4a86f820"
+}

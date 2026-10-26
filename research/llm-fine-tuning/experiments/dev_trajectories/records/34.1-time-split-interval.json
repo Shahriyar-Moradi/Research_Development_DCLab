@@ -228,15 +228,25 @@
         "23 of 30 or fewer happens about 7 times in 100 under a right 90% interval: the daily arm's shortfall is not established",
         "the daily RMS z was 1.12 in v2 and 1.19 here: a larger run would tell a slightly narrow interval from chance"
       ]
+    },
+    {
+      "name": "time_decision_v4: the daily arm alone, 60 fresh seeds (190 to 249), the churn replica's drift off, on 48912e72",
+      "gate": "time_decision_gate_v4 (v1's, unchanged): coverage of at least 80%, |mean z| <= 1.645/sqrt(60) = 0.21, the 90% chi-squared interval of RMS z contains 1",
+      "result": "fail on width: 52 of 60 inside (0.87; 5 below, 3 above), mean z -0.03, RMS z 1.20 (interval 1.05 to 1.42); paired every-fold interval RMS z 1.23, 51 of 60 inside; v3 and v4 pooled (90 seeds): 75 inside (0.83), RMS z 1.20",
+      "verdict": "fail",
+      "limits": [
+        "one replica; the daily capacity of one call a day on about 4 customers a day"
+      ]
     }
   ],
-  "outcome": "On a time split the decision's interval comes from the latest fold. A share capacity passes every gate with drift (v2) and without (v3). One call a day keeps its centre without drift, so v2's centre miss is consistent with the drift; its coverage fell one seed short of the gate without drift, with no pattern in the misses: open for a larger run, nothing changed.",
+  "outcome": "On a time split the decision's interval comes from the latest fold: a share capacity passes with and without drift; one call a day keeps its centre but its interval is too narrow by about a fifth (60 seeds, RMS z 1.20, interval 1.05 to 1.42), as wide from every fold: next, the model's fit-to-fit spread in the samples, a package of its own.",
   "lessons": [
     "Before a measurement names a cause in its next step, check whether the test data plants another cause with the same sign",
     "A campaign must write a record for a run that fails, or a frozen campaign can never reach its verdict",
     "An interval built from the past is for a world that stays the same: on a drifting table it says so by missing on one side",
     "When a fix also widens an interval, keep the old interval on the same seeds: the paired reading tells a better centre from a wider one",
-    "When a gate misses by one seed with no pattern and the spreads agree, record it as not established and size the next run, rather than changing the method"
+    "When a gate misses by one seed with no pattern and the spreads agree, record it as not established and size the next run, rather than changing the method",
+    "Size a check before trusting it: 30 seeds left the daily width at 'not established', 60 settled it"
   ],
   "risks": [
     "The churn replica's drift and the fold models' weakness push the same way; the rates separate them only roughly"

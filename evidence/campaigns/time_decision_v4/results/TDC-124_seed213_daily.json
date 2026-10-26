@@ -1,0 +1,66 @@
+{
+  "id": "TDC-124",
+  "experiment_id": "TDC-124",
+  "status": "completed",
+  "completed_at": "2026-10-26T05:51:17+00:00",
+  "campaign_id": "time_decision_v4",
+  "dataset": "subscription_churn",
+  "seed": 213,
+  "arm": "daily",
+  "split": "time",
+  "rates": {
+    "oof_positive_rate": 0.2106,
+    "latest_fold_positive_rate": 0.2,
+    "holdout_positive_rate": 0.2,
+    "fold_values": [
+      9.7333,
+      11.5333,
+      9.1333
+    ]
+  },
+  "decision_status": "operating_point",
+  "warning": null,
+  "chosen_share": 0.247222,
+  "capacity_share": 0.247951,
+  "expected_value_per_row": 10.0611,
+  "expected_interval": [
+    8.8522,
+    11.1889
+  ],
+  "holdout_rows": 600,
+  "holdout_actions": 129,
+  "holdout_cases_found": 50,
+  "holdout_value_per_row": 7.85,
+  "prediction_interval": [
+    4.8742,
+    9.0175
+  ],
+  "inside_prediction_interval": true,
+  "z": 0.7179,
+  "miss_side": "inside",
+  "within_capacity": true,
+  "days": {
+    "days": 133,
+    "slots": 132,
+    "slots_per_day": 1.0,
+    "partial_days": 1,
+    "most_in_a_day": 1,
+    "days_full": 129,
+    "applied": "day by day: each day's best rows, until its slots are full"
+  },
+  "days_note": null,
+  "holdout_uses": 1,
+  "prediction_interval_method": "holdout-sized samples of each bootstrap draw (600 rows, about 600 drawn, from the rows nearest the holdout, the capacity applied day by day to days of the holdout's sizes, the rows placed at random among them)",
+  "applied_as": "a quota: the highest-ranked rows the capacity allows, each worth acting on alone or ranked as high as the rows chosen; a capacity per day is chosen as one pool over the training rows and applied day by day on the holdout's days",
+  "all_folds_interval": [
+    6.0167,
+    10.0
+  ],
+  "inside_all_folds": true,
+  "z_all_folds": -0.1308,
+  "latest_fold_rows": 600,
+  "latest_fold_is_the_last_block": true,
+  "model": "logistic_regression",
+  "seconds": 35.0,
+  "code_sha256": "cb9e60c668f162452ca5b56f44f9254c5e1fee504b793c0827e86ecf4a86f820"
+}
