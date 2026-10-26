@@ -1,0 +1,78 @@
+{
+  "package": "dclab-code-v1.24",
+  "title": "Every R&D agent mapped and checked by sync-check, and a UI review against Claude Code desktop and Codex",
+  "date": "2026-10-26",
+  "request": "The owner's goal (the stop hook): show that every R&D agent works behind the chat, and review the UI against Codex and Claude Code.",
+  "spec": "sync-check agents map; docs/UI_REVIEW.md",
+  "plan": [
+    "map each of R&D's AGENTS to how the chat reaches it, or why not",
+    "sync-check lists R&D's agents and fails on an unmapped one or a way R&D no longer has",
+    "screens of the app's main views in Chromium",
+    "fix what the screens show",
+    "a side-by-side review with the gaps"
+  ],
+  "decisions": [
+    {
+      "decision": "The map lives in dclab-code (sync/agents.json), R&D's list is read live",
+      "why": "a new R&D agent must fail the check until someone decides how the chat reaches it"
+    }
+  ],
+  "change": "dclab-code sync/agents.json, server/rd.js (agentChanges), scripts/sync-check.js, web/index.html and web/style.css (the hint, the DCLab panel), docs/UI_REVIEW.md, docs/screens/review-*.png, tests.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "the message box's hint wrapped onto five lines",
+      "scenario": "1280 px window, after the Effort menu was added",
+      "cause": "the hint had no nowrap and hid only below 560 px of box",
+      "fix": "a short one-line hint, hidden below 760 px of box",
+      "test": "seen in Chromium (review-2-session.png)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "defect": "the DCLab panel read in monospace and its stage chips were spread and shifted",
+      "scenario": "review-5-dclab-panel.png",
+      "cause": "the drawer's mono font for diffs; a global .done rule's auto margins on the done chips",
+      "fix": "the panel's cards in the page's font; the chips' own margin",
+      "test": "seen in Chromium",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "owner",
+      "defect": "nothing showed that every R&D agent is reached by the chat",
+      "scenario": "the goal check-in",
+      "cause": "the table in PARITY_PLAN was written by hand and checked by nobody",
+      "fix": "sync/agents.json and sync-check's agent check against R&D's live AGENTS list, tools, routes and modules",
+      "test": "dclab-code units (a new agent fails; a removed route, module or agent fails)",
+      "severity": "gap"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "sync-check on the real R&D",
+      "gate": "every agent reached or explained",
+      "fixed_before_run": true,
+      "result": "In sync with R&D 50d90403 (on GitHub): 18 R&D agents, each reached or explained",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 106 of 106",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Every R&D agent is reached or explained, checked on every sync; the UI's gaps against Claude Code and Codex are written down with what to build next.",
+  "lessons": [
+    "A parity table nobody checks drifts: make the check part of the sync.",
+    "Look at the app after adding a control: the row it joins may no longer fit."
+  ],
+  "risks": [
+    "the preview pane, cloud sessions, plugin marketplace and MCP management screen are not built"
+  ],
+  "commits": []
+}
