@@ -1,0 +1,79 @@
+{
+  "package": "dclab-code-v1.22",
+  "title": "The owner's twin switch proposable from the chat on a card, and the Home build bound to what its card showed",
+  "date": "2026-10-26",
+  "request": "The owner's goal (the stop hook): every agentic system behind the chat, the owner's switches included, the person deciding.",
+  "spec": "the remaining gaps: the twin switch, store runs and the campaign from the chat, the Home build keyed",
+  "plan": [
+    "key the Home build to its card",
+    "relay the twin switch on a card",
+    "live: the twin switch, the keyed build, the campaign and the store from the chat"
+  ],
+  "decisions": [
+    {
+      "decision": "The agent proposes the owner's twin switch; the person turns it on a card",
+      "why": "the owner decides, as every relayed decision; R&D checks the owner's role with sign-in"
+    },
+    {
+      "decision": "Store runs stay commands the person approves",
+      "why": "they write the training store; the chat runs them as Claude Code runs a project's commands"
+    }
+  ],
+  "change": "R&D chat_agents.py (home_build shown), tests. dclab-code config.js (twin relay, holdout pattern), guards.js (the relay's note), engine.js (buildShown's shown), dclab_person.js (comment), tests.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "a Home build was not tied to the card the person saw",
+      "scenario": "the card shows outcome churn; the draft changes before Allow; home_build built the new one",
+      "cause": "home_build took only the person's words",
+      "fix": "the card's fields go with the Allow as shown; R&D refuses a draft that changed on any shown field; the host replaces any shown the agent passed",
+      "test": "R&D test_chat_agents; dclab-code server test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "defect": "the owner's twin switch could not be proposed from the chat",
+      "scenario": "the agent reached the twin but could not ask the person to turn it on",
+      "cause": "PUT /api/twin/settings was never relayed",
+      "fix": "relayed on a card that says it is the owner's switch and what it spends, only on and DCLab's bounded caps; built-in object names refused as keys",
+      "test": "dclab-code units",
+      "severity": "gap"
+    },
+    {
+      "id": "F3",
+      "source": "self",
+      "defect": "turning the twin switch was asked as a holdout read",
+      "scenario": "the switch's card said it reads the holdout",
+      "cause": "the holdout pattern /twin matched /api/twin/settings",
+      "fix": "only a project's twin run and a draft's twin messages are holdout asks",
+      "test": "dclab-code units",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "live from the chat",
+      "gate": "each step the person's, on a card that shows what is sent",
+      "fixed_before_run": true,
+      "result": "twin off then on at EUR 0.3 a run; the keyed Home build: ROC-AUC 0.8047 (0.789 to 0.822); the campaign on Claude Sonnet 5 from a command: 5 calls, CV ROC-AUC 0.687; store status --brief: 51,088 entries, 4.2 GB; $0.44",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 105 of 105; R&D test_chat_agents and test_agents_validator 34",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Every R&D agent and the owner's twin switch are reachable from the chat, each person's step on a card bound to what it showed.",
+  "lessons": [
+    "A pattern that matches a path's word (twin) matches every route with it: name the routes that do the thing."
+  ],
+  "risks": [
+    "the twin card's spend note does not read the current sample setting"
+  ],
+  "commits": []
+}

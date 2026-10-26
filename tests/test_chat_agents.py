@@ -263,6 +263,20 @@ class ChatBuildRuleTests(McpChatCase):
         self.assertNotEqual(self.services.build_from_chat(draft).get("rule"), "chat_build")  # the page's own build is untouched
 
 
+    def test_a_build_the_person_approved_on_a_card_that_went_stale_is_refused(self):
+        """A host shows the person the draft before a build (DCLab Code's card) and sends what it showed: a draft changed
+        since then is never built on that yes."""
+        draft = self.services.drafts.create("Predict which shipments arrive late next week", None)["id"]
+        d = self.services.drafts.get(draft)
+        d["understanding"] = {"target": "late", "prediction_moment": "at dispatch"}
+        self.services.drafts.save(d)
+        stale = self.call("home_build", {"draft_id": draft, "person_words": "build it", "shown": {"target": "churn", "prediction_moment": "at dispatch"}})
+        self.assertIn("changed since", stale.get("error", ""), stale)
+        self.assertIn("target", stale["error"])
+        fresh = self.call("home_build", {"draft_id": draft, "person_words": "build it", "shown": {"target": "late", "prediction_moment": "at dispatch", "costs": None}})
+        self.assertNotIn("changed since", fresh.get("error", "") or "", fresh)  # past the check: the build's own checks speak
+
+
 class PathRuleTests(McpChatCase):
     def test_folder_identity_names_and_held_out(self):
         from dclab_rnd import chat_agents

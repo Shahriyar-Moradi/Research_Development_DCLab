@@ -332,10 +332,24 @@ async def home_status(services: Any, draft_id: str) -> dict[str, Any]:
     return {**view(draft), "answering": await asyncio.to_thread(_busy, services, draft_id)}
 
 
-async def home_build(services: Any, draft_id: str, person_words: str) -> dict[str, Any]:
+SHOWN_KEYS = ("problem", "target", "prediction_moment", "entity", "constraints", "costs", "budget", "active_asset")
+
+
+def _changed_since(draft: dict[str, Any], shown: Any) -> list[str]:
+    """The fields a host showed the person (``shown``) that the draft no longer holds: a yes to an older card builds nothing."""
+    if not isinstance(shown, dict):
+        return []
+    u = draft.get("understanding") or {}
+    now = {"problem": draft.get("problem"), "active_asset": draft.get("active_asset"), **{k: u.get(k) for k in SHOWN_KEYS if k not in ("problem", "active_asset")}}
+    norm = lambda v: None if v in (None, "") else str(v)  # noqa: E731
+    return [k for k in SHOWN_KEYS if k in shown and norm(shown[k]) != norm(now.get(k))]
+
+
+async def home_build(services: Any, draft_id: str, person_words: str, shown: Any = None) -> dict[str, Any]:
     """The person's own "build it", sent as their message: the Home agent reads it as it reads Home's (``asks_to_build``)
     and builds with every check of the step-by-step path, or says what is missing. The build ends with the holdout read
-    once, so it runs only on words that ask for it, kept in the draft's chat."""
+    once, so it runs only on words that ask for it, kept in the draft's chat. ``shown``: what the host's card showed the
+    person (the draft's problem, understanding and table); a draft changed since then is refused."""
     from .draft.chat import asks_to_build
 
     from . import experience
@@ -343,6 +357,9 @@ async def home_build(services: Any, draft_id: str, person_words: str) -> dict[st
     draft = await asyncio.to_thread(_draft, services, draft_id)
     if draft is None:
         return {"error": f"No draft {draft_id!r}."}
+    changed = _changed_since(draft, shown)
+    if changed:
+        return {"error": f"The draft changed since the person's card ({', '.join(changed)}): show them the draft as it is now and ask again."}
     words = str(person_words or "").strip()
     before = draft.get("project_id")
     # A built draft: the person's yes to the orchestrator's planned new version (it checks its own offer and the yes).
@@ -598,7 +615,9 @@ TOOLS = [
                                                   "description": "The person's request to build as an order the Home agent reads: "
                                                                  "\"build it\", \"build the model\", \"go ahead and build it\", or "
                                                                  "\"yes\" right after the agent offered to build. When the person "
-                                                                 "said it another way (\"I want it built\"), pass \"build it\"."}},
+                                                                 "said it another way (\"I want it built\"), pass \"build it\"."},
+           "shown": {"type": "object", "description": "Filled by the host that asked the person: the draft's fields its card showed "
+                                                      "(a draft changed since is refused). Leave it out."}},
           ["draft_id", "person_words"], home_build, "write"),
     _tool("home_list", "List the workspace's Home drafts (newest first): their problem, status and project.",
           {"limit": {"type": "integer", "minimum": 1, "maximum": 50}}, [], home_list),
