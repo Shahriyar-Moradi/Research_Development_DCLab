@@ -1,0 +1,85 @@
+{
+  "package": "dclab-code-v1.28",
+  "title": "Plugins in Settings: the person's Claude Code plugins, ticked per machine, loaded in every new session",
+  "date": "2026-10-26",
+  "request": "The owner's goal: Claude Code's capabilities in a calmer UI; the UI review's gap 'Plugins and marketplace: no'.",
+  "spec": "docs/UI_REVIEW.md 'What to build next' item 4",
+  "plan": [
+    "find the plugins Claude Code installed on this machine (the marketplaces' plugins and external plugins, the synced ones)",
+    "list them in the Settings sheet with a checkbox each",
+    "save the ticked paths in config.json; a session loads them as local plugins",
+    "only a path found on the machine can be ticked; each change logged"
+  ],
+  "decisions": [
+    {
+      "decision": "list installed plugins only, no marketplace",
+      "why": "installing runs someone else's code; Claude Code already does it with its own checks, so DCLab Code reuses what is installed"
+    },
+    {
+      "decision": "the server re-checks every ticked path against the machine's plugins, at save and at each session start",
+      "why": "a typed or stale path must never load as a plugin; a plugin removed later simply stops loading"
+    },
+    {
+      "decision": "say on the sheet that a plugin's hooks run outside DCLab's guards",
+      "why": "the SDK's strict MCP mode keeps a plugin's MCP servers out, but not its hooks; the person should know before ticking"
+    }
+  ],
+  "change": "dclab-code server/plugins.js (new: discover, sessionPlugins), server/engine.js (options.plugins), server/app.js (settings GET lists plugins, PUT accepts found paths only, the change log keeps their names), web/index.html, web/app.js, web/style.css, tests/units.test.js, tests/server.test.js, docs/UI_REVIEW.md, docs/PARITY_PLAN.md.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "the plugin list was squeezed to 12 px, so no plugin could be seen",
+      "scenario": "opening Settings with 43 plugins installed, in the browser pane",
+      "cause": "the sheet is a flex column with a height limit; the list could shrink like any child",
+      "fix": "the list does not shrink (flex: none) and scrolls past 180 px",
+      "test": "checked in the browser pane: 178 px high, every name readable",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "defect": "long plugin names wrapped onto three lines",
+      "scenario": "'claude-code-setup' beside its long description",
+      "cause": "the name could shrink in its row",
+      "fix": "the name keeps one line; the description is cut with an ellipsis",
+      "test": "checked in the browser pane",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "self",
+      "defect": "the sheet did not say what a plugin can run",
+      "scenario": "a person ticks a plugin with hooks while 'Only DCLab's MCP server' is on, believing it is contained",
+      "cause": "strict MCP mode drops a plugin's MCP servers (SDK docs) but not its hooks",
+      "fix": "the sheet's hint says hooks run outside DCLab's guards and MCP servers only when the box is off",
+      "test": "none (text)",
+      "severity": "gap"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test that runs passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 91 passed, 19 page tests skipped (Chromium is not installed on this machine now)",
+      "verdict": "pass"
+    },
+    {
+      "name": "visual",
+      "gate": "the list is readable in the real page",
+      "fixed_before_run": true,
+      "result": "43 plugins listed, one line each, the list scrolls",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The person can turn their Claude Code plugins on for DCLab Code's sessions from Settings.",
+  "lessons": [
+    "Look at a new list in the real page: a flex column can hide a whole section and every test still passes.",
+    "When something runs code, say on the screen what the guards do not cover."
+  ],
+  "risks": [
+    "no live session with a plugin on yet; the page tests did not run (no Chromium); no marketplace"
+  ],
+  "commits": []
+}
