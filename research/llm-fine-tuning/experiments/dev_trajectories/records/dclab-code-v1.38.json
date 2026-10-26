@@ -1,0 +1,142 @@
+{
+  "package": "dclab-code-v1.38",
+  "title": "CI auto-fix, split view and scheduled tasks, with the reviewer's seven findings fixed",
+  "date": "2026-10-26",
+  "request": "The owner's goal: the same capabilities as Claude Code desktop; the side-by-side's medium gaps.",
+  "spec": "docs/PARITY_EVIDENCE.md",
+  "plan": [
+    "CI auto-fix on a session's pull request",
+    "split view",
+    "scheduled tasks",
+    "review, fix, test"
+  ],
+  "decisions": [
+    {
+      "decision": "the app pushes the fix, not the agent",
+      "why": "the push stays one audited act of the app, after checks only it can make"
+    },
+    {
+      "decision": "push only a fix turn that ended on its own, untouched",
+      "why": "a stop, an error, a restart or the person's message means the commit is not a finished fix"
+    },
+    {
+      "decision": "split view embeds the same page; frame-ancestors 'self'",
+      "why": "each side keeps all its behaviour with no new state; no other site can frame the app"
+    },
+    {
+      "decision": "a scheduled run gets its own copy in a git project",
+      "why": "it never edits files the person is working on"
+    }
+  ],
+  "change": "dclab-code server/ci_fix.js and server/schedules.js (new), server/app.js, server/engine.js (send and outcome take 'app' as the sender), server/events.js and server/transcript.js (an app message said as the app's), server/git.js (headSha), server/worktree.js (headRefOid), web/* (CI switch, split pane, scheduled tasks section, keys off in a split), tests, docs.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "a stopped, failed or interrupted fix turn was still pushed",
+      "scenario": "the person presses Stop mid-fix: the next look pushed the half-done commit (verified)",
+      "cause": "'fixing' was cleared only by the push",
+      "fix": "push only when an app message was followed by a successful result with no stop and no other message",
+      "test": "server test: Stop mid-fix, nothing pushed; undoing the check fails it",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "an unattended fix turn ran in a session whose project (and guards) were removed",
+      "scenario": "auto-fix on, project removed from the list",
+      "cause": "the tick called send directly, past the route's check",
+      "fix": "the tick skips such sessions",
+      "test": "server test",
+      "severity": "leakage"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "the app's own acts were recorded as the person's",
+      "scenario": "ci_fix_started and ci_fix_pushed by: person, a false label in R&D's sets",
+      "cause": "outcome() always used the person",
+      "fix": "outcome takes a sender; the app's acts are 'app'",
+      "test": "server test checks every ci_fix outcome",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "check names from CI reached the agent unchanged",
+      "scenario": "a check named with new lines and an instruction",
+      "cause": "no cleaning",
+      "fix": "one line, short, no control characters; marked as data; never in bypass mode",
+      "test": "server test with an injected name",
+      "severity": "privacy"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "the auto-fix switch had no same-page check",
+      "scenario": "a local script with the token turned it on as the person",
+      "cause": "missing sameOrigin",
+      "fix": "403 unless from the page",
+      "test": "server test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "the tick ignored a busy copy",
+      "scenario": "a fix turn during the person's merge or push",
+      "cause": "no busy check",
+      "fix": "wait while merging, pushing, removing or being made",
+      "test": "unit test",
+      "severity": "latent"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "defect": "Y/N/A in a split answered the card of whichever side had focus",
+      "scenario": "focus in the right pane, the person means the left card",
+      "cause": "keys act per frame",
+      "fix": "the keys are off in a split view",
+      "test": "none (keys)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F8",
+      "source": "test",
+      "defect": "a scheduled task could run twice in one slot",
+      "scenario": "the run recorded the system clock, not the slot's time",
+      "cause": "lastRun from new Date()",
+      "fix": "the tick's time",
+      "test": "server test 'never twice in one slot'",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F9",
+      "source": "self",
+      "defect": "the copy could hold commits not on the pull request when a fix starts",
+      "scenario": "the person committed in the copy without pushing",
+      "cause": "no check of HEAD against the PR head",
+      "fix": "auto-fix stops and says so",
+      "test": "server test",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes; the untouched-turn check's test fails when it is undone",
+      "fixed_before_run": true,
+      "result": "dclab-code 129 of 129; without the check the half-done commit is pushed and the test fails",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "DCLab Code fixes failing CI on its own within strict limits, shows two sessions side by side, and runs scheduled tasks.",
+  "lessons": [
+    "An unattended action needs proof that the work it ships is finished, not just a flag set when it started.",
+    "Every record the app writes for itself must say it is the app's, or training learns a false label."
+  ],
+  "risks": [
+    "CI logs remain untrusted input to an unattended turn (asks still apply); review comments, merge conflicts and auto-merge are not handled"
+  ],
+  "commits": []
+}
