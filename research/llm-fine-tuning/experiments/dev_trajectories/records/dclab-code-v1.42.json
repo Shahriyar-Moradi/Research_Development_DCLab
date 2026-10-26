@@ -1,0 +1,25 @@
+{
+  "package": "dclab-code-v1.42",
+  "title": "The problem's map edited in DCLab Code's card, as on DCLab's own page",
+  "date": "2026-10-26",
+  "request": "The owner's goal: every agentic system of DCLab R&D works behind DCLab Code's chat with the same capabilities. v1.41 left the problem's map read-only in the card; a wrong part meant leaving the chat.",
+  "spec": "dclab-code docs/PARITY_PLAN.md (the home row)",
+  "plan": ["read R&D's map edit rules (draft/map.py EDIT_KEYS, home.html mapAct and mapMerge)", "a map_edit answer with only each edit's fields", "the card's map with Remove, Merge into, Add a part, Confirm, Draw it again", "tests, a check against a real rules-only R&D, review"],
+  "decisions": [
+    {"decision": "the card sends only each edit's own fields and lets R&D's validator judge the map", "why": "the map's soundness rules live in dclab_core; a second copy here would drift"},
+    {"decision": "the family list is copied from home.html with its source named; the server checks only its shape", "why": "R&D refuses an unknown family with its reason, so a stale copy cannot write a wrong map"}
+  ],
+  "change": "dclab-code c2c7f33: server/dclab_person.js (map_edit), web/draft.js (drawMap, act returns the result), server/app.js (record: a title only for add), web/style.css, tests, docs/PARITY_PLAN.md.",
+  "findings": [
+    {"id": "F1", "source": "self", "defect": "a merge's ignored title was recorded as words the person said", "scenario": "a map_edit merge carrying a title field: the record kept it as the person's text", "cause": "the recorded text took the first string field of any answer", "fix": "the title is recorded only for an add", "test": "server test: the merge records no text", "severity": "behaviour"}
+  ],
+  "measurements": [
+    {"name": "tests", "gate": "every test passes", "fixed_before_run": true, "result": "dclab-code 144 of 144 (page tests in Chromium)", "verdict": "pass"},
+    {"name": "real R&D check", "gate": "add, merge and confirm reach R&D and its refusals reach the card", "fixed_before_run": true, "result": "rules-only R&D on a scratch workspace: add, merge, confirm done; removing the last part refused 409 'a map keeps at least one part'", "verdict": "pass"},
+    {"name": "sync-check", "gate": "every R&D agent reached", "fixed_before_run": true, "result": "18 of 18 agents reached, in sync with R&D 3c9a605e on GitHub", "verdict": "pass"}
+  ],
+  "outcome": "The problem's map is changed from the chat exactly as on DCLab's page; nothing of the Home agent's conversation needs DCLab's page now except connecting a database or a bucket, whose credentials stay on its server.",
+  "lessons": ["Record only the words a person typed for that action, never a field the action ignores."],
+  "risks": ["databases and buckets are still connected on DCLab's page"],
+  "commits": ["dclab-code c2c7f33"]
+}
