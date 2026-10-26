@@ -1,0 +1,151 @@
+{
+  "package": "dclab-code-v1.32",
+  "title": "The plugin marketplace; R&D's measurement agents from the chat; two page bugs every person would hit",
+  "date": "2026-10-26",
+  "request": "The owner's goal: Claude Code's capabilities (its plugin marketplace) and every R&D agent behind the chat, in sync with R&D on GitHub.",
+  "spec": "docs/UI_REVIEW.md, docs/PARITY_PLAN.md",
+  "plan": [
+    "list every plugin of every marketplace, searchable",
+    "install at the marketplace's pinned commit into DCLab Code's own folder",
+    "add, update and remove marketplaces",
+    "reach the team of roles and the learning scoreboard as commands the person approves; live-check them"
+  ],
+  "decisions": [
+    {
+      "decision": "install into DCLab Code's own folder, never Claude Code's",
+      "why": "Claude Code keeps its own records of what it installed; writing there could break it"
+    },
+    {
+      "decision": "fetch the commit the marketplace pins (a sha), and say when a source pins none",
+      "why": "the person gets exactly what the marketplace lists, not whatever the repository holds today"
+    },
+    {
+      "decision": "git with hooks off, no file or ext protocols, no prompts, no LFS smudge",
+      "why": "a fetch must never run the repository's code"
+    },
+    {
+      "decision": "the orchestra spike stays explained, not wired",
+      "why": "a prototype with no command line, replaced by the two teams the chat reaches"
+    }
+  ],
+  "change": "dclab-code server/plugins.js (marketplaces, install, remove, symlink-safe), server/app.js (POST /api/settings/plugins, inClaudeCode), web/* (search, Install, Remove, marketplaces, restart reload, click fix), sync/agents.json, scripts/sync-check.js, tests, docs.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "Install could move a folder out of the person's home, and Remove then delete it",
+      "scenario": "a plugin repository holds a link a -> ../../../.. and its entry is git-subdir a/.ssh: ~/.ssh was renamed into the plugins folder (verified in a scratch home)",
+      "cause": "the path checks compared text; rename follows links inside a path",
+      "fix": "the source must be a real folder whose resolved path is inside the fetched copy; a marketplace folder linked outside is never listed",
+      "test": "server test with links to a temp 'victim' folder; undoing either check fails it",
+      "severity": "privacy"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "after one marketplace action the Add button stayed disabled",
+      "scenario": "add one marketplace, then try a second",
+      "cause": "buttons re-enabled only on failure; Add is a fixed element",
+      "fix": "re-enabled in finally",
+      "test": "page test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "a plugin on in Claude Code could load twice",
+      "scenario": "enabled in Claude Code, then installed and ticked here",
+      "cause": "inClaudeCode was only set for plugins on disk",
+      "fix": "shown on and locked; install and tick refused",
+      "test": "server test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "install failed with a raw TypeError when two entries shared a name",
+      "scenario": "one folder entry and one repository entry named x",
+      "cause": "the first entry of that name was taken",
+      "fix": "the entry with a repository",
+      "test": "server test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "a reconnect after a refused stream skipped reloading the state",
+      "scenario": "the stream closes for another reason; events in the gap lost",
+      "cause": "a fresh connect started unbroken",
+      "fix": "connect(true) reloads the state",
+      "test": "none (reasoned)",
+      "severity": "latent"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "removing an added marketplace could delete plugins from a Claude Code marketplace of the same name",
+      "scenario": "both named acme",
+      "cause": "one install folder per key",
+      "fix": "installed/claude-code/<key> and installed/added/<key>",
+      "test": "server test paths",
+      "severity": "latent"
+    },
+    {
+      "id": "F7",
+      "source": "test",
+      "defect": "no checkbox in the Settings sheet could be ticked by a click",
+      "scenario": "click 'Only DCLab's MCP server' or a plugin's tick: nothing changes",
+      "cause": "the backdrop's onclick returned false for clicks inside the sheet, which cancels the click",
+      "fix": "block bodies (also the palette and a tool row)",
+      "test": "page test clicks two checkboxes; the old handler fails it",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F8",
+      "source": "self",
+      "defect": "after a server restart the page waited forever",
+      "scenario": "npm start again: the page shows 'Reconnecting…' and every button fails",
+      "cause": "the new token refuses the old page's stream and the browser stops retrying",
+      "fix": "on a refusal the page checks; on 401 it reloads, keeping an unsent message",
+      "test": "page test restarts the server on the same port; fails without the fix",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F9",
+      "source": "self",
+      "defect": "sync-check could not reach a command that is a module file",
+      "scenario": "team mapped as python -m dclab_rnd.agent_eval.team",
+      "cause": "only packages with __main__.py counted",
+      "fix": "a module file with a main block counts",
+      "test": "sync-check green",
+      "severity": "gap"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "live",
+      "gate": "team and learning run from the chat; nothing spent or stored; R&D unchanged",
+      "fixed_before_run": true,
+      "result": "team showed its plan; learning ran 2 check variants (1 passed); R&D's git status identical; $0.09",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "every test passes; each guard's test fails when the guard is undone",
+      "fixed_before_run": true,
+      "result": "dclab-code 117 of 117; both symlink checks, the click fix and the restart reload each caught by their tests",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The person can browse, install, tick and remove Claude Code plugins and marketplaces in DCLab Code, safely; every R&D agent is reached or has a stated reason.",
+  "lessons": [
+    "A path check on text is no check where links exist: resolve real paths before a move or a delete.",
+    "An onclick that returns false cancels the click: write handlers with block bodies.",
+    "Test a restart: a token per start strands every open page."
+  ],
+  "risks": [
+    "no real plugin was installed from GitHub (it downloads third-party code: the owner's choice)",
+    "cloud sessions remain"
+  ],
+  "commits": []
+}
