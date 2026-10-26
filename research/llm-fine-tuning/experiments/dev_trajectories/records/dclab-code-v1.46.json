@@ -1,0 +1,25 @@
+{
+  "package": "dclab-code-v1.46",
+  "title": "The agent hears what the person did in DCLab's card before it answers",
+  "date": "2026-10-26",
+  "request": "The owner's own test in the app: after building from DCLab's card, 'ok show evaluation of the model' got 'There is no model to evaluate yet. The draft is still at its first question.'",
+  "spec": "dclab-code server/engine.js (send, cardMoves), server/prompts/card_note.md",
+  "plan": ["trace the owner's session records", "a note before the person's next message listing the card's moves since their last message", "a test; a live check of the same question", "record"],
+  "decisions": [
+    {"decision": "the note lists the moves and tells the agent to read the state, rather than the app reading DCLab's state itself", "why": "the agent's own tools give the whole state and its results; the note only has to stop it answering from memory"},
+    {"decision": "the note rides on the existing appNote path (the rewind note's)", "why": "kept beside the message in the records, never shown or stored as the person's words"},
+    {"decision": "read-only DCLab tools still ask in 'Ask first' mode", "why": "allowing them without a click changes what the person's mode means: the owner decides"}
+  ],
+  "change": "dclab-code 785798d: server/engine.js, server/prompts/card_note.md, tests/server.test.js.",
+  "findings": [
+    {"id": "F1", "source": "owner", "defect": "the agent described a draft as it last saw it, after the person had built it in the card", "scenario": "s_8f7c9cee8865: 7 card moves between turns, then 'ok show evaluation of the model': no tool call, 'the draft is still at its first question' while project 64aba1052de9 had run 9 stages", "cause": "the card's moves happen outside the agent's view; nothing told it they had happened", "fix": "a note before the next message with the moves and 'read it now: home_status, get_results'", "test": "server test: the note first, then the words; no note when nothing happened; live: home_status called first", "severity": "behaviour"}
+  ],
+  "measurements": [
+    {"name": "tests", "gate": "every test passes", "fixed_before_run": true, "result": "dclab-code 144 of 144", "verdict": "pass"},
+    {"name": "live", "gate": "the owner's question reads the state first", "fixed_before_run": true, "result": "home_status called before the answer; the answer matched the draft; $0.17 + EUR 0.01", "verdict": "pass"}
+  ],
+  "outcome": "Whatever the person does in DCLab's card, the agent's next answer starts from DCLab's state, not its memory.",
+  "lessons": ["When the person can change state through a surface the agent does not see, tell the agent at the next message, and tell it to read before it speaks."],
+  "risks": ["a read-only status call still asks in 'Ask first' mode"],
+  "commits": ["dclab-code 785798d"]
+}
