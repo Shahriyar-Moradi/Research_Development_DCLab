@@ -1,0 +1,67 @@
+{
+  "package": "dclab-code-v1.39",
+  "title": "Side sessions: the agent proposes, the person allows; a copy never made for a folder git ignores",
+  "date": "2026-10-26",
+  "request": "The owner's goal: the same capabilities as Claude Code desktop; side sessions were the last medium gap.",
+  "spec": "R&D agent_runs/live_tests/2026-10-26-dclab-code-side-session/README.md",
+  "plan": [
+    "a start_session tool for the agent",
+    "a card that is the person's decision each time",
+    "a new session in its own copy",
+    "live check"
+  ],
+  "decisions": [
+    {
+      "decision": "the tool runs only after the person's Allow on a decision card, never 'always'",
+      "why": "starting work in the person's project is the person's decision"
+    }
+  ],
+  "change": "dclab-code server/side_sessions.js (new), server/config.js and server/guards.js (the person rule and its reason), server/engine.js (the tool; a missing folder said plainly), server/app.js (startSideSession; copies refused for an untracked folder fall back to the folder itself, for side sessions and scheduled tasks), server/worktree.js (refuse before making such a copy), tests, docs.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "measurement",
+      "defect": "a side session (or a scheduled task, or Own copy) in a project folder git ignores ran in a folder that did not exist",
+      "scenario": "live session s_f21c1552ee28: the copy of R&D did not contain agent_runs/live_tests/live-project; the SDK blamed its binary",
+      "cause": "a git worktree has only tracked files",
+      "fix": "refused before the copy is made; side sessions and scheduled tasks work in the folder itself and say so; a missing folder is said plainly",
+      "test": "server test with an ignored project folder; live rerun s_15bc5b2a81eb worked in the folder",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "measurement",
+      "defect": "the failed run left a full copy of the R&D repository",
+      "scenario": "the first live run",
+      "cause": "the copy was made before the folder was known missing",
+      "fix": "removed through DCLab Code's Remove; the check now runs before any copy",
+      "test": "no worktree left (git worktree list)",
+      "severity": "latent"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "live",
+      "gate": "the agent proposes, the card is the person's, Allow starts a working side session",
+      "fixed_before_run": true,
+      "result": "two runs, $0.18; the second side session worked in the folder and asked before editing; denied, README unchanged",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 132 of 132",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The agent can hand a piece of work to a new session with the person's Allow; no copy is ever made that lacks the project.",
+  "lessons": [
+    "A copy of a repository holds only what git tracks: check the project is in it before making one.",
+    "Say the real cause: a tool's own error message can point at the wrong thing."
+  ],
+  "risks": [
+    "a hand-off of the task under way is not built"
+  ],
+  "commits": []
+}
