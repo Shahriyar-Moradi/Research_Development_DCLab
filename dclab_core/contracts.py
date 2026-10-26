@@ -442,8 +442,14 @@ except ModuleNotFoundError as _exc:
 import dclab_core.recipes  # noqa: E402,F401  (recipe parts and resolved recipes, 30.10)
 import dclab_core.second_opinion  # noqa: E402,F401  (the second opinion on the card's family, 28.6)
 import dclab_core.debate  # noqa: E402,F401  (two solution designers and a judge, 28.6)
-import dclab_core.challenge_pack  # noqa: E402,F401  (challenge packs, their keys and grades: the harness that learns, H0)
-import dclab_core.playbook  # noqa: E402,F401  (the playbook and its deltas: the harness that learns, H2)
+try:
+    import dclab_core.challenge_pack  # noqa: E402,F401  (challenge packs, their keys and grades: the harness that learns, H0)
+except ModuleNotFoundError as _exc:
+    _closed(_exc, "dclab_core.challenge_pack")
+try:
+    import dclab_core.playbook  # noqa: E402,F401  (the playbook and its deltas: the harness that learns, H2)
+except ModuleNotFoundError as _exc:
+    _closed(_exc, "dclab_core.playbook")
 import dclab_core.decide  # noqa: E402,F401  (the decision spec: one decision core, 34.1)
 import dclab_core.serving  # noqa: E402,F401  (the prediction and outcome log of a model in use, 34.9)
 import dclab_core.data_value  # noqa: E402,F401  (would more rows help: the learning curve on the training folds, 34.13)

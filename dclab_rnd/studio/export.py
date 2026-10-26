@@ -217,7 +217,7 @@ def _split_text(time_column: str | None, group_column: str | None, regression: b
 
 def _split_code(time_column: str | None, group_column: str | None, regression: bool, data: dict[str, Any], folds: int = 3) -> str:
     if time_column:
-        return (f"order = np.argsort(pd.to_datetime(frame[{time_column!r}], errors='coerce').to_numpy().astype('int64') if frame[{time_column!r}].dtype == object else frame[{time_column!r}].to_numpy(), kind='stable')\n"
+        return (f"order = np.argsort(pd.to_datetime(frame[{time_column!r}], errors='coerce').to_numpy().astype('int64') if (frame[{time_column!r}].dtype == object or isinstance(frame[{time_column!r}].dtype, pd.StringDtype)) else frame[{time_column!r}].to_numpy(), kind='stable')\n"
                 "X, y = X.iloc[order].reset_index(drop=True), y.iloc[order].reset_index(drop=True)\n"
                 "n_test = int(round(0.2 * len(X)))\nX_train, X_test = X.iloc[:-n_test], X.iloc[-n_test:]\ny_train, y_test = y.iloc[:-n_test], y.iloc[-n_test:]\n"
                 f"from sklearn.model_selection import TimeSeriesSplit\ncv = TimeSeriesSplit(n_splits={folds})\ncv_groups = None")

@@ -1184,6 +1184,19 @@ def _scalar_metric_names(rows: list[dict[str, Any]]) -> list[str]:
     return names
 
 
+def _drop_unseen_columns(fit_matrix: Any, eval_matrix: Any, names: list[str]) -> tuple[Any, Any, list[str]]:
+    """Leave out a feature with no value at all in the fit rows: there is nothing to learn from it, and scikit-learn 1.9's
+    histogram gradient boosting fails on it while binning (an all-empty column in a real table). Decided on the fit rows
+    only; the evaluation rows lose the same columns. A sparse matrix, or one with nothing to drop, is returned as it is."""
+    if not isinstance(fit_matrix, np.ndarray) or fit_matrix.ndim != 2 or fit_matrix.dtype.kind != "f" or not len(fit_matrix):
+        return fit_matrix, eval_matrix, names
+    seen = ~np.isnan(fit_matrix).all(axis=0)
+    if seen.all() or not seen.any():
+        return fit_matrix, eval_matrix, names
+    kept = [name for name, keep in zip(names, seen) if keep] if len(names) == len(seen) else names
+    return fit_matrix[:, seen], np.asarray(eval_matrix)[:, seen], kept
+
+
 def fit_and_predict(
     bundle: TaskBundle,
     recipe_name: str,
@@ -1211,6 +1224,7 @@ def fit_and_predict(
         recipe.fit(X_fit, y_fit)
         fit_matrix, names = recipe.transform(X_fit)
         eval_matrix, _ = recipe.transform(X_eval)
+        fit_matrix, eval_matrix, names = _drop_unseen_columns(fit_matrix, eval_matrix, names)
         s.out(shape=fit_matrix.shape, produced=fit_matrix)
     fraction = bundle.spec.settings.get("fit_negative_fraction")
     y_values = y_fit.to_numpy()

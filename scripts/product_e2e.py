@@ -391,6 +391,7 @@ def keep_workspace(home: tempfile.TemporaryDirectory | None, name: str, root: Pa
         return None
 
 
+# dclab:closed-begin  (the flows' results kept for the training store: the full edition's)
 def keep_results(results: list[dict], argv: list[str], wall: float, kept: Path | None, where: Path | None = None) -> Path | None:
     """Each flow's result kept whole (its name, verdict, the whole line it printed, its seconds) as a run beside the test
     suite's (``training_records/test_runs/<day>/<run>.jsonl.gz``, indexed in ``runs.jsonl``; the store's test_runs keeper
@@ -437,6 +438,7 @@ def keep_results(results: list[dict], argv: list[str], wall: float, kept: Path |
     except OSError as error:
         print(f"note: the flows' results were not kept ({error})", file=sys.stderr)
         return None
+# dclab:closed-end
 
 
 def start_server() -> tuple[subprocess.Popen, str, tempfile.TemporaryDirectory]:
@@ -506,10 +508,12 @@ def main(argv: list[str] | None = None) -> int:
             if kept is not None:
                 print(f"kept: {kept}")
             home.cleanup()
+        # dclab:closed-begin  (the flows' results kept for the training store: the full edition's)
         if results:
             recorded = keep_results(results, list(argv if argv is not None else sys.argv[1:]), time.time() - began, kept)
             if recorded is not None:
                 print(f"results kept: {recorded}")
+        # dclab:closed-end
     print("all flows passed" if not failed else f"{failed} flow(s) failed")
     return 1 if failed else 0
 

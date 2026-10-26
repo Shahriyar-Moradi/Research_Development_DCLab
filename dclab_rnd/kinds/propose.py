@@ -18,6 +18,8 @@ from typing import Any, Callable, Iterable, Optional
 
 import pandas as pd
 
+from dclab_core.times import is_text  # object on pandas 2, the string type on pandas 3
+
 
 @dataclass
 class FieldProposal:
@@ -100,7 +102,7 @@ SOURCE_WORDS = {"author", "source", "writer", "sender", "user", "customer", "pat
 
 def _embedded(frame: pd.DataFrame, target: Optional[str]) -> FieldProposal:
     p = FieldProposal("embedded")
-    texts = [c for c in frame.columns if c != target and frame[c].dtype == object and frame[c].dropna().astype(str).str.len().mean() > 40]
+    texts = [c for c in frame.columns if c != target and is_text(frame[c]) and frame[c].dropna().astype(str).str.len().mean() > 40]
     texts.sort(key=lambda c: (not (_tokens(c) & TEXT_WORDS), -frame[c].dropna().astype(str).str.len().mean()))
     if texts:
         p.fields.update(item_kind="text", text_column=texts[0])
@@ -129,7 +131,7 @@ def _forecasting(frame: pd.DataFrame, target: Optional[str]) -> FieldProposal:
     p.time_column = date
     p.why.append(f"`{date}` holds the dates the forecast moves along")
     stamp = pd.to_datetime(frame[date].astype(str), errors="coerce", format="mixed")
-    candidates = [c for c in frame.columns if c not in (target, date) and (frame[c].dtype == object or bool(_tokens(c) & SERIES_WORDS))
+    candidates = [c for c in frame.columns if c not in (target, date) and (is_text(frame[c]) or bool(_tokens(c) & SERIES_WORDS))
                   and 1 < frame[c].nunique(dropna=True) < max(3, len(frame) // 3)]
     # a series column only where dates repeat (several series): on one series every date is unique, and any column with few
     # values (a weekday) would pass as "one row per date" (the review of S9)
@@ -492,7 +494,7 @@ FITS: dict[str, Callable[[pd.DataFrame, str], bool]] = {  # what a column must l
     "event_column": _binary, "treatment_column": _binary,
     "start_column": lambda f, c: c in _dates(f), "time_column": lambda f, c: c in _dates(f),
     "series_column": _repeating_category, "user_column": _repeating_category, "item_column": _repeating_category,
-    "source_column": _repeating_category, "text_column": lambda f, c: f[c].dtype == object and f[c].dropna().astype(str).str.len().mean() > 40,
+    "source_column": _repeating_category, "text_column": lambda f, c: is_text(f[c]) and f[c].dropna().astype(str).str.len().mean() > 40,
 }
 
 

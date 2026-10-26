@@ -4,6 +4,12 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.121.1 (2026-10-26)
+
+- `signals.task_contradicts_words` reads machines' sensor readings with "anomaly" words (the card's streams family since
+  0.121.0) as the anomaly problem they still are: nothing labelled, so a saved labelled task is flagged again. The card's
+  reading is unchanged.
+
 ## 0.121.0 (2026-10-26)
 
 - `card` family words, found in the live replay of 45 written people: an offer given to some and not to others, "so we

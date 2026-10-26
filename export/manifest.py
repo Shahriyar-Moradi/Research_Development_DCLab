@@ -51,6 +51,16 @@ EXCLUDE = [
     "dclab_rnd/agentic/engine.py", "dclab_rnd/agentic/agents.py", "dclab_rnd/agentic/campaign_tools.py",
     "dclab_rnd/agentic/live_eval.py", "dclab_rnd/agentic/guide_review.py", "dclab_rnd/agentic/clean_export.py",
     "dclab_core/business_examples.py", "dclab_core/expert.py", "dclab_core/schemas/baseline/**",
+    "dclab_rnd/*_measure.py", "dclab_rnd/bakeoff.py", "dclab_rnd/campaign_capture.py", "dclab_rnd/models/probe_reasoning.py",
+    # the harness that learns (H0 to H6) and the 100-students plan: training machinery, the full edition's
+    "dclab_rnd/learning/**", "dclab_core/challenge_pack.py", "dclab_core/playbook.py", "dclab_core/variants.py",
+    "dclab_core/schemas/challenge_key.json", "dclab_core/schemas/challenge_pack.json", "dclab_core/schemas/grade.json",
+    "dclab_core/schemas/playbook.json", "dclab_core/schemas/playbook_delta.json",
+    "dclab_rnd/prompts/playbook_intro.md", "dclab_rnd/prompts/reflector.md",
+    "dclab_rnd/understand_students.py", "dclab_rnd/first_family.py", "dclab_rnd/ledger/mapped.py", "dclab_rnd/ability_records.py",
+    # invented people and the journeys they write, the real-table screen and the lake's twins
+    "dclab_rnd/live_people.py", "dclab_rnd/people_writer.py", "dclab_rnd/prompts/journey_*.md",
+    "dclab_rnd/real_screen.py", "dclab_rnd/table_twins.py", "dclab_core/lake_twins.json",
     # the twin lane and the orchestration spike
     "dclab_rnd/twin/**", "dclab_core/twin.py", "dclab_rnd/orchestra/**", "dclab_core/orchestra.py",
     "dclab_rnd/prompts/ai_first_*.md", "dclab_rnd/prompts/store_curator.md", "dclab_rnd/prompts/reasoning_teacher.md",
@@ -70,7 +80,7 @@ CLOSED = [
     "store", "lake", "students", "students_loop", "students_exam", "collector", "real_shadow", "real_homework", "archive", "devlog", "own_llm", "own_models", "workflow_models",
     "agent_eval", "research_map", "twin", "orchestra", "testers", "business_examples", "real_problems", "committee", "curriculum",
     "datasets", "registry", "master_review", "critic_gate", "notebook_assist", "certify", "cli", "agentic.engine", "agentic.agents",
-    "agentic.campaign_tools", "agentic.live_eval", "agentic.guide_review", "agentic.clean_export", "connectors.cloud", "connectors.hf",
+    "agentic.campaign_tools", "agentic.live_eval", "agentic.guide_review", "agentic.clean_export", "connectors.cloud", "connectors.hf", "learning",
 ]
 
 # Words replaced in every exported text file, in this order (after the package rename): the owner's real dataset and the mock
@@ -115,6 +125,7 @@ TESTS = {
         "tests/test_dev_script.py": "tests scripts/dev.py (the private repository's development runner)",
         "tests/test_deploy.py": "tests the cloud code in deploy/, which is not exported",
         "tests/test_staging_check.py": "tests a Makefile target of the private repository",
+        "tests/test_store_scheduled.py": "tests scripts/store_scheduled.py, the training store's scheduled run (the full edition's)",
         "tests/test_storage_migrate.py": "builds its workspace with the intern on the Telco sample table, which is not shipped",
         "tests/test_decision_routing.py": "routes measured classifiers: needs the sealed gate results in evidence/ and the agent_eval suites",
     },

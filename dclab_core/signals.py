@@ -98,7 +98,7 @@ def built_with_question_open(events: list[Any]) -> list[Flag]:
 
 
 def task_contradicts_words(events: list[Any]) -> list[Flag]:
-    from dclab_core.card import problem_card
+    from dclab_core.card import WORDS, problem_card
     from dclab_core.understand import understand
 
     out, words, said, built = [], {}, {}, {}  # conversation -> its latest words and the event that said them; project -> draft
@@ -115,6 +115,8 @@ def task_contradicts_words(events: list[Any]) -> list[Flag]:
         elif e.kind == "solution.saved" and conversation in words:
             card = problem_card(understand(words[conversation]), words=words[conversation])
             families = set(card.in_play or ([card.family.value] if card.family.value else []))
+            if families == {"streams"} and WORDS["anomaly"].search(words[conversation]):
+                families = {"anomaly"}  # machines' readings with something off asked (card 0.121): still nothing labelled to learn
             if not families or not families <= RARE_FAMILIES or e.payload.get("kind") in RARE_FAMILIES:
                 continue
             task = e.payload.get("task")

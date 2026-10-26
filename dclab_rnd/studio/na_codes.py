@@ -61,8 +61,8 @@ def na_as_read(frame):
             kept.append(str(column))
             continue
         series = series.astype(object).mask(hits, np.nan)
-        inferred = series.infer_objects()
-        if inferred.dtype != object:  # a spreadsheet's dates or numbers, read as such once "NA" is gone
+        inferred = series.infer_objects()  # text stays object on pandas 2 and becomes pandas 3's string type: still undecided
+        if inferred.dtype != object and not isinstance(inferred.dtype, pd.StringDtype):  # a spreadsheet's dates or numbers
             frame[column] = inferred
             continue
         distinct = pd.Series(pd.unique(series.dropna()), dtype=object)  # judged on the distinct values, never cell by cell
@@ -74,7 +74,7 @@ def na_as_read(frame):
         if words and words <= {"true", "false"}:
             frame[column] = series.map(lambda v: v if not isinstance(v, str) else v.strip().lower() == "true")
         else:
-            frame[column] = series
+            frame[column] = inferred  # text, typed as pandas types text: object on pandas 2, its string type on pandas 3
     return frame, kept
 
 

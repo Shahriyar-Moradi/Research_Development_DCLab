@@ -19,6 +19,7 @@ from dclab_rnd.agents import harness
 from dclab_rnd.agents.registry import Registry, Tool
 from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer, scrub
+from dclab_rnd.extensions import optional
 from dclab_rnd.jobs import checkpoint
 from dclab_rnd.studio import graph as studio_graph
 
@@ -181,10 +182,9 @@ class Intern:
             session["error"] = f"{type(exc).__name__}: {str(exc)[:400]}"
             grouped = fingerprints.from_exception(exc)  # 23.4: where it broke, read here while the traceback is at hand
         session["used"]["minutes"] = round(session["used"].get("minutes_before", 0.0) + (time.monotonic() - started) / 60, 2)
-        if session.get("playbook"):  # H2: the shown lessons its replies and thoughts named, kept with what it was shown
-            from ..learning.inject import cited_in
-
-            session["playbook"]["used"] = cited_in(session)
+        inject = optional("learning.inject") if session.get("playbook") else None  # the harness that learns is the full edition's
+        if inject is not None:  # H2: the shown lessons its replies and thoughts named, kept with what it was shown
+            session["playbook"]["used"] = inject.cited_in(session)
         from .. import experience  # 19.3: the intern's answer, or how the turn ended, in the session's record
 
         if session.get("final"):
