@@ -118,6 +118,7 @@ class ActDecisionTest(unittest.TestCase):
         self.assertLessEqual(d["holdout"]["actions"], days["slots"])
         self.assertIn("day by day", d["applied_as"])
         self.assertIn("assumes the world stays as it was", d["holdout"]["drift"])  # 0.118.1: the latest fold's interval, said
+        self.assertNotIn("refits of the model", d["holdout"]["prediction_interval_method"])  # off by default (time_decision_v5)
         from dclab_core import report as core_report
         from dclab_rnd.studio import solution_report
 

@@ -1200,11 +1200,15 @@ def _decision(p: Prepared, selected: dict[str, Any], y_test: pd.Series, predicti
         return {"decision": decision.action, "learnable": False, "warning": f"The decision could not be computed ({type(exc).__name__})"}
 
 
-REFITS = 10  # refits of the selected model behind a time split's decision interval (0.120.0)
+# Refits of the selected model behind a time split's decision interval (0.120.0). Off (0) since 2026-10-26, the owner's
+# call: time_decision_v5 found they widen the daily interval by 1% for about 20 s a decision (the same seeds passed without
+# them). Set to 10 to turn them on; the core's sample_scores stays.
+REFITS = 0
+REFITS_WHEN_ON = 10
 REFIT_SECONDS = 120.0  # the refits are skipped, and said, when ten of the latest fold's fits would take longer
 
 
-def _refit_scores(bundle: Any, selected: dict[str, Any], flagged: np.ndarray, refits: int = REFITS,
+def _refit_scores(bundle: Any, selected: dict[str, Any], flagged: np.ndarray, refits: int = REFITS_WHEN_ON,
                   group: str | None = None) -> tuple[np.ndarray | None, str | None]:
     """The latest fold's out-of-fold rows scored again by ``refits`` refits of the selected model, each fitted on a
     bootstrap resample of that fold's training rows (whole entities when ``group`` names them), never on a latest-fold or
@@ -1293,8 +1297,9 @@ def _act(p: Prepared, decision: Any, selected: dict[str, Any], oof_y: np.ndarray
         units = len(set(np.asarray(groups)[flagged])) if groups is not None else int(flagged.sum())
         if units >= 20:
             latest = flagged
-            refits, why = _refit_scores(bundle, selected, flagged, group=p.solution.group_column)  # 0.120.0: the fit-to-fit spread
-            if refits is None:
+            refits, why = (_refit_scores(bundle, selected, flagged, refits=REFITS, group=p.solution.group_column)  # 0.120.0
+                           if REFITS >= 2 else (None, None))  # off by default (time_decision_v5)
+            if refits is None and why:
                 days_note = ((days_note + "; ") if days_note else "") + f"the model was not refitted ({why}): the interval holds no fit-to-fit spread"
         else:
             days_note = ((days_note + "; ") if days_note else "") + (f"the latest fold holds {units} rows or entities, too few to "

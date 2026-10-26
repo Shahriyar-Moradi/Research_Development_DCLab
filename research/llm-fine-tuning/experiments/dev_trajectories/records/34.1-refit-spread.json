@@ -24,6 +24,10 @@
     {
       "decision": "The core test reads the widening as an average over three tables",
       "why": "measured on five synthetic tables: four wider by 10 to 25%, one narrower; widening is not a promise for one table"
+    },
+    {
+      "decision": "The refits are off by default (engine.REFITS = 0); the core option and the engine code stay, on with REFITS = 10",
+      "why": "the owner, 2026-10-26, on time_decision_v5's paired reading: the refits widen the daily interval by 1% for about 20 s a decision, and the same seeds passed without them"
     }
   ],
   "change": "dclab_core/decide.py (sample_scores); dclab_rnd/studio/engine.py (_refit_scores, REFITS, REFIT_SECONDS); dclab_rnd/time_decision_measure.py (v5); tests/test_core_decide_holdout_interval.py (2 tests), tests/test_time_decision_measure.py (a failed-refit test and v5's readings); dclab_core 0.120.0, CHANGELOG, CORE_INTEGRATION.md, the plan",
@@ -121,7 +125,7 @@
       ]
     }
   ],
-  "outcome": "The gate passed, but the paired reading shows the refits barely move the interval (1% wider); the pass is the seeds'. The daily interval stays about 15% narrow over 120 seeds, with drift, the pool and the fit-to-fit spread ruled out.",
+  "outcome": "The gate passed, but the paired reading shows the refits barely move the interval (1% wider); the pass is the seeds'. The daily interval stays about 15% narrow over 120 seeds, with drift, the pool and the fit-to-fit spread ruled out. The refits are off by default, the owner's call; the code stays.",
   "lessons": [
     "A remedy for an interval must never let a model score rows it was fitted on: check which rows each refit sees",
     "When a fix can widen an interval for a wrong reason (weaker refits), record what tells the reasons apart before the run",

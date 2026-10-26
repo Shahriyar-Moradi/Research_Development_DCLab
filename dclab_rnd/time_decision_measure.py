@@ -211,7 +211,8 @@ def run_one(seed: int, arm: str) -> dict[str, Any]:
         return out
 
     with recorded(work), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None), \
-            mock.patch.object(decide, "choose_operating_point", paired):
+            mock.patch.object(decide, "choose_operating_point", paired), \
+            mock.patch.object(engine, "REFITS", engine.REFITS_WHEN_ON):  # v5 measured the refits on (off by default since)
         store, pid = acceptance.build(case, work)
         engine.run_all(store, pid)
         labels.from_replica(pid, case.facts, "subscription_churn")  # the planted traps label the decisions (the review)
