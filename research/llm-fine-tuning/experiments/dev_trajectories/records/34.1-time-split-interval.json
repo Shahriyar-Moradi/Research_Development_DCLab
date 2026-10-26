@@ -35,6 +35,10 @@
     {
       "decision": "dclab-core 0.118.1: the holdout's drift note when the interval comes from the latest rows, shown in the solution report",
       "why": "v2's pre-registered step for a centre still above 0: say the drift past the training period, which no interval from past rows holds"
+    },
+    {
+      "decision": "time_decision_v3: the same replica with its drift off, fresh seeds, the gate unchanged",
+      "why": "v2's pre-registered step: measure a table without drift, so the daily arm's miss is tested apart from the drift"
     }
   ],
   "change": "dclab_rnd/time_decision_measure.py and tests/test_time_decision_measure.py (4 tests)",
@@ -137,6 +141,26 @@
       "cause": "a replacement anchor that is a substring of a deeper line",
       "fix": "read the lines and put the block before the if",
       "test": "tests/test_time_decision_measure.py",
+      "severity": "gap"
+    },
+    {
+      "id": "R10",
+      "source": "reviewer",
+      "defect": "v3's step for a daily centre above 0 prescribed a change that could not move it",
+      "scenario": "without drift the replica's rows are independent of the day, so 'draw whole days of the latest fold' has the same distribution as the random day placement the samples already use: a mean z of 0.4 again would be met with a fix that changes nothing",
+      "cause": "a remedy chosen without asking what the table could show",
+      "fix": "the step follows the records: if the folds' values rise from the first fold to the last, the latest fold's model's fewer rows (score the out-of-fold rows with models of the final size); otherwise read the seeds",
+      "test": "tests/test_time_decision_measure.py::TimeDecisionTest::test_the_gates_and_the_next_step_fixed_with_them",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R11",
+      "source": "reviewer",
+      "defect": "'both arms pass' was worded as proof that v2's daily miss was the drift",
+      "scenario": "v3 changes the drift and the seeds at once; v2's miss was 2.2 standard errors, so a pass on new seeds also fits chance",
+      "cause": "a conclusion stronger than the design",
+      "fix": "worded 'consistent with v2's daily miss being the drift'",
+      "test": "tests/test_time_decision_measure.py::TimeDecisionTest::test_the_gates_and_the_next_step_fixed_with_them",
       "severity": "gap"
     }
   ],

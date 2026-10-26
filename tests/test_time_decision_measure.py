@@ -51,10 +51,13 @@ class TimeDecisionTest(unittest.TestCase):
         n = len(tm.SEEDS)
         both = [dict(good, z=0.9 if i % 2 else -0.9) for i in range(n)]
         self.assertEqual(tm.judge(both)["verdict"], "pass")
+        self.assertEqual(tm.judge(both)["next"], "keep the latest fold's interval on time splits, consistent with v2's daily miss being the drift")
         above = [dict(good, z=1.0) for _ in range(n)]  # every seed realises above the centre
         verdict = tm.judge(above)
         self.assertFalse(verdict["gates"]["centre"])
-        self.assertEqual(verdict["next"], "say the drift or the fold model's fewer rows in the decision's note")
+        self.assertEqual(verdict["next"], "read the seeds")  # no fold values recorded: nothing says the folds' models differ
+        climbing = [dict(r, rates={"fold_values": [4.0, 4.5, 5.0]}) for r in above]
+        self.assertEqual(tm.judge(climbing)["next"], "score the out-of-fold rows with models of the final size")
         below = [dict(good, z=-1.0) for _ in range(n)]
         self.assertEqual(tm.judge(below)["next"], "correct the optimism of choosing the model")
         few = [dict(good, chosen_share=0.0, inside_prediction_interval=None, z=None)] * (n - 10) + [dict(good)] * 10
@@ -82,6 +85,19 @@ class TimeDecisionTest(unittest.TestCase):
             out = tm.report()
         self.assertEqual(out["arms"]["daily"]["seeds"], 1)
         self.assertFalse(out["arms"]["daily"]["gates"]["chosen"])
+
+    def test_the_case_is_the_binary_kinds_apart_from_the_drift(self):
+        """The review of v3: the campaign rebuilds the churn case with the replica's drift set; nothing else may differ."""
+        from dclab_core.replicas import subscription_churn
+
+        from dclab_rnd import kinds
+
+        self.assertTrue(subscription_churn.generate(4).subscribers.equals(subscription_churn.generate(4, drift=0.3).subscribers))
+        template = kinds.get("binary").case(4)
+        replica = subscription_churn.generate(4)
+        self.assertTrue(template.table.equals(replica.subscribers))  # the kind's case is the replica's table, as rebuilt
+        self.assertEqual(template.solution, {"positive_label": "yes"})
+        self.assertEqual(template.facts, replica.facts)
 
     def test_numbers_never_collide_between_arms(self):
         numbers = {tm._number(s, a) for s in tm.SEEDS for a in tm.ARMS}

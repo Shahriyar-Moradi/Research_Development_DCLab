@@ -4,6 +4,11 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.118.2 (2026-10-26)
+
+- `replicas.subscription_churn.generate(..., drift=0.3)`: the cancel rate's drift over the two years can be set (0
+  keeps it the same throughout); the default draws exactly the table it drew before. For time_decision_v3.
+
 ## 0.118.1 (2026-10-26)
 
 - `choose_operating_point`'s holdout gains `drift` when its interval is drawn from the rows nearest the holdout: the

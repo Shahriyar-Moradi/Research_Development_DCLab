@@ -1,4 +1,10 @@
-"""The decision's holdout interval on a time split (campaign ``time_decision_v2``; 34.1, plan item 6's open end).
+"""The decision's holdout interval on a time split (campaign ``time_decision_v3``; 34.1, plan item 6's open end).
+
+``time_decision_v2`` (seeds 130 to 159): with the interval drawn from the latest fold (0.118.0), a share capacity passed
+every gate (mean z 0.12) and one call a day kept 26 of 30 inside with its centre above (mean z 0.40); the replica kept
+drifting past the training period. v3 runs the same replica with its drift off (``drift=0``: the cancel rate the same
+over the two years) on fresh seeds (160 to 189), the gate unchanged: does the latest fold's interval keep its word on a
+time split when the world stays the same, the daily arm included?
 
 ``time_decision_v1`` (seeds 100 to 129, 2026-10-26) failed on both arms, every miss above the interval: the replica
 drifts (positive rate 0.217 out of fold, 0.236 on the latest fold, 0.247 on the holdout) and each fold's value rose
@@ -55,17 +61,18 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-CAMPAIGN_ID = "time_decision_v2"
+CAMPAIGN_ID = "time_decision_v3"
 CAMPAIGN = ROOT / "evidence" / "campaigns" / CAMPAIGN_ID
 WORK = ROOT / "agent_runs" / CAMPAIGN_ID  # each run's workspace kept whole: the store reads its sessions, ledger and runs
-SEEDS = tuple(range(130, 160))  # fresh: v1's seeds (100 to 129) and seed 0 raised the question and never judge its fix
+SEEDS = tuple(range(160, 190))  # fresh: v1's (100 to 129) and v2's (130 to 159) seeds and seed 0 never judge it
+DRIFT = 0.0  # the replica's drift switched off: v2's daily miss is tested apart from the drift
 BASE = {"action": "act", "what": "call the customer", "value_per_case": 120.0, "cost_per_action": 10.0}
 ARMS = {
     "pooled": {**BASE, "capacity_share": 0.1, "notes": "a customer kept is worth 120, a call costs 10; at most 10% of the customers called"},
     "daily": {**BASE, "capacity_per_day": 1.0, "notes": "a customer kept is worth 120, a call costs 10; one call a day"},
 }
 GATE = {
-    "id": "time_decision_gate_v2 (v1's, unchanged)",
+    "id": "time_decision_gate_v3 (v1's, unchanged)",
     "chosen": "the decision is chosen on every seed (an operating point; no refusal)",
     "time_split": "every run's data stage split by time (the strategy recorded per run)",
     "capacity": "on every seed that acted, the holdout's actions never exceed its capacity (a share of its rows with one row's "
@@ -75,11 +82,12 @@ GATE = {
     "centre": "each seed's z = (realised - the interval's centre) / (its half-width / 1.645); |mean z| <= 1.645 / sqrt(N)",
     "width": "the 90% chi-squared interval of the root mean square of z contains 1 (neither too narrow nor too wide)",
     "inconclusive": "fewer than 20 seeds acting: no verdict on the interval",
-    "next": "a pass: keep the latest fold's interval on time splits (the paired all-folds interval on the same seeds says how "
-            "much came from a better centre and how much from a wider one); centre still above 0: drift past the training period "
-            "or the latest fold model's fewer rows, as the recorded rates and fold values show: say it in the decision's note and "
-            "measure a table without drift; centre below 0: correct the optimism of choosing the model; too narrow with misses "
-            "on both sides: add blocks of days to the samples; too wide: sample the latest two folds",
+    "next": "both arms pass: the latest fold's interval keeps its word on a time split without drift, consistent with v2's daily "
+            "miss being the drift (a pass on new seeds also fits that miss being chance: it was 2.2 standard errors); centre above "
+            "0: if the folds' values rise from the first fold to the last (mean over the seeds of the last minus the first above "
+            "0), the latest fold's model, fitted on fewer rows than the final one: score the out-of-fold rows with models of the "
+            "final size; otherwise read the seeds; centre below 0: correct the optimism of choosing the model; too narrow with "
+            "misses on both sides: add blocks of days to the samples; too wide: sample the latest two folds",
     "paired": "each run also keeps the interval drawn from every fold (0.115.0's) on the same rows and seed, with its z: reported "
               "beside the gate, never gated",
 }
@@ -102,11 +110,12 @@ CODE_AT_START = code_sha256()
 
 
 def manifest() -> dict[str, Any]:
-    body = {"campaign": CAMPAIGN_ID, "package": "34.1", "seeds": list(SEEDS), "arms": ARMS, "gate": GATE, "dataset": "subscription churn (kinds binary case)",
-            "objective": ("Does the decision's holdout interval keep its word on a time split when its samples come from the latest "
-                          "fold's rows, the nearest the holdout (dclab-core 0.118.0; v1 found the interval from every fold too low)? "
-                          "Thirty fresh seeds of the churn replica, a share capacity read as one pool and a daily capacity read day "
-                          "by day, each against its 90% interval.")}
+    body = {"campaign": CAMPAIGN_ID, "package": "34.1", "seeds": list(SEEDS), "arms": ARMS, "gate": GATE, "drift": DRIFT,
+            "dataset": "subscription churn (kinds binary case's replica, drift off)",
+            "objective": ("Does the latest fold's interval (dclab-core 0.118.0) keep its word on a time split when the world stays the "
+                          "same? Thirty fresh seeds of the churn replica with its drift off, a share capacity read as one pool and a "
+                          "daily capacity read day by day, each against its 90% interval (v2, with the drift on, passed the share and "
+                          "missed the daily arm's centre above).")}
     body["sha256"] = hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
     return body
 
@@ -146,8 +155,12 @@ def run_one(seed: int, arm: str) -> dict[str, Any]:
     from .campaign_capture import recorded
 
     decision = ARMS[arm]
-    case = kinds.get("binary").case(seed)
-    case.solution = {**case.solution, "decision": decision}
+    from dclab_core.replicas import subscription_churn
+
+    template = kinds.get("binary").case(seed)  # the binary kind's churn case, rebuilt with the replica's drift set by DRIFT
+    replica = subscription_churn.generate(seed, drift=DRIFT)
+    case = acceptance.Case(replica.subscribers, template.target, template.task, template.moment, {**template.solution, "decision": decision},
+                           facts=replica.facts)
     started = time.perf_counter()
     work = WORK / f"seed{seed}_{arm}"
     if work.exists():
@@ -289,8 +302,12 @@ def judge(rows: list[dict[str, Any]]) -> dict[str, Any]:
     sides = {s: sum(1 for r in read if r.get("miss_side") == s) for s in ("below", "above")}
     narrow = width is not None and width["interval"][0] > 1
     wide = width is not None and width["interval"][1] < 1
-    step = ("keep the latest fold's interval on time splits" if all(gates.values()) else
-            "say the drift or the fold model's fewer rows in the decision's note" if not gates["centre"] and centre and centre["mean_z"] > 0 else
+    rises = [r["rates"]["fold_values"][-1] - r["rates"]["fold_values"][0] for r in rows
+             if (r.get("rates") or {}).get("fold_values")]
+    rising = bool(rises) and sum(rises) / len(rises) > 0
+    step = ("keep the latest fold's interval on time splits, consistent with v2's daily miss being the drift" if all(gates.values()) else
+            ("score the out-of-fold rows with models of the final size" if rising else "read the seeds")
+            if not gates["centre"] and centre and centre["mean_z"] > 0 else
             "correct the optimism of choosing the model" if not gates["centre"] and centre and centre["mean_z"] < 0 else
             "add blocks of days to the samples" if not gates["width"] and narrow and sides["below"] and sides["above"] else
             "sample the latest two folds" if not gates["width"] and wide else "read the seeds")

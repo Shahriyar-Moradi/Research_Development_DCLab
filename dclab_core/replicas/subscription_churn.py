@@ -25,7 +25,7 @@ class Replica:
     facts: dict[str, Any] = field(default_factory=dict)
 
 
-def generate(seed: int = 0, n: int = 3000) -> Replica:
+def generate(seed: int = 0, n: int = 3000, drift: float = 0.3) -> Replica:
     rng = np.random.default_rng(seed)
     signup = pd.Timestamp("2024-01-01") + pd.to_timedelta(np.sort(rng.integers(0, 730 * 24, n)), unit="h")
     plan = rng.choice(["basic", "plus", "pro"], n, p=[0.5, 0.3, 0.2])
@@ -33,7 +33,7 @@ def generate(seed: int = 0, n: int = 3000) -> Replica:
     calls = rng.poisson(1.1, n)
     fee = np.where(plan == "basic", 9.0, np.where(plan == "plus", 19.0, 39.0)) * rng.uniform(0.9, 1.1, n)
     late = rng.binomial(1, 0.12, n)
-    drift = np.linspace(-0.3, 0.3, n)  # later signups cancel more
+    drift = np.linspace(-drift, drift, n)  # later signups cancel more (drift=0: a world that stays the same; time_decision_v3)
     logit = -1.4 + 0.55 * calls - 0.06 * tenure + 0.9 * late + 0.5 * (plan == "basic") + drift
     churned = rng.uniform(size=n) < 1 / (1 + np.exp(-logit))
     frame = pd.DataFrame({
