@@ -1,0 +1,41 @@
+{
+  "package": "dclab-code-v1.35",
+  "title": "Cloud sessions checked end to end with real OpenSSH and a real model",
+  "date": "2026-10-26",
+  "request": "The owner's goal: the same capabilities as Claude Code and Codex, proven; the owner's server was not yet available.",
+  "spec": "R&D agent_runs/live_tests/2026-10-26-dclab-code-remote/README.md",
+  "plan": [
+    "a throwaway sshd as the owner's user on loopback, key-only",
+    "a second DCLab Code as the server",
+    "connect, a real model session there, copy records, the store keeps them, disconnect, stop everything"
+  ],
+  "decisions": [
+    {
+      "decision": "a user-level sshd on 127.0.0.1 instead of macOS Remote Login",
+      "why": "no system setting is changed and nothing is reachable from outside; it is stopped afterwards"
+    },
+    {
+      "decision": "wrap ssh only to add -F with the scratch config",
+      "why": "DCLab Code's own ssh arguments stay exactly what a real server gets"
+    }
+  ],
+  "change": "no product code; the live-test driver, the server's home and the README in R&D agent_runs/live_tests/2026-10-26-dclab-code-remote/, docs.",
+  "findings": [],
+  "measurements": [
+    {
+      "name": "live",
+      "gate": "real ssh opens the tunnel, a real model session runs on the other DCLab Code, its record is copied and kept by the store, the tunnel closes",
+      "fixed_before_run": true,
+      "result": "tunnel in 1.9 s on port 47154; Haiku answered from README.md, $0.005; 1 record, 12 KB, copied; the keeper lists it; no ssh left",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Cloud sessions work end to end with the real tools; only a real network and the owner's server remain.",
+  "lessons": [
+    "When the real target is not available, make every part real but the distance, and say what is left uncovered."
+  ],
+  "risks": [
+    "not across a real network or on the owner's server"
+  ],
+  "commits": []
+}
