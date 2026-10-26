@@ -1,0 +1,155 @@
+{
+  "package": "dclab-code-v1.40",
+  "title": "/loop, auto-merge, hand-off and named groups, with the reviewer's twelve findings fixed; computer use started (not wired)",
+  "date": "2026-10-26",
+  "request": "The owner's goal: the same capabilities as Claude Code desktop; the smaller gaps.",
+  "spec": "docs/PARITY_EVIDENCE.md",
+  "plan": [
+    "/loop",
+    "GitHub auto-merge",
+    "hand-off with the conversation",
+    "named sidebar groups",
+    "review and fix"
+  ],
+  "decisions": [
+    {
+      "decision": "a loop is turned off by a restart",
+      "why": "an unattended repeat must never start again on its own"
+    },
+    {
+      "decision": "a hand-off is refused while work is uncommitted",
+      "why": "the new session starts from the last commit; silent loss of work is worse than a refusal"
+    }
+  ],
+  "change": "dclab-code server/app.js (loop route and tick, auto-merge route, hand-off, groups), server/worktree.js (autoMerge, autoMergeRequest, from/into), server/side_sessions.js (hand_off), server/git.js (dirtyCount), web/*, tests, docs; server/computer.js and mac/input/main.swift (computer use, not wired yet).",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "a loop's first run skipped the project-removed check",
+      "scenario": "project removed, then /loop: the message ran with no guards (verified)",
+      "cause": "the check listed messages, review and run only",
+      "fix": "loop added to it",
+      "test": "server test",
+      "severity": "leakage"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "a loop ran unattended in bypass mode",
+      "scenario": "a session in bypass with a loop: 100 unattended turns",
+      "cause": "no mode check",
+      "fix": "refused in the route, skipped in the tick",
+      "test": "server test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "a loop message could spoil a CI fix's push",
+      "scenario": "the loop fires between the fix turn's end and its push",
+      "cause": "the tick ignored ciFix.fixing and background jobs",
+      "fix": "skipped then",
+      "test": "server test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "loops restarted on their own after a restart",
+      "scenario": "a new app on the same home sent the loop message at once",
+      "cause": "loop.on was kept",
+      "fix": "turned off at start; archiving ends it",
+      "test": "server test restarts the app",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "'/loop 2 hours x' repeated every 2 minutes",
+      "scenario": "the unit was optional and 'hours' went into the text",
+      "cause": "a loose pattern",
+      "fix": "the unit on the number; anything else is explained, never sent",
+      "test": "page test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "an error in the loop tick crashed the server",
+      "scenario": "a full disk while saving the index",
+      "cause": "no try/catch in a timer callback",
+      "fix": "guarded per session",
+      "test": "none (reasoned)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "defect": "a hand-off silently left uncommitted work behind",
+      "scenario": "an uncommitted file in the parent's folder was missing in the child",
+      "cause": "the copy starts from the last commit",
+      "fix": "refused while work is uncommitted, the count said",
+      "test": "server test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "defect": "a group name was put into the page as HTML",
+      "scenario": "a group named <style>…</style> could hide the permission cards' titles",
+      "cause": "the heading was built with innerHTML",
+      "fix": "textContent; the list's own headings refused as names",
+      "test": "page test",
+      "severity": "privacy"
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "defect": "a hand-off could carry sealed content uncounted",
+      "scenario": "the child's status said no sealed reads",
+      "cause": "guard counts not carried",
+      "fix": "the parent's sealed-read count carried, marked inherited",
+      "test": "server test",
+      "severity": "leakage"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "defect": "a stuck loop kept counting runs",
+      "scenario": "a cap reached or its copy removed",
+      "cause": "a refused send was not seen",
+      "fix": "the loop stops when its message cannot run",
+      "test": "none",
+      "severity": "latent"
+    },
+    {
+      "id": "F11",
+      "source": "reviewer",
+      "defect": "auto-merge state could go stale",
+      "scenario": "GitHub turns auto-merge off, or the person on github.com",
+      "cause": "autoMergeRequest not read",
+      "fix": "read back on every status refresh; the label says it may merge at once without required checks",
+      "test": "server test",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 141 of 141",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The smaller parity gaps are built safely; computer use is begun and parked while the owner's priority (R&D's agentic flow in the chat) comes first.",
+  "lessons": [
+    "Every new way to send a message must pass the same guards as the person's own message.",
+    "Text a person types becomes data on the page: never HTML."
+  ],
+  "risks": [
+    "computer use is not wired yet"
+  ],
+  "commits": []
+}
