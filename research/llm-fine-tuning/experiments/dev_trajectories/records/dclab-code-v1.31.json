@@ -1,0 +1,80 @@
+{
+  "package": "dclab-code-v1.31",
+  "title": "A spending cap during an open card no longer leaves a session stuck 'running'",
+  "date": "2026-10-26",
+  "request": "Found in the live check of preview.act (the owner's goal: Claude Code's capabilities, checked live).",
+  "spec": "agent_runs/live_tests/2026-10-26-dclab-code-plugins/README.md",
+  "plan": [
+    "track whether a turn is open",
+    "close open cards when the cap ends a turn",
+    "name both caps in the note"
+  ],
+  "decisions": [
+    {
+      "decision": "an answered card leaves the session idle when its turn already ended",
+      "why": "'running' with nothing running looks like work in progress forever; any later agent message sets running again"
+    },
+    {
+      "decision": "a cap closes the cards it leaves open, as denied by the app",
+      "why": "after a cap the agent is gone: an Allow would run nothing and mislead the person"
+    }
+  ],
+  "change": "dclab-code server/engine.js (turnOpen, afterAnswer, cards closed at a cap), server/events.js (the cap note), tests/server.test.js.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "measurement",
+      "defect": "a session stayed 'running' forever after a spending cap",
+      "scenario": "live session s_8672a9e929b3: the day cap ended the turn while the agent's Bash card (stop the demo server) was open; the card was answered after the end",
+      "cause": "an answer always set 'running' when no other card waited",
+      "fix": "the status after an answer is waiting, running only while a turn is open, else idle; a cap closes its open cards",
+      "test": "server test with both cases; each broken version fails it",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "measurement",
+      "defect": "the note blamed the session's cap when the day's cap stopped the turn",
+      "scenario": "the same session, $0.11 of a $1.5 session cap, the day's $3 reached",
+      "cause": "the SDK reports one subtype for both",
+      "fix": "the note names both caps",
+      "test": "none (text)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "self",
+      "defect": "the first version of the test hung instead of failing on broken code",
+      "scenario": "mutation: no card closed at the cap",
+      "cause": "the test waited for the card's answer with no time limit",
+      "fix": "wait at most 2 s",
+      "test": "the mutation now fails in seconds",
+      "severity": "flaky"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "live",
+      "gate": "the agent uses preview.act on a local app and a link to another site is blocked",
+      "fixed_before_run": true,
+      "result": "typed 374, clicked, read 'Calls planned: 74.8'; the link to example.com blocked and the app stayed; $0.11",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 114 of 114",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "A capped session ends idle with no card left open; the preview's clicks work live.",
+  "lessons": [
+    "Run each new tool live once: the cap bug showed only when a real model met a real cap mid-ask.",
+    "A mutation that makes a test hang is not a pass: bound every wait in a test."
+  ],
+  "risks": [
+    "a background job's ask after a normal end leaves the session idle until the agent speaks again"
+  ],
+  "commits": []
+}
