@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.121.0 (2026-10-26)
+
+- `card` family words, found in the live replay of 45 written people: an offer given to some and not to others, "so we
+  don't waste discounts on people who would buy anyway" and "some already got the promo" read as uplift; readings from
+  machines' sensors with "anomaly" words read as streams before the general anomaly reading. On 649 written dev people's
+  first messages: 113 right against 107, 84 wrong against 86, no other family's reading changed.
+
 ## 0.120.1 (2026-10-26)
 
 - `choose_operating_point`'s holdout gains `samples_mean`: the mean of the holdout-sized samples' values, beside the

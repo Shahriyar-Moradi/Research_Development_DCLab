@@ -1673,6 +1673,12 @@ class DraftGuard:
             # while it is open; a field already known is not.
             draft = agent.store.get(draft_id)
             field = arguments["field"]
+            if field in ((draft.get("understanding") or {}).get("not_known") or []) or any(
+                    q.get("field") == field and q.get("declined") for q in draft.get("questions") or []):
+                # live (the 45 again, 2026-10-26): the person said they do not know the entity, and the model asked it again in
+                # other words, and again: the walk stopped for no progress; a field the person declined is never asked again
+                return {"error": f"The person said they do not know {field}: do not ask it again. Go on with what is known, "
+                                 "say what DCLab assumes, or summarise."}
             plan = plans.refresh(draft)
             outcome_raised = plan["target"]["status"] != "unknown" or any(q["field"] == "target" for q in draft.get("questions") or [])
             usable = field in plans.fields_for(draft) or field in plans.FIELDS

@@ -254,6 +254,16 @@
    "cause": "The 'I don't know' fix closed a question only where code recorded the answer; in the model's turn the model chose what to record.",
    "fix": "Before the model's turn, code closes the open question as declined when the reply says the person does not know; the build assumes what it assumes and says so.",
    "test": "test_i_dont_know_to_a_models_question_closes_it_before_the_models_turn; harness HRN-052 17 of 17"
+  },
+  {
+   "id": "S9-22",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The model asked a declined field again in other words, and the walk stopped for no progress.",
+   "scenario": "Rerun of JH-rare_event-001 (EUR 0.16): 'I don't know' to the entity, then the model asked 'What does one row stand for?' and again; stopped: question open (entity).",
+   "cause": "The guard on the model's questions checked the plan's status, not what the person had declined.",
+   "fix": "A field the person declined (not_known, or a declined question) is refused to the model: 'do not ask it again'.",
+   "test": "test_a_declined_field_is_never_asked_again_by_the_model"
   }
  ],
  "measurements": [

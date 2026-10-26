@@ -1,0 +1,51 @@
+{
+ "package": "card-uplift-streams-words",
+ "title": "The card reads uplift and streams from how people say them (dclab-core 0.121.0)",
+ "date": "2026-10-26",
+ "request": "The 45 written people played again live: 12 of Claude's 19 misses were cards that read another family.",
+ "plan": [
+  "Read the 12 first messages and the card's rules for the families they missed.",
+  "Change only what the data story says plainly (an offer given to some and not others; sensors on machines), never a technique's name.",
+  "Measure the card on every written dev person's first message before and after: no other family may change."
+ ],
+ "decisions": [
+  {
+   "decision": "Streams before anomaly when the words describe machines' sensor readings.",
+   "why": "Sensor readings over time are the streams kind's own data; 'anomaly' there names what the person wants to see, not the kind of problem."
+  },
+  {
+   "decision": "Uplift from an offer given to some and not to others, a discount wasted on people who would buy anyway, a promo some already got.",
+   "why": "Each says a treatment and a comparison group, the uplift kind's two needs."
+  }
+ ],
+ "change": "dclab_core/card.py WORDS['uplift'] three patterns; _family: streams before the anomaly branch when both match and no rare-event word; CHANGELOG 0.121.0.",
+ "findings": [
+  {
+   "id": "CRD-2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "Uplift and streams said in everyday words were read as nothing or as anomaly.",
+   "scenario": "JH-uplift-000 ('emailed a 15% discount to some customers and not to others... not waste discounts on people who would buy anyway'): no family; JH-streams-001 ('pumps... sensors send data every minute. need anomaly detection'): anomaly.",
+   "cause": "The uplift words knew 'would have bought anyway' and 'not those who buy anyway' only; the anomaly branch came before streams.",
+   "fix": "Three uplift patterns; streams first when sensor readings and anomaly words meet.",
+   "test": "the dev measurement below; harness HRN-053"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the card's family from the first message, written dev people of three writers",
+   "gate": "no other family's reading may change; right up, wrong not up",
+   "result": "649 people: right 107 -> 113, wrong 86 -> 84, unread 456 -> 452; streams 23 -> 25 right, uplift 5 -> 9; no other family changed",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "first messages only; the conversation reads more",
+    "written people"
+   ]
+  }
+ ],
+ "outcome": "Two everyday ways of saying uplift and streams now reach their kinds.",
+ "lessons": [
+  "Read the data story, not the technique the person names."
+ ]
+}

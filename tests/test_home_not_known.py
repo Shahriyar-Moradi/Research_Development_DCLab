@@ -82,6 +82,22 @@ class NotKnownTest(unittest.TestCase):
         self.assertIsNone(agent.pending(d))
         self.assertNotIn("budget", d["understanding"])  # never "I don't know" as the budget
 
+    def test_a_declined_field_is_never_asked_again_by_the_model(self):
+        """The 45 again (2026-10-26): after "I don't know" to the entity, the model asked it again in other words, and the
+        walk stopped for no progress."""
+        from dclab_rnd.draft.chat import DraftGuard
+
+        def put(d):
+            d.setdefault("questions", []).append({"id": "q1", "field": "entity", "text": "Who could commit it?", "answered": "I don't know.", "declined": True})
+            d.setdefault("understanding", {}).update(target="is_fraud", not_known=["entity"])
+        self.store.update(self.draft["id"], put)
+        agent = chat.HomeAgent(self.store, None)
+        tool = type("T", (), {"move": "ask", "name": "ask_user"})()
+        turn = type("Turn", (), {"agent": agent, "draft_id": self.draft["id"]})()
+        got = DraftGuard().refusal(tool, turn, {"field": "entity", "question": "What does one row stand for?"})
+        self.assertIsNotNone(got)
+        self.assertIn("do not ask it again", got["error"])
+
 
 if __name__ == "__main__":
     unittest.main()
