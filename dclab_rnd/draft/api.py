@@ -571,6 +571,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     @router.post("/api/drafts/{draft_id}/data/synthetic", status_code=202, response_model=Doc)
     async def synthetic_data(draft_id: str, payload: AnyObject):
+        """Body ``{proposal}`` (a design's id from /data/synthetic/design, its rows kept), or ``{prompt, rows, template}``
+        (rows 100 to 200,000, default 5,000). Generates the table in the background and attaches it to the draft."""
         get(draft_id)
         body = dump(payload)
         from . import synthetic
@@ -597,7 +599,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     @router.post("/api/drafts/{draft_id}/data/synthetic/design", response_model=Doc)
     async def design_synthetic(draft_id: str, payload: AnyObject):
-        """The second way to simulate data: describe the table in the chat, see its design as a message, approve it (POST
+        """Body ``{description, rows}`` (rows 100 to 200,000, default 5,000; say the count here, not in the description), or
+        ``{cancel: true}``. The second way to simulate data: describe the table in the chat, see its design as a message, approve it (POST
         /data/synthetic with its id) or describe a change (this again). ``{cancel: true}`` drops the design. Nothing is
         created here."""
         get(draft_id)

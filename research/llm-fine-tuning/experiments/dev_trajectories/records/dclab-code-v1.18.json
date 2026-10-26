@@ -1,0 +1,207 @@
+{
+  "package": "dclab-code-v1.18",
+  "title": "DCLab's long agents behind the chat: the understanding and solution teams end to end, notebook cells, the solution save, and long writes (agents plan steps 2, 3 and 5)",
+  "date": "2026-10-26",
+  "request": "The owner (2026-10-26): every agentic system already built in R&D behind DCLab Code's chat, used and adopted, not rebuilt (plan ~/.claude/plans/joyful-jingling-engelbart.md; $20 budget).",
+  "spec": "the agents plan, steps 2 (the long agents), 3 (data and notebook agents) and 5 (sync-check locks the person's routes)",
+  "plan": [
+    "live-check each long agent through DCLab Code with DCLab's model on, capped",
+    "fix what each run finds, failing test first, in the repository that owns the cause",
+    "sync-check finds every route DCLab Code relays, sends or reads in R&D, and locks R&D's list of the person's writes",
+    "a row per R&D agent in PARITY_PLAN: reached, tested, live-checked, or why it stays the person's"
+  ],
+  "decisions": [
+    {
+      "decision": "Accepting the agent's notebook cell is relayed only with the cell's whole code on the card, read from DCLab first",
+      "why": "a person's yes to code they never saw is no decision; a cell that cannot be shown whole is answered on DCLab's page"
+    },
+    {
+      "decision": "The solution save (PUT) is relayed with a larger body limit (6,000 characters), still shown whole",
+      "why": "a solution names every column kept out with its reason; refusing it would leave team-built projects stuck in the chat"
+    },
+    {
+      "decision": "A long write goes on in R&D and the chat is told how to follow it, instead of raising the SDK's limit alone",
+      "why": "a team walk can take longer than any fixed limit; cutting it halfway would leave half-done work, and a timeout invites a second send"
+    },
+    {
+      "decision": "The twin, the research campaign, Kaggle and the store's runs stay outside the chat",
+      "why": "the owner's switch, the owner's Claude-only rule (the campaign needs OpenAI), the owner's key, and the owner's make targets"
+    }
+  ],
+  "change": "dclab-code: config.js (notebook answer and solution save relayed; holdout patterns narrowed; ownGuards; copied defaults; PERSON_READS), engine.js (cellShown), guards.js (whenBody), dclab.js (300 s tool limit; writeOperations, readsListed), dclab_person.js (reads with the person's token), rd.js and scripts/sync-check.js (personRouteChanges, personWrites), docs/PARITY_PLAN.md (a row per R&D agent). R&D: chat_agents.py (the understanding team a chat write; long writes go on), orchestra/solution.py (the report), route docstrings naming body fields.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "measurement",
+      "defect": "a cell the agent wrote could not be accepted from the chat",
+      "scenario": "s_b13975a1cb49: notebook/write relayed, the run refused 'cell is the index of a code cell, or the id of a cell you accepted'",
+      "cause": "the accept route was never relayed; a card showing {accepted: true} alone would have the person accept code they never saw",
+      "fix": "POST .../notebook/cells/{id}/answer relayed only as {accepted: bool}, after DCLab Code reads the cell from DCLab and shows its request, note and whole code; missing, answered or over 6,000 characters: never asked",
+      "test": "dclab-code tests/server.test.js (the card shows the code; three cells never asked), units (only {accepted: bool})",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "measurement",
+      "defect": "the agent guessed body fields",
+      "scenario": "accept instead of accepted, cell_id instead of cell, '500 rows' inside a description (the design made 5,000)",
+      "cause": "those routes take any JSON object; the agent sees only their docstrings",
+      "fix": "the docstrings name their body fields first (notebook run/write/answer, synthetic design and create)",
+      "test": "rerun s_8304a18907f1: the design kept 500 rows, the run sent {cell}",
+      "severity": "gap"
+    },
+    {
+      "id": "F3",
+      "source": "measurement",
+      "defect": "the notebook's run was asked as a holdout read",
+      "scenario": "s_8304a18907f1: the card said it reads the holdout",
+      "cause": "the holdout pattern /run$ matched /notebook/run; the kernel has the training rows only",
+      "fix": "the pattern names the project's run-all only",
+      "test": "units: notebook run is a decision, build/run, programme/run and stages/final/run stay holdout",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "self",
+      "defect": "a saved config pinned the code's default guards",
+      "scenario": "adding a project wrote every default guard to config.json; a corrected default never took effect; pushing to a loaded config changed the module's own HOLDOUT_CALLS",
+      "cause": "saveConfig wrote the merged config; defaultConfig handed out module arrays",
+      "fix": "only the person's own guards are saved (ownGuards), a fresh home too; the defaults are copies",
+      "test": "units: saving keeps only the person's own guards",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F5",
+      "source": "self",
+      "defect": "starting a team was asked as a holdout read",
+      "scenario": "both teams pause for the person before their build or holdout",
+      "cause": "/team$ was in the holdout pattern",
+      "fix": "only the person's approve: true is asked as one (whenBody)",
+      "test": "units",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F6",
+      "source": "measurement",
+      "defect": "the solution team's report was always empty on a project of one problem",
+      "scenario": "s_4ebc30198ef3, s_b2e4afd01017: 'an empty report (0 sections)'",
+      "cause": "the report step read a summary the final record does not have, and kept only its length",
+      "fix": "it reports studio.solution_report.latest (every number traced, built once per set of records) and the walk's answer carries it",
+      "test": "R&D tests/test_orchestra_solution.py (walked again on a finished project, the report names roc_auc; holdout_uses stays 1)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F7",
+      "source": "measurement",
+      "defect": "a chat could not start the understanding team",
+      "scenario": "s_8f074fbae691: refused as the person's",
+      "cause": "its route was not on the chat's write list",
+      "fix": "added; its answers, map confirmation and build approval stay the person's (relayed)",
+      "test": "R&D tests/test_chat_agents.py",
+      "severity": "gap"
+    },
+    {
+      "id": "F8",
+      "source": "measurement",
+      "defect": "no way to save the solution from the chat",
+      "scenario": "s_bb85024f2fdf: 'Save the solution first' on a team-built project",
+      "cause": "saving is the person's PUT, and the relay took POSTs only",
+      "fix": "PUT .../solution relayed, the whole solution on the card (up to 6,000 characters)",
+      "test": "units: PUT only for the solution, every kept-out column on the card",
+      "severity": "gap"
+    },
+    {
+      "id": "F9",
+      "source": "measurement",
+      "defect": "a long write reached the chat as 'The operation timed out'",
+      "scenario": "s_57386a4805dd: the team's start ran four stages inside the request",
+      "cause": "the SDK's MCP tool-call limit; R&D's bridge waited for the whole route",
+      "fix": "R&D's bridge runs each request as its own task and, for a write, answers after 100 s 'still working, never send it again, follow it with GET ...'; DCLab Code's limit for DCLab's server is 300 s",
+      "test": "R&D LongWriteTests; dclab-code units (the timeout above R&D's longest wait)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "defect": "a solution team's drop answer reads the holdout, but its card no longer said so",
+      "scenario": "a programme with a part that cannot run: the person approves the holdout, the part blocks it, the team asks 'drop it?'; {answer: ...} was a plain decision card, and on Allow compose saw approved_for == audited and ran the programme, reading the holdout",
+      "cause": "narrowing the team's holdout pattern to approve: true missed the answer that resumes after an approval",
+      "fix": "a project team's answer is asked as a holdout read too (whenBodyHas), and its card says it may go on to read it",
+      "test": "dclab-code units (a drop answer is holdout); server test (the card says so)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F11",
+      "source": "reviewer",
+      "defect": "a relayed team approval never showed what it approved",
+      "scenario": "the agent draws a map (agent work), starts the walk, the walk pauses on the map's confirmation; the card showed only {approve: true}, and Allow confirmed a map the person never saw (the same for overriding the critic's concerns)",
+      "cause": "only the cell answer read its content before the card",
+      "fix": "a team's answer or approval reads GET /api/{drafts|projects}/{id}/team through the person's channel and puts the pause's kind, gate, question and whole summary on the card; no pause open, or a summary over 6,000 characters: never asked; a holdout read said only when the answer can go on to one",
+      "test": "dclab-code server test: the map's parts on the card, the holdout gate and the drop answer said as holdout reads, nothing asked or sent with no pause",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F12",
+      "source": "reviewer",
+      "defect": "a cell's code lost its lines and indentation on the card",
+      "scenario": "'if False:\\n    x = 1\\nopen(p).read()' and the same with open(p) indented looked identical; an accepted cell runs on the host",
+      "cause": ".ask-reason had no white-space rule",
+      "fix": "pre-wrap (and a scroll for long text)",
+      "test": "dclab-code page test in Chromium: two cells differing only in indentation look different",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F13",
+      "source": "reviewer",
+      "defect": "small: the cut team report pointed to another document; sync-check passed silently when R&D's writes could not be listed whole",
+      "scenario": "GET .../export/report serves a different report; more than 100 POST routes made writeOperations return null",
+      "cause": "wrong route name; a null treated as nothing to check",
+      "fix": "the link names /export/solution-report; sync-check reports 'not checked' as a change",
+      "test": "read and run",
+      "severity": "latent"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "live loop through the chat, DCLab's model on",
+      "gate": "problem to holdout number with every person's step asked",
+      "fixed_before_run": true,
+      "result": "food-delivery draft: synthetic 5,000 rows, understanding team (4 answers, courier column caught as a leak), build on approval, solution saved by the person, solution team: holdout ROC-AUC 0.7636 (0.723 to 0.800), read once; the card for a team pause is covered by tests, not yet seen live",
+      "verdict": "pass"
+    },
+    {
+      "name": "notebook through the chat",
+      "gate": "write, accept with the code shown, run",
+      "fixed_before_run": true,
+      "result": "CV ROC-AUC 0.797 (0.788 to 0.805), training rows only",
+      "verdict": "pass"
+    },
+    {
+      "name": "spend",
+      "gate": "within the owner's $20",
+      "fixed_before_run": true,
+      "result": "$1.18 DCLab Code (Sonnet 5.5) and EUR 0.36 DCLab's model (34 requests)",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 103 of 103 (units, server, Chromium page tests); R&D test_chat_agents, test_orchestra_solution, test_agents_validator, and the orchestra and harness files (111)",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Every R&D agent that serves the product is reached from the chat or stays the person's for a stated reason; the person's decisions reach DCLab as their own clicks, each card showing exactly what is sent.",
+  "lessons": [
+    "Check each agent end to end with its model on: the solution team's empty report hid behind a passing test that never read the report.",
+    "When a route takes any JSON object, its description must name the fields, or the agent guesses.",
+    "A long job behind a tool call must answer before the caller's limit and say how to follow it, or the caller repeats it.",
+    "When a pattern of asks is narrowed to be honest, list every way the guarded thing can still happen before removing a case: the drop answer resumed straight into the holdout."
+  ],
+  "risks": [
+    "the relay's ask card is text: a long solution or cell is shown whole but may not be read whole",
+    "CALL_WAIT_S and the SDK limit are tuned by hand; a slower machine may need more",
+    "a config.json written before this keeps the old, broader holdout entry as the person's own: more asking, never less"
+  ],
+  "commits": []
+}

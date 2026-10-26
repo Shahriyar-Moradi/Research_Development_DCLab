@@ -1096,7 +1096,7 @@ async def review_project_notebook(project_id: str, s: Services = Depends(service
 
 @router.post("/api/projects/{project_id}/notebook/run", response_model=Page)
 async def run_notebook_cell(project_id: str, payload: AnyObject, s: Services = Depends(services)):
-    """Run one code cell of the project's notebook in its kernel (the owner, 2026-10-20): the cell the server generates for
+    """Body ``{cell}``: the index of a generated code cell, or the id of an accepted agent's cell. Run one code cell of the project's notebook in its kernel (the owner, 2026-10-20): the cell the server generates for
     that index, never code sent by the page; the kernel has the training rows only, and the holdout cell is refused (409).
     The outputs come back as text, pictures (PNG) and errors; every run is kept in the workspace's code runs."""
     from ...accounts.principal import current
@@ -1148,7 +1148,7 @@ async def project_evaluation(project_id: str, s: Services = Depends(services)):
 
 @router.post("/api/projects/{project_id}/notebook/write", response_model=Page)
 async def write_notebook_cell(project_id: str, payload: AnyObject, s: Services = Depends(services)):
-    """The next cell for the person's request, written by a model (``notebook_cell``) from the notebook's code and the
+    """Body ``{request}``: what the cell should do. The next cell for the person's request, written by a model (``notebook_cell``) from the notebook's code and the
     columns, never a row; checked (it parses, it never touches X_test or y_test) and kept as a proposal to accept or reject."""
     from ...studio import notebook_agent
 
@@ -1226,7 +1226,7 @@ async def delete_notebook_cell(project_id: str, cell_id: str, s: Services = Depe
 
 @router.post("/api/projects/{project_id}/notebook/cells/{cell_id}/answer", response_model=Page)
 async def answer_notebook_cell(project_id: str, cell_id: str, payload: AnyObject, s: Services = Depends(services)):
-    """The person accepts or rejects a proposed cell; only an accepted one runs. The answer is kept beside the proposal."""
+    """Body ``{accepted: true|false}``. The person accepts or rejects a proposed cell; only an accepted one runs. The answer is kept beside the proposal."""
     from ...accounts.principal import current
     from ...studio import notebook_agent
 

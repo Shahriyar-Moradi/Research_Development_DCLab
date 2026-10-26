@@ -455,6 +455,13 @@ class SingleProblemTests(unittest.TestCase):
         self.assertEqual(int(project.get("holdout_uses") or 0), 1)
         self.assertEqual([h["verdict"]["verdict"] for h in project["auditor"]["history"]], ["send_back", "pass"])
         self.assertTrue(all(((project.get("stages") or {}).get(k) or {}).get("status") in ("completed", "approved") for k in ("data", "leakage", "features", "models", "final")))
+        # walked again on the finished project, the team reports: the solution report from the records, never an empty answer
+        again = self.run_team(store, pid, Person(keep_out=True))
+        self.assertEqual(again["next"], "done", again["says"])
+        self.assertIn("roc_auc", again["says"].lower().replace("-", "_"))
+        report = next(s for s in again["steps"] if s["action"] == "report")["result"]
+        self.assertGreater(report["characters"], 200)
+        self.assertEqual(int(store.get(pid).get("holdout_uses") or 0), 1, "reporting reads no holdout")
 
 
 @unittest.skipIf(MISSING, MISSING)

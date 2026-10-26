@@ -203,6 +203,42 @@ class PersonSurfaceTests(McpChatCase):
         self.assertNotIn("dclab-code", [e.payload.get("surface") for e in self.services.experience.read() if e.kind == "visit.started"][len(surfaces):])
 
 
+class LongWriteTests(unittest.TestCase):
+    def test_a_write_longer_than_the_wait_goes_on_and_the_chat_is_told_how_to_follow_it(self):
+        from dclab_rnd import chat_agents
+
+        finished = []
+
+        class Done:
+            status_code = 200
+            headers = {"content-type": "application/json"}
+            content = b'{"status": "done"}'
+
+            def json(self):
+                return {"status": "done"}
+
+        async def slow(*args, **kwargs):
+            await asyncio.sleep(0.6)
+            finished.append(args[2])
+            return Done()
+
+        async def scenario():
+            with mock.patch.object(chat_agents, "_request", slow), mock.patch.object(chat_agents, "_template", lambda s, m, p: "/api/projects/{project_id}/team"), \
+                    mock.patch.object(chat_agents, "CALL_WAIT_S", 0.1):
+                out = await chat_agents.dclab_call(object(), "POST", "/api/projects/p1/team", body={})
+                self.assertTrue(out["running"], out)
+                self.assertEqual(out["status"], 202)
+                self.assertIn("GET /api/projects/p1/team", out["says"])
+                self.assertIn("never send it again", out["says"])
+                self.assertEqual(finished, [], "still working when the chat was answered")
+                await asyncio.sleep(1.0)
+                self.assertEqual(finished, ["/api/projects/p1/team"], "the walk went on after the answer")
+                quick = await chat_agents.dclab_call(object(), "GET", "/api/projects/p1/team")
+                self.assertEqual(quick["result"], {"status": "done"}, "a read is waited for")
+
+        asyncio.run(scenario())
+
+
 class ScrubTests(unittest.TestCase):
     def test_secrets_are_hidden_at_any_depth(self):
         from dclab_rnd import chat_agents
@@ -294,6 +330,7 @@ class CapabilitiesOverMcpTests(McpChatCase):
                    ("POST", f"/api/drafts/{draft}/messages", {"text": "build it"}), ("POST", f"/api/drafts/{draft}/build/run", {}),
                    ("PUT", f"/api/drafts/{draft}/solution", {"target": "x"}), ("POST", f"/api/projects/{project}/team", {"approve": True}),
                    ("POST", f"/api/projects/{project}/team", {"answer": "drop it, no data"}),  # the team's drop question is the person's
+                   ("POST", f"/api/drafts/{draft}/team", {"approve": True}), ("POST", f"/api/drafts/{draft}/team", {"answer": "late orders"}),
                    ("POST", f"/api/drafts/{draft}/map", {"redraw": True}))  # a redraw drops the person's edits and confirmation
         for method, path, body in persons:
             with self.subTest(f"{method} {path}"):
@@ -324,6 +361,15 @@ class CapabilitiesOverMcpTests(McpChatCase):
 
         persons = [e.kind for e in self.services.experience.read() if e.actor == "person" and e.kind not in experience.RELAYED]
         self.assertEqual(persons, [], "no route a chat ran recorded a person's choice")
+
+    def test_a_chat_starts_a_team_and_only_the_person_answers_or_approves_it(self):
+        from dclab_rnd.chat_agents import _refusal_of
+
+        for template in ("/api/drafts/{draft_id}/team", "/api/projects/{project_id}/team"):
+            with self.subTest(template):
+                self.assertIsNone(_refusal_of("POST", template, {}), "starting the walk is agent work: it pauses before any build or holdout")
+                for body in ({"approve": True}, {"approve": False}, {"answer": "x"}):
+                    self.assertIn("person's", _refusal_of("POST", template, body) or "")
 
     def test_a_long_result_is_kept_in_the_workspace(self):
         from dclab_rnd import chat_agents

@@ -65,6 +65,7 @@ AGENT_WRITES: dict[tuple[str, str], tuple[str, ...]] = {
     ("POST", "/api/drafts/{draft_id}/data/sample"): (),
     ("POST", "/api/drafts/{draft_id}/data/synthetic/design"): (),
     ("POST", "/api/drafts/{draft_id}/map"): ("redraw",),  # a redraw drops the person's edits and confirmation
+    ("POST", "/api/drafts/{draft_id}/team"): ("approve", "answer"),  # the understanding walk: its answers, map confirmation and build approval are the person's
     ("POST", "/api/drafts/{draft_id}/solution/proposal"): (),
     ("POST", "/api/evidence/ask"): (),
     ("POST", "/api/intern/sessions"): (),
@@ -94,6 +95,8 @@ PERSONS_WHY = ("This operation is the person's (an approval or a gate, a choice 
                "a build, or a run the route records as theirs): they do it on its DCLab page. Stages run through the project tools "
                "(run_stage, run_all), a build through home_build.")
 RESULT_MAX = 60_000  # characters of a result returned whole; a longer one is kept in the workspace and its start returned
+CALL_WAIT_S = 100  # a write still working after this (a team walk running its stages) goes on; the chat is told how to follow it
+_GOING_ON: set[asyncio.Task] = set()  # those writes, held until they end (a task nobody holds may be collected)
 AUTHORIZATION: contextvars.ContextVar[str | None] = contextvars.ContextVar("dclab_chat_authorization", default=None)  # the MCP caller's token
 
 
@@ -500,7 +503,16 @@ async def dclab_call(services: Any, method: str, path: str, query: dict[str, Any
     refused = _refusal_of(method, template, body)
     if refused:
         return {"error": refused, "operation": f"{method} {template}"}
-    response = await _request(services, method, path, query, body)
+    # The request runs as its own task (with this call's context: its channel, visit and request id), so a long write is
+    # never cut halfway when the chat's own call times out or is cancelled; a read is waited for.
+    task = asyncio.ensure_future(_request(services, method, path, query, body))
+    _GOING_ON.add(task)
+    task.add_done_callback(_ended)
+    done, _ = await asyncio.wait({task}, timeout=None if method == "GET" else CALL_WAIT_S)
+    if not done:
+        return {"status": 202, "ok": True, "running": True, "operation": f"{method} {template}",
+                "says": f"Still working after {CALL_WAIT_S:g} s: DCLab goes on with it, so never send it again. {_follow(template, path)}"}
+    response = task.result()
     out: dict[str, Any] = {"status": response.status_code, "ok": 200 <= response.status_code < 300}
     kind = response.headers.get("content-type", "").split(";")[0].strip()
     if kind == "application/json" or not response.content:
@@ -520,6 +532,23 @@ async def dclab_call(services: Any, method: str, path: str, query: dict[str, Any
     name = named.group(1) if named else re.sub(r"[^A-Za-z0-9._-]+", "_", path.rsplit("/", 1)[-1]) or "download"
     out.update({"type": kind, "size": len(response.content), "saved": _keep(services, name, response.content)})
     return out
+
+
+def _ended(task: asyncio.Task) -> None:
+    _GOING_ON.discard(task)
+    if not task.cancelled() and task.exception() is not None:  # a write that ended after the chat was answered: said in the log
+        import logging
+
+        logging.getLogger(__name__).warning("a chat's write failed after its answer: %r", task.exception())
+
+
+def _follow(template: str, path: str) -> str:
+    """Where a chat follows a write that goes on."""
+    if template.endswith("/team"):
+        return f"Follow it with GET {path}: the walk's board, and the pause waiting on the person when it stops."
+    if template.startswith("/api/intern/sessions/"):
+        return f"Follow it with GET {path.removesuffix('/message')}."
+    return "Follow it with GET /api/jobs (DCLab's running work) and the project's or draft's own reads."
 
 
 def _keep(services: Any, name: str, data: bytes) -> str:

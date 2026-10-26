@@ -409,18 +409,24 @@ class SolutionTeam:
         step = self._step("drop_gate", {"parts": list(reasons)}, {"dropped": list(reasons)}, time.monotonic() - clock)
         return {"steps": [step], "board": self._advance(state, "drop", "dropped", board), "next": "compose"}
 
+    REPORT_SAID = 20000  # characters of the report the walk's answer carries; the whole one is GET /api/projects/{id}/export/solution-report
+
     def report(self, state: SolveState) -> dict[str, Any]:
-        """The programme's report from its record, every number traced to it (``dclab_core.programme.report``)."""
+        """The report from the records, every number traced to them: a programme's (``dclab_core.programme.report``), or for a
+        project of one problem the solution report (``studio.solution_report.latest``, built once per set of records). The
+        walk's answer carries it, so a team walked on a finished project reports what it found."""
         from dclab_core import programme as core_programme
 
-        from ..studio import programme
+        from ..studio import programme, solution_report
 
         clock = time.monotonic()
         project = self.projects.get(state["project_id"])
         p = programme.stored(project)
-        text = core_programme.markdown(p) if p is not None else json.dumps((self.projects.read_stage(state["project_id"], "final") or {}).get("summary") or "", default=str)
-        step = self._step("report", {}, {"characters": len(text), "sections": len(core_programme.sections(p)) if p is not None else 0}, time.monotonic() - clock)
-        return {"reported": True, "steps": [step], "board": self._advance(state, "report", "reported", parts=self._parts(project)), "next": "situate"}
+        text = core_programme.markdown(p) if p is not None else solution_report.latest(self.projects, state["project_id"])["markdown"]
+        step = self._step("report", {}, {"characters": len(text), "sections": len(core_programme.sections(p)) if p is not None else text.count("\n## ")},
+                          time.monotonic() - clock)
+        said = text if len(text) <= self.REPORT_SAID else text[:self.REPORT_SAID] + f"\n\n… (the whole report: GET /api/projects/{state['project_id']}/export/solution-report)"
+        return {"reported": True, "steps": [step], "says": said, "board": self._advance(state, "report", "reported", parts=self._parts(project)), "next": "situate"}
 
     @staticmethod
     def _after(state: SolveState) -> str:
