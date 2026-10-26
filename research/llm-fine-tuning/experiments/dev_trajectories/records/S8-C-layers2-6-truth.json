@@ -1,0 +1,49 @@
+{
+ "package": "S8-C-layers2-6-truth",
+ "title": "Layers 2 and 6 measured on real tables: more rows (holds), retrain (needs work)",
+ "date": "2026-10-26",
+ "request": "The owner, 2026-10-25: more ability for the students beyond leakage; each layer's rule measured on real tables, its decision fixed before any result.",
+ "spec": "PLAN.md beside each measurement (agent_runs/live_tests/2026-10-25-more-rows-truth, -retrain-truth), written before any result.",
+ "plan": [
+  "Double the rows of each real table and see whether the learning curve's answer came true.",
+  "Replay the champion/challenger rule along each time-ordered table and see the future of every promotion and every kept champion."
+ ],
+ "decisions": [
+  {
+   "decision": "A rule found 'needs work' is not changed tonight.",
+   "why": "A change is its own package, its rule fixed and confirmed on other tables first, as the threshold change was (and failed)."
+  }
+ ],
+ "change": "No product code: measurements, evidence ABL-003 and ABL-004, measured labels (94 records) in each measurement's ledger.",
+ "measurements": [
+  {
+   "name": "ABL-003 more rows",
+   "gate": "the rule holds if likely_help and unlikely_help each come true on most tables and are rarely proved wrong (PLAN.md)",
+   "result": "58 tables: likely_help came true on 17 of 19, unlikely_help on 16 of 19 (2 proved wrong); cannot_tell on 34% of the tables, of which 15 of 20 gained",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "next": "cannot_tell is often a gain: a student could learn where the curve is too careful",
+   "limits": [
+    "one doubling per table",
+    "the train split only"
+   ]
+  },
+  {
+   "name": "ABL-004 retrain",
+   "gate": "needs work if more than 10% of promotions are worse in the future, or more than 50% of the kept champions had a better challenger",
+   "result": "13 tables, 36 decisions: 2 of 27 promotions worse in the future (7.4%); 5 of 9 kept champions had a better challenger (55.6%)",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "against_gate": "7.4% <= 10%; 55.6% > 50%: the rule is too careful",
+   "next": "a less careful promotion rule as its own package, fixed before it is measured, confirmed on other time-ordered tables",
+   "limits": [
+    "13 tables from few sources",
+    "9 kept champions only"
+   ]
+  }
+ ],
+ "outcome": "The more-rows rule stands as it is; the retrain rule keeps too many champions and is named for its own package.",
+ "lessons": [
+  "A cautious rule looks safe on its 'yes' answers; its 'no' and 'cannot tell' answers are where its cost hides."
+ ]
+}

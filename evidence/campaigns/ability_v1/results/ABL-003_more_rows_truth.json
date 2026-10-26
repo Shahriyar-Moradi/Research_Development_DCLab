@@ -1,0 +1,20 @@
+{
+ "id": "ABL-003",
+ "layer": "data",
+ "point": "data.more_rows",
+ "plan": "agent_runs/live_tests/2026-10-25-more-rows-truth/PLAN.md",
+ "tables": "58",
+ "failed_tables": "2",
+ "confusion": "{'cannot_tell -> did_not_help': 1, 'cannot_tell -> helped': 15, 'cannot_tell -> unclear': 4, 'likely_help -> helped': 17, 'likely_help -> unclear': 2, 'unlikely_help -> did_not_help': 16, 'unlikely_help -> helped': 2, 'unlikely_help -> unclear': 1}",
+ "likely_help": "{'n': 19, 'came_true': 17, 'rate': 0.8947, 'wilson90': [0.7265, 0.9645], 'proved_wrong': 0}",
+ "unlikely_help": "{'n': 19, 'came_true': 16, 'rate': 0.8421, 'wilson90': [0.6638, 0.9351], 'proved_wrong': 2}",
+ "cannot_tell_share": "0.3448",
+ "result": "the rule holds",
+ "rule": "data_value_rule_v1 (34.13) on real tables, the rows really doubled: likely_help came true on 17 of 19, unlikely_help on 16 of 19 (2 proved wrong), cannot_tell on 34% of the tables, 15 of whose 20 did gain: the rule holds as it is, and is cautious.",
+ "limits": "58 tables of the train split; one doubling each; the gain judged on rows the curve never saw.",
+ "experiment_id": "ABL-003",
+ "campaign_id": "ability_v1",
+ "kind": "rule_on_real_tables",
+ "status": "completed",
+ "at": "2026-10-26T02:09:14+00:00"
+}

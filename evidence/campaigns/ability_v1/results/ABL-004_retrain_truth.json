@@ -1,0 +1,20 @@
+{
+ "id": "ABL-004",
+ "layer": "learn",
+ "point": "ops.retrain",
+ "plan": "agent_runs/live_tests/2026-10-25-retrain-truth/PLAN.md",
+ "tables": "13",
+ "failed_tables": "1",
+ "decisions": "36",
+ "promoted": "{'n': 27, 'better': 21, 'same': 4, 'worse': 2}",
+ "kept": "{'n': 9, 'worse': 2, 'same': 2, 'better': 5}",
+ "future_mean_difference": "{'binary': {'n': 9, 'rule': 0.013463, 'always_promote': 0.017785, 'never': 0.0}, 'regression': {'n': 27, 'rule': 0.055641, 'always_promote': 0.056454, 'never': 0.0}}",
+ "result": "the rule needs work",
+ "rule": "The 34.11 champion/challenger rule replayed on 13 time-ordered real tables (36 decisions): of 27 promotions 2 were worse in the future (7.4%, under the 1 in 10 bar), but of 9 champions kept 5 had a better challenger (55.6%, over the half bar): the rule needs work: too careful. Always promoting did as well or better here (binary 0.0178 against 0.0135, regression 0.0565 against 0.0556).",
+ "limits": "13 tables, few distinct sources: every number with its count; a change to the rule is its own package, confirmed on other tables first.",
+ "experiment_id": "ABL-004",
+ "campaign_id": "ability_v1",
+ "kind": "rule_on_real_tables",
+ "status": "completed",
+ "at": "2026-10-26T02:09:14+00:00"
+}
