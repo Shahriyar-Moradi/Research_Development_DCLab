@@ -1,0 +1,131 @@
+{
+  "package": "34.1-daily-centre",
+  "title": "Why the realised value sits above the decision interval's centre (daily_centre_v1)",
+  "date": "2026-10-26",
+  "request": "The owner, 2026-10-26: find why the realised value sits a little above the interval's centre on known worlds (mean z +0.10 to +0.16), with a gate fixed before; keep the machine light.",
+  "spec": "dclab_rnd/daily_centre_measure.py: 800 invented worlds an arm, the decision core alone; daily and share decisions with samples from the latest fold (as the engine) and from all rows (reported); per world the percentile midpoint, the samples' mean (dclab-core 0.120.1), z_mid and z_mean; per decision its own verdict: the bias by the interval of mean z_mid (established, closed inside 0.08, or inconclusive), the skew by mean (z_mid - z_mean) on the bias's side, the pool by the gap of the samples' means for a bias above 0.",
+  "plan": [
+    "Name the candidate causes and their traces",
+    "Design arms and a gate",
+    "Review twice before the freeze",
+    "Run, record, push"
+  ],
+  "decisions": [
+    {
+      "decision": "First design dropped before any run",
+      "why": "the review showed its mechanism (a small pool) predicts almost no effect for the daily pick and a sign the share probe contradicted, and its 'all rows' arm changed both the pool and the information"
+    },
+    {
+      "decision": "800 worlds and a closing band of 0.08",
+      "why": "at 200 worlds a mean z's 90% interval is about +-0.12 wide and could never close inside +-0.05"
+    },
+    {
+      "decision": "dclab-core 0.120.1 adds the samples' mean to the holdout reading",
+      "why": "the skew (the percentile midpoint against the mean) can only be read with it"
+    }
+  ],
+  "change": "dclab_core/decide.py (holdout samples_mean, 0.120.1); dclab_rnd/daily_centre_measure.py; tests/test_daily_centre_measure.py (6 tests); tests/test_core_decide_holdout_interval.py",
+  "findings": [
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "defect": "the 'all rows' arm changed the pool and the information at once",
+      "scenario": "the latest interval read 1.17 (daily) and 1.29 (share) times wider than the all-rows one on 40 probe worlds",
+      "cause": "a larger pool is also more data",
+      "fix": "the all-rows arms reported only; the pool read by the gap of the samples' means",
+      "test": "tests/test_daily_centre_measure.py",
+      "severity": "gap"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "defect": "the gate compared z, which mixes a centre shift with a width change",
+      "scenario": "a wider latest interval pulls its z toward 0",
+      "cause": "z divides by the half-width",
+      "fix": "the centres compared in value units",
+      "test": "tests/test_daily_centre_measure.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "defect": "the named mechanism predicted almost no daily effect, and the share probe pointed the other way",
+      "scenario": "resampling bites only the maximum; a day's best of 4.4 rows from about 380 distinct rows rarely repeats; probe gap +0.11 for share where the pool predicts below 0",
+      "cause": "a mechanism written without checking its sign",
+      "fix": "the cause read by the skew first, the pool only by the sign of the samples' means' gap",
+      "test": "tests/test_daily_centre_measure.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "defect": "one rule for both decisions, and 'close' by failing to reject",
+      "scenario": "share explained by the pool and daily not would have been dropped; a real +0.10 could be closed as chance",
+      "cause": "joint routing; a test that cannot reject read as proof",
+      "fix": "each decision its own verdict; closed only inside a band",
+      "test": "tests/test_daily_centre_measure.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "defect": "tests missed the mixed cases and the share pair's realised value",
+      "scenario": "only the daily pair was checked",
+      "cause": "thin failure paths",
+      "fix": "mixed-case verdict tests and both pairs checked",
+      "test": "tests/test_daily_centre_measure.py",
+      "severity": "gap"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "defect": "'the midpoint' could still be named by failing to reject",
+      "scenario": "bias [0.04, 0.20] with z_mean [-0.01, 0.18] would name the skew although the mean sits where the midpoint does",
+      "cause": "z_mean reaching 0 is not a skew",
+      "fix": "a per-world skew z_mid - z_mean (the realised value cancels) must lie on the bias's side",
+      "test": "tests/test_daily_centre_measure.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "defect": "the pool test had no direction and compared midpoints",
+      "scenario": "a bias below 0 with a gap below 0 would name the pool, which can only push the realised value above",
+      "cause": "no sign; the midpoints carry each arm's skew",
+      "fix": "the pool only for a bias above 0, the gap on the samples' means",
+      "test": "tests/test_daily_centre_measure.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "defect": "'closed' could never happen at 200 worlds",
+      "scenario": "a mean z's 90% interval is about +-0.12 wide, never inside +-0.05",
+      "cause": "worlds too few for the band",
+      "fix": "800 worlds (2000 to 2799) and a band of 0.08",
+      "test": "tests/test_daily_centre_measure.py",
+      "severity": "behaviour"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "defect": "the separate-verdict test passed trivially",
+      "scenario": "it called verdict twice with different inputs",
+      "cause": "report's wiring untested",
+      "fix": "a test feeding report() rows where only share's latest arm sits off",
+      "test": "tests/test_daily_centre_measure.py::DailyCentreTest::test_the_report_reads_daily_and_share_apart",
+      "severity": "gap"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Redesigned twice on review before any run; run next.",
+  "lessons": [
+    "Check a mechanism's predicted sign against a small probe before building a gate on it",
+    "Size the worlds so every outcome of the gate is reachable, closing included",
+    "A cause is named only when its own interval points the bias's way, never when another interval fails to reject"
+  ],
+  "risks": [
+    "Known worlds clear the core, not the replica"
+  ],
+  "commits": []
+}

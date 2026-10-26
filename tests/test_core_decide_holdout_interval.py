@@ -164,6 +164,9 @@ class NearestRowsTest(unittest.TestCase):
             same = run(sample_scores=np.where(latest, s, np.nan)[None, :].repeat(4, axis=0))  # refits equal to the model
             widths["near"].append(width(near)); widths["refit"].append(width(refit)); widths["same"].append(width(same))
             self.assertIn("refits of the model", refit["prediction_interval_method"])
+            self.assertIsNotNone(near["samples_mean"])  # 0.120.1: the samples' mean beside the percentile midpoint
+            self.assertLessEqual(near["prediction_interval"][0], near["samples_mean"])
+            self.assertLessEqual(near["samples_mean"], near["prediction_interval"][1])
             self.assertEqual(refit["expected_value_per_row"], near["expected_value_per_row"])  # the holdout's reading is the same
         self.assertGreater(np.mean(widths["refit"]), np.mean(widths["near"]))  # the refits' spread is in it
         self.assertAlmostEqual(np.mean(widths["same"]), np.mean(widths["near"]), delta=0.1 * np.mean(widths["near"]))

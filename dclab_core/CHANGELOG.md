@@ -4,6 +4,12 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.120.1 (2026-10-26)
+
+- `choose_operating_point`'s holdout gains `samples_mean`: the mean of the holdout-sized samples' values, beside the
+  prediction interval (whose centre is the midpoint of their 5th and 95th percentiles). For daily_centre_v1, which reads
+  whether the realised value's small lead over that midpoint is the samples' skew.
+
 ## 0.120.0 (2026-10-26)
 
 The decision's holdout interval holds the model's fit-to-fit spread.

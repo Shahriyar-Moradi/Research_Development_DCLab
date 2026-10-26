@@ -506,6 +506,7 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
         out["holdout"] = {"actions": k, "cases_found": int(yt[top].sum()), "precision": _r(yt[top].mean()) if k else None,
                           "expected_value_per_row": _r(realised / len(yt)),
                           "prediction_interval": interval,
+                          "samples_mean": _r(float(np.mean(held))) if len(held) >= 20 else None,  # 0.120.1: beside the percentile midpoint
                           "prediction_interval_method": ((f"holdout-sized samples of each bootstrap draw ({len(yt)} rows, about "
                                                           f"{int(np.mean(held_rows))} drawn"
                                                           + (", whole entities" if index is not None else "")
