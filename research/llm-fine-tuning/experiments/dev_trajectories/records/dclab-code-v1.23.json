@@ -1,0 +1,74 @@
+{
+  "package": "dclab-code-v1.23",
+  "title": "The store keeps DCLab Code's scripted live-test sessions apart, as agent episodes only",
+  "date": "2026-10-26",
+  "request": "The owner (2026-10-26), asked whether the live tests' data was stored for the six models: 'make the store also read DCLab Code test homes under agent_runs, marked as scripted (agent episodes only, never my labels), and run future live tests in a project inside R&D.'",
+  "spec": "store keeper dclab_code (32.33) and its sets builder (32.34)",
+  "plan": [
+    "the keeper finds scripted test homes under agent_runs/live_tests",
+    "keeps their sessions on this repository or a scratch folder apart under dclab_code/tests/<folder>/",
+    "the sets read every act there as the script's",
+    "live tests work in a project inside R&D from now on"
+  ],
+  "decisions": [
+    {
+      "decision": "Only a home whose config says decidedBy script is read",
+      "why": "a person's own home placed there must never be read as a test, nor a test as a person's"
+    },
+    {
+      "decision": "In a test home, a session on a scratch folder is kept; one on another repository is counted only",
+      "why": "the scratch projects are the tests' own throwaway folders; another repository may hold private work"
+    },
+    {
+      "decision": "A test home's session is scripted as a whole",
+      "why": "a record older than the by field counts as a person's in the owner's home; a test's never may"
+    }
+  ],
+  "change": "R&D dclab_rnd/store/keepers/dclab_code.py (test_homes, _home_sources, SCRATCH), dclab_rnd/store/sets/dclab_code.py (TEST_RECORD, TEST_INDEX, Session.scripted), tests.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "owner",
+      "defect": "the live tests' DCLab Code sessions never reached the training store",
+      "scenario": "about 36 sessions of SDK messages, thinking and asks kept only on disk under agent_runs/live_tests/*/home",
+      "cause": "the keeper read only ~/.dclab-code, and kept only sessions on this repository",
+      "fix": "scripted test homes read and kept apart; their sessions agent episodes only",
+      "test": "R&D test_store_dclab_code, test_store_dclab_code_sets",
+      "severity": "gap"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "defect": "a method inserted between a decorator and its function",
+      "scenario": "every sets test: TypeError Session._auto() takes 2 positional arguments but 3 were given",
+      "cause": "the new method went right after @staticmethod",
+      "fix": "the method placed before the decorator",
+      "test": "the sets tests",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "the real agent_runs",
+      "gate": "only scripted homes, nothing of another repository kept",
+      "fixed_before_run": true,
+      "result": "5 scripted homes found, 36 session records kept, one home's other-folder sessions counted only",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "R&D test_store_dclab_code, test_store_dclab_code_sets, test_store_check: 16",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The live tests' sessions reach the store at its next run as agent episodes, and future live tests run inside R&D.",
+  "lessons": [
+    "When a rule keeps data out, ask the owner before widening it, and widen it only as far as asked."
+  ],
+  "risks": [
+    "a test home without decidedBy script is not read; older test homes made before that setting are left out"
+  ],
+  "commits": []
+}

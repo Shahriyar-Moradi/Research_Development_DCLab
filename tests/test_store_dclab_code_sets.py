@@ -316,6 +316,28 @@ class DclabCodeSetsTest(unittest.TestCase):
                           ("Edit", "auto_edits", "auto_ok"), ("Edit", "auto_edits", "auto_ok")])  # and no person:undo for the script's undo
         self.assertEqual(ep["outcome"], "merged_by_script")  # a script's merge is no sign the person kept the work
 
+    def test_a_scripted_live_tests_sessions_are_episodes_never_labels(self):
+        """A live test's DCLab Code home (decidedBy script) is kept apart: its sessions are agent episodes, and none of their
+        acts is a person's label, not even a record older than "by" that would count as a person's in the owner's home."""
+        from dclab_rnd.store import Layout, conductor
+        from dclab_rnd.store.keepers import standard
+
+        live = Path(tempfile.mkdtemp()) / "home"
+        (live / "records").mkdir(parents=True)
+        (live / "config.json").write_text(json.dumps({"decidedBy": "script"}), encoding="utf-8")
+        scratch = Path(tempfile.mkdtemp())
+        (live / "records" / "s_live01.jsonl").write_text("\n".join(session_lines("s_live01")) + "\n", encoding="utf-8")
+        (live / "sessions.json").write_text(json.dumps({"sessions": [{"id": "s_live01", "projectPath": str(scratch), "sdkSessionId": "sdk-s_live01",
+                                                                      "model": "claude-sonnet-5-5"}]}), encoding="utf-8")
+        self.layout = Layout(Path(tempfile.mkdtemp()) / "store")
+        conductor.conduct({**self.env, "dclab_test_homes": [live]}, self.layout, standard.install({}))
+        self.assertEqual(len([e for e in self.rows("m6_stepwise_decisions", "dclab_code") if e["id"].endswith("s_live01")]), 1, "an episode")
+        for mt, folder in (("m2_workflow_decisions", ("internal", "dclab_code.permission")), ("m7_judges", ("dclab_code_steps",)),
+                           ("m7_judges", ("dclab_code_answers",)), ("m7_judges", ("dclab_code_preferences",)), ("m1_students", ("dclab_code.permission",))):
+            self.assertFalse([j for j in self.rows(mt, *folder) if "s_live01" in j["id"]], (mt, folder))
+        owner = [d for d in self.rows("m2_workflow_decisions", "internal", "dclab_code.permission") if "s_000000" in d["id"]]
+        self.assertTrue(owner, "the same lines in the owner's home are a person's: only the mark differs")
+
     def test_a_rewind_rejects_the_changes_since_its_message(self):
         """32.41: DCLab Code's Rewind puts files back as they were before one of the person's messages."""
         from dclab_rnd.store import Layout, conductor

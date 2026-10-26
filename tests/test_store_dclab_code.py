@@ -133,6 +133,37 @@ class DclabCodeTest(unittest.TestCase):
             with mock.patch.dict(os.environ, {"DCLAB_STORE_DCLAB_CODE": str(self.home)}):
                 self.assertEqual(dclab_code.home_folder(), self.home)  # named explicitly
 
+    def test_a_scripted_live_tests_home_is_kept_apart_and_another_repos_session_only_counted(self):
+        """The owner, 2026-10-26: keep the live tests' DCLab Code sessions, as a script's acts. Only a home whose config says
+        decidedBy script; its sessions on a throwaway scratch folder kept under tests/<folder>/; another repository's counted."""
+        from dclab_rnd.store.keepers import dclab_code, workspaces
+
+        live = self.base / "live_tests" / "2026-10-26-x" / "home"
+        write(live / "config.json", json.dumps({"decidedBy": "script"}))
+        scratch = Path(tempfile.mkdtemp()) / "a7-project"
+        scratch.mkdir()
+        write(live / "records" / "s_t1.jsonl", json.dumps({"kind": "app", "type": "permission_decision", "reqId": "p", "decision": "allow", "by": "script"}) + "\n")
+        write(live / "records" / "s_t2.jsonl", "{}\n")
+        write(live / "sessions.json", json.dumps({"sessions": [{"id": "s_t1", "projectPath": str(scratch)}, {"id": "s_t2", "projectPath": "/elsewhere/DCLab"}]}))
+        person = self.base / "live_tests" / "y" / "home"  # a home a person clicked in: never read as a test
+        write(person / "config.json", "{}")
+        write(person / "records" / "s_p.jsonl", "{}\n")
+        write(person / "sessions.json", json.dumps({"sessions": [{"id": "s_p", "projectPath": str(scratch)}]}))
+        with mock.patch.object(workspaces, "AGENT_RUNS", self.base), mock.patch.dict(os.environ, {"DCLAB_STORE_DCLAB_CODE": "", "DCLAB_STORE_CLAUDE_PROJECTS": ""}):
+            self.assertEqual(dclab_code.test_homes(), [live], "only a scripted home")
+            with mock.patch.dict(os.environ, {"DCLAB_STORE_DCLAB_CODE": "off"}):
+                self.assertEqual(dclab_code.test_homes(), [])
+            (self.base / "tester.json").write_text("{}", encoding="utf-8")
+            self.assertEqual(dclab_code.test_homes(), [], "never on a tester's machine")
+            (self.base / "tester.json").unlink()
+        self.assertEqual(dclab_code.test_homes(self.env), [], "a test that names its folders reads only those")
+        names = [s.source for s in dclab_code.sources({**self.env, "dclab_test_homes": [live]})]
+        self.assertIn("dclab_code/tests/live_tests-2026-10-26-x-home/records/s_t1.jsonl", names)
+        self.assertIn("dclab_code/tests/live_tests-2026-10-26-x-home/sessions.json", names)
+        self.assertFalse(any("s_t2" in n for n in names), "another repository's session is never kept")
+        self.assertIn("dclab_code/tests/live_tests-2026-10-26-x-home/~other-projects~counts.json", names)
+        self.assertNotIn("dclab_code/records/s_other1.jsonl", names, "the owner's own rule is unchanged")
+
     def test_its_claim_does_not_overlap_the_agents_keeper(self):
         from dclab_rnd.store.keepers import standard
 

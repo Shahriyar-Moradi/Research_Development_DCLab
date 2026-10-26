@@ -44,6 +44,10 @@ from .decisions import SILVER
 
 PREFIX = "dclab_code/records/"
 INDEX = "dclab_code/sessions.json"
+# 2026-10-26: a scripted live test's home, kept apart (keepers/dclab_code.test_homes): its sessions are a script's acts
+# whole, never a person's label, even a record older than "by"
+TEST_RECORD = re.compile(r"^dclab_code/tests/([^/]+)/records/(.+)\.jsonl$")
+TEST_INDEX = re.compile(r"^dclab_code/tests/([^/]+)/sessions\.json$")
 POINT_PERMISSION = "dclab_code.permission"
 POINT_PLAN = "dclab_code.plan_approval"
 FAMILIES = {"Bash": "shell", "Read": "read", "Write": "write", "Edit": "edit", "MultiEdit": "edit", "NotebookEdit": "edit", "Glob": "search",
@@ -95,8 +99,9 @@ def _order(r: StoreRecord) -> tuple[str, int]:
 class Session:
     """One DCLab Code session read from its record lines in file order, joined by ids (tool use, request), never by time."""
 
-    def __init__(self, sid: str, lines: list[StoreRecord], meta: dict[str, Any]):
+    def __init__(self, sid: str, lines: list[StoreRecord], meta: dict[str, Any], scripted: bool = False):
         self.sid, self.lines, self.meta = sid, sorted(lines, key=_order), meta
+        self.scripted = scripted  # a scripted live test's session: no act of it is a person's
         self.sdk_id = str(meta.get("sdkSessionId") or sid)
         self.split_key = self.sdk_id  # a fork's is its root source's (sessions() sets it): one conversation, one split
         self.model = _code(meta.get("model") or "unknown")
@@ -112,6 +117,9 @@ class Session:
         self._message_at: dict[str, tuple] = {}     # a person's message uuid -> its place (a rewind goes back to before it)
         self.outcome: Optional[str] = None
         self._read()
+
+    def _by_person(self, b: dict[str, Any]) -> bool:
+        return not self.scripted and by_person(b)
 
     @staticmethod
     def _auto(d: dict[str, Any], after_stop: bool) -> bool:
@@ -135,7 +143,7 @@ class Session:
             elif t in ("permission_request", "question_request", "plan_request") and b.get("toolUseId"):
                 requests[str(b["toolUseId"])] = {**b, "_record": r}
             elif t in ("permission_decision", "question_answer", "plan_decision") and b.get("reqId"):
-                decisions[str(b["reqId"])] = {**b, "_auto": self._auto(b, after_stop), "_person": by_person(b), "_record": r}
+                decisions[str(b["reqId"])] = {**b, "_auto": self._auto(b, after_stop), "_person": self._by_person(b), "_record": r}
         # Pass 2: the steps in file order.
         mode, turn, last_text, stopped, self._thinking = "unknown", 0, None, False, None
         starts: dict[str, tuple] = {}  # a person's command: where it started
@@ -177,12 +185,12 @@ class Session:
                     mode = "auto_edits"
                 elif b.get("choice") == "ask":
                     mode = "ask_first"
-            elif t == "feedback" and by_person(b):  # a test script's grade is no person's judgement
+            elif t == "feedback" and self._by_person(b):  # a test script's grade is no person's judgement
                 self.grades.append({"turn": b.get("turn"), "value": b.get("value"), "note": b.get("note"), "record": r, "results_before": turn})
             elif t == "undo" and isinstance(b.get("file"), str):
                 # A script's undo still cuts the file's history (file_verdicts), with no verdict and no person's step.
-                self.undos[b["file"]].append({"how": b.get("how"), "record": r, "order": _order(r), "person": by_person(b)})
-                if by_person(b):
+                self.undos[b["file"]].append({"how": b.get("how"), "record": r, "order": _order(r), "person": self._by_person(b)})
+                if self._by_person(b):
                     self.person_steps.append({"order": _order(r), "action": "person:undo", "kind": "person_undo", "turn": turn, "mode": mode,
                                               "outcome": _code(b.get("how") or "undone"), "guard": None, "at": r.at})
             elif t == "rewind" and isinstance(b.get("filesChanged"), list):
@@ -192,22 +200,22 @@ class Session:
                 for f in b["filesChanged"]:
                     rel = self._rel(str(f))
                     if rel is not None:
-                        self.undos[rel].append({"how": "rewind", "record": r, "order": _order(r), "person": by_person(b), "since": since})
-                if by_person(b):
+                        self.undos[rel].append({"how": "rewind", "record": r, "order": _order(r), "person": self._by_person(b), "since": since})
+                if self._by_person(b):
                     self.person_steps.append({"order": _order(r), "action": "person:rewind", "kind": "person_rewind", "turn": turn, "mode": mode,
                                               "outcome": "rewound" if b["filesChanged"] else "nothing_to_rewind", "guard": None, "at": r.at})
-            elif t == "job_stop" and by_person(b):
+            elif t == "job_stop" and self._by_person(b):
                 # The person stopped a background job the agent left running (a training run, a test suite): their step.
                 self.person_steps.append({"order": _order(r), "action": "person:stop_job", "kind": "person_stop_job", "turn": turn, "mode": mode,
                                           "outcome": "stopped", "guard": None, "at": r.at})
-            elif t == "file_opened" and by_person(b):
+            elif t == "file_opened" and self._by_person(b):
                 # dclab-code A3: the person opened a file the conversation named (or they picked): their step, its path left
                 # out of the content-free episode; a sealed set's refusal is said as its outcome.
                 self.person_steps.append({"order": _order(r), "action": "person:open_file", "kind": "person_open_file", "turn": turn, "mode": mode,
                                           "outcome": "sealed_refused" if b.get("sealed") else "opened", "guard": "sealed" if b.get("sealed") else None, "at": r.at})
             elif t == "person_command_start" and b.get("id"):
                 starts[str(b["id"])] = _order(r)
-            elif t == "person_command" and by_person(b):
+            elif t == "person_command" and self._by_person(b):
                 code = "timed_out" if b.get("timedOut") else f"exit_{b.get('exit')}" if isinstance(b.get("exit"), int) else "no_exit"
                 # placed where it started (the app records the start first), so what the agent did meanwhile comes after
                 self.person_steps.append({"order": starts.get(str(b.get("id")), _order(r)), "action": "person:Bash", "kind": "person_shell", "turn": turn, "mode": mode,
@@ -215,16 +223,16 @@ class Session:
             elif t == "outcome":
                 o = b.get("outcome")
                 if o in ("committed", "merged") and isinstance(b.get("files"), list):  # older records name no files: no verdict from them
-                    self.kept.append({"order": _order(r), "files": {str(f) for f in b["files"]}, "person": by_person(b)})
+                    self.kept.append({"order": _order(r), "files": {str(f) for f in b["files"]}, "person": self._by_person(b)})
                 code = "merged" if o == "merged" else ("copy_removed" if b.get("merged") else "copy_removed_unmerged") if o == "copy_removed" else _code(o)
                 if o in ("pushed", "pr_opened"):
                     # dclab-code B6: shipping (a push, a pull request) is the person's step, never the episode's outcome:
                     # a merge stays a merge when the person pushes it afterwards
-                    if by_person(b):
+                    if self._by_person(b):
                         self.person_steps.append({"order": _order(r), "action": f"person:{o}", "kind": f"person_{o}", "turn": turn, "mode": mode,
                                                   "outcome": o, "guard": None, "at": r.at})
                     continue
-                self.outcome = code if by_person(b) else f"{code}_by_script"  # a script's merge is no sign the person kept the work
+                self.outcome = code if self._by_person(b) else f"{code}_by_script"  # a script's merge is no sign the person kept the work
             elif t == "stop":
                 self.outcome, stopped = "stopped", True
             elif t == "user_message":
@@ -314,16 +322,23 @@ def sessions(layout: Layout) -> list[Session]:
 
     index: dict[str, dict[str, Any]] = {}
     lines: dict[str, list[StoreRecord]] = defaultdict(list)
+    scripted: set[str] = set()
     for r in _current(layout, "agents"):
         src = r.provenance.source
-        if src == INDEX:
+        test_index, test_record = TEST_INDEX.match(src), TEST_RECORD.match(src)
+        if src == INDEX or test_index:
             for s in r.body.get("sessions") or []:
                 if isinstance(s, dict) and s.get("id"):
                     index[str(s["id"])] = s
-        elif src.startswith(PREFIX) and src.endswith(".jsonl"):
+                    if test_index:
+                        scripted.add(str(s["id"]))
+        elif (src.startswith(PREFIX) and src.endswith(".jsonl")) or test_record:
             if isinstance(r.body, dict) and r.body.get("copiedFrom"):
                 continue  # dclab-code A4: a fork's copy of its source's history, kept (and counted) once, in the source
-            lines[src[len(PREFIX):-len(".jsonl")]].append(r)
+            sid = test_record.group(2) if test_record else src[len(PREFIX):-len(".jsonl")]
+            if test_record:
+                scripted.add(sid)
+            lines[sid].append(r)
 
     def root(sid: str) -> str:  # the session a chain of forks started from
         seen = set()
@@ -334,7 +349,7 @@ def sessions(layout: Layout) -> list[Session]:
 
     out = []
     for sid, rs in sorted(lines.items()):
-        s = Session(sid, rs, index.get(sid, {}))
+        s = Session(sid, rs, index.get(sid, {}), scripted=sid in scripted)
         origin = root(sid)
         if origin != sid:  # a fork continues its source's conversation: its split is the source's, never another one
             s.split_key = str((index.get(origin) or {}).get("sdkSessionId") or origin)
