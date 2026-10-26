@@ -1,0 +1,112 @@
+{
+  "package": "dclab-code-v1.20",
+  "title": "The last open items behind the chat: what gets built on the build card, a short store status, the twin's switch on the DCLab panel, a runnable campaign route test, and a real-use pass on HyperAck",
+  "date": "2026-10-26",
+  "request": "The owner's goal (the stop hook): every agentic system of R&D behind DCLab Code's chat, with Claude Code's and Codex's capabilities; the open items the last report listed.",
+  "spec": "the agents plan's open items after step 6",
+  "plan": [
+    "the campaign route test where it can run",
+    "the build approval shows what gets built",
+    "store status short enough for a chat",
+    "the twin's switch on the DCLab panel, the person's click only",
+    "a real-use pass on HyperAck, as an operations lead would ask"
+  ],
+  "decisions": [
+    {
+      "decision": "The twin's switch is the person's click on DCLab Code's DCLab panel, never the agent's relay",
+      "why": "it is the owner's switch and it spends; the app shows it beside DCLab's projects so the owner never leaves the app"
+    },
+    {
+      "decision": "The store's runs stay the person's commands (! make store in the chat)",
+      "why": "they write the store and take hours; the person already runs any command from the message box"
+    }
+  ],
+  "change": "R&D: orchestra/walk.py (builds summary), orchestra/service.py (the pause key in the view and resume), store/__main__.py (--brief), tests/test_campaign_route.py (new), tests/test_store_status_brief.py (new), tests. dclab-code: dclab_person.js (twin_switch, overview's twin), engine.js (a body that does not fit the pause refused; the pause key sent), config.js (PERSON_READS), web/app.js (the twin card), tests.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "the campaign's route test never ran",
+      "scenario": "test_the_campaign_starts_on_claude_through_the_route skipped in .venv (no NOOA) and .venv-agent (no pandas)",
+      "cause": "it lived in test_agentic.py, which imports NOOA",
+      "fix": "the route tests live in tests/test_campaign_route.py, which needs only the product server: start on Claude, an unpriced model refused, a resume on another provider refused, a blocked provider alone",
+      "test": "R&D test_campaign_route (4 tests, .venv)",
+      "severity": "gap"
+    },
+    {
+      "id": "F2",
+      "source": "measurement",
+      "defect": "the build approval showed only the gates passed",
+      "scenario": "s_6bc07b2eac62: 'What it shows: state build, passed [...]'",
+      "cause": "the walk's approval summary held its state alone",
+      "fix": "the summary adds what gets built: the outcome, the prediction moment, the unit, what was said to leave out, the costs and the budget (each at most 400 characters; the draft keeps them whole), and the table's name, rows and columns",
+      "test": "R&D test_orchestra_walk",
+      "severity": "gap"
+    },
+    {
+      "id": "F3",
+      "source": "measurement",
+      "defect": "store status was too long for a chat",
+      "scenario": "the chat read 840 KB of store status (every workspace's name)",
+      "cause": "status prints every kind's workspace list",
+      "fix": "store status --brief: counts, sizes, how many workspaces, the last capture and totals (about 2.5 KB on the owner's store); the default unchanged",
+      "test": "R&D test_store_status_brief",
+      "severity": "gap"
+    },
+    {
+      "id": "F4",
+      "source": "self",
+      "defect": "the twin's switch was reachable only on DCLab's Admin page",
+      "scenario": "the chat reached the twin but the owner had to leave DCLab Code to turn it on",
+      "cause": "the switch is the owner's: the agent's relay refuses it",
+      "fix": "the DCLab panel shows the switch and its caps; the person's click sends it through the person's channel from the app's own page, within DCLab's bounds; the agent still never can",
+      "test": "dclab-code server test (the panel reads it; the click sends it; bad values refused)",
+      "severity": "gap"
+    },
+    {
+      "id": "F5",
+      "source": "measurement",
+      "defect": "a team's card asked about a body DCLab then refused",
+      "scenario": "s_c3284725650f: the holdout approval sent as an answer",
+      "cause": "the card did not check the body against the pause",
+      "fix": "a body that does not fit the pause (an approval takes approve, a question an answer) is refused before asking",
+      "test": "dclab-code server test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "defect": "an approval could apply to a summary that went stale",
+      "scenario": "the card shows outcome churn; the understanding changes while it waits; Allow builds the new one",
+      "cause": "the relayed yes carried no key, so the walk took it for whatever pause was open",
+      "fix": "the view shows the pause's key, the card sends it (and says so), resume_value passes it on, and a stale key is asked again",
+      "test": "R&D test_orchestra_walk (a stale yes builds nothing); dclab-code server test",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "HyperAck through the chat",
+      "gate": "leaks caught, the holdout read once, honest",
+      "fixed_before_run": true,
+      "result": "time split (8,876 train, 2,219 held out); holdout ROC-AUC 0.664 (0.641 to 0.686); final fares kept out (training 0.61 to 0.92 with them); not ready, with reasons; $0.23",
+      "verdict": "pass"
+    },
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 105 of 105; R&D test_orchestra_walk, test_orchestra, test_orchestra_solution, test_chat_agents, test_campaign_route, test_store_status_brief",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "The open items from the last report are closed; the person approves what they can see, and an approval to a card that changed is asked again.",
+  "lessons": [
+    "A card that shows what gets built must also bind the yes to that view: show it, then key it.",
+    "A test that no environment can run is no test: move it where its imports are."
+  ],
+  "risks": [
+    "the Home agent's own build (home_build) card still says only that the five stages run"
+  ],
+  "commits": []
+}

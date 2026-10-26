@@ -245,7 +245,7 @@ class Walk:
                 if action == "answer" and (self.c.agent.pending(self.c.drafts.get(draft_id)) or {}).get("source") == "critic":
                     return self._critic_answer(state, now)  # 28.7: a critic's question is advisory: no answer is a decline, never a stop
                 if action == "build":
-                    approved = self.asker.approve("build", {"state": now.state, "passed": list(now.passed)})
+                    approved = self.asker.approve("build", {"state": now.state, "passed": list(now.passed), "builds": self._builds(draft_id)})
                     _SESSION.get().step("approve", {"gate": "build"}, {"approved": approved})
                     if not approved:
                         steps = [*state.get("steps", []), {"state": now.state, "action": action, "says": now.says, "seconds": 0.0,
@@ -491,6 +491,21 @@ class Walk:
     @staticmethod
     def _after(state: WalkState) -> str:
         return "situate" if state.get("next") == "situate" else "end"
+
+    SAID = 400  # characters of each said field the approval shows; the draft keeps it whole
+
+    def _builds(self, draft_id: str) -> dict[str, Any]:
+        """What a build makes, for the person approving it: the outcome, the prediction moment, the unit, what was said to
+        leave out, the costs and the budget (the understanding, in the person's words), and the table (its name, rows,
+        columns). Names and counts only, never a row."""
+        draft = self.c.drafts.get(draft_id)
+        u = draft.get("understanding") or {}
+        cut = lambda v: None if v is None or v == "" else (str(v)[: self.SAID - 1] + "…") if len(str(v)) > self.SAID else v  # noqa: E731
+        tables = ((draft.get("data_card") or {}).get("tables") or [])
+        t = tables[0] if tables else {}
+        return {"problem": cut(draft.get("problem")), "outcome": cut(u.get("target")), "prediction_moment": cut(u.get("prediction_moment")),
+                "unit": cut(u.get("entity")), "leave_out": cut(u.get("constraints")), "costs": cut(u.get("costs")), "budget": cut(u.get("budget")),
+                "table": {"name": t.get("name"), "rows": t.get("rows"), "columns": len(t.get("columns") or [])}}
 
     def build(self) -> Any:
         from langgraph.graph import END, START, StateGraph

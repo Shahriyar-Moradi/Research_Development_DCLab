@@ -56,6 +56,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--cap-eur", type=float, default=None, help="reason, curate-shadow: the most the model may spend in this run")
     parser.add_argument("--limit", type=int, default=100, help="reason, curate-shadow: at most this many records")
     parser.add_argument("--yes", action="store_true", help="reason, curate-shadow: send (without it, the plan only)")
+    parser.add_argument("--brief", action="store_true", help="status: counts only (how many workspaces, not their names), short enough for a chat")
     args = parser.parse_args(argv)
     layout = Layout(args.root)
     if args.command == "run":
@@ -112,7 +113,15 @@ def main(argv: Optional[list[str]] = None) -> int:
                 print(text)
         return 0
     if args.command == "status":
-        print(json.dumps({"root": str(layout.root), "kinds": Store(layout).counts()}, indent=1))
+        kinds = Store(layout).counts()
+        if args.brief:  # every kind's counts and its last capture; the workspaces' names are the long part
+            kinds = {k: {"entries": v["entries"], "sources": v["sources"], "bytes": v["bytes"], "workspaces": len(v["workspaces"]), "last": v["last"]}
+                     for k, v in kinds.items()}
+            total = {"entries": sum(v["entries"] for v in kinds.values()), "bytes": sum(v["bytes"] for v in kinds.values()),
+                     "last": max((v["last"] for v in kinds.values() if v["last"]), default=None)}
+            print(json.dumps({"root": str(layout.root), "total": total, "kinds": kinds}, indent=1))
+        else:
+            print(json.dumps({"root": str(layout.root), "kinds": kinds}, indent=1))
     elif args.command == "catalog":
         doc = catalog.write(layout)
         print(f"wrote {layout.catalog} and {layout.readme}: {sum(v['entries'] for v in doc['kinds'].values())} kept versions")

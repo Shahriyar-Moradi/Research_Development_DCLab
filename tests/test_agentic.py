@@ -354,26 +354,3 @@ def test_the_campaign_runs_on_the_products_claude_and_never_on_a_blocked_provide
     monkeypatch.setenv("DCLAB_BLOCK_PROVIDERS", "openai")
     assert campaign_model.choice() is None
     assert campaign_model.model_for("claude-sonnet-5-5", openai) == openai["model"]
-
-
-def test_the_campaign_starts_on_claude_through_the_route(monkeypatch):
-    for name in ("OPENAI_API_KEY", "DCLAB_BLOCK_PROVIDERS", "DCLAB_TIER_STANDARD_BASE_URL", "DCLAB_TIER_STANDARD_MODEL", "DCLAB_TIER_STANDARD_API_KEY"):
-        monkeypatch.delenv(name, raising=False)
-    monkeypatch.setenv("DCLAB_LLM_PROVIDER", "anthropic")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-placeholder")
-    monkeypatch.setenv("DCLAB_NO_LIVE_MODELS", "1")
-    server = pytest.importorskip("dclab_rnd.agentic.server", reason="the product server needs pandas, which .venv-agent does not have",
-                                 exc_type=ImportError)
-    from dclab_rnd.agentic import services as services_module
-
-    launched = []
-    monkeypatch.setattr(services_module.Services, "launch", lambda self, run_id, resume=False: launched.append(run_id), raising=False)
-    with tempfile.TemporaryDirectory() as directory, TestClient(server.create_app(Path(directory))) as client:
-        cfg = client.get("/api/config").json()
-        assert cfg["api_key_configured"] is True
-        token = cfg["csrf"]
-        made = client.post("/api/runs", json={"max_experiments": 1}, headers={"X-DCLab-Token": token})
-        assert made.status_code == 201, made.text
-        run = made.json()
-        assert run["config"]["provider"] == "anthropic" and run["config"]["model"].startswith("claude-"), run["config"]
-        assert launched == [run["id"]], "started without any request leaving in this test"

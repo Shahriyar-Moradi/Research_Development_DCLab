@@ -113,6 +113,36 @@ class WalkTests(unittest.TestCase):
         self.assertEqual((out["status"], out["asks"].get("gate")), ("paused", "build"))
         return out
 
+    def test_the_build_approval_shows_what_gets_built(self):
+        """A person approving a build sees the problem as DCLab will build it (the outcome, the moment, what was said to
+        leave out, the table), not only which gates passed: a chat's card shows this summary whole."""
+        out = self._to_the_build_approval(self.walk(self.home))
+        summary = out["asks"]["summary"]
+        self.assertIn("passed", summary)
+        built = summary["builds"]
+        self.assertTrue(built["outcome"], built)
+        self.assertTrue(built["prediction_moment"], built)
+        self.assertTrue(built["table"]["rows"] > 0, built)
+        self.assertTrue(all(len(str(v)) <= 400 for k, v in built.items() if k != "table"), "each said field shown short; the draft keeps it whole")
+
+    def test_an_approval_given_to_a_card_that_went_stale_is_asked_again(self):
+        """A chat's card shows the pause it was read from, with its key; the person's yes carries that key. When the pause
+        changed while the card waited (its summary is what gets built), the walk asks again and builds nothing."""
+        from dclab_rnd.orchestra import service
+
+        walk = self.walk(self.home)
+        out = self._to_the_build_approval(walk)
+        thread = f"draft:{self.cases_draft}"
+        seen = service.view(self.home, thread)["waiting"]
+        self.assertEqual(seen["key"], out["asks"]["key"], "the view shows the pause's key")
+        stale = service.resume_value(self.home, thread, {"approve": True, "key": "0" * 12})
+        self.assertEqual(stale, {"key": "0" * 12, "answer": True})
+        again = walk.run(self.cases_draft, resume=stale)
+        self.assertEqual((again["status"], again["asks"].get("gate")), ("paused", "build"), "a stale yes builds nothing")
+        self.assertFalse(self.store.get(self.cases_draft).get("project_id"))
+        right = service.resume_value(self.home, thread, {"approve": True, "key": again["asks"]["key"]})
+        self.assertNotEqual(walk.run(self.cases_draft, resume=right).get("status"), "paused")
+
     def test_a_build_made_while_its_approval_waited_is_not_made_twice(self):  # the review of 28.3, finding 1
         from dclab_rnd.draft.api import build_project
 

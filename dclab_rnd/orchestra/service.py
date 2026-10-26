@@ -59,10 +59,15 @@ def resume_value(home: Path, thread: str, body: dict[str, Any]) -> Any:
     if waiting.get("kind") == "question":
         if "answer" not in body or not isinstance(body["answer"], str):
             raise WrongAnswer("this pause is a question: answer it in words ({\"answer\": \"...\"}), or with an empty answer to skip it")
-        return body["answer"]
-    if "approve" not in body or not isinstance(body["approve"], bool):
-        raise WrongAnswer(f"this pause is a {waiting.get('kind')}: answer yes or no ({{\"approve\": true}} or false)")
-    return body["approve"]
+        value: Any = body["answer"]
+    else:
+        if "approve" not in body or not isinstance(body["approve"], bool):
+            raise WrongAnswer(f"this pause is a {waiting.get('kind')}: answer yes or no ({{\"approve\": true}} or false)")
+        value = body["approve"]
+    key = body.get("key")
+    if isinstance(key, str) and key:  # the pause the person was shown: one that changed meanwhile is asked again, never taken
+        return {"key": key[:64], "answer": value}
+    return value
 
 
 def _lines(home: Path, name: str) -> list[dict[str, Any]]:
@@ -102,7 +107,7 @@ def view(home: Path, thread: str) -> dict[str, Any]:
     boards = [d for d in _lines(home, "boards.jsonl") if (d.get("board") or {}).get("thread") == thread]
     records = [r for r in _lines(home, "walks.jsonl") if r.get("thread") == thread]
     found = pending(home, thread)
-    waiting = ({k: found.get(k) for k in ("kind", "field", "gate", "text", "summary")} if found else None)  # what the person is asked, and what an approval approves
+    waiting = ({k: found.get(k) for k in ("kind", "field", "gate", "text", "summary", "key")} if found else None)  # what the person is asked, what an approval approves, and its key
     last = boards[-1] if boards else None
     return {"thread": thread, "board": (last or {}).get("board"), "node": (last or {}).get("node"), "what": (last or {}).get("what"),
             "waiting": waiting, "walk": records[-1] if records else None, "handoffs": len(boards)}
