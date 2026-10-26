@@ -1,0 +1,177 @@
+{
+  "package": "dclab-code-v1.41",
+  "title": "DCLab's Home agent as its own card in DCLab Code's chat, and DCLab's runs in the Jobs tab GitHub-Actions style",
+  "date": "2026-10-26",
+  "request": "The owner's goal: every agentic system designed in DCLab R&D works behind DCLab Code's chat, as Claude Code's and Codex's own agents work behind theirs. The owner typed 'I want to build the text classification' and saw Claude retell DCLab's questions and odd data; DCLab's own Home agent must lead, as on DCLab's Home page, and its runs must be visible step by step.",
+  "spec": "dclab-code docs/PARITY_PLAN.md (R&D's agents behind the chat: home and intern rows)",
+  "plan": [
+    "stream a draft's events from R&D through DCLab Code's server and draw them as DCLab's card (questions, options, data, analysis, build)",
+    "answer through the person's channel with the exact bodies R&D's Home page sends",
+    "a Jobs tab with the intern's sessions and the project's stages as runs with steps, and Cancel",
+    "Claude passes the person's words to home_start unchanged and lets DCLab lead",
+    "tests, review, a live run with the model, fixes, records"
+  ],
+  "decisions": [
+    {
+      "decision": "the card relays R&D's own event stream and requests; DCLab Code computes nothing about the problem",
+      "why": "one source of truth: the card must behave exactly as R&D's Home page, and follow R&D when it changes (sync-check covers every route used)"
+    },
+    {
+      "decision": "a session owns only the drafts and projects that DCLab's own tools answered with in it (by tool name, joined to its own result)",
+      "why": "ids seen in a person's words, in home_list (every draft) or in another tool's answer must not let one session answer or cancel another's work"
+    },
+    {
+      "decision": "the agent is told after the home tools that the person answers on the card (a PostToolUse note), instead of changing R&D's home_start answer",
+      "why": "R&D's 'next' text serves other hosts (Chat UI, the agent alone); the host that shows the card is the one that should say so"
+    },
+    {
+      "decision": "DCLab's agents run with their model by default in DCLab Code (liveModels true); DCLAB_NO_LIVE_MODELS=1 in the environment always wins",
+      "why": "with rules only the Home agent made a Telco-like table for a text problem; tests and CI never spend"
+    },
+    {
+      "decision": "the problem map is shown read-only with Confirm; its editing stays on DCLab's page for now",
+      "why": "R&D's map editor is large (add, remove, merge parts); confirming covers the common path"
+    }
+  ],
+  "change": "dclab-code: server/dclab_runs.js (new: ownership from records, intern and project runs), web/draft.js (new: the card), server/app.js (draft events, act, upload, map, rows, download; runs; job stop), server/dclab_person.js (DRAFT_ACTS, stream with onOpen, upload), server/engine.js (PostToolUse note), server/config.js (liveModels default, PERSON_READS), server/dclab.js (environment wins), server/prompts/system_append.md, scripts/sync-check.js (the card's routes), web/app.js (showDraft, Jobs tab runs), web/style.css, tests (server, page, units), docs/PARITY_PLAN.md.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "a session could reach other sessions' drafts, projects and jobs",
+      "scenario": "the agent calls home_list (50 drafts with their project ids) or the person types \"project_id\": \"<id>\": the draft routes accept answers to them and Cancel stops their jobs",
+      "cause": "ownership was any id matched anywhere in the session's records text",
+      "fix": "ownership read structurally: owning tool names joined to their own results; the person's draft acts",
+      "test": "server test: home_list's ids and typed ids give 404 and no runs",
+      "severity": "privacy"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "open draft streams could exhaust the browser's connections to the app",
+      "scenario": "five drafts in one thread: every api() call waits forever (6 connections per host)",
+      "cause": "each draft card kept its EventSource open",
+      "fix": "only the newest draft keeps its stream; older cards close and hide their answer box",
+      "test": "page test (one card); reasoning on the browser limit",
+      "severity": "latent"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "a Stop or a Cancel showed as Succeeded",
+      "scenario": "an intern session ended 'stopped', or the last stage job cancelled with stages left",
+      "cause": "unmapped statuses fell through to done",
+      "fix": "stopped and cancelled and interrupted mapped; 'Part done' for a project with stages left",
+      "test": "units test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "describe mode did not answer as R&D's page",
+      "scenario": "'approve' was sent as a new description (a model call or a 422); 'Change it' after a reload went to the Home agent as chat",
+      "cause": "R&D's APPROVE rule and describe mode not copied",
+      "fix": "the same APPROVE rule; Change it and Leave this set and clear describe mode",
+      "test": "page reasoning against home.html",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "a draft DCLab could not read reconnected forever",
+      "scenario": "draft deleted or DCLab down: a 'DCLab: ...' line and a request every 3 s",
+      "cause": "the stream route answered 200 before R&D answered",
+      "fix": "200 only after R&D answers, its error status passed on; the card gives up after 3 failures without an event",
+      "test": "server test: a gone draft's stream answers 404",
+      "severity": "latent"
+    },
+    {
+      "id": "F6",
+      "source": "test",
+      "defect": "Claude retold DCLab's question in the chat beside DCLab's card",
+      "scenario": "'I want to build the text classification': the person saw the same question twice",
+      "cause": "R&D's home_start answer says 'Put the open questions to the person'",
+      "fix": "a PostToolUse note after the home tools",
+      "test": "server test (the note); live run 2: one line, then stop",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F7",
+      "source": "test",
+      "defect": "DCLab's data offer drew no buttons",
+      "scenario": "a message with actions upload, connect, simulate showed as plain text",
+      "cause": "the card handled actions only on a summary",
+      "fix": "the three buttons and panels as on R&D's page; Confirm the map and build",
+      "test": "page test: Simulate data, 20,000 rows, the body R&D's page sends",
+      "severity": "gap"
+    },
+    {
+      "id": "F8",
+      "source": "test",
+      "defect": "no way to build when DCLab asked in plain text",
+      "scenario": "'The plan is settled. Do you want me to build and train it now?' with no build action",
+      "cause": "R&D's page has a header Build button; the card had only the summary's",
+      "fix": "the same button in the card's header (then 'Open its run'); every summary shows Build and Add data first",
+      "test": "live run: the build started from the header button",
+      "severity": "gap"
+    },
+    {
+      "id": "F9",
+      "source": "test",
+      "defect": "the Jobs tab said 'Not started' for a project with 9 of 10 stages done; the intern's running turn had no Cancel",
+      "scenario": "after the intern's build",
+      "cause": "F3's rule too blunt; the intern's job not joined to its run",
+      "fix": "'Part done'; the intern's active job on its running step",
+      "test": "units test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "defect": "a draft the person went back to stayed frozen",
+      "scenario": "home_start A, home_start B, then home_status A: A's card stayed closed (no answer box) while the agent was told the person answers on it",
+      "cause": "showDraft returned for a draft already shown, and the one-live-card rule had closed it",
+      "fix": "going back moves that draft to the end as a fresh card replayed from its start; the others close",
+      "test": "page test: A, B, back to A gives one live card, A's, with its options enabled",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code: every test passes (page tests in Chromium, none skipped)",
+      "verdict": "pass"
+    },
+    {
+      "name": "sync-check",
+      "gate": "every R&D route the card uses exists",
+      "fixed_before_run": true,
+      "result": "in sync with R&D 694ded47; 10 written and 7 read routes confirmed present",
+      "verdict": "pass"
+    },
+    {
+      "name": "live run",
+      "gate": "problem to holdout from the card, under EUR 0.5",
+      "fixed_before_run": true,
+      "result": "intern 15 steps, project 9 of 10 stages, holdout read once; chat $0.15 + R&D EUR 0.23",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "DCLab's Home agent leads in DCLab Code's chat exactly as on its own page, and the intern's and project's runs are visible step by step; with its model on, DCLab designs data that fits the problem.",
+  "lessons": [
+    "A host that shows another system's conversation must also tell its own agent so, or the agent repeats it.",
+    "Ownership must come from the structure of what happened (which tool answered with the id), never from finding the id in text.",
+    "Copy the source page's whole set of entry points (header buttons, message actions), not only the messages' own kinds.",
+    "Answer a stream route only after the upstream answers, so its error status reaches the page."
+  ],
+  "risks": [
+    "the map is read-only in the card; its editing is on DCLab's page",
+    "databases and buckets are connected on DCLab's page (credentials stay there)",
+    "R&D's Home agent sends its data question twice; R&D's analysis types repetitive synthetic text as categorical"
+  ],
+  "commits": [
+    "dclab-code e82f79e"
+  ]
+}
