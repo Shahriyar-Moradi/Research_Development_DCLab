@@ -1,5 +1,5 @@
-"""34.11, retrain and champion/challenger: a challenger fitted on the newer labelled rows replaces the champion only when
-it is better beyond its interval on the latest labelled window neither trained on.
+"""34.11, retrain and champion/challenger: a challenger fitted on the newer labelled rows replaces the champion unless the
+latest labelled window, neither trained on, shows it clearly worse (v2, 2026-10-26; v1 promoted only when clearly better).
 
 On a replica whose outcome's relation changes, the challenger is promoted after the change; on one that does not change,
 it is refused (a fit on fewer rows of the same world is no better). A retrain starts from the live report's alerts or a
@@ -8,6 +8,7 @@ schedule, and waits for enough new labels.
 
 import sys
 import unittest
+import unittest.mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,11 +49,14 @@ def contest(seed, changed):
 @unittest.skipIf(MISSING, MISSING)
 class ChampionChallengerTests(unittest.TestCase):
     def test_promoted_after_the_change_and_refused_without_it(self):
-        """Measured 2026-10-25 over 20 seeds each: promoted after the change in 20 of 20 (better by about 0.19 ROC AUC);
-        without it, 1 of 20 promoted, as a one-sided 95% bound allows: an equally good challenger slips through about once
-        in twenty (a needless redeploy, never a worse model; a margin above zero makes it rarer)."""
-        after = [contest(seed, True) for seed in range(20)]
-        without = [contest(seed, False) for seed in range(20)]
+        """Measured 2026-10-25 over 20 seeds each, with v1's rule (only_clearly_better): promoted after the change in 20 of
+        20 (better by about 0.19 ROC AUC); without it, 1 of 20 promoted, as a one-sided 95% bound allows."""
+        from dclab_core import retrain as R
+
+        strict = R.RetrainPolicy(promote="only_clearly_better")
+        with unittest.mock.patch.object(R, "RetrainPolicy", lambda: strict):
+            after = [contest(seed, True) for seed in range(20)]
+            without = [contest(seed, False) for seed in range(20)]
         self.assertGreaterEqual(sum(r.promoted for r in after), 19)
         self.assertLessEqual(sum(r.promoted for r in without), 1)
         record = after[0]
@@ -62,6 +66,25 @@ class ChampionChallengerTests(unittest.TestCase):
         kept = without[0]
         self.assertFalse(kept.promoted)
         self.assertIn("the champion stays", kept.reason)
+
+    def test_the_default_promotes_unless_clearly_worse(self):
+        """v2 (2026-10-26, ABL-004 and ABL-005 on real tables in time order: v1 kept champions whose challengers were better
+        later; the dev confirmation, fixed before it was read, found 23 promotions and none worse later): the challenger
+        holds the newer rows, so it is promoted unless the window shows it clearly worse. On the replica: after the change 20
+        of 20; without it 19 of 20 (an equally good challenger: a redeploy, never a worse model); a clearly worse one kept."""
+        from dclab_core.retrain import RetrainPolicy, compare
+
+        self.assertEqual((RetrainPolicy().promote, RetrainPolicy().schema_version), ("unless_clearly_worse", "dclab_core.retrain_policy.v2"))
+        after = [contest(seed, True) for seed in range(20)]
+        without = [contest(seed, False) for seed in range(20)]
+        self.assertGreaterEqual(sum(r.promoted for r in after), 19)
+        self.assertTrue(all(r.interval[1] >= 0 for r in without if r.promoted))  # never one the window shows clearly worse
+        rng = np.random.default_rng(0)
+        y = rng.integers(0, 2, 600).astype(float)
+        worse = compare("binary", y, y * 0.7 + rng.random(600) * 0.3, rng.random(600), bootstrap=300)
+        self.assertFalse(worse.promoted)
+        self.assertIn("clearly worse", worse.reason)
+        self.assertIn("not clearly worse", without[0].reason)
 
     def test_a_lower_error_is_better_and_bad_inputs_are_refused(self):
         from dclab_core.retrain import compare

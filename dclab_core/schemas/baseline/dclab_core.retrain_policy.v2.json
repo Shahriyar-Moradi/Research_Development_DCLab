@@ -1,0 +1,59 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "every_days": {
+      "anyOf": [
+        {
+          "maximum": 3650,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "margin": {
+      "default": 0.0,
+      "minimum": 0,
+      "type": "number"
+    },
+    "min_new_labelled": {
+      "default": 500,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "on_drift": {
+      "default": true,
+      "type": "boolean"
+    },
+    "on_performance": {
+      "default": true,
+      "type": "boolean"
+    },
+    "promote": {
+      "default": "unless_clearly_worse",
+      "enum": [
+        "unless_clearly_worse",
+        "only_clearly_better"
+      ],
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.retrain_policy.v2",
+      "default": "dclab_core.retrain_policy.v2",
+      "type": "string"
+    },
+    "window_share": {
+      "default": 0.2,
+      "exclusiveMaximum": 0.5,
+      "exclusiveMinimum": 0,
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "type": "object"
+}

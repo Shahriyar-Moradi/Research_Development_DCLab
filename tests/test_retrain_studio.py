@@ -88,7 +88,9 @@ class RetrainStudioTest(unittest.TestCase):
         attach(store, pid, newer(False), "same_world")
         attach(store, pid, newer(True), "new_rule")
         self.assertEqual(store.get(pid)["stages"]["final"]["status"], "completed")  # newer rows clear no stage
-        kept = retrain.run(store, pid, "same_world", lesson_store=lesson_store)
+        from dclab_core.retrain import RetrainPolicy  # v2's default promotes an equal challenger (it holds newer rows): the
+        strict = RetrainPolicy(promote="only_clearly_better")  # path that keeps the champion is the strict rule's, still offered
+        kept = retrain.run(store, pid, "same_world", lesson_store=lesson_store, policy=strict)
         promoted = retrain.run(store, pid, "new_rule", lesson_store=lesson_store, live_report=report(pid))
         self.assertFalse(kept["promoted"], kept["reason"])
         self.assertTrue(promoted["promoted"], promoted["reason"])

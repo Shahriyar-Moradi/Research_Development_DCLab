@@ -28,15 +28,22 @@ METRICS = {"binary": ("roc_auc", True), "multiclass": ("accuracy", True), "regre
 
 
 class RetrainPolicy(Versioned):
-    """What starts a retrain (34.11, v1)."""
+    """What starts a retrain (34.11), and when the challenger replaces the champion (v2, 2026-10-26). ``promote``:
+    ``unless_clearly_worse`` (the default since v2) promotes the challenger, fitted on the champion's rows and newer ones,
+    unless the window shows it clearly worse (its 90% upper bound below the margin); ``only_clearly_better`` (v1's rule)
+    promotes it only when its 90% lower bound is above the margin. Measured on real tables in time order (ABL-004, the
+    train split: v1 kept 9 champions, 5 of them had a better challenger later; ABL-005, the dev split, fixed before it
+    was read: 23 promotions, none worse later, against v1's 20 kept with 6 gains missed)."""
 
-    schema_version: Literal["dclab_core.retrain_policy.v1"] = _version("retrain_policy")
+    schema_version: Literal["dclab_core.retrain_policy.v2"] = _version("retrain_policy", 2)
     on_drift: bool = True
     on_performance: bool = True
     every_days: Optional[int] = Field(default=None, ge=1, le=3650)
     min_new_labelled: int = Field(default=500, ge=1)
     window_share: float = Field(default=0.2, gt=0, lt=0.5, description="The latest labelled rows held out to compare the two.")
-    margin: float = Field(default=0.0, ge=0, description="How much better the challenger must be, beyond its interval.")
+    margin: float = Field(default=0.0, ge=0, description="How much better the challenger must be: its interval's upper bound (unless_clearly_worse) or lower bound (only_clearly_better) at least this.")
+    promote: Literal["unless_clearly_worse", "only_clearly_better"] = Field(
+        default="unless_clearly_worse", description="When the challenger replaces the champion on the window (v2; v1 was only_clearly_better).")
 
 
 CONTRACTS["retrain_policy"] = RetrainPolicy
@@ -159,17 +166,21 @@ def compare(task: str, y_window: Sequence[Any], champion: Any, challenger: Any, 
         if da is not None and db is not None:
             draws.append(sign * (db - da))
     interval = [round(float(np.quantile(draws, 0.05)), 6), round(float(np.quantile(draws, 0.95)), 6)] if len(draws) >= 50 else [None, None]
-    margin = (policy or RetrainPolicy()).margin
+    policy = policy or RetrainPolicy()
+    margin, strict = policy.margin, policy.promote == "only_clearly_better"
     difference = sign * (vb - va)
     small = len(y) < MIN_WINDOW or (task == "binary" and min(int((y == 1).sum()), int((y == 0).sum())) < MIN_PER_CLASS)
-    promoted = not small and interval[0] is not None and interval[0] > margin
+    promoted = not small and interval[0] is not None and (interval[0] > margin if strict else interval[1] >= margin)
     shown = (f"its 90% interval {interval[0]} to {interval[1]}" + (" over whole groups" if members is not None else "")
              if interval[0] is not None else "no interval (too few draws could be read)")
     reason = (f"The challenger's {name} {vb:.4f} against the champion's {va:.4f} on {len(y)} rows neither trained on: "
               + (f"too few rows to compare (at least {MIN_WINDOW}, and {MIN_PER_CLASS} of each class for a yes/no outcome): the champion stays."
                  if small else
-                 f"better by {difference:.4f}, {shown} above {margin:g}: promoted." if promoted else
-                 f"a difference of {difference:+.4f}, {shown}, not above {margin:g}: the champion stays."))
+                 (f"better by {difference:.4f}, {shown} above {margin:g}: promoted." if strict else
+                  f"a difference of {difference:+.4f}, {shown}: not clearly worse (its upper bound at least {margin:g}), and it "
+                  "holds the newer rows: promoted.") if promoted else
+                 (f"a difference of {difference:+.4f}, {shown}, not above {margin:g}: the champion stays." if strict else
+                  f"a difference of {difference:+.4f}, {shown}: clearly worse (its upper bound below {margin:g}): the champion stays.")))
     return ChallengerRecord(metric=name, higher_is_better=higher, window_rows=len(y), window=window[:200], champion=round(va, 6),
                             challenger=round(vb, 6), difference=round(difference, 6), interval=interval, margin=margin, promoted=promoted,
                             because=list(because)[:10], reason=reason, champion_version=champion_version, challenger_version=challenger_version)

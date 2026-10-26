@@ -1,0 +1,20 @@
+{
+ "campaign_id": "ability_v1",
+ "kind": "rule_on_real_tables",
+ "layer": "learn",
+ "point": "ops.retrain",
+ "id": "ABL-005",
+ "experiment_id": "ABL-005",
+ "status": "completed",
+ "at": "2026-10-26T07:37:22+00:00",
+ "plan": "agent_runs/live_tests/2026-10-25-retrain-truth/CONFIRM.md",
+ "tables": "8",
+ "decisions": "24",
+ "rule_b": "{'promoted': 23, 'worse': 0, 'kept': 1, 'missed': 0}",
+ "rule_v1": "{'promoted': 4, 'worse': 0, 'kept': 20, 'missed': 6}",
+ "future_mean_difference": "{'binary': {'n': 24, 'B': 0.02227, 'v1': 0.001617, 'always': 0.020859}}",
+ "verdict": "{'condition_1': True, 'condition_2': True, 'condition_3': True, 'confirmed': True}",
+ "result": "confirmed: dclab-core 0.119.0 makes unless_clearly_worse the default",
+ "rule": "The loosened retrain rule (promote unless the window's 90% upper bound is below 0), chosen on ABL-004's 36 train decisions, confirmed on the dev split's 8 time-ordered tables without twins (CONFIRM.md, written before they were read; row floor 1,500): 23 promotions, none worse later; 1 kept, no gain missed; mean future gain 0.0223 against v1's 0.0016 (always promoting 0.0209). All three conditions hold. Five tables needed a second run: OpenML answered 503 the first time.",
+ "limits": "8 tables, 24 decisions, binary outcomes only on this split; a regression host keeps v1's evidence only from ABL-004."
+}

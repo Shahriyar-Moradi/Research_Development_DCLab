@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.119.0 (2026-10-26)
+
+- `retrain.RetrainPolicy` v2 (`dclab_core.retrain_policy.v2`): `promote`, `unless_clearly_worse` by default (the
+  challenger, fitted on the champion's rows and newer ones, replaces the champion unless the window's 90% upper bound of
+  its gain is below `margin`), or `only_clearly_better` (v1's rule: the lower bound above `margin`). Measured on real
+  tables in time order: v1 kept champions whose challengers were better later (ABL-004, 5 of 9); the dev confirmation,
+  fixed before it was read (ABL-005, 8 tables, 24 decisions), found 23 promotions under the new rule and none worse later,
+  against v1's 20 champions kept with 6 gains missed. A host that wants v1's rule sets `promote="only_clearly_better"`.
+
 ## 0.118.2 (2026-10-26)
 
 - `replicas.subscription_churn.generate(..., drift=0.3)`: the cancel rate's drift over the two years can be set (0

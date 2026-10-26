@@ -1,0 +1,65 @@
+{
+ "package": "retrain-rule-v2",
+ "title": "The retrain rule promotes unless the challenger is clearly worse (dclab-core 0.119.0)",
+ "date": "2026-10-26",
+ "request": "The owner, 2026-10-26: 'yes, loosen the retrain rule' (ABL-004: the rule kept champions whose challengers were better later).",
+ "spec": "CONFIRM.md in agent_runs/live_tests/2026-10-25-retrain-truth, written before the dev tables were read: three conditions.",
+ "plan": [
+  "Read looser rules on ABL-004's 36 train decisions (exploration, so a candidate only).",
+  "Fix the confirmation on the dev split's time-ordered tables without twins before reading them.",
+  "Only if it passes: RetrainPolicy v2 with promote (unless_clearly_worse by default, only_clearly_better as v1), the schema's v2 baseline, the version."
+ ],
+ "decisions": [
+  {
+   "decision": "Candidate B, promote unless the window's 90% upper bound is below 0.",
+   "why": "On the train decisions it missed no gain and promoted 2 worse of 34; the challenger holds the champion's rows and newer ones."
+  },
+  {
+   "decision": "The dev row floor 1,500 rather than 3,000.",
+   "why": "Counted before any dev result: 1 dev table at 3,000 rows, 8 at 1,500; a window then holds 75 rows, above compare's 30."
+  },
+  {
+   "decision": "v1's rule stays as an option (only_clearly_better).",
+   "why": "A host that wants fewer redeploys keeps it; the record says which rule decided."
+  },
+  {
+   "decision": "Judged only after the five tables OpenML refused (503) were read on a second run.",
+   "why": "Three tables alone passed all three conditions on 9 decisions: too few to change a default."
+  }
+ ],
+ "change": "dclab_core/retrain.py (RetrainPolicy v2, compare reads promote), schemas/retrain_policy.json and baseline v2, CHANGELOG 0.119.0, __init__ and pyproject; dclab_rnd/agentic/routers/projects.py accepts promote; tests/test_core_retrain.py (the default and the strict rule), tests/test_retrain_studio.py (the kept path under the strict rule); evidence ABL-005.",
+ "findings": [
+  {
+   "id": "RET-1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The retrain rule kept champions whose challengers were better later.",
+   "scenario": "ABL-004: of 9 champions kept on 13 real time-ordered tables, 5 had a better challenger on the rows after the window.",
+   "cause": "Promotion needed the window's lower bound above 0: a small window rarely shows a real gain clearly.",
+   "fix": "Promote unless the window shows the challenger clearly worse (upper bound below the margin).",
+   "test": "test_the_default_promotes_unless_clearly_worse",
+   "impact": "a model trained on newer rows was kept out for weeks while the old one drifted"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "ABL-005 dev confirmation",
+   "gate": "CONFIRM.md: (1) at most 10% of promotions worse later; (2) at most 50% of kept champions with a better challenger; (3) mean future gain at least v1's, per task with 5 or more decisions",
+   "result": "8 tables, 24 decisions: 23 promoted, 0 worse; 1 kept, 0 missed; mean future gain 0.0223 against v1's 0.0016 (always promoting 0.0209); v1 kept 20 with 6 gains missed",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "0 of 23 promotions worse, within 10%; 0 of 1 kept missed, within 50%; 0.0223 >= 0.0016",
+   "limits": [
+    "binary outcomes only on the dev split",
+    "8 tables from few sources"
+   ]
+  }
+ ],
+ "outcome": "A retrained model replaces the old one unless it is clearly worse on the newest labelled rows; the strict rule remains as an option.",
+ "lessons": [
+  "Confirm a change on tables it was not chosen on; when the downloads fail, finish the run before judging."
+ ],
+ "risks": [
+  "More redeploys of equally good models: never a worse one on the window, said in the record's reason."
+ ]
+}

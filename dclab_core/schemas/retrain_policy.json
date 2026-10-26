@@ -1,7 +1,7 @@
 {
-  "$id": "https://dclab.dev/schemas/dclab_core.retrain_policy.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.retrain_policy.v2.json",
   "additionalProperties": false,
-  "description": "What starts a retrain (34.11, v1).",
+  "description": "What starts a retrain (34.11), and when the challenger replaces the champion (v2, 2026-10-26). ``promote``:\n``unless_clearly_worse`` (the default since v2) promotes the challenger, fitted on the champion's rows and newer ones,\nunless the window shows it clearly worse (its 90% upper bound below the margin); ``only_clearly_better`` (v1's rule)\npromotes it only when its 90% lower bound is above the margin. Measured on real tables in time order (ABL-004, the\ntrain split: v1 kept 9 champions, 5 of them had a better challenger later; ABL-005, the dev split, fixed before it\nwas read: 23 promotions, none worse later, against v1's 20 kept with 6 gains missed).",
   "properties": {
     "every_days": {
       "anyOf": [
@@ -19,7 +19,7 @@
     },
     "margin": {
       "default": 0.0,
-      "description": "How much better the challenger must be, beyond its interval.",
+      "description": "How much better the challenger must be: its interval's upper bound (unless_clearly_worse) or lower bound (only_clearly_better) at least this.",
       "minimum": 0,
       "title": "Margin",
       "type": "number"
@@ -40,9 +40,19 @@
       "title": "On Performance",
       "type": "boolean"
     },
+    "promote": {
+      "default": "unless_clearly_worse",
+      "description": "When the challenger replaces the champion on the window (v2; v1 was only_clearly_better).",
+      "enum": [
+        "unless_clearly_worse",
+        "only_clearly_better"
+      ],
+      "title": "Promote",
+      "type": "string"
+    },
     "schema_version": {
-      "const": "dclab_core.retrain_policy.v1",
-      "default": "dclab_core.retrain_policy.v1",
+      "const": "dclab_core.retrain_policy.v2",
+      "default": "dclab_core.retrain_policy.v2",
       "title": "Schema Version",
       "type": "string"
     },

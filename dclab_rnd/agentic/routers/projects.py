@@ -637,7 +637,7 @@ async def retrain_project(project_id: str, payload: AnyObject, wait: bool = True
     if project.get("running"):
         raise HTTPException(409, "Something is running in this project: wait for it, or stop it")
     try:
-        policy = RetrainPolicy(**{k: v for k, v in (body.get("policy") or {}).items() if k in ("window_share", "min_new_labelled", "margin")})
+        policy = RetrainPolicy(**{k: v for k, v in (body.get("policy") or {}).items() if k in ("window_share", "min_new_labelled", "margin", "promote")})
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from None
     live_report = body.get("live_report") if isinstance(body.get("live_report"), dict) else None
