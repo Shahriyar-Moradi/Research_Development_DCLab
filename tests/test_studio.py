@@ -258,6 +258,13 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(nb.status_code, 200)
         self.assertEqual(json.loads(nb.text)["nbformat"], 4)
         self.assertIn("Solution draft", c.get(f"/api/projects/{pid}/export/report").text)
+        # a project named in Persian downloads too: the name in the header was Latin-1 only (a 500 for the owner's own names)
+        self.assertEqual(c.patch(f"/api/projects/{pid}", json={"name": "پیش‌بینی ریزش"}, headers=self.headers).status_code, 200)
+        for kind in ("notebook", "report", "solution-report"):
+            got = c.get(f"/api/projects/{pid}/export/{kind}")
+            self.assertEqual(got.status_code, 200, kind)
+            self.assertRegex(got.headers["content-disposition"], r'filename="dclab-[A-Za-z0-9_-]+\.(ipynb|md)"', kind)
+            self.assertIn("filename*=UTF-8''dclab-", got.headers["content-disposition"], kind)
         self.assertEqual(c.get("/api/evidence/DCLAB-R04").json()["record_id"], "DCLAB-R04")
         self.assertEqual(c.get("/api/evidence/NOPE").status_code, 404)
         self.assertEqual(c.post(f"/api/projects/{pid}/stages/models/approve", json={"choice": "logistic_regression"}, headers=self.headers).status_code, 200)

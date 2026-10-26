@@ -21,6 +21,16 @@ from ..services import charge_upload, Services, services
 router = Router()
 
 
+
+def attachment(stem: str, suffix: str) -> dict[str, str]:
+    """A download's Content-Disposition for a project's name in any script: an ASCII file name, and the real one
+    (RFC 5987) for browsers that read it. A header is Latin-1, so a Persian name written raw failed the response (500)."""
+    from urllib.parse import quote
+
+    name = str(stem)[:40].replace(" ", "_")
+    ascii_name = "".join(ch for ch in name if ch.isascii() and (ch.isalnum() or ch in "-_")).strip("-_") or "project"
+    return {"Content-Disposition": f"attachment; filename=\"dclab-{ascii_name}{suffix}\"; filename*=UTF-8''{quote(f'dclab-{name}{suffix}')}"}
+
 @router.get("/api/projects", response_model=list[Project])
 async def list_projects(s: Services = Depends(services)):
     return [{k: v for k, v in p.items() if k not in ("proposal",)} | {"data": p["data"] and {k: v for k, v in p["data"].items() if k != "profile"}}
@@ -1034,7 +1044,7 @@ async def export_notebook(project_id: str, s: Services = Depends(services)):
         raise HTTPException(409, str(exc)) from None
     studio_graph.capture(s.projects, project_id, "human")
     text = studio_export.dumps_notebook(nb)
-    return Response(text, media_type="application/x-ipynb+json", headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}.ipynb"'})
+    return Response(text, media_type="application/x-ipynb+json", headers=attachment(p["name"], ".ipynb"))
 
 
 @router.get("/api/projects/{project_id}/export/code", response_class=Response, responses=download("application/zip"))
@@ -1067,12 +1077,7 @@ async def export_code(project_id: str, check: bool = False, s: Services = Depend
         data = await asyncio.to_thread(build)
     except (studio_code.CodeRefused, studio_data.DataError, ValueError) as exc:  # refused, or the data changed since the run
         raise HTTPException(409, str(exc)) from None
-    from urllib.parse import quote
-
-    name = p["name"][:40].replace(" ", "_")
-    ascii_name = "".join(ch for ch in name if ch.isascii() and (ch.isalnum() or ch in "-_")) or "project"
-    return Response(data, media_type="application/zip", headers={  # an ASCII name, and the real one for browsers that read it
-        "Content-Disposition": f'attachment; filename="dclab-{ascii_name}-code.zip"; filename*=UTF-8\'\'{quote(f"dclab-{name}-code.zip")}'})
+    return Response(data, media_type="application/zip", headers=attachment(p["name"], "-code.zip"))
 
 
 @router.get("/api/projects/{project_id}/review", response_model=Review)
@@ -1289,7 +1294,7 @@ async def review_project_fixes(project_id: str, s: Services = Depends(services))
 async def export_report(project_id: str, s: Services = Depends(services)):
     p = s.project(project_id)
     return Response(studio_export.report(p, s.projects.records(project_id)), media_type="text/markdown; charset=utf-8",
-                    headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}.md"'})
+                    headers=attachment(p["name"], ".md"))
 
 
 @router.get("/api/projects/{project_id}/export/solution-report", response_class=Response, responses=download("text/markdown"))
@@ -1315,12 +1320,12 @@ async def export_solution_report(project_id: str, s: Services = Depends(services
         if problems:
             raise HTTPException(500, "The programme report has a number it cannot trace: " + "; ".join(problems[:2]))
         return Response(core_report.to_markdown(report), media_type="text/markdown; charset=utf-8",
-                        headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}-programme.md"'})
+                        headers=attachment(p["name"], "-programme.md"))
     if not s.projects.has_stage(project_id, "final"):
         raise HTTPException(409, "Run the final stage first: the report reads the finished records")
     text = (await asyncio.to_thread(solution_report.latest, s.projects, project_id))["markdown"]  # the same records: the same report, no new request
     return Response(text, media_type="text/markdown; charset=utf-8",
-                    headers={"Content-Disposition": f'attachment; filename="dclab-solution-report-{p["name"][:40].replace(" ", "_")}.md"'})
+                    headers=attachment(f'solution-report-{p["name"]}', ".md"))
 
 
 @router.get("/api/projects/{project_id}/export/sft", response_class=Response, responses=download("application/x-ndjson"))
@@ -1333,4 +1338,4 @@ async def export_sft(project_id: str, s: Services = Depends(services)):
     p = s.project(project_id)
     rows = studio_sft.examples_from_project(p, s.projects.records(project_id))
     text = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
-    return Response(text, media_type="application/x-ndjson", headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}.sft.jsonl"'})
+    return Response(text, media_type="application/x-ndjson", headers=attachment(p["name"], ".sft.jsonl"))
