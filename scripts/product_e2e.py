@@ -391,6 +391,54 @@ def keep_workspace(home: tempfile.TemporaryDirectory | None, name: str, root: Pa
         return None
 
 
+def keep_results(results: list[dict], argv: list[str], wall: float, kept: Path | None, where: Path | None = None) -> Path | None:
+    """Each flow's result kept whole (its name, verdict, the whole line it printed, its seconds) as a run beside the test
+    suite's (``training_records/test_runs/<day>/<run>.jsonl.gz``, indexed in ``runs.jsonl``; the store's test_runs keeper
+    takes them), and as ``e2e_result.json`` beside the kept workspace. ``DCLAB_TEST_RUNS`` chooses where, ``off`` keeps
+    none, as for the suite; a failure to keep it is said, never fatal."""
+    import gzip
+    from datetime import datetime, timezone
+
+    def git(*args: str) -> str:
+        try:
+            out = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=10)
+            return out.stdout.strip() if out.returncode == 0 else ""
+        except (OSError, subprocess.SubprocessError):
+            return ""
+
+    chosen = os.environ.get("DCLAB_TEST_RUNS", "").strip()
+    if chosen.lower() == "off":
+        return None
+    where = where or (Path(chosen) if chosen else _main_checkout() / "training_records" / "test_runs")
+    now = datetime.now(timezone.utc)
+    commit = git("rev-parse", "HEAD")
+    run = f"{now.strftime('%Y%m%dT%H%M%S%fZ')}-{(commit or 'nogit')[:10]}-e2e-{os.getpid()}"
+    failing = [r["flow"] for r in results if not r["ok"]]
+    header = {"kind": "e2e_run", "run": run, "at": now.isoformat(timespec="seconds"), "commit": commit,
+              "dirty": bool(git("status", "--porcelain", "--untracked-files=no")), "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
+              "worktree": str(ROOT), "argv": list(argv), "ok": not failing, "wall_seconds": round(wall, 1), "flows": len(results),
+              "failed": len(failing), "failing_flows": failing, "workspace": str(kept) if kept else None, "python": sys.version.split()[0],
+              "env": {k: os.environ.get(k) for k in ("DCLAB_NO_LIVE_MODELS", "DCLAB_E2E_KEEP") if os.environ.get(k) is not None}}
+    flows = [{"kind": "flow", "run": run, **r, "seconds": round(r["seconds"], 2)} for r in results]
+    try:
+        day = where / now.strftime("%Y-%m-%d")
+        day.mkdir(parents=True, exist_ok=True)
+        path = day / f"{run}.jsonl.gz"
+        with gzip.open(path, "xt", encoding="utf-8") as fh:
+            for line in [header, *flows]:
+                fh.write(json.dumps(line, ensure_ascii=False) + "\n")
+        with open(where / "runs.jsonl", "a", encoding="utf-8") as fh:  # the suite's index: the same keys, so its readers read it too
+            fh.write(json.dumps({"kind": "e2e_run", **{k: header[k] for k in ("run", "at", "commit", "dirty", "argv", "ok", "wall_seconds", "failed")},
+                                 "pg": False, "units": len(results), "tests": len(results), "skipped": 0, "failing_files": failing,
+                                 "path": str(path.relative_to(where))}, ensure_ascii=False) + "\n")
+        if kept is not None:
+            (kept / "e2e_result.json").write_text(json.dumps({**header, "flows": flows}, ensure_ascii=False, indent=1) + "\n")
+        return path
+    except OSError as error:
+        print(f"note: the flows' results were not kept ({error})", file=sys.stderr)
+        return None
+
+
 def start_server() -> tuple[subprocess.Popen, str, tempfile.TemporaryDirectory]:
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
@@ -427,15 +475,23 @@ def main(argv: list[str] | None = None) -> int:
     if not base:
         process, base, home = start_server()
     failed = 0
+    results: list[dict] = []
+    began = time.time()
     try:
         api = Api(base)
         for name in args.only or list(FLOWS):
             started = time.time()
             try:
-                print(f"PASS  {name:<10} {FLOWS[name](api)}  [{time.time() - started:.0f}s]", flush=True)
+                detail = FLOWS[name](api)
+                results.append({"flow": name, "ok": True, "detail": str(detail), "seconds": time.time() - started})
+                print(f"PASS  {name:<10} {detail}  [{time.time() - started:.0f}s]", flush=True)
             except Failed as error:
                 failed += 1
+                results.append({"flow": name, "ok": False, "detail": str(error), "seconds": time.time() - started})
                 print(f"FAIL  {name:<10} {error}", flush=True)
+            except BaseException as error:  # an unexpected error ends the run: kept too, then raised
+                results.append({"flow": name, "ok": False, "detail": f"{type(error).__name__}: {error}", "seconds": time.time() - started})
+                raise
     finally:
         if process is not None:
             process.terminate()
@@ -444,11 +500,16 @@ def main(argv: list[str] | None = None) -> int:
             except subprocess.TimeoutExpired:  # a job still running in the server: never leave it behind
                 process.kill()
                 process.wait(10)
+        kept = None
         if home is not None:
             kept = keep_workspace(home, "product_e2e")
             if kept is not None:
                 print(f"kept: {kept}")
             home.cleanup()
+        if results:
+            recorded = keep_results(results, list(argv if argv is not None else sys.argv[1:]), time.time() - began, kept)
+            if recorded is not None:
+                print(f"results kept: {recorded}")
     print("all flows passed" if not failed else f"{failed} flow(s) failed")
     return 1 if failed else 0
 

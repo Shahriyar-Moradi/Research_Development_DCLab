@@ -1,0 +1,30 @@
+{
+  "package": "rnd-tickets-template-e2e-results",
+  "title": "A text template for the synthetic fallback, and the product flows' results kept beside the test runs",
+  "date": "2026-10-26",
+  "request": "Owner: add a text template (support tickets with text, plan, area, urgent) to R&D's synthetic fallback so text problems never get Telco data; and record and store the data of the product end-to-end flows.",
+  "spec": "dclab_rnd/draft/synthetic.py (template_for, TEMPLATES); scripts/product_e2e.py (keep_workspace, keep_results)",
+  "plan": ["a failing test: a text problem gets a text template, its text drives the outcome", "the tickets template and its keywords", "the flows' results kept whole as a run in training_records/test_runs and beside the kept workspace", "affected tests, product-e2e, review"],
+  "decisions": [
+    {"decision": "the text template wins only when no task template matches", "why": "text words usually name a task's inputs ('churn from complaints and emails'): the task decides the table"},
+    {"decision": "the text template's words match whole words (a plural too)", "why": "'text' must never find 'texture'; the other templates keep their prefix matching ('unsubscrib', 'anomal')"},
+    {"decision": "no business-hours flag in the tickets table", "why": "drawn apart from submitted_at it contradicted the time for about 40% of rows: a trap nobody planted on purpose"},
+    {"decision": "the e2e results go where the suite's runs go, with the same index keys", "why": "the store's test_runs keeper and the archive already take that folder whole; one place for every run"}
+  ],
+  "change": "dclab_rnd/draft/synthetic.py (tickets template, keyword rule), tests/test_draft_synthetic.py, scripts/product_e2e.py (keep_results; each flow's result collected), tests/test_e2e_keep.py.",
+  "findings": [
+    {"id": "F1", "source": "owner", "defect": "a text problem got the Telco churn table when the model was off", "scenario": "'I want to build the text classification' with the model refused by the budget cap: 'the built-in Telco customer churn template'", "cause": "no text template; churn is the default when no keyword matches", "fix": "a support-tickets template whose text drives the outcome, chosen by text words", "test": "template routing cases; outage tickets urgent more than twice as often", "severity": "gap"},
+    {"id": "F2", "source": "reviewer", "defect": "a churn prompt with text inputs got the tickets table", "scenario": "'Predict churn from customer complaints and emails': tickets 2, churn 1", "cause": "topic words outvoted the task word", "fix": "tickets only when no task template matches", "test": "routing cases for churn, credit and fraud beside text words", "severity": "behaviour"},
+    {"id": "F3", "source": "reviewer", "defect": "'text' matched 'texture'", "scenario": "'Measure the texture of materials' routed to tickets", "cause": "keywords had no closing word boundary", "fix": "whole words (with a plural) for the text template", "test": "routing case", "severity": "behaviour"},
+    {"id": "F4", "source": "reviewer", "defect": "is_business_hours contradicted submitted_at", "scenario": "1,986 of 5,000 tickets outside 9 to 17 marked business hours", "cause": "the flag was drawn independently of the time", "fix": "the flag dropped", "test": "every template generates and describes", "severity": "latent"},
+    {"id": "F5", "source": "owner", "defect": "the product flows' results were only printed", "scenario": "make product-e2e: the workspace was kept, but which flows passed, their numbers and times were lost after the screen", "cause": "keep_workspace copied the workspace only", "fix": "keep_results: a run in training_records/test_runs (indexed in runs.jsonl) and e2e_result.json beside the workspace", "test": "tests/test_e2e_keep.py; a real run kept 5 flows", "severity": "gap"}
+  ],
+  "measurements": [
+    {"name": "affected tests", "gate": "every test passes", "fixed_before_run": true, "result": "test_draft_synthetic 37, test_e2e_keep 2, test_synthetic_design 6, test_draft_flow 52, plus sensitivity, studio, lessons, data limits: all pass", "verdict": "pass"},
+    {"name": "product-e2e", "gate": "all flows pass, results kept", "fixed_before_run": true, "result": "5 of 5 flows passed; results kept in training_records/test_runs/2026-10-26/*-e2e-*.jsonl.gz", "verdict": "pass"}
+  ],
+  "outcome": "With the model off, a text problem gets a support-tickets table whose text carries the signal; every product end-to-end run keeps its results for the store.",
+  "lessons": ["A fallback keyword list must let the task decide over words that name inputs.", "A test that only prints its results loses them: keep every run where the other runs are kept."],
+  "risks": ["the tickets template is one text shape (support tickets); reviews or emails get the same columns"],
+  "commits": []
+}

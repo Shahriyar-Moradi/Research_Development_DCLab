@@ -303,7 +303,7 @@ class GenerationTests(unittest.TestCase):
 @unittest.skipIf(MISSING, f"pydantic not installed: {MISSING}")
 class TemplateTests(unittest.TestCase):
     def test_every_template_generates_and_describes(self):
-        self.assertTrue({"churn", "fraud", "demand", "credit", "maintenance"} <= set(syn.TEMPLATES))
+        self.assertTrue({"churn", "fraud", "demand", "credit", "maintenance", "tickets"} <= set(syn.TEMPLATES))
         for key, spec in syn.TEMPLATES.items():
             with self.subTest(template=key):
                 frame = syn.generate(spec)
@@ -327,6 +327,16 @@ class TemplateTests(unittest.TestCase):
             "Forecast daily sales for each store": "demand",
             "Predict loan default for new applicants": "credit",
             "Predict machine failure from vibration sensors": "maintenance",
+            # a text problem never gets the churn table (the owner's "text classification" got Telco churn, 2026-10-26)
+            "I want to build the text classification": "tickets",
+            "Which support tickets are urgent?": "tickets",
+            "Classify product reviews by sentiment": "tickets",
+            "Route incoming customer emails and messages": "tickets",
+            # a task named beside text inputs stays that task; "text" is a whole word
+            "Predict churn from customer complaints and emails": "churn",
+            "Predict loan default from applications with comments": "credit",
+            "Flag fraud in transactions with free-text notes": "fraud",
+            "Measure the texture of materials": "churn",
             "Something completely different": "churn",
             "": "churn",
         }
@@ -335,6 +345,15 @@ class TemplateTests(unittest.TestCase):
                 key, spec = syn.template_for(prompt)
                 self.assertEqual(key, expected)
                 self.assertIsInstance(spec, syn.SyntheticSpec)
+
+    def test_ticket_text_drives_urgency(self):
+        # the text column carries signal, as in a real ticket queue: an outage is urgent far more often than a thank-you
+        spec = syn.TEMPLATES["tickets"]
+        self.assertEqual([c.type for c in spec.columns if c.name == "ticket_text"], ["text"])
+        frame = syn.generate(spec.model_copy(update={"rows": 20000}))
+        urgent = frame["is_urgent"].astype(str) == "yes"
+        text = frame["ticket_text"].astype(str).str.lower()
+        self.assertGreater(urgent[text.str.contains("outage")].mean(), 2 * urgent[~text.str.contains("outage")].mean())
 
     def test_template_copies_are_independent(self):
         _, spec = syn.template_for("churn")

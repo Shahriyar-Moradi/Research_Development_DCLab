@@ -699,6 +699,30 @@ TEMPLATES: dict[str, SyntheticSpec] = {
                    "effects": {"temperature_c": 0.7, "vibration_mm_s": 1.1, "pressure_bar": -0.3, "operating_hours": 0.6,
                                "days_since_service": 0.8, "machine_type=press": 0.4}},
     }),
+    "tickets": _spec({
+        "name": "Support tickets (synthetic)",
+        "description": "Customer support tickets with their text, the customer's plan and the product area; predict which tickets "
+                       "are urgent at the moment they are submitted.",
+        "rows": 5000,
+        "columns": [
+            {"name": "ticket_id", "type": "id"},
+            {"name": "submitted_at", "type": "datetime", "start": "2024-01-01T00:00:00", "end": "2024-12-31T23:59:59"},
+            {"name": "ticket_text", "type": "text", "null_rate": 0.01,
+             "categories": ["login", "billing", "a refund", "the mobile app", "an outage", "data export", "the invoice",
+                            "password reset", "integrations", "a feature request"],
+             "weights": [0.14, 0.13, 0.1, 0.12, 0.06, 0.08, 0.1, 0.09, 0.08, 0.1]},
+            {"name": "customer_plan", "type": "categorical", "categories": ["free", "starter", "professional", "enterprise"],
+             "weights": [0.36, 0.3, 0.22, 0.12]},
+            {"name": "product_area", "type": "categorical", "null_rate": 0.02,
+             "categories": ["core platform", "authentication", "billing", "integrations", "reporting"], "weights": [0.3, 0.2, 0.2, 0.15, 0.15]},
+            {"name": "attachment_count", "type": "integer", "dist": "poisson", "params": {"lam": 0.6}},
+            {"name": "account_age_months", "type": "numeric", "dist": "uniform", "params": {"low": 1, "high": 120}},
+        ],
+        "target": {"name": "is_urgent", "type": "binary", "classes": ["no", "yes"], "positive_rate": 0.18,
+                   "effects": {"ticket_text=outage": 2.0, "ticket_text=login": 0.6, "ticket_text=problem": 0.5, "ticket_text=positive": -0.9,
+                               "customer_plan=enterprise": 0.8, "customer_plan=free": -0.3, "product_area=authentication": 0.4,
+                               "attachment_count": 0.3}},
+    }),
 }
 
 TEMPLATE_KEYWORDS: dict[str, tuple[str, ...]] = {  # order breaks ties; churn is also the default
@@ -709,15 +733,26 @@ TEMPLATE_KEYWORDS: dict[str, tuple[str, ...]] = {  # order breaks ties; churn is
     "credit": ("credit", "loan", "default", "lending", "borrower", "mortgage", "underwriting", "repay"),
     "maintenance": ("maintenance", "failure", "machine", "sensor", "equipment", "breakdown", "downtime", "vibration",
                     "iot", "fault"),
+    # a problem about text: never the churn table, whose columns hold no text at all. Its words often name a task's inputs
+    # ("churn from complaints and emails"), so it is chosen only when no other template matches (template_for)
+    "tickets": ("text", "ticket", "review", "sentiment", "complaint", "email", "message", "nlp", "language", "comment"),
 }
 
 
 def template_for(prompt: str) -> tuple[str, SyntheticSpec]:
-    """The template whose keywords the prompt mentions most (churn when none match). Returns a copy."""
+    """The template whose keywords the prompt mentions most (churn when none match). The text template's words are whole
+    words (a plural too: "text" never finds "texture"), and they choose it only when no task template matches: in
+    "churn from complaints and emails" the task is churn. Returns a copy."""
     text = (prompt or "").lower()
-    scores = {key: sum(1 for word in words if re.search(r"\b" + re.escape(word), text)) for key, words in TEMPLATE_KEYWORDS.items()}
-    best = max(scores, key=lambda key: scores[key])  # max keeps the first key on ties
-    key = best if scores[best] > 0 else "churn"
+
+    def found(key: str, word: str) -> bool:
+        tail = r"s?\b" if key == "tickets" else ""
+        return re.search(r"\b" + re.escape(word) + tail, text) is not None
+
+    scores = {key: sum(1 for word in words if found(key, word)) for key, words in TEMPLATE_KEYWORDS.items()}
+    tasks = {key: n for key, n in scores.items() if key != "tickets"}
+    best = max(tasks, key=lambda key: tasks[key])  # max keeps the first key on ties
+    key = best if tasks[best] > 0 else "tickets" if scores["tickets"] > 0 else "churn"
     return key, TEMPLATES[key].model_copy(deep=True)
 
 
