@@ -497,6 +497,11 @@ def choose_operating_point(y_oof: Sequence[int], score_oof: Sequence[float], spe
                                    "own noise, so its value is read against the prediction interval"}
         if day_codes is not None:
             out["holdout"]["days"] = _days_said(day_codes, day_slots, top, spec.capacity_per_day, day_part)
+        if near is not None:  # time_decision_v2 (0.118.1): said wherever the interval is read from the latest rows
+            out["holdout"]["drift"] = ("The interval is drawn from the rows nearest the holdout (a time split's latest fold). It "
+                                       "assumes the world stays as it was then: if cases keep growing more common after the "
+                                       "training period, the holdout can land above it (measured on a drifting replica with one "
+                                       "call a day: 26 of 30 inside, every miss above).")
     return out
 
 

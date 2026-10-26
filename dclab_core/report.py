@@ -865,6 +865,8 @@ def _decision(w: _Writer, decision: Mapping[str, Any]) -> None:
         if not moves and _seq(_m(decision.get("sensitivity")).get("rows")):
             w.line("- No stated number moves the share between a quarter and four times its value (nothing refitted).")
         w.line(f"- {w.q(f'{d}.assumption', 400)}" if w.has(f"{d}.assumption") else None)
+        w.line(f"- {w.q(f'{d}.holdout.drift', 400)}" if w.has(f"{d}.holdout.drift") else None)  # 0.118.1: a time split's interval
+        w.line(f"- {w.q(f'{d}.days_note', 400)}" if w.has(f"{d}.days_note") else None)
         return
     if decision.get("decision") == "cost_matrix":  # 34.4: dclab_core.decide.choose_by_cost_matrix
         cost, base, rows = w.n(f"{d}.holdout.cost_per_row"), w.n(f"{d}.holdout.cost_per_row_likeliest_class"), w.n(f"{d}.holdout.rows", "int")

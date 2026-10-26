@@ -117,6 +117,12 @@ class ActDecisionTest(unittest.TestCase):
         self.assertLessEqual(days["most_in_a_day"], 1)
         self.assertLessEqual(d["holdout"]["actions"], days["slots"])
         self.assertIn("day by day", d["applied_as"])
+        self.assertIn("assumes the world stays as it was", d["holdout"]["drift"])  # 0.118.1: the latest fold's interval, said
+        from dclab_core import report as core_report
+        from dclab_rnd.studio import solution_report
+
+        markdown = core_report.to_markdown(solution_report.build(store, pid, analyse=False))
+        self.assertIn("assumes the world stays as it was", markdown)  # and in the solution report the person reads
 
     def test_a_holdout_holding_part_of_each_day_is_read_as_one_pool(self):
         """The review of 0.115.0: a time-and-group split's holdout drops the later rows of entities seen in training, so it

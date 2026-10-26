@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.118.1 (2026-10-26)
+
+- `choose_operating_point`'s holdout gains `drift` when its interval is drawn from the rows nearest the holdout: the
+  interval assumes the world stays as it was in the latest fold. time_decision_v2 measured it on a drifting replica:
+  with a share capacity it passes every gate (28 of 30 inside, mean z 0.12); with one call a day 26 of 30 land inside
+  and the centre stays above (mean z 0.40), every miss above.
+
 ## 0.118.0 (2026-10-26)
 
 The decision's holdout interval on a time split, from the rows nearest the holdout.

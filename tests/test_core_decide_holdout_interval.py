@@ -128,6 +128,8 @@ class NearestRowsTest(unittest.TestCase):
         self.assertGreater(sum(near["prediction_interval"]), sum(every["prediction_interval"]))  # the later, case-richer rows
         self.assertIn("nearest the holdout", near["prediction_interval_method"])
         self.assertEqual(near["expected_value_per_row"], every["expected_value_per_row"])  # the holdout's reading is the same
+        self.assertIn("assumes the world stays as it was", near["drift"])  # time_decision_v2: said beside the reading
+        self.assertNotIn("drift", every)
 
     def test_entities_are_drawn_from_the_nearest_ones_and_a_draw_without_them_never_mixes(self):
         y, s, yt, st = self.drifting(n=3000)

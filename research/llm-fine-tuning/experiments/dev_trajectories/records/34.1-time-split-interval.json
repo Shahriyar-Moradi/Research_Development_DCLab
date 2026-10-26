@@ -31,6 +31,10 @@
     {
       "decision": "v2 keeps the all-folds interval on the same seed beside the measured one, reported, never gated",
       "why": "the review: drawing from a third of the rows also widens the interval by about 1.22 times, so a pass could come from width, not a better centre"
+    },
+    {
+      "decision": "dclab-core 0.118.1: the holdout's drift note when the interval comes from the latest rows, shown in the solution report",
+      "why": "v2's pre-registered step for a centre still above 0: say the drift past the training period, which no interval from past rows holds"
     }
   ],
   "change": "dclab_rnd/time_decision_measure.py and tests/test_time_decision_measure.py (4 tests)",
@@ -146,13 +150,24 @@
         "one replica with a drift planted on purpose; a table without drift may pass as it is",
         "the per-fold values are read at the chosen share pooled, for both arms"
       ]
+    },
+    {
+      "name": "time_decision_v2: the latest fold's interval (dclab-core 0.118.0) on 30 fresh seeds (130 to 159) of the churn replica, on 71c4c617",
+      "gate": "time_decision_gate_v2 (v1's, unchanged), per arm",
+      "result": "pooled (10% share): pass on every gate; 28 of 30 inside (2 above), mean z 0.12 (bound 0.30), RMS z 0.98 (0.81 to 1.25). daily (one call a day): fail on the centre only; 26 of 30 inside (4 above), mean z 0.40, RMS z 1.12 (0.92 to 1.42). Paired all-folds interval on the same seeds: mean z 0.84 and 1.29, 24 and 19 of 30 inside. The latest fold's interval is 1.21 and 1.17 times wider. Positive rate out of fold 0.217, latest fold 0.237, holdout 0.253; the latest fold is the last 600 out-of-fold rows on every run",
+      "verdict": "pass",
+      "limits": [
+        "the daily arm still fails its centre: drift past the training period",
+        "one drifting replica; a table without drift is not measured"
+      ]
     }
   ],
-  "outcome": "Measured: on a time split the interval sits low on both arms; the replica's drift explains the direction (each fold's value rises toward the holdout). Next, fixed with the gate: the interval from the latest fold's rows only.",
+  "outcome": "On a time split the decision's interval now comes from the latest fold: with a share capacity it passes every gate on a drifting replica (mean z 0.12, from 0.84 on the same seeds), and with one call a day it improves (1.29 to 0.40) but stays above, the drift past the training period being said beside the reading.",
   "lessons": [
     "Before a measurement names a cause in its next step, check whether the test data plants another cause with the same sign",
     "A campaign must write a record for a run that fails, or a frozen campaign can never reach its verdict",
-    "An interval built from the past is for a world that stays the same: on a drifting table it says so by missing on one side"
+    "An interval built from the past is for a world that stays the same: on a drifting table it says so by missing on one side",
+    "When a fix also widens an interval, keep the old interval on the same seeds: the paired reading tells a better centre from a wider one"
   ],
   "risks": [
     "The churn replica's drift and the fold models' weakness push the same way; the rates separate them only roughly"

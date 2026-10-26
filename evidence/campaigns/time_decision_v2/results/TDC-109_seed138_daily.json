@@ -1,0 +1,66 @@
+{
+  "id": "TDC-109",
+  "experiment_id": "TDC-109",
+  "status": "completed",
+  "completed_at": "2026-10-25T23:48:14+00:00",
+  "campaign_id": "time_decision_v2",
+  "dataset": "subscription_churn",
+  "seed": 138,
+  "arm": "daily",
+  "split": "time",
+  "rates": {
+    "oof_positive_rate": 0.2139,
+    "latest_fold_positive_rate": 0.23,
+    "holdout_positive_rate": 0.2783,
+    "fold_values": [
+      8.8167,
+      10.2167,
+      10.0167
+    ]
+  },
+  "decision_status": "operating_point",
+  "warning": null,
+  "chosen_share": 0.239444,
+  "capacity_share": 0.243281,
+  "expected_value_per_row": 9.8722,
+  "expected_interval": [
+    8.7656,
+    11.0422
+  ],
+  "holdout_rows": 600,
+  "holdout_actions": 141,
+  "holdout_cases_found": 69,
+  "holdout_value_per_row": 11.45,
+  "prediction_interval": [
+    6.5217,
+    11.2667
+  ],
+  "inside_prediction_interval": false,
+  "z": 1.7721,
+  "miss_side": "above",
+  "within_capacity": true,
+  "days": {
+    "days": 144,
+    "slots": 143,
+    "slots_per_day": 1.0,
+    "partial_days": 1,
+    "most_in_a_day": 1,
+    "days_full": 141,
+    "applied": "day by day: each day's best rows, until its slots are full"
+  },
+  "days_note": null,
+  "holdout_uses": 1,
+  "prediction_interval_method": "holdout-sized samples of each bootstrap draw (600 rows, about 600 drawn, from the rows nearest the holdout, the capacity applied day by day to days of the holdout's sizes, the rows placed at random among them)",
+  "applied_as": "a quota: the highest-ranked rows the capacity allows, each worth acting on alone or ranked as high as the rows chosen; a capacity per day is chosen as one pool over the training rows and applied day by day on the holdout's days",
+  "all_folds_interval": [
+    6.1158,
+    10.15
+  ],
+  "inside_all_folds": false,
+  "z_all_folds": 2.7052,
+  "latest_fold_rows": 600,
+  "latest_fold_is_the_last_block": true,
+  "model": "logistic_regression",
+  "seconds": 80.3,
+  "code_sha256": "d52ade1e2aa9e06fc82e975ccd12a32c166af6bd0469ff78664f0fcff650d9de"
+}
