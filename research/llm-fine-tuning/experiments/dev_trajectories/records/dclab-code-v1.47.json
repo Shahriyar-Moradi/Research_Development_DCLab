@@ -1,0 +1,99 @@
+{
+  "package": "dclab-code-v1.47",
+  "title": "An Artifacts tab in the right sidebar: the models DCLab trained, the tables it read, and each project's files",
+  "date": "2026-10-26",
+  "request": "Owner: we must have an artifacts section in the right sidebar to have the models created and the data.",
+  "spec": "dclab-code server/dclab_runs.js (ownedProjects, sessionArtifacts), server/app.js (artifacts, export), web/app.js (renderArtifacts)",
+  "plan": [
+    "read what R&D exposes: a draft's assets, a project's data and evaluation, its four exports",
+    "the session's artifacts, read from R&D for the drafts and projects this session owns",
+    "a download route for an owned project's files",
+    "the tab: model cards (score with its interval, holdout, baseline, approval), data cards (view rows, CSV), file buttons",
+    "tests, sync check, a look in the browser"
+  ],
+  "decisions": [
+    {
+      "decision": "a model is shown as its evaluation, with the notebook and the code export as its files",
+      "why": "R&D keeps no model file; its code export rebuilds the model and recomputes the holdout number"
+    },
+    {
+      "decision": "every model card says whether its owner approved it for production, and marks synthetic data",
+      "why": "a benchmark score alone must never read as production-ready (R&D rule 6)"
+    },
+    {
+      "decision": "the files are reachable only for a project the session owns, and only R&D's four exports",
+      "why": "the same ownership the Jobs tab uses; no path from the page into other R&D routes"
+    },
+    {
+      "decision": "the four export routes join the sync check",
+      "why": "a change in R&D fails the check instead of breaking a download"
+    }
+  ],
+  "change": "dclab-code: server/dclab_runs.js, server/app.js, server/config.js, web/index.html, web/app.js, web/style.css, tests/server.test.js.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "an R&D refusal was shown as a guessed reason",
+      "scenario": "the data changed after the final stage: /export/code answers 409, the button said 'the project needs its stages first'",
+      "cause": "every 409 got one fixed message; DclabHttp.raw dropped R&D's detail",
+      "fix": "raw() keeps R&D's detail; the route passes it on",
+      "test": "server test: the 409's own words reach the page",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "the newest drafts and projects could drop off",
+      "scenario": "a session with 9 drafts, the 9th built: its project missing from the tab, its export 404",
+      "cause": "slice(0, limit) on sets in insertion order kept the oldest",
+      "fix": "slice(-limit); the export's ownership check reads up to 200",
+      "test": "reasoning; newest-first order",
+      "severity": "latent"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "R&D's exports failed (500) for a project named in Persian",
+      "scenario": "a Persian project name in Content-Disposition: UnicodeEncodeError latin-1",
+      "cause": "the name was written raw into a Latin-1 header",
+      "fix": "R&D: one attachment() helper, ASCII name plus filename*",
+      "test": "R&D test_studio exports a Persian-named project",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 144 of 144",
+      "verdict": "pass"
+    },
+    {
+      "name": "real R&D",
+      "gate": "the tab shows a finished project and its files download",
+      "fixed_before_run": true,
+      "result": "Linear SVM, ROC-AUC 0.838 (0.781 to 0.882), holdout 400 read once; report 11 KB, solution report 7 KB, notebook 12 KB, code 0.9 MB; another session 404; 50 rows shown",
+      "verdict": "pass"
+    },
+    {
+      "name": "sync-check",
+      "gate": "every route used exists in R&D on GitHub",
+      "fixed_before_run": true,
+      "result": "in sync with R&D 50a93906; 18 of 18 agents",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Beside the chat, the person sees what the work produced: each model with its honest score, each table, and the files to take away.",
+  "lessons": [
+    "Show a model with what makes its number honest (interval, holdout read once, the baseline, approval), never the number alone."
+  ],
+  "risks": [
+    "only the latest of several drafts' projects beyond eight are shown"
+  ],
+  "commits": [
+    "dclab-code 91bcbcf",
+    "R&D 1d9d617e"
+  ]
+}
