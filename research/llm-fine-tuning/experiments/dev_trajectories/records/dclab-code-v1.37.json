@@ -1,0 +1,88 @@
+{
+  "package": "dclab-code-v1.37",
+  "title": "A side-by-side with Claude Code desktop: the gaps said, and the small ones built",
+  "date": "2026-10-26",
+  "request": "The owner asked for a side-by-side check of DCLab Code against the real Claude Code desktop app.",
+  "spec": "docs/PARITY_EVIDENCE.md 'Side by side with Claude Code desktop'",
+  "plan": [
+    "read what Claude Code desktop offers from this session's own capabilities (its app cannot be screen-captured from inside)",
+    "search DCLab Code for each",
+    "write the gaps honestly",
+    "build the small ones: keep awake, transcript export, pinned and unread sessions"
+  ],
+  "decisions": [
+    {
+      "decision": "compare by capability, not by screenshots",
+      "why": "the Claude app is withheld from screen capture; this session's tools are its real feature list"
+    },
+    {
+      "decision": "keep the Mac awake only while running or with a background job, not while waiting on the person",
+      "why": "a question left open overnight should not keep the Mac up"
+    },
+    {
+      "decision": "the server marks unread when a turn ends; the page clears it when the person looks",
+      "why": "it survives a reload and works with the page closed"
+    }
+  ],
+  "change": "dclab-code server/awake.js and server/transcript.js (new), server/app.js (keep awake, export route, pinned and unread), server/engine.js (unread at a turn's end), web/* (Pinned group, unread mark, palette Export and Pin, keep-awake switch and status, own copy only for git projects), tests, docs/PARITY_EVIDENCE.md.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "measurement",
+      "defect": "the parity table overclaimed: Claude Code desktop has features DCLab Code lacks",
+      "scenario": "split view, scheduled tasks, CI auto-fix, remote control, artifacts and more, found by the side-by-side",
+      "cause": "the first table listed only what DCLab Code had built",
+      "fix": "the gaps written in the evidence doc with their size; the small ones built",
+      "test": "none (a document)",
+      "severity": "gap"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "defect": "my first gap list said thinking was not shown",
+      "scenario": "the page already shows thinking as a folded Thought",
+      "cause": "a claim made before reading the page code",
+      "fix": "the row corrected",
+      "test": "none",
+      "severity": "gap"
+    },
+    {
+      "id": "F3",
+      "source": "test",
+      "defect": "a new session in a non-git project could default to its own copy and fail on the first message",
+      "scenario": "another session busy in that folder: suggestWhere chose 'copy'",
+      "cause": "the suggestion did not check for git",
+      "fix": "'Own copy' is disabled and never suggested outside a repository",
+      "test": "page test checks the option is disabled and 'here' chosen",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "test",
+      "defect": "a held caffeinate could keep the server process from exiting",
+      "scenario": "a test failed before close: the process hung",
+      "cause": "the child kept the event loop alive",
+      "fix": "the child is unref'd",
+      "test": "keep-awake server test ends cleanly",
+      "severity": "latent"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 123 of 123",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "DCLab Code keeps the Mac awake while agents work, exports transcripts, pins sessions and marks unread ones; the gaps it still has are written down by size.",
+  "lessons": [
+    "A parity table written from what was built hides what was not: compare against the other product's own feature list.",
+    "Read the code before claiming a feature is missing."
+  ],
+  "risks": [
+    "split view, scheduled tasks, CI auto-fix, side sessions, remote control, artifacts, simulator, computer use and connectors are not built"
+  ],
+  "commits": []
+}
