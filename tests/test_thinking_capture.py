@@ -28,8 +28,9 @@ class ThinkingTest(unittest.TestCase):
         with mock.patch.dict(os.environ, {"DCLAB_THINKING": ""}):
             for purpose in ("intern", "home_agent", "solution_planner", "reporter", "solver_answer"):
                 self.assertEqual(settings.thinking_for(purpose), "adaptive", purpose)
-            for purpose in ("embedding", "parse_pattern", "decision_answer"):
-                self.assertIsNone(settings.thinking_for(purpose), purpose)
+            self.assertIsNone(settings.thinking_for("embedding"))  # the owner's rule (10-28 night): every other purpose thinks
+            for purpose in ("parse_pattern", "decision_answer"):
+                self.assertEqual(settings.thinking_for(purpose), "adaptive", purpose)
         self.assertTrue(set(settings.THINKING_DEFAULT) <= set(settings.PURPOSES))
 
     def test_off_all_and_a_list(self):
@@ -46,8 +47,8 @@ class ThinkingTest(unittest.TestCase):
             g.transport = lambda tier, p: Transport()
             bound = gw.Bound(g, "intern", settings.purpose("intern"), {"name": "standard", "model": "m"}, None, None)
             self.assertEqual(bound._transport.thinking, "adaptive")
-            other = gw.Bound(g, "parse_pattern", settings.purpose("parse_pattern"), {"name": "cheap", "model": "m"}, None, None)
-            self.assertIsNone(other._transport.thinking)
+            other = gw.Bound(g, "embedding", settings.purpose("embedding"), {"name": "cheap", "model": "m"}, None, None)
+            self.assertIsNone(other._transport.thinking)  # the one purpose with no thinking (settings.NO_THINKING)
         chosen = Transport()
         chosen.thinking = "enabled:2000"  # a caller's own choice (the twin lane's) stays
         g = gw.Gateway()
@@ -67,7 +68,7 @@ class CellsThinkingTest(unittest.TestCase):
         g.transport = lambda tier, p: Transport()
         bound = gw.Bound(g, "intern", settings.purpose("intern"), {"name": "standard", "model": "m"}, None, None)
         out = {"content": "done", "thinking": [{"text": "The row with mail ann@example.com looks odd.", "signature": "s"}]}
-        with mock.patch.object(gw, "_exchange_home", lambda gateway: home), \
+        with mock.patch.object(gw, "_exchange_home", lambda gateway, live=False: home), \
                 mock.patch("dclab_rnd.experience.model_text_allowed", return_value=True):
             bound._keep_exchange("r1", [{"role": "user", "content": "rows"}], out, "ok")
         line = json.loads(next((home / "model_exchanges").rglob("*.jsonl")).read_text().splitlines()[0])

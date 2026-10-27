@@ -290,6 +290,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--cap-eur", type=float, default=None)
     args = parser.parse_args(argv)
+    from dclab_rnd import experience as _experience
+
+    _experience.sealed_run(getattr(args, "split", None))  # an exam's model calls keep their shape only (the owner's rule, 2026-10-28)
     print(json.dumps({"gate": GATE, "arm": args.arm, "split": args.split, "cases": len(v3.split(args.split))}, indent=1))
     if args.arm == "judge":
         return _judge_main(args.split)

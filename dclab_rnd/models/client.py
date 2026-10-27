@@ -9,6 +9,7 @@ The key is read from the environment or ``.env``; it is never typed into the UI.
 from __future__ import annotations
 
 import json
+import re
 import os
 import time
 from typing import Any
@@ -20,6 +21,9 @@ PAUSE_SECONDS = 600  # after a refusal that will not go away by itself (no credi
 
 
 THINKING_REFUSED = "the model would not take extended thinking"
+# the reasoning a local model writes before its answer: "<think>...</think>" at the start, or, when its chat template put the
+# opening tag in the prompt, the text before the first "</think>"
+_THINK = re.compile(r"\s*(?:<think>)?(.*?)</think>", re.S)
 REASONING_FIELDS = ("reasoning_content", "reasoning")  # the names OpenAI-compatible servers give a reply's reasoning (D2)
 
 
@@ -111,16 +115,26 @@ class ChatClient:
         return kwargs
 
     def _reasoning(self, message: Any) -> str:
-        """The reasoning a reply (or a stream's delta) carries under this endpoint's field; "" without a field or a value."""
-        if not self.reasoning_field:
-            return ""
-        value = getattr(message, self.reasoning_field, None)
-        return str(value) if value else ""
+        """The reasoning a reply (or a stream's delta) carries: under this endpoint's field, or, with none configured, under
+        the first known field it has (the owner, 2026-10-28: a local model's reasoning is kept for training, not dropped
+        for want of a setting; it is sent back to the model only under a configured field)."""
+        for field in ((self.reasoning_field,) if self.reasoning_field else REASONING_FIELDS):
+            value = getattr(message, field, None)
+            if value:
+                return str(value)
+        return ""
 
     def _reply(self, content: str, calls: list[dict[str, Any]], finish: Any, usage: Any, reasoning: str, note: dict[str, Any]) -> dict[str, Any]:
         """What ``complete`` and ``stream`` return: the reply parsed (``tool_calls`` with dict arguments; ``reasoning`` and
         ``thinking`` when the model reasoned, in the shape the exchange log keeps) and ``assistant_message`` as the next
         request sends it back: the reasoning under the endpoint's field, the tool arguments as its template wants them."""
+        if not reasoning and "</think>" in (content or ""):  # a model that writes its reasoning inline: kept apart, out of the reply
+            opened = content.lstrip().startswith("<think>")
+            # only at the reply's start ("<think>...</think>"), or a lone closing tag with no opening one anywhere (the template
+            # opened it in the prompt); an answer that mentions the tags later (code, an explanation) is kept whole
+            match = _THINK.match(content) if opened or "<think>" not in content else None
+            if match:
+                reasoning, content = match.group(1).strip(), content[match.end():].strip()
         message: dict[str, Any] = {"role": "assistant", "content": content}
         if reasoning and self.reasoning_field:
             message[self.reasoning_field] = reasoning

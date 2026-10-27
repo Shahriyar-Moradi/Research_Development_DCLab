@@ -135,7 +135,7 @@ model_request = sa.Table(  # the model gateway's usage log (dclab_rnd/models/usa
     sa.Column("seconds", sa.Float, nullable=False, server_default="0"),
     sa.Column("attempts", sa.Integer, nullable=False, server_default="1"),
     sa.Column("outcome", sa.Text, nullable=False),
-    sa.Column("prompt", sa.Text),  # only with DCLAB_LOG_PROMPTS=1
+    sa.Column("prompt", sa.Text),  # unless DCLAB_LOG_PROMPTS=0; never one shown cell values (2026-10-28)
     sa.Column("cost_eur", sa.Float),  # null when the model has no configured price
     sa.Column("cost_basis", sa.Text),  # "price", "local" or "no price" (dclab_rnd/models/prices.py)
     sa.Column("user_id", sa.String(64)),  # the signed-in person the request was for (package 10.6: a monthly limit per user)

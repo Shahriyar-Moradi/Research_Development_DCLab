@@ -56,6 +56,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--since", default=None, help="with --backfill (29.3): every verified problem recorded again unless recorded at or after this UTC time")
     p.add_argument("--again", action="store_true", help="26.8: the named kinds' solves forgotten and solved again whole (--kinds required)")
     args = parser.parse_args(argv)
+    from dclab_rnd import experience as _experience
+
+    _experience.sealed_run(getattr(args, "split", None))  # an exam's model calls keep their shape only (the owner's rule, 2026-10-28)
     if args.command == "answers":
         from .answers import capture, summary
 

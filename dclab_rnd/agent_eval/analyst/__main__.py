@@ -29,6 +29,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--role", choices=("analyst", "checker"), default="analyst",
                         help="checker: the brief checker on the dev and sealed briefs together (one run, its own gate)")
     args = parser.parse_args(argv)
+    from dclab_rnd import experience as _experience
+
+    _experience.sealed_run(getattr(args, "split", None))  # an exam's model calls keep their shape only (the owner's rule, 2026-10-28)
     if args.role == "checker":
         return _checker(args)
     from dotenv import load_dotenv  # the configured model is in .env, as for the server

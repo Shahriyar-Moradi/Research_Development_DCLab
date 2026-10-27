@@ -1,7 +1,8 @@
 """The usage log: one entry per model request, whatever happened (package A1.1).
 
 An entry holds the purpose, the tier, the model, the endpoint host, the project or draft, the tokens, the seconds,
-the number of attempts and the outcome. It never holds a key, and the prompt only when DCLAB_LOG_PROMPTS=1.
+the number of attempts and the outcome. It never holds a key; the prompt unless DCLAB_LOG_PROMPTS is 0 (the owner, 2026-10-28), and
+never a prompt shown cell values.
 With DCLAB_DATABASE_URL set the entries are rows of ``model_request``; otherwise lines of a JSON file in the workspace.
 """
 

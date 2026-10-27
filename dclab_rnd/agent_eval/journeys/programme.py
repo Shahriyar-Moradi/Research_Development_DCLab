@@ -478,6 +478,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--shadow-router", metavar="MODEL", default=None,
                         help="28.10: with --team, a local model (Ollama) routes beside the router in shadow, never used; scored on the evaluation board")
     args = parser.parse_args(argv)
+    from dclab_rnd import experience as _experience
+
+    _experience.sealed_run(getattr(args, "split", None))  # an exam's model calls keep their shape only (the owner's rule, 2026-10-28)
     sealed = args.split in SEALED_HASHES
     gate = GATES.get(args.split, GATE)
     if args.team:

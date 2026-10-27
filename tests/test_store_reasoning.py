@@ -83,13 +83,22 @@ class ReasoningTest(unittest.TestCase):
         with mock.patch.dict(os.environ, {"DCLAB_LOG_PROMPTS": "0"}):
             gw.client("home_agent").complete([{"role": "user", "content": "secret words"}])
         with mock.patch.dict(os.environ, {"DCLAB_LOG_PROMPTS": "1"}):
-            gateway(self.home, [reply("c")]).client("evidence_answer").complete([{"role": "user", "content": "secret words"}])  # may keep no text
-        with mock.patch.dict(os.environ, {"DCLAB_LOG_PROMPTS": "1"}):
             gw.client("intern").complete([{"role": "user", "content": "cell 4111"}])  # the intern is shown cell values
         for doc in self.exchanges():
             self.assertFalse(doc["whole"])
             self.assertNotIn("secret words", json.dumps(doc))
             self.assertNotIn("cell 4111", json.dumps(doc))
+
+    def test_a_purpose_that_may_not_leave_is_still_kept_whole_in_the_workspace(self):
+        # the owner (2026-10-28): every model call keeps its thinking for training; keeps_text now decides only whether a
+        # record may leave the workspace (consent.py), written on the line as may_leave
+        with mock.patch.dict(os.environ, {"DCLAB_LOG_PROMPTS": "1"}):
+            gateway(self.home, [reply("c", [{"text": "I read the evidence.", "signature": "s"}])]).client("evidence_answer").complete(
+                [{"role": "user", "content": "words"}])
+        doc = self.exchanges()[0]
+        self.assertTrue(doc["whole"])
+        self.assertFalse(doc["may_leave"])
+        self.assertEqual(doc["thinking"][0]["text"], "I read the evidence.")
 
     def test_reasoning_from_the_record_and_a_teachers_checked_against_it(self):
         from dclab_rnd.store import reasoning

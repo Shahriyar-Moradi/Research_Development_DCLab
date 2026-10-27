@@ -22,6 +22,9 @@ def main(argv=None) -> int:
     parser.add_argument("--model", default=None, help="the reader arm on this model (21.4: compare models on the same conversations)")
     parser.add_argument("--report", action="store_true", help="each role's score and cost by model, from the stored runs")
     args = parser.parse_args(argv)
+    from dclab_rnd import experience as _experience
+
+    _experience.sealed_run(getattr(args, "split", None))  # an exam's model calls keep their shape only (the owner's rule, 2026-10-28)
     if args.report:
         from . import by_model
 

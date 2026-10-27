@@ -33,6 +33,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--pattern", choices=("second_opinion", "debate"), help="28.6: a team pattern against its baseline on the dev people and "
                         "the spent fifth sealed set (dev material); with --yes and --cap-eur")
     args = parser.parse_args(argv)
+    from dclab_rnd import experience as _experience
+
+    _experience.sealed_run(getattr(args, "split", None))  # an exam's model calls keep their shape only (the owner's rule, 2026-10-28)
     if args.pattern:
         return _pattern(args)
     sealed = args.split in SEALED

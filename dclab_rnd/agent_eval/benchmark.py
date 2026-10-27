@@ -399,6 +399,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--policy", action="append", choices=sorted(suite.POLICIES))
     parser.add_argument("--output", type=Path, help="write the report as JSON to this new file (never overwritten); required for the sealed test set")
     args = parser.parse_args(argv)
+    from dclab_rnd import experience as _experience
+
+    _experience.sealed_run(getattr(args, "split", None))  # an exam's model calls keep their shape only (the owner's rule, 2026-10-28)
     if args.output and args.output.exists():  # checked before the run: a look at the sealed set always leaves a record
         parser.error(f"{args.output} exists; results are never overwritten, choose a new BEN-<n> file")
     if args.split == "test" and not args.output:

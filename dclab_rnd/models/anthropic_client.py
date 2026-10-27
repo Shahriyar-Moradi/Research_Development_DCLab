@@ -27,6 +27,8 @@ Set it with ``DCLAB_LLM_PROVIDER=anthropic`` and ``ANTHROPIC_API_KEY`` in ``.env
 from __future__ import annotations
 
 import json
+import os
+import re
 from typing import Any
 
 from . import prices
@@ -98,11 +100,25 @@ def to_tools(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     return out
 
 
-def thinking_param(setting: Any) -> dict[str, Any] | None:
-    """``adaptive`` -> ``{"type": "adaptive"}``; ``enabled:N`` -> ``{"type": "enabled", "budget_tokens": N}``; off -> None."""
+# Models that still take a thinking budget; every newer one refuses it with a 400 (2026-10-28, on claude-sonnet-5-5:
+# '"thinking.type.enabled" is not supported for this model. Use "thinking.type.adaptive" and "output_config.effort"')
+BUDGET_MODELS = re.compile(r"claude-(?:haiku-4-5|sonnet-4-5|opus-4-5|opus-4-1|opus-4-0|sonnet-4-0|sonnet-4-2|opus-4-2|sonnet-4@|opus-4@|3)")
+NO_THINKING_MODELS: set[str] = set()  # models that refused a thinking request in this process: asked again without, never twice
+
+
+def thinking_param(setting: Any, model: Any = None) -> dict[str, Any] | None:
+    """``adaptive`` -> adaptive with a summary of the thinking; ``enabled:N`` -> a budget of N on a model that takes one,
+    adaptive on any newer model (which refuses a budget); off -> None. The summary is asked for explicitly: newer models
+    omit the thinking's text by default ("display": "omitted"), which is why earlier exchanges kept empty blocks."""
     if not setting or str(setting).strip().lower() in ("0", "off", "none", "false"):
         return None
     text = str(setting).strip().lower()
+    if model and str(model) in NO_THINKING_MODELS:
+        return None
+    if text.startswith("enabled") and model and not BUDGET_MODELS.search(str(model)):
+        return {"type": "adaptive", "display": "summarized"}
+    if not text.startswith("enabled") and model and BUDGET_MODELS.search(str(model)):
+        return {"type": "enabled", "budget_tokens": 4000, "display": "summarized"}  # an older model takes a budget, not adaptive
     if text.startswith("enabled"):
         _, _, n = text.partition(":")
         try:
@@ -113,8 +129,16 @@ def thinking_param(setting: Any) -> dict[str, Any] | None:
     return {"type": "adaptive", "display": "summarized"}  # newer models omit the thinking's text unless a summary is asked for
 
 
+EFFORTS = ("low", "medium", "high", "xhigh", "max")  # output_config.effort; unset leaves the model's default
 SAMPLING = ("temperature", "top_p")
 NO_SAMPLING: set[str] = set()  # models that refused a sampling option in this process (the API says it is deprecated for them)
+
+
+def _refuses_thinking(exc: BaseException) -> bool:
+    """A 400 that refuses the thinking request for this model (a budget on a newer model, adaptive on an older one)."""
+    text = str(getattr(exc, "message", "") or exc).lower()
+    return getattr(exc, "status_code", 400) == 400 and "thinking" in text and any(
+        w in text for w in ("not supported", "unsupported", "not allowed", "invalid", "use \"thinking"))
 
 
 def _refuses_sampling(exc: BaseException) -> bool:
@@ -124,10 +148,10 @@ def _refuses_sampling(exc: BaseException) -> bool:
         w in text for w in ("deprecated", "not supported", "unsupported", "not allowed"))
 
 
-def _options(options: dict[str, Any], system: str) -> tuple[dict[str, Any], str]:
+def _options(options: dict[str, Any], system: str, model: Any = None) -> tuple[dict[str, Any], str]:
     """The caller's options as the Messages API takes them, and the system prompt (a JSON request may add a line)."""
     out: dict[str, Any] = {}
-    thinking = thinking_param(options.get("thinking"))
+    thinking = thinking_param(options.get("thinking"), model)
     if thinking:
         out["thinking"] = thinking
     for name in ("temperature", "top_p"):
@@ -143,6 +167,10 @@ def _options(options: dict[str, Any], system: str) -> tuple[dict[str, Any], str]
             out["extra_body"] = {"output_config": {"format": {"type": "json_schema", "schema": schema}}}
     elif fmt.get("type") == "json_object":
         system = f"{system}\n\n{JSON_ONLY}" if system else JSON_ONLY
+    effort = str(options.get("effort") or os.environ.get("DCLAB_THINKING_EFFORT", "")).strip().lower()
+    if thinking and thinking.get("type") == "adaptive" and effort in EFFORTS:  # how deeply the model thinks (newer models)
+        body = out.setdefault("extra_body", {})
+        body["output_config"] = {**(body.get("output_config") or {}), "effort": effort}
     return out, system
 
 
@@ -225,7 +253,7 @@ class AnthropicClient(ChatClient):
         if self.thinking and "thinking" not in options:
             options["thinking"] = self.thinking
         limit = max_tokens or DEFAULT_MAX_TOKENS
-        thinking = thinking_param(options.get("thinking"))
+        thinking = thinking_param(options.get("thinking"), self.model)
         if thinking:
             limit += int(thinking.get("budget_tokens") or ADAPTIVE_HEADROOM)
         return limit
@@ -234,7 +262,7 @@ class AnthropicClient(ChatClient):
         system, turns = to_messages(messages)
         if self.thinking and "thinking" not in options:
             options = {**options, "thinking": self.thinking}
-        extra, system = _options(options, system)
+        extra, system = _options(options, system, self.model)
         limit = self.effective_max_tokens(max_tokens, options)
         kwargs: dict[str, Any] = {"model": self.model, "messages": turns, "max_tokens": limit, **extra}
         ttl = prices.caching()
@@ -260,6 +288,9 @@ class AnthropicClient(ChatClient):
             if any(k in kwargs for k in SAMPLING) and _refuses_sampling(exc):  # live, 2026-10-18: Sonnet 5.5 refuses `temperature`
                 NO_SAMPLING.add(self.model)
                 return self.complete(messages, tools, max_tokens, **options)
+            if "thinking" in kwargs and _refuses_thinking(exc):  # the call matters more than its thinking: asked again without, once
+                NO_THINKING_MODELS.add(str(self.model))
+                return self.complete(messages, tools, max_tokens, **options)
             raise self._failed(exc) from None
         return from_message(message)
 
@@ -273,6 +304,9 @@ class AnthropicClient(ChatClient):
                         on_text(delta)
                 message = events.get_final_message()
         except Exception as exc:  # noqa: BLE001 — provider errors can carry headers; keep only the type
+            if "thinking" in kwargs and _refuses_thinking(exc):  # as complete(): asked again without thinking, once
+                NO_THINKING_MODELS.add(str(self.model))
+                return self.stream(messages, tools, max_tokens, on_text)
             raise self._failed(exc) from None
         return from_message(message)
 

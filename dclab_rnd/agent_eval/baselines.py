@@ -219,6 +219,9 @@ def main(argv: list[str] | None = None) -> int:
     rep.add_argument("--agent", type=Path)
     rep.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
+    from dclab_rnd import experience as _experience
+
+    _experience.sealed_run(getattr(args, "split", None))  # an exam's model calls keep their shape only (the owner's rule, 2026-10-28)
     if args.output.exists():
         parser.error(f"{args.output} exists; results are never overwritten")
     if args.command == "base-model":

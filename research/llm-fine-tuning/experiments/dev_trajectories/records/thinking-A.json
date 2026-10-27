@@ -1,0 +1,142 @@
+{
+ "package": "thinking-A",
+ "title": "Every agent asks for its thinking and keeps it: no model call loses its reasoning",
+ "date": "2026-10-28",
+ "request": "The owner, many times that night: the model's thinking must be kept for training, for every agent and every kind of help, past and future; it is crucial.",
+ "spec": "Part A of the approved plan (thinking and reasoning for all data): every purpose thinks; keeping is on by default and leaving stays consent's; a gateway with no workspace still keeps a live reply; a shadow keeps its thinking; local models keep their reasoning; a test that no agent can drop its thinking.",
+ "plan": [
+  "Measure what was kept before changing anything: every saved model call, by purpose.",
+  "Ask for thinking on every purpose but embedding, keep it by default, close each path that dropped it, with a test per path.",
+  "Review the diff adversarially and fix what the review finds."
+ ],
+ "decisions": [
+  {
+   "decision": "Keeping text is on unless switched off, and separate from whether a record may leave the workspace.",
+   "why": "About 730 saved calls thought and kept only 'thought: true' because keeping was tied to the consent flag that decides leaving."
+  },
+  {
+   "decision": "An exam (a sealed or test split) keeps the shape of its calls only.",
+   "why": "With keeping on by default, a sealed journey's calls would have become training data."
+  },
+  {
+   "decision": "A model that refuses a thinking request is asked again without it, once, and remembered.",
+   "why": "The call matters more than its thinking; claude-sonnet-5-5 refuses a budget, older models refuse adaptive."
+  }
+ ],
+ "change": "models/settings.py (NO_THINKING, every purpose thinks); experience model_text_allowed on by default, sealed_run(split) for 14 runners; models/gateway.py (prompts shown cells never logged, live fallback home, a shadow's own exchange line with thinking, cost estimated with the thinking's room); models/client.py (reasoning read without a configured field, inline think split at the start only); models/anthropic_client.py (budget vs adaptive by model, retry without thinking, output_config.effort); agent_eval/home: a sealed run is never kept; tests/test_thinking_everywhere.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "Most model calls thought and kept only a flag.",
+   "scenario": "Of 2,095 saved calls, 723 had thought and kept only 'thought: true'; only 15 of 42 purposes asked for thinking.",
+   "cause": "Keeping text was tied to keeps_text, which decides only whether a record may leave the workspace.",
+   "fix": "Every purpose thinks; a purpose shown no cells keeps its exchange whole; leaving is still consent's (may_leave).",
+   "test": "test_every_purpose_asks_for_thinking_but_the_listed_exceptions"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "A process that never loaded .env kept no text.",
+   "scenario": "The twin's workflow lane, the lake benchmark and store reason kept only the shape of every call.",
+   "cause": "Keeping needed DCLAB_LOG_PROMPTS=1 exactly.",
+   "fix": "On unless switched off.",
+   "test": "test_text_is_kept_unless_switched_off"
+  },
+  {
+   "id": "F3",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A local model's reasoning was dropped unless its tier named the field.",
+   "scenario": "A reply carrying reasoning_content kept none of it.",
+   "cause": "_reasoning returned nothing without a configured field.",
+   "fix": "The known fields are read; it is sent back only under a configured field.",
+   "test": "test_reasoning_is_read_with_no_field_configured"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "With keeping on by default, prompts shown cell values went into the usage log.",
+   "scenario": "An intern call with no DCLAB_LOG_PROMPTS set wrote a table row (a contact and a card number) into model_requests.jsonl, which a tester's share sends.",
+   "cause": "The usage log's prompt never checked the purpose's cell values.",
+   "fix": "A prompt shown cells is never logged.",
+   "test": "test_a_prompt_shown_cells_never_reaches_the_usage_log"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A shadow's reply and thinking were still dropped.",
+   "scenario": "The shadow log keeps only its comparison fields, so the new keys were filtered out; the shadow was never asked to think.",
+   "cause": "FileShadows and PgShadows write only FIELDS.",
+   "fix": "The shadow's call is its own exchange line, marked shadow, by the served model's rule; its transport is asked to think.",
+   "test": "test_a_shadow_keeps_its_reply_and_thinking_as_its_own_exchange"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Sealed runs would have been kept whole.",
+   "scenario": "journeys --split sealed and the lake benchmark use a bare Gateway; with the live fallback their calls landed in agent_runs/model_exchanges.",
+   "cause": "Only the solver's exams switched keeping off.",
+   "fix": "experience.sealed_run(split) in every runner that can read a sealed split; a sealed Home evaluation keeps no drafts.",
+   "test": "the 14 runners import and the journeys and evaluation tests pass"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Some Claude ids got a thinking request they refuse.",
+   "scenario": "Dated 4.0 ids were read as newer models; adaptive on claude-haiku-4-5 is refused.",
+   "cause": "The budget-model pattern missed them, and nothing retried without thinking.",
+   "fix": "The pattern covers them, older models get a budget, a refusal is retried once without thinking.",
+   "test": "test_an_older_model_gets_a_budget_and_a_refusing_one_is_asked_again_without"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Spend caps under-counted the thinking.",
+   "scenario": "A 50-token call reserved a small share of its real limit; concurrent capped runs could overshoot.",
+   "cause": "The estimate read the reply's limit, not the thinking's room.",
+   "fix": "The estimate reads effective_max_tokens.",
+   "test": "the gateway tests"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An answer that mentions think tags lost its text.",
+   "scenario": "A notebook cell's code with re.sub(r'<think>...') was cut.",
+   "cause": "The split matched anywhere.",
+   "fix": "Only at the reply's start, or a lone closing tag with no opening one anywhere.",
+   "test": "test_think_only_at_the_start_and_a_closing_tag_alone"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Saved model calls by what they kept, before the change",
+   "gate": "none: a measurement to read",
+   "fixed_before_run": true,
+   "result": "2,095 saved calls: 317 whole with thinking blocks (later found to hold empty text, signature only), 429 whole without thinking, 723 shape-only that thought, 626 shape-only",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "limits": [
+    "the saved calls of this machine's workspaces only",
+    "the 317 blocks hold no text: the model's default display omits it"
+   ]
+  }
+ ],
+ "outcome": "From now on every agent's model calls ask for thinking and keep it whole in the workspace (cells redacted), exams excepted; the store can train on it.",
+ "lessons": [
+  "Keeping data and letting it leave are two decisions; one flag for both lost about 730 thinking turns.",
+  "Turning a default on is a privacy change: check every reader of the switch, not only the new path."
+ ],
+ "risks": [
+  "Every purpose now thinks, so each call costs more; DCLAB_THINKING=off is the switch."
+ ],
+ "commits": []
+}

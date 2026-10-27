@@ -267,7 +267,7 @@ class Gateway:
             self.usage.record({"at": now(), "purpose": purpose, "tier": tier, "model": model, "endpoint": public["endpoint"],
                                "project_id": project_id, "draft_id": draft_id, "input_tokens": tokens_in, "output_tokens": tokens_out,
                                "seconds": round(seconds, 2), "attempts": attempts, "outcome": outcome,
-                               "prompt": prompt if os.environ.get("DCLAB_LOG_PROMPTS") == "1" else None, "cost_eur": eur, "cost_basis": basis,
+                               "prompt": prompt if _text_kept() else None, "cost_eur": eur, "cost_basis": basis,
                                "cache_read_tokens": read or None, "cache_write_tokens": write or None})
             from .. import observe
 
@@ -375,10 +375,18 @@ class Bound:
 
             started, reply, outcome = time.monotonic(), None, "ok"
             try:
-                reply = gateway.transport(shadow, self.p).complete(snapshot, tools, max_tokens)
+                transport = gateway.transport(shadow, self.p)
+                if hasattr(transport, "thinking") and getattr(transport, "thinking", None) is None:
+                    transport.thinking = settings.thinking_for(self.purpose)  # a shadow thinks as the served model does
+                reply = transport.complete(snapshot, tools, max_tokens)
             except Exception as error:  # noqa: BLE001 — a shadow that fails is a row, never an error for the caller
                 outcome = f"error: {type(error).__name__}"
             usage = (reply or {}).get("usage") or {}
+            # the owner (2026-10-28): every model's thinking is kept for training, a shadow's too: its own exchange line, marked
+            # shadow, by the same rule as the served model's (whole when shown no cells; the comparison log stays numbers only)
+            import secrets as _secrets
+
+            self._keep_exchange("mr" + _secrets.token_hex(8), snapshot, reply, outcome, tools, shadow=shadow)
             try:
                 gateway.shadows.record({"at": gateway.clock(), "purpose": self.purpose, "primary_tier": served["tier"], "primary_model": served["model"],
                                         "shadow_tier": shadow["name"], "shadow_model": shadow["model"], "project_id": project_id, "draft_id": draft_id,
@@ -444,7 +452,10 @@ class Bound:
             # the earlier turns' reasoning goes back to the server under its field (D2), so it is in the prompt's size too
             chars = sum(len(str(m.get("content") or "")) + len(json.dumps(m.get("tool_calls") or [], default=str))
                         + sum(len(str(m.get(field) or "")) for field in settings.REASONING_FIELDS) for m in messages) + len(json.dumps(tools or []))
-            estimate = prices.estimate(self.model, settings.public(self.tier.get("name") or self.p.tier)["local"], chars, max_tokens)
+            limit = self._transport.effective_max_tokens(max_tokens, {}) if hasattr(self._transport, "effective_max_tokens") else max_tokens
+            # the thinking's room counts too (the review of 2026-10-28): every purpose now thinks, and a cap that read only the
+            # reply's limit let several calls in flight overshoot it
+            estimate = prices.estimate(self.model, settings.public(self.tier.get("name") or self.p.tier)["local"], chars, limit)
             refusal, release = self.gateway.reserve(self.project_id, self, estimate, self.purpose)
         except ValueError as error:  # a broken price file: nothing is sent until it is fixed
             refusal, release = str(error), (lambda: None)
@@ -479,7 +490,7 @@ class Bound:
             return out
 
     def _keep_exchange(self, request_id: str, messages: list[dict[str, Any]], out: dict[str, Any] | None, outcome: str,
-                       tools: list[dict[str, Any]] | None = None) -> None:
+                       tools: list[dict[str, Any]] | None = None, shadow: dict[str, Any] | None = None) -> None:
         """32.10: the whole exchange kept, never cut: every message as sent, the reply, its tool calls and the model's thinking, one
         line in ``<workspace>/model_exchanges/YYYY/MM/DD.jsonl`` (the store's model_requests keeper keeps it). Where the workspace
         keeps no model text, or the purpose was shown cell values, only its shape is kept (sizes, tokens, whether it thought).
@@ -490,7 +501,7 @@ class Bound:
         from .. import experience
 
         try:
-            home = _exchange_home(self.gateway)
+            home = _exchange_home(self.gateway, live=outcome == "ok" and self.gateway.transport is _transport)
             if home is None:
                 return
             shown_cells = int(getattr(self.p, "cell_values", 0) or 0) > 0
@@ -506,7 +517,8 @@ class Bound:
             system = next((str(m.get("content") or "") for m in messages if m.get("role") == "system"), "")
             doc: dict[str, Any] = {"at": datetime.now(timezone.utc).isoformat(timespec="microseconds"), "model_request": request_id,
                                    "prompt_sha256": hashlib.sha256(system.encode()).hexdigest()[:16] if system else None,  # 32.22
-                                   "purpose": self.purpose, "tier": self.tier.get("name"), "model": self.model, "project": self.project_id,
+                                   "purpose": self.purpose, "tier": (shadow or self.tier).get("name"), "model": (shadow or {}).get("model") or self.model,
+                                   "project": self.project_id, **({"shadow": True} if shadow else {}),
                                    "draft": self.draft_id, "outcome": outcome, "usage": (out or {}).get("usage"), "whole": whole,
                                    "may_leave": may_leave,
                                    "tool_names": [str((t.get("function") or {}).get("name") or t.get("name") or "") for t in tools or []],
@@ -534,7 +546,7 @@ class Bound:
 
     def _record(self, messages: list[dict[str, Any]], out: dict[str, Any] | None, seconds: float, attempts: int, outcome: str,
                 tools: list[dict[str, Any]] | None = None) -> None:
-        prompt = "\n\n".join(f"[{m.get('role')}] {m.get('content') or ''}" for m in messages)[:20000] if os.environ.get("DCLAB_LOG_PROMPTS") == "1" else None
+        prompt = "\n\n".join(f"[{m.get('role')}] {m.get('content') or ''}" for m in messages)[:20000] if _text_kept() and not int(getattr(self.p, "cell_values", 0) or 0) else None  # never a prompt shown cells
         eur = self.gateway.record(self.purpose, self.model, (out or {}).get("usage"), seconds, attempts, outcome, self.project_id, self.draft_id, prompt,
                                   tier=self.tier.get("name"))
         self.spent_eur += eur or 0.0
@@ -553,15 +565,31 @@ class Bound:
                                  messages, (out or {}).get("content") if isinstance((out or {}).get("content"), str) else None)
 
 
-def _exchange_home(gateway: Any) -> Path | None:
-    """The workspace folder a gateway's requests belong to: its usage file's folder, else the current experience log's."""
+def _text_kept() -> bool:
+    from .. import experience
+
+    return experience.model_text_allowed()
+
+
+def _exchange_home(gateway: Any, live: bool = False) -> Path | None:
+    """The workspace folder a gateway's requests belong to: its usage file's folder, else the current experience log's,
+    else, for a live model's reply, the agent home (DCLAB_AGENT_HOME, else the checkout's agent_runs): the owner
+    (2026-10-28) wants every model's thinking kept, and a bare Gateway() (lake benchmark, journeys, live people) kept
+    nothing. A scripted transport (every test) never falls back, so a test never writes into a real workspace."""
     path = getattr(getattr(gateway, "usage", None), "path", None)
     if path is not None:
         return Path(path).parent
     from .. import experience
 
     log = experience.current_log()
-    return Path(log.home) if log is not None and getattr(log, "home", None) else None
+    if log is not None and getattr(log, "home", None):
+        return Path(log.home)
+    if not live:
+        return None
+    from .. import settings as app_settings
+
+    configured = os.environ.get("DCLAB_AGENT_HOME", "").strip()
+    return Path(configured).expanduser() if configured else app_settings.default_home()
 
 
 def check_external(purpose: str, project_id: str | None = None) -> None:

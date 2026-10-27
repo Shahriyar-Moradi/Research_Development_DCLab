@@ -304,12 +304,13 @@ def public(name: str) -> dict[str, Any]:
             "reasoning_field": t["reasoning_field"], "chat_template_kwargs": t["chat_template_kwargs"]}
 
 
-# The owner's rule (2026-10-28): the agents whose runs become training data for DCLab's own models ask for the model's
-# thinking, kept whole with each exchange (gateway, 32.10). DCLAB_THINKING: "off", "all", or a comma list of purposes;
-# unset, these. Utility purposes (embeddings, parsing, labelling) do not: their answers are short and their cost would rise.
-THINKING_DEFAULT = ("intern", "home_agent", "home_orchestrator", "problem_analyst", "data_investigator", "solution_planner",
-                    "solution_router", "feature_engineer", "reporter", "understanding_critic", "critic", "solver_answer", "ai_first",
-                    "workspace_chat", "notebook_cell")
+# The owner's rule (2026-10-28 night, "what I want is the model's thinking kept for training", for every agent and every
+# kind of help): every purpose asks for the model's thinking, kept whole with each exchange (gateway, 32.10), except the
+# short list below, each with its reason. DCLAB_THINKING: "off", "all", or a comma list of purposes, overrides it.
+NO_THINKING: dict[str, str] = {
+    "embedding": "an embedding call returns vectors, never text: there is no thinking to ask for or keep",
+}
+THINKING_DEFAULT = tuple(n for n in PURPOSES if n not in NO_THINKING)  # every purpose but the exceptions (kept for callers)
 
 
 def thinking_for(purpose: str) -> str | None:
@@ -318,9 +319,11 @@ def thinking_for(purpose: str) -> str | None:
     if raw in ("off", "0", "none", "false"):
         return None
     if raw == "all":
-        return "adaptive"
-    chosen = {x.strip() for x in raw.split(",") if x.strip()} if raw else set(THINKING_DEFAULT)
-    return "adaptive" if purpose in chosen else None
+        return None if purpose in NO_THINKING else "adaptive"
+    if raw:
+        return "adaptive" if purpose in {x.strip() for x in raw.split(",") if x.strip()} else None
+    return None if purpose in NO_THINKING else "adaptive"
+
 
 def purpose(name: str) -> Purpose:
     if name not in PURPOSES:

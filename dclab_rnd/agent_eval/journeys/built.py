@@ -289,6 +289,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--cap-eur", type=float, default=0.5)
     ap.add_argument("--no-store", action="store_true")
     args = ap.parse_args(argv)
+    from dclab_rnd import experience as _experience
+
+    _experience.sealed_run(getattr(args, "split", None))  # an exam's model calls keep their shape only (the owner's rule, 2026-10-28)
     seed = args.seed if args.seed is not None else (1 if args.split == "sealed" else 0)
     journeys = load(args.split)
     if args.split == "sealed" and any(d.get("arm") == args.arm for d in sealed_runs()):

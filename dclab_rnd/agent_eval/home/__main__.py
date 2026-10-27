@@ -87,6 +87,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cap-eur", type=float, default=None, help="required with --yes for a priced model")
     parser.add_argument("--save", action="store_true", help="dev only: store the rules-alone run as evidence (nothing is sent)")
     args = parser.parse_args(argv)
+    from dclab_rnd import experience as _experience
+
+    _experience.sealed_run(getattr(args, "split", None))  # an exam's model calls keep their shape only (the owner's rule, 2026-10-28)
     from dotenv import load_dotenv  # the configured model is in .env, as for the server
 
     load_dotenv(Path(__file__).resolve().parents[3] / ".env", override=False)
@@ -117,13 +120,14 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     gateway.shadows = None  # measurement traffic stays out of the shadow log
     budget = Budget(gateway, args.cap_eur)
-    keep = KEEP_ROOT / f"{datetime.now(timezone.utc):%Y-%m-%d}-home-eval" / f"{args.split}-{datetime.now(timezone.utc):%H%M%S}"
+    keep = None if args.split == "sealed" else \
+        KEEP_ROOT / f"{datetime.now(timezone.utc):%Y-%m-%d}-home-eval" / f"{args.split}-{datetime.now(timezone.utc):%H%M%S}"  # a sealed run is an exam: never kept
     result = measure(cases, budget.client, lambda case_id: budget.client("home-eval-plain"), keep=keep)
-    result["kept"] = _shown(keep)  # the run's drafts and replies, whole (agent_runs is the store's, never committed)
+    result["kept"] = _shown(keep) if keep else None  # the run's drafts and replies, whole (agent_runs is the store's, never committed)
     scored = not result["failures"]
     if not scored:  # a failed request: kept as a record of what it cost, without values or scores, and never a sealed run
         result = {"arms": result["arms"], "requests": result["requests"], "failures": result["failures"], "summary": {},
-                  "kept": result["kept"]}
+                  "kept": result.get("kept")}
     path = _store(_record(result, args.split, the_plan, budget.spent_eur(), scored), args.split, scored)
     if scored:
         _print(result["summary"])

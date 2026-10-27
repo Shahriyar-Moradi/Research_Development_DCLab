@@ -27,6 +27,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--yes", action="store_true", help="send the requests (the plan is printed either way)")
     parser.add_argument("--cap-eur", type=float, default=None, help="required with --yes for a priced model")
     args = parser.parse_args(argv)
+    from dclab_rnd import experience as _experience
+
+    _experience.sealed_run(getattr(args, "split", None))  # an exam's model calls keep their shape only (the owner's rule, 2026-10-28)
     from dotenv import load_dotenv  # the configured model is in .env, as for the server
 
     load_dotenv(Path(__file__).resolve().parents[3] / ".env", override=False)

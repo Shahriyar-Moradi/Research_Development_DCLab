@@ -272,11 +272,16 @@ class ThinkingTests(unittest.TestCase):
     def test_a_budget_leaves_room_for_the_reply_and_off_sends_nothing(self):
         fake = FakeMessages(reply(NS(type="text", text="ok")))
         client = client_with(fake)
+        client.model = "claude-haiku-4-5"  # a model that still takes a thinking budget
         client.complete([{"role": "user", "content": "go"}], None, 3200, thinking="enabled:3000")
         self.assertEqual(fake.sent[-1]["thinking"], {"type": "enabled", "budget_tokens": 3000, "display": "summarized"})
         self.assertEqual(fake.sent[-1]["max_tokens"], 6200)  # the reply keeps its whole limit above the thinking budget
+        client.model = "claude-sonnet-5-5"  # 2026-10-28: a budget is refused here with a 400, so it is sent as adaptive
+        client.complete([{"role": "user", "content": "go"}], None, 3200, thinking="enabled:3000")
+        self.assertEqual(fake.sent[-1]["thinking"], {"type": "adaptive", "display": "summarized"})
         client.complete([{"role": "user", "content": "go"}], None, 1800, thinking="adaptive")
         self.assertEqual(fake.sent[-1]["max_tokens"], 1800 + anthropic_client.ADAPTIVE_HEADROOM)
+        client.model = "claude-haiku-4-5"
         self.assertEqual(client.effective_max_tokens(1800, {"thinking": "enabled:abc"}), 1800 + 4000)  # a misspelt budget is the default
         client.thinking = "adaptive"
         client.complete([{"role": "user", "content": "go"}], None, 2000, thinking="off")

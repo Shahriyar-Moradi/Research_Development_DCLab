@@ -462,9 +462,23 @@ def release() -> str:
     return _RELEASE[0]
 
 
+def sealed_run(split: object) -> bool:
+    """A sealed (or test) split is about to run: its model exchanges keep their shape only, never a message, a reply or
+    the thinking, so an exam never becomes training data (the review of 2026-10-28: with keeping on by default, a sealed
+    journey's calls were kept whole). Called by every runner that can read a sealed split, right after its arguments."""
+    if "sealed" in str(split or "").lower() or str(split or "").lower() == "test":
+        os.environ["DCLAB_LOG_PROMPTS"] = "0"
+        return True
+    return False
+
+
 def model_text_allowed() -> bool:
-    """Prompts and replies are kept only when the workspace keeps them: DCLAB_LOG_PROMPTS=1, the usage log's own switch."""
-    return os.environ.get("DCLAB_LOG_PROMPTS") == "1"
+    """Prompts, replies and the model's thinking are kept in the workspace unless it switched them off (DCLAB_LOG_PROMPTS
+    set to empty, 0, off or false). The owner (2026-10-28 night): the thinking is kept for training, so a process that
+    never loaded .env (the twin's workflow lane, the lake's benchmark, store reason, code_check) keeps it too. Whether a
+    record may leave the workspace is still consent's (consent.py, the gateway's ``may_leave``)."""
+    value = os.environ.get("DCLAB_LOG_PROMPTS")
+    return value is None or value.strip().lower() not in ("", "0", "off", "false", "no")
 
 
 _LAST_MODEL_REQUEST: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("dclab_last_model_request", default=None)

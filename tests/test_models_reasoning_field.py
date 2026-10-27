@@ -59,7 +59,9 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(out["assistant_message"]["tool_calls"][0]["function"]["arguments"], '{"text": "ready"}')  # the wire format by default
         self.assertEqual(sent[0]["extra_body"], {"chat_template_kwargs": {"preserve_thinking": True}})
 
-    def test_without_a_field_nothing_is_read_or_sent(self):
+    def test_without_a_field_the_reasoning_is_kept_but_never_sent_back(self):
+        # the owner (2026-10-28): a local model's reasoning is kept for training, not dropped for want of a tier setting;
+        # it is sent back to the model only under a configured field
         sent = []
 
         def create(**kwargs):
@@ -68,11 +70,11 @@ class ClientTests(unittest.TestCase):
 
         c = self.fake(create)
         out = c.complete([{"role": "user", "content": "go"}])
-        self.assertNotIn("reasoning", out)
-        self.assertNotIn("thinking", out)
+        self.assertEqual(out["reasoning"], "hidden")
+        self.assertEqual(out["thinking"], [{"text": "hidden"}])
         self.assertNotIn("reasoning_content", out["assistant_message"])
         self.assertNotIn("extra_body", sent[0])
-        self.assertEqual(out["reasoning_fields_seen"], ["reasoning_content"])  # named for the tier's setting, never kept or sent
+        self.assertEqual(out["reasoning_fields_seen"], ["reasoning_content"])  # named for the tier's setting
 
     def test_a_call_without_arguments_runs_with_none(self):
         def create(**kwargs):
