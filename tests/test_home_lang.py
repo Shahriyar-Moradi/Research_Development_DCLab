@@ -138,7 +138,7 @@ SIGNAL_EXAMPLES = {  # one ordinary sentence per Persian signal, each must fire 
     "fa_predict": "پیش‌بینی فروش هفته بعد", "fa_which_will": "کدام کارمندها استعفا خواهند داد",
     "fa_window": "ظرف ۱۴ روز چه می‌شود", "fa_likely": "احتمال خرید هر مشتری را بگو",
     "fa_model": "یک مدلی بساز برای ریزش", "fa_how_much": "درآمد پارسال چقدر بود؟", "fa_count": "تعداد کاربران فعال",
-    "fa_aggregate": "مجموع فروش", "fa_breakdown": "فروش بر حسب شهر", "fa_show": "سفارش‌ها را نشان بده",
+    "fa_aggregate": "مجموع فروش", "fa_analyse": "داده‌های فروش را تحلیل کن", "fa_breakdown": "فروش بر حسب شهر", "fa_show": "سفارش‌ها را نشان بده",
     "fa_compare": "مقایسه دو فروشگاه", "fa_trend": "روند فروش امسال", "fa_convert": "به فرمت تاریخ ببر",
     "fa_remove": "ردیف‌های خالی را حذف کنید", "fa_merge": "دو جدول را ادغام کن", "fa_clean": "پاک‌سازی داده‌های مشتری",
     "fa_duplicates": "رکوردهای تکراری", "fa_dashboard": "یک داشبورد لازم دارم", "fa_periodic": "گزارش هفتگی فروش",

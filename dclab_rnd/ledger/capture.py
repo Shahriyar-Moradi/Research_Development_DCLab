@@ -445,7 +445,9 @@ def intent_read(draft_id: str, value: dict[str, Any], *, has_data: bool, words: 
     rules' own answer beside it; the record's id, kept on the draft's intent, so the person's choice labels this reading."""
     track, rule_track = value.get("track"), value.get("rule_track")
     by = "model_role" if value.get("source") == "model" else "rule"
-    answers = [answer("rule", "rule:intent_rules_v1", rule_track if rule_track in TRACKS else None)]
+    from ..draft.intent import RULES_VERSION  # the rules that read it (H4: v2), never a stale name
+
+    answers = [answer("rule", f"rule:{RULES_VERSION}", rule_track if rule_track in TRACKS else None)]
     if by == "model_role":
         answers.append(answer("model_role", "home_intent", track))
     record = _put("request.intent", ("draft", draft_id), answers, track, by, options=TRACKS, level=2 if by == "model_role" else 0,

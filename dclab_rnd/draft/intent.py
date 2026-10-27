@@ -53,7 +53,7 @@ LEAD_MIN = 2
 # unclear (the model reads it, or the prediction default stands), and only two strong readings can make Home ask.
 STRONG = 3
 PROMPT = "home_intent"
-RULES_VERSION = "intent_rules_v1"
+RULES_VERSION = "intent_rules_v2"  # v2 (H4): plain asks for an analysis, stats, insights; Persian "analyse"
 
 _N = r"(?:\w+(?:\s+\w+)?)"  # one or two words ("customers", "the bookings")
 SIGNALS: list[tuple[str, str, int, str]] = [
@@ -78,6 +78,14 @@ SIGNALS: list[tuple[str, str, int, str]] = [
     ("analysis", "list_who", 3, r"\blist\s+(?:all\s+)?(?:the\s+)?\w+\s+(?:who|that|which)\b"),
     ("analysis", "the_most", 3, r"\b(?:sold|had|made|spent|bought|earned)\s+the\s+most\b"),
     ("analysis", "share_of", 3, r"\bwhat\s+(?:share|percentage|proportion|fraction|rate)\s+of\b"),
+    # H4 (2026-10-28): a plain request for numbers ("I want an analysis of my tickets", "summarize my data", "some stats") fell
+    # to the prediction default; asked outright, an analysis is a strong signal (a prediction named beside it still leads)
+    # strong only when the analysis itself is asked for; "explore", "profile", "summarize" and "statistics" are said in passing
+    # by prediction requests too ("explore the data and find who churns": the review of H4), so they weigh 2 and leave it to
+    # the model, or to the prediction default
+    ("analysis", "analyse_this", 3, r"\b(?:analy[sz]e|an\s+analysis\s+of)\s+(?:my|the|our|this|these|some)\b"),
+    ("analysis", "explore_this", 2, r"\b(?:explore|summari[sz]e|profile)\s+(?:my|the|our|this|these|some)\b"),
+    ("analysis", "stats", 2, r"\b(?:stats|statistics|insights?\s+(?:from|about|into|on))\b"),
     ("analysis", "compare", 2, r"\bcompare\b"),
     ("analysis", "aggregate", 2, r"\b(?:average|median|total|sum|count|number)\s+of\b|\b(?:average|median)\b"),
     ("analysis", "show_measure", 2, r"\bshow\s+(?:me\s+)?(?:the\s+)?(?:average|median|total|number|count|revenue|refunds?|sales|share|orders)\b"),

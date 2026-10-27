@@ -175,8 +175,8 @@ class AgentTests(unittest.TestCase):
             d = self.start(BY_TRACK[track][0])
             self.assertEqual(d["intent"]["track"], track)
             self.assertFalse(d.get("workflow"), track)
-            self.assertEqual(d["questions"], [], track)
-            said = d["messages"][-1]["text"]
+            self.assertEqual([q for q in d["questions"] if not q.get("brief")], [], track)  # H4: only the track's brief asks
+            said = " ".join(m.get("text") or "" for m in d["messages"] if m.get("role") == "agent")  # H4: a brief question may follow
             self.assertIn(intent.NEXT[track], said)
             if track in ("analysis", "preparation", "reporting", "business"):
                 self.assertIn("not built yet", said)  # never a promise of what does not exist
@@ -319,7 +319,7 @@ class AgentTests(unittest.TestCase):
         d = self.store.get(d["id"])
         self.assertEqual((d["intent"]["track"], d["intent"]["source"], d["intent"]["rule_track"]), ("analysis", "user", "prediction"))
         self.assertIsNone(d["workflow"])
-        self.assertTrue(all(q.get("answered") for q in d["questions"]))
+        self.assertTrue(all(q.get("answered") for q in d["questions"] if not q.get("brief")))  # H4: the new track's brief may ask
         labels = self.labels()
         self.assertEqual([(lab.value, lab.source) for lab in labels], [("analysis", "user_decision_exposed")])
         agent.choose_intent(d["id"], "prediction")  # and back: the workflow returns
@@ -359,7 +359,7 @@ class AgentTests(unittest.TestCase):
         HomeAgent(self.store, None).data_ready(d["id"], self.store.get(d["id"])["assets"][0])
         d = self.store.get(d["id"])
         self.assertEqual(d["messages"][-1]["kind"], "analysis")
-        self.assertEqual(d["questions"], [])
+        self.assertEqual([q for q in d["questions"] if not q.get("brief")], [])  # H4: only the track's brief asks
         self.assertFalse(d.get("workflow"))
 
 
@@ -419,6 +419,17 @@ class ApiTests(unittest.TestCase):
         self.assertEqual((out.json()["intent"]["track"], out.json()["intent"]["source"]), ("prediction", "user"))
         wait(lambda: c.get(f"/api/drafts/{d['id']}").json().get("workflow"))
 
+    def test_the_brief_route(self):  # H4: the person corrects one field of what DCLab understood
+        c = self.client
+        d = c.post("/api/drafts", json={"problem": BY_TRACK["reporting"][1]}, headers=self.h).json()
+        wait(lambda: ((c.get(f"/api/drafts/{d['id']}").json().get("track_brief") or {}).get("reporting")))
+        out = c.post(f"/api/drafts/{d['id']}/brief", json={"track": "reporting", "field": "audience", "value": "the finance team"}, headers=self.h)
+        self.assertEqual(out.status_code, 200)
+        entry = out.json()["track_brief"]["reporting"]["audience"]
+        self.assertEqual((entry["value"], entry["source"]), ("the finance team", "user"))
+        bad = c.post(f"/api/drafts/{d['id']}/brief", json={"track": "reporting", "field": "target", "value": "x"}, headers=self.h)
+        self.assertEqual(bad.status_code, 422)  # a prediction's field is not on this sheet
+
     def test_ml_routes_refuse_another_track_and_a_pack_means_a_prediction(self):
         c = self.client
         d = c.post("/api/drafts", json={"problem": BY_TRACK["reporting"][1]}, headers=self.h).json()
@@ -471,7 +482,7 @@ class ReviewOfThePortTests(unittest.TestCase):
         d = self.store.get(d["id"])
         self.assertEqual((d["intent"]["track"], d["intent"]["source"]), ("analysis", "model"))
         self.assertFalse(d.get("workflow"))
-        self.assertEqual(d["questions"], [])
+        self.assertEqual([q for q in d["questions"] if not q.get("brief")], [])  # H4: only the track's brief asks
 
     def test_off_a_prediction_no_question_of_the_prediction_path_is_asked(self):  # finding 3 (the critic asks through ask)
         d = self.store.create(BY_TRACK["reporting"][0])
@@ -483,7 +494,7 @@ class ReviewOfThePortTests(unittest.TestCase):
 
         out = Coordinator(self.store, ProjectStore(self.home / "projects"), agent).run(d["id"], None)
         self.assertIn("not a prediction", out["says"])
-        self.assertEqual(self.store.get(d["id"])["questions"], [])
+        self.assertEqual([q for q in self.store.get(d["id"])["questions"] if not q.get("brief")], [])  # H4: only the brief asks
 
     def test_a_draft_from_before_h2_stays_a_prediction(self):  # finding 6
         from dclab_rnd.draft.chat import DraftGuard

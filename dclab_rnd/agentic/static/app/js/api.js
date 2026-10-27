@@ -267,6 +267,7 @@
     editDraft: ["PATCH", "/drafts/{draft_id}", ["draft_id"], []],
     downloadAsset: ["GET", "/drafts/{draft_id}/assets/{asset_id}/download", ["draft_id", "asset_id"], []],
     assetRows: ["GET", "/drafts/{draft_id}/assets/{asset_id}/rows", ["draft_id", "asset_id"], ["offset", "limit"]],
+    setBrief: ["POST", "/drafts/{draft_id}/brief", ["draft_id"], []],
     build: ["POST", "/drafts/{draft_id}/build", ["draft_id"], []],
     buildAndRun: ["POST", "/drafts/{draft_id}/build/run", ["draft_id"], []],
     draftCard: ["GET", "/drafts/{draft_id}/card", ["draft_id"], []],
@@ -609,6 +610,12 @@
   client.assetRows = (...args) => call('assetRows', args);
   client.path.assetRows = (...args) => build('assetRows', args).path;
   client.href.assetRows = (...args) => '/api' + build('assetRows', args).path;
+  /** POST /api/drafts/{draft_id}/brief: Set Brief
+   *  @param {string} draft_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Draft>} */
+  client.setBrief = (...args) => call('setBrief', args);
+  client.path.setBrief = (...args) => build('setBrief', args).path;
   /** POST /api/drafts/{draft_id}/build: Build
    *  @param {string} draft_id
    *  @param {{headers?: Object}} [opts]

@@ -86,6 +86,8 @@ def main(argv: list[str] | None = None) -> int:
     memory_off_for_evaluation()  # 35.4: a graded run never reads a remembered line
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.agent_eval.home")
     parser.add_argument("--split", choices=("dev", "sealed"), default="dev")
+    parser.add_argument("--lang", choices=("en", "fa", "mixed"), default=None,
+                        help="dev only: run the requests of one language (the owner, 2026-10-28: live runs in English only)")
     parser.add_argument("--yes", action="store_true", help="send the requests (the plan is printed either way)")
     parser.add_argument("--cap-eur", type=float, default=None, help="required with --yes for a priced model")
     parser.add_argument("--save", action="store_true", help="dev only: store the rules-alone run as evidence (nothing is sent)")
@@ -97,6 +99,10 @@ def main(argv: list[str] | None = None) -> int:
 
     load_dotenv(Path(__file__).resolve().parents[3] / ".env", override=False)
     cases = load(args.split)
+    if args.lang:
+        if args.split == "sealed":
+            parser.error("--lang is for dev: the sealed set is run once, whole")
+        cases = [c for c in cases if c.get("lang") == args.lang]
     from dclab_rnd.models.gateway import for_workspace
 
     gateway = for_workspace()

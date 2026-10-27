@@ -31,6 +31,7 @@ from dclab_rnd.agents.registry import Registry, Tool
 from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer
 
+from . import brief as briefs
 from . import intent as intents
 from . import lang
 from . import pack as packs
@@ -82,7 +83,7 @@ def counted(draft: dict[str, Any]) -> list[dict[str, Any]]:
     """The questions that count against MAX_QUESTIONS: never a superseded one, never an optional field's (asked once at
     most: costs would otherwise take the place of a pack's last field)."""
     return [q for q in draft.get("questions") or [] if not q.get("superseded") and q.get("field") not in OPTIONAL
-            and q.get("field") != "intent"]  # H2: the kind of help is not one of the prediction's questions  # what one prediction is for: the meet check blocks on it, so only the rules read it from the person's words
+            and q.get("field") != "intent" and not q.get("brief")]  # H2: the kind of help is not one of the prediction's questions  # what one prediction is for: the meet check blocks on it, so only the rules read it from the person's words
 BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
 
 
@@ -627,6 +628,119 @@ class HomeAgent:
         offer = [] if track == "advice" or has_data else ["upload", "connect"]
         self.say(draft_id, f"I read this as {intents.LABELS[track].lower()}: “{draft['problem']}”. {intents.NEXT[track]}", kind="text",
                  actions=offer, track=track)
+        self.open_brief(draft_id)
+
+    # ------------------------------------------------------------------ H4: a brief per kind of help
+    def open_brief(self, draft_id: str) -> None:
+        """H4: read each track's brief from the person's words (every track the request named), keep what was already known,
+        record the safe defaults, say which named column the data does not have, then ask what matters (at most once each)."""
+        draft = self.store.get(draft_id)
+        track = self.track(draft)
+        tracks = [t for t in [track, *((draft.get("intent") or {}).get("tracks") or [])] if t in briefs.TRACK_FIELDS]
+        if not tracks:
+            return
+        columns = briefs.columns_of(draft)
+        names = [c["name"] for c in columns] or None
+        texts = " ".join(plans.user_text(draft))
+        missing: dict[str, list[str]] = {}
+
+        def put(d):
+            kept = d.setdefault("track_brief", {})
+            for t in dict.fromkeys(tracks):
+                read = briefs.read(t, texts, names)
+                missing.update(read["missing"])
+                before = dict(kept.get(t) or {})
+                for field in read["missing"]:  # the table has no such column: a reading of the rules is withdrawn, never a person's
+                    if (before.get(field) or {}).get("source") == "rules":
+                        before.pop(field)
+                kept[t] = briefs.fill(t, read["fields"], before)
+        self.store.update(draft_id, put)
+        self.store.emit(draft_id, "status", {"track_brief": self.store.get(draft_id).get("track_brief")})
+        said = set((self.store.get(draft_id).get("brief_missing_said") or []))
+        missing = {f: a for f, a in missing.items() if f"{f}:{','.join(a)}" not in said}  # said once per column, not with every file
+        if missing:
+            self.store.update(draft_id, lambda d: d.update(brief_missing_said=sorted(said | {f"{f}:{','.join(a)}" for f, a in missing.items()})))
+        self.moved(draft_id, "read_brief", {"tracks": list(dict.fromkeys(tracks))},
+                   {"fields": {t: sorted(k for k, v in ((self.store.get(draft_id).get("track_brief") or {}).get(t) or {}).items()
+                                         if (v or {}).get("source") == "rules") for t in dict.fromkeys(tracks)}})
+        for field, absent in missing.items():
+            self.say(draft_id, f"Your data has no column named {', '.join(f'`{a}`' for a in absent)}, so I did not use it for the "
+                               f"{field.replace('_', ' ')}. Which column did you mean?", kind="text")
+        self.ask_brief(draft_id)
+
+    def ask_brief(self, draft_id: str) -> dict[str, Any] | None:
+        """The next brief question of the current track: unknown, no safe default, not asked before, within its budget; with
+        the table's columns (names only) as buttons and Not sure."""
+        draft = self.store.get(draft_id)
+        track = self.track(draft)
+        if track not in briefs.TRACK_FIELDS or self.pending(draft) is not None:
+            return None
+        asked = sum(1 for q in draft["questions"] if q.get("brief") == track)
+        f = briefs.asks(track, (draft.get("track_brief") or {}).get(track) or {}, asked)
+        if f is None:
+            return None
+        choices = [o for o in briefs.options(f, briefs.columns_of(draft)) if o != briefs.NOT_SURE][:3]  # at most four buttons
+        q = {"id": f"q{len(draft['questions']) + 1}", "field": f.name, "brief": track, "text": f.question,
+             "options": [*choices, briefs.NOT_SURE], "why": f.why, "answered": None}
+        self.store.update(draft_id, lambda d: d["questions"].append(q))
+        self.moved(draft_id, "ask_brief", {"track": track, "field": f.name})
+        return self.say(draft_id, f.question, kind="question", question=q)
+
+    @staticmethod
+    def answers_brief(q: dict[str, Any], text: str) -> bool:
+        """Whether a message answers the open brief question: "Not sure", one of its buttons, or a short reply that names no
+        other kind of help and asks for no build or simulated data (the review of H4: "actually I want to predict churn"
+        and "can you make synthetic data" were taken as the measure)."""
+        said = str(text or "").strip()
+        if not_known(said) or said.lower() in {str(o).lower() for o in q.get("options") or []}:
+            return True
+        if len(said.split()) > 12 or BUILD_WORDS.search(said) or SIMULATE_WORDS.search(said) or "?" in said or "؟" in said:
+            return False
+        scores = intents.rules(said)["scores"]
+        return not any(score >= intents.STRONG for track, score in scores.items() if track != q.get("brief"))
+
+    def brief_answer(self, draft_id: str, q: dict[str, Any], value: str) -> None:
+        """H4: the person's answer to a brief question: their words, or the default when they do not know; nothing else in
+        the brief changes (a "Not sure" never erases what was understood). Then the next question, or what DCLab does now."""
+        track, field = q["brief"], q["field"]
+
+        def put(d):
+            kept = d.setdefault("track_brief", {})
+            kept[track] = briefs.answered(track, kept.get(track) or {}, field, value, not_known(value))
+            for item in d["questions"]:
+                if item["id"] == q["id"]:
+                    item["answered"] = value.strip()[:400]
+        self.store.update(draft_id, put)
+        self.store.emit(draft_id, "status", {"track_brief": self.store.get(draft_id).get("track_brief")})
+        self.moved(draft_id, "brief_answer", {"track": track, "field": field})
+        if self.ask_brief(draft_id) is None:
+            self.say(draft_id, "Noted. " + intents.NEXT.get(track, ""), kind="text")
+
+    @turn
+    def set_brief(self, draft_id: str, track: str, field: str, value: str) -> dict[str, Any]:
+        """H4: the person changes one field on the "DCLab understood" sheet: their words, source user."""
+        if briefs.field(track, field) is None:
+            raise ValueError(f"{field} is not a field of the {track} brief")
+        value = str(value or "").strip()[:200]
+        if not value:
+            raise ValueError("write the value first")
+
+        def put(d):
+            kept = d.setdefault("track_brief", {})
+            before = (kept.get(track) or {}).get(field) or {}
+            entry = {"value": value, "status": "stated", "source": "user", "quote": value, "asked": True,
+                     "corrected": {"value": before.get("value"), "source": before.get("source")} if before.get("value") else None}
+            kept[track] = {**(kept.get(track) or briefs.fill(track, {})), field: entry}
+            for q in d["questions"]:  # the sheet answers the open question on this field (the review of H4)
+                if q.get("brief") == track and q.get("field") == field and not q.get("answered"):
+                    q["answered"] = value
+        self.store.update(draft_id, put)
+        self.moved(draft_id, "set_brief", {"track": track, "field": field})  # a correction of a reading: kept for training
+        msg = {"id": "u" + secrets.token_hex(5), "role": "user", "kind": "edit", "field": field, "text": value, "at": now()}
+        self.store.update(draft_id, lambda d: d["messages"].append(msg))
+        self.store.emit(draft_id, "chat", msg)
+        self.store.emit(draft_id, "status", {"track_brief": self.store.get(draft_id).get("track_brief")})
+        return self.store.get(draft_id)["track_brief"][track]
 
     def choose_intent(self, draft_id: str, track: str) -> dict[str, Any]:
         """The person chose the kind of help (the card's Change control, the question's button, or a pack): it wins over
@@ -657,7 +771,8 @@ class HomeAgent:
 
         def settle(d):
             for q in d["questions"]:
-                if not q.get("answered") and (q.get("field") == "intent" or (track != was and track != "prediction")):
+                if not q.get("answered") and (q.get("field") == "intent" or (track != was and track != "prediction")
+                                              or (q.get("brief") and q.get("brief") != track)):
                     q.update(answered="(the type of help changed)", superseded=True)
             if track != "prediction":
                 d["workflow"] = None
@@ -752,6 +867,7 @@ class HomeAgent:
                 break
         self.say(draft_id, text, kind="analysis", asset=asset.get("id"))
         if not prediction:  # H2, another track: the description is what Home offers for it now; no pack, workflow or outcome question
+            self.open_brief(draft_id)  # H4: the brief again, now with the table's columns (a name it does not have is said)
             return
         if (draft.get("pack") or {}).get("source") != "user":
             det = packs.detect(draft["problem"], analysis)
@@ -814,6 +930,13 @@ class HomeAgent:
         self.store.update(draft_id, add)
         self.store.emit(draft_id, "chat", msg)
         open_question = self.pending(self.store.get(draft_id))
+        if open_question is not None and open_question.get("brief"):  # H4: a brief question is answered by code when it is an answer
+            if self.answers_brief(open_question, text):
+                self.brief_answer(draft_id, open_question, text)
+                return
+            self.store.update(draft_id, lambda d: [x.update(answered=text[:400], declined=True, superseded=True)
+                                                   for x in d["questions"] if x["id"] == open_question["id"] and not x.get("answered")])
+            # the person said something else (another kind of help, simulated data, a question): the normal path reads it
         if open_question is not None and open_question["field"] == "intent":  # H2: the kind of help: code reads the answer
             self.take_answer(draft_id, open_question, text)
             return
@@ -1444,6 +1567,7 @@ class HomeAgent:
             "problem": draft["problem"], "pack": draft.get("pack"), "understanding": draft.get("understanding") or {},
             "intent": {**{k: (draft.get("intent") or {}).get(k) for k in ("tracks", "status", "source")}, "track": self.track(draft)},  # H2
             "next_step": intents.NEXT.get(self.track(draft)),
+            "brief": (draft.get("track_brief") or {}).get(self.track(draft)),  # H4: what is known for this kind of help, with its sources
             "plan": {**{f: ((draft.get("plan") or {}).get(f) or {}).get("status", "unknown") for f in plans.fields_for(draft)}, "next": (draft.get("plan") or {}).get("next")},
             "questions_asked": [{k: q.get(k) for k in ("field", "text", "answered")} for q in draft["questions"]],
             "questions_left": MAX_QUESTIONS - len(counted(draft)),

@@ -8,6 +8,7 @@
     POST   /api/drafts/{id}/messages {text}   a user turn
     POST   /api/drafts/{id}/pack {key}        the user picks a pack (wins over detection)
     POST   /api/drafts/{id}/intent {track}    the user picks the kind of help (prediction, analysis, ...; package H2)
+    POST   /api/drafts/{id}/brief {track, field, value}  the user corrects one field of the track's brief (package H4)
     PUT    /api/drafts/{id}/data?filename=    upload a file (raw body), processed in the background
     POST   /api/drafts/{id}/data/sample {key} a dataset the R&D already studied
     POST   /api/drafts/{id}/data/synthetic {prompt?, rows?, template?}  simulated rows, labelled synthetic
@@ -542,6 +543,18 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         if track not in intents.TRACKS:
             raise HTTPException(422, "Unknown type of help: " + ", ".join(intents.TRACKS))
         await asyncio.to_thread(agent(draft_id).choose_intent, draft_id, track)
+        return drafts.get(draft_id)
+
+    @router.post("/api/drafts/{draft_id}/brief", response_model=Draft)
+    async def set_brief(draft_id: str, payload: AnyObject):
+        """H4: the person changes one field of what DCLab understood for this kind of help; their words, source user."""
+        get(draft_id)
+        body = dump(payload)
+        try:
+            await asyncio.to_thread(agent(draft_id).set_brief, draft_id, str(body.get("track") or ""), str(body.get("field") or ""),
+                                    str(body.get("value") or ""))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
         return drafts.get(draft_id)
 
     @router.put("/api/drafts/{draft_id}/data", response_model=Doc, openapi_extra=OCTET)

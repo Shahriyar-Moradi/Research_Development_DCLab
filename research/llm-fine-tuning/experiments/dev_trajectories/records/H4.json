@@ -1,0 +1,150 @@
+{
+ "package": "H4",
+ "title": "A brief per kind of help: Home reads what an analysis, a report, a business question or advice needs, asks only what matters, and shows what it understood",
+ "date": "2026-10-28",
+ "request": "The owner's goal: Home understands people who want data analysis, data preparation, BI and reports, business answers or advice, not only models, and routes them; continue the Home plan with H4.",
+ "spec": "Package H4 of the Home plan: TRACK_FIELDS with why, default and where options come from; a field is asked only when unknown with no safe default; a per-track budget; every question has a Not sure button that records the default and never erases what was known; the prediction track unchanged; median questions per request at most 3 on H1 dev.",
+ "plan": [
+  "Write the brief readers from the H1 dev requests in English and Persian, precision first (a field left unknown costs a question; a wrong one misleads).",
+  "Wire the brief into Home: read on the request, again when data arrives, ask only what matters, take answers by code, show a sheet the person can correct.",
+  "Measure on H1 dev with the rules, review adversarially, fix, measure again."
+ ],
+ "decisions": [
+  {
+   "decision": "A value that names a column the table does not have is refused and said, never taken.",
+   "why": "The H1 trap: 'the average lifetime_spend' on a table with no such column must not become the measure."
+  },
+  {
+   "decision": "An analysis's question stays its default (the request as written) instead of a reading.",
+   "why": "Reading the whole sentence as a field carried a missing column back in and added nothing."
+  },
+  {
+   "decision": "A message answers an open brief question only when it is Not sure, a button, or a short reply naming no other kind of help.",
+   "why": "The review: 'actually I want to predict churn' was stored as the measure."
+  },
+  {
+   "decision": "Only an outright 'an analysis of' or 'analyse my...' is a strong analysis signal.",
+   "why": "'Explore the data and find who churns' is a prediction; explore, profile, summarize and statistics are said in passing."
+  }
+ ],
+ "change": "draft/brief.py (TRACK_FIELDS, BUDGET, English and Persian patterns, read with the missing-column refusal, fill, asks, options, answered); draft/chat.py (open_brief, ask_brief, answers_brief, brief_answer, set_brief with its correction kept, a read_brief step); draft/intent.py and draft/lang.py (analysis signals, intent_rules_v2); ledger/capture.py reads the rules' version; draft/api.py POST /api/drafts/{id}/brief; home.html (the sheet with its Change control); agent_eval/home --lang.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Plainly asked analyses fell to the prediction default.",
+   "scenario": "'I want an analysis of my tickets', 'Analyse my support tickets' and 'summarize my ticket data' read as predictions.",
+   "cause": "No strong English signal for an analysis asked outright.",
+   "fix": "An outright 'an analysis of' or 'analyse my...' is strong; Persian 'تحلیل' and 'آمار' too.",
+   "test": "test_a_prediction_said_with_explore_or_profile_stays_a_prediction"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Short brief values were not valid quotes.",
+   "scenario": "19 bad quotes on H1 dev: 'region', 'weekly' and 'daily' are one short word.",
+   "cause": "The quote was the value itself.",
+   "fix": "A short value is quoted with its neighbours ('per region').",
+   "test": "test_every_quote_passes_the_products_quote_rule"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A missing column came back through a reading made before the data arrived.",
+   "scenario": "d-a6: 'average lifetime_spend' was read at the start and kept after the table showed no such column.",
+   "cause": "A known field was never replaced.",
+   "fix": "A rules reading of a missing column is withdrawn when the data arrives; a person's words never are.",
+   "test": "test_a_column_that_is_not_there_is_refused_never_taken"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "New analysis signals took prediction requests off the prediction track.",
+   "scenario": "'I want to explore the data and find which customers churn' read as an analysis.",
+   "cause": "explore, profile, summarize and statistics weighed 3.",
+   "fix": "They weigh 2; only an analysis asked outright weighs 3.",
+   "test": "test_a_prediction_said_with_explore_or_profile_stays_a_prediction"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Any message became the open brief question's answer.",
+   "scenario": "'Actually I want to predict which customers will churn next month' was stored as the measure; a request for synthetic data too.",
+   "cause": "reply() answered the brief question first and returned.",
+   "fix": "Only Not sure, a button or a short reply naming no other kind of help; anything else closes the question and takes the normal path.",
+   "test": "test_another_request_while_a_brief_question_is_open_is_never_its_answer"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A sheet edit was overwritten by the next message.",
+   "scenario": "The measure set on the sheet became 'and split it by region please'.",
+   "cause": "set_brief left the open question on that field open.",
+   "fix": "The sheet answers the open question on its field.",
+   "test": "test_a_sheet_edit_closes_the_open_question_on_that_field"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Save could store one field's text in another field.",
+   "scenario": "With two editors open, Save on Period read the Measure editor's text.",
+   "cause": "Every editor had the same id and Save read the first.",
+   "fix": "Save reads its own row's input; a status event never redraws under the person's typing.",
+   "test": "checked in the browser"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Ordinary words were read as fields.",
+   "scenario": "'by the end of the month' gave breakdown 'end'; 'I may want' gave period 'may'; 'dashboard for my boss' gave kpis 'my boss'; 'only interested in' gave a filter.",
+   "cause": "The patterns matched function words.",
+   "fix": "Those words excluded, month names only after a time word or before a year, 'for' out of the kpis pattern, the 'every X has' grain pattern dropped.",
+   "test": "test_words_that_are_not_fields"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Home on the H1 dev requests, rules alone, after H4 (HOME-009)",
+   "gate": "the plan's done-when: median questions at most 3; no brief field wrong",
+   "fixed_before_run": true,
+   "result": "Track 1.0 in every language; fields right 65 (6 before H4), wrong 0, missed 13; bad quotes 0, made-up columns 0; traps 5 of 6 (the missing column now passes); median questions 0",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the brief patterns were written from these dev requests, so dev overstates",
+    "the suite answers every question 'not sure', so free-text answers are tested in the unit tests, not here",
+    "the model arm is measured separately"
+   ]
+  },
+  {
+   "name": "Home with the product's model on the English H1 dev requests (HOME-008)",
+   "gate": "home_gate_v1's checks read on this arm: no bad quote, no uncited number, no wrong field",
+   "fixed_before_run": true,
+   "result": "Model arm: kind of help right on all English dev requests, fields right 49, wrong 0, bad quotes 0, uncited numbers 0; rules alone 45 right, 0 wrong; the model asked once with no checks: 5 fields wrong",
+   "verdict": "pass",
+   "cost_eur": 0.2275,
+   "limits": [
+    "English only (the owner's choice for live runs)",
+    "one run on dev requests; the sealed set runs once at the end of the plan",
+    "the answers themselves (the exits) come in the next packages"
+   ]
+  }
+ ],
+ "outcome": "Home now understands, per kind of help, what the person asked for, asks only what matters with a Not sure button, and shows what it understood on a sheet the person can correct; every reading, answer and correction is kept with its source.",
+ "lessons": [
+  "A word can be a signal and a passing remark at once: weigh what the person asks for, not what they mention.",
+  "An open question must not swallow the next message; read whether the message answers it first."
+ ],
+ "risks": [
+  "Brief patterns are written by one model from dev requests; real people will phrase things the patterns miss (then Home asks, or the field stays unknown)."
+ ],
+ "commits": []
+}

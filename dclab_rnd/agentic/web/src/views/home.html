@@ -189,6 +189,10 @@
         <label class="sr-only" for="home-intent-change">Change the type of help</label>
         <select id="home-intent-change" class="sm"><option value="">Change…</option></select>
       </div>
+      <div class="panel-foot" id="home-brief" hidden data-f="home.brief">
+        <div class="small muted">What DCLab understood (change anything that is wrong):</div>
+        <div class="stack small" id="home-brief-list"></div>
+      </div>
       <div class="panel-body"><div class="thread" id="home-thread" aria-live="polite"></div></div>
       <div class="panel-foot">
         <div class="composer">
@@ -517,7 +521,47 @@ DC.view('home', {
       const prediction = !asked && intent.track === 'prediction';
       $('#home-solution', el).hidden = !prediction;
       $('#home-create', el).hidden = !prediction;
+      if (S.draft) drawBrief(S.draft);
     }
+    /* What DCLab understood for this kind of help (package H4): each field with where it came from, and a Change control.
+       Labels mirror dclab_rnd/draft/brief.py TRACK_FIELDS. A prediction keeps its own Solution panel. */
+    const BRIEF_LABELS = { question: 'Question', measure: 'Measure', breakdown: 'Split by', period: 'Period', filters: 'Filters',
+      inputs: 'Inputs', output_grain: 'One row per', rules: 'Steps', destination: 'Result goes to', kpis: 'Numbers shown',
+      audience: 'For', refresh: 'Updates', decisions_supported: 'Helps decide', decision: 'Decision', options: 'Options',
+      success_measure: 'Measure of success', period_compared: 'Periods compared', constraints: 'Limits', topic: 'Topic' };
+    function drawBrief(draft) {
+      const box = $('#home-brief', el), list = $('#home-brief-list', el);
+      const intent = (draft && draft.intent) || {};
+      const track = intent.status === 'asked' ? null : intent.track;
+      const brief = track && track !== 'prediction' ? ((draft.track_brief || {})[track]) : null;
+      if (!brief) { box.hidden = true; return; }
+      list.innerHTML = Object.entries(brief).map(([k, e]) => {
+        const v = e && e.value;
+        const how = !v ? 'not known yet' : e.source === 'default' ? '(the default)' : e.source === 'user' ? '(you said)' : '(from your words)';
+        return `<div class="row" data-style="gap:8px;align-items:baseline" data-brief-row="${esc(k)}"><span class="muted">${esc(BRIEF_LABELS[k] || k)}:</span>`
+          + ` <b>${esc(v || '—')}</b> <span class="muted">${esc(how)}</span>`
+          + ` <button type="button" class="link-btn small" data-brief="${esc(k)}">Change</button></div>`;
+      }).join('');
+      box.hidden = false;
+    }
+    $('#home-brief-list', el).addEventListener('click', e => {
+      const field = e.target.dataset && e.target.dataset.brief; if (!field || !S.draft) return;
+      const row = e.target.closest('[data-brief-row]');
+      const id = `home-brief-edit-${field}`;
+      row.innerHTML = `<label class="sr-only" for="${esc(id)}">${esc(BRIEF_LABELS[field] || field)}</label>`
+        + `<input id="${esc(id)}" class="sm" maxlength="200"> <button type="button" class="btn sm primary" data-brief-save="${esc(field)}">Save</button>`;
+      row.querySelector('input').focus();
+    });
+    $('#home-brief-list', el).addEventListener('click', async e => {
+      const field = e.target.dataset && e.target.dataset.briefSave; if (!field || !S.draft) return;
+      const input = e.target.closest('[data-brief-row]').querySelector('input');  // this row's editor, never another's
+      const value = ((input && input.value) || '').trim(); if (!value) return;
+      e.target.disabled = true;
+      try {
+        S.draft = await DC.client.setBrief(S.draft.id, { body: { track: S.draft.intent.track, field, value } });
+        drawBrief(S.draft);
+      } catch (err) { toast(err.message, { ok: false }); e.target.disabled = false; }
+    });
     $('#home-intent-change', el).addEventListener('change', async e => {
       const track = e.target.value; if (!track || !S.draft) return;
       e.target.disabled = true;
@@ -730,6 +774,10 @@ DC.view('home', {
     });
     function onStatus(d) {
       if (d.intent) drawIntent(d.intent);
+      if (d.track_brief && S.draft) {
+        S.draft.track_brief = d.track_brief;
+        if (!$('#home-brief-list input', el)) drawBrief(S.draft);  // never under the person's typing; Save redraws
+      }
       if (d.pack) { if (S.draft) S.draft.pack = d.pack; drawPacks(); $('#home-sol-pack', el).textContent = (S.packs.find(p => p.key === d.pack.key) || {}).name || d.pack.key; }
       if ('thinking' in d) setThinking(d.thinking);
       if (d.note) addSystem(d.note);
