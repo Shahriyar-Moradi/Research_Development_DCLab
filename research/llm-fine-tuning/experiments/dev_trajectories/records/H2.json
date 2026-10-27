@@ -1,0 +1,262 @@
+{
+  "package": "H2",
+  "title": "Intent and the confirm card: Home reads the kind of help first, says it back, and lets the person change it",
+  "date": "2026-10-27",
+  "request": "Continue Phase H package by package after H1: make Home understand whether a person wants a prediction, numbers from their data, data preparation, a report, a business answer or advice, and route only predictions into the ML path.",
+  "spec": "Package H2 of Phase H in docs/guides/AGENTIC_FOUNDATION_PLAN.md: dclab_rnd/draft/intent.py with TRACKS, rules per track, a quote-checked model reading on a new purpose home_intent, and the ask-when-unsure rule; the intent stored on the draft; a confirm card with a Change control (POST /api/drafts/{id}/intent; the person's choice wins); start() reads the intent first and only the prediction track picks a pack and draws WF-01 to WF-10; request.intent recorded and labelled by the confirm or change; home_agent.md rewritten track-neutral; make agent-eval. Done when: on H1 dev the track accuracy rises above the baseline with rules only, prediction requests behave exactly as before, and every recorded intent has a valid quote or came from the person.",
+  "plan": [
+    "Write the rules from the H1 dev requests and ordinary English, never the sealed set; read with the model only when the rules find no clear winner; ask only on a real prediction/report tie.",
+    "Put the intent at the front of start() and gate the prediction path (pack, brief, workflow, questions, summary, build) on the track.",
+    "Record each reading as a decision sample with counts and signal names only, labelled when the person confirms or changes it.",
+    "Show the reading and a Change select on Home; add POST /api/drafts/{id}/intent.",
+    "Measure with the H1 suite and compare every dev prediction case with HOME-001; review the diff and fix what the review finds."
+  ],
+  "decisions": [
+    {
+      "decision": "Rules first, the model only when the rules have no clear winner.",
+      "why": "A clear request needs no model call, and the rules' reading is free, fast and explainable; the model covers what the rules cannot read."
+    },
+    {
+      "decision": "A prediction signal leads analysis and preparation (LEADS, score at least 2).",
+      "why": "In 'predict how many units per store' or 'merge the tables, then predict' the counts or the join are a step of the prediction, not the answer the person wants."
+    },
+    {
+      "decision": "Ask only when a prediction and a report are equally strong.",
+      "why": "Both are real, different deliverables; every other tie has a sensible default and the card lets the person change it."
+    },
+    {
+      "decision": "No decision sample for the default reading or the person's own choice.",
+      "why": "The done-when asks that every recorded intent has a valid quote or came from the person; the default reads no words, and a choice is a label, not a reading."
+    },
+    {
+      "decision": "Samples keyed by their draft (subject = draft id), labels only on the draft's own reading.",
+      "why": "A shared key let a person's choice on one draft label another draft's reading."
+    },
+    {
+      "decision": "The intent question does not count toward Home's four ML questions.",
+      "why": "The prediction path must behave exactly as before, including how many questions it may ask."
+    },
+    {
+      "decision": "Other tracks get one honest line: what DCLab can do for them now, and that the rest is not built yet.",
+      "why": "H3 to H9 build those tracks; until then Home must never promise a feature that does not exist."
+    },
+    {
+      "decision": "The New-project wizard creates its drafts as predictions, and choosing a pack means choosing a prediction.",
+      "why": "The wizard is the ML flow; a request that reads as analysis there would lose its workflow with no Change control in sight."
+    }
+  ],
+  "change": "dclab_rnd/draft/intent.py (TRACKS, LABELS, SIGNALS, LEADS, ASK_PAIRS, NEXT, rules, read, from_answer, chosen); prompts/home_intent.md; draft/chat.py (track with an undecided state, set_intent, open_track, open_prediction, choose_intent, move_to, the intent question, gating of data_ready, replan, next_turn, next_question, summarize, refresh_workflow and the script, the set_intent tool, guard refusals of ML moves off prediction); prompts/home_agent.md track-neutral; draft/work.py (the home_intent client); models/settings.py (purpose home_intent: the request and replies only, no data, no column names); draft/api.py (POST /api/drafts/{id}/intent, intent on create, a pack moves to prediction, 409 for build and solution routes off prediction); agentic/api_models.py; decisions (point request.intent, extract.from_intent, record_intent, label_intent); web: Home's intent strip with a Change select, the wizard's intent, features.js; tests/test_home_intent.py (31 tests), the data-limit test for home_intent, test_agents_runtime and test_home_eval updated; AEV-022; HOME-002_dev.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "A tie was asked as a question, then the answer counted toward the four ML questions.",
+      "scenario": "A request read as prediction or report asked which; after 'A prediction' Home had one ML question fewer than before H2.",
+      "cause": "ask() counted every question that was not superseded.",
+      "fix": "The intent question is not counted (ask and questions_left).",
+      "test": "test_the_intent_question_does_not_take_an_ml_question"
+    },
+    {
+      "id": "F2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The delivery-time request of test_core_understand read as an analysis.",
+      "scenario": "'Estimate how many minutes a food delivery will take' matched 'how many' and no prediction signal, so Home lost its brief and plan.",
+      "cause": "No prediction signal for estimate or for a future amount.",
+      "fix": "Signals estimate, future_amount, next_period, will_happen, a_model, classify.",
+      "test": "test_core_understand (unchanged) and test_prediction_requests_that_count_or_join_stay_predictions"
+    },
+    {
+      "id": "F3",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "'How many rows do I need to train a churn model?' read as a prediction once a_model existed.",
+      "scenario": "An advice question about data size would have started an ML workflow.",
+      "cause": "a_model and how_much_data had the same weight and prediction comes first in PRIORITY.",
+      "fix": "how_much_data weighs 4.",
+      "test": "dev d-v4 in HOME-002"
+    },
+    {
+      "id": "F4",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "'Build a model of last month's sales by region' read as a prediction.",
+      "scenario": "The H1 trap report_not_model: the person says model but wants last month's numbers.",
+      "cause": "a_model matched any 'build a ... model'.",
+      "fix": "a_model does not match 'model of last/past/previous'.",
+      "test": "dev d-b4 trap passes in HOME-002"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The suite was red: test_home_eval asserted the H1 baseline.",
+      "scenario": "make check-all failed on d-a1 now read right.",
+      "cause": "The test pinned today's behaviour; the baseline lives in HOME-001.",
+      "fix": "The test asserts H2's reading.",
+      "test": "test_home_eval"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "An intent label could attach to another draft's reading.",
+      "scenario": "Draft A read as business; draft B created with a pack and then changed to analysis: after the join A carried the label analysis, chosen by the person.",
+      "cause": "Samples and labels used the key request.intent:-, shared by every draft, and a label was written even when the draft had no sample.",
+      "fix": "Samples keyed by draft id; label_intent writes nothing without the draft's own reading and judges approval against its rule_answer.",
+      "test": "test_a_label_never_lands_on_another_drafts_reading"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Ordinary prediction requests were routed off prediction.",
+      "scenario": "'Predict how many units we sell per store per week', 'How many bikes will be rented tomorrow?', 'Detect fraudulent transactions and merge the card and merchant tables' lost their pack, workflow and questions.",
+      "cause": "Analysis and preparation signals outweighed prediction signals, and a prediction/analysis tie was asked.",
+      "fix": "LEADS: a prediction score of 2 or more leads analysis and preparation; new prediction signals; only prediction/report ties are asked.",
+      "test": "test_prediction_requests_that_count_or_join_stay_predictions"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The New-project wizard lost its workflow.",
+      "scenario": "A wizard draft read as analysis had no pack and no workflow; choosing a pack did not bring it back and the wizard has no Change control.",
+      "cause": "The wizard creates drafts without a pack, and a chosen pack did not move the draft to prediction.",
+      "fix": "The wizard creates drafts with intent prediction; choosing a pack on another track calls choose_intent(prediction).",
+      "test": "test_the_wizard_asks_for_a_prediction, test_ml_routes_refuse_another_track_and_a_pack_means_a_prediction"
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "'Something else' became the person's confirmed choice and an approval label.",
+      "scenario": "On a tie, replying 'Something else' stored prediction, source user, labelled the rule's choice, approved; the model could no longer correct it.",
+      "cause": "from_answer fell back to the reading's track and the answer was always stored as a choice.",
+      "fix": "from_answer returns None for an answer naming no track; Home keeps the reading as inferred, writes no label, and says the card can change it.",
+      "test": "test_something_else_is_not_a_choice"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "An undecided draft ran the prediction path.",
+      "scenario": "While the type of help was being asked, data arriving drew the ML workflow and wrote contract samples; answering reporting left the workflow on the draft.",
+      "cause": "track() returned the leading track even while asked, and the answer skipped move_to.",
+      "fix": "track() is undecided while asked; the answer goes through move_to.",
+      "test": "test_while_undecided_data_draws_no_workflow_and_the_answer_settles_it"
+    },
+    {
+      "id": "F11",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Editing the problem did not re-read the intent.",
+      "scenario": "An analysis draft edited to 'Predict which customers cancel next month' stayed analysis, yet got plan entries and contract samples.",
+      "cause": "replan only re-read the prediction fields.",
+      "fix": "replan re-reads a reading (never the person's choice) and runs read_problem only on prediction.",
+      "test": "test_editing_the_problem_rereads_a_reading_but_keeps_a_choice"
+    },
+    {
+      "id": "F12",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The API could build an ML project from a draft that is not a prediction.",
+      "scenario": "POST /build on an analysis draft made a project; only the page hid the button.",
+      "cause": "No track check on build and the solution routes.",
+      "fix": "409 off the prediction track (prediction_only).",
+      "test": "test_ml_routes_refuse_another_track_and_a_pack_means_a_prediction"
+    },
+    {
+      "id": "F13",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "start() overwrote a type of help chosen before it ran.",
+      "scenario": "An API client chose prediction before the background start took the turn; start read the sentence as business.",
+      "cause": "start never looked for an existing choice.",
+      "fix": "start keeps an intent whose source is the person.",
+      "test": "test_the_persons_earlier_choice_survives_start"
+    },
+    {
+      "id": "F14",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Samples were misattributed and repeated.",
+      "scenario": "A model reading was recorded with actor rule; repeated set_intent calls to the same track wrote a sample each; default readings without a quote were recorded.",
+      "cause": "record_intent never passed the actor and recorded every set.",
+      "fix": "Actor model for the model's readings; the tool to the same track changes nothing; only rules and model readings with a quote are samples.",
+      "test": "test_a_model_set_intent_to_the_same_track_writes_nothing, test_the_sample_holds_counts_and_names_never_the_words"
+    },
+    {
+      "id": "F15",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Small gaps off the prediction track.",
+      "scenario": "The model could ask a pack question on an analysis draft; the script said 'I added it to the solution notes' with no solution shown; questions_left counted the intent question; a rules quote such as 'Predict' failed the quote rule.",
+      "cause": "These paths predated tracks.",
+      "fix": "ask with an ML field refused off prediction; the message says 'Noted.'; questions_left excludes the intent question; a rules reading whose quote fails plans.quoted is dropped.",
+      "test": "test_a_request_too_short_to_quote_is_not_a_rules_reading, test_each_track_is_read_from_ordinary_requests"
+    },
+    {
+      "id": "F16",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Problem descriptions of predictions left the prediction track.",
+      "scenario": "Five of the problem analyst's twelve dev briefs lost their pack and workflow: 'average precision' read as analysis, 'Report macro F1' as reporting, 'decide on' as business, and two were asked.",
+      "cause": "Any single match was a stated reading, even a weak one with no prediction signal, so the model never saw it; weak signals could also make Home ask.",
+      "fix": "STRONG: leaving the prediction path takes a phrase of weight 3 or more, and only two strong readings can make Home ask; specific phrases (keep only, a new column, make a report, a model of last month, what was our, clean up) weigh 3.",
+      "test": "test_problem_descriptions_of_predictions_stay_predictions"
+    },
+    {
+      "id": "F17",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A pack chosen while start was still reading could be lost.",
+      "scenario": "With a slow intent model, the person chose a pack during the read; the pack was kept but the reading said analysis, so the draft had a pack, an ML workflow drawn, and a 409 on build.",
+      "cause": "The /pack route checked the track outside the turn, before start had stored its reading.",
+      "fix": "pack_chosen takes the turn, so it runs after start's reading and moves the draft to prediction.",
+      "test": "test_a_pack_chosen_while_start_reads_still_makes_a_prediction"
+    },
+    {
+      "id": "F18",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Editing the problem could send a model request.",
+      "scenario": "An analysis draft edited into a prediction opened the prediction path with the client still on, one home_agent request.",
+      "cause": "replan switched the client off only after the track change.",
+      "fix": "The client is off for the whole reread, and a newly opened prediction is not read twice.",
+      "test": "test_editing_the_problem_never_calls_a_model"
+    },
+    {
+      "id": "F19",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A prediction delivered as a regular report read as a report.",
+      "scenario": "'Build a churn model and send me a weekly report of its scores' scored reporting 8 against prediction 3 and lost its pack and workflow.",
+      "cause": "One phrase matched three reporting signals whose weights add up.",
+      "fix": "When a report leads and the request also has a prediction signal, Home asks; a few unambiguous phrases (rename the columns, list the customers who, sold the most, is it worth, explain) weigh 3 so the rules alone catch more of the other tracks.",
+      "test": "test_a_report_riding_on_a_prediction_is_asked_not_taken"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Home on the H1 dev requests, rules alone, after H2 (HOME-002)",
+      "gate": "home_gate_v1: track accuracy with the model at least 0.85 and with the rules alone at least 0.70; no new wrong field, bad quote, uncited number, identifier shown or unconfirmed row drop; median questions at most 3; every trap passes",
+      "fixed_before_run": true,
+      "result": "Track accuracy 0.778 (28/36) against 0.194 for HOME-001: English 1.0, mixed 0.75, Persian 0.125 (H3's work). The six dev prediction cases keep exactly their fields and question counts, and the problem analyst's twelve dev briefs (all predictions, several sentences each) stay predictions with no question. Traps 3/6 with the rules: real_prediction, report_not_model and rows_request pass; missing_column and silent_drop need the analysis and preparation tracks (H5, H6), persian_no_model needs H3. Quotes, uncited numbers and rows shown 0. Two fields still lost to 'I'm not sure' (H4).",
+      "limits": [
+        "Dev only; English is 1.0 because the signals were written from the dev requests and ordinary English by the same author who wrote the sealed set, so the sealed set is not blind to them; the model arms were not run."
+      ],
+      "verdict": "not scored",
+      "against_gate": "rules_track_accuracy 0.778 against at least 0.70: met; quote_invalid 0, uncited 0, rows_exposed 0 against 0: met; median questions 0 against at most 3: met; traps 3 of 6 against all: not met (the gate is read with the model, which has not run)."
+    }
+  ],
+  "outcome": "Home now says which kind of help it read, from the person's words, before anything else; a prediction runs exactly as before; the other tracks get an honest line and no ML machinery; the person can change the kind of help on the card, and each reading with the person's answer is a labelled decision sample.",
+  "lessons": [
+    "Gating a long-lived path on a new state touches every entry point: the start, the answers, data arriving, an edited sentence, a chosen pack, the wizard and the API routes. The review found what the tests of the new module missed because each was an older door into the same draft. A second review on the fixed diff found that the rules had been checked only on one-sentence requests; a real problem description says 'report the F1' or 'decide on' in passing, so a weak match must never take a request off its default."
+  ],
+  "risks": [
+    "The rules are written by one person from dev; the model reading on home_intent is checked only for its quote, so with a model configured a request with no rule signal can be moved off prediction by a valid but misleading quote (to be measured by the H1 model arm). Without a model, a request of another track with no strong phrase starts as a prediction (the card says so and offers Change); the second review counted 34 of 49 such sentences of its own."
+  ],
+  "commits": []
+}

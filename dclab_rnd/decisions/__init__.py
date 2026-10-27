@@ -29,7 +29,7 @@ from .schema import POINTS, SAMPLE_FIELDS, LABEL_FIELDS
 from .store import FileSamples, PgSamples, SampleStore, for_store, open_samples
 
 __all__ = ["POINTS", "SAMPLE_FIELDS", "LABEL_FIELDS", "FileSamples", "PgSamples", "SampleStore", "for_store", "open_samples", "export",
-           "join", "split_of", "record_stage", "record_core", "record_brief", "label_stage", "label_solution", "label_gate", "forget", "stats"]
+           "join", "split_of", "record_stage", "record_core", "record_brief", "record_intent", "label_intent", "label_stage", "label_solution", "label_gate", "forget", "stats"]
 
 
 def _target(project_store: Any) -> SampleStore | None:
@@ -78,6 +78,39 @@ def record_brief(any_store: Any, brief: Any, *, project_id: str | None = None, d
         print(f"decisions: could not read the brief: {type(exc).__name__}", file=sys.stderr, flush=True)
         return 0
     return store.record(_target(any_store), rows)
+
+
+def record_intent(any_store: Any, reading: dict[str, Any], *, draft_id: str, has_data: bool = False, words: int = 0,
+                  actor: str = "rule") -> int:
+    """Home's reading of a request's kind of help (H2): one sample, keyed to the draft (actor "model" for the model's)."""
+    try:
+        rows = extract.from_intent(reading, draft_id=draft_id, has_data=has_data, words=words, actor=actor)
+    except Exception as exc:  # noqa: BLE001
+        import sys
+
+        print(f"decisions: could not read the intent: {type(exc).__name__}", file=sys.stderr, flush=True)
+        return 0
+    return store.record(_target(any_store), rows)
+
+
+def label_intent(any_store: Any, draft_id: str, track: str, *, user_id: str | None = None) -> int:
+    """The person's track, as a label on this draft's latest intent reading: approved when it is the reading's own answer,
+    chosen otherwise. A draft with no reading (a pack chosen at the start, the default, a draft from before H2) gets none:
+    a label never lands on another draft's sample."""
+    target = _target(any_store)
+    if target is None:
+        return 0
+    try:
+        rows = [r for r in target.samples(point="request.intent", draft_id=draft_id) if r.get("draft_id") == draft_id]
+    except Exception:  # noqa: BLE001
+        rows = []
+    if not rows:
+        return 0
+    latest = sorted(rows, key=lambda r: str(r.get("at") or ""))[-1]
+    approved = latest.get("rule_answer") == track
+    row = schema.label(latest, latest.get("key") or schema.key_of("request.intent", draft_id), None, track, "human_exposed", "human",
+                       user_id=user_id, reason="the rule's choice, approved" if approved else "chosen by the person", move="set_intent")
+    return store.label(target, [row])
 
 
 def label_stage(project_store: Any, project: dict[str, Any], stage: str, record: dict[str, Any] | None, choice: str | None,

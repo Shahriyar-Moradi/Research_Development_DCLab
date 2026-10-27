@@ -199,6 +199,11 @@
 
     <div class="panel" id="home-chat" hidden data-f="home.chat">
       <div class="panel-head"><div class="panel-title"><h2>Conversation</h2><span class="sub" id="home-chat-sub">A few questions to understand the problem, and the data as it gets ready.</span></div><span class="pill outline" id="home-chat-mode" hidden></span></div>
+      <div class="panel-foot bar" id="home-intent" hidden data-f="home.intent">
+        <span class="small"><span class="muted">Type of help:</span> <b id="home-intent-label"></b> <span class="muted" id="home-intent-why"></span></span>
+        <label class="sr-only" for="home-intent-change">Change the type of help</label>
+        <select id="home-intent-change" class="sm"><option value="">Change…</option></select>
+      </div>
       <div class="panel-body"><div class="thread" id="home-thread" aria-live="polite"></div></div>
       <div class="panel-foot">
         <div class="composer">

@@ -49,6 +49,8 @@ PARTITIONS = ("metadata", "train")
 # Every decision point a sample may carry: its subject and the answers a label may take (None: an open answer, such
 # as a family name or a metric, checked against the sample's own alternatives when it has any).
 POINTS: dict[str, dict[str, Any]] = {
+    # Home's reading of what kind of help a request needs (H2): the rules' track, labelled by the person's confirm or change
+    "request.intent": {"subject": "problem", "answers": ("prediction", "analysis", "preparation", "reporting", "business", "advice")},
     # the problem brief (WF-01): one sample per contract field, the rule's status and value
     "contract.task": {"subject": "problem", "answers": ("binary", "multiclass", "regression", "unknown")},
     "contract.target_column": {"subject": "problem", "answers": None},

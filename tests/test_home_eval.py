@@ -139,17 +139,17 @@ class RunTests(unittest.TestCase):
         rows = {r["case"]: r for r in result["rows"]}
         self.assertEqual(set(rows["d-p1"]["scores"]), {"rules"})
         self.assertEqual(rows["d-p1"]["scores"]["rules"]["track"], "right")
-        self.assertEqual(rows["d-a1"]["scores"]["rules"]["track"], "wrong")  # today: every request is a prediction
-        self.assertEqual(rows["d-v1"]["scores"]["rules"]["exit"], "wrong")
+        self.assertEqual(rows["d-a1"]["scores"]["rules"]["track"], "right")  # H2: Home reads the kind of help (HOME-001 kept the baseline)
+        self.assertEqual(rows["d-v1"]["scores"]["rules"]["track"], "right")
         # today Home understands the outcome of d-p1, then an "I'm not sure" to the column question replaces it
         self.assertEqual(rows["d-p1"]["observed"]["rules"]["lost"], ["target"])
         self.assertEqual(result["requests"], 0)
         s = result["summary"]["rules"]
         self.assertEqual(s["cases"], 3)
-        self.assertAlmostEqual(s["track_accuracy"], 1 / 3, places=3)
+        self.assertAlmostEqual(s["track_accuracy"], 1.0, places=3)
         verdict = home.verdict(result, "dev")
         self.assertTrue(verdict["status"].startswith("not scored"))
-        self.assertFalse(verdict["checks"]["rules_track_accuracy"])
+        self.assertTrue(verdict["checks"]["rules_track_accuracy"])
 
     def test_a_run_touches_neither_the_workspace_files_nor_the_roles(self):
         import os

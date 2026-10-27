@@ -103,6 +103,19 @@ class DataLimitTests(unittest.TestCase):
         HomeAgent(store, gw.client("home_agent", draft_id=d["id"])).reply(d["id"], "Customers who churn within 30 days")
         self.assertEqual(self.assertWithinLimit("home_agent"), set())
 
+    def test_home_intent_sees_the_request_never_values(self):
+        from dclab_rnd.draft import analyze
+        from dclab_rnd.draft.chat import HomeAgent
+        from dclab_rnd.draft.store import DraftStore
+        store = DraftStore(Path(tempfile.mkdtemp()))
+        d = store.create("Help with my customers")  # the rules find no kind of help, so the model reads it
+        report = analyze.analyze(marked_table())
+        store.update(d["id"], lambda x: x.update(analysis=report, assets=[{"id": "a1", "status": "ready"}], active_asset="a1"))
+        gw = gateway({"home_intent": [{"content": '{"tracks": ["analysis"], "quote": "my customers", "confidence": 0.6}', "tool_calls": [], "usage": {}}]})
+        HomeAgent(store, None, intent_client=gw.client("home_intent", draft_id=d["id"])).start(d["id"])
+        self.assertEqual(self.assertWithinLimit("home_intent"), set())
+        self.assertNotIn("segment", Capture.prompts["home_intent"][0])  # no column names either
+
     def test_parse_pattern_sees_at_most_twenty_lines(self):
         from dclab_rnd.draft import structure
         path = Path(tempfile.mkdtemp()) / "odd.log"
@@ -323,7 +336,7 @@ class DataLimitTests(unittest.TestCase):
         self.assertIn('\\"train_rows\\": 240', Capture.prompts["twin_designer"][1])  # the aggregates still arrive
 
     def test_every_purpose_has_a_limit_and_a_test(self):
-        tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
+        tested = {"home_agent", "home_intent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter", "twin_designer"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")

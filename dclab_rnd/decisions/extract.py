@@ -79,6 +79,18 @@ def from_brief(brief: Any, *, project_id: str | None = None, draft_id: str | Non
     return rows
 
 
+def from_intent(reading: dict[str, Any], *, draft_id: str | None = None, has_data: bool = False, words: int = 0,
+                actor: str = "rule") -> list[dict[str, Any]]:
+    """Home's reading of the kind of help a request needs: each track's score, the ids of the signals that matched, how
+    it was read (rules, model, default; stated, inferred, asked), whether data came with it and how long the request is;
+    never the person's words."""
+    features = {"scores": dict(reading.get("scores") or {}), "signals": list(reading.get("signals") or [])[:32],
+                "source": reading.get("source"), "status": reading.get("status"), "tracks": list(reading.get("tracks") or [])[:6],
+                "has_data": bool(has_data), "words": int(words)}
+    return [sample("request.intent", draft_id, features, reading.get("track"), str(reading.get("rules_version") or "intent_rules_v1"),
+                   draft_id=draft_id, partition="metadata", actor=actor, alternatives=list(reading.get("alternatives") or []))]
+
+
 # ------------------------------------------------------------------------------------------------ findings and plan
 
 def _findings_by_column(findings: list[dict[str, Any]]) -> dict[str, dict[str, list[dict[str, Any]]]]:

@@ -152,6 +152,7 @@ class InternMessage(Doc):
 class DraftCreate(Doc):
     problem: Any = ""
     pack: Any = None
+    intent: Any = None  # a track of draft/intent.py TRACKS, when the person chose it before Home reads the sentence
 
 
 class AnyObject(Doc):

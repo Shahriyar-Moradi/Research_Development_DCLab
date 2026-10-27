@@ -110,8 +110,35 @@ DC.view('home', {
       if (S.close) S.close();
       S.close = stream(DC.client.path.events(draft.id), onEvent);
       drawPacks();
+      drawIntent(draft.intent);
       updateDataPill();
     }
+    /* The kind of help Home read (package H2): its label, the person's words behind it, and a Change control. Only a
+       prediction shows the solution workflow and the build button. Labels mirror dclab_rnd/draft/intent.py LABELS. */
+    const INTENTS = { prediction: 'A prediction (a model)', analysis: 'Numbers from my data', preparation: 'Cleaning or combining data',
+      reporting: 'A report or dashboard', business: 'A business question', advice: 'Advice or an explanation' };
+    function drawIntent(intent) {
+      const box = $('#home-intent', el), sel = $('#home-intent-change', el);
+      if (!intent) { box.hidden = true; $('#home-solution', el).hidden = !S.draft; $('#home-build', el).hidden = false; return; }
+      if (S.draft) S.draft.intent = intent;
+      const asked = intent.status === 'asked';
+      $('#home-intent-label', el).textContent = asked ? 'not decided yet' : INTENTS[intent.track] || intent.track;
+      $('#home-intent-why', el).textContent = asked ? '— answer below, or choose' : intent.source === 'user' ? '(you chose)'
+        : intent.quote ? `— from “${intent.quote}”` : intent.source === 'default' ? '(the usual start; change it if not)' : '';
+      sel.innerHTML = '<option value="">Change…</option>' + Object.entries(INTENTS).filter(([k]) => asked || k !== intent.track)
+        .map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
+      box.hidden = false;
+      const prediction = !asked && intent.track === 'prediction';
+      $('#home-solution', el).hidden = !prediction;
+      $('#home-build', el).hidden = !prediction;
+    }
+    $('#home-intent-change', el).addEventListener('change', async e => {
+      const track = e.target.value; if (!track || !S.draft) return;
+      e.target.disabled = true;
+      try { S.draft = await DC.client.chooseIntent(S.draft.id, { body: { track } }); drawIntent(S.draft.intent); }
+      catch (err) { toast(err.message, { ok: false }); }
+      finally { e.target.disabled = false; e.target.value = ''; }
+    });
     async function resume(id) {
       try { const d = await DC.client.readDraft(id, { quiet: true }); if (d.status === 'open') { openDraft(d); return true; } } catch (e) { /* gone */ }
       remember(null); return false;
@@ -140,6 +167,7 @@ DC.view('home', {
     }
     function onStatus(d) {
       if (d.pack) { if (S.draft) S.draft.pack = d.pack; drawPacks(); $('#home-sol-pack', el).textContent = (S.packs.find(p => p.key === d.pack.key) || {}).name || d.pack.key; }
+      if (d.intent) drawIntent(d.intent);
       if ('thinking' in d) setThinking(d.thinking);
       if (d.note) addSystem(d.note);
       if (d.built) { S.draft.status = 'built'; }
