@@ -1,0 +1,164 @@
+{
+ "package": "dclab-code-v1.54",
+ "title": "Commit only when asked, and the sealed guard's second review",
+ "date": "2026-10-28",
+ "request": "Stop hook: every R&D agent behind the chat and the parity plan's open items; owner: do not wait for me.",
+ "spec": "dclab-code docs/PARITY_PLAN.md (open from the live tests), server/prompts/system_append.md, server/guards.js, server/config.js",
+ "plan": [
+  "check the parity table against R&D's AGENTS list (18 of 18 reached, sync-check)",
+  "close the open items: the commit rule, Edit/Write live, a second review of the sealed guard",
+  "fix the review's findings, review the fixes, fix again"
+ ],
+ "decisions": [
+  {
+   "decision": "git is asked which files a git command prints (names only) instead of refusing every git show and diff",
+   "why": "git show and git diff are routine; refusing them would be a false ask on most turns, while names-only is exact"
+  },
+  {
+   "decision": "names-only commands (find without -exec, du, ls, wc, tree) no longer ask",
+   "why": "they print names and sizes, never a row; repo-wide exploration asked on nearly every find in R&D"
+  },
+  {
+   "decision": "base64 and other deliberate obfuscation stay out of scope",
+   "why": "string matching cannot stop them; R&D's read-once records are the backstop"
+  }
+ ],
+ "change": "dclab-code 4a54413 (commit rule, parity plan), 671fe84 (second review fixes), 7b433e5 (fixes of the fix review).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "the system prompt never said to leave commits to the person",
+   "scenario": "Opus committed unasked in a live test",
+   "cause": "no rule in system_append.md",
+   "fix": "commit, push or open a pull request only when the person asks",
+   "test": "live: Sonnet 5.5 fixed calc.py with Edit, ran the test, committed nothing ($0.12)",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "git show of a commit that adds a sealed set printed it unasked",
+   "scenario": "git show 3ac1f31d (adds requests_sealed.json)",
+   "cause": "a revision never names 'sealed'; show/log/diff were not checked",
+   "fix": "run git with --name-only on the same command and ask on a sealed name; a blob by id and cat-file -p ask",
+   "test": "units: git show/log -p/format-patch/cat-file of the sealed commit ask; git show HEAD of code passes",
+   "severity": "leakage"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "inline code listing a sealed folder passed",
+   "scenario": "python3 -c with os.listdir('dclab_rnd/agent_eval/journeys')",
+   "cause": "no glob or recursive flag; scripts were read only when run from a file",
+   "fix": "inlineReason checks folders named in -c/-e code, here-docs and $(...), and a cd into a sealed folder",
+   "test": "units",
+   "severity": "leakage"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "R&D's sealed runs called directly or quoted passed",
+   "scenario": "python -m dclab_rnd.agent_eval.benchmark --split test; make benchmark SPLIT='test'",
+   "cause": "plain substring match on the raw command",
+   "fix": "match on shell words with spaces collapsed; module forms added",
+   "test": "units",
+   "severity": "leakage"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "Grep's exclude missed capitalised names",
+   "scenario": "Holdout.csv in a searched folder",
+   "cause": "ripgrep globs are case-sensitive",
+   "fix": "each letter written as a class",
+   "test": "units",
+   "severity": "leakage"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "the fix ran a program inside the guard",
+   "scenario": "git -c core.fsmonitor='touch x' diff HEAD~1 created x before any ask",
+   "cause": "the person's -c options were passed to the guard's own git run",
+   "fix": "ask for any git command with its own settings; run git with hooks, fsmonitor and external diff off",
+   "test": "units: the mark file is never made",
+   "severity": "privacy"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "defect": "the fix's false-ask cuts opened bypasses",
+   "scenario": "git show ':/msg', git commit -F sealed, grep -e. sealed, find \"-exec\" cat, git add -p, cat-file --batch=FMT, git archive",
+   "cause": "':' read as rev:path, -F skipped as a message, attached flag values, raw-string regex",
+   "fix": "each closed and tested",
+   "test": "units",
+   "severity": "leakage"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "defect": "unbounded synchronous git runs",
+   "scenario": "git show with 200 revisions held the server 3.7 s",
+   "cause": "one git run per revision",
+   "fix": "at most 6 git runs within 6 s a step, then ask",
+   "test": "units: 200 revisions ask in under 1.5 s",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F9",
+   "source": "test",
+   "defect": "git ignored the guard's flags after --",
+   "scenario": "git log -p -- dir passed",
+   "cause": "flags appended after the person's args; after -- every word is a path",
+   "fix": "the guard's flags go first",
+   "test": "units",
+   "severity": "leakage"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "tests",
+   "gate": "every test passes",
+   "fixed_before_run": true,
+   "result": "dclab-code 150 of 150 (units 53, page 31 on rerun after one load timeout)",
+   "verdict": "pass"
+  },
+  {
+   "name": "review inputs",
+   "gate": "every bypass the reviews named asks",
+   "fixed_before_run": true,
+   "result": "all ask but deliberate obfuscation (base64, a script written then run without a sealed name in it) and ':/msg' resolving to a commit without sealed files (correct)",
+   "verdict": "pass"
+  },
+  {
+   "name": "false asks",
+   "gate": "routine exploration does not ask",
+   "fixed_before_run": false,
+   "result": "find | wc, du -sh *, ls globs, wc -l, commit messages, git add, grep words, pytest -k sealed, checksums now pass; reading docs or notebooks named holdout still asks",
+   "verdict": "pass"
+  },
+  {
+   "name": "live",
+   "gate": "Edit/Write used, no commit unasked",
+   "fixed_before_run": true,
+   "result": "Read, Read, Edit, Bash test; no git commit; $0.125",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "The parity table covers all 18 R&D agents; the guard closes the git-history and inline-code holes and asks less on harmless exploration.",
+ "lessons": [
+  "Ask the tool that owns the data (git) what a command would print, rather than guessing from its words.",
+  "Every false-ask cut is a new bypass until reviewed: review the fix, not only the bug.",
+  "A guard must never run anything the guarded command configures."
+ ],
+ "risks": [
+  "Deliberate obfuscation still passes; the guard is a seatbelt, not a sandbox.",
+  "The owner has not yet confirmed the app in their own window."
+ ],
+ "commits": [
+  "dclab-code 4a54413",
+  "dclab-code 671fe84",
+  "dclab-code 7b433e5"
+ ]
+}
