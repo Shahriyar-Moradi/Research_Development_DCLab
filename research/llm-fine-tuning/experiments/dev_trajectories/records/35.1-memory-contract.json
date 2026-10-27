@@ -1,0 +1,149 @@
+{
+ "package": "35.1",
+ "title": "The memory contract: one item, the order a reader sees, the brief under a budget",
+ "date": "2026-10-28",
+ "request": "The owner: continue the memory plan non-stop after 35.0 (the embedding test waits for the models to be pulled); 35.1 is the contract every agent's memory shares.",
+ "spec": "MEMORY_PLAN.md 35.1: dclab_core/memory.py with MemoryItem v1 and Brief v1; check (one line, length, a source, no protected name); resolve (scope order, corrections first); select (the brief under a token budget, deterministic). Done when an item without a source, with two lines or naming a protected column is refused, a correction beats what it corrects, a narrower scope beats a wider one, the same items give the same brief, and the wheel check passes.",
+ "plan": [
+  "Read the core's contract conventions and the existing playbook and screen (Phase 9's H2), to reuse rather than duplicate.",
+  "Write the tests first: the item's rules, the reader's order, the brief, counters, the host's row.",
+  "Write dclab_core/memory.py, register it, generate the schemas, add the host row adapter and the integration section.",
+  "Review adversarially, fix every finding with a test, then the version bump, the wheel check, the record and the commit."
+ ],
+ "decisions": [
+  {
+   "decision": "memory.named is a general copy of the challenge packs' matching, with a test that the two agree",
+   "why": "the plan said 35.1 builds the name filter once for H2, but H2's screen already existed on challenge_pack.names_in, a module the open edition leaves out; memory must stand in the open edition"
+  },
+  {
+   "decision": "An item's id is the hash of its kind, scope and normalised words in any script, with the signs that change a meaning kept",
+   "why": "the same words in the same scope are one item and a forged id is refused; Latin-only words would give every Persian item one id, and dropping signs merged 'tenure < 6' with 'tenure > 6'"
+  },
+  {
+   "decision": "The main product's entry is 'library output' with the reason, and the row it would add lives in adapters/main_product_memory.py",
+   "why": "the main product has no memory table at the commit its fields were read from; the registry accepts module:function only for rows that exist there"
+  },
+  {
+   "decision": "A correction is a person's only; an agent's item may never hide a person's correction",
+   "why": "the plan's rule that a person's correction wins at any scope; an agent's change of mind is a new item"
+  },
+  {
+   "decision": "A retired item that was replaced (retired_by set) still hides what it corrected; one withdrawn (no retired_by) does not",
+   "why": "a chain of corrections must keep the first wrong fact hidden, and withdrawing a correction must bring back what it replaced"
+  },
+  {
+   "decision": "The version bump to 0.124.0 came after the H2 session committed 0.123.0",
+   "why": "that session holds the core's version files uncommitted in the same folder; bumping first would be undone by its commit"
+  }
+ ],
+ "change": "dclab_core/memory.py (MemoryItem v1, Brief v1, item_id, named, check, resolve, select, cited, counted, retire), registered in contracts.py; adapters/main_product_memory.py (as_row, from_row); two entries in adapters/conformance.py; schemas and baselines; tests/test_core_memory.py (open edition) and tests/test_core_memory_host.py; a CORE_INTEGRATION.md section; the plan corrected where it said H2 was only planned.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "defect": "The adapter registry had no entry for the two new contracts",
+   "scenario": "conformance.problems() listed memory_item and memory_brief as having no adapter and no reason, so test_conformance and make core-wheel-check failed",
+   "cause": "every contract needs an adapter or a reason, and the new ones had neither",
+   "fix": "both entries added as library output with the reason (no memory table in the main product; the row it would add named)",
+   "test": "tests/test_conformance.py",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "defect": "A one-line item could hold a second line or an invisible mark",
+   "scenario": "a text with a Unicode line separator passed; the brief's text then split into two lines, the second a bare instruction; bidi overrides and a text of one zero-width space passed too",
+   "cause": "the check refused control characters only, not line or paragraph separators or format marks",
+   "fix": "refuse control, line and paragraph separators and format marks except the two joiners Persian needs; require at least one word",
+   "test": "test_no_hidden_second_line_or_invisible_mark",
+   "severity": "privacy",
+   "impact": "a person's or a page's text could be stored as a line that reads as an instruction inside an agent's first message"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "defect": "Texts with opposite meanings got the same id",
+   "scenario": "'tenure < 6 months is high risk' and 'tenure > 6 months is high risk' hashed alike, so the correction of a sign was refused as an item correcting itself",
+   "cause": "normalisation kept only word characters",
+   "fix": "NFKC first, and the signs that change a meaning (comparison, equality, negation, percent, a minus before a number) kept as words",
+   "test": "test_signs_that_change_a_meaning_make_two_items",
+   "severity": "behaviour",
+   "impact": "a person could not correct a wrong sign, and a store removing duplicates would merge contradicting facts"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "defect": "A retired copy of an item did not hide its active copy, and the input order chose between copies",
+   "scenario": "resolve([item, retire(item)]) still showed the item; two copies with different counters and the same time gave different results in the two input orders",
+   "cause": "the status was filtered before copies were merged, and copies were compared by time only",
+   "fix": "retired is final for its id; copies are ordered by time, counters and text, so the order never decides",
+   "test": "test_a_retired_copy_wins_over_an_active_copy_and_input_order_never_decides",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "defect": "An agent could hide a person's correction, an agent could mark its item a correction, and a cycle hid both items",
+   "scenario": "base, then the person's correction, then an agent's item superseding the correction: the reader saw only the agent's number; two items superseding each other both vanished",
+   "cause": "any active item's supersedes hid its target",
+   "fix": "a correction requires a person as its author; an item hides a correction only when it is one; edges forming a cycle hide nothing",
+   "test": "test_an_agent_never_overrides_a_persons_correction, test_a_cycle_of_corrections_hides_neither",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "defect": "The protected-name screen missed plurals, full-width letters and names in other scripts",
+   "scenario": "'Group by order_ids.' and 'Group by OrderIDs.' passed the screen for order_id, the plan's own example of a leak in its plural",
+   "cause": "the matching was the challenge packs' one, which has the same gap, on ASCII words only",
+   "fix": "NFKC first, a plural of the last part and of capitals caught, letters of any script kept",
+   "test": "test_plural_full_width_and_any_script_names_are_caught",
+   "severity": "leakage",
+   "impact": "a lesson carrying an evaluation's answer would have entered memory",
+   "open": "look-alike letters of another script are not caught; the challenge packs' own names_in still misses plurals (Phase 9's screen, not changed here)"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "defect": "Times were any string and sorted as text",
+   "scenario": "'not a date' was accepted; 12:00+03:30 (08:30 UTC) sorted above 10:00 UTC",
+   "cause": "the field was a string of a length",
+   "fix": "an ISO time with its zone, stored as UTC",
+   "test": "test_times_are_iso_with_a_zone_and_sort_as_times",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "defect": "The brief could pass its budget by its line breaks",
+   "scenario": "ten short items under a budget of sixty gave a text one token over",
+   "cause": "each line was counted alone",
+   "fix": "the joined text is measured before a line is added",
+   "test": "test_the_brief_counts_its_line_breaks",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "defect": "Retirement rules were loose, the host row refused a real timestamp, and the test file would not ship with the open edition",
+   "scenario": "an item retired by itself, a second retirement erasing the first's name, an active item with retired_by; a host's datetime column refused; the test file named a private dataset and imported closed modules",
+   "cause": "no validator for retired_by; from_row passed the column as it came; one test file held open and closed tests",
+   "fix": "retired_by only on a retired item and never itself; a second retirement keeps the name; from_row reads a datetime as ISO; the tests split into an open file and a host file, the private name replaced",
+   "test": "test_retirement_rules, HostRowTest.test_a_timestamp_column_and_a_broken_row",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The memory contract is built and reviewed: one item's rules, the reader's order with corrections that only a person makes, the brief under a budget counted on its whole text, and the host's row. Nine review findings fixed with tests, the two blocking ones being the missing registry entries and a hidden second line. Released as dclab-core 0.124.0, on top of the H2 session's 0.123.0.",
+ "lessons": [
+  "A one-line rule must refuse every way Unicode ends a line or hides a mark, not only control characters; keep the joiners a script needs.",
+  "A normalisation for identity must keep what changes the meaning: signs and negation, not only words.",
+  "When corrections can chain, decide what a replaced correction and a withdrawn one each do, and test both.",
+  "Check what already exists before planning to build it: the plan said the name screen was to be built, and it was already there."
+ ],
+ "risks": [
+  "Another session holds the core's version files uncommitted in the same folder.",
+  "A general name matcher can drift from the challenge packs' one; the agreement test only covers shared cases."
+ ],
+ "commits": []
+}

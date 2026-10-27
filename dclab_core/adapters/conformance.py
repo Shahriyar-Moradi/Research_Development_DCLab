@@ -82,6 +82,9 @@ CONTRACT_ADAPTERS: dict[str, str] = {
                          "promotes its challenger only on promoted=true and keeps every record, CORE_INTEGRATION.md 'Retrain and champion/challenger')",
     "collect_advice": LIBRARY + " (what to collect next: the groups that carry the score on the training folds, the domain's usual kinds "
                       "missing, where labels help, 34.14; the main product shows it beside its data requests)",
+    "memory_item": LIBRARY + " (one remembered line, 35.1: the main product has no memory table at the pinned commit; "
+                   "adapters/main_product_memory.py is the row it would add, as_row and from_row)",
+    "memory_brief": LIBRARY + " (35.1: what an agent reads at a session's start, built by memory.select; never stored as a row)",
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
     "portfolio": LIBRARY + " (the projects chosen of the requested and what they reuse, 30.24)",

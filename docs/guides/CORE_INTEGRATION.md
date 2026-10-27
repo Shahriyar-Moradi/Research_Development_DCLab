@@ -1160,3 +1160,24 @@ matches by whole word parts (prior knowledge from `collect.SIGNALS`, never measu
 the columns each kind took so a person can correct them), and where more rows still helped with the open data questions. The main product shows it beside its data requests;
 active learning stays an option there too, never the default. DCLab's studio is the reference: `POST
 /api/projects/{id}/collect-next` (a job).
+
+## One memory for the agents (35.1, dclab-core 0.124.0)
+
+The library's: `dclab_core.memory`, the contract every agent's memory shares. A `MemoryItem` v1 is one line (at most
+300 characters, no control character) with its kind (`fact`, `episode`, `know_how`, `knowledge`; a conversation's working
+memory is never stored), its scope (`global`, `workspace`, `person`, `project`, `session`) and the scope's id, a
+required source, who wrote it, a status (`draft`, `active`, `retired`), the item it corrects and optional counters and
+vector. Its id is the hash of its kind, scope and normalised words (any script), so the same words in the same scope are
+one item, and a forged id is refused on read. `memory.check(item, protected)` refuses an item naming a protected column
+(a benchmark's, a challenge's, a sealed set's) however it is written; `memory.resolve(items, chain)` gives a reader the
+active items of its own (scope, id) pairs, a correction replacing what it corrects, corrections first, then the narrower
+scope, then the newest; `memory.select(items, budget)` makes the `Brief` v1 an agent reads at a session's start, under a
+token budget, naming how many items it left out; `memory.counted` and `memory.retire` are the only ways counters and
+statuses move.
+
+Where it goes in the main product: it has no memory table at the commit its fields were read from. The row it would add
+is `dclab_core.adapters.main_product_memory` (`COLUMNS`, `as_row`, `from_row`): counters as one JSON column, the vector
+kept in the host's own index (pgvector or a file) and named by `vector_model`, never in the row; `from_row` reads through
+`MemoryItem.read`, so a row breaking a rule is refused. The brief belongs in the first user message of an agent's
+session, never its system prompt (a host's prompt hashes stay meaningful). DCLab's studio is the reference from 35.2 on;
+whether vectors are used at all is decided by the measurement 35.0 (`memory_retrieval_v1`).

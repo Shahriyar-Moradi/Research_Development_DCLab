@@ -41,7 +41,7 @@ index on a memory item, never the memory itself.
 | `working` | the conversation under way | the Telco chat right now | the agent's own messages; never stored as memory |
 | `fact` | what is true about a person, workspace or project | "churn means cancelled within 30 days"; "the owner wants simple answers" | project notes only |
 | `episode` | what happened | "run 12 failed at the clean stage" | experience log and ledger (read through, never copied) |
-| `know_how` | how to work | "on HyperAck, `final_customer_fare` is known only after the trip" | lessons; the playbook and skills of Phase 9 (H2, H4) |
+| `know_how` | how to work | "on HyperAck, `final_customer_fare` is known only after the trip" | lessons; the playbook of Phase 9 (H2, built); skills (H4) planned |
 | `knowledge` | rules and evidence for everyone | pitfalls, leakage precedents, experiments | the evidence index (read through, never copied) |
 
 ### Five scopes
@@ -153,6 +153,15 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
   lives here once; Phase 9's H2 reflector reuses it instead of writing its own.
 - **Done when:** an item without a source, with two lines, or naming a protected column is refused; a correction beats
   the item it corrects; a narrower scope beats a wider one; the same items give the same brief; the wheel check passes.
+- **Correction (2026-10-28):** this plan was wrong that H2 was only planned: the playbook (`dclab_core/playbook.py`) and
+  its screen (`dclab_rnd/learning/filter.py` on `challenge_pack.names_in`) were already built. `challenge_pack` is a
+  full-edition module, so `memory.named` is a general copy of the same matching, and a test keeps the two in agreement.
+  Playbook bullets stay where they are; 35.2 reads accepted bullets as `know_how` items, as it reads lessons.
+- **Status (2026-10-28): built and reviewed** (`dclab_core/memory.py`, dclab-core 0.124.0; `adapters/main_product_memory.py`;
+  tests in `test_core_memory.py`, open edition, and `test_core_memory_host.py`). The review's nine findings are fixed,
+  among them: a second line hidden with a Unicode separator; ids that merged "< 6" with "> 6"; an agent hiding a person's
+  correction; plural column names passing the screen. Open: look-alike letters of another script are not caught, and
+  the challenge packs' own `names_in` still misses plurals.
 
 ### 35.2 The store
 

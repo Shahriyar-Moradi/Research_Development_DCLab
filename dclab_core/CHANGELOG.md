@@ -4,6 +4,19 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.124.0 (2026-10-28)
+
+- `memory` (35.1): one memory for the agents. `MemoryItem` v1, one visible line (no control character, line or
+  paragraph separator or invisible mark but Persian's joiners) with its kind (`fact`, `episode`, `know_how`,
+  `knowledge`), scope (`global` to `session`) and scope id, a required source, its author, status, the item it corrects
+  (a correction is a person's only) and counters; its id is the hash of its kind, scope and normalised words in any
+  script, with the signs that change a meaning kept. `Brief` v1, what an agent reads at a session's start.
+  `named`/`check` refuse a protected column's name however written (plurals and full-width letters too); `resolve` gives
+  a reader its scopes' active items, a correction replacing what it corrects (an agent never hides a person's
+  correction; a cycle hides nothing; retired is final), corrections first, then the narrower scope, then the newest;
+  `select` builds the brief under a token budget counted on its whole text. `adapters/main_product_memory.py`: the row
+  the main product would add (no memory table there yet).
+
 ## 0.123.0 (2026-10-28)
 
 - `ledger`: the decision point `request.intent` (H2): the kind of help a request needs on Home (prediction, analysis,

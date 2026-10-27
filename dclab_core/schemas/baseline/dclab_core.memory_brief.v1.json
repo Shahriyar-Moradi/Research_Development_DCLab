@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "budget": {
+      "default": 800,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "items": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "left_out": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.memory_brief.v1",
+      "default": "dclab_core.memory_brief.v1",
+      "type": "string"
+    },
+    "text": {
+      "default": "",
+      "type": "string"
+    },
+    "tokens": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "type": "object"
+}

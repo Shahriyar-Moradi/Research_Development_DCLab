@@ -1,0 +1,172 @@
+{
+  "$defs": {
+    "Counters": {
+      "additionalProperties": false,
+      "properties": {
+        "cited": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "harmful": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "shown": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "correction": {
+      "default": false,
+      "type": "boolean"
+    },
+    "counters": {
+      "$ref": "#/$defs/Counters"
+    },
+    "created_at": {
+      "maxLength": 40,
+      "minLength": 10,
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^M-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "fact",
+        "episode",
+        "know_how",
+        "knowledge"
+      ],
+      "type": "string"
+    },
+    "last_used_at": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "retired_by": {
+      "anyOf": [
+        {
+          "pattern": "^M-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.memory_item.v1",
+      "default": "dclab_core.memory_item.v1",
+      "type": "string"
+    },
+    "scope": {
+      "enum": [
+        "global",
+        "workspace",
+        "person",
+        "project",
+        "session"
+      ],
+      "type": "string"
+    },
+    "scope_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    },
+    "source": {
+      "maxLength": 200,
+      "minLength": 1,
+      "type": "string"
+    },
+    "status": {
+      "default": "active",
+      "enum": [
+        "draft",
+        "active",
+        "retired"
+      ],
+      "type": "string"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "pattern": "^M-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "text": {
+      "maxLength": 300,
+      "minLength": 1,
+      "type": "string"
+    },
+    "vector": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 8192,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "vector_model": {
+      "anyOf": [
+        {
+          "maxLength": 160,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "who": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "kind",
+    "scope",
+    "scope_id",
+    "text",
+    "source",
+    "who",
+    "created_at"
+  ],
+  "type": "object"
+}

@@ -1,0 +1,195 @@
+{
+  "$defs": {
+    "Counters": {
+      "additionalProperties": false,
+      "properties": {
+        "cited": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Cited",
+          "type": "integer"
+        },
+        "harmful": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Harmful",
+          "type": "integer"
+        },
+        "shown": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Shown",
+          "type": "integer"
+        }
+      },
+      "title": "Counters",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.memory_item.v1.json",
+  "additionalProperties": false,
+  "description": "One remembered line (v1).",
+  "properties": {
+    "correction": {
+      "default": false,
+      "title": "Correction",
+      "type": "boolean"
+    },
+    "counters": {
+      "$ref": "#/$defs/Counters"
+    },
+    "created_at": {
+      "maxLength": 40,
+      "minLength": 10,
+      "title": "Created At",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^M-[0-9a-f]{12}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "fact",
+        "episode",
+        "know_how",
+        "knowledge"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "last_used_at": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Used At"
+    },
+    "retired_by": {
+      "anyOf": [
+        {
+          "pattern": "^M-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retired By"
+    },
+    "schema_version": {
+      "const": "dclab_core.memory_item.v1",
+      "default": "dclab_core.memory_item.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "enum": [
+        "global",
+        "workspace",
+        "person",
+        "project",
+        "session"
+      ],
+      "title": "Scope",
+      "type": "string"
+    },
+    "scope_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "source": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Source",
+      "type": "string"
+    },
+    "status": {
+      "default": "active",
+      "enum": [
+        "draft",
+        "active",
+        "retired"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "pattern": "^M-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes"
+    },
+    "text": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Text",
+      "type": "string"
+    },
+    "vector": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 8192,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Vector"
+    },
+    "vector_model": {
+      "anyOf": [
+        {
+          "maxLength": 160,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Vector Model"
+    },
+    "who": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Who",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "kind",
+    "scope",
+    "scope_id",
+    "text",
+    "source",
+    "who",
+    "created_at"
+  ],
+  "title": "MemoryItem",
+  "type": "object"
+}
