@@ -37,6 +37,18 @@ Read the playbook's "Shared preamble" first and paste it before any prompt below
 | A6.5 | Done | `dclab_rnd/decisions`: every typed decision the studio makes is written as a sample (the decision point, the column or table it is about, the evidence the rule saw as aggregates and names, the rule's answer and version, and the same evidence as one line of text a model reads) where it is computed: the solution proposal (dclab_core's findings and plan: forbidden, identifier and missing-value judgment per column; split, families, cleaning, metric and the other plan decisions), the problem brief (the contract fields), and each engine stage (column roles and risks, the leakage judgment per column, the recipe, the family, the optimization, each with the options the rule ranked). What a person does is written as a label against the latest sample with the same key: a stage approved (the rule's choice stands) or overridden, a solution saved (every column judgment it states on the first save, only what changed afterwards), a gate approved. Files `decision_samples.jsonl` and `decision_labels.jsonl` in the workspace, or the `decision_sample` and `decision_label` tables (migration 0015; `storage migrate` moves the files). `python -m dclab_rnd.decisions export` joins them into the training-lake sample record (`samples.jsonl` + `manifest.json`), split by dataset digest (20% sealed, 20% val, 60% train), project ids masked, user ids dropped; `stats` counts per point. Never a cell value or a holdout number (tested on the churn table); a write that fails is reported and the decision stands; a deleted project takes its rows with it. Every label today is `human_exposed` (the person saw the rule's answer): it trains and monitors a decision model, never promotes one; blind labels, the builders for public and replica datasets, and the model itself are the next packages (`claude/DCLab_Decision_Model_Plan.md` in the project). |
 | A6.6 | Done | `dclab_rnd/twin` (R&D only): one problem, two lanes at the same time in two threads, each a complete workspace folder under `<workspace>/twin/<run_id>/`: `workflow` (the current system: the intern's standard plan, every move through the validator, no model by default or the configured one) and `ai_first` (Claude as the agent with the same tools, task and validator; Claude also serves the stage notes, the leakage reviewer and dclab_core's roles). Claude is reached through Anthropic's OpenAI-compatible endpoint with the studio's own client (`ANTHROPIC_API_KEY`, `DCLAB_TWIN_MODEL`). Seeds: a studied sample (`--blind` strips the known solution), a project (table and solution copied, stages left behind), a draft (the person's turns replayed). Each lane keeps its project, stages, moves, audit, tool steps, decision samples and labels (an agent's approvals as source `agent`), the intern's whole conversation, and every model request and answer verbatim (`transcripts/model_calls.jsonl`). `compare.json` / `COMPARE.md` set the lanes side by side (solution fields, stage choices, holdout, moves, tool calls, usage, time); `python -m dclab_rnd.twin run|list|compare|samples`; nothing is sent without `--yes`, a request cap always, a euro cap when priced. Tested with a scripted Claude that drives the real tools and overrides a stage: the difference shows in the comparison; the main workspace is never written. Guide `docs/guides/TWIN_RUNS.md`. |
 | A6.7 | Done | `dclab_rnd/twin/design.py` (R&D only): how Claude designs the solution and its workflow, watched. Before the AI-first lane starts, Claude writes a solution design (purpose `twin_designer`, prompt `twin_design`): understanding, data plan, leakage hypotheses, identifiers, split, features, families, evaluation, and the workflow as steps on WF-01…WF-10 (tool, stage, why, evidence, decision rule, dependencies) with routes back; the design goes with the task (`twin_follow_design`) and the agent names the design step before each call. A monitor on the agent's client writes `design/timeline.jsonl` (one row per call: what the agent said, the step it named, the design step it matches, in order / out of order / not planned), asks for a revision after each checkpoint stage (data, leakage, models by default) with every change and the number behind it, hands it to the agent (`--no-steer` to only watch), and at the end a final revision with a retrospective. `design/` keeps every version (`design_vNN.json|md`, the raw answers), `adherence.json` (plan against act), `intents.jsonl` (the design on the A6.5 decision points), `sft_candidates.jsonl` (unverified) and `DESIGN.md`; `COMPARE.md` sets Claude's design beside the rule's answers and what each lane did. The designer never sees a cell value, a value of the target or, before the end, a holdout score. Tested with a scripted Claude that designs, revises and skips one planned step, and with a malformed design that leaves the run untouched. Guide `docs/guides/TWIN_RUNS.md`. |
+| H1 | Done | `dclab_rnd/agent_eval/home`, `make home-eval`: 72 written requests (36 dev, 36 sealed; fingerprint committed, sealed run once) across six tracks (prediction, analysis, preparation, reporting, business, advice), 8 Persian and 4 mixed per split, 5 needing two tracks and a few accepting either of two, six planted traps, on seeded invented tables (`tables.py`: sales, customers, bookings). The runner drives the real Home agent and draft pipeline in a throwaway store (no file record, no roles: nothing written outside it), answers every question "I'm not sure", and reads the draft: track (`intent`; none = today's Home, every request a prediction), fields (`understanding`, `track_brief`; defaults not counted), exit, suggested route (`route_suggestion`), and checks for bad quotes, uncited numbers (`cited.numbers`, question text included), identifiers shown, phantom columns, unconfirmed row drops (automatic cleaning included) and fields lost to "I'm not sure". Arms: rules, the configured model (`home_agent`), a plain prompted model (`prompts/home_eval_plain.md`); gate `home_gate_v1` written before any model run; one euro cap over every client; an arm that cannot run makes the run unscored. Baseline HOME-001 (dev, rules alone): only prediction requests get their track, most stated fields are missed (Persian entirely), most traps fail, no bad quote, uncited number or identifier; it also found that an "I'm not sure" to the column question erases an outcome Home had understood (fixed in H4). Open: the model and plain arms have not run (they need the owner's yes and a cap); the gate's numbers are the proposed ones until the owner fixes them. |
+| H2 | Planned | Phase H (Home as a front door). |
+| H3 | Planned | Phase H (Home as a front door). |
+| H4 | Planned | Phase H (Home as a front door). |
+| H5 | Planned | Phase H (Home as a front door). |
+| H6 | Planned | Phase H (Home as a front door). |
+| H7 | Planned | Phase H (Home as a front door). |
+| H8 | Planned | Phase H (Home as a front door). |
+| H9 | Planned | Phase H (Home as a front door). |
+| H10 | Planned | Phase H (Home as a front door). |
+| H11 | Planned | Phase H (Home as a front door). |
+| H12 | Planned | Phase H (Home as a front door). |
 
 ## 1. What exists today
 
@@ -99,8 +111,9 @@ Three agents, built separately, plus the tools they share.
 | A4 | Prove it: evaluation | A4.1 to A4.3 | A2 |
 | A5 | Retrieval and memory | A5.1 to A5.3 | A2 |
 | A6 | Learn from runs: the policy model | A6.1 to A6.7 | A3, A4 |
+| H | Home as a front door: intent, briefs, answers, preparation, reports | H1 to H12 | A2, A3.1, A4, A6.5 |
 
-Order: A1, A2, then A3 and A4 together (every A3 change must pass A4), then A5, then A6.
+Order: A1, A2, then A3 and A4 together (every A3 change must pass A4), then A5, then A6. Phase H after A6.5 (its intent samples use A6.5's store).
 
 ---
 
@@ -446,6 +459,170 @@ Package A6.7. Add dclab_rnd/twin/design.py: parse and check a design, its intent
 a Designer (initial, revise, files under ai_first/design/) on a new purpose twin_designer (no cell values), the
 prompts twin_design and twin_follow_design, a Monitor on ClaudeClient.observer (timeline, checkpoints, steer,
 finish with a retrospective, SFT candidates, DESIGN.md); the lane and the run wire it in; COMPARE.md gets the design.
+```
+
+---
+
+## Phase H: Home as a front door
+
+Today's Home agent is an intake for machine-learning problems: it reads every request as a prediction. Phase H makes it
+understand what kind of help a person needs (a prediction, an analysis, data preparation, a report, a business question,
+advice), ask only the questions that change the route, answer from the data with numbers code computed, and end each
+conversation in the right place. The review and the full design are in the project (`claude/DCLab_Home_Agent_Router_Plan.md`,
+`claude/DCLab_Home_Agent_Implementation_Plan.md`).
+
+**One principle changes, openly.** To answer "sales by region" a model sees region names, which are cell values. A row
+floor hides groups under `DCLAB_ROW_FLOOR` rows (default 5), free-text columns are never grouped, `DCLAB_MODEL_READS_AGGREGATES`
+turns it off (the answer is then written by a code template), every new purpose has its data-limit test, and the Admin page
+says it, in the package that introduces it (H6).
+
+Order: H1, H2, then H3 and H4 together, H5, H6, H7, H8, then H9 beside H7–H8, H10, H11, H12.
+
+### H1 The Home evaluation suite
+
+- **Delivers:** 72 written requests (36 dev, 36 sealed; the sealed fingerprint committed, the sealed set run once) across six
+  tracks (8 Persian and 4 mixed per split; 5 need two tracks, a few accept either of two), with the brief fields a careful reader would take, the expected exit and six planted traps; three arms (rules,
+  rules with the configured model, a plain prompted model); a gate fixed before any run; today's Home scored on dev as the baseline.
+- **Done when:** the runner scores today's Home on dev (it fails the gate: that is the baseline), the sealed file's fingerprint is
+  checked, and no test sends a live request.
+
+```text
+Package H1. Add dclab_rnd/agent_eval/home: 72 written requests (36 dev, 36 sealed, fingerprint committed, sealed run
+once) across six tracks (prediction, analysis, preparation, reporting, business, advice), 8 Persian and 4 mixed per
+split, 5 needing two tracks and a few accepting either of two, and the six planted traps. Each request lists the expected tracks, brief fields and the exit.
+A runner with three arms (rules, rules + checked model, plain model) scores track, fields, questions, exit, quote
+validity, uncited numbers, rows exposed and unconfirmed destructive steps. The gate is written in GATE before any run.
+Run it on today's Home as the baseline and store the result.
+```
+
+### H2 Intent and the confirm card
+
+- **Delivers:** Home decides the kind of help first (rules, then a quote-checked model reading on `home_intent`), says it back in
+  one line with a Change control (the person's choice wins), picks an ML pack only on the prediction track, and records each
+  reading as the decision point `request.intent`.
+- **Done when:** on H1 dev the track accuracy rises above the baseline with rules only, prediction requests behave exactly as
+  before, and every recorded intent has a valid quote or came from the person.
+
+```text
+Package H2. Add dclab_rnd/draft/intent.py: TRACKS, rules per track, a quote-checked model reading on a new purpose
+home_intent (prompt home_intent.md, messages only, no data), and the ask-when-unsure rule. Store the intent on the draft;
+show a confirm card on Home with a Change control (POST /api/drafts/{id}/intent; the person's choice wins). start() reads the
+intent first; only the prediction track picks a pack and draws WF-01…WF-10. Record request.intent, labelled by the confirm or
+change. Rewrite home_agent.md as a track-neutral policy; run make agent-eval. Today's prediction behaviour must not change.
+```
+
+### H3 Persian and English without a model
+
+- **Delivers:** `draft/lang.py`: normalisation (Arabic yeh and kaf, digits for matching only, ZWNJ, diacritics) and pattern tables
+  for intent, outcome windows, moments, and build and simulate words; quotes keep the person's own text.
+- **Done when:** on H1 dev with no model, Persian requests route as well as English ones.
+
+```text
+Package H3. Add dclab_rnd/draft/lang.py and make plan.extract, the intent rules and the chat's word checks use it, in English
+and Persian (Arabic later as another table). Persian H1 requests with no model must route as well as English ones.
+```
+
+### H4 A brief per track, and questions that matter
+
+- **Delivers:** `TRACK_FIELDS` with why, default and where the options come from; a field is asked only when it is unknown and its
+  answer changes the route, the tool or the exit; a budget per track; a Not sure button that records the default.
+- **Done when:** on H1 dev the median questions per request is at most 3 and no field is wrong that the rules left unknown.
+
+```text
+Package H4. Give each track its brief in draft/plan.py and ask only route-changing questions, with data-aware options and a
+Not sure default. The prediction track keeps today's fields, order and budget.
+```
+
+### H5 A memory of the whole conversation
+
+- **Delivers:** `draft/memory.py`: a code-built summary (intent, confirmed fields, answers, recipe steps, open questions) and an
+  optional quote-checked model summary of free remarks; the model sees state, summary and the last 8 messages; the summary goes
+  to project memory on exit.
+- **Done when:** a scripted 30-message conversation keeps every confirmed field in the model's state.
+
+```text
+Package H5. Add dclab_rnd/draft/memory.py and give the Home model state + summary + the last 8 messages; hand the summary to
+project memory (A5.2) on exit.
+```
+
+### H6 The query engine and the exposure log
+
+- **Delivers:** `dclab_rnd/analysis/`: a versioned typed query plan, a validator (no row listing ever; no free-text or identifier
+  grouping), a pandas executor on the checked clean table, the row floor, and an exposure log of every relation explored; purpose
+  `home_query` (column summaries only); `DCLAB_MODEL_READS_AGGREGATES` and `DCLAB_ROW_FLOOR` on the Admin page and in `.env.example`.
+- **Done when:** the H1 analysis requests' expected tables are reproduced by plans on the H1 tables, no plan can list rows, and the
+  Admin page states the new limit.
+
+```text
+Package H6. Add dclab_rnd/analysis (plan, validate, execute, floor, exposure) and the home_query purpose with its data-limit
+test; update the Admin page and .env.example in the same commit.
+```
+
+### H7 Answers and charts in the chat
+
+- **Delivers:** tools `query_data`, `make_chart`, `save_answer`; `home_answer` writes 1–3 sentences checked by `cited.py` against
+  the result, a code template otherwise; edit controls change the plan without a model; saved answers export as a notebook.
+- **Done when:** on H1 dev every analysis request gets a correct table, no answer has an uncited number, and the notebook
+  reproduces every saved answer.
+
+```text
+Package H7. Let Home answer analysis questions with query_data, make_chart and save_answer, a cited answer or a template, edit
+controls, and a notebook export.
+```
+
+### H8 Exits, cross-route suggestions and safe conversion
+
+- **Delivers:** `draft/exits.py`: one exit per track, three deterministic cross-route suggestions with their reason, and the
+  conversion of an analysis into a prediction project that carries the exposure log, flags features related to the target before
+  the split, and prefers a holdout after the last explored period (or says the holdout rows were seen).
+- **Done when:** on H1 dev the exit is right for every request and traps 1 and 2 get the cross-route suggestion.
+
+```text
+Package H8. Add draft/exits.py, the cross-route suggestions and the safe conversion; record request.exit. A draft with no
+exposure converts as today.
+```
+
+### H9 Data preparation by request
+
+- **Delivers:** `analysis/recipe.py`: typed steps (rename to sort, join, pivot, derive in dclab_core's feature language), each
+  previewed, logged, undoable and applied to a new table; a guard that asks before a step removes over 5% of rows or a join changes
+  the row count; a `prepare` job for large tables; export as CSV, Parquet or Excel.
+- **Done when:** every H1 preparation request produces the expected table, trap 3 is caught, and the original file is untouched.
+
+```text
+Package H9. Add analysis/recipe.py with the tools propose_step, apply_step, undo_step and export_data behind a RecipeGuard.
+```
+
+### H10 KPIs, saved views and dashboards
+
+- **Delivers:** versioned KPIs, tiles and dashboards (migration `0016_dashboards`), a `refresh_dashboard` job, routes and a
+  dashboard view that shows each tile's definition, data version, refresh time and hidden groups.
+- **Done when:** every H1 reporting request produces a dashboard with the expected tiles, and a refresh after a new data version
+  updates every tile and records the run.
+
+```text
+Package H10. Add analysis/kpi.py and dashboard.py, migration 0016_dashboards, the refresh job, routes and the dashboard view.
+```
+
+### H11 Business questions
+
+- **Delivers:** `analysis/change.py` (a change between two periods split into volume, mix and rate per segment, summing to the
+  total) and `analysis/brief.py` (a decision brief written by a template, which a model may reword with every number cited, and
+  which always says the data shows association, not cause).
+- **Done when:** every H1 business request gets the right top contributors and its brief passes the citation check.
+
+```text
+Package H11. Add analysis/change.py and analysis/brief.py, the tools compare_periods and decision_brief, and the home_business
+purpose with its data-limit test.
+```
+
+### H12 The Home layer judged
+
+- **Delivers:** the H1 suite run once on the sealed set with H2–H11 in place, stored as evidence, with a report.
+- **Done when:** the sealed run is stored, whatever it shows; a part that fails the gate stays behind a setting.
+
+```text
+Package H12. Run the H1 suite once on the sealed set, all three arms, against the H1 gate. Never tune anything on it.
 ```
 
 ---

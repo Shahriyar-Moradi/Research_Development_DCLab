@@ -1,0 +1,139 @@
+[
+ {"id": "s-p1", "lang": "en", "data": ["bookings"],
+  "text": "Flag bookings that will be cancelled in the last 7 days before travel, predicted 14 days before the travel date, so the call centre can reconfirm them.",
+  "gold": {"tracks": ["prediction"], "exit": "ml_project", "fields": {
+   "target": {"any": ["cancel"]}, "prediction_moment": {"any": ["14 days before"]}, "action": {"any": ["reconfirm", "call centre"]}}}},
+ {"id": "s-p2", "lang": "en", "data": ["customers"],
+  "text": "Score each customer every Monday for the chance they upgrade to premium within 30 days; sales will email the top 100.",
+  "gold": {"tracks": ["prediction"], "exit": "ml_project", "fields": {
+   "target": {"any": ["upgrade", "premium"]}, "prediction_moment": {"any": ["monday"]}, "action": {"any": ["email"]}}}},
+ {"id": "s-p3", "lang": "fa", "data": ["bookings"],
+  "text": "پیش‌بینی کن کدام رزروها لغو می‌شوند، در لحظهٔ ثبت رزرو، تا برای آن‌ها پیش‌پرداخت بگیریم.",
+  "gold": {"tracks": ["prediction"], "exit": "ml_project", "fields": {
+   "target": {"any": ["لغو"]}, "prediction_moment": {"any": ["ثبت رزرو", "لحظه"]}, "action": {"any": ["پیش‌پرداخت"]}}}},
+ {"id": "s-p4", "lang": "mixed", "data": ["sales"],
+  "text": "می‌خواهم predict کنم کدام customer ها next month دوباره خرید می‌کنند.",
+  "gold": {"tracks": ["prediction"], "exit": "ml_project", "fields": {
+   "target": {"any": ["خرید", "buy", "purchase"]}, "prediction_moment": null, "action": null}}},
+ {"id": "s-p5", "lang": "en", "data": ["sales"], "trap": "real_prediction",
+  "text": "Give me the list of regions whose sales will fall next quarter.",
+  "gold": {"tracks": ["prediction"], "exit": "ml_project", "fields": {"target": {"any": ["sales", "fall"]}}}},
+ {"id": "s-p6", "lang": "en", "data": ["bookings"],
+  "text": "Clean the bookings file (fix the prices, drop the test bookings) and then predict cancellations at booking time.",
+  "gold": {"tracks": ["prediction", "preparation"], "both": true, "exit": "ml_project", "fields": {
+   "rules": {"any": ["price", "test bookings"]}, "target": {"any": ["cancel"]}, "prediction_moment": {"any": ["booking time"]}}}},
+
+ {"id": "s-a1", "lang": "en", "data": ["bookings"],
+  "text": "What is the cancellation rate per destination for bookings made in 2025?",
+  "gold": {"tracks": ["analysis"], "exit": "analysis", "fields": {
+   "measure": {"any": ["cancellation rate", "cancel"]}, "breakdown": {"any": ["destination"]}, "period": {"any": ["2025"]}}}},
+ {"id": "s-a2", "lang": "en", "data": ["sales"],
+  "text": "Show the median order amount by product category for refunded orders.",
+  "gold": {"tracks": ["analysis"], "exit": "analysis", "fields": {
+   "measure": {"any": ["median"]}, "breakdown": {"any": ["category"]}, "filters": {"any": ["refunded"]}}}},
+ {"id": "s-a3", "lang": "fa", "data": ["bookings"],
+  "text": "میانگین فاصلهٔ زمانی بین رزرو و سفر برای هر ملیت چقدر است؟",
+  "gold": {"tracks": ["analysis"], "exit": "analysis", "fields": {
+   "measure": {"any": ["میانگین", "فاصله", "lead_time"]}, "breakdown": {"any": ["ملیت", "nationality"]}}}},
+ {"id": "s-a4", "lang": "mixed", "data": ["customers"],
+  "text": "تعداد customers هر segment را در هر city نشان بده.",
+  "gold": {"tracks": ["analysis"], "exit": "analysis", "fields": {
+   "measure": {"any": ["تعداد", "count"]}, "breakdown": {"any": ["segment", "city"]}}}},
+ {"id": "s-a5", "lang": "en", "data": ["sales"],
+  "text": "How did weekly orders trend in the app channel this year? I'd like to see that every week from now on.",
+  "gold": {"tracks": ["analysis", "reporting"], "both": true, "exit": ["analysis", "dashboard"], "fields": {
+   "measure": {"any": ["orders"]}, "breakdown": {"any": ["week"]}, "filters": {"any": ["app"]}, "refresh": {"any": ["every week", "weekly"]}}}},
+ {"id": "s-a6", "lang": "en", "data": ["bookings"], "trap": "missing_column", "missing_column": "booking_margin",
+  "text": "Break down the average booking_margin by channel.",
+  "gold": {"tracks": ["analysis"], "exit": "analysis", "fields": {"measure": null, "breakdown": {"any": ["channel"]}}}},
+
+ {"id": "s-r1", "lang": "en", "data": ["customers"],
+  "text": "Fill the missing monthly_spend values with the median and export the table as CSV.",
+  "gold": {"tracks": ["preparation"], "exit": "dataset", "fields": {
+   "rules": {"any": ["missing", "median"]}, "destination": {"any": ["csv"]}}}},
+ {"id": "s-r2", "lang": "en", "data": ["sales", "customers"],
+  "text": "Merge the orders with the customers and tell me revenue by plan.",
+  "gold": {"tracks": ["preparation", "analysis"], "both": true, "exit": "analysis", "fields": {
+   "inputs": {"any": ["orders", "customers"]}, "rules": {"any": ["merge"]}, "measure": {"any": ["revenue"]}, "breakdown": {"any": ["plan"]}}}},
+ {"id": "s-r3", "lang": "fa", "data": ["bookings"],
+  "text": "رزروهای آزمایشی را حذف کن و قیمت را به عدد تبدیل کن.",
+  "gold": {"tracks": ["preparation"], "exit": "dataset", "fields": {"rules": {"any": ["آزمایشی", "قیمت", "حذف"]}}}},
+ {"id": "s-r4", "lang": "fa", "data": ["customers"],
+  "text": "یک جدول بساز که برای هر شهر تعداد مشتری و میانگین هزینه را داشته باشد و خروجی اکسل بده.",
+  "gold": {"tracks": ["preparation", "analysis"], "both": false, "exit": ["dataset", "analysis"], "fields": {
+   "output_grain": {"any": ["شهر", "city"]}, "destination": {"any": ["اکسل", "excel"]}, "rules": {"any": ["تعداد", "میانگین"]}}}},
+ {"id": "s-r5", "lang": "en", "data": ["bookings"], "trap": "silent_drop",
+  "text": "Drop every booking that was cancelled and send me the rest.",
+  "gold": {"tracks": ["preparation"], "exit": "dataset", "fields": {"rules": {"any": ["cancel"]}}}},
+ {"id": "s-r6", "lang": "en", "data": ["sales"],
+  "text": "Split the order_date into year, month and weekday columns.",
+  "gold": {"tracks": ["preparation"], "exit": "dataset", "fields": {"rules": {"any": ["order_date", "year", "month", "weekday"]}}}},
+
+ {"id": "s-b1", "lang": "en", "data": ["bookings"],
+  "text": "Set up a daily report of bookings, revenue and cancellations per destination for the operations team.",
+  "gold": {"tracks": ["reporting"], "exit": "dashboard", "fields": {
+   "kpis": {"any": ["bookings", "revenue", "cancel"]}, "audience": {"any": ["operations"]}, "refresh": {"any": ["daily"]}}}},
+ {"id": "s-b2", "lang": "fa", "data": ["customers"],
+  "text": "هر ماه یک گزارش از نرخ ریزش مشتری و تعداد تیکت‌ها برای مدیرعامل لازم دارم.",
+  "gold": {"tracks": ["reporting"], "exit": "dashboard", "fields": {
+   "kpis": {"any": ["ریزش", "تیکت"]}, "audience": {"any": ["مدیرعامل"]}, "refresh": {"any": ["هر ماه", "ماه"]}}}},
+ {"id": "s-b3", "lang": "mixed", "data": ["sales"],
+  "text": "یک weekly KPI report برای refund rate و revenue هر channel بساز.",
+  "gold": {"tracks": ["reporting"], "exit": "dashboard", "fields": {"kpis": {"any": ["refund", "revenue"]}, "refresh": {"any": ["weekly"]}}}},
+ {"id": "s-b4", "lang": "en", "data": ["customers"], "trap": "report_not_model",
+  "text": "Train an AI to tell me how many customers we have in each city.",
+  "gold": {"tracks": ["reporting", "analysis"], "both": false, "exit": ["analysis", "dashboard"], "fields": {
+   "measure": {"any": ["how many", "count"]}, "breakdown": {"any": ["city"]}}}},
+ {"id": "s-b5", "lang": "en", "data": ["bookings"], "trap": "rows_request",
+  "text": "Give me a dashboard table with each cancelled booking's ID and the customer's nationality.",
+  "gold": {"tracks": ["reporting"], "exit": "dashboard", "fields": {"kpis": {"any": ["cancel"]}}}},
+ {"id": "s-b6", "lang": "en", "data": ["sales"],
+  "text": "Track monthly revenue against the same month last year for the finance team.",
+  "gold": {"tracks": ["reporting"], "exit": "dashboard", "fields": {
+   "kpis": {"any": ["revenue"]}, "audience": {"any": ["finance"]}, "refresh": {"any": ["monthly"]}}}},
+
+ {"id": "s-s1", "lang": "en", "data": ["bookings"],
+  "text": "Cancellations jumped in January. What drove it, and what should we do?",
+  "gold": {"tracks": ["business"], "exit": "decision_brief", "fields": {
+   "period_compared": {"any": ["january"]}, "success_measure": {"any": ["cancel"]}, "decision": {"any": ["what should we do"]}}}},
+ {"id": "s-s2", "lang": "en", "data": ["customers"],
+  "text": "Should we raise the price of the premium plan? What could happen to churn?",
+  "gold": {"tracks": ["business"], "exit": "decision_brief", "fields": {
+   "decision": {"any": ["raise the price", "price"]}, "options": {"any": ["raise"]}, "success_measure": {"any": ["churn"]}}}},
+ {"id": "s-s3", "lang": "fa", "data": ["sales"],
+  "text": "آیا باید ارسال رایگان را برای سفارش‌های اپلیکیشن حذف کنیم؟",
+  "gold": {"tracks": ["business"], "exit": "decision_brief", "fields": {
+   "decision": {"any": ["ارسال رایگان", "حذف"]}, "options": {"any": ["حذف"]}}}},
+ {"id": "s-s4", "lang": "fa", "data": ["bookings"], "trap": "persian_no_model",
+  "text": "چرا رزروهای دبی در تابستان کمتر از پارسال بود؟",
+  "gold": {"tracks": ["business"], "exit": "decision_brief", "fields": {
+   "success_measure": {"any": ["رزرو"]}, "period_compared": {"any": ["تابستان", "پارسال"]}}}},
+ {"id": "s-s5", "lang": "en", "data": ["sales"],
+  "text": "Which product category should we discount in Q2 to grow revenue without losing margin?",
+  "gold": {"tracks": ["business"], "exit": "decision_brief", "fields": {
+   "decision": {"any": ["discount"]}, "success_measure": {"any": ["revenue"]}, "constraints": {"any": ["margin"]}}}},
+ {"id": "s-s6", "lang": "en", "data": ["customers"],
+  "text": "We'd like to offer a discount to keep customers. Decide who should get it, and predict who is likely to leave first.",
+  "gold": {"tracks": ["business", "prediction"], "both": true, "exit": ["decision_brief", "ml_project"], "fields": {
+   "decision": {"any": ["discount"]}, "target": {"any": ["leave"]}}}},
+
+ {"id": "s-v1", "lang": "en", "data": [],
+  "text": "Should I use ROC-AUC or PR-AUC when only 2% of cases are fraud?",
+  "gold": {"tracks": ["advice"], "exit": "answer", "fields": {"topic": {"any": ["roc", "pr"]}}}},
+ {"id": "s-v2", "lang": "en", "data": [],
+  "text": "What is data leakage, in simple words?",
+  "gold": {"tracks": ["advice"], "exit": "answer", "fields": {"topic": {"any": ["leakage"]}}}},
+ {"id": "s-v3", "lang": "fa", "data": [],
+  "text": "چرا نباید دادهٔ ارزیابی نهایی را چند بار استفاده کنیم؟",
+  "gold": {"tracks": ["advice"], "exit": "answer", "fields": {"topic": {"any": ["ارزیابی", "holdout"]}}}},
+ {"id": "s-v4", "lang": "mixed", "data": [],
+  "text": "فرق cross-validation با holdout چیست؟",
+  "gold": {"tracks": ["advice"], "exit": "answer", "fields": {"topic": {"any": ["cross", "holdout"]}}}},
+ {"id": "s-v5", "lang": "en", "data": [],
+  "text": "Can I trust a model with 99% accuracy?",
+  "gold": {"tracks": ["advice"], "exit": "answer", "fields": {"topic": {"any": ["accuracy"]}}}},
+ {"id": "s-v6", "lang": "en", "data": ["sales"],
+  "text": "Explain what a good KPI for repeat buyers is, then show it for our data by region.",
+  "gold": {"tracks": ["advice", "analysis"], "both": true, "exit": ["answer", "analysis"], "fields": {
+   "topic": {"any": ["kpi", "repeat"]}, "breakdown": {"any": ["region"]}}}}
+]

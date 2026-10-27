@@ -1,0 +1,6 @@
+{
+  "campaign_id": "home_v1",
+  "objective": "The Home agent (package H1): 72 written requests (a dev set of 36 and a sealed set of 36) across six tracks (prediction, analysis, preparation, reporting, business, advice), eight in Persian and four mixed per split, five needing two tracks, a few accepting either of two, and six planted traps, read by the real Home agent with no model, with the configured model, and by a plain prompted model; the track, the brief fields, the exit, the questions asked, and five checks (quotes, uncited numbers, identifiers shown, phantom columns, unconfirmed data steps) scored. Gate home_gate_v1, written before any run with a model.",
+  "rule": "Scores say how Home handles these requests, not how it handles any other text, and nothing about production readiness.",
+  "command": "python -m dclab_rnd.agent_eval.home --split dev|sealed [--save] [--yes --cap-eur N]"
+}

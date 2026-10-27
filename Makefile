@@ -245,6 +245,9 @@ agent-eval:  ## the scripted judgment suite (A4.1): planted traps, the standard 
 	@n=$$(ls evidence/campaigns/agent_eval_v1/results/AEV-*.json 2>/dev/null | wc -l | tr -d ' '); \
 	$(TEST_TMP) DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval --output evidence/campaigns/agent_eval_v1/results/AEV-$$(printf '%03d' $$((n + 1)))_judgment_v1_scripted.json
 
+home-eval:  ## the Home agent measured (H1): 72 written requests, six tracks, planted traps; the rules alone on SPLIT=dev, ARGS="--save" stores it, ARGS="--yes --cap-eur 2" runs Home with the model
+	$(TEST_TMP) $(PYTHON) -m dclab_rnd.agent_eval.home --split $(or $(SPLIT),dev) $(ARGS)
+
 benchmark-v3:  ## benchmark v3 (15.9): v2 reseeded plus rare-event bases and traps; SPLIT=dev (default) or SPLIT=test (sealed: always recorded as a new BEN3 result)
 	@n=$$(ls evidence/campaigns/benchmark_v3/results/BEN3-*.json 2>/dev/null | wc -l | tr -d ' '); \
 	$(TEST_TMP) DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval.benchmark_v3 --split $(or $(SPLIT),dev) \
