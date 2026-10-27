@@ -61,7 +61,7 @@ METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
 AGENT_WRITES: dict[tuple[str, str], tuple[str, ...]] = {
     ("POST", "/api/connectors/kaggle/search"): (),
     ("POST", "/api/decide"): (),
-    ("POST", "/api/drafts"): (),
+    ("POST", "/api/drafts"): ("intent",),  # H2 (the review): the type of help is the person's choice, never a chat's
     ("POST", "/api/drafts/{draft_id}/data/sample"): (),
     ("POST", "/api/drafts/{draft_id}/data/synthetic/design"): (),
     ("POST", "/api/drafts/{draft_id}/map"): ("redraw",),  # a redraw drops the person's edits and confirmation

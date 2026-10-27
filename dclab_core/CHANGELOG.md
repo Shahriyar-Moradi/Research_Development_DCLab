@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.123.0 (2026-10-28)
+
+- `ledger`: the decision point `request.intent` (H2): the kind of help a request needs on Home (prediction, analysis,
+  preparation, reporting, business or advice), read from the person's words by rules or, where they find no winner, a
+  model; labelled by the person's choice on the card. State fields `has_data`, `words` and `signals` (counts and a flag:
+  never the words). Not mapped to the main product, which has no such front door yet.
+
 ## 0.122.0 (2026-10-27)
 
 - `model_evaluation.review_budgets(evaluation)`: the top 1, 5, 10, 20 and 30 % of the rows by score, each with the rows

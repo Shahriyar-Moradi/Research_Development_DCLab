@@ -71,7 +71,7 @@ DC.view('new', {
       const problem = $('#new-goal', el).value.trim();
       if (problem.length < 8) { toast('Describe the problem in one sentence first.', { ok: false }); return; }
       try {
-        if (!W.draft) { const d = await DC.client.createDraft({ body: { problem } }); await load(d.id); }
+        if (!W.draft) { const d = await DC.client.createDraft({ body: { problem, intent: 'prediction' } }); await load(d.id); }  // H2: the wizard builds predictions
         else if (problem !== W.draft.problem) { W.draft = await DC.client.editDraft(W.draft.id, { body: { problem } }); render(); }
         show(2);
       } catch (e) { toast(e.message, { ok: false }); }

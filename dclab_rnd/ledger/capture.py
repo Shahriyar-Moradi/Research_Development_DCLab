@@ -436,6 +436,34 @@ def pack(draft_id: str, key: str, source: str) -> int:
                          level=2 if by == "model_role" else 0, draft=draft_id, conversation=draft_id)))
 
 
+TRACKS = ("prediction", "analysis", "preparation", "reporting", "business", "advice")  # draft/intent.py (H2)
+
+
+@_quiet
+def intent_read(draft_id: str, value: dict[str, Any], *, has_data: bool, words: int) -> Optional[str]:
+    """H2: the kind of help read from the person's words (the rules, or the model where they found no winner), with the
+    rules' own answer beside it; the record's id, kept on the draft's intent, so the person's choice labels this reading."""
+    track, rule_track = value.get("track"), value.get("rule_track")
+    by = "model_role" if value.get("source") == "model" else "rule"
+    answers = [answer("rule", "rule:intent_rules_v1", rule_track if rule_track in TRACKS else None)]
+    if by == "model_role":
+        answers.append(answer("model_role", "home_intent", track))
+    record = _put("request.intent", ("draft", draft_id), answers, track, by, options=TRACKS, level=2 if by == "model_role" else 0,
+                  state={"has_data": bool(has_data), "words": int(words), "signals": len(value.get("signals") or [])},
+                  draft=draft_id, conversation=draft_id)
+    return getattr(record, "id", None)
+
+
+@_quiet
+def intent_chosen(record_id: Optional[str], track: str) -> int:
+    """H2: the person's choice on the card is the label of this draft's own reading, never of another draft's."""
+    if not record_id or track not in TRACKS:
+        return 0
+    from types import SimpleNamespace
+
+    return int(bool(label(SimpleNamespace(id=record_id, point="request.intent"), track, "user_decision_exposed", "person")))
+
+
 @_quiet
 def map_drawn(draft_id: str, m: Any, rules_size: str, by_model: bool) -> int:
     """The problem map drawn (24.2): one problem or several. The rules' reading is an answer; the decomposer's, when it served, another."""

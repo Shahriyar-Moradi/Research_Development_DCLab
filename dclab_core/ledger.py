@@ -59,6 +59,7 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "target": (NAME, ()), "task": (BAND, TASKS), "family": (BAND, FAMILIES), "labels": (BAND, LABEL_SITUATIONS),
     "rows": (BAND, SIZE_BANDS), "columns": (COUNT, ()), "classes": (COUNT, ()), "positive_rate": (BAND, RATIO_BANDS),
     "has_time": (FLAG, ()), "has_groups": (FLAG, ()), "has_text": (FLAG, ()), "tables": (COUNT, ()),
+    "has_data": (FLAG, ()), "words": (COUNT, ()), "signals": (COUNT, ()),  # H2: a request's kind of help, read from its words
     "moment_known": (FLAG, ()), "outcome_known": (FLAG, ()), "open_questions": (COUNT, ()), "blocking": (COUNT, ()),
     "parts": (COUNT, ()), "parts_before": (COUNT, ()), "parts_after": (COUNT, ()), "template": (CODE, ()), "sub_problem": (CODE, ()),  # 24.2: the problem map's size and the rule that drew it
     "positives": (COUNT, ()), "related_tables": (COUNT, ()),  # 24.7: the confirmed cases a choice was made on; the tables beside the main one (a route changes when one arrives)
@@ -241,6 +242,9 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     # 29.6: the teams of agents (28.x): every step of a walk and every send-back of the critic, recorded where they are made
     _p("team.next_node", W, DP, "value", "Which node does the team's walk take next?"),
     _p("critic.send_back", W, DP, "noul", "Does the understanding critic send this card field back to the person?"),
+    # H2 (2026-10-28): the kind of help a request needs, read before anything else on Home; labelled by the person's choice
+    _p("request.intent", W, "draft", "choice", "Which kind of help does the request need?",
+       choices=("prediction", "analysis", "preparation", "reporting", "business", "advice")),
     _p("command.intent_route", W, "conversation", "value", "Which quick action does the person's message ask for?",
        "command.intent_route", "command.intent_route"),
     # operations, after a model is in use (the main product's governed points; this studio decides none of them yet)

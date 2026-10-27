@@ -35,6 +35,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import statistics
 import tempfile
 import unicodedata
@@ -166,8 +167,9 @@ def read_draft(draft: Mapping[str, Any], columns: set[str], id_values: set[str])
 
     plan = {k: v for k, v in (draft.get("plan") or {}).items() if isinstance(v, Mapping)}
     fields: dict[str, str] = {}
-    for field, value in (draft.get("understanding") or {}).items():
-        if field != "notes" and _usable(value) and (plan.get(field) or {}).get("source") != "default":
+    assumed = ((draft.get("understanding") or {}).get("assumed") or {})  # a default said as an assumption is Home not knowing,
+    for field, value in (draft.get("understanding") or {}).items():          # never a reading (the H2 port: the assumed moment)
+        if field != "notes" and _usable(value) and (plan.get(field) or {}).get("source") != "default" and assumed.get(field) != value:
             fields[field] = str(value).strip()
     for entries in (draft.get("track_brief") or {}).values():
         for field, entry in (entries or {}).items():
@@ -257,11 +259,13 @@ def _isolated():
                 os.environ[key] = value
 
 
-def observe(case: Mapping[str, Any], client_for: Optional[Callable[[str], Any]] = None) -> dict[str, Any]:
+def observe(case: Mapping[str, Any], client_for: Optional[Callable[[str], Any]] = None,
+            keep: Optional[Path] = None) -> dict[str, Any]:
     """Run the real Home agent on one request in a throwaway draft store, answer its questions "I'm not sure", read the
     draft. ``client_for(draft_id)`` gives the model client (None: the rules alone). Nothing is written outside the
     temporary folder: a bare draft store has no audit trail and no decision-sample store, and ``_isolated`` switches off
-    the file record and the roles."""
+    the file record and the roles. ``keep``: a folder the whole draft store is copied into at the end (a live run's
+    conversations are kept whole, for the owner's models; 2026-10-28, two model runs had been thrown away)."""
     from dclab_rnd.draft import pipeline
     from dclab_rnd.draft.chat import HomeAgent
     from dclab_rnd.draft.store import DraftStore
@@ -289,6 +293,8 @@ def observe(case: Mapping[str, Any], client_for: Optional[Callable[[str], Any]] 
         # a field Home understood, then replaced by the "I'm not sure" answer to a question about it: scored as the draft
         # now stands (the person's sheet shows it lost), and listed, because a "not sure" should never erase what was known
         obs["lost"] = sorted(f for f in before if f not in obs["fields"])
+        if keep is not None:
+            shutil.copytree(Path(tmp) / "drafts", keep, dirs_exist_ok=True)
         return obs
 
 
@@ -304,13 +310,18 @@ def _first_json(text: str) -> Optional[dict[str, Any]]:
     return None
 
 
-def read_plain(case: Mapping[str, Any], client: Any) -> dict[str, Any]:
-    """The plain arm: the request and the column names, one request, the answer taken as given (no quote, no check)."""
+def read_plain(case: Mapping[str, Any], client: Any, keep: Optional[Path] = None) -> dict[str, Any]:
+    """The plain arm: the request and the column names, one request, the answer taken as given (no quote, no check).
+    ``keep``: a file the request and the whole reply are written to first."""
     from dclab_rnd import prompts
 
     columns = {name: [str(c) for c in tables.build(name).columns] for name in case.get("data") or []}
     user = json.dumps({"request": case["text"], "tables": columns, "tracks": list(TRACKS), "exits": list(EXITS)}, ensure_ascii=False)
     reply = client.complete([{"role": "system", "content": prompts.text(PLAIN_PROMPT)}, {"role": "user", "content": user}], None)
+    if keep is not None:
+        keep.parent.mkdir(parents=True, exist_ok=True)
+        keep.write_text(json.dumps({"case": case["id"], "prompt": PLAIN_PROMPT, "user": user, "reply": reply}, ensure_ascii=False, default=str),
+                        encoding="utf-8")
     answer = _first_json(reply.get("content") if isinstance(reply, Mapping) else str(reply)) or {}
     obs = empty_observation()
     tracks = [t for t in answer.get("tracks") or [] if t in TRACKS]
@@ -390,9 +401,10 @@ def score_case(case: Mapping[str, Any], obs: Mapping[str, Any]) -> dict[str, Any
 
 
 def measure(cases: list[dict[str, Any]], client_for: Optional[Callable[[str], Any]] = None,
-            plain_for: Optional[Callable[[str], Any]] = None) -> dict[str, Any]:
+            plain_for: Optional[Callable[[str], Any]] = None, keep: Optional[Path] = None) -> dict[str, Any]:
     """Every case read by every arm asked for (the rules alone when no model client is given), scored. A client that is
-    not there when asked for (no model serves the purpose any more, a cap) is a failure: the run is reported, not scored."""
+    not there when asked for (no model serves the purpose any more, a cap) is a failure: the run is reported, not scored.
+    ``keep``: the folder the model arms' drafts and replies are kept whole in (``model/<case>/``, ``plain/<case>.json``)."""
     counter = Counter()
 
     def model_client(draft_id: str) -> Any:
@@ -405,7 +417,7 @@ def measure(cases: list[dict[str, Any]], client_for: Optional[Callable[[str], An
     for case in cases:
         observed = {"rules": observe(case)}
         if client_for is not None:
-            observed["model"] = observe(case, model_client)
+            observed["model"] = observe(case, model_client, keep=keep / "model" / case["id"] if keep else None)
         if plain_for is not None:
             client = plain_for(case["id"])
             if client is None:
@@ -413,7 +425,7 @@ def measure(cases: list[dict[str, Any]], client_for: Optional[Callable[[str], An
                 observed["plain"] = empty_observation()
             else:
                 try:
-                    observed["plain"] = read_plain(case, counter.wrap(client))
+                    observed["plain"] = read_plain(case, counter.wrap(client), keep=keep / "plain" / f"{case['id']}.json" if keep else None)
                 except Exception:  # noqa: BLE001 — already counted as a failure
                     observed["plain"] = empty_observation()
         rows.append({"case": case["id"], "lang": case["lang"], "trap": case.get("trap"), "observed": observed,

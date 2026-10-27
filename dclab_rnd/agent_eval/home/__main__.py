@@ -57,6 +57,9 @@ def _shown(path: Path) -> str:
         return str(path)
 
 
+KEEP_ROOT = Path(__file__).resolve().parents[3] / "agent_runs" / "live_tests"  # the store's "tests" keeper reads it
+
+
 def _print(summary: dict[str, Any]) -> None:
     for arm, s in summary.items():
         print(f"{arm:6s} track {s['track_accuracy']:.3f} ({s['track']['right']}/{s['cases']}) by language {s['track_accuracy_by_lang']}  "
@@ -114,10 +117,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     gateway.shadows = None  # measurement traffic stays out of the shadow log
     budget = Budget(gateway, args.cap_eur)
-    result = measure(cases, budget.client, lambda case_id: budget.client("home-eval-plain"))
+    keep = KEEP_ROOT / f"{datetime.now(timezone.utc):%Y-%m-%d}-home-eval" / f"{args.split}-{datetime.now(timezone.utc):%H%M%S}"
+    result = measure(cases, budget.client, lambda case_id: budget.client("home-eval-plain"), keep=keep)
+    result["kept"] = _shown(keep)  # the run's drafts and replies, whole (agent_runs is the store's, never committed)
     scored = not result["failures"]
     if not scored:  # a failed request: kept as a record of what it cost, without values or scores, and never a sealed run
-        result = {"arms": result["arms"], "requests": result["requests"], "failures": result["failures"], "summary": {}}
+        result = {"arms": result["arms"], "requests": result["requests"], "failures": result["failures"], "summary": {},
+                  "kept": result["kept"]}
     path = _store(_record(result, args.split, the_plan, budget.spent_eur(), scored), args.split, scored)
     if scored:
         _print(result["summary"])

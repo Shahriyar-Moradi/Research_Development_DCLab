@@ -98,6 +98,39 @@ class NotKnownTest(unittest.TestCase):
         self.assertIsNotNone(got)
         self.assertIn("do not ask it again", got["error"])
 
+    def test_im_not_sure_is_not_knowing_and_never_becomes_the_models_answer(self):
+        """HOME-003 (the model run of the Home suite, 2026-10-28): to "I'm not sure", the model recorded the outcome in its own
+        words as the person's answer, its value as the quote; and "I'm not sure" was not read as not knowing at all."""
+        for said in ("I'm not sure", "Im not sure", "I am not sure."):
+            self.assertTrue(chat.not_known(said), said)
+        self.assertFalse(chat.not_known("I'm not sure, maybe the churn column"))  # an answer with something in it is an answer
+
+        from dclab_rnd.draft.chat import Turn, record
+
+        def ask(d):
+            d.setdefault("questions", []).append({"id": "q1", "field": "target", "text": "What should be predicted?"})
+            d["messages"] += [{"id": "a1", "role": "agent", "kind": "question", "text": "What should be predicted?", "question": {"id": "q1"}},
+                              {"id": "u1", "role": "user", "kind": "text", "text": "I'm not sure"}]
+        self.store.update(self.draft["id"], ask)
+        agent = chat.HomeAgent(self.store, None)
+        out = record(Turn(agent, self.draft["id"]), field="target", value="Customers who cancel within 30 days")
+        d = self.store.get(self.draft["id"])
+        self.assertTrue(out.get("not_known"))
+        self.assertNotIn("target", d["understanding"])  # never the model's words as the person's answer
+        self.assertTrue(d["questions"][0]["declined"])
+
+    def test_an_answer_recorded_by_the_model_is_quoted_from_the_persons_reply(self):
+        from dclab_rnd.draft.chat import Turn, record
+
+        def ask(d):
+            d.setdefault("questions", []).append({"id": "q1", "field": "target", "text": "What should be predicted?"})
+            d["messages"] += [{"id": "a1", "role": "agent", "kind": "question", "text": "What should be predicted?", "question": {"id": "q1"}},
+                              {"id": "u1", "role": "user", "kind": "text", "text": "the ones who cancel in the next month"}]
+        self.store.update(self.draft["id"], ask)
+        record(Turn(chat.HomeAgent(self.store, None), self.draft["id"]), field="target", value="Customers who cancel within 30 days")
+        d = self.store.get(self.draft["id"])
+        self.assertEqual(d["plan"]["target"]["quote"], "the ones who cancel in the next month")  # the person's words
+
 
 if __name__ == "__main__":
     unittest.main()

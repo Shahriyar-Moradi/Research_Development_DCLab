@@ -116,6 +116,7 @@ FROM_ROWS = frozenset({"experience_event", "run_record", "decision_record", "dec
 
 _NO_NAME = "the main product has no governed decision point of this name: it is this studio's {what}; its decisions of the kind are project_decision_records of other types, read as decision events"
 POINTS_NOT_MAPPED: dict[str, str] = {
+    "request.intent": "H2: the studio's Home reads the kind of help (prediction, analysis, ...) before anything else; the main product has no such front door yet",
     "department.proposal": "the main product has no department agents yet: its governed point is added with them (30.22)",
     **{p: _NO_NAME.format(what="data preparation step") for p in (
         "column.category_code", "column.time", "column.group", "task.framing", "labels.situation", "labels.join_key", "data.cases_table",

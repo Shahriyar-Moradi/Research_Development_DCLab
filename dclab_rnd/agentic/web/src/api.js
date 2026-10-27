@@ -29,6 +29,7 @@
   /** @typedef {Object} DraftCreate
    *  @property {*=} problem
    *  @property {*=} pack
+   *  @property {*=} intent
    */
   /** @typedef {Object} Fixes
    *  @property {*=} fixes
@@ -255,6 +256,7 @@
     designSynthetic: ["POST", "/drafts/{draft_id}/data/synthetic/design", ["draft_id"], []],
     events: ["GET", "/drafts/{draft_id}/events", ["draft_id"], ["after", "wait"]],
     draftFitAccept: ["POST", "/drafts/{draft_id}/fit/accept", ["draft_id"], []],
+    chooseIntent: ["POST", "/drafts/{draft_id}/intent", ["draft_id"], []],
     draftMap: ["GET", "/drafts/{draft_id}/map", ["draft_id"], []],
     drawMap: ["POST", "/drafts/{draft_id}/map", ["draft_id"], []],
     editMap: ["POST", "/drafts/{draft_id}/map/edit", ["draft_id"], []],
@@ -664,6 +666,12 @@
    *  @returns {Promise<Doc>} */
   client.draftFitAccept = (...args) => call('draftFitAccept', args);
   client.path.draftFitAccept = (...args) => build('draftFitAccept', args).path;
+  /** POST /api/drafts/{draft_id}/intent: Choose Intent
+   *  @param {string} draft_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Draft>} */
+  client.chooseIntent = (...args) => call('chooseIntent', args);
+  client.path.chooseIntent = (...args) => build('chooseIntent', args).path;
   /** GET /api/drafts/{draft_id}/map: Draft Map
    *  @param {string} draft_id
    *  @param {{headers?: Object}} [opts]

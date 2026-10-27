@@ -42,6 +42,8 @@ class Purpose:
 
 
 PURPOSES: dict[str, Purpose] = {
+    "home_intent": Purpose("standard", 60, "H2: the person's request and their replies to Home's questions, to read which kind of help they need; "
+                                           "never data, column names or cell values", cell_values=0),
     "home_agent": Purpose("standard", 90, "the problem sentence, the user's answers, column summaries (name, kind, missing rate, unique count) "
                                           "and descriptive findings; never rows or cell values", stream=True, cell_values=0, keeps_text=True),
     "embedding": Purpose("cheap", 60, "the text of the evidence records (rules, pitfalls, leakage precedents, experiments) and the question typed into the "

@@ -80,9 +80,9 @@ class Coordinator:
     def _open_field(self, draft: dict[str, Any]) -> str | None:
         """The plan's next field never asked, while questions are left (the rules ask every one before a build; a model
         may end its turns without it)."""
-        from .chat import MAX_QUESTIONS
+        from .chat import MAX_QUESTIONS, counted
 
-        if len([q for q in draft.get("questions") or [] if not q.get("superseded")]) >= MAX_QUESTIONS:
+        if len(counted(draft)) >= MAX_QUESTIONS:  # H2 (the review): the kind-of-help question takes no prediction question's place
             return None
         question = self.agent.next_question(draft)
         return question[0] if question else None
@@ -115,6 +115,12 @@ class Coordinator:
 
         steps: list[dict[str, Any]] = []
         project_id = None
+        from .chat import HomeAgent
+
+        track = HomeAgent.track(self.drafts.get(draft_id))
+        if track != "prediction":  # H2 (the review): the walk builds a prediction; another kind of help is not walked
+            return {"state": "problem", "next": "stop", "says": f"This draft is not a prediction ({track}); change the type of help to a "
+                    "prediction first", "blockers": [], "passed": [], "steps": [], "project_id": None}
         with self.drafts.turn(draft_id), experience.bind(conversation=draft_id), harness.session("coordinator") as current:
             last, seen = None, {}
             now = self.where(draft_id)

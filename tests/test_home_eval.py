@@ -122,6 +122,14 @@ class ReaderTests(unittest.TestCase):
         obs["fields"] = {"breakdown": "by segment", "measure": "average spend"}  # a measure where the request supports none
         self.assertFalse(home._trap(case, obs))
 
+    def test_an_assumed_value_is_not_a_reading(self):  # HOME-004: the moment Home assumes on "not sure" scored as wrong
+        draft = self.draft()
+        moment = "At the time each row is recorded (assumed)"
+        draft["understanding"].update(prediction_moment=moment, assumed={"prediction_moment": moment})
+        self.assertNotIn("prediction_moment", home.read_draft(draft, columns=set(), id_values=set())["fields"])
+        draft["understanding"]["prediction_moment"] = "every Monday"  # the person's own answer replaced the assumption
+        self.assertEqual(home.read_draft(draft, columns=set(), id_values=set())["fields"]["prediction_moment"], "every Monday")
+
     def test_todays_home_reads_every_request_as_a_prediction(self):
         draft = self.draft()
         for key in ("intent", "exit", "track_brief"):
@@ -139,17 +147,18 @@ class RunTests(unittest.TestCase):
         rows = {r["case"]: r for r in result["rows"]}
         self.assertEqual(set(rows["d-p1"]["scores"]), {"rules"})
         self.assertEqual(rows["d-p1"]["scores"]["rules"]["track"], "right")
-        self.assertEqual(rows["d-a1"]["scores"]["rules"]["track"], "wrong")  # today: every request is a prediction
-        self.assertEqual(rows["d-v1"]["scores"]["rules"]["exit"], "wrong")
-        # today Home understands the outcome of d-p1, then an "I'm not sure" to the column question replaces it
-        self.assertEqual(rows["d-p1"]["observed"]["rules"]["lost"], ["target"])
+        self.assertEqual(rows["d-a1"]["scores"]["rules"]["track"], "right")  # H2: Home reads the kind of help (HOME-001 kept the baseline)
+        self.assertEqual(rows["d-v1"]["scores"]["rules"]["track"], "right")
+        # H1's F2, fixed with the H2 port (2026-10-28): "I'm not sure" is read as not knowing, so the outcome Home understood
+        # from d-p1's sentence is kept instead of replaced by the reply
+        self.assertEqual(rows["d-p1"]["observed"]["rules"]["lost"], [])
         self.assertEqual(result["requests"], 0)
         s = result["summary"]["rules"]
         self.assertEqual(s["cases"], 3)
-        self.assertAlmostEqual(s["track_accuracy"], 1 / 3, places=3)
+        self.assertAlmostEqual(s["track_accuracy"], 1.0, places=3)
         verdict = home.verdict(result, "dev")
         self.assertTrue(verdict["status"].startswith("not scored"))
-        self.assertFalse(verdict["checks"]["rules_track_accuracy"])
+        self.assertTrue(verdict["checks"]["rules_track_accuracy"])
 
     def test_a_run_touches_neither_the_workspace_files_nor_the_roles(self):
         import os
@@ -210,6 +219,23 @@ class RunTests(unittest.TestCase):
         self.assertNotIn("Dubai", text)  # never a value from the table
         broken = type("Broken", (), {"complete": lambda self, m, t=None, **k: {"content": "no json here"}})()
         self.assertEqual(home.read_plain(case, broken)["track"], None)
+
+    def test_a_live_run_keeps_its_drafts_and_replies_whole(self):
+        # 2026-10-28: two model runs (EUR 1.07) had been scored and their conversations thrown away with the temporary folder
+        import tempfile
+
+        case = next(c for c in home.load("dev") if c["id"] == "d-a1")
+        reply = {"content": json.dumps({"tracks": ["analysis"], "exit": "analysis", "fields": {}})}
+        client = type("Scripted", (), {"complete": lambda self, m, t=None, **k: reply})()
+        keep = Path(tempfile.mkdtemp()) / "run"
+        result = home.measure([case], client_for=lambda draft_id: client, plain_for=lambda case_id: client, keep=keep)
+        self.assertFalse(result["failures"])
+        drafts = list((keep / "model" / "d-a1").rglob("draft.json"))
+        self.assertEqual(len(drafts), 1)
+        self.assertEqual(json.loads(drafts[0].read_text(encoding="utf-8"))["problem"], case["text"])  # the conversation, whole
+        kept = json.loads((keep / "plain" / "d-a1.json").read_text(encoding="utf-8"))
+        self.assertEqual((kept["case"], kept["reply"]), ("d-a1", reply))
+        self.assertFalse((keep / "rules").exists())  # the rules arm costs nothing and reruns the same: not kept
 
     def test_a_live_plan_is_printed_before_anything_is_sent(self):
         gateway = mock.Mock()

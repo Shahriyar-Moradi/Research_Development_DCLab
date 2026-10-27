@@ -74,6 +74,7 @@ CAPTURED = {
     "problem.family": "draft/api.py build: the card's family; draft/chat.py take_second_opinion: the second opinion's verdict and the person's choice (28.6)",
     "problem.ready": "draft/api.py build: whether the card is ready",
     "problem.pack": "draft/chat.py: the pack detected or chosen",
+    "request.intent": "draft/chat.py: the kind of help read from the request (rules, or the model where they find no winner), labelled by the person's choice on the card (H2)",
     "map.size": "draft/map.py draw: the rules' reading of the words and the decomposer's, when it serves",
     "map.edit": "draft/map.py edit: a person's add, remove, merge or confirm of the map",
     "solution.route": "draft/map.py store_routes: the approach the router chose for each sub-problem, the rules' and the advisor's",

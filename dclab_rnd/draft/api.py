@@ -7,6 +7,7 @@
     DELETE /api/drafts/{id}
     POST   /api/drafts/{id}/messages {text}   a user turn
     POST   /api/drafts/{id}/pack {key}        the user picks a pack (wins over detection)
+    POST   /api/drafts/{id}/intent {track}    the user picks the kind of help (prediction, analysis, ...; package H2)
     PUT    /api/drafts/{id}/data?filename=    upload a file (raw body), processed in the background
     POST   /api/drafts/{id}/data/sample {key} a dataset the R&D already studied
     POST   /api/drafts/{id}/data/synthetic {prompt?, rows?, template?}  simulated rows, labelled synthetic
@@ -40,6 +41,7 @@ from fastapi.responses import Response, StreamingResponse
 from ..agentic.api_models import OCTET, AnyObject, Doc, Draft, DraftCreate, Page, Project, Router, download  # module level: annotations resolve here
 
 from .. import connectors
+from . import intent as intents
 from . import pack as packs
 from . import plan as plans
 from . import pipeline
@@ -85,6 +87,12 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             return drafts.get(draft_id)
         except KeyError:
             raise HTTPException(404, "Draft not found") from None
+
+    def prediction_only(draft: dict[str, Any]) -> None:
+        """H2: an ML solution and a project are for predictions; another kind of help is changed first."""
+        track = HomeAgent.track(draft)
+        if track != "prediction":
+            raise HTTPException(409, f"This draft is not a prediction ({track}); change the type of help to a prediction first")
 
     def agent(draft_id: str | None = None) -> HomeAgent:
         return work_now().agent(draft_id)
@@ -168,7 +176,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         if len(problem) < 8:
             raise HTTPException(422, "Describe the problem in one sentence first")
         key = body.get("pack") if body.get("pack") in packs.KEYS else None
+        if body.get("intent") not in (None, "", *intents.TRACKS):
+            raise HTTPException(422, "Unknown type of help: " + ", ".join(intents.TRACKS))
         draft = drafts.create(problem[:2000], key)
+        if body.get("intent"):  # H2: chosen before Home reads the sentence (the New-project wizard asks for a prediction)
+            draft = drafts.update(draft["id"], lambda d: d.update(intent=intents.chosen(body["intent"])))
         from .. import experience  # 19.3: the problem as the person first wrote it
 
         experience.record("draft.created", "person", {"problem": problem[:2000], "pack": key, "surface": experience.chat_surface()},
@@ -250,6 +262,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         from ..studio import solution as studio_solution
 
         draft = get(draft_id)
+        prediction_only(draft)
         body = dump(payload)
         frame, asset = clean_frame(draft)
         profile = (draft.get("analysis") or {}).get("profile") or studio_data.profile_table(frame)
@@ -320,6 +333,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         from ..studio import solution as studio_solution
 
         draft = get(draft_id)
+        prediction_only(draft)
         frame, _ = clean_frame(draft)
         try:
             solution = studio_solution.Solution(**body)
@@ -514,9 +528,20 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             a.set_pack(draft_id, det["key"], det["source"], det["why"])
         elif key in packs.KEYS:
             a.set_pack(draft_id, key, "user", "You chose this pack.")
+            await asyncio.to_thread(a.pack_chosen, draft_id)  # H2: a pack is a prediction's: choosing one is choosing a prediction
         else:
             raise HTTPException(422, "Unknown pack")
         a.refresh_workflow(draft_id)
+        return drafts.get(draft_id)
+
+    @router.post("/api/drafts/{draft_id}/intent", response_model=Draft)
+    async def choose_intent(draft_id: str, payload: AnyObject):
+        """H2: the person's choice of the kind of help wins over Home's reading and labels it."""
+        get(draft_id)
+        track = dump(payload).get("track")
+        if track not in intents.TRACKS:
+            raise HTTPException(422, "Unknown type of help: " + ", ".join(intents.TRACKS))
+        await asyncio.to_thread(agent(draft_id).choose_intent, draft_id, track)
         return drafts.get(draft_id)
 
     @router.put("/api/drafts/{draft_id}/data", response_model=Doc, openapi_extra=OCTET)
@@ -889,7 +914,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         """Draw the map and keep it as the draft's (``redraw`` true draws it again, which drops the person's edits and confirmation)."""
         from . import map as problem_map
 
-        get(draft_id)
+        prediction_only(get(draft_id))  # H2 (the review): the problem map and its routes are a prediction's
         redraw = dump(payload).get("redraw") is True  # only a JSON true: "false" and 1 are not a request to drop the person's edits
         return await asyncio.to_thread(problem_map.draw, drafts, draft_id, advisor=problem_map.advisor_for(models, draft_id=draft_id), redraw=redraw)
 
@@ -901,7 +926,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
         from . import map as problem_map
 
-        get(draft_id)
+        prediction_only(get(draft_id))  # H2 (the review)
         body = dump(payload)
         action = body.get("action")
         allowed = {k: v for k, v in body.items() if k in {key for keys in problem_map.EDIT_KEYS.values() for key in keys}}  # the edit's own arguments, nothing else
@@ -919,6 +944,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                 return projects.get(draft["project_id"])
             except KeyError:
                 pass
+        prediction_only(draft)
         try:
             return await asyncio.to_thread(build_project, drafts, projects, draft_id)
         except BuildRefused as exc:
@@ -942,7 +968,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
     async def team_walk(draft_id: str, payload: AnyObject | None = Body(None)):
         """Start the understanding walk, or resume it: ``{"answer": "..."}`` answers the question it waits on, ``{"approve": true}``
         (or false) the confirmation or approval; it runs until its next pause or its end, and says which."""
-        get(draft_id)
+        prediction_only(get(draft_id))  # H2 (the review): the understanding walk leads to a build, a prediction's
         if (draft_id + ":agent") in jobs or await asyncio.to_thread(answering, draft_id):
             raise HTTPException(409, "the agent is answering this draft: try again when it is done")
         team = closed("orchestra.service", "The understanding team")
@@ -992,6 +1018,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
         draft = get(draft_id)
         svc = context.services() or services
+        if not draft.get("project_id"):
+            prediction_only(draft)  # H2: "build it" is a prediction's
         if draft.get("project_id"):
             try:
                 project = projects.get(draft["project_id"])
