@@ -45,7 +45,8 @@ PURPOSES: dict[str, Purpose] = {
     "home_agent": Purpose("standard", 90, "the problem sentence, the user's answers, column summaries (name, kind, missing rate, unique count) "
                                           "and descriptive findings; never rows or cell values", stream=True, cell_values=0, keeps_text=True),
     "embedding": Purpose("cheap", 60, "the text of the evidence records (rules, pitfalls, leakage precedents, experiments) and the question typed into the "
-                                      "evidence search, to find the records that answer it; no rows, no cell values, and not a workspace's lessons"),
+                                      "evidence search, to find the records that answer it; no rows, no cell values, and not a workspace's lessons. "
+                                      "35.0's measurement also sends its invented memory items and questions, on a local model only"),
     "parse_pattern": Purpose("cheap", 60, "up to 20 lines of a file no built-in reader can parse (400 characters each); "
                                           "DCLAB_MODEL_READS_SAMPLE_LINES=0 turns this off", cell_values=20 * 40),
     "synthetic_schema": Purpose("standard", 120, "the description of the table to simulate, the problem sentence and the user's answers; no data", keeps_text=True),

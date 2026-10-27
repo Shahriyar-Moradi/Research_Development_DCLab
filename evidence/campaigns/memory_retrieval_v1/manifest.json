@@ -1,0 +1,70 @@
+{
+  "campaign": "memory_retrieval_v1",
+  "package": "35.0",
+  "k": 5,
+  "groups": [
+    "direct",
+    "reworded",
+    "persian"
+  ],
+  "baseline": "hybrid",
+  "methods": [
+    "bm25",
+    "lsa",
+    "hybrid",
+    "embed",
+    "hybrid_embed"
+  ],
+  "candidates": {
+    "qwen3-embedding:0.6b": {
+      "download": "639 MB",
+      "mb": 639,
+      "languages": "multilingual (Qwen3)",
+      "query_prefix": "Instruct: Given a question, retrieve the memory notes that answer it\nQuery:",
+      "doc_prefix": ""
+    },
+    "bge-m3:567m": {
+      "download": "1.2 GB",
+      "mb": 1200,
+      "languages": "multilingual (100+), 8K context",
+      "query_prefix": "",
+      "doc_prefix": ""
+    },
+    "embeddinggemma:300m-qat-q8_0": {
+      "download": "338 MB",
+      "mb": 338,
+      "languages": "100+ languages",
+      "query_prefix": "task: search result | query: ",
+      "doc_prefix": "title: none | text: "
+    }
+  },
+  "gate": {
+    "id": "memory_retrieval_gate_v2",
+    "measure": "recall at 5 per question: the share of its answer items among the method's first five",
+    "baseline": "hybrid (BM25 fused with LSA by reciprocal rank): the best search without a model",
+    "choose_on_dev": "only dev results made under this manifest, the first per candidate, every candidate measured; a (model, method) with method embed or hybrid_embed qualifies when its dev recall on direct and on persian questions is not below hybrid's and its median query time is at most 1000 ms; of those, the highest dev recall on reworded questions, then on persian; a tie goes to the smaller download, then to embed (one retriever). No qualifier: keywords stay, and the sealed set stays unread.",
+    "sealed_once": "the chosen (model, method) and hybrid on the 30 sealed questions, read once: a marker is written before the file is opened, so a crashed run is not repeated",
+    "enter": "embeddings enter only if all four hold on the sealed set, each a paired difference chosen minus hybrid per question: (1) reworded (10 questions): mean at least 0.30 and the 90% bootstrap interval's lower end above 0 (2,000 draws over questions, seed 35); (2) direct (10): mean not below 0; (3) persian (10): mean not below 0; (4) the median query time at most 1000 ms. Otherwise keywords stay, and the result is reported as it is. Persian recall is reported with its interval beside the verdict.",
+    "limit": "one invented corpus of 116 items and 66 questions; 10 sealed questions a group move a group's recall by 0.1 each; latency and memory are this machine's (an 8 GB MacBook Air) and change with load"
+  },
+  "endpoint": "http://127.0.0.1:11434/v1",
+  "latency_ms": 1000.0,
+  "min_gain": 0.3,
+  "draws": 2000,
+  "seed": 35,
+  "files": {
+    "items.json": "6c0f607d2b1834427325839fd254d2891ee10863baf773b7f8cdd58b84cebdbe",
+    "questions_dev.json": "ab0429c6cbebad6a16781a2facacd84f15ea3437b71d18dad4210b4d36b884ab",
+    "questions_sealed.json": "b33569a8d61c8f9213f1a4a3e61bba0d555e81442a2166b8c945e8bb1c801602"
+  },
+  "objective": "Before any vector store: does a local embedding model find an agent's memory items better than search without a model when the question uses other words or is asked in Persian, without losing the direct questions?",
+  "sha256": "28f067457f9dec59a3432c4a76f7e9d41dff4c8c05fdeae449daa12cac3e578d",
+  "code_sha256": "ad71e193d302b23bb99b2669a44dcf98f38d3dbe4aafca32c822d0aaa7052f69",
+  "code_files": [
+    "dclab_rnd/retrieval/memory.py",
+    "dclab_rnd/retrieval/__init__.py",
+    "dclab_rnd/evidence_index.py"
+  ],
+  "git_commit": "6bfd76bee627e8cb22527ae3ba35119fe7a27ef1",
+  "frozen_at": "2026-10-27T20:57:33+00:00"
+}

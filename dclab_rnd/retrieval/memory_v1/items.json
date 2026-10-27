@@ -1,0 +1,934 @@
+{
+ "set": "memory_items_v1",
+ "note": "35.0's corpus: invented items shaped like DCLab's memory (facts about people, the workspace and ten projects, know-how, episodes). No customer's data; the testers named are invented. One line each, at most 300 characters.",
+ "items": [
+  {
+   "id": "P01",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "owner",
+   "text": "Answer the owner in simple everyday words, short sentences, one idea each, and give a real example for every hard idea.",
+   "source": "invented:P01"
+  },
+  {
+   "id": "P02",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "owner",
+   "text": "The owner wants honest, critical answers: say what is wrong with a plan and show a better way instead of agreeing.",
+   "source": "invented:P02"
+  },
+  {
+   "id": "P03",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "owner",
+   "text": "Persian text for the owner goes in an HTML page with the Vazirmatn font, right to left, 20 px, line height 2.1; English and code stay left to right.",
+   "source": "invented:P03"
+  },
+  {
+   "id": "P04",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "owner",
+   "text": "The owner allows live model runs of at most half a euro each; every run prints its cap first and reports what it spent.",
+   "source": "invented:P04"
+  },
+  {
+   "id": "P05",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "owner",
+   "text": "Only Claude models may be used; the OpenAI key stays in the file but its provider is blocked.",
+   "source": "invented:P05"
+  },
+  {
+   "id": "P06",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "owner",
+   "text": "The owner likes long jobs to run in the background while work goes on, as long as they can be resumed.",
+   "source": "invented:P06"
+  },
+  {
+   "id": "P07",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "owner",
+   "text": "Never stash or reset the owner's working folder: unfinished documents are kept there on purpose.",
+   "source": "invented:P07"
+  },
+  {
+   "id": "P08",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "tester-mina",
+   "text": "Mina, a tester, works in logistics and prefers results as a short table with the business cost next to each number.",
+   "source": "invented:P08"
+  },
+  {
+   "id": "P09",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "tester-mina",
+   "text": "Mina reads English well but asks questions in Persian; reply in English unless she writes a whole message in Persian.",
+   "source": "invented:P09"
+  },
+  {
+   "id": "P10",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "tester-reza",
+   "text": "Reza, a tester, is a data analyst who wants the code of every step so he can rerun it in his own notebook.",
+   "source": "invented:P10"
+  },
+  {
+   "id": "P11",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "tester-reza",
+   "text": "Reza dislikes long explanations of leakage; he asks for the check's result and the column it flagged, nothing more.",
+   "source": "invented:P11"
+  },
+  {
+   "id": "P12",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "owner",
+   "text": "The owner's Mac has 8 GB of memory: keep heavy jobs one at a time and stop when free disk falls under 2 GB.",
+   "source": "invented:P12"
+  },
+  {
+   "id": "P13",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "owner",
+   "text": "The owner plans to fine-tune a small open model later on a bigger Mac, so every agent step is kept whole as training data.",
+   "source": "invented:P13"
+  },
+  {
+   "id": "P14",
+   "kind": "fact",
+   "scope": "person",
+   "scope_id": "tester-sara",
+   "text": "Sara, a tester from a bank, may not upload customer tables; she works only with synthetic data built from her description.",
+   "source": "invented:P14"
+  },
+  {
+   "id": "W01",
+   "kind": "fact",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "This workspace uses Anthropic Claude Sonnet as its model for every agent role.",
+   "source": "invented:W01"
+  },
+  {
+   "id": "W02",
+   "kind": "fact",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "Use for training is switched off in this workspace until the owner turns it on per project.",
+   "source": "invented:W02"
+  },
+  {
+   "id": "W03",
+   "kind": "fact",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "Model spend in this workspace is capped at 18 euros a month for the collector.",
+   "source": "invented:W03"
+  },
+  {
+   "id": "W04",
+   "kind": "fact",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "Raw uploads in this workspace are deleted after 30 days; cleaned tables and records are kept.",
+   "source": "invented:W04"
+  },
+  {
+   "id": "W05",
+   "kind": "fact",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "Projects in this workspace store their data in PostgreSQL, not in files.",
+   "source": "invented:W05"
+  },
+  {
+   "id": "W06",
+   "kind": "fact",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "The team in this workspace has three roles: owner, ML engineer and viewer; only ML engineers and the owner approve stages.",
+   "source": "invented:W06"
+  },
+  {
+   "id": "W07",
+   "kind": "fact",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "Notebook cells may be run by any signed-in member of this workspace for now.",
+   "source": "invented:W07"
+  },
+  {
+   "id": "W08",
+   "kind": "fact",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "Sign-in is required in this workspace; API tokens are given per person.",
+   "source": "invented:W08"
+  },
+  {
+   "id": "W09",
+   "kind": "fact",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "This workspace's reports are written in English with a Persian summary page.",
+   "source": "invented:W09"
+  },
+  {
+   "id": "W10",
+   "kind": "fact",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "Evaluations in this workspace always start with an empty memory.",
+   "source": "invented:W10"
+  },
+  {
+   "id": "T01",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "telco-churn",
+   "text": "Telco churn: the target is whether a customer cancels within the next 30 days after the snapshot date.",
+   "source": "invented:T01"
+  },
+  {
+   "id": "T02",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "telco-churn",
+   "text": "Telco churn: the prediction is made on the first day of each month, from data known by the end of the previous month.",
+   "source": "invented:T02"
+  },
+  {
+   "id": "T03",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "telco-churn",
+   "text": "Telco churn: the column total_charges is cumulative and includes the month being predicted, so it was dropped as a leak.",
+   "source": "invented:T03"
+  },
+  {
+   "id": "T04",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "telco-churn",
+   "text": "Telco churn: the business can call 200 customers a month, so the decision uses a capacity of 200 calls.",
+   "source": "invented:T04"
+  },
+  {
+   "id": "T05",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "telco-churn",
+   "text": "Telco churn: a saved customer is worth about 300 euros a year; a retention call costs 5 euros.",
+   "source": "invented:T05"
+  },
+  {
+   "id": "T06",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "telco-churn",
+   "text": "Telco churn: the owner chose recall at the call budget as the main measure, not accuracy.",
+   "source": "invented:T06"
+  },
+  {
+   "id": "H01",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "hyperack-fares",
+   "text": "HyperAck fares: final_customer_fare and final_biker_fare are known only after the trip ends, so they never enter the model.",
+   "source": "invented:H01"
+  },
+  {
+   "id": "H02",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "hyperack-fares",
+   "text": "HyperAck fares: duration is measured after the trip, so it is a leak; the estimated duration at booking may be used.",
+   "source": "invented:H02"
+  },
+  {
+   "id": "H03",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "hyperack-fares",
+   "text": "HyperAck fares: the target is the price offered at booking time, predicted in euros.",
+   "source": "invented:H03"
+  },
+  {
+   "id": "H04",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "hyperack-fares",
+   "text": "HyperAck: ride and rider identifiers are dropped; they let the model memorise riders instead of learning prices.",
+   "source": "invented:H04"
+  },
+  {
+   "id": "H05",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "hyperack-fares",
+   "text": "HyperAck: trips are split by time, the last four weeks held out, because prices drift with fuel costs.",
+   "source": "invented:H05"
+  },
+  {
+   "id": "H06",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "hyperack-fares",
+   "text": "HyperAck: the Rating column is given by the customer after the ride, so it cannot be used to predict the fare.",
+   "source": "invented:H06"
+  },
+  {
+   "id": "D01",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "delivery-fraud",
+   "text": "Delivery fraud: a fraud case is an order the courier marked delivered but the customer reported as never received.",
+   "source": "invented:D01"
+  },
+  {
+   "id": "D02",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "delivery-fraud",
+   "text": "Delivery fraud: reviewers can check 16 rides a day; the model ranks orders and the top 16 go to review.",
+   "source": "invented:D02"
+  },
+  {
+   "id": "D03",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "delivery-fraud",
+   "text": "Delivery fraud: the same courier appears in many orders, so folds are grouped by courier to avoid optimistic scores.",
+   "source": "invented:D03"
+  },
+  {
+   "id": "D04",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "delivery-fraud",
+   "text": "Delivery fraud: the refund_issued column is set after the complaint, so it leaks the label and was removed.",
+   "source": "invented:D04"
+  },
+  {
+   "id": "D05",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "delivery-fraud",
+   "text": "Delivery fraud: a missed fraud costs the order value; a wasted review costs about 4 euros of staff time.",
+   "source": "invented:D05"
+  },
+  {
+   "id": "D06",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "delivery-fraud",
+   "text": "Delivery fraud: fraud is about 2 in 100 orders, so precision at the review budget is reported, not accuracy.",
+   "source": "invented:D06"
+  },
+  {
+   "id": "R01",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "ticket-routing",
+   "text": "Ticket routing: each support ticket must go to one of six teams; the target is the team that finally closed it.",
+   "source": "invented:R01"
+  },
+  {
+   "id": "R02",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "ticket-routing",
+   "text": "Ticket routing: the first team assigned is known at prediction time; the team that closes the ticket is not.",
+   "source": "invented:R02"
+  },
+  {
+   "id": "R03",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "ticket-routing",
+   "text": "Ticket routing: ticket text is in English and Persian, so the text features must handle both scripts.",
+   "source": "invented:R03"
+  },
+  {
+   "id": "R04",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "ticket-routing",
+   "text": "Ticket routing: a ticket sent to the wrong team costs about one hour of handling.",
+   "source": "invented:R04"
+  },
+  {
+   "id": "R05",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "ticket-routing",
+   "text": "Ticket routing: the resolution_notes field is written when the ticket closes and must not be used.",
+   "source": "invented:R05"
+  },
+  {
+   "id": "L01",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "delivery-time",
+   "text": "Delivery time: the target is minutes from order to door; the model predicts it when the order is placed.",
+   "source": "invented:L01"
+  },
+  {
+   "id": "L02",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "delivery-time",
+   "text": "Delivery time: order_value is the basket's worth in euros and is used to weigh late deliveries in the decision.",
+   "source": "invented:L02"
+  },
+  {
+   "id": "L03",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "delivery-time",
+   "text": "Delivery time: weather is joined from the hour of the order, never from the hour of delivery.",
+   "source": "invented:L03"
+  },
+  {
+   "id": "L04",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "delivery-time",
+   "text": "Delivery time: the error measure is the mean absolute error in minutes, with a 90 percent interval.",
+   "source": "invented:L04"
+  },
+  {
+   "id": "L05",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "delivery-time",
+   "text": "Delivery time: the courier's actual pickup time is known only later and was dropped.",
+   "source": "invented:L05"
+  },
+  {
+   "id": "S01",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "retail-returns",
+   "text": "Retail returns: the target is whether an item is returned within 30 days of delivery.",
+   "source": "invented:S01"
+  },
+  {
+   "id": "S02",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "retail-returns",
+   "text": "Retail returns: one customer can have many orders, so the split keeps each customer's orders on one side.",
+   "source": "invented:S02"
+  },
+  {
+   "id": "S03",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "retail-returns",
+   "text": "Retail returns: duplicated order lines were found; the duplicates were removed before splitting.",
+   "source": "invented:S03"
+  },
+  {
+   "id": "S04",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "retail-returns",
+   "text": "Retail returns: the size_exchanged flag is set during the return and was removed as a leak.",
+   "source": "invented:S04"
+  },
+  {
+   "id": "S05",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "retail-returns",
+   "text": "Retail returns: the shop wants to warn buyers of high-risk items before checkout.",
+   "source": "invented:S05"
+  },
+  {
+   "id": "B01",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "bank-marketing",
+   "text": "Bank marketing: the call duration column is known only after the call, so it is excluded from the model.",
+   "source": "invented:B01"
+  },
+  {
+   "id": "B02",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "bank-marketing",
+   "text": "Bank marketing: the target is whether the client subscribed to a term deposit.",
+   "source": "invented:B02"
+  },
+  {
+   "id": "B03",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "bank-marketing",
+   "text": "Bank marketing: the bank calls the top fifth of clients by score each campaign.",
+   "source": "invented:B03"
+  },
+  {
+   "id": "B04",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "bank-marketing",
+   "text": "Bank marketing: the model search took close to five minutes on the laptop; the default budget was kept.",
+   "source": "invented:B04"
+  },
+  {
+   "id": "C01",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "card-fraud",
+   "text": "Card fraud: frauds are about one in six hundred payments; a fold must hold at least one fraud, so the search was skipped.",
+   "source": "invented:C01"
+  },
+  {
+   "id": "C02",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "card-fraud",
+   "text": "Card fraud: the features are anonymous components, so the explanations name components, not business fields.",
+   "source": "invented:C02"
+  },
+  {
+   "id": "C03",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "card-fraud",
+   "text": "Card fraud: time is in seconds from the first payment; the last two days are the holdout.",
+   "source": "invented:C03"
+  },
+  {
+   "id": "C04",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "card-fraud",
+   "text": "Card fraud: average precision is the main measure because the positive class is very rare.",
+   "source": "invented:C04"
+  },
+  {
+   "id": "M01",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "pump-maintenance",
+   "text": "Pump maintenance: there are no failure labels, so anomalies are found without labels and reviewed by an engineer.",
+   "source": "invented:M01"
+  },
+  {
+   "id": "M02",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "pump-maintenance",
+   "text": "Pump maintenance: the engineer can inspect ten alerts a week; the review list has ten rows.",
+   "source": "invented:M02"
+  },
+  {
+   "id": "M03",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "pump-maintenance",
+   "text": "Pump maintenance: confirmed alerts become labels, turning the project into a rare-event problem later.",
+   "source": "invented:M03"
+  },
+  {
+   "id": "M04",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "pump-maintenance",
+   "text": "Pump maintenance: sensor readings arrive every minute and are averaged by hour before detection.",
+   "source": "invented:M04"
+  },
+  {
+   "id": "U01",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "subscription-retention",
+   "text": "Subscription retention: two actions exist, a discount and a call; each customer gets at most one.",
+   "source": "invented:U01"
+  },
+  {
+   "id": "U02",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "subscription-retention",
+   "text": "Subscription retention: discounts are limited to 100 a week and calls to 40 a day.",
+   "source": "invented:U02"
+  },
+  {
+   "id": "U03",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "subscription-retention",
+   "text": "Subscription retention: uplift was estimated from last year's random campaign, not from churn scores.",
+   "source": "invented:U03"
+  },
+  {
+   "id": "U04",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "subscription-retention",
+   "text": "Subscription retention: later customers leave more often, so the interval is read from the latest fold.",
+   "source": "invented:U04"
+  },
+  {
+   "id": "U05",
+   "kind": "fact",
+   "scope": "project",
+   "scope_id": "subscription-retention",
+   "text": "Subscription retention: the realised value fell above the interval's centre on most seeds; the cause is still open.",
+   "source": "invented:U05"
+  },
+  {
+   "id": "K01",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Write the prediction moment and the error costs before looking at any score.",
+   "source": "invented:K01"
+  },
+  {
+   "id": "K02",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Fit every cleaning, encoding and selection step inside the training folds only.",
+   "source": "invented:K02"
+  },
+  {
+   "id": "K03",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Read the holdout once, after every choice is made; a second look makes its number optimistic.",
+   "source": "invented:K03"
+  },
+  {
+   "id": "K04",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "When one person, courier or customer appears many times, group the folds by that entity.",
+   "source": "invented:K04"
+  },
+  {
+   "id": "K05",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "A column filled in after the outcome, such as a refund or a closing note, is a leak even if it looks harmless.",
+   "source": "invented:K05"
+  },
+  {
+   "id": "K06",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Identifiers make a model memorise rows; drop them unless the problem is about that entity's history.",
+   "source": "invented:K06"
+  },
+  {
+   "id": "K07",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "With a rare positive class, report precision at the budget or average precision, never accuracy alone.",
+   "source": "invented:K07"
+  },
+  {
+   "id": "K08",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "When the data drifts over time, split by time and keep the latest period as the holdout.",
+   "source": "invented:K08"
+  },
+  {
+   "id": "K09",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Remove duplicated rows before splitting, or the same row lands in training and test.",
+   "source": "invented:K09"
+  },
+  {
+   "id": "K10",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "A cumulative total that includes the target period leaks the future; use the total up to the cutoff.",
+   "source": "invented:K10"
+  },
+  {
+   "id": "K11",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Join outside data, such as weather, by the time of the prediction, never by the time of the outcome.",
+   "source": "invented:K11"
+  },
+  {
+   "id": "K12",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "When the review team has a fixed capacity, choose the operating point by expected value under that capacity.",
+   "source": "invented:K12"
+  },
+  {
+   "id": "K13",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Give every reported number its interval and the assumption behind it.",
+   "source": "invented:K13"
+  },
+  {
+   "id": "K14",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Never call a model ready for production from benchmark results alone.",
+   "source": "invented:K14"
+  },
+  {
+   "id": "K15",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "If a search budget runs over on a busy machine, the last attempt finishes late; the budget stops new attempts only.",
+   "source": "invented:K15"
+  },
+  {
+   "id": "K16",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "A model search that does not beat the default by more than its interval stays switched off.",
+   "source": "invented:K16"
+  },
+  {
+   "id": "K17",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Synthetic tables keep the traps of the real table but never copy a real row.",
+   "source": "invented:K17"
+  },
+  {
+   "id": "K18",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "When labels are missing, start with anomaly detection and turn confirmed alerts into labels.",
+   "source": "invented:K18"
+  },
+  {
+   "id": "K19",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Ask the person for the business cost of each kind of mistake before choosing a threshold.",
+   "source": "invented:K19"
+  },
+  {
+   "id": "K20",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "A text column written by staff after the event, like resolution notes, must be dropped.",
+   "source": "invented:K20"
+  },
+  {
+   "id": "K21",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Check the row count after every join; a join that multiplies rows usually hides a key problem.",
+   "source": "invented:K21"
+  },
+  {
+   "id": "K22",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Uplift needs a past random experiment; churn scores alone do not say who will respond to an offer.",
+   "source": "invented:K22"
+  },
+  {
+   "id": "K23",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "With two actions and separate capacities, assign each row the action with the higher value until each capacity is used.",
+   "source": "invented:K23"
+  },
+  {
+   "id": "K24",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Learning curves on training folds tell whether more rows would help; never read the holdout for it.",
+   "source": "invented:K24"
+  },
+  {
+   "id": "K25",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "When the gate of an experiment is fixed before the run, a failed result is reported as failed, not adjusted.",
+   "source": "invented:K25"
+  },
+  {
+   "id": "K26",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Ask one question at a time, the one that unblocks the most next steps.",
+   "source": "invented:K26"
+  },
+  {
+   "id": "K27",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "A sealed evaluation set is read once; tuning on it turns it into a development set.",
+   "source": "invented:K27"
+  },
+  {
+   "id": "K28",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Average sensor data to the decision's time step before modelling, so noise does not dominate.",
+   "source": "invented:K28"
+  },
+  {
+   "id": "K29",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "A target defined as the final state of a ticket hides a leak when earlier states are features.",
+   "source": "invented:K29"
+  },
+  {
+   "id": "K30",
+   "kind": "know_how",
+   "scope": "global",
+   "scope_id": "dclab",
+   "text": "Prefer a simpler model when two are tied within their intervals.",
+   "source": "invented:K30"
+  },
+  {
+   "id": "E01",
+   "kind": "episode",
+   "scope": "project",
+   "scope_id": "telco-churn",
+   "text": "Run 12 on Telco churn failed at the cleaning stage because the date column had two formats.",
+   "source": "invented:E01"
+  },
+  {
+   "id": "E02",
+   "kind": "episode",
+   "scope": "project",
+   "scope_id": "hyperack-fares",
+   "text": "The first HyperAck run scored too well; the review found final_customer_fare among the features.",
+   "source": "invented:E02"
+  },
+  {
+   "id": "E03",
+   "kind": "episode",
+   "scope": "project",
+   "scope_id": "delivery-fraud",
+   "text": "fraud_decision_v2 failed on width: the review interval was about a quarter too narrow.",
+   "source": "invented:E03"
+  },
+  {
+   "id": "E04",
+   "kind": "episode",
+   "scope": "project",
+   "scope_id": "delivery-fraud",
+   "text": "fraud_decision_v3 passed after the interval came from holdout-sized samples of one fold.",
+   "source": "invented:E04"
+  },
+  {
+   "id": "E05",
+   "kind": "episode",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "The intern stopped mid-run when the worker restarted during a code change; the worker now waits for running jobs.",
+   "source": "invented:E05"
+  },
+  {
+   "id": "E06",
+   "kind": "episode",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "Sign-in failed because no account existed yet; the owner created one with the accounts command.",
+   "source": "invented:E06"
+  },
+  {
+   "id": "E07",
+   "kind": "episode",
+   "scope": "project",
+   "scope_id": "card-fraud",
+   "text": "search_v3 crashed on card fraud because a fold had no fraud; the search is now skipped with a reason.",
+   "source": "invented:E07"
+  },
+  {
+   "id": "E08",
+   "kind": "episode",
+   "scope": "project",
+   "scope_id": "bank-marketing",
+   "text": "search_v3 on bank marketing ran 4.81 minutes against a 4.5 minute budget on a busy machine.",
+   "source": "invented:E08"
+  },
+  {
+   "id": "E09",
+   "kind": "episode",
+   "scope": "project",
+   "scope_id": "subscription-retention",
+   "text": "time_decision_v2 passed for the share capacity after reading the interval from the latest fold.",
+   "source": "invented:E09"
+  },
+  {
+   "id": "E10",
+   "kind": "episode",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "A store run was paused because free disk fell below 2 GB while swap grew.",
+   "source": "invented:E10"
+  },
+  {
+   "id": "E11",
+   "kind": "episode",
+   "scope": "project",
+   "scope_id": "ticket-routing",
+   "text": "The first routing model used resolution_notes and reached 97 percent; after removing it, 71 percent.",
+   "source": "invented:E11"
+  },
+  {
+   "id": "E12",
+   "kind": "episode",
+   "scope": "workspace",
+   "scope_id": "main",
+   "text": "A commit once took another session's staged files because the whole index was committed.",
+   "source": "invented:E12"
+  }
+ ]
+}

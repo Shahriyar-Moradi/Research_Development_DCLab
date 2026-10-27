@@ -1,0 +1,210 @@
+{
+ "package": "35.0",
+ "title": "Memory search measured before any vector store: the question set, the candidates and the gate fixed before the run",
+ "date": "2026-10-28",
+ "request": "The owner: start 35.0 (the memory search test); say which embedding models to pull into Ollama first, with their sizes, and build the question set and the gate before any run. Later in the session: keep capturing, recording and storing the tests for all six models.",
+ "spec": "MEMORY_PLAN.md 35.0: a memory question set (about 60, a third reworded, some Persian), dev and sealed (sealed by an independent agent, hash pinned, read once); BM25, hybrid and each local embedding model alone and fused; recall at 5 with intervals, time per item, memory used on the 8 GB Air; the gate fixed before the run (an embedding enters only if it raises reworded recall by more than its interval and loses on no other group).",
+ "plan": [
+  "Check the embedding models Ollama offers and their download sizes; pick three that fit an 8 GB Mac and read Persian.",
+  "Read the retrieval harness (retrieval_v1) and the gateway's embedding purpose, and reuse both.",
+  "Write an invented memory corpus and the dev questions; have an independent agent write the sealed questions from the corpus alone.",
+  "Write the tests first, then the campaign module (freeze, dev, choose, sealed once) and a make target.",
+  "Review adversarially, fix, freeze the gate, record and commit; the run waits for the owner to pull the models."
+ ],
+ "decisions": [
+  {
+   "decision": "Candidates qwen3-embedding:0.6b (639 MB), bge-m3:567m (1.2 GB) and embeddinggemma:300m-qat-q8_0 (338 MB) instead of the plan's nomic-embed-text",
+   "why": "the three say they read many languages, which the owner's Persian needs; nomic-embed-text v1 makes no such claim; the quantised EmbeddingGemma keeps the total near 2.2 GB on a disk with about 4.6 GB free"
+  },
+  {
+   "decision": "EmbeddingGemma 2 (a week old on Ollama) and Laya left out",
+   "why": "EmbeddingGemma 2's prompt format and licence were not stated on its page; Laya is a decision model, not an embedding model"
+  },
+  {
+   "decision": "The corpus is 116 invented items shaped like DCLab's memory, not real project notes",
+   "why": "no customer's data may enter a measurement set, and an invented corpus can be committed and shared with the sealed writer"
+  },
+  {
+   "decision": "The sealed questions were written by an independent agent that read only the corpus; its reply held no question, and the file was pinned by its hash without being read",
+   "why": "a set written by the person who chooses the method would be shaped by that method's strengths"
+  },
+  {
+   "decision": "The baseline is hybrid (BM25 fused with LSA), not BM25",
+   "why": "the reworded and Persian questions share no word with their answers, so BM25 scores 0 on them by construction and any hit would look like a gain (review finding 2)"
+  },
+  {
+   "decision": "Reworded and Persian are judged apart: the reworded gain decides; direct and Persian must not be worse",
+   "why": "pooled, Persian hits (where keywords are blind) could carry a model that fails on reworded English (review finding 1)"
+  },
+  {
+   "decision": "Every result keeps each question's first five items per method, the answers, the times, the model's digest and memory; dev rows marked as allowed for training, sealed rows as never",
+   "why": "the owner's standing rule to capture everything for the six models: the runs become retriever and reranker data, and a sealed set must never train"
+  },
+  {
+   "decision": "Prefixes from the model cards are part of the frozen manifest and of the vector file's name",
+   "why": "Qwen3-Embedding and EmbeddingGemma expect an instruction before a question; without it they are measured below their use, and vectors made with and without a prefix must never mix"
+  }
+ ],
+ "change": "dclab_rnd/retrieval/memory.py (new: corpus and questions, three Ollama candidates, a local-only embedder through the gateway's embedding purpose, measure with per-group intervals and the first items per method, choose on dev, a sealed verdict once with a marker written before reading, freeze refusing any change and any re-freeze after a result); dclab_rnd/retrieval/__init__.py (Embedder query_prefix and doc_prefix; ranked('bm25') drops score-0 hits); memory_v1/ (items, dev and sealed questions, the sealed file's hash); tests/test_memory_retrieval.py; the embedding purpose's description; a make target; the campaign's frozen manifest. tests/run_parallel.py blanks the owner's spending caps in test processes.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "Keyword search counted a Persian question's answer as found although it reads no Persian word",
+   "scenario": "dev question D33 (Persian) has no token the tokenizer reads; EvidenceIndex.search then lists the first five records by id with score 0, one of them (B01) is D33's answer, so bm25's Persian recall was 0.083 instead of 0",
+   "cause": "search() returns every record when a query has no terms (a filter-only listing); ranked('bm25') took that listing as a ranking, and the hybrids fused it",
+   "fix": "ranked('bm25') keeps only hits with a score above 0; English questions are unchanged because their hits always score above 0",
+   "test": "test_a_dev_run_and_the_sealed_run_on_a_scripted_client asserts bm25's Persian recall is 0",
+   "severity": "behaviour",
+   "impact": "the baseline would have looked a little better on Persian by luck, and the hybrid methods would have mixed alphabetical records into every Persian answer",
+   "alternatives": [
+    "change EvidenceIndex.search itself: set aside, its listing without terms is used for filter-only queries"
+   ],
+   "open": "the product's own evidence search still lists records by id for a question with no readable word (its bm25 path calls index.search directly)"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "The owner's spending caps in .env reached a test process and refused a gateway test's scripted request",
+   "scenario": "test_models_gateway's test_failure_paths failed in this folder and passed on a clean copy of the same commit: .env sets DCLAB_WORKSPACE_MONTHLY_EUR, and the test's broken usage log was asked what had been spent",
+   "cause": "tests/run_parallel.py blanked the owner's model choice and keys from .env but not the spending caps",
+   "fix": "child_env also blanks DCLAB_WORKSPACE_MONTHLY_EUR and DCLAB_COLLECTOR_MONTHLY_EUR; a test that needs a cap sets its own",
+   "test": "tests/test_run_capture.py checks both caps are empty in a test process",
+   "severity": "flaky",
+   "impact": "the nightly gate would fail on the owner's machine and pass in CI, for a reason no code change caused"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "defect": "The gate pooled reworded and Persian questions, so Persian hits could hide a reworded failure",
+   "scenario": "reworded gain 0 on all 10, 6 of 10 Persian found, direct tied: the pooled interval [0.15, 0.45] said embeddings enter while the plan's reworded condition was not met",
+   "cause": "one 'unseen' group joined two groups with different baselines (keywords are blind on Persian)",
+   "fix": "the reworded difference decides alone; direct and Persian must each not be worse; choose() ranks by reworded, then Persian",
+   "test": "test_persian_hits_never_hide_a_reworded_failure",
+   "severity": "behaviour",
+   "impact": "a model good at Persian but useless on reworded English would have entered the product's memory search"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "defect": "Against BM25 the reworded gain was the embedding's own recall, so a few lucky hits passed",
+   "scenario": "3 of 20 unseen questions found, direct tied: interval [0.05, 0.30], embeddings enter",
+   "cause": "BM25 is 0 on questions that share no word with their answers, by construction",
+   "fix": "the baseline is hybrid (BM25 with LSA, which can find a reworded question) and the mean reworded gain must be at least 0.30 besides the interval's lower end above 0",
+   "test": "test_a_few_lucky_hits_are_not_a_gain",
+   "severity": "behaviour",
+   "impact": "a weak model would have been chosen on noise"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "defect": "The gate could be frozen again after dev numbers were seen",
+   "scenario": "freeze, run dev, see nobody qualify, delete the manifest, raise the latency bar, freeze again; dev_results() still read the old results",
+   "cause": "freeze() wrote a manifest whenever none existed, and dev_results() did not check which manifest a result was made under",
+   "fix": "freeze() refuses when any result exists without a manifest; dev_results() keeps only results made under the frozen manifest's hash",
+   "test": "test_the_gate_cannot_be_frozen_again_after_a_result",
+   "severity": "behaviour",
+   "impact": "a gate tuned after seeing the numbers, presented as fixed before"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "defect": "The sealed set was marked read only after a successful run",
+   "scenario": "Ollama runs out of memory midway through the sealed run (likely with a 1.2 GB model on 8 GB): the questions were read and embedded, no marker exists, the run can be repeated",
+   "cause": "MRT-100 was written at the end",
+   "fix": "a marker MRT-100.started is created with mode 'x' before the sealed file is opened; either it or MRT-100 refuses a second run",
+   "test": "test_a_crash_during_the_sealed_run_is_not_a_second_chance",
+   "severity": "behaviour",
+   "impact": "a sealed set read more than once, quietly"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "defect": "The local-only path had no test",
+   "scenario": "local_embedder was always mocked; nothing showed it overrides an Anthropic or OpenAI tier set in the environment",
+   "cause": "the tests replaced the function",
+   "fix": "a test sets a paid cheap tier and Anthropic as the provider and checks the bound tier is Ollama on this machine; another forces is_local to false and expects a refusal; mock.patch.dict restores the environment",
+   "test": "LocalOnlyTest",
+   "severity": "gap",
+   "impact": "a later change could send memory items to a paid endpoint unseen"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "defect": "A dev rerun could re-roll the latency and change the choice",
+   "scenario": "run dev again until the median falls under 1000 ms; the latest result was used",
+   "cause": "dev_results() kept the latest result per model",
+   "fix": "the first result per model under the manifest counts",
+   "test": "test_only_the_first_dev_result_under_the_manifest_counts",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "defect": "Intervals only on the pooled group, and memory used not measured",
+   "scenario": "the plan asks recall with intervals and the memory used on the Air",
+   "cause": "measure() gave means only; mb was the download size",
+   "fix": "a 90% bootstrap interval per group and method; the loaded model's size from Ollama's /api/ps and the corpus build time in each result",
+   "test": "the scripted dev run checks intervals_90 per group",
+   "severity": "gap"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "defect": "The embedding purpose's description did not say memory items are sent",
+   "scenario": "the Admin page reads what each purpose may see; 35.0 sends invented memory items",
+   "cause": "the purpose predates memory",
+   "fix": "the description names 35.0's invented items on a local model",
+   "test": "tests/test_embeddings.py still checks the description says no rows",
+   "severity": "gap"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "defect": "The test suite measured the real sealed set on every run",
+   "scenario": "the scripted sealed run read the 30 sealed questions and wrote bm25 rows into a temporary folder",
+   "cause": "the test used the real SEALED path",
+   "fix": "the scripted runs use a six-question stand-in pinned in a temporary folder",
+   "test": "test_a_dev_run_and_the_sealed_run_on_a_scripted_client",
+   "severity": "leakage"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "defect": "Vector files were keyed by the Ollama tag, not the weights",
+   "scenario": "ollama pull updates a tag between the dev and the sealed run: old record vectors meet new query vectors",
+   "cause": "the file name held the tag only",
+   "fix": "the embedder's label is the tag plus the first characters of Ollama's digest, which names the vector file and is kept in each result",
+   "test": "LocalOnlyTest checks the label holds the digest",
+   "severity": "latent"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "memory_retrieval_v1: gate frozen before any run",
+   "gate": "embeddings enter only if, on the sealed set against hybrid: reworded mean gain at least 0.30 with the 90% bootstrap lower end above 0, direct and Persian not worse, median query time at most 1000 ms; the method chosen on dev first",
+   "fixed_before_run": true,
+   "result": "not run: the three models are not pulled yet (Ollama had none); the manifest holds the gate, the candidates, the prefixes and the hashes of the corpus and both question files",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "the owner pulls the three models with enough free disk, then make memory-retrieval ARGS=\"dev --ollama MODEL\" for each, choose, and sealed --yes once",
+   "limits": [
+    "one invented corpus; ten sealed questions a group, so a single question moves a group's recall a step",
+    "latency and memory are those of the owner's small laptop under its load at the time"
+   ]
+  }
+ ],
+ "outcome": "The memory search test is built and its gate frozen; nothing is run yet. Ten review findings fixed before the freeze, the most serious two in the gate itself (pooling Persian with reworded questions, and a baseline that is 0 by construction). A bug found by a test is fixed: a question with no readable word made keyword search count an alphabetical listing as hits.",
+ "lessons": [
+  "When a question set is built so that a method scores 0 on a group by construction, that method is not a baseline for that group: compare against the best method that can score there.",
+  "Do not pool groups whose baselines differ: a gain where the baseline is blind can carry a loss where it is not.",
+  "Mark a sealed read before opening the file, not after the run succeeds.",
+  "A test that checks a score of exactly 0 found a listing counted as a ranking; zero-score hits are not hits."
+ ],
+ "risks": [
+  "An 8 GB Mac may run out of memory with bge-m3 beside other jobs.",
+  "Three models need about 2.2 GB of a disk with about 4.6 GB free, close to the 2 GB stop line.",
+  "Ten sealed questions a group can decide a verdict by one question."
+ ],
+ "commits": []
+}

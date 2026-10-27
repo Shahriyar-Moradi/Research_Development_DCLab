@@ -92,13 +92,21 @@ class Embedder:
     purpose (so every request is routed, capped and counted). The record vectors are a file beside the workspace,
     named by the model and the index's content; nothing is stored in the generated evidence files."""
 
-    def __init__(self, client: Any, folder: Path | None = None, model: str | None = None):
+    def __init__(self, client: Any, folder: Path | None = None, model: str | None = None, query_prefix: str = "", doc_prefix: str = ""):
+        """``query_prefix`` and ``doc_prefix`` (35.0) are the instructions some models expect before a question and before
+        a record (Qwen3-Embedding's "Instruct: … Query:", EmbeddingGemma's "task: search result | query: ")."""
         self.client, self.folder, self.model = client, Path(folder) if folder else cache_dir(), model or embedding_model()
+        self.query_prefix, self.doc_prefix = query_prefix, doc_prefix
         self._queries: dict[str, Any] = {}
         self._records: dict[str, tuple[list[str], Any]] = {}
 
     def _path(self, index: Any) -> Path:
-        return self.folder / f"{re.sub(r'[^A-Za-z0-9._-]+', '-', self.model)}-{_signature(index)}.npz"
+        import hashlib
+
+        prefixes = ""  # the record vectors depend on the prefixes: a file made without them is never read with them
+        if self.query_prefix or self.doc_prefix:
+            prefixes = "-p" + hashlib.sha256(f"{self.query_prefix}\0{self.doc_prefix}".encode()).hexdigest()[:8]
+        return self.folder / f"{re.sub(r'[^A-Za-z0-9._-]+', '-', self.model)}-{_signature(index)}{prefixes}.npz"
 
     def _embed(self, texts: list[str]) -> Any:
         import numpy as np
@@ -129,7 +137,7 @@ class Embedder:
         if not build or self.client is None:
             return None
         ids = [r["record_id"] for r in index.records]
-        vectors = self._embed([_text(r) for r in index.records])
+        vectors = self._embed([self.doc_prefix + _text(r) for r in index.records])
         path.parent.mkdir(parents=True, exist_ok=True)
         part = path.with_name(path.name + ".part")
         with part.open("wb") as handle:  # whole or not at all: an interrupted build never leaves a file a search would read
@@ -141,7 +149,7 @@ class Embedder:
     def prefetch(self, questions: list[str]) -> None:
         todo = [q for q in dict.fromkeys(questions) if q not in self._queries]
         if todo:
-            for q, v in zip(todo, self._embed(todo)):
+            for q, v in zip(todo, self._embed([self.query_prefix + q for q in todo])):
                 self._queries[q] = v
 
     def query(self, question: str) -> Any:
@@ -174,7 +182,9 @@ def ranked(question: str, method: str, k: int = K, index: Any = None, embedder: 
                 fused[rid] = fused.get(rid, 0.0) + 1.0 / (RRF + rank + 1)
         return [rid for rid, _ in sorted(fused.items(), key=lambda kv: (-kv[1], kv[0]))[:k]]
     if method == "bm25":
-        return [h["record_id"] for h in index.search(question, k=k)]
+        # 35.0: a question with no word the tokenizer reads (Persian script) makes the index list its first records with
+        # score 0; that is a listing, not a search, and would count as found by luck (and feed the hybrids' fusion)
+        return [h["record_id"] for h in index.search(question, k=k) if h.get("score", 0) > 0]
     if method == "lsa":
         from sklearn.preprocessing import normalize
 

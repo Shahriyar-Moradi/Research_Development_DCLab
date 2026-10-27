@@ -51,11 +51,12 @@ class NoLiveModelTest(unittest.TestCase):
     was served by a live model (2026-10-21). Every test process is now as CI's, whichever gate started the runner."""
 
     def test_a_test_process_never_reaches_a_live_model(self):
-        owner = {"DCLAB_NO_LIVE_MODELS": "", "OPENAI_API_KEY": "sk-owner", "ANTHROPIC_API_KEY": "sk-ant", "DCLAB_LLM_PROVIDER": "anthropic"}
+        owner = {"DCLAB_NO_LIVE_MODELS": "", "OPENAI_API_KEY": "sk-owner", "ANTHROPIC_API_KEY": "sk-ant", "DCLAB_LLM_PROVIDER": "anthropic",
+                 "DCLAB_WORKSPACE_MONTHLY_EUR": "5", "DCLAB_COLLECTOR_MONTHLY_EUR": "18"}
         with mock.patch.dict(os.environ, owner):
             env = run_parallel.child_env(tempfile.mkdtemp())
         self.assertEqual(env["DCLAB_NO_LIVE_MODELS"], "1")
-        for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "DCLAB_LLM_PROVIDER"):
+        for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "DCLAB_LLM_PROVIDER", "DCLAB_WORKSPACE_MONTHLY_EUR", "DCLAB_COLLECTOR_MONTHLY_EUR"):
             self.assertEqual(env[key], "", key)  # empty, so .env (read without override) cannot fill them either
 
     def test_every_gate_that_runs_tests_switches_live_models_off(self):

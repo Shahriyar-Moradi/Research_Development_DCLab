@@ -131,7 +131,19 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
   used on the 8 GB Air.
 - **Gate (fixed before the run):** an embedding enters only if it raises recall on the reworded group by more than its
   interval and loses on no other group; otherwise memory stays on keywords, and the result is reported as it is.
+  As frozen (`memory_retrieval_gate_v2`, after the review): against `hybrid` (BM25 with LSA, the best search without a
+  model; BM25 alone scores 0 on reworded and Persian questions by construction), on the sealed set: reworded mean gain
+  at least 0.30 with the 90% bootstrap interval's lower end above 0; direct and Persian each not worse; median query time
+  at most 1000 ms. The method is chosen on dev first (the first dev result per candidate). `embeddinggemma` replaced
+  `nomic-embed-text`, which does not claim Persian.
 - **Done when:** the campaign `memory_retrieval_v1` is stored with its verdict; 35.5 is built or dropped by it.
+- **Status (2026-10-28): built, not run.** `dclab_rnd/retrieval/memory.py` and `memory_v1/` (116 invented items, 36 dev
+  questions, 30 sealed questions written by an independent agent, hash pinned); the gate frozen in
+  `evidence/campaigns/memory_retrieval_v1/manifest.json`; `make memory-retrieval ARGS=…`. Candidates (sizes from
+  ollama.com): `qwen3-embedding:0.6b` 639 MB, `bge-m3:567m` 1.2 GB, `embeddinggemma:300m-qat-q8_0` 338 MB. The run
+  waits for the owner to pull them (`make memory-retrieval ARGS=candidates` prints the commands) with at least 3 GB of
+  disk free. Found while building: keyword search listed the first records by id for a question with no readable word
+  (Persian), which counted as found by luck; `retrieval.ranked("bm25")` now drops score-0 hits.
 
 ### 35.1 The contract
 
