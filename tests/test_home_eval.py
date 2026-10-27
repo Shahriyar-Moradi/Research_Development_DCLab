@@ -99,9 +99,9 @@ class ReaderTests(unittest.TestCase):
         self.assertEqual(obs["phantom"], ["lifetime_spend"])
 
     def test_numbers_in_words_and_with_units_are_read_as_numbers(self):
-        draft = {"problem": "Show refunds", "messages": [{"role": "agent", "kind": "text", "text": "About sixty days, or 4.5k orders."}]}
-        self.assertEqual(sorted(home.read_draft(draft, set(), set())["uncited"]), ["4.5k", "60"])
-        draft["problem"] = "Show refunds for sixty days and 4.5k orders"
+        draft = {"problem": "Show refunds", "messages": [{"role": "agent", "kind": "text", "text": "About sixty days, or 4.5k orders, for the top-200 customers."}]}
+        self.assertEqual(sorted(home.read_draft(draft, set(), set())["uncited"]), ["-200", "4.5k", "60"])  # cited.py reads top-200 as -200: caught either way
+        draft["problem"] = "Show refunds for sixty days and 4.5k orders, top-200 customers"
         self.assertEqual(home.read_draft(draft, set(), set())["uncited"], [])
 
     def test_automatic_cleaning_that_drops_many_rows_counts_as_destructive(self):
@@ -221,9 +221,6 @@ class RunTests(unittest.TestCase):
         self.assertGreater(plan["max_requests"], 36)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class CommandLineTests(unittest.TestCase):
     def setUp(self):
@@ -299,3 +296,7 @@ class CommandLineTests(unittest.TestCase):
         for got, want in zip([c.run_limit_eur for c in made], [2.0, 0.5, 0.1]):
             self.assertAlmostEqual(got, want)
         self.assertAlmostEqual(budget.spent_eur(), 1.9)
+
+
+if __name__ == "__main__":
+    unittest.main()

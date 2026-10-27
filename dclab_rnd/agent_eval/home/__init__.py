@@ -134,7 +134,7 @@ def score(value: Optional[str], gold: Any, field: str = "") -> str:
 
 # ------------------------------------------------------------------------------------------------ reading a draft
 
-_CODE = re.compile(r"\b[A-Za-z][A-Za-z0-9]*[-_]\d[\w-]*\b")
+_CODE = re.compile(r"\b[A-Z]{1,4}-\d{3,}\b")  # ORD-10007, C-00012: identifier shapes only (a top-200 list is a number)
 _SNAKE = re.compile(r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b")
 _RECORD_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_\-]*")
 
@@ -205,7 +205,7 @@ def read_draft(draft: Mapping[str, Any], columns: set[str], id_values: set[str])
     allowed |= {str(len(draft.get("cleaning_log") or []))}
     uncited: list[str] = []
     for m in agent:
-        text = _CODE.sub(" ", m.get("text") or "")  # ORD-10007, C-00012, a_b_2: codes and names, not quantities
+        text = _CODE.sub(" ", m.get("text") or "")  # identifiers are names, not quantities; WF-03 and the like cited.py drops itself
         for number in sorted(cited.numbers(normalize(text))):
             if number not in allowed and number not in uncited:
                 uncited.append(number)
