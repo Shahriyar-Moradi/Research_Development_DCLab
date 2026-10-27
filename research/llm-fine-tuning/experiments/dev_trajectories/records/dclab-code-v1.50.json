@@ -1,0 +1,94 @@
+{
+  "package": "dclab-code-v1.50",
+  "title": "DCLab's charts drawn in the chat, and a choice asked as a card (D9)",
+  "date": "2026-10-27",
+  "request": "Owner: build D9 (real charts from DCLab's records, review budgets, options as clickable cards); do not wait for me.",
+  "spec": "dclab-code web/charts.js (new), web/app.js (showCharts), web/style.css (chart tokens), server/prompts/system_append.md, tests/page.test.js, tests/fixtures/charts_bnpl.json",
+  "plan": [
+    "hook get_charts' answer like the draft card",
+    "draw dots with spread, intervals, lines, calibration, tables",
+    "validate the colours",
+    "look at it in light and dark",
+    "prompt: plots to get_charts, choices to AskUserQuestion",
+    "page test, live turns"
+  ],
+  "decisions": [
+    {
+      "decision": "scores as dots with their fold spread, not bars",
+      "why": "an AUC bar starts at zero and hides gaps of 0.01-0.06"
+    },
+    {
+      "decision": "one series colour plus a dashed, labelled neutral reference",
+      "why": "palette check: light #2563eb/#75819a passes all but chroma (a neutral reference by design); dark #5b9bff/#8f9bb3 failed the normal-vision floor, #4f8ff7/#5d6880 passes"
+    },
+    {
+      "decision": "the page draws only what get_charts returned and never computes a score",
+      "why": "numbers come from DCLab's code; a cut or non-JSON output leaves the step's text and draws nothing"
+    },
+    {
+      "decision": "AskUserQuestion only for a pick between options, not when numbers are needed",
+      "why": "live: the review-capacity question needed the team's numbers and was answered from the budgets; the model choice came as a card"
+    }
+  ],
+  "change": "dclab-code d2dfeba.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "a reference label sat on the holdout's dot",
+      "scenario": "Holdout ROC-AUC chart: 'cross-validation mean' at 0.786 beside 0.801",
+      "cause": "mark labels drawn on the row's line",
+      "fix": "reference labels get their own row above the dots",
+      "test": "screenshot",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "defect": "'random pick' overlapped the model's line",
+      "scenario": "gains and precision-recall near the right edge",
+      "cause": "label at the reference line's end, where the curves meet",
+      "fix": "named at 62 % along a diagonal, at the left end of a flat line",
+      "test": "screenshot, light and dark",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "'no detector run' and a caught leak would show a red Leak badge",
+      "scenario": "machine kinds; declared columns that lift the score",
+      "cause": "every verdict but two mapped to bad",
+      "fix": "Caught (ok) and Not measured (neutral) badges",
+      "test": "page test verdict; R&D verdict tests",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "147 of 147 (units 52, page 31, server 64)",
+      "verdict": "pass"
+    },
+    {
+      "name": "live, Sonnet 5.5, scripted test home",
+      "gate": "plots through get_charts; a pick as a card",
+      "fixed_before_run": true,
+      "result": "four turns, $0.61: charts called and explained; model choice as a card",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Asking for a plot of a DCLab project draws its charts from the records, and a choice comes as a card to click.",
+  "lessons": [
+    "Validate chart colours per mode: the dark accent that works for links failed beside a grey line.",
+    "Place a reference line's label where the model's curve is not."
+  ],
+  "risks": [
+    "DCLab tools still ask Allow in the default mode (the owner's read-only question is open)."
+  ],
+  "commits": [
+    "dclab-code d2dfeba",
+    "R&D d1d3a1a7"
+  ]
+}
