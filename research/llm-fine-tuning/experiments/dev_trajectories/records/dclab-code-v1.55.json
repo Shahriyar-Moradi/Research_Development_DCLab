@@ -1,0 +1,106 @@
+{
+ "package": "dclab-code-v1.55",
+ "title": "Real sessions on the owner's Telco and HyperAck tables, and Home's kind of help on the card",
+ "date": "2026-10-28",
+ "request": "Owner: do not wait for me, keep going. Plan step 6 (real-use pass on Telco and HyperAck, capped) and syncing R&D's new H2 route.",
+ "spec": "dclab-code docs/PARITY_PLAN.md step 6; R&D eff69fe0 (H2: POST /api/drafts/{id}/intent); dclab-code web/draft.js, server/dclab_person.js, server/dclab_runs.js",
+ "plan": [
+  "run the owner's Telco table end to end through the chat (upload, Home, build, stages, evaluation, plots, kept-out columns)",
+  "run HyperAck the same way without naming any leak",
+  "fix what DCLab Code shows wrong; send R&D findings to the session that owns the files",
+  "show H2's kind of help on the card, the person's change relayed as theirs; lock the route"
+ ],
+ "decisions": [
+  {
+   "decision": "send the HyperAck finding to the session editing Home instead of fixing draft/chat.py and plan.py here",
+   "why": "those files were open with uncommitted work in another session; two writers on one file lose work"
+  },
+  {
+   "decision": "lock R&D a6b439ec with --allow-local",
+   "why": "the intent route is committed and on GitHub; the other session's uncommitted files touch no route the lock reads"
+  },
+  {
+   "decision": "the person in the live runs answered 'Use your recommendation' to every question",
+   "why": "it shows what DCLab decides on its own, which is what the finding is about"
+  }
+ ],
+ "change": "dclab-code d997bac (card waiting line, job titles at a word), 4d4cebf (type of help on the card, lock).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "the Home card was blank until DCLab's first words",
+   "scenario": "a new draft in the chat: an empty card with only its input box for several seconds",
+   "cause": "no waiting state before the first stream event",
+   "fix": "the card says DCLab's agent is reading the problem until its first words or thinking arrive",
+   "test": "page tests; seen live on 4396",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "defect": "the intern job's title was cut mid-word",
+   "scenario": "Jobs tab: '... the solut'",
+   "cause": "slice(0, 300) on the task",
+   "fix": "clipWords: cut at a word with an ellipsis; three lines shown, the whole on hover",
+   "test": "units: clipWords; seen live",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "defect": "R&D's Home dropped an honest strong column without asking",
+   "scenario": "HyperAck: deliverey_category_id forbidden on 'single column separates the classes (AUC 0.816)'; DCLab's reviewer said 'available' (chosen when the order is placed), shown not applied; Home asked only about the fares; holdout 0.664 against the research's honest 0.945",
+   "cause": "statistics-only flags are kept out unless a person confirms, but Home never asks the person to confirm them",
+   "fix": "sent to the session owning draft/chat.py and plan.py: ask about every statistics-only or reviewer-disputed forbidden column before a build, with its evidence",
+   "test": "not yet: the other session's change",
+   "severity": "leakage"
+  },
+  {
+   "id": "F4",
+   "source": "self",
+   "defect": "R&D's H2 route was not relayed by DCLab Code",
+   "scenario": "sync-check: personWrites added POST /api/drafts/{draft_id}/intent",
+   "cause": "new R&D capability",
+   "fix": "a type-of-help bar on the card, Change relayed as the person's click, build button only for a prediction; lock updated",
+   "test": "page test: the intent drawn from the stream, changed, posted as {track}; units: the act's body check",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Telco live",
+   "gate": "problem to holdout through the chat, holdout read once, honest answers",
+   "fixed_before_run": true,
+   "result": "ROC-AUC 0.842 (0.821 to 0.865), CV 0.845, customerID kept out, review budgets explained, charts drawn; $0.27",
+   "verdict": "pass"
+  },
+  {
+   "name": "HyperAck live",
+   "gate": "the final fares kept out or asked, holdout read once",
+   "fixed_before_run": true,
+   "result": "fares kept out (lift +0.31 caught), holdout read once, but deliverey_category_id dropped without asking: 0.664 vs research 0.945; $0.28",
+   "verdict": "partial"
+  },
+  {
+   "name": "tests",
+   "gate": "every test passes",
+   "fixed_before_run": true,
+   "result": "dclab-code 152 of 152",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "DCLab Code carries the owner's real tables from a sentence to an honest holdout number; Home's kind of help is on the card; one R&D Home gap found and handed to its owner.",
+ "lessons": [
+  "A scripted 'use your recommendation' person shows what the system decides alone: that is where a silent default hides.",
+  "When the reviewer disagrees with the audit, the disagreement is a question for the person, not a footnote."
+ ],
+ "risks": [
+  "F3 stays open until Home asks about statistics-only forbidden columns.",
+  "The lock's onGitHub is false while R&D has the other session's uncommitted files."
+ ],
+ "commits": [
+  "dclab-code d997bac",
+  "dclab-code 4d4cebf"
+ ]
+}
