@@ -288,6 +288,9 @@ def next_benchmark_path(split: str, model: str) -> Path:
 
 
 def main(argv: list[str] | None = None, gateway: Any = None) -> int:
+    from dclab_rnd.memory.reading import memory_off_for_evaluation
+
+    memory_off_for_evaluation()  # 35.4: a graded run never reads a remembered line
     import argparse
 
     if gateway is None:  # the configured model is in .env, as for the server (a test passes its own gateway); read before

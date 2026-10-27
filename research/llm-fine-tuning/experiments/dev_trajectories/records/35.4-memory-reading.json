@@ -1,0 +1,112 @@
+{
+ "package": "35.4",
+ "title": "Reading memory: the brief at a session's start, recall, cited items, memory off in evaluations",
+ "date": "2026-10-28",
+ "request": "The owner: continue the memory plan non-stop; 35.4 is how agents read memory.",
+ "spec": "MEMORY_PLAN.md 35.4: brief(scope) into the first user message, never the system prompt; recall registered once; shown and cited ids recorded; evaluations with memory off.",
+ "plan": [
+  "Build the brief and recall on 35.1's select and resolve.",
+  "Wire the intern's first message and register recall.",
+  "Turn memory off in every evaluation runner.",
+  "Review, fix, rerun the prompt and harness suites, record, commit."
+ ],
+ "decisions": [
+  {
+   "decision": "With memory off, stored items are not read but the case's own project notes still are",
+   "why": "the rule is to start an evaluation with an empty memory; a project's notes are its own state, which the product shows"
+  },
+  {
+   "decision": "The brief's header is a prompt file",
+   "why": "a change to what an agent is told is a prompt change, gated by the suites like every prompt"
+  },
+  {
+   "decision": "remember through /mcp is left open",
+   "why": "a write in the project scope must be a move of the workflow graph, which this package does not add"
+  }
+ ],
+ "change": "dclab_rnd/memory/reading.py, tools.py (recall), readers.py (only the notes that still hold); agents/__init__.py; intern/loop.py; prompts intern_memory.md and memory_brief.md; memory_off_for_evaluation in every agent_eval runner and the Makefile targets; tests.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "defect": "A cleared approval reached the intern as settled",
+   "scenario": "approve a stage, then a change clears it: the old reader dropped it, the new one showed it under 'do not ask again what is settled'",
+   "cause": "the new reader dropped only removed notes",
+   "fix": "only the notes the studio's own active() still holds are read",
+   "test": "test_a_cleared_approval_is_not_read_as_settled",
+   "severity": "behaviour",
+   "impact": "the intern would skip a stage it must run again"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "defect": "An existing test failed on the new prompt's wording",
+   "scenario": "test_project_memory looked for the old header",
+   "cause": "the prompt's first words changed",
+   "fix": "the test reads the new header",
+   "test": "test_project_memory",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "defect": "Memory off also hid the project's own notes",
+   "scenario": "a graded run with a saved solution no longer saw that note and redid the step",
+   "cause": "the brief returned empty before reading anything",
+   "fix": "memory off reads no store; read notes still count",
+   "test": "test_memory_off_reads_no_stored_line_but_the_cases_own_notes_count",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "defect": "Several evaluation runners still read memory",
+   "scenario": "the live suite, the programme journeys, benchmarks v3 and v4, the analyst, investigator, conversation and Home evaluations",
+   "cause": "the switch was added to three runners only",
+   "fix": "every runner's main turns memory off; a behaviour test plants a fact and checks nothing reads it after the switch",
+   "test": "test_after_the_switch_a_stored_line_is_never_read",
+   "severity": "leakage"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "defect": "Lessons never reached the brief or recall, and a session without a project had no brief",
+   "scenario": "accepted workspace lessons shown on the memory page were never read by an agent",
+   "cause": "the intern read project notes only",
+   "fix": "accepted lessons read as know-how; the person's and workspace's items without a project too",
+   "test": "test_memory_reading",
+   "severity": "gap",
+   "open": "Home, the team and the orchestrator; remember through /mcp; protected names from callers; playbook bullets"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "defect": "Memory events could not be tied to their session",
+   "scenario": "memory.shown and memory.cited had no session or project id",
+   "cause": "no ids passed",
+   "fix": "the ids of the session and project ride on every memory read event",
+   "test": "test_events_name_their_session_and_project",
+   "severity": "gap"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "defect": "The brief's header was not under the prompt gate, corrections were not marked, and a secret in a note could reach the brief",
+   "scenario": "a header change would pass unmeasured; the model could not tell a person's correction; a pasted token in a note's reason reached the brief",
+   "cause": "a string in code; plain lines; read items skipped the secret screen",
+   "fix": "a prompt file; '(correction)' on a person's corrections; read items pass the secret screen",
+   "test": "test_the_header_is_a_prompt_file_under_the_gate, test_a_persons_correction_is_marked_in_the_brief, test_a_read_note_with_a_secret_never_reaches_the_brief",
+   "severity": "privacy"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Agents read memory: the intern's first message holds the brief (the project's holding notes, accepted lessons, the person's and workspace's items, corrections marked), recall is a registered tool, and every evaluation runs with stored memory off. Seven review findings fixed; the brief for Home and the team and remember through /mcp are left open.",
+ "lessons": [
+  "When a new reader replaces an old one, keep every filter the old one applied, or stale state returns.",
+  "Turn a switch on in every entry point, and test the behaviour, not the text."
+ ],
+ "risks": [
+  "Other sessions edit the same evaluation runners."
+ ],
+ "commits": []
+}

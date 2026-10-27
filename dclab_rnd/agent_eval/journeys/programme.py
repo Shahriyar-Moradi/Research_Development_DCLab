@@ -463,6 +463,9 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     dev: the rules arm (no model, no cost), and with ``--yes --cap-eur`` the roles arm as well. sealed: both arms, once, on the gate's seed; it needs ``--yes --cap-eur``
     (the roles arm sends requests), is refused if it was run, is stored whole, and a run in which a request failed is not stored (the rules cannot answer for a role)."""
+    from dclab_rnd.memory.reading import memory_off_for_evaluation
+
+    memory_off_for_evaluation()  # 35.4: a graded run never reads a remembered line
     import argparse
     import sys
 

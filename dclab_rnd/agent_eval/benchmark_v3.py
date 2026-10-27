@@ -296,6 +296,9 @@ def frozen_problem() -> str | None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from dclab_rnd.memory.reading import memory_off_for_evaluation
+
+    memory_off_for_evaluation()  # 35.4: a graded run never reads a remembered line
     import argparse
     import importlib
     import re

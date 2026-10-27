@@ -22,6 +22,9 @@ MAX_TOKENS = 2000  # the model reasons first: a reply cut at the limit is a fail
 
 
 def main(argv: list[str] | None = None) -> int:
+    from dclab_rnd.memory.reading import memory_off_for_evaluation
+
+    memory_off_for_evaluation()  # 35.4: a graded run never reads a remembered line
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.agent_eval.investigator")
     parser.add_argument("--split", choices=("dev", "sealed"), default="dev")
     parser.add_argument("--yes", action="store_true", help="send the requests (the plan is printed either way)")

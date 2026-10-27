@@ -11,6 +11,9 @@ import sys
 
 
 def main(argv=None) -> int:
+    from dclab_rnd.memory.reading import memory_off_for_evaluation
+
+    memory_off_for_evaluation()  # 35.4: a graded run never reads a remembered line
     from . import GATES, measure, sealed_runs, store, verdict
 
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.agent_eval.conversation", description=__doc__.split("\n")[0])

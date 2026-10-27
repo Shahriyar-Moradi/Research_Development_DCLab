@@ -120,7 +120,7 @@ class MemoryTests(unittest.TestCase):
         intern = Intern(SessionStore(self.home / "intern"), self.box)
         second = intern.start("Finish the churn model on this project.", project_id=self.pid)
         task = second["messages"][1]["content"]
-        self.assertIn("Project memory", task)
+        self.assertIn("Memory: what people", task)  # 35.4: the brief's prompt (intern_memory.md)
         self.assertIn("Solution saved: target churned (binary); forbidden refund_after", task)
         with fast_profile():
             done = intern.run(second["id"])

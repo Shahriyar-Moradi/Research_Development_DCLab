@@ -132,7 +132,7 @@ class DclabRegistryTests(unittest.TestCase):
         import jsonschema
 
         registry = default_registry()
-        self.assertEqual(len(registry.names("project")), 30)  # D9 get_charts, 17.2 understand_problem, 17.4 adopt_plan, 15.2 review_labels, 16.14 kind_checks, 22.8 decide, 28.5 run_programme, 30.18 find_examples, 34.4 decision_what_if
+        self.assertEqual(len(registry.names("project")), 31)  # D9 get_charts, 17.2 understand_problem, 17.4 adopt_plan, 15.2 review_labels, 16.14 kind_checks, 22.8 decide, 28.5 run_programme, 30.18 find_examples, 34.4 decision_what_if, 35.4 recall
         self.assertEqual(set(registry.names("draft")), {"ask_user", "record", "set_pack", "propose_workflow", "request_data", "get_profile", "get_analysis", "simulate_data", "build_solution", "set_intent",
                                                         "decide_point"})
         self.assertEqual(set(registry.names("session")), {"write_plan", "finish"})

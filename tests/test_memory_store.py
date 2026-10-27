@@ -131,7 +131,7 @@ class ReadersTest(unittest.TestCase):
             {"id": "n2", "at": "2026-10-21T08:00:00+00:00", "kind": "correction", "decision": "Metric is recall at the budget", "reason": "not accuracy",
              "who": "human", "move": "save_solution", "removed": None},
             {"id": "n3", "at": "2026-10-22T08:00:00+00:00", "kind": "correction", "decision": "Split by time", "reason": "drift",
-             "who": "agent", "move": "approve_stage", "removed": None},
+             "who": "agent", "move": "save_solution", "removed": None},
             {"id": "n4", "at": "2026-10-23T08:00:00+00:00", "kind": "decision", "decision": "Old note", "reason": "removed later",
              "who": "human", "move": "save_solution", "removed": {"by": "human"}},
             {"id": "n5", "at": "2026-10-24T08:00:00+00:00", "kind": "decision", "decision": "Line one\nline\u2028two", "reason": "",

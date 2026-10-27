@@ -41,9 +41,12 @@ def from_project(project: dict[str, Any]) -> list[MemoryItem]:
     pid = str(project.get("id") or "")
     if not pid:
         return []
+    from ..studio.memory import active
+
+    holding = {n.get("id") for n in active(project, limit=10**9)}  # an approval a later change cleared no longer holds
     out = []
     for note in project.get("memory") or []:
-        if note.get("removed"):
+        if note.get("removed") or note.get("id") not in holding:
             continue
         text = line(". ".join(t for t in (note.get("decision"), note.get("reason")) if t))
         if not text or not note.get("at"):

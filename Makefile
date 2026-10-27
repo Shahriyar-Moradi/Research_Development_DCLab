@@ -353,7 +353,7 @@ agent-metrics:  ## the agents' metrics ledger: the evaluation results read in, t
 
 agent-eval:  ## the scripted judgment suite (A4.1): planted traps, the standard plan and two reference policies; writes a new AEV result
 	@n=$$(ls evidence/campaigns/agent_eval_v1/results/AEV-*.json 2>/dev/null | wc -l | tr -d ' '); \
-	$(TEST_TMP) DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval --output evidence/campaigns/agent_eval_v1/results/AEV-$$(printf '%03d' $$((n + 1)))_judgment_v1_scripted.json
+	$(TEST_TMP) DCLAB_MEMORY=off DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval --output evidence/campaigns/agent_eval_v1/results/AEV-$$(printf '%03d' $$((n + 1)))_judgment_v1_scripted.json
 
 benchmark-v3:  ## benchmark v3 (15.9): v2 reseeded plus rare-event bases and traps; SPLIT=dev (default) or SPLIT=test (sealed: always recorded as a new BEN3 result)
 	@n=$$(ls evidence/campaigns/benchmark_v3/results/BEN3-*.json 2>/dev/null | wc -l | tr -d ' '); \
@@ -362,7 +362,7 @@ benchmark-v3:  ## benchmark v3 (15.9): v2 reseeded plus rare-event bases and tra
 
 benchmark:  ## the frozen benchmark (14.3): scripted policies on SPLIT=dev (default) or SPLIT=test (the sealed set; always recorded as a new BEN result)
 	@n=$$(ls evidence/campaigns/benchmark_v2/results/BEN-*.json 2>/dev/null | wc -l | tr -d ' '); \
-	$(TEST_TMP) DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval.benchmark --split $(or $(SPLIT),dev) \
+	$(TEST_TMP) DCLAB_MEMORY=off DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval.benchmark --split $(or $(SPLIT),dev) \
 	  --output evidence/campaigns/benchmark_v2/results/BEN-$$(printf '%03d' $$((n + 1)))_$(or $(SPLIT),dev)_scripted.json
 
 agent-eval-live:  ## the judgment suite with the configured model (A4.2): prints the plan; ARGS="--yes --cap-eur 2" runs it (caps, repeats, intervals)
@@ -424,7 +424,7 @@ home-eval:  ## the Home agent measured (H1): 72 written requests, six tracks, pl
 	$(TEST_TMP) $(PYTHON) -m dclab_rnd.agent_eval.home --split $(or $(SPLIT),dev) $(ARGS)
 
 harness-eval:  ## 21.5: the regression cases (the owner's morning first), accepted session cases (ARGS="--home DIR") and the dev journeys, graded step by step; a change to a prompt, a model or a gate is on only after it passes
-	$(if $(findstring --live,$(ARGS)),,DCLAB_NO_LIVE_MODELS=1) $(PYTHON) -m dclab_rnd.agent_eval.regression $(ARGS)
+	DCLAB_MEMORY=off $(if $(findstring --live,$(ARGS)),,DCLAB_NO_LIVE_MODELS=1) $(PYTHON) -m dclab_rnd.agent_eval.regression $(ARGS)
 
 business-examples:  ## 30.5: the business-examples knowledge base (tracks, replicas, the owner's solution, written examples), each with its source; ARGS="--find 'words'" searches it; ARGS=--practice measures the search on the practice questions (30.8)
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.business_examples $(ARGS)
@@ -444,7 +444,7 @@ twin-eval:  ## 25.8: the blind twin runs on studied samples judged against the p
 	$(PYTHON) -m dclab_rnd.twin eval $(ARGS)
 
 journeys:  ## 20.10: written people carried from the first sentence to the holdout number (SPLIT=dev|sealed; the sealed set runs once)
-	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval.journeys --split $(or $(SPLIT),dev) $(ARGS)
+	DCLAB_MEMORY=off DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval.journeys --split $(or $(SPLIT),dev) $(ARGS)
 
 code-check:  ## 20.9: every kind the engine runs, exported as code, reproduces its holdout number in a clean Python 3.12 (uv; ARGS="binary streams" for some)
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) scripts/code_check.py $(ARGS)

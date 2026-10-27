@@ -214,6 +214,15 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
   is a recorded tool call; a test fails if agent-eval, journeys, the benchmark or the harness suite reads a stored item;
   DCLab Code can call `recall` and `remember` through `/mcp` (its panel is that repository's own change).
 
+- **Status (2026-10-28): built and reviewed, in part.** `dclab_rnd/memory/reading.py` (`brief`, `as_message` under the
+  `memory_brief` prompt file, `recall` by words or by an embedder, `cited`, `memory_off_for_evaluation`), the `recall` tool
+  (project scope, so `/mcp` too), the intern's first message (the project's holding notes, the workspace's accepted lessons,
+  the person's and workspace's items; corrections marked; shown and cited ids on the session; events with the session and
+  project). Every evaluation runner turns stored memory off; the case's own project notes still count. Left open: the brief
+  for Home, the team and the orchestrator (their files are the Home session's work); `remember` through `/mcp` (a write
+  needs a workflow-graph move); protected names passed by callers (none knows a run's protected columns yet); playbook
+  bullets as know-how.
+
 ### 35.5 Vectors (only if 35.0 passed)
 
 - **Delivers:** the vector on each item, computed through the gateway's `embedding` purpose routed to the chosen local

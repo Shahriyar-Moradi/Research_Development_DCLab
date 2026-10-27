@@ -387,6 +387,9 @@ def run(split_name: str, policies: tuple[str, ...] = ("standard", "audit", "bad"
 
 
 def main(argv: list[str] | None = None) -> int:
+    from dclab_rnd.memory.reading import memory_off_for_evaluation
+
+    memory_off_for_evaluation()  # 35.4: a graded run never reads a remembered line
     import argparse
     import re
 

@@ -236,19 +236,37 @@ class Intern:
         text = session["task"]
         if session.get("project_id"):
             text += f"\n\nWork in the existing project {session['project_id']} (call describe_data first)."
-            notes = self._memory(session["project_id"])
-            if notes:  # A5.2: what earlier sessions and people decided; do not ask again what is settled here
-                text += "\n\n" + prompts.text("intern_memory") + "\n" + "\n".join(f"- {n}" for n in notes)
+        notes, shown = self._memory(session.get("project_id"), session.get("id"))
+        session["memory_shown"] = shown  # 35.4: the items this session was shown, so the ones its reply cites are recorded
+        if notes:  # A5.2, 35.4: the project's notes and what this person and workspace remember; do not ask again what is settled
+            text += "\n\n" + prompts.text("intern_memory") + "\n" + notes
         if (session.get("playbook") or {}).get("text"):  # H2: lessons from earlier graded problems, in the user's turn
             text += "\n\n" + prompts.text("playbook_intro") + "\n" + session["playbook"]["text"]
         return text + f"\n\nBudget: {session['budget']['max_steps']} tool calls, {session['budget']['max_minutes']} minutes."
 
-    def _memory(self, project_id: str) -> list[str]:
-        from dclab_rnd.studio import memory
-        try:
-            return memory.summary(self.toolbox.projects.get(project_id))
-        except KeyError:
-            return []
+    def _memory(self, project_id: str | None, session_id: str | None = None) -> tuple[str, list[str]]:
+        """35.4: the brief (the project's notes, the workspace's accepted lessons, the person's and the workspace's remembered
+        lines), as lines with their ids, and the ids shown. With memory off (every evaluation) no stored line is read and no
+        store is opened; the project's own notes still count."""
+        from dclab_rnd.memory import open_memory, readers
+        from dclab_rnd.memory.reading import brief, enabled
+        from dclab_rnd.memory.tools import chain, lessons_read, workspace_home
+
+        read = []
+        if project_id:
+            try:
+                read = readers.from_project(self.toolbox.projects.get(project_id))
+            except KeyError:
+                project_id = None
+        store = None
+        if enabled():
+            read += lessons_read(self.toolbox.projects)
+            try:
+                store = open_memory(workspace_home(self.toolbox.projects))
+            except Exception:  # noqa: BLE001 - no memory store: the project's own notes still count
+                store = None
+        b = brief(store, chain(self.toolbox.projects, project_id), read, ids={"conversation": session_id, "project": project_id})
+        return b.text, b.items
 
     def _exhausted(self, session: dict[str, Any], started: float) -> str | None:
         if session["used"]["steps"] >= session["budget"]["max_steps"]:
@@ -359,6 +377,11 @@ class Intern:
             return
         if out.stopped != "terminal":  # answered without finish: the answer is the report
             session["final"] = out.final or self._progress_note(session)
+        if session.get("memory_shown"):  # 35.4: the remembered items the answer used, by id
+            from dclab_rnd.memory.reading import cited
+
+            session["memory_cited"] = cited(str(session.get("final") or ""), session["memory_shown"],
+                                            ids={"conversation": session.get("id"), "project": session.get("project_id")})
         session["status"] = "completed"
         self.sessions.save(session)
 
