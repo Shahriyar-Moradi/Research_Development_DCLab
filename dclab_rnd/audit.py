@@ -31,7 +31,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Protocol
 
-KINDS = ("move", "approval", "approval_used", "policy", "routing", "solution", "data_import", "lesson_review", "memory_removed",
+KINDS = ("move", "approval", "approval_used", "policy", "routing", "solution", "data_import", "lesson_review", "memory_removed", "memory",
          "sign_in", "role_change", "deletion", "retention", "replay", "data_export", "brief",
          "workspace_chat", "department")  # replay (20.8): a final stage rerun in a scratch copy; workspace_chat (30.21): a question asked of the workspace's tables; department (30.22): a department agent's step
 FILTERS = ("kind", "status", "actor", "project_id", "draft_id")

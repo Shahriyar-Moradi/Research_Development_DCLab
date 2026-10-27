@@ -141,17 +141,53 @@ def remember(store: MemoryStore, item: MemoryItem, protected: Iterable[str] = ()
     why = check(item, tuple(protected))
     if why:
         raise Refused(why)
+    if secret(item.text):
+        raise Refused("looks like a key, a token or a password: never in memory")
     held = next((v for v in latest(store.log()) if v.id == item.id), None)
     if held is not None and held.status == "retired":  # the same words again would be stored and never seen: say so
         raise Refused("these words were retired: write a correction of what replaced them, in other words")
     return store.write(item)
 
 
-def retire_scope(store: MemoryStore, scope: str, scope_id: str) -> int:
-    """Every item of one scope retired, as new versions (a deleted project's items): how many. The versions before stay."""
+def retire_scope(store: MemoryStore, scope: str, scope_id: str, log: Any = None) -> int:
+    """Every item of one scope retired, as new versions (a deleted project's items): how many. The versions before stay;
+    each retirement is an event."""
     gone = [retire(i) for i in latest(store.log()) if i.scope == scope and i.scope_id == scope_id and i.status != "retired"]
     store.write_many(gone)
+    for item in gone:  # not linked to the deleted project: its events were just removed, and these must not bring one back
+        event(log, "memory.retired", item, reason=f"{scope} deleted", by="system", link=False)
     return len(gone)
+
+
+def secret(text: str) -> bool:
+    """A key, a token or a password in a text (the experience record's own pattern)."""
+    from dclab_core.experience import SECRET
+
+    return bool(SECRET.search(text or ""))
+
+
+def event(log: Any, kind: str, item: MemoryItem, *, reason: str = "", by: str | None = None, by_item: str | None = None, origin: str = "",
+          link: bool = True) -> None:
+    """One memory event in the workspace's record (35.3): the item's id, kind, scope and source; its text for a write or a
+    proposal. Never raises: the change it records stands."""
+    try:
+        from .. import experience
+
+        author = by or item.who
+        actor = "person" if author.startswith("person:") else ("system" if author == "system" else "agent")
+        if kind == "memory.retired":
+            payload = {"item": item.id, "scope": item.scope, "source": item.source, "by_item": by_item or item.retired_by or "",
+                       "reason": reason or "retired", "by": author}
+        else:
+            payload = {"item": item.id, "kind": item.kind, "scope": item.scope, "source": item.source, "by": author, "text": item.text}
+            if kind == "memory.written":
+                payload.update(status=item.status, correction="yes" if item.correction else "no", supersedes=item.supersedes or "", reason=reason)
+            else:
+                payload["from"] = origin or "agent"
+        ids = {"project": item.scope_id} if item.scope == "project" and link else {}
+        experience.record(kind, actor, payload, log=log, **ids)
+    except Exception as exc:  # noqa: BLE001
+        print(f"memory: could not record {kind}: {type(exc).__name__}", file=sys.stderr, flush=True)
 
 
 def view(store: MemoryStore | None, chain: list[tuple[str, str]], read: Iterable[MemoryItem] = ()) -> list[MemoryItem]:
@@ -162,4 +198,4 @@ def view(store: MemoryStore | None, chain: list[tuple[str, str]], read: Iterable
     return resolve([*stored, *read], chain)
 
 
-__all__ = ["FILE", "Refused", "MemoryStore", "latest", "FileMemory", "PgMemory", "open_memory", "remember", "retire_scope", "view"]
+__all__ = ["FILE", "Refused", "MemoryStore", "latest", "FileMemory", "PgMemory", "open_memory", "remember", "retire_scope", "event", "view"]

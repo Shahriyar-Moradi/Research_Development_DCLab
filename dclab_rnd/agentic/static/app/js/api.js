@@ -79,6 +79,31 @@
    *  @property {(Array<*>|null)=} lessons
    *  @property {*=} label
    */
+  /** @typedef {Object} MemoryCorrection
+   *  @property {*=} text
+   *  @property {*=} reason
+   *  @property {*=} project_id
+   */
+  /** @typedef {Object} MemoryItemDoc
+   *  @property {*=} id
+   *  @property {*=} kind
+   *  @property {*=} scope
+   *  @property {*=} text
+   *  @property {*=} status
+   */
+  /** @typedef {Object} MemoryProposal
+   *  @property {*=} message
+   *  @property {*=} source
+   */
+  /** @typedef {Object} MemoryReview
+   *  @property {*=} action
+   *  @property {*=} text
+   */
+  /** @typedef {Object} MemoryView
+   *  @property {(Array<*>|null)=} items
+   *  @property {(Array<*>|null)=} drafts
+   *  @property {(Array<*>|null)=} chain
+   */
   /** @typedef {Object} ModelsSummary
    *  @property {*=} tiers
    *  @property {*=} purposes
@@ -309,6 +334,10 @@
     ledgerSummary: ["GET", "/ledger/summary", [], []],
     listLessons: ["GET", "/lessons", [], ["project_id", "status"]],
     reviewLesson: ["POST", "/lessons/{lesson_id}/review", ["lesson_id"], []],
+    memoryView: ["GET", "/memory", [], ["project_id"]],
+    memoryPropose: ["POST", "/memory/proposals", [], []],
+    memoryCorrect: ["POST", "/memory/{item_id}/correct", ["item_id"], []],
+    memoryReview: ["POST", "/memory/{item_id}/review", ["item_id"], []],
     modelOverview: ["GET", "/models", [], []],
     agentServing: ["GET", "/models/agents", [], []],
     modelRoles: ["GET", "/models/roles", [], []],
@@ -988,6 +1017,29 @@
    *  @returns {Promise<Lesson>} */
   client.reviewLesson = (...args) => call('reviewLesson', args);
   client.path.reviewLesson = (...args) => build('reviewLesson', args).path;
+  /** GET /api/memory: Memory View
+   *  @param {{query?: {project_id?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<MemoryView>} */
+  client.memoryView = (...args) => call('memoryView', args);
+  client.path.memoryView = (...args) => build('memoryView', args).path;
+  client.href.memoryView = (...args) => '/api' + build('memoryView', args).path;
+  /** POST /api/memory/proposals: Memory Propose
+   *  @param {{body: MemoryProposal, headers?: Object}} [opts]
+   *  @returns {Promise<(MemoryItemDoc|null)>} */
+  client.memoryPropose = (...args) => call('memoryPropose', args);
+  client.path.memoryPropose = (...args) => build('memoryPropose', args).path;
+  /** POST /api/memory/{item_id}/correct: Memory Correct
+   *  @param {string} item_id
+   *  @param {{body: MemoryCorrection, headers?: Object}} [opts]
+   *  @returns {Promise<MemoryItemDoc>} */
+  client.memoryCorrect = (...args) => call('memoryCorrect', args);
+  client.path.memoryCorrect = (...args) => build('memoryCorrect', args).path;
+  /** POST /api/memory/{item_id}/review: Memory Review
+   *  @param {string} item_id
+   *  @param {{body: MemoryReview, headers?: Object}} [opts]
+   *  @returns {Promise<MemoryItemDoc>} */
+  client.memoryReview = (...args) => call('memoryReview', args);
+  client.path.memoryReview = (...args) => build('memoryReview', args).path;
   /** GET /api/models: Model Overview
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<ModelsSummary>} */

@@ -284,7 +284,7 @@ def forget(*, project: str | None = None, draft: str | None = None, visit: str |
             from ..storage import db
 
             if db.database_url(required=False) or (Path(home) / "memory").is_dir():  # a file workspace with no memory gets no folder
-                out["memory"] = retire_scope(open_memory(Path(home)), "project", project)
+                out["memory"] = retire_scope(open_memory(Path(home)), "project", project, log=log)
         except Exception as exc:  # noqa: BLE001
             out.setdefault("failed", []).append("memory")
             print(f"retention: could not retire the memory of what was deleted: {type(exc).__name__}", file=sys.stderr, flush=True)

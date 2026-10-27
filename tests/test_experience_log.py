@@ -121,6 +121,11 @@ WRITE_ROUTES = {
     "POST /api/projects/{project_id}/review/fixes": (NONE, "a notebook review's fixes, written by a model: its model.request is the event"),
     "DELETE /api/projects/{project_id}/memory/{note_id}": (EVENTS, ["decision.overridden"]),
     "POST /api/lessons/{lesson_id}/review": (EVENTS, ["decision.accepted"]),
+    "POST /api/memory/{item_id}/correct": (EVENTS, ["memory.written", "memory.retired"]),  # 35.3: the correction, and a stored item retired
+    "POST /api/memory/{item_id}/review": (EVENTS, ["memory.written", "memory.retired"]),  # 35.3: accepted or edited; rejected or replaced
+    "POST /api/memory/proposals": (EVENTS, ["memory.proposed"]),  # 35.3: a preference proposed; nothing when the words state none
+    "POST /api/drafts/{draft_id}/intent": (NONE, "H2: the person's choice of the kind of help is a label of the request.intent decision in the "
+                                                  "decision ledger (draft/capture.intent_chosen), not an event of its own"),
     "POST /api/intern/sessions": (EVENTS, ["chat.person", "agent.step", "chat.agent"]),
     "POST /api/intern/sessions/{session_id}/message": (EVENTS, ["chat.person", "chat.agent"]),
     "DELETE /api/intern/sessions/{session_id}": (NONE, "the session's events stay until retention (19.6)"),

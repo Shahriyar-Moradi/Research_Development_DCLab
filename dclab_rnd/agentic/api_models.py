@@ -254,6 +254,36 @@ class Lesson(Doc):
     scope: Any = None
 
 
+class MemoryItemDoc(Doc):  # dclab_core.memory_item.v1 (35.3)
+    id: Any = None
+    kind: Any = None
+    scope: Any = None
+    text: Any = None
+    status: Any = None
+
+
+class MemoryView(Doc):  # what this person sees, and the drafts they may review (35.3)
+    items: list[Any] | None = None
+    drafts: list[Any] | None = None
+    chain: list[Any] | None = None
+
+
+class MemoryCorrection(Doc):
+    text: Any = ""
+    reason: Any = None
+    project_id: Any = None
+
+
+class MemoryReview(Doc):
+    action: Any = ""
+    text: Any = None
+
+
+class MemoryProposal(Doc):
+    message: Any = ""
+    source: Any = None
+
+
 class Lessons(Doc):
     lessons: list[Any] | None = None
     label: Any = None

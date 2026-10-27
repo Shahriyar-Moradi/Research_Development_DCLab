@@ -178,7 +178,7 @@
     },
     "JsonValue": {}
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v14.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v15.json",
   "additionalProperties": false,
   "allOf": [
     {
@@ -6477,6 +6477,1728 @@
                 "by",
                 "kind",
                 "status"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "memory.cited"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "cited"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "cited"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "cited"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "cited"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "cited": {
+                "const": "count"
+              },
+              "items": {
+                "const": "meta"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "cited",
+                "items"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "cited",
+                "items"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "memory.proposed"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "from"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "from"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "from"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "from"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "by": {
+                "const": "meta"
+              },
+              "from": {
+                "const": "meta"
+              },
+              "item": {
+                "const": "meta"
+              },
+              "kind": {
+                "const": "meta"
+              },
+              "scope": {
+                "const": "meta"
+              },
+              "source": {
+                "const": "meta"
+              },
+              "text": {
+                "const": "person_text"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "by",
+                "from",
+                "item",
+                "kind",
+                "scope",
+                "source",
+                "text"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "by",
+                "from",
+                "item",
+                "kind",
+                "scope",
+                "source",
+                "text"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "memory.recalled"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "found"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "found"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "found"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "found"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "method"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "method"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "method"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "method"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "question"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "question"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "question"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "question"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "found": {
+                "const": "count"
+              },
+              "items": {
+                "const": "meta"
+              },
+              "method": {
+                "const": "meta"
+              },
+              "question": {
+                "const": "person_text"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "found",
+                "items",
+                "method",
+                "question"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "found",
+                "items",
+                "method",
+                "question"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "memory.retired"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by_item"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by_item"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by_item"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by_item"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "by": {
+                "const": "meta"
+              },
+              "by_item": {
+                "const": "meta"
+              },
+              "item": {
+                "const": "meta"
+              },
+              "reason": {
+                "const": "meta"
+              },
+              "scope": {
+                "const": "meta"
+              },
+              "source": {
+                "const": "meta"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "by",
+                "by_item",
+                "item",
+                "reason",
+                "scope",
+                "source"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "by",
+                "by_item",
+                "item",
+                "reason",
+                "scope",
+                "source"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "memory.shown"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "budget"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "budget"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "budget"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "budget"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "items"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "left_out"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "left_out"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "left_out"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "left_out"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "shown"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "shown"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "shown"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "shown"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "tokens"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "tokens"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "tokens"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "tokens"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "budget": {
+                "const": "count"
+              },
+              "items": {
+                "const": "meta"
+              },
+              "left_out": {
+                "const": "count"
+              },
+              "shown": {
+                "const": "count"
+              },
+              "tokens": {
+                "const": "count"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "budget",
+                "items",
+                "left_out",
+                "shown",
+                "tokens"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "budget",
+                "items",
+                "left_out",
+                "shown",
+                "tokens"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "memory.written"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "correction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "correction"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "correction"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "correction"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "item"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "kind"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "kind"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "reason"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "supersedes"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "text"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "by": {
+                "const": "meta"
+              },
+              "correction": {
+                "const": "meta"
+              },
+              "item": {
+                "const": "meta"
+              },
+              "kind": {
+                "const": "meta"
+              },
+              "reason": {
+                "const": "person_text"
+              },
+              "scope": {
+                "const": "meta"
+              },
+              "source": {
+                "const": "meta"
+              },
+              "status": {
+                "const": "meta"
+              },
+              "supersedes": {
+                "const": "meta"
+              },
+              "text": {
+                "const": "person_text"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "by",
+                "correction",
+                "item",
+                "kind",
+                "reason",
+                "scope",
+                "source",
+                "status",
+                "supersedes",
+                "text"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "by",
+                "correction",
+                "item",
+                "kind",
+                "reason",
+                "scope",
+                "source",
+                "status",
+                "supersedes",
+                "text"
               ]
             }
           }
@@ -15714,7 +17436,13 @@
         "programme.built",
         "team.handoff",
         "team.interrupt",
-        "team.recorded"
+        "team.recorded",
+        "memory.written",
+        "memory.proposed",
+        "memory.retired",
+        "memory.shown",
+        "memory.recalled",
+        "memory.cited"
       ],
       "title": "Kind",
       "type": "string"
@@ -15735,8 +17463,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.experience_event.v14",
-      "default": "dclab_core.experience_event.v14",
+      "const": "dclab_core.experience_event.v15",
+      "default": "dclab_core.experience_event.v15",
       "title": "Schema Version",
       "type": "string"
     },

@@ -10,6 +10,7 @@
   "data_import",
   "lesson_review",
   "memory_removed",
+  "memory",
   "sign_in",
   "role_change",
   "deletion",
@@ -227,7 +228,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v14"
+   "version": "dclab_core.experience_event.v15"
   },
   {
    "contract": "experience_session",
@@ -620,7 +621,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.124.0",
+ "dclab_core": "0.125.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1936,6 +1937,114 @@
     "status": "meta"
    },
    "kind": "job.stopped",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [],
+   "example": "python -m dclab_rnd.experience search --kind memory.cited",
+   "family": "memory",
+   "fields": {
+    "cited": "count",
+    "items": "meta"
+   },
+   "kind": "memory.cited",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/memory/writing.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind memory.proposed",
+   "family": "memory",
+   "fields": {
+    "by": "meta",
+    "from": "meta",
+    "item": "meta",
+    "kind": "meta",
+    "scope": "meta",
+    "source": "meta",
+    "text": "person_text"
+   },
+   "kind": "memory.proposed",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [],
+   "example": "python -m dclab_rnd.experience search --kind memory.recalled",
+   "family": "memory",
+   "fields": {
+    "found": "count",
+    "items": "meta",
+    "method": "meta",
+    "question": "person_text"
+   },
+   "kind": "memory.recalled",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/memory/__init__.py",
+    "dclab_rnd/memory/writing.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind memory.retired",
+   "family": "memory",
+   "fields": {
+    "by": "meta",
+    "by_item": "meta",
+    "item": "meta",
+    "reason": "meta",
+    "scope": "meta",
+    "source": "meta"
+   },
+   "kind": "memory.retired",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [],
+   "example": "python -m dclab_rnd.experience search --kind memory.shown",
+   "family": "memory",
+   "fields": {
+    "budget": "count",
+    "items": "meta",
+    "left_out": "count",
+    "shown": "count",
+    "tokens": "count"
+   },
+   "kind": "memory.shown",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/memory/__init__.py",
+    "dclab_rnd/memory/writing.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind memory.written",
+   "family": "memory",
+   "fields": {
+    "by": "meta",
+    "correction": "meta",
+    "item": "meta",
+    "kind": "meta",
+    "reason": "person_text",
+    "scope": "meta",
+    "source": "meta",
+    "status": "meta",
+    "supersedes": "meta",
+    "text": "person_text"
+   },
+   "kind": "memory.written",
    "leaves_at": "improve",
    "never_leaves": [],
    "train_only": []

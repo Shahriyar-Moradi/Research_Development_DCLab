@@ -195,6 +195,14 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
 - **Done when:** a planted lesson naming a benchmark's column is refused; a know-how draft is not shown before review; a
   correction retires the old item; text with a line break or an instruction-looking second line is cut to one line.
 
+- **Status (2026-10-28): built and reviewed** (dclab-core 0.125.0: `ExperienceEvent` v15 with the six `memory.*` kinds).
+  `dclab_rnd/memory/writing.py` (`record_fact`, `draft_know_how`, `review`, `correct`, `propose_preference`,
+  `first_line`), events from every change, `retire_scope`'s retirements unlinked from the deleted project; routes
+  `GET /api/memory`, `POST /api/memory/{id}/correct`, `POST /api/memory/{id}/review`, `POST /api/memory/proposals`, each
+  in the audit trail. Rules the review added: no key, token or password in memory; a person's preference confirmed or
+  edited by that person only (the owner may accept or reject it); a draft is reviewed, never corrected; know-how
+  corrected by a reviewer only; only an item the person sees can be corrected. Not yet: a chat calling
+  `propose_preference` (Home's and the intern's chat belong to their own packages).
 ### 35.4 Reading: the brief and `recall`
 
 - **Delivers:** `brief(scope)` built by `select`, joined to the first user message of the intern, the Home agent, the

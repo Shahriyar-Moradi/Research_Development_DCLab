@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.125.0 (2026-10-28)
+
+- `experience` (35.3): `ExperienceEvent` v15 adds the memory kinds: `memory.written`, `memory.proposed`, `memory.retired`,
+  `memory.shown`, `memory.recalled` and `memory.cited` (the item's id, kind, scope, source and author; a written or
+  proposed item's text as person text, so it leaves only under consent, redacted). v14 events are read as v15. The main
+  product produces none yet (`KINDS_MISSING` says why).
+
 ## 0.124.0 (2026-10-28)
 
 - `memory` (35.1): one memory for the agents. `MemoryItem` v1, one visible line (no control character, line or

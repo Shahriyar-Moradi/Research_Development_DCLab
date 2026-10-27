@@ -1,0 +1,154 @@
+{
+ "package": "35.3",
+ "title": "Writing to memory: facts, reviewed know-how, a person's corrections and preferences, every change an event",
+ "date": "2026-10-28",
+ "request": "The owner: continue the memory plan non-stop; 35.3 is how items enter, change and leave memory, each an event.",
+ "spec": "MEMORY_PLAN.md 35.3: remember behind check, automatic for sourced facts, drafts for know-how into a review; a person's correction (POST /api/memory/{id}/correct) supersedes; a preference said in a chat proposed for the person to confirm with one click; every write and retirement an event. Done when a planted lesson naming a benchmark column is refused, a know-how draft is not shown before review, a correction retires the old item, and a second line is cut to one line.",
+ "plan": [
+  "Add the memory event kinds to the core's experience contract (v15), with the main product's reason for not producing them.",
+  "Write the writing module's tests, then the module: facts, drafts and review, corrections, preferences, events.",
+  "Add the routes, the role rules and the audit lines; regenerate the web client.",
+  "Review, fix every finding with a test, record, commit."
+ ],
+ "decisions": [
+  {
+   "decision": "All six memory event kinds were added in one contract version, those 35.4 emits included",
+   "why": "one version bump instead of two; the kinds were already named in the plan"
+  },
+  {
+   "decision": "A written or proposed item's text is person text in the event, whoever wrote it",
+   "why": "the stricter class: it leaves the workspace only under consent and redacted, and the capture keeps it whole for training"
+  },
+  {
+   "decision": "Writers keep the first line only and say that more was dropped",
+   "why": "a second line is where an instruction rides in; collapsing the lines would keep it inside the item"
+  },
+  {
+   "decision": "The review route is open to any signed-in person, the rules inside decide",
+   "why": "a person must be able to confirm their own preference whatever their role, while know-how still needs a reviewer"
+  },
+  {
+   "decision": "A chat calling the preference proposal is left to the chats' own packages",
+   "why": "Home's and the intern's chat files belong to another session's work in progress"
+  }
+ ],
+ "change": "dclab_core/experience.py (v15, six memory kinds), schemas, adapters/main_product_experience.py; dclab_rnd/memory/writing.py; memory/__init__.py (event, secret, retire_scope events); experience/retention.py; agentic/routers/memory.py, api_models.py, accounts/guard.py, audit.py (the memory kind); the generated web client; tests/test_memory_writing.py, test_experience_log.py (the memory routes and the intent route of H2, which had no entry), test_core_experience.py.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "defect": "A key or password could be stored in memory",
+   "scenario": "a correction whose text held an API key was stored, returned, and would reach briefs; its event was refused by the contract's credential check, so the write left no record",
+   "cause": "only protected column names were screened at the door",
+   "fix": "remember refuses text matching the experience record's secret pattern, and a preference with one is never proposed",
+   "test": "test_a_key_or_password_never_enters_memory",
+   "severity": "privacy",
+   "impact": "a person's key shown to the model in every later session"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "defect": "A reviewer could confirm or edit another person's preference",
+   "scenario": "Bob, a reviewer, edits Alice's draft into a different statement and it becomes an active fact of Alice without her",
+   "cause": "any reviewer role passed for any draft",
+   "fix": "a person's preference is confirmed or edited by that person; the owner may only accept or reject it",
+   "test": "test_a_reviewer_cannot_confirm_or_edit_another_persons_preference",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "defect": "A correction skipped the review of know-how",
+   "scenario": "a data scientist corrects an agent's know-how draft by one word and it becomes active, ranked first as a correction",
+   "cause": "correct took drafts and any role",
+   "fix": "a draft is reviewed, never corrected; know-how is corrected by a reviewer only; the route corrects only what the person sees",
+   "test": "test_a_draft_is_reviewed_never_corrected_and_know_how_needs_a_reviewer",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "defect": "Deleting a project brought its events back",
+   "scenario": "the project's events were deleted, then the memory retirements were recorded with the project's id",
+   "cause": "the retirement event linked the project",
+   "fix": "a deletion's retirements are recorded without the project's id (the item id and scope stay in the payload)",
+   "test": "test_a_deleted_projects_retirements_bring_back_no_event_of_it",
+   "severity": "privacy"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "defect": "Retirement events carried no source",
+   "scenario": "the plan asks each retirement event for the item's id and source",
+   "cause": "the kind had no source field",
+   "fix": "source added to memory.retired before the version was released",
+   "test": "test_a_deleted_projects_retirements_bring_back_no_event_of_it",
+   "severity": "gap"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "defect": "An edit to retired words was lost without notice",
+   "scenario": "reject one draft, edit another into the same words: the call said active, nothing was ever shown, and the draft was retired",
+   "cause": "the edit wrote past the door's checks",
+   "fix": "the edited item goes through remember first; the draft waits when it is refused",
+   "test": "test_an_edit_to_retired_words_is_refused_not_lost",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "defect": "The review did not say who accepted, and a correction's reason was dropped",
+   "scenario": "an accepted lesson's event named the agent that drafted it; no audit line; the reason given with a correction kept nowhere",
+   "cause": "the event used the item's author; the routes wrote no audit",
+   "fix": "the accept event names the reviewer; review and correct write audit lines; the reason is in the event",
+   "test": "test_the_reviewer_and_the_reason_are_recorded",
+   "severity": "gap"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "defect": "The preference rule caught ordinary requests and missed real preferences",
+   "scenario": "'I want you to predict churn next month' became a preference; a curly apostrophe, a Persian verb at the end, or a preference on the second line was missed; a separator character hid a second line",
+   "cause": "a list of openings without the verbs that make them a preference",
+   "fix": "always, never and the 'want you to' forms count only before a verb of answering or writing; the curly apostrophe; Persian forms anywhere in the line; every line read; more line ends split",
+   "test": "test_preferences_caught_and_ordinary_requests_left_alone",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "The route registry test failed on the main branch for another session's route",
+   "scenario": "the H2 intent route had no line saying what it records",
+   "cause": "a route added without its registry entry",
+   "fix": "the entry added: it records a label in the decision ledger, not an event",
+   "test": "test_every_write_route_says_what_it_records",
+   "severity": "gap"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "The writing tests checked the file store only, and failed on PostgreSQL",
+   "scenario": "run with --pg, a deleted project's retirements were looked for in the file store while deletion used the database store",
+   "cause": "the tests named the file store directly, the same mistake 35.2's review had found in its own deletion test",
+   "fix": "the tests open the workspace's own store, so the same tests check files and PostgreSQL",
+   "test": "test_memory_writing under run_parallel --pg",
+   "severity": "behaviour",
+   "impact": "the nightly full gate on PostgreSQL would have failed"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Writing to memory is built and reviewed: sourced facts at once, know-how as drafts until a reviewer accepts them, a person's corrections superseding what they correct, preferences proposed for the person to confirm, every change an event and every review in the audit. Eight review findings fixed with tests, the most serious a key that could enter memory and a reviewer able to rewrite another person's preference.",
+ "lessons": [
+  "Screen secrets at memory's door, not only names: what is stored is shown to a model later.",
+  "A preference belongs to its person: no other role may confirm what it says.",
+  "Record a deletion's consequences without the deleted thing's id, or the record brings it back.",
+  "A sentence rule for preferences needs the verbs that make it one, and tests of ordinary requests that must not match.",
+  "A lesson from one package is not learned until the next package's tests apply it: open the workspace's store in every storage test."
+ ],
+ "risks": [
+  "Another session's routes share the route registry test.",
+  "The review route is open to any signed-in person; the rules live in the writing module."
+ ],
+ "commits": []
+}

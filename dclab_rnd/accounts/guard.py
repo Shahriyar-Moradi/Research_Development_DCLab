@@ -27,6 +27,10 @@ SPECIAL = {
     ("POST", "/api/projects/{project_id}/approvals"): "approve_gate",
     ("POST", "/api/projects/{project_id}/stages/{stage}/approve"): "approve_stage",
     ("POST", "/api/lessons/{lesson_id}/review"): "review",
+    # 35.3: memory. A review is open to any signed-in person: know-how still needs a reviewer, a preference its own person
+    # (dclab_rnd/memory/writing.review checks); stating one's own preference changes only one's own drafts
+    ("POST", "/api/memory/{item_id}/review"): "read",
+    ("POST", "/api/memory/proposals"): "read",
     ("POST", "/api/models/routing"): "review",
     # questions spend the model budget but change nothing: every role may ask (package 10.6 limits the spend)
     ("POST", "/api/projects/{project_id}/ask"): "read",
