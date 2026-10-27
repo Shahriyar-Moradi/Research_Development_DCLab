@@ -1,0 +1,103 @@
+{
+ "package": "36.1",
+ "title": "The coverage report and its gate: every agent's and every kind of help's training data, counted",
+ "date": "2026-10-28",
+ "request": "The owner's goal: every agent collects its thinking and reasoning, for every kind of help; 36.1 turns the gaps into numbers.",
+ "spec": "Phase 12 plan 36.1: counts per model type by agent and by kind of help (runs, kept exchanges, recorded thinking, reasoning by source, outcomes, Persian and English) into the catalog; a gate test that every agent and track has a capture path.",
+ "plan": [
+  "Take over the helper's module.",
+  "Write the gate and report tests.",
+  "Run on the real store.",
+  "Review, fix, record, commit."
+ ],
+ "decisions": [
+  {
+   "decision": "A request is counted once by its workspace and its body without the store's context",
+   "why": "the store keeps a rewritten log again whole, so the same line returns under new record ids"
+  },
+  {
+   "decision": "Only the person's own label moves a draft to another kind of help",
+   "why": "a model's or a blind label is evidence about the reading, not the person's choice"
+  },
+  {
+   "decision": "Only the curation choices of the kept exchanges are read",
+   "why": "all choices took 2.6 GB on an 8 GB machine; the report needs about two thousand"
+  }
+ ],
+ "change": "dclab_rnd/store/coverage.py (new), store/catalog.py (keeps the coverage summary; the repository copy holds no time), Makefile (coverage), tests/test_store_coverage.py.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "defect": "Model calls were counted two or three times",
+   "scenario": "23,515 calls reported where about 11,866 distinct requests exist",
+   "cause": "dedup by store record id, which changes when a rewritten log is kept again",
+   "fix": "dedup by workspace and the request's body without the store's context; database rows counted too",
+   "test": "test_a_request_kept_in_two_entry_versions_counts_once",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "defect": "The orchestrator's runs fell under its purpose and the report showed a false gap",
+   "scenario": "16 runs under home_orchestrator, and 'home.project: no run recorded'",
+   "cause": "runs recorded by the purpose name",
+   "fix": "a run's name read through the harness's purposes when it is not an agent",
+   "test": "test_runs_by_agent_and_track",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "defect": "The report peaked at 2.3 GB of memory",
+   "scenario": "every curation choice loaded on the 8 GB machine",
+   "cause": "the set builders' loader reused",
+   "fix": "only the kept exchanges' choices, read line by line: 0.9 GB",
+   "test": "",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "defect": "Runs tied to no draft were counted as prediction, and any label moved a draft",
+   "scenario": "intern sessions under prediction; a blind label moved a draft to analysis",
+   "cause": "an unknown id defaulted to prediction; every first label replaced the value used",
+   "fix": "only drafts known to be built are prediction; only the person's own label replaces the value used",
+   "test": "test_only_the_persons_own_label_moves_a_draft",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "defect": "Calls by kind of help were always zero, Home's own conversations were not Home's, and the catalog copy changed on every run",
+   "scenario": "a column of zeros; 931 examples under another name; a committed file rewritten by the time",
+   "cause": "calls never added to the track table; an unmapped task name; one writer kept the summary's time",
+   "fix": "calls by track; home_conversation mapped to home; the time stripped from the copy",
+   "test": "test_a_rebuild_keeps_the_summary_and_the_copy_holds_no_time",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the coverage report on the real store and workspace",
+   "gate": "the report runs read-only, under about one gigabyte of memory, and counts each request once",
+   "fixed_before_run": false,
+   "result": "29 seconds, 0.9 GB peak; 12,103 calls; 36 gaps by name; every kind of help but prediction has no run yet",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "0.9 GB under about one gigabyte; each request once",
+   "limits": [
+    "the counts describe this machine's store and workspace on one night"
+   ]
+  }
+ ],
+ "outcome": "The coverage report and its gate are built and reviewed: every agent and kind of help has a capture path or fails the suite, and the report counts each request once, in under a gigabyte. It shows the gap the owner's goal names: no run yet under analysis, preparation, reporting, business or advice.",
+ "lessons": [
+  "Count by what a record is, not by the id the store gave a copy of it.",
+  "On a small machine, load only the rows a report needs."
+ ],
+ "risks": [
+  "The report reads the whole store: its time grows with it."
+ ],
+ "commits": []
+}

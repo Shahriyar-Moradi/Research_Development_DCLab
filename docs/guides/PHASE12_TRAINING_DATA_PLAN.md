@@ -66,6 +66,10 @@ memory.
 - A test: every agent in `harness.AGENTS` and every track has a capture path (the events and records it leaves) or a
   written reason why not; a new agent without one fails the suite.
 - Reuse: `store/catalog`, the keepers' inventory, `experience` event kinds, `ledger` points (`request.intent`).
+- **Status (2026-10-28): built and reviewed.** `dclab_rnd/store/coverage.py`, `make coverage` (`ARGS=--no-write` prints
+  only). On the real store (29 s, 0.9 GB): 12,103 model calls; Home's runs, 3,026 runs and 3,197 calls under prediction;
+  no run or call yet under analysis, preparation, reporting, business or advice (the tracks Home began reading in H2);
+  36 gaps by name. A helper session wrote the module and stopped on a model safety check; finished here.
 
 ### 36.2 Outcomes for the kinds of help that are not prediction (with the Home session)
 - A non-prediction track ends with something a person can judge: the table, chart, report or answer produced, and the

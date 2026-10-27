@@ -65,11 +65,18 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
     store = Store(layout)
     from dclab_core.store_rules import RULES, VERSION
 
-    return {"schema_version": 1, "built_at": now(), "root": "the store's root (dclab-records, owner/main)", "costs": _costs(layout),
-            "kinds": {k: {"what": KINDS[k], **v} for k, v in store.counts().items()},
-            "model_types": {m: {"what": MODEL_TYPES[m], "shapes": list(EXAMPLE_SHAPES[m]), "sets": s} for m, s in _sets(layout).items()},
-            "quarantine": _quarantine(layout), "capture_rules": {"version": VERSION, "tasks": sorted(RULES)},
-            "schemas": [f"schemas/{n}.json" for n in SCHEMAS]}
+    doc = {"schema_version": 1, "built_at": now(), "root": "the store's root (dclab-records, owner/main)", "costs": _costs(layout),
+           "kinds": {k: {"what": KINDS[k], **v} for k, v in store.counts().items()},
+           "model_types": {m: {"what": MODEL_TYPES[m], "shapes": list(EXAMPLE_SHAPES[m]), "sets": s} for m, s in _sets(layout).items()},
+           "quarantine": _quarantine(layout), "capture_rules": {"version": VERSION, "tasks": sorted(RULES)},
+           "schemas": [f"schemas/{n}.json" for n in SCHEMAS]}
+    try:  # 36.1: the coverage summary is written by `make coverage` (store/coverage.py); a rebuild keeps the last one
+        previous = json.loads(layout.catalog.read_text(encoding="utf-8")) if layout.catalog.exists() else {}
+    except ValueError:
+        previous = {}
+    if isinstance(previous.get("coverage"), dict):
+        doc["coverage"] = previous["coverage"]
+    return doc
 
 
 README = """# DCLab's store
@@ -123,7 +130,10 @@ def write(layout: Optional[Layout] = None, copy: Optional[Path] = None) -> dict[
     if copy is None and layout.root.resolve() == DEFAULT.resolve():
         copy = COPY
     if copy is not None:
-        write_json(copy, {k: v for k, v in doc.items() if k != "built_at"})  # no time: it changes only when the store does
+        kept = {k: v for k, v in doc.items() if k != "built_at"}  # no time: it changes only when the store does
+        if isinstance(kept.get("coverage"), dict):
+            kept["coverage"] = {k: v for k, v in kept["coverage"].items() if k != "built_at"}  # 36.1: the coverage summary's time too
+        write_json(copy, kept)
     return doc
 
 
