@@ -200,7 +200,10 @@ def read_draft(draft: Mapping[str, Any], columns: set[str], id_values: set[str])
     from dclab_rnd.draft import pack as packs
 
     allowed = set().union(*(_source_numbers(x) for x in texts)) if texts else set()
-    for source in (draft.get("analysis"), draft.get("answers"), draft.get("assets"), draft.get("cleaning_log"), list(packs.OPENING.values())):
+    from dclab_rnd.draft.chat import COSTS_QUESTION  # the product's own example amounts ("a call costs 5"), as the openings are
+
+    for source in (draft.get("analysis"), draft.get("answers"), draft.get("assets"), draft.get("cleaning_log"), list(packs.OPENING.values()),
+                   COSTS_QUESTION):
         allowed |= _source_numbers(source)
     allowed |= {str(len(draft.get("cleaning_log") or []))}
     uncited: list[str] = []

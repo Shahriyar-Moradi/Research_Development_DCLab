@@ -187,6 +187,16 @@
    "cause": "The command-line test class was appended after the block.",
    "fix": "The block is the file's last statement again.",
    "test": "test_refusals"
+  },
+  {
+   "id": "F14",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Ported to main, the suite counted the product's own example amounts as an uncited number.",
+   "scenario": "d-p1 on main: the costs question's example 'a lost customer costs 300' (34.4, written after the branch split) scored as uncited.",
+   "cause": "The checker accepted the opening questions as the product's words, not the costs question's example.",
+   "fix": "COSTS_QUESTION is a source, as the openings are.",
+   "test": "the baseline on main, HOME-002 (uncited 0)"
   }
  ],
  "measurements": [
@@ -202,6 +212,17 @@
    "limits": [
     "Written requests, not people: it says how Home reads these sentences.",
     "The model arm has not run; the gate is read with it."
+   ]
+  },
+  {
+   "name": "HOME-002, the baseline on main (2026-10-28), rules alone, dev",
+   "gate": "home_gate_v1 is read with the model: rules alone is the baseline",
+   "fixed_before_run": true,
+   "result": "track 0.194 (7 of 36; en 0.208, fa 0.125, mixed 0.25); fields 2 right, 0 wrong, 76 missed; median questions 4 (main asks the costs and the kind's questions); traps 1 of 6; uncited 0; lost to not-sure 3",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "limits": [
+    "H1 was built on an older branch; main's Home is much newer, so this is the baseline H2 is ported against"
    ]
   }
  ],

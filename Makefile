@@ -417,6 +417,9 @@ refusal-test:  ## H1 of the harness that learns: a fixed list of bad moves every
 learning-baseline:  ## H0 of the harness that learns: today's DCLab on a family's challenge packs, nothing learned (the zero of every learning curve); FAMILY=groups SPLIT=check|learning|sealed N=20; a sealed partition is read once
 	DCLAB_NO_LIVE_MODELS=1 DCLAB_DECISION_SHADOW=0 $(PYTHON) -m dclab_rnd.learning baseline --family $(or $(FAMILY),groups) --split $(or $(SPLIT),check) --n $(or $(N),20) --write $(ARGS)
 
+home-eval:  ## the Home agent measured (H1): 72 written requests, six tracks, planted traps; the rules alone on SPLIT=dev, ARGS="--save" stores it, ARGS="--yes --cap-eur 2" runs Home with the model
+	$(TEST_TMP) $(PYTHON) -m dclab_rnd.agent_eval.home --split $(or $(SPLIT),dev) $(ARGS)
+
 harness-eval:  ## 21.5: the regression cases (the owner's morning first), accepted session cases (ARGS="--home DIR") and the dev journeys, graded step by step; a change to a prompt, a model or a gate is on only after it passes
 	$(if $(findstring --live,$(ARGS)),,DCLAB_NO_LIVE_MODELS=1) $(PYTHON) -m dclab_rnd.agent_eval.regression $(ARGS)
 
