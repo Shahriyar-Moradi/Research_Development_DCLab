@@ -23,6 +23,11 @@ remains".
 and five scopes in one `MemoryItem` contract, a brief and a `recall` tool, forgetting without deleting; embeddings are
 measured first (35.0) and enter only if they win.
 
+**Phase 12, training data that teaches why and never forgets (planned 2026-10-28):** 36.0 to 36.7 in
+`PHASE12_TRAINING_DATA_PLAN.md`: every agent's thinking and reasoning collected, coverage per agent and per kind of help,
+outcomes for non-prediction help, frozen exams, replay sets and verified code against forgetting. Part A (the backfill of
+past data's reasoning, and thinking for every purpose) is built by the session working on Home.
+
 ## The two goals it serves
 
 1. **DCLab solves machine-learning problems the right way, end to end**: it understands the problem and the data,
