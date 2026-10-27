@@ -1,0 +1,67 @@
+{
+  "package": "dclab-code-v1.53",
+  "title": "DCLab's read-only tools run without an Allow click",
+  "date": "2026-10-27",
+  "request": "Open question to the owner (read-only tools without an Allow click?), recommended yes; owner: do not wait for me, continue.",
+  "spec": "R&D dclab_rnd/mcp_server.py (readOnlyHint); dclab-code server/dclab.js, server/engine.js (ask), server/config.js (dclab.allowReads)",
+  "plan": [
+    "find what marks a tool as reading",
+    "carry it in the MCP list",
+    "allow those in ask() when no guard fires",
+    "tests, a check on the real server"
+  ],
+  "decisions": [
+    {
+      "decision": "act on the recommendation without the owner's answer, reversible by one setting",
+      "why": "the owner said not to wait; the change only skips a click for tools that change nothing, and the guards still ask"
+    },
+    {
+      "decision": "the read set comes from R&D's registry (effect read), not a list in the app",
+      "why": "one source: a tool R&D changes to a write stops being auto-allowed with no app change"
+    },
+    {
+      "decision": "a guard hit always asks, even for a read",
+      "why": "a read of a sealed path or the holdout is exactly what the guards exist for"
+    }
+  ],
+  "change": "R&D d808e51d; dclab-code 967d4f8.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "test",
+      "defect": "the new test left cards open and failed after the server stopped",
+      "scenario": "asks still pending at t.stop()",
+      "cause": "the session denied them after the recorder closed: write after end",
+      "fix": "the test answers its open cards before stopping",
+      "test": "the test passes without late activity",
+      "severity": "flaky"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "dclab-code 149 of 149; R&D test_mcp, harness gate, registry 48 of 48",
+      "verdict": "pass"
+    },
+    {
+      "name": "real tools server",
+      "gate": "reads marked, writes not",
+      "fixed_before_run": true,
+      "result": "41 tools, 25 read-only; get_charts yes; run_stage, dclab_call no",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Asking for charts or results no longer stops for a click; anything that changes DCLab still asks.",
+  "lessons": [
+    "Take a permission's scope from the system that owns the tools, not from a list in the client."
+  ],
+  "risks": [
+    "The owner never answered; dclab.allowReads false reverses it."
+  ],
+  "commits": [
+    "R&D d808e51d",
+    "dclab-code 967d4f8"
+  ]
+}
