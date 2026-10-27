@@ -1,0 +1,75 @@
+{
+  "package": "dclab-code-v1.51",
+  "title": "A session in its own copy can be forked into a new copy",
+  "date": "2026-10-27",
+  "request": "Open gap from the owner's list: forking a session that works in its own copy was refused. Owner: continue non-stop.",
+  "spec": "dclab-code server/app.js (POST sessions/{id}/fork), tests/server.test.js",
+  "plan": [
+    "find why it was refused",
+    "check the agent resumes a fork from another folder",
+    "fork into a new copy from the branch",
+    "test, live check"
+  ],
+  "decisions": [
+    {
+      "decision": "the fork gets its own new copy from the original copy's branch tip, merging into the same base",
+      "why": "two sessions must never share a folder; Claude Code's desktop app forks the same way (commit first, uncommitted edits stay)"
+    },
+    {
+      "decision": "uncommitted changes are named in the fork's note, not refused",
+      "why": "the person may want the fork anyway; saying what stays behind is enough"
+    },
+    {
+      "decision": "verify cross-folder resume before building",
+      "why": "the SDK files a conversation under the folder it ran in; forkSession has no target folder"
+    }
+  ],
+  "change": "dclab-code 425afb4.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "risk: a forked conversation might not resume in the new copy's folder",
+      "scenario": "forkSession writes under the original's folder; the fork runs in another",
+      "cause": "conversations are filed by folder",
+      "fix": "none needed: measured that resume finds it from any folder (a made-up id fails)",
+      "test": "SDK probe without an API key; live PELICAN check",
+      "severity": "latent"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "defect": "the live script read the fork's copied history as its answer",
+      "scenario": "waiting for a result in the fork's records",
+      "cause": "a fork's records begin with the original's copied results",
+      "fix": "the check skips copiedFrom records",
+      "test": "live rerun: PELICAN",
+      "severity": "flaky"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "147 of 147 (the refusal test replaced by a fork-into-copy test: committed file comes, uncommitted stays and is named, removed copy refused)",
+      "verdict": "pass"
+    },
+    {
+      "name": "live, Haiku 5.5",
+      "gate": "the fork in its new copy remembers the original's conversation",
+      "fixed_before_run": true,
+      "result": "PELICAN, $0.04",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Fork works for every session; a fork of a copy session works in its own new copy.",
+  "lessons": [
+    "Probe the SDK's behaviour without an API key before designing around a guess.",
+    "A fork's records start with copies: count only its own."
+  ],
+  "risks": [],
+  "commits": [
+    "dclab-code 425afb4"
+  ]
+}
