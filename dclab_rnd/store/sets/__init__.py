@@ -80,8 +80,34 @@ def write_set(layout: Layout, model_type: str, folder: str, examples: Iterable[A
                            label_sources=dict(labels), weights=weights, consent=consent, decontaminated=list(decontaminated), commit=commit,
                            built_at=now())
     write_json(base / "MANIFEST.json", json.loads(manifest.model_dump_json()))
+    write_json(base / "REASONING.json", reasoning_counts(examples))  # the owner (2026-10-28): the gap closing, per source
     (base / "CARD.md").write_text(card(manifest, about), encoding="utf-8")
     return manifest
+
+
+LOST_PREFIX = "lost before"
+
+
+def reasoning_counts(examples: Iterable[Any]) -> dict[str, int]:
+    """How many answer turns (an assistant message, a trajectory's step, a pair's answer) carry reasoning, by its source:
+    recorded, from_record, teacher, visible, replayed; ``lost`` (a note: lost before the rule), ``none`` (another stated
+    reason), and ``no_field`` for examples whose shape has no reasoning (decision rows today)."""
+    out: Counter = Counter()
+    for ex in examples:
+        turns = [m for m in getattr(ex, "messages", None) or [] if getattr(m, "role", None) == "assistant"]
+        turns += [s for s in getattr(ex, "steps", None) or []]
+        turns += [x for x in (getattr(ex, "chosen", None), getattr(ex, "rejected", None)) if x is not None]
+        if not turns:
+            out["no_field"] += 1
+            continue
+        if not any(hasattr(t, f) for t in turns for f in ("reasoning_source", "thought_source")):
+            out["no_field"] += 1  # a shape with no reasoning (an episode's steps)
+            continue
+        for t in turns:
+            source = getattr(t, "reasoning_source", None) or getattr(t, "thought_source", None)
+            note = str(getattr(t, "no_reasoning", None) or getattr(t, "no_thought", None) or "")
+            out[source or ("lost" if note.startswith(LOST_PREFIX) else "none")] += 1
+    return dict(out)
 
 
 def card(m: SetManifest, about: str) -> str:

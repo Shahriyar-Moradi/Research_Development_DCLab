@@ -33,7 +33,12 @@ STAGES = {"home_agent": "understand_problem", "conversation_reader": "understand
           "solution_planner": "design_solution", "decomposer": "design_solution", "map_reviewer": "design_solution", "data_need": "design_solution",
           "solution_router": "design_solution", "solution_challenger": "design_solution", "intern": "plan", "ai_first": "plan",
           "stage_notes": "report", "reporter": "report", "critic": "report", "evidence_answer": "report", "leakage_review": "report",
-          "notebook_review": "code", "solver_answer": "code", "debate_judge": "report"}
+          "notebook_review": "code", "solver_answer": "code", "debate_judge": "report",
+          # the owner (2026-10-28): every agent's data has a home in a set; none falls silently into "plan"
+          "home_intent": "understand_problem", "home_orchestrator": "plan", "project_answer": "report", "journey_writer": "understand_problem",
+          "journey_checker": "report", "decision_answer": "design_solution", "decision_labeler": "report", "lesson_proposal": "report",
+          "reflector": "report", "notebook_cell": "code", "parse_pattern": "understand_data", "synthetic_schema": "understand_data",
+          "store_curator": "report", "reasoning_teacher": "report", "campaign": "plan", "campaign_review": "report"}
 BENCHMARKS = Path(__file__).resolve().parent / "benchmarks.txt"
 SEALED_GLOBS = ("dclab_rnd/agent_eval/**/*sealed*.json", "dclab_rnd/agent_eval/**/*sealed*.jsonl")
 MIN_SEALED = 40  # a sealed sentence this long or longer is looked for in every example
@@ -203,7 +208,7 @@ def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None) 
     thinking = "\n\n".join(str(t.get("text") or t.get("thinking") or "") for t in b.get("thinking") or [] if isinstance(t, dict)).strip()
     taught = (taught or {}).get(record.id)
     labelled = ({"reasoning": thinking, "reasoning_source": "recorded"} if thinking else
-                {"reasoning": taught, "reasoning_source": "teacher"} if taught else {"no_reasoning": "the model did not think, or its thinking was not asked for"})
+                {"reasoning": taught, "reasoning_source": "teacher"} if taught else {"no_reasoning": f"{_lost_or(b.get('at') or record.at, 'not kept')}: the model did not think, or its thinking was not kept"})
     reply = Message(role="assistant", content=str(b.get("reply") or ""), tool_calls=[c for c in b.get("tool_calls") or [] if isinstance(c, dict)], **labelled)
     messages.append(reply)
     if len(messages) < 2:
@@ -215,18 +220,87 @@ def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None) 
                        weight=0.5 if (taught and not thinking) else 1.0, check={"outcome": b.get("outcome"), "model": b.get("model")})
 
 
-def from_draft(record: StoreRecord) -> Optional[ChatExample]:
-    """A Home conversation (a draft's newest version) as an M4 example of understanding a problem."""
+LOST_BEFORE = "lost before 2026-10-28"  # the owner's rule took effect that night: older thinking was not kept (thinking-reasoning-all-data-plan)
+FIX_AT = "2026-10-27T22:24:52+00:00"  # c8455bb5, when the gateway began keeping the thinking whole
+
+
+def _lost_or(at: Any, later: str) -> str:
+    """The note's opening by when the turn happened: before the fix, lost; after it, the later reason."""
+    return LOST_BEFORE if str(at or "") < FIX_AT else later
+TRACK_STAGES = {"prediction": "understand_problem", "analysis": "home_analysis", "preparation": "home_preparation",
+                "reporting": "home_reporting", "business": "home_business", "advice": "home_advice"}  # Part B: every kind of help
+
+
+def home_thinking(sessions: Iterable[StoreRecord], exchanges: Iterable[StoreRecord]) -> dict[str, str]:
+    """A Home message's id -> the thinking its model call kept, whole: the ``chat.agent`` event names the message and the
+    model request that wrote it (experience/hooks.py), and the kept exchange holds the thinking. Only non-empty text counts:
+    a block with only a signature (the model's default display, "omitted") is no thinking."""
+    request_of: dict[str, str] = {}
+    for r in sessions:
+        b = r.body
+        if b.get("kind") != "chat.agent":
+            continue
+        mr, mid = (b.get("ids") or {}).get("model_request"), (b.get("payload") or {}).get("message")
+        if mr and mid:
+            request_of[str(mr)] = str(mid)
+    out: dict[str, str] = {}
+    for r in exchanges:
+        mid = request_of.get(str(r.body.get("model_request") or ""))
+        if mid:
+            text = "\n\n".join(str(t.get("text") or t.get("thinking") or "") for t in r.body.get("thinking") or [] if isinstance(t, dict)).strip()
+            if text:
+                out[mid] = text
+    return out
+
+
+def home_turn(m: dict[str, Any], questions: dict[str, dict[str, Any]], thinking: dict[str, str], at: str, model_mode: bool = False) -> dict[str, Any]:
+    """An agent turn's reasoning, each with its source (never mixed): the model's own thinking where it was kept
+    (``recorded``); the rules' own stated reason where code wrote the turn (``from_record``: a question's field and why it
+    matters, a data summary, a recap); else a note saying it was lost, and why. A question counts as the rules' only when
+    no model ran the conversation and no critic or advisor asked it (the review of 2026-10-28: the model's ask_user writes
+    the same kind of question, with its own why). The turn's own time decides lost or not kept."""
+    said = thinking.get(str(m.get("id") or ""))
+    if said:
+        return {"reasoning": said, "reasoning_source": "recorded"}
+    when = m.get("at") or at
+    kind, by = m.get("kind"), m.get("by")
+    if by == "model":
+        return {"no_reasoning": f"{_lost_or(when, 'not kept')}: the model wrote this turn and its thinking was not kept, or it did not think"}
+    q = m.get("question") or {}
+    asked = questions.get(str(q.get("id"))) or {}
+    field = q.get("field") or asked.get("field")
+    if kind == "question" and field and not model_mode and not (q.get("source") or asked.get("source")):
+        why = q.get("why") or asked.get("why")
+        return {"reasoning": f"Home's rules asked for the {field}." + (f" Why it matters: {str(why).strip()}" if why else ""),
+                "reasoning_source": "from_record"}
+    if kind == "analysis":
+        return {"reasoning": "DCLab's code prepared and described the table; this turn reports what the code measured and changed.",
+                "reasoning_source": "from_record"}
+    if kind == "summary" and not model_mode:
+        return {"reasoning": "Home's rules restated what the person had settled and offered the next step.", "reasoning_source": "from_record"}
+    if by == "code":
+        return {"reasoning": "Home's code wrote this turn (a rule's reply), not a model.", "reasoning_source": "from_record"}
+    return {"no_reasoning": f"{_lost_or(when, 'not kept')}: who wrote this turn (a model or the rules) was not recorded"}
+
+
+def from_draft(record: StoreRecord, thinking: Optional[dict[str, str]] = None) -> Optional[ChatExample]:
+    """A Home conversation (a draft's newest version) as an M4 example, every agent turn with its reasoning and its source
+    (``home_turn``), filed under its kind of help's stage (the intent's track; a draft from before H2 is a prediction)."""
     b = record.body
     turns = [m for m in b.get("messages") or [] if isinstance(m, dict) and (m.get("text") or m.get("content"))]
     if len(turns) < 2:
         return None
+    questions = {str(q.get("id")): q for q in b.get("questions") or [] if isinstance(q, dict)}
     messages = [Message(role="user" if str(m.get("role")) in ("user", "person") else "assistant", content=str(m.get("text") or m.get("content") or ""),
-                        **({} if str(m.get("role")) in ("user", "person") else {"no_reasoning": "the Home agent's turn: its thinking is in its model exchange when a model wrote it"}))
+                        **({} if str(m.get("role")) in ("user", "person") else
+                           home_turn(m, questions, thinking or {}, str(b.get("updated") or b.get("created") or record.at),  # the draft's own time
+                                     ((b.get("agent") or {}).get("mode")) == "model")))
                 for m in turns]
     group = f"project:{b['project_id']}" if b.get("project_id") else f"draft:{b.get('id')}"
+    track = str(((b.get("intent") or {}).get("track")) or "prediction")
     return ChatExample(id=f"m4_workflow_llm:{record.id}", model_type="m4_workflow_llm", split=split_of(group), provenance=record.provenance,
-                       task="home_conversation", stage="understand_problem", messages=messages, check={"built": bool(b.get("project_id"))})
+                       task="home_conversation", stage=TRACK_STAGES.get(track, "understand_problem"), messages=messages,
+                       check={"built": bool(b.get("project_id")), "track": track})
 
 
 def trajectories(records: Iterable[StoreRecord]) -> Iterable[SolverTrajectory]:
@@ -664,6 +738,7 @@ def newest_per_table(placed: list[tuple[str, SolverTrajectory]]) -> Iterable[tup
 
 
 FAILED = "trajectories/failed"  # D2 / P3: runs that went wrong, kept whole with why; never mixed into studio
+REASONING_SILVER = "reasoning/silver_frontier"  # a provider's model (Claude): silver, apart (owner, 2026-10-25; provider_outputs.py)
 REASONING = "reasoning"  # D2 / P4: M4's reasoning-only set (every assistant turn's reasoning recorded)
 TRAJECTORIES_REASONING = "trajectories/reasoning"  # D2 / P4: M5's (every tool step's thought recorded), from studio only
 
@@ -741,10 +816,11 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
             key = (r.provenance.workspace, r.provenance.source)
             if key not in newest or version(r) > version(newest[key]):  # by its version number, never by the id's text
                 newest[key] = r
+    thinking = home_thinking(shapers.records(layout, "sessions"), shapers.records(layout, "model_requests"))
     for r in newest.values():
-        ex = from_draft(r)
+        ex = from_draft(r, thinking)
         if ex is not None:
-            add("m4_workflow_llm", "understand_problem", ex)
+            add("m4_workflow_llm", ex.stage, ex)
     for t in trajectories(r for r in shapers.records(layout, "agents") if allowed(r, "m5_solver_llm", choices)):
         add("m5_solver_llm", "trajectories/development", t)
     verified = selfplay_verified(shapers.records(layout, "other"))
@@ -821,9 +897,11 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         examples = keep_sealed(layout, model_type, folder, versions.get(folder, "v1"), examples)
         written[(model_type, folder)] = examples
         sources = {e.provenance.entry: {"entry": e.provenance.entry, "sha256": e.provenance.sha256} for e in examples}
+        silver = folder in ("trajectories/silver_frontier", REASONING_SILVER)
+        about = folder_abouts.get(folder) or abouts[model_type]
         m = write_set(layout, model_type, folder, examples, version=versions.get(folder, "v1"), sources=sources.values(),
-                      consent=provider_outputs.consent() if folder == "trajectories/silver_frontier" else "train",  # the owner's decision (provider_outputs.py)
-                      about=folder_abouts.get(folder, abouts[model_type]),
+                      consent=provider_outputs.consent() if silver else "train",  # the owner's decision (provider_outputs.py)
+                      about=about,
                       decontaminated=["every sealed journey and conversation set", f"{len(benchmarks)} benchmark task names (benchmarks.txt)"])
         report["sets"][f"{model_type}/{folder}"] = m.counts
 
@@ -835,6 +913,12 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
     # model's are evaluation and silver until the owner's D11; an exchange naming no model is not clean either).
     write("m4_workflow_llm", REASONING, [e for (mt, f), kept in written.items() if mt == "m4_workflow_llm" for e in kept
                                         if all_recorded(e) and clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
+    # the owner (2026-10-25: a provider's outputs train too, silver and apart; 2026-10-28: keep every model's thinking): the
+    # provider's whole exchanges whose every turn has its recorded thinking, at weight 0.5, under provider_outputs' consent
+    write("m4_workflow_llm", REASONING_SILVER, [e.model_copy(update={"weight": 0.5}) for (mt, f), kept in written.items()
+                                               if mt == "m4_workflow_llm" and f != REASONING for e in kept
+                                               if all_recorded(e) and e.check.get("model")
+                                               and not clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
     write("m5_solver_llm", TRAJECTORIES_REASONING, [e for e in written.get(("m5_solver_llm", "trajectories/studio"), []) if all_recorded(e)])
     return report
 

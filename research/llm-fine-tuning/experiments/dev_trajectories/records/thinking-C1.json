@@ -1,0 +1,121 @@
+{
+ "package": "thinking-C1",
+ "title": "Every training example says where its reasoning came from: Home turns joined to their thinking, the rules' own reasons, and the gap counted",
+ "date": "2026-10-28",
+ "request": "The owner, 2026-10-28 night: make sure all previous data has thinking and reasoning parts; every agent and every kind of help.",
+ "spec": "Part C (free parts) of the approved plan: join Home turns to their saved thinking; give rule-written turns the rules' stated reason; a lost note where neither exists, dated by the turn's own time; file conversations by their kind of help; count reasoning by source beside every set; a store check; Claude's recorded thinking as a silver set; the paid replay planned only.",
+ "plan": [
+  "Measure where reasoning could come from (chat.agent events, draft messages, questions' why).",
+  "Label every answer turn with one source, never mixed, and count them per set.",
+  "Review adversarially; move what the review found unsafe (the paid replay) into its own package."
+ ],
+ "decisions": [
+  {
+   "decision": "A question counts as the rules' only when no model ran the conversation and no critic or advisor asked it.",
+   "why": "The model's ask_user tool writes the same kind of question with its own why; crediting it to the rules would mislabel a model's words."
+  },
+  {
+   "decision": "The paid replay waits for its own package.",
+   "why": "The shaped records have their tables removed, so a replay would not re-send the original inputs; it also lost the original's split and consent, and needs a replayed source in the contract."
+  },
+  {
+   "decision": "Claude's whole exchanges with recorded thinking form a silver reasoning set, apart, at half weight.",
+   "why": "The owner's decision of 2026-10-25: a provider's outputs train too, silver and apart; the clean reasoning set had 0 rows because every exchange was Claude's."
+  }
+ ],
+ "change": "store/sets/llm.py (home_thinking, home_turn, from_draft by track stage, FIX_AT dating, every purpose in STAGES, the silver reasoning set); store/sets/__init__.py (REASONING.json per set); store/catalog.py (reasoning counts); store/check.py (two checks on the newest versions); store/backfill.py and the CLI backfill (the plan only).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "No Home turn carried reasoning in model 4's set.",
+   "scenario": "11,264 assistant turns, 0 with reasoning; the reasoning-only set had 0 rows.",
+   "cause": "from_draft labelled every agent turn 'its thinking is in its model exchange' and never joined it; Claude's exchanges were excluded from the clean reasoning set.",
+   "fix": "Turns are joined through the chat.agent event to their exchange's thinking; rule-written turns get the rules' reason; Claude's recorded thinking forms a silver set.",
+   "test": "test_every_home_turn_has_its_reasoning_and_its_source"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A new positional argument broke two store commands.",
+   "scenario": "store accept fx123 put the id in the new argument and refused.",
+   "cause": "The optional positional was declared before the existing one.",
+   "fix": "backfill takes no positional.",
+   "test": "the store CLI tests"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A replay could carry a sealed input into train.",
+   "scenario": "38 of the planned replays had sealed originals; their replays would be split anew.",
+   "cause": "The replay lost the original's split.",
+   "fix": "The replay is held back; the plan never counts a sealed original.",
+   "test": "test_only_whole_calls_as_sent_without_thinking_text_and_never_exam_material"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A replay would not re-send the original inputs.",
+   "scenario": "223 of 341 planned calls had printed tables removed by the shaper.",
+   "cause": "The replay read the shaped record.",
+   "fix": "The plan skips any call whose inputs the shaper changed: 88 remain.",
+   "test": "test_only_whole_calls_as_sent_without_thinking_text_and_never_exam_material"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A model's question was credited to the rules.",
+   "scenario": "734 questions in drafts run by a model would have read 'Home's rules asked for ...'.",
+   "cause": "The question's kind alone decided.",
+   "fix": "Only questions with no source in a conversation no model ran.",
+   "test": "test_a_question_in_a_model_run_conversation_is_never_credited_to_the_rules"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The lost note was dated by the store's capture time.",
+   "scenario": "Old turns captured later would read 'not kept'; new ones 'lost'.",
+   "cause": "record.at is when the store kept the draft.",
+   "fix": "Each message's own time, else the draft's own dates, against the fix's commit time.",
+   "test": "test_every_home_turn_has_its_reasoning_and_its_source"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The new store check could never pass.",
+   "scenario": "Older set versions are never rewritten, so they would never have REASONING.json.",
+   "cause": "The check read every version.",
+   "fix": "Only the newest version of each set.",
+   "test": "make store-check"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Where a Home turn's reasoning can come from (drafts on this machine)",
+   "gate": "none: a measurement to read",
+   "fixed_before_run": true,
+   "result": "13,771 agent messages in drafts: 6,504 questions carry the rules' why, about 4,050 data summaries and recaps were written by code, 332 were written by a model, the rest have no recorded author; only 39 of 13,159 chat events link a turn to its model call, and none of those had thinking text",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "limits": [
+    "one machine's workspaces",
+    "the thinking of the past was mostly never saved; this labels it honestly rather than recovering it"
+   ]
+  }
+ ],
+ "outcome": "Every answer turn in the training sets now has its reasoning with its source, or a note saying why not; the catalog shows the gap per set.",
+ "lessons": [
+  "A reasoning label must say who reasoned: the rules, the model, or nobody known; the same message kind can come from both."
+ ],
+ "risks": [
+  "Most past Home turns carry the rules' stated reason or a lost note, not a model's thinking; the paid replay and the teacher are the next package."
+ ],
+ "commits": []
+}

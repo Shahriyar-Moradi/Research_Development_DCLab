@@ -106,6 +106,76 @@ class LlmSetsTest(unittest.TestCase):
         self.assertTrue(steps[1].no_thought)
         self.assertEqual(m5[0].problem["request"], "Fix the failing test")
 
+    def test_every_home_turn_has_its_reasoning_and_its_source(self):
+        # the owner (2026-10-28): every training example carries thinking and reasoning, each labelled by where it came from
+        from dclab_core.store import ChatExample
+        from dclab_rnd.store import Store, curators, shapers
+        from dclab_rnd.store.sets import llm
+
+        store = Store(self.layout)
+        exchange = {"at": "2026-10-28T23:00:00+00:00", "model_request": "mr9", "purpose": "home_agent", "whole": True, "outcome": "ok",
+                    "model": "claude-sonnet-5-5",
+                    "messages": [{"role": "user", "content": "A weekly report of refunds."}], "reply": "Which numbers should it show?",
+                    "thinking": [{"text": "A report needs its numbers first.", "signature": "s"}]}
+        empty = {**exchange, "model_request": "mr10", "thinking": [{"text": "", "signature": "s"}]}  # the default display: no text
+        store.keep_log("model_requests", "dev", "model_exchanges/2026/10/28.jsonl", (json.dumps(exchange) + "\n" + json.dumps(empty) + "\n").encode(),
+                       consent="train")
+        event = lambda mid, mr: {"schema_version": "dclab_core.experience_event.v13", "id": "ev" + mid, "at": exchange["at"], "seq": 1,
+                                 "ids": {"conversation": "d2", "model_request": mr}, "actor": "agent", "kind": "chat.agent",
+                                 "payload": {"text": "x", "kind": "text", "message": mid}}
+        store.keep_log("sessions", "dev", "experience/2026/10/28.jsonl",
+                       (json.dumps(event("m2", "mr9")) + "\n" + json.dumps(event("m3", "mr10")) + "\n").encode(), consent="train")
+        draft = {"id": "d2", "created": "2026-10-20T09:00:00+00:00", "intent": {"track": "reporting"}, "questions": [{"id": "q1", "field": "refresh", "why": "How often it updates sets how it is built."}],
+                 "messages": [{"role": "user", "text": "A weekly report of refunds."},
+                              {"role": "agent", "id": "m2", "by": "model", "text": "Which numbers should it show?"},
+                              {"role": "agent", "id": "m3", "by": "model", "text": "Noted."},
+                              {"role": "agent", "id": "m4", "kind": "question", "text": "How often?", "question": {"id": "q1"}},
+                              {"role": "agent", "id": "m5", "kind": "analysis", "text": "Your data is ready."},
+                              {"role": "agent", "id": "m6", "kind": "text", "text": "An old turn."},
+                              {"role": "agent", "id": "m7", "kind": "text", "text": "A turn after the fix.", "at": "2026-10-29T08:00:00+00:00"}]}
+        store.keep("conversations", "dev", "drafts/d2/draft.json", json.dumps(draft).encode(), consent="train")
+        shapers.shape(self.layout)
+        curators.curate(self.layout, run="r2")
+        with mock.patch.object(llm, "BENCHMARKS", self.benchmarks):
+            llm.build(self.layout)
+        convo = next(ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "home_reporting", "v1"))
+        turns = {m.content: m for m in convo.messages if m.role == "assistant"}
+        self.assertEqual((turns["Which numbers should it show?"].reasoning, turns["Which numbers should it show?"].reasoning_source),
+                         ("A report needs its numbers first.", "recorded"))  # the model's own, joined through its exchange
+        self.assertIn("thinking was not kept", turns["Noted."].no_reasoning)  # an empty block is no thinking
+        self.assertEqual(turns["How often?"].reasoning_source, "from_record")
+        self.assertIn("refresh", turns["How often?"].reasoning)
+        self.assertIn("How often it updates", turns["How often?"].reasoning)  # the rules' own stated reason
+        self.assertEqual(turns["Your data is ready."].reasoning_source, "from_record")
+        self.assertTrue(turns["An old turn."].no_reasoning.startswith("lost before 2026-10-28"))
+        self.assertTrue(turns["A turn after the fix."].no_reasoning.startswith("not kept"))  # dated by the turn's own time
+        self.assertEqual(convo.check["track"], "reporting")
+        counts = json.loads((self.layout.sets("m4_workflow_llm", "home_reporting", "v1") / "REASONING.json").read_text(encoding="utf-8"))
+        self.assertEqual(counts, {"recorded": 1, "from_record": 2, "lost": 2, "none": 1})  # the owner sees the gap, per source
+        from dclab_rnd.store import catalog
+
+        row = next(r for r in catalog._sets(self.layout)["m4_workflow_llm"] if r["name"] == "home_reporting")
+        self.assertEqual(row["reasoning"], counts)
+        silver = [ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "reasoning/silver_frontier", "v1")]
+        self.assertIn("A report needs its numbers first.", [e.messages[-1].reasoning for e in silver])  # Claude's thinking, silver
+        self.assertTrue(all(e.weight == 0.5 for e in silver))
+
+    def test_a_question_in_a_model_run_conversation_is_never_credited_to_the_rules(self):
+        from dclab_rnd.store.sets import llm
+
+        q = {"id": "q1", "field": "target", "why": "The model's own words."}
+        turn = {"role": "agent", "kind": "question", "text": "What is predicted?", "question": {"id": "q1"}}
+        self.assertEqual(llm.home_turn(turn, {"q1": q}, {}, "2026-10-20", model_mode=False)["reasoning_source"], "from_record")
+        self.assertIn("no_reasoning", llm.home_turn(turn, {"q1": q}, {}, "2026-10-20", model_mode=True))
+        critic = {**q, "source": "critic"}
+        self.assertIn("no_reasoning", llm.home_turn(turn, {"q1": critic}, {}, "2026-10-20"))
+
+    def test_every_purpose_but_embedding_has_a_stage(self):
+        from dclab_rnd.models import settings
+        from dclab_rnd.store.sets import llm
+
+        self.assertEqual(sorted(set(settings.PURPOSES) - set(llm.STAGES) - {"embedding"}), [])
+
     def test_earlier_turns_keep_their_reasoning_and_calls_and_the_reasoning_only_set_takes_clean_whole_ones(self):
         """D2 / P4: the local model's earlier turn keeps the reasoning and the call it sent back, the tool turn its call id, the
         example its tools; the reasoning-only set holds exchanges whose every assistant turn is recorded, by a clean model only."""

@@ -175,6 +175,19 @@ def run(log: Any = print) -> dict[str, Any]:
             if groups["sealed"] & (groups["train"] | groups["dev"]):
                 leaks.append(manifest.parent.relative_to(layout.tier("sets")).as_posix())
         check("sealed groups apart in every set", not leaks, ", ".join(leaks))
+        # the owner (2026-10-28): every training example carries reasoning with its source, or says why not
+        known = {"recorded", "from_record", "teacher", "visible", "replayed", "lost", "none", "no_field"}
+        newest: dict[Path, Path] = {}  # the newest version of each set (an older version is never rewritten)
+        for m in layout.tier("sets").rglob("MANIFEST.json"):
+            folder, version = m.parent.parent, m.parent.name
+            if folder not in newest or int(version.lstrip("v") or 0) > int(newest[folder].parent.name.lstrip("v") or 0):
+                newest[folder] = m
+        manifests = list(newest.values())
+        missing = [m.parent.relative_to(layout.tier("sets")).as_posix() for m in manifests if not (m.parent / "REASONING.json").exists()]
+        check("every set states its reasoning by source", bool(manifests) and not missing, ", ".join(missing[:5]))
+        odd = [m.parent.relative_to(layout.tier("sets")).as_posix() for m in manifests if (m.parent / "REASONING.json").exists()
+               and set(json.loads((m.parent / "REASONING.json").read_text(encoding="utf-8"))) - known]
+        check("every reasoning has a known source", not odd, ", ".join(odd[:5]))
         check("the run recorded every step", {s["name"] for s in record["steps"]} >= {"sessions", "decisions", "shapers", "curators", "builders"})
         check("no keeper failed", not record["failed"], ", ".join(record["failed"]))
     ok = all(c["ok"] for c in checks)

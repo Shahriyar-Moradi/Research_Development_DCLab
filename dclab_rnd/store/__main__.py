@@ -47,7 +47,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     from .store import Store
 
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.store", description=__doc__.split("\n")[0])
-    parser.add_argument("command", choices=["run", "shape", "curate", "build", "reason", "status", "catalog", "fixes", "accept", "service", "knowledge", "know-accept", "guides", "curate-shadow"])
+    parser.add_argument("command", choices=["run", "shape", "curate", "build", "reason", "status", "catalog", "fixes", "accept", "service", "knowledge", "know-accept", "guides", "curate-shadow", "backfill"])
     parser.add_argument("fix", nargs="?", help="accept: the fix's id (from the fixes command); know-accept: the item's id")
     parser.add_argument("--root", default=None, help="the store's root (DCLAB_STORE, else training_records/store)")
     parser.add_argument("--agent-runs", default=None, help="run: the workspaces' folder (default agent_runs; the worker's job names the server's)")
@@ -77,6 +77,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         if args.cap_eur is None:
             parser.error("reason needs --cap-eur: the teacher never spends without a cap")
         print(json.dumps(reasoning.run(layout, cap_eur=args.cap_eur, limit=args.limit, yes=args.yes), indent=1))
+        return 0
+    if args.command == "backfill":  # the owner (2026-10-28): thinking and reasoning for the past; what can be re-asked, planned
+        from . import backfill
+
+        print(json.dumps(backfill.plan(layout), indent=1))
         return 0
     if args.command == "curate-shadow":
         from . import curators

@@ -27,7 +27,9 @@ def _sets(layout: Layout) -> dict[str, list[dict[str, Any]]]:
         base = layout.sets(model_type)
         for manifest in sorted(base.rglob("MANIFEST.json")) if base.exists() else []:
             doc = json.loads(manifest.read_text(encoding="utf-8"))
+            reasons = manifest.parent / "REASONING.json"
             out[model_type].append({"name": doc.get("name"), "version": doc.get("version"), "counts": doc.get("counts", {}),
+                                    "reasoning": json.loads(reasons.read_text(encoding="utf-8")) if reasons.exists() else None,
                                     "path": layout.relative(manifest.parent)})
     return out
 
