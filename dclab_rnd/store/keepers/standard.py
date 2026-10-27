@@ -43,6 +43,7 @@ CLASSES: tuple[tuple[str, str, re.Pattern], ...] = tuple((k, p, re.compile(rx)) 
     ("model_requests", "model_", r"^model_(requests|requests_checks|shadow)\.jsonl$|^model_exchanges/"),
     ("actions", "searches/", r"^searches/"),
     ("actions", "metrics/", r"^metrics/"),  # the agents' metrics ledger (dclab_rnd.agent_metrics): measurements of the agents, for the judges
+    ("students", "memory/", r"^memory/"),  # 35.2: the memory's versions, kept beside the lessons
     ("conversations", "drafts/", r"^drafts/"),
     ("conversations", "intern/", r"^intern/"),
     ("conversations", "workspace_chat/", r"^workspace_chat/"),

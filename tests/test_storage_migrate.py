@@ -106,6 +106,12 @@ class MigrateTests(unittest.TestCase):
         drafts.emit(d["id"], "pipeline", {"step": "structured"})
         FileLessons(home / "lessons.json").save({"id": "abc123def0", "project_id": s["project_id"], "status": "proposed", "claim": "c",
                                                  "against": "a", "next_test": "n", "cites": [], "scope": {}, "synthetic": False, "proposed_at": "2026-10-06T10:00:00+00:00"})
+        from dclab_core import memory as core_memory
+        from dclab_rnd.memory import FileMemory
+
+        remembered = FileMemory(home).write(core_memory.new(kind="fact", scope="project", scope_id=s["project_id"], text="The target is churn.",
+                                                            source="test:migrate", who="person:owner", at="2026-10-06T10:00:00+00:00"))
+        FileMemory(home).write(core_memory.counted(remembered, shown=1))  # two versions of one item, moved in order
         FileUsage(home / "model_requests.jsonl").record({"at": "2026-10-06T10:00:00+00:00", "purpose": "intern", "tier": "strong", "model": "m",
                                                           "endpoint": "e", "input_tokens": 10, "output_tokens": 2, "seconds": 1.0, "attempts": 1, "outcome": "ok"})
 
@@ -118,6 +124,7 @@ class MigrateTests(unittest.TestCase):
         self.assertEqual(self.second["logs"]["experience"]["copied"], 0)
         self.assertEqual((self.first["logs"]["decisions"]["copied"], self.first["logs"]["decision_labels"]["copied"]), (1, 1))
         self.assertEqual(self.second["logs"]["decisions"]["copied"], 0)
+        self.assertEqual((self.first["logs"]["memory"]["copied"], self.second["logs"]["memory"]["copied"]), (2, 0))  # 35.2, once
         self.assertEqual(pages(self.source, self.files_env), pages(self.target, self.db_env))
 
     def test_the_source_is_not_changed(self):

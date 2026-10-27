@@ -190,7 +190,7 @@ Every record of a point leaves under the consent of the event kinds' rule: writt
 | `team_walks` | A team's walk, one row per hand-off: the board before the node, the node and what it did, the board after, with the walk's status and the models it asked; the person's words redacted, only lines written where training was allowed (28.9). | train |
 | `case_trajectories` | A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19). | train |
 
-## Tables (27)
+## Tables (28)
 
 | Table | What | Files without a database |
 |---|---|---|
@@ -208,6 +208,7 @@ Every record of a point leaves under the consent of the event kinds' rule: writt
 | `intern_session` | An intern session: its goal, steps, budget and final report. | — |
 | `job` | a piece of background work: a stage run, a data pipeline, synthetic data, an intern turn (dclab_rnd/jobs, 10.3) | — |
 | `membership` | A person's role in a workspace. | — |
+| `memory_item_version` | every version of a memory item, append-only: a retirement is a new version (dclab_rnd/memory, 35.2) | — |
 | `model_output_check` | whether a model's output passed the code that checks it (package A1.3) | `model_requests_checks.jsonl` |
 | `model_pause` | requests to an endpoint and model stop until a time, after a refusal that stays (models/pause.py, 10.5) | — |
 | `model_request` | the model gateway's usage log (dclab_rnd/models/usage.py); one row per request | `model_requests.jsonl` |

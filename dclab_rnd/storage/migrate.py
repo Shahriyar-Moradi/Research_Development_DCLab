@@ -8,7 +8,7 @@ each other. Copied, with their own ids and timestamps (so every list keeps its o
 - projects: the document (solution, approvals, settings, memory…), the stage records, the transition log and the
   activity log, and the files of ``data/`` and ``exports/`` through file storage (``storage/files.py``);
 - drafts: the document, its events and its ``data/`` files;
-- intern sessions; the agent traces, the model usage and output checks, the lessons, the model routing, the shadow log and the audit trail.
+- intern sessions; the agent traces, the model usage and output checks, the lessons, the memory's versions (35.2), the model routing, the shadow log and the audit trail.
 
 The source folder is only read (a project document in an old format is upgraded in memory, never written back).
 Nothing the target already holds is copied again: a project, draft, session or lesson already there is left as it
@@ -354,11 +354,30 @@ def _logs(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> Non
         else:
             lessons.save(lesson)
             out["copied"] += 1
+    try:  # 35.2: the memory's versions, copied in their order once into a workspace whose memory is empty (append-only)
+        _memory(src, wid, url, report)
+    except Exception as exc:  # noqa: BLE001 - the memory is reported failed; the rest still moves
+        report["failed"].append(f"memory: {type(exc).__name__}")
     routing = PgRouting(wid, url)
     path = src.home / "model_routing.json"
     if path.is_file() and not routing.get().get("history"):
         routing.save(_json(path))
         report["logs"]["model_routing"] = {"copied": 1}
+
+
+def _memory(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> None:
+    from ..memory import FileMemory, PgMemory
+
+    if not (src.home / "memory" / "items.jsonl").is_file():
+        return
+    versions = FileMemory(src.home).log()
+    target = PgMemory(wid, url)
+    present = len(target.log())
+    if present:
+        report["logs"]["memory"] = {"source": len(versions), "copied": 0, "already": present}
+        return
+    target.write_many(versions)  # one transaction: a failed move leaves the database memory empty, so the next run copies it all
+    report["logs"]["memory"] = {"source": len(versions), "copied": len(versions), "already": 0}
 
 
 def verify(src: Source, target: Path, wid: str, url: str | None, report: dict[str, Any] | None = None) -> list[str]:
@@ -413,6 +432,10 @@ def verify(src: Source, target: Path, wid: str, url: str | None, report: dict[st
         out.append(f"{len(missing)} intern session(s) not in the database")
     for name, (table, _) in _log_tables().items():
         compare(f"log {name}", len(src.log(name)), _count(table, wid, url))
+    if (src.home / "memory" / "items.jsonl").is_file():  # 35.2
+        from ..memory import FileMemory, PgMemory
+
+        compare("log memory", len(FileMemory(src.home).log()), len(PgMemory(wid, url).log()))
     have = {l["id"] for l in PgLessons(wid, url).list()}
     lost = [l.get("id") for l in src.lessons() if l.get("id") and l.get("project_id") and l.get("id") not in have]
     if lost:

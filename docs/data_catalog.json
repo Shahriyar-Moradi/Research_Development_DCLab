@@ -2770,6 +2770,23 @@
    "what": "A person's role in a workspace."
   },
   {
+   "append_only": true,
+   "columns": [
+    "seq",
+    "workspace_id",
+    "item_id",
+    "kind",
+    "scope",
+    "scope_id",
+    "status",
+    "doc",
+    "written"
+   ],
+   "files": null,
+   "table": "memory_item_version",
+   "what": "every version of a memory item, append-only: a retirement is a new version (dclab_rnd/memory, 35.2)"
+  },
+  {
    "append_only": false,
    "columns": [
     "id",

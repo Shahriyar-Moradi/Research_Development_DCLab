@@ -23,6 +23,7 @@ APPEND_ONLY = {  # table -> its order (time first, then a key that breaks ties)
     "experience_event": ("at", "seq"), "decision_record": ("at", "id"), "decision_label": ("at", "id"), "decision_outcome": ("at", "id"),
     "audit_event": ("at", "id"), "agent_step": ("at", "id"), "model_request": ("at", "id"), "model_output_check": ("at", "id"),
     "model_shadow": ("at", "id"), "draft_event": ("seq",), "activity": ("at",), "transition": ("at",),
+    "memory_item_version": ("seq",),  # 35.2: every version of every memory item
 }
 SNAPSHOT = {"project": ("id",), "draft": ("id",), "intern_session": ("id",), "job": ("id",), "stage_record": ("project_id", "stage"),
             "workspace_lesson": ("id",), "model_routing": ("workspace_id",), "stored_file": ("id",)}
@@ -107,7 +108,7 @@ KEEPER = Keeper("database", (Claim("sessions", "db/experience_event"), Claim("de
                              Claim("actions", "db/agent_step"), Claim("model_requests", "db/model_"), Claim("conversations", "db/draft"),
                              Claim("conversations", "db/intern_session"), Claim("workflows", "db/project"), Claim("workflows", "db/stage_record"),
                              Claim("workflows", "db/activity"), Claim("workflows", "db/transition"), Claim("tasks", "db/job"),
-                             Claim("students", "db/workspace_lesson"), Claim("audit", "db/stored_file")),
+                             Claim("students", "db/workspace_lesson"), Claim("students", "db/memory_item_version"), Claim("audit", "db/stored_file")),
                 sources, ("m1_students", "m2_workflow_decisions", "m3_ml_decisions", "m4_workflow_llm", "m6_stepwise_decisions"),
                 "every PostgreSQL table of every workspace (with DCLAB_DATABASE_URL)")
 

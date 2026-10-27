@@ -308,6 +308,17 @@ decision_outcome = sa.Table(  # how a decision turned out, append-only (dclab_rn
     sa.Column("doc", JSONB, nullable=False),  # dclab_core.outcome.v1
     *[sa.Index(f"ix_decision_outcome_workspace_id_{c}", "workspace_id", c) for c in ("record_id", "point", "project_id")])
 
+memory_item_version = sa.Table(  # every version of a memory item, append-only: a retirement is a new version (dclab_rnd/memory, 35.2)
+    "memory_item_version", metadata,
+    sa.Column("seq", sa.BigInteger, primary_key=True, autoincrement=True),  # the write order: the last version of an id is its state
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id"), nullable=False),
+    sa.Column("item_id", sa.String(16), nullable=False), sa.Column("kind", sa.Text, nullable=False),
+    sa.Column("scope", sa.Text, nullable=False), sa.Column("scope_id", sa.Text, nullable=False), sa.Column("status", sa.Text, nullable=False),
+    sa.Column("doc", JSONB, nullable=False),  # dclab_core.memory_item.v1
+    sa.Column("written", TIME, nullable=False, server_default=NOW),
+    sa.Index("ix_memory_item_version_workspace_id_item_id", "workspace_id", "item_id"),
+    sa.Index("ix_memory_item_version_workspace_id_scope", "workspace_id", "scope", "scope_id"))
+
 model_pause = sa.Table(  # requests to an endpoint and model stop until a time, after a refusal that stays (models/pause.py, 10.5)
     "model_pause", metadata,
     sa.Column("key", sa.Text, primary_key=True),  # endpoint, model and a hash of the API key: never the key

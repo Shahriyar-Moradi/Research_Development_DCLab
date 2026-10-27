@@ -171,13 +171,22 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
   `make backup` cover the table; the store's keepers archive it.
 - **Done when:** the same calls pass on files and on PostgreSQL; a project note appears as a `fact` item without being
   written twice; deleting a project retires its items in the product view and keeps them in the store.
+- **Status (2026-10-28): built and reviewed.** `dclab_rnd/memory/` (the store as an append-only log of versions:
+  `FileMemory` with a lock between processes, `PgMemory` on `memory_item_version`, migration 0022 with a trigger refusing
+  an update or a delete; `latest`, `remember`, `retire_scope`, `view`) and `memory/readers.py` (notes as project facts,
+  removed notes not read; accepted lessons as workspace know-how). Deleting a project retires its stored items
+  (`experience/retention.forget`); its notes go with the project and are kept by the store's hooks. `storage migrate`
+  moves the versions in one transaction and checks them; the store's keepers archive the table and the folder. Moved
+  on by the review: the events `memory.written` and `memory.retired` come with writing (35.3); accepted playbook bullets
+  as know-how, and the protected-name screen for items read where they live (a lesson can name a column), come with
+  reading (35.4).
 
 ### 35.3 Writing
 
 - **Delivers:** `remember(item)` behind `check`: automatic for sourced facts, drafts for know-how (into the lessons
   review flow); a person's correction (`POST /api/memory/{id}/correct`) supersedes; a person's preference said in a
   chat ("answer simply") is proposed as a `person` fact for the person to confirm with one click (never stored silently).
-  Every write is an event.
+  Every write is an event. A retirement too, including a deleted project's (`retire_scope`), with the item's id and source.
 - **Done when:** a planted lesson naming a benchmark's column is refused; a know-how draft is not shown before review; a
   correction retires the old item; text with a line break or an instruction-looking second line is cut to one line.
 
@@ -186,7 +195,8 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
 - **Delivers:** `brief(scope)` built by `select`, joined to the first user message of the intern, the Home agent, the
   team and the orchestrator (one helper, beside `memory.summary`); `recall` registered once (scopes project, draft,
   session) and on `/mcp`; the run record keeps which item ids were shown and which the reply cited; evaluations run
-  with memory off.
+  with memory off. From 35.2's review: accepted playbook bullets read as know-how beside lessons, and every item read
+  where it lives (a lesson, a bullet) passes the protected-name screen with the run's protected names before a brief.
 - **Done when:** the system prompt's hash is unchanged with and without memory; the brief stays under budget; `recall`
   is a recorded tool call; a test fails if agent-eval, journeys, the benchmark or the harness suite reads a stored item;
   DCLab Code can call `recall` and `remember` through `/mcp` (its panel is that repository's own change).
