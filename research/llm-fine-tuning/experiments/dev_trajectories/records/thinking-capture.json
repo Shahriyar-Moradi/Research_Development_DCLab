@@ -1,0 +1,76 @@
+{
+ "package": "thinking-capture",
+ "title": "The agents whose runs train DCLab's models ask the model for its thinking",
+ "date": "2026-10-28",
+ "request": "The owner, three times that night: the model's thinking must be kept for training, the crucial thing for good training data; store data for all six models.",
+ "spec": "Turn thinking on where runs become training data, keep a caller's own choice, and let the owner switch it off, on for all, or per purpose.",
+ "plan": [
+  "Find where thinking is asked for (only the twin lane did) and where exchanges are kept.",
+  "Add a per-purpose default and an environment switch; set it where the gateway binds a transport.",
+  "Test the defaults, the switch and that a caller's choice stays."
+ ],
+ "decisions": [
+  {
+   "decision": "Thinking is on by default for the agents whose runs train models (the intern, Home, the analysts, the planner and router, the reporter, the critics, the solver), off for utility purposes",
+   "why": "their exchanges are the six models' training data; embeddings, parsing and labelling answer briefly and would only cost more"
+  },
+  {
+   "decision": "The gateway sets it only on a transport that has no thinking setting yet",
+   "why": "the twin lane chooses its own budget, and a local model's transport has no such setting at all"
+  },
+  {
+   "decision": "The other session's fix to keeping (whole exchanges for every purpose shown no cell values, may_leave apart) is committed here, at its request",
+   "why": "made in the same file the same night and tested; one commit keeps asking and keeping together"
+  },
+  {
+   "decision": "A purpose shown cell values keeps its thinking too, redacted, in the workspace only",
+   "why": "the owner wants every model's thinking kept for training; the prompt with cells is still not kept, and may_leave stays the purpose's keeps_text"
+  }
+ ],
+ "change": "dclab_rnd/models/settings.py: THINKING_DEFAULT and thinking_for (DCLAB_THINKING: off, all, or a list); dclab_rnd/models/gateway.py: Bound._think sets the transport's thinking where unset; tests/test_thinking_capture.py. gateway._keep_exchange: whole for every purpose shown no cell values with may_leave on each line (the other session's), and thinking_redacted for purposes shown cells; tests/test_models_reasoning_field.py (the other session's).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "Only the twin lane asked Claude for its thinking",
+   "scenario": "Home, the intern and the team never asked, so no thinking existed to keep; the session's own transcript held 140 thinking blocks, 118 of them empty",
+   "cause": "thinking was added for the twin study only",
+   "fix": "a per-purpose default in the gateway, switchable by the owner",
+   "test": "tests/test_thinking_capture.py",
+   "severity": "gap",
+   "impact": "the six models' training data had answers without the reasoning behind them"
+  },
+  {
+   "id": "F2",
+   "source": "owner",
+   "defect": "Thinking that was produced was dropped by the exchange record for purposes that may not export text",
+   "scenario": "measured by another session on 36 exchange files: about 730 calls thought and kept only that they had thought",
+   "cause": "keeping a whole exchange was tied to the purpose's permission to leave the workspace",
+   "fix": "the other session decoupled keeping (in the workspace) from leaving (may_leave), in its own commit",
+   "test": "tests/test_models_reasoning_field.py (that session's)",
+   "severity": "gap"
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "defect": "A purpose shown cell values kept nothing of its thinking",
+   "scenario": "the intern and the reporter think on prompts with table cells; their exchanges kept only the shape",
+   "cause": "a prompt with cells is never kept, and the thinking went with it",
+   "fix": "the thinking is kept beside the shape, redacted, in the workspace",
+   "test": "test_a_purpose_shown_cells_keeps_its_thinking_redacted_in_the_workspace",
+   "severity": "gap",
+   "open": "the redactor removes what identifies a person, not every cell value a thought may repeat; such thinking stays in the workspace and leaves only under the purpose's consent"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The agents whose runs train DCLab's models ask Claude for its thinking; every purpose shown no cell values keeps its whole exchange with the thinking, and purposes shown cells keep their thinking redacted. The owner accepted that Claude's API returns a summary of its thinking: that summary is kept whole.",
+ "lessons": [
+  "Asking for thinking and keeping it are two separate doors: both must be open, and each needs its own test.",
+  "Training data without the reasoning behind each answer teaches what, not why."
+ ],
+ "risks": [
+  "Thinking costs output tokens: live runs cost more.",
+  "Two sessions changed the same file the same night."
+ ],
+ "commits": []
+}

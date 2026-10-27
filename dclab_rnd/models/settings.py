@@ -304,6 +304,24 @@ def public(name: str) -> dict[str, Any]:
             "reasoning_field": t["reasoning_field"], "chat_template_kwargs": t["chat_template_kwargs"]}
 
 
+# The owner's rule (2026-10-28): the agents whose runs become training data for DCLab's own models ask for the model's
+# thinking, kept whole with each exchange (gateway, 32.10). DCLAB_THINKING: "off", "all", or a comma list of purposes;
+# unset, these. Utility purposes (embeddings, parsing, labelling) do not: their answers are short and their cost would rise.
+THINKING_DEFAULT = ("intern", "home_agent", "home_orchestrator", "problem_analyst", "data_investigator", "solution_planner",
+                    "solution_router", "feature_engineer", "reporter", "understanding_critic", "critic", "solver_answer", "ai_first",
+                    "workspace_chat", "notebook_cell")
+
+
+def thinking_for(purpose: str) -> str | None:
+    """"adaptive" when this purpose asks for the model's thinking, else None."""
+    raw = os.environ.get("DCLAB_THINKING", "").strip().lower()
+    if raw in ("off", "0", "none", "false"):
+        return None
+    if raw == "all":
+        return "adaptive"
+    chosen = {x.strip() for x in raw.split(",") if x.strip()} if raw else set(THINKING_DEFAULT)
+    return "adaptive" if purpose in chosen else None
+
 def purpose(name: str) -> Purpose:
     if name not in PURPOSES:
         raise KeyError(f"unknown purpose {name!r}: add it to dclab_rnd/models/settings.py PURPOSES")

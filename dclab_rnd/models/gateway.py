@@ -330,6 +330,7 @@ class Bound:
         if tier is not None:  # a fixed tier (older callers); otherwise the routing decides before each request
             self.tier, self._serving = tier, tier["name"]
             self.model, self._transport = tier["model"], gateway.transport(tier, p)
+            self._think()
         else:
             self._route()
         self.run_limit_eur: float | None = None  # a cap for one run (an intern session); set by the caller
@@ -343,7 +344,17 @@ class Bound:
             tier = settings.tier(serve)
             self.tier = {**tier, "model": self._model_override} if self._model_override else tier
             self.model, self._transport, self._serving = self.tier["model"], self.gateway.transport(self.tier, self.p), serve
+            self._think()
         self._shadow_tier = settings.tier(shadow) if shadow else None
+
+    def _think(self) -> None:
+        """Ask for the model's thinking where this purpose's runs become training data (the transport keeps a choice
+        already made, the twin lane's own); the exchange kept whole then holds it."""
+        if hasattr(self._transport, "thinking") and getattr(self._transport, "thinking", None) is None:
+            try:
+                self._transport.thinking = settings.thinking_for(self.purpose)
+            except Exception:  # noqa: BLE001 - a transport that will not take it answers without thinking
+                pass
 
     def output(self, passed: bool, reason: str = "") -> None:
         """The caller's verdict on this client's last answer: it passed the code that checks it, or why not."""
@@ -483,7 +494,12 @@ class Bound:
             if home is None:
                 return
             shown_cells = int(getattr(self.p, "cell_values", 0) or 0) > 0
-            whole = experience.model_text_allowed() and bool(getattr(self.p, "keeps_text", False)) and not shown_cells  # 23.10's rule
+            # the owner (2026-10-28): every model call keeps its thinking for training. Kept here, in the workspace, whole for
+            # every purpose shown no cell values; whether it may leave the workspace is still the purpose's keeps_text
+            # (consent.py, 23.10), written on the line as ``may_leave``. Measured that night: about 730 calls had thought and
+            # kept only "thought: true", because keeping was tied to leaving.
+            may_leave = bool(getattr(self.p, "keeps_text", False))
+            whole = experience.model_text_allowed() and not shown_cells
             thinking = (out or {}).get("thinking") or []
             import hashlib
 
@@ -492,6 +508,7 @@ class Bound:
                                    "prompt_sha256": hashlib.sha256(system.encode()).hexdigest()[:16] if system else None,  # 32.22
                                    "purpose": self.purpose, "tier": self.tier.get("name"), "model": self.model, "project": self.project_id,
                                    "draft": self.draft_id, "outcome": outcome, "usage": (out or {}).get("usage"), "whole": whole,
+                                   "may_leave": may_leave,
                                    "tool_names": [str((t.get("function") or {}).get("name") or t.get("name") or "") for t in tools or []],
                                    "tools_sha256": hashlib.sha256(json.dumps(tools, sort_keys=True, default=str).encode()).hexdigest()[:16] if tools else None}
             if whole:
@@ -500,6 +517,13 @@ class Bound:
             else:
                 doc.update(messages=len(messages), reply_chars=len(str((out or {}).get("content") or "")), thought=bool(thinking),
                            why="a purpose shown cell values or one that may not keep text, or a workspace that keeps no model text: its shape only")
+                if thinking and shown_cells and experience.model_text_allowed():
+                    # the owner (2026-10-28): the thinking is kept for training even where the prompt held cell values: its text
+                    # with what could identify someone redacted, in the workspace only (may_leave stays the purpose's keeps_text)
+                    from dclab_core.redact import redact_text
+
+                    doc["thinking_redacted"] = [{**b, "text": redact_text(str(b.get("text") or ""))[0]} if isinstance(b, dict) else redact_text(str(b))[0]
+                                                for b in thinking]
             day = datetime.now(timezone.utc)
             folder = home / "model_exchanges" / f"{day:%Y}" / f"{day:%m}"
             folder.mkdir(parents=True, exist_ok=True)

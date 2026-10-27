@@ -215,6 +215,38 @@ class ExchangeLogTests(unittest.TestCase):
         self.assertNotIn("tools", doc)
         self.assertEqual(doc["messages"], 1)  # a count, never the text
 
+    def test_every_purpose_shown_no_cells_keeps_its_thinking_whole(self):
+        # the owner (2026-10-28): every model call keeps its thinking for training. About 730 saved calls had thought and kept
+        # only "thought: true" (stage_notes, leakage_review, project_answer, store_curator...), because keeping text was tied
+        # to keeps_text, which decides only whether a record may leave the workspace (consent.py)
+        from dclab_rnd.models import settings
+
+        no_cells = sorted(n for n, p in settings.PURPOSES.items() if not int(p.cell_values or 0) and n != "embedding")
+        self.assertIn("stage_notes", no_cells)
+        replies = [{"content": f"answer {i}", "tool_calls": [], "usage": {"input_tokens": 1, "output_tokens": 1},
+                    "thinking": [{"text": f"why {i}"}], "assistant_message": {"role": "assistant", "content": f"answer {i}"}}
+                   for i in range(len(no_cells))]
+        gw = scripted_gateway(self.home, replies)
+        for name in no_cells:
+            gw.client(name).complete([{"role": "user", "content": "go"}], None)
+        docs = {d["purpose"]: d for p in sorted((self.home / "model_exchanges").rglob("*.jsonl"))
+                for d in map(json.loads, p.read_text(encoding="utf-8").splitlines())}
+        for name in no_cells:
+            doc = docs[name]
+            self.assertTrue(doc["whole"], name)
+            self.assertEqual(len(doc["thinking"]), 1, name)  # the text, never only a flag
+            self.assertTrue(doc["thinking"][0]["text"].startswith("why"), name)
+            self.assertEqual(doc["may_leave"], settings.purpose(name).keeps_text, name)  # leaving is still consent's
+
+    def test_without_the_workspace_switch_nothing_is_kept_whole(self):
+        reply = {"content": "a", "tool_calls": [], "usage": {"input_tokens": 1, "output_tokens": 1}, "thinking": [{"text": "b"}],
+                 "assistant_message": {"role": "assistant", "content": "a"}}
+        with mock.patch.dict(os.environ, {"DCLAB_LOG_PROMPTS": ""}):
+            scripted_gateway(self.home, [reply]).client("stage_notes").complete([{"role": "user", "content": "go"}], None)
+        doc = [json.loads(line) for p in sorted((self.home / "model_exchanges").rglob("*.jsonl")) for line in p.read_text(encoding="utf-8").splitlines()][0]
+        self.assertFalse(doc["whole"])
+        self.assertNotIn("thinking", doc)
+
 
 if __name__ == "__main__":
     unittest.main()
