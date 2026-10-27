@@ -32,6 +32,7 @@ from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer
 
 from . import intent as intents
+from . import lang
 from . import pack as packs
 from . import plan as plans
 from . import workflow as wflow
@@ -84,6 +85,27 @@ def counted(draft: dict[str, Any]) -> list[dict[str, Any]]:
             and q.get("field") != "intent"]  # H2: the kind of help is not one of the prediction's questions  # what one prediction is for: the meet check blocks on it, so only the rules read it from the person's words
 BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
 
+
+class _Both:
+    """H3: an English pattern beside its Persian one (lang.py), which is matched on the normalized text. Callers only ask
+    whether it matched. ``whole``: the Persian pattern must be the whole message (an order to build: a sentence that only
+    contains "شروع کنیم", "let's start", is not one; the review of H3)."""
+
+    def __init__(self, english: "re.Pattern[str]", persian: "re.Pattern[str]", whole: bool = False) -> None:
+        self.english, self.persian, self.whole = english, persian, whole
+
+    def search(self, text: str) -> bool:
+        norm = lang.normalize(text or "")
+        return bool(self.english.search(text or "") or (self.persian.fullmatch(norm) if self.whole else self.persian.search(norm)))
+
+    def match(self, text: str) -> bool:
+        return bool(self.english.match(text or "") or self.persian.fullmatch(lang.normalize(text or "")))
+
+    def fullmatch(self, text: str) -> bool:
+        return bool(self.english.fullmatch(text or "") or self.persian.fullmatch(lang.normalize(text or "")))
+
+
+BUILD_WORDS = _Both(BUILD_WORDS, lang.BUILD, whole=True)  # H3
 # 25.13: a message that is an order to build now, read by its intent rather than an exact phrase (live, 2026-10-16: "build",
 # "build now", "Yes, build now" and "ye s build now" were all missed): agreeing or polite words, then a build verb, then only
 # words that name what to build or when. A sentence that describes the problem or asks ("we want to build a model that…",
@@ -97,8 +119,11 @@ _ORDER_OBJECTS = frozenset("""it the a an my this that model models solution pro
 
 def build_order(text: str) -> bool:
     """Whether a message is, as a whole, an order to build (or train) now."""
-    if "?" in text:
+    if "?" in text or "؟" in text:
         return False
+    persian = lang.normalize(text)
+    if lang.has_persian(text) and lang.BUILD.fullmatch(persian):  # H3: "بسازش", "باشه، برو جلو": the whole message
+        return True
     words = re.findall(r"[a-z']+", text.lower())
     if not words or len(words) > 12:
         return False
@@ -127,12 +152,14 @@ def asks_to_build(messages: list[dict[str, Any]]) -> bool:
         return True
     before = next((m for m in reversed(messages[:at]) if m.get("role") == "agent"), None) or {}
     offered = before.get("kind") == "summary" or bool(OFFER.search(before.get("text") or "")) or bool(BUILD_WORDS.search(before.get("text") or ""))
-    return bool(ASSENT.search(said)) and offered
+    return (bool(ASSENT.search(said)) or bool(lang.ASSENT.fullmatch(lang.normalize(said)))) and offered  # H3: a Persian yes
 
 
 SIM_ROWS = 10_000  # the owner (2026-10-16): a simulated table is at most 10,000 rows
 SIMULATE_WORDS = re.compile(r"\b(simulat\w*|synthetic|fake data|generate (some )?data)\b", re.I)
+SIMULATE_WORDS = _Both(SIMULATE_WORDS, lang.SIMULATE)  # H3
 CONFIRMED = re.compile(r"^\s*(yes|yeah|yep|correct|right|that'?s right|exactly|ok|okay|sure|confirmed?)\s*[.!]*\s*$", re.I)  # a bare yes
+CONFIRMED = _Both(CONFIRMED, lang.CONFIRMED)  # H3
 
 POLICY = prompts.text("home_agent")  # dclab_rnd/prompts/home_agent.md (A4.3: prompts are versioned files)
 
@@ -196,7 +223,7 @@ ASSUMED_MOMENT = "At the time each row is recorded, using only what was known th
 
 def not_known(value: Any) -> bool:
     """Whether an answer says only that the person does not know."""
-    return isinstance(value, str) and bool(NOT_KNOWN.fullmatch(value))
+    return isinstance(value, str) and (bool(NOT_KNOWN.fullmatch(value)) or bool(lang.NOT_KNOWN.fullmatch(lang.normalize(value))))
 
 
 def moment_options(pack: str | None) -> list[str]:

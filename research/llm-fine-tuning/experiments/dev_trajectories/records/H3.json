@@ -1,0 +1,172 @@
+{
+ "package": "H3",
+ "title": "Persian and English without a model: Home reads a Persian request as well as an English one",
+ "date": "2026-10-28",
+ "request": "Continue the Home plan after H2: make the no-model path understand Persian as well as English (the kind of help, the outcome and the moment, the build and simulate words, the answers), then go on to H4.",
+ "spec": "Package H3 of the Home agent plan: dclab_rnd/draft/lang.py with normalisation (Arabic yeh and kaf, digits for matching only, the zero-width joiners, diacritics) and Persian pattern tables for intent, outcome windows, prediction moments, build and simulate words; plan.extract, the intent rules and the chat's word checks use it; quotes keep the person's original text. Done when Persian H1 dev requests route with no model as well as English ones.",
+ "plan": [
+  "Normalise one character for one and keep a map back to the person's text, so every quote is their own spelling even when marks are dropped.",
+  "Write the Persian signals from the 12 Persian and mixed dev requests and ordinary Persian, never the sealed set, with the English weights.",
+  "Use the same tables in plan.extract (outcome and moment), in the build, simulate, yes and not-known checks, and in the quote and support checks.",
+  "Measure on the H1 dev set with no model, then review the diff adversarially and fix what the review finds."
+ ],
+ "decisions": [
+  {
+   "decision": "Match on the normalized text and quote from the original through a position map.",
+   "why": "A quote must pass plan.quoted against what the person wrote; a normalized quote ('پیش بینی' for 'پیش‌بینی') would read as invented words."
+  },
+  {
+   "decision": "A Persian order to build must be the whole message (an optional yes before it, a 'please' or 'now' after it).",
+   "why": "Persian verbs carry the person and the tense in their ending; 'شروع کنیم' (let's start) appears inside refusals and answers, and a build is hard to undo."
+  },
+  {
+   "decision": "A Persian moment counts only where it is set apart (a clause's start, or right after 'predict'), and never when it says how often the data is refreshed.",
+   "why": "The moment is the main guard against leakage; a wrong 'stated' moment means its question is never asked."
+  },
+  {
+   "decision": "Keep the prediction verbs narrow (future tense and a short list), not any present-tense verb after 'which'.",
+   "why": "The Persian present tense also describes what already happens ('which products sell most'), which is analysis."
+  },
+  {
+   "decision": "Let a quote grow back over the previous word when a one-word signal ends the text, in English too.",
+   "why": "'چرا؟' or 'Can you pivot' had a valid signal whose one-word quote failed the quote rule, so the request fell to the default; this changes English readings and is tested as a deliberate change."
+  }
+ ],
+ "change": "dclab_rnd/draft/lang.py (normalize, normalize_map, span, has_persian, SIGNALS, NOT_KNOWN, BUILD, ASSENT, CONFIRMED, SIMULATE, TARGET, MOMENTS); draft/intent.py (rules on the normalized text with spans mapped back, Persian signals, _quote grows back at the end); draft/plan.py (_norm normalizes, supports reads Persian with Persian function words left out, extract runs English then fills from Persian, _extract_persian keeps only quotable values); draft/chat.py (_Both: English beside Persian for the build, simulate and confirm words; build_order and asks_to_build read Persian; not_known reads Persian); tests/test_home_lang.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "'چرا؟' (why?) at the end of a sentence was not read as a business question.",
+   "scenario": "'احتمالاً فروش کم شده؛ چرا؟' fell to the default prediction.",
+   "cause": "The pattern wanted a space after 'چرا', and the one-word quote failed the two-word rule.",
+   "fix": "'چرا' ends at any non-letter, and a quote grows back over the previous word at the end of the text.",
+   "test": "test_probably_is_not_a_prediction"
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A bare 'بساز' (make) was read as an order to build.",
+   "scenario": "'یک داشبورد بساز' (make a dashboard) would have built a project.",
+   "cause": "The first draft of the build words listed the verb alone.",
+   "fix": "Only 'build it', 'build the project', 'go ahead' and 'start' forms count.",
+   "test": "test_build_orders_and_not_orders"
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "'احتمالاً' (probably) counted as a prediction signal.",
+   "scenario": "An everyday hedge in a business question moved it toward a prediction.",
+   "cause": "The likelihood pattern matched the adverb.",
+   "fix": "'احتمال' not followed by the adverb's ending.",
+   "test": "test_probably_is_not_a_prediction"
+  },
+  {
+   "id": "F4",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A Persian outcome took the punctuation after its verb.",
+   "scenario": "'... دیر می‌رسند، ۲ روز قبل از ارسال' gave an outcome ending in '،'.",
+   "cause": "The verb was matched as any non-space run.",
+   "fix": "A word never includes punctuation.",
+   "test": "test_a_moment_before_an_event"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An answer or a refusal that mentions starting was read as an order to build.",
+   "scenario": "Asked for the moment, the person answered 'وقتی مشتری اولین خرید را شروع کند' (when the customer starts the first purchase), and Home called build; 'نه، اول داده را ببینیم بعد شروع کنیم' (no, first the data, then start) did too.",
+   "cause": "The build pattern had no word end and was searched anywhere in a short message.",
+   "fix": "The Persian order must be the whole message (fullmatch with an optional yes and a 'please'); the search for the build words uses the same whole-message rule.",
+   "test": "test_an_answer_that_mentions_starting_is_not_an_order_to_build"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A wrong prediction moment was recorded as stated, so the moment question was never asked.",
+   "scenario": "'داده از مهر ماه است' gave the moment 'هر ماه' (inside the month name 'مهر'); 'سازمان' gave a moment from 'زمان' inside it.",
+   "cause": "The moment patterns had no left word boundary and were claimed anywhere in the text.",
+   "fix": "Word boundaries on every opener, a moment only where it is set apart, never a refresh, and a value kept only if plan.quoted accepts it.",
+   "test": "test_a_moment_inside_another_word_or_a_refresh_is_not_a_moment"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One Persian clause erased the English outcome of a mixed request.",
+   "scenario": "'Predict which customers will cancel within 30 days. داده‌ها هر ماه به‌روز می‌شوند' kept only a Persian moment.",
+   "cause": "extract returned the Persian result early whenever it found anything.",
+   "fix": "English first; Persian fills only the fields English left unknown.",
+   "test": "test_a_persian_clause_never_erases_the_english_outcome"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Persian words inside other words moved requests to the wrong track.",
+   "scenario": "'چند تاریخ' (several dates) read as an analysis question and took a model request off prediction; 'بعد از ظهر' (afternoon) and 'ماه بعد از کمپین' (the month after the campaign) read as future windows; 'روند' fired inside 'می‌روند' (they leave).",
+   "cause": "No word boundaries; 'بعد' (after) taken as future.",
+   "fix": "Word boundaries on the Persian signals, 'بعد' not followed by 'از', no match inside a present-tense verb; the letter class excludes Persian punctuation so '؟' ends a word.",
+   "test": "test_a_word_inside_another_word_is_not_a_signal"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Two Persian texts agreed on any shared function word.",
+   "scenario": "supports('کدام مشتری‌ها ... لغو می‌کنند', 'کدام ستون') was true through 'کدام' (which), so a model's value its quote does not support could pass.",
+   "cause": "The stop words were English only.",
+   "fix": "Persian function words are left out of the comparison, cut to the same five-letter stems.",
+   "test": "test_persian_function_words_are_no_support"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Several Persian signals had no test that fires them.",
+   "scenario": "fa_clean, fa_compare, fa_kpi, fa_likely, fa_meaning, fa_model and fa_trend were never exercised; a duplicate fa_which_metric line scored advice twice.",
+   "cause": "The tests covered the tracks, not each signal.",
+   "fix": "One ordinary sentence per signal, and the set of examples must equal the set of signals; the duplicate removed.",
+   "test": "test_every_persian_signal_fires_on_an_ordinary_sentence"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'درسته' (that's right) after a summary was taken as a yes to build.",
+   "scenario": "English keeps 'correct' and 'right' apart from a yes to build; the Persian table did not.",
+   "cause": "One Persian yes table served both the build offer and the critic's confirmation.",
+   "fix": "ASSENT (a yes to build) and CONFIRMED (that's right) are separate tables.",
+   "test": "test_that_is_right_confirms_but_never_builds"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Home on the H1 dev requests, rules alone, after H3 (HOME-006)",
+   "gate": "the plan's done-when: Persian track accuracy with no model at least the English one; English unchanged",
+   "fixed_before_run": true,
+   "result": "Track accuracy 1.0 (36 of 36) in English, Persian and mixed, against 0.778 with Persian 0.125 before (HOME-004); traps 4 of 6 (the Persian no-model trap now passes); quotes, uncited numbers, rows shown and fields lost all 0; fields right 6, wrong 0",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the Persian patterns were written from these same Persian and mixed dev requests, so dev overstates; the sealed set is run once, at the end of the plan",
+    "the review's sentences and the test sentences are written by the same model",
+    "Arabic is not covered"
+   ]
+  }
+ ],
+ "outcome": "With no model, Home now reads a Persian request's kind of help, its outcome and its moment, and the person's Persian answers (I don't know, yes, build it, simulate), quoting their own spelling. On the dev set every request reads right in both languages; the review's seven defects, two of them able to start a build or skip the leakage question, are fixed with tests.",
+ "lessons": [
+  "Persian words carry the person and the tense in their endings, and short words sit inside longer ones ('هر' in 'مهر', 'زمان' in 'سازمان'): every Persian pattern needs a word boundary on both sides, and an action that is hard to undo (a build) needs the whole message, not a match inside it.",
+  "A dev score written from the same requests says the rules fit those requests, not that they understand Persian; the adversarial sentences found more than the score did."
+ ],
+ "risks": [
+  "The Persian tables are written by one model from 12 dev requests and its own sentences; the sealed set (H12) and real Persian testers will find gaps. A request with no Persian signal still starts as a prediction, with the card's Change control."
+ ],
+ "commits": []
+}

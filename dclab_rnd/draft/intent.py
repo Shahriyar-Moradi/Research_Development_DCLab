@@ -27,6 +27,8 @@ from typing import Any, Optional
 
 from dclab_rnd import prompts
 
+from . import lang
+
 TRACKS = ("prediction", "analysis", "preparation", "reporting", "business", "advice")
 LABELS = {
     "prediction": "A prediction (a model)",
@@ -113,7 +115,8 @@ SIGNALS: list[tuple[str, str, int, str]] = [
     ("advice", "how_much_data", 4, r"\bhow\s+(?:many\s+rows|much\s+data|many\s+examples)\s+do\s+i\s+need\b"),
     ("advice", "not_sure_need", 3, r"\b(?:not\s+sure|unsure)\s+(?:if|whether)\s+(?:i|we)\s+need\b"),
 ]
-_COMPILED = [(t, i, w, re.compile(p, re.I)) for t, i, w, p in SIGNALS]
+# English beside Persian (H3, lang.py): both match the normalized text
+_COMPILED = [(t, i, w, re.compile(p, re.I)) for t, i, w, p in SIGNALS + lang.SIGNALS]
 
 # Home's next step on each track until the packages that serve it are built (the card says what DCLab can do now)
 NEXT = {
@@ -126,6 +129,9 @@ NEXT = {
                 "if part of the question is a prediction, change the type of help above.",
     "advice": "Ask it in the Evidence library: its answers cite DCLab's recorded experiments.",
 }
+
+
+_ENDS = " ,.;:?!\"'“”،؛؟"
 
 
 def _quote(text: str, start: int, end: int) -> str:
@@ -141,7 +147,13 @@ def _quote(text: str, start: int, end: int) -> str:
             break
         end += nxt.end()
         quote = text[start:end]
-    return quote.strip(" ,.;:?!\"'“”")
+    while (len(quote.strip(_ENDS).split()) < 2 and len(quote.strip(_ENDS)) < 8) and start > 0:  # at the end of the text: grow back
+        before = re.search(r"\S+\s*$", text[:start])
+        if not before:
+            break
+        start = before.start()
+        quote = text[start:end]
+    return quote.strip(_ENDS)
 
 
 def rules(text: str) -> dict[str, Any]:
@@ -149,14 +161,16 @@ def rules(text: str) -> dict[str, Any]:
     scores = {t: 0 for t in TRACKS}
     signals: list[str] = []
     quotes: dict[str, tuple[int, str]] = {}
+    text = str(text or "")
+    norm, at = lang.normalize_map(text)  # matched on the normalized text, quoted from the person's own words
     for track, sid, weight, pattern in _COMPILED:
-        match = pattern.search(text or "")
+        match = pattern.search(norm)
         if not match:
             continue
         scores[track] += weight
         signals.append(sid)
         if weight > quotes.get(track, (0, ""))[0]:
-            quotes[track] = (weight, _quote(text, match.start(), match.end()))
+            quotes[track] = (weight, _quote(text, *lang.span(at, match.start(), match.end())))
     return {"scores": scores, "signals": signals, "quotes": {t: q for t, (_, q) in quotes.items()}}
 
 

@@ -21,6 +21,8 @@ from typing import Any
 
 from dclab_rnd import kinds, prompts
 
+from . import lang
+
 FIELDS = ("target", "prediction_moment", "action", "data_plan")  # in the order they are asked
 # 15.6: a pack's own questions, in the place of the generic ones (Home still asks at most MAX_QUESTIONS); they belong
 # to the pack's problem kind (16.1)
@@ -66,7 +68,7 @@ _MOMENTS = [re.compile(_SET_APART + "(" + p + ")", re.I) for p in (
 
 
 def _norm(text: str) -> str:
-    return re.sub(r"\s+", " ", str(text)).strip().lower()
+    return re.sub(r"\s+", " ", lang.normalize(str(text))).strip().lower()  # H3: Persian spellings compare alike
 
 
 def user_text(draft: dict[str, Any]) -> list[str]:
@@ -84,14 +86,27 @@ def quoted(quote: Any, texts: list[str]) -> bool:
     return any(pattern.search(_norm(t)) for t in texts)
 
 
+# Persian function words, never a shared meaning (the review of H3: "کدام", which, made any two Persian texts agree)
+_FA_STOP = frozenset(w[:5] for w in "کدام برای این آن آنها آینده بعدی قبل است هست هستند بود شود شوند کند کنند می‌کنند ها های که از با تا هر چه چند "
+                     "را در به یک ظرف روز هفته ماه سال وقتی اگر باید خواهد خواهند همه".split())
+
+
 def supports(quote: Any, value: Any) -> bool:
     """True when the value says something the quote says: they share a content word (compared as 5-letter stems)."""
-    stems = lambda text: {w[:5] for w in re.findall(r"[a-z0-9]{3,}", _norm(text))} - {"the", "and", "each", "every", "with", "that", "this", "which", "whether"}  # noqa: E731
+    stems = lambda text: {w[:5] for w in re.findall(r"[a-z0-9\u0600-\u06FF]{3,}", _norm(text))} - {"the", "and", "each", "every", "with", "that", "this", "which", "whether"} - _FA_STOP  # noqa: E731
     return bool(stems(quote) & stems(value))
 
 
 def extract(text: str) -> dict[str, str]:
     """The keyword rules: the outcome (with its window) and the prediction moment, quoted from ``text``."""
+    found = _extract_english(text)
+    if lang.has_persian(text):  # H3: a Persian clause fills only what the English left unknown (the review: it erased the outcome)
+        for field, value in _extract_persian(text).items():
+            found.setdefault(field, value)
+    return found
+
+
+def _extract_english(text: str) -> dict[str, str]:
     found: dict[str, str] = {}
     match = _TARGET.search(text) or _QUESTION_TARGET.search(text)
     if match:
@@ -102,6 +117,27 @@ def extract(text: str) -> dict[str, str]:
             if moment.start(1) >= taken[1] or moment.end(1) <= taken[0]:  # never the outcome's own window again
                 found["prediction_moment"] = re.split(r"\s+(?:and|so|to)\s+", moment.group(1).strip(), maxsplit=1)[0]  # "every Monday and the team calls…"
                 return found
+    return found
+
+
+def _extract_persian(text: str) -> dict[str, str]:
+    """H3: the same two fields in Persian, matched on the normalized text and quoted from the person's own words."""
+    norm, at = lang.normalize_map(text)
+    found: dict[str, str] = {}
+    match = lang.TARGET.search(norm)
+    taken = (0, 0)
+    if match:
+        start, end = lang.span(at, *match.span(1))
+        if quoted(text[start:end].strip(), [text]):  # kept only as whole words of the person's (the review of H3)
+            found["target"] = text[start:end].strip()
+            taken = match.span(1)
+    for pattern in lang.MOMENTS:
+        for moment in pattern.finditer(norm):
+            if moment.start(1) >= taken[1] or moment.end(1) <= taken[0]:
+                start, end = lang.span(at, *moment.span(1))
+                if quoted(text[start:end].strip(), [text]):
+                    found["prediction_moment"] = text[start:end].strip()
+                    return found
     return found
 
 
