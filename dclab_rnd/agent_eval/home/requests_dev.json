@@ -1,0 +1,149 @@
+[
+ {"id": "d-p1", "lang": "en", "data": ["customers"],
+  "text": "Predict which customers will cancel within 30 days, scored on the first day of each month, so the retention team can call the top 200.",
+  "gold": {"tracks": ["prediction"], "exit": "ml_project", "fields": {
+   "target": {"any": ["cancel", "churn"]}, "prediction_moment": {"any": ["first day"]}, "action": {"any": ["call", "retention"]}}}},
+ {"id": "d-p2", "lang": "en", "data": ["bookings"],
+  "text": "We want to know which bookings will be cancelled before the travel date, checked at the moment the booking is made, so we can ask for a deposit on the risky ones.",
+  "gold": {"tracks": ["prediction"], "exit": "ml_project", "fields": {
+   "target": {"any": ["cancel"]}, "prediction_moment": {"any": ["booking is made", "moment the booking"]}, "action": {"any": ["deposit"]}}}},
+ {"id": "d-p3", "lang": "fa", "data": ["customers"],
+  "text": "می‌خواهم پیش‌بینی کنم کدام مشتری‌ها ظرف ۳۰ روز آینده اشتراکشان را لغو می‌کنند تا تیم فروش با آن‌ها تماس بگیرد.",
+  "gold": {"tracks": ["prediction"], "exit": "ml_project", "fields": {
+   "target": {"any": ["لغو", "cancel", "churn"]}, "prediction_moment": null, "action": {"any": ["تماس", "call"]}}}},
+ {"id": "d-p4", "lang": "mixed", "data": [],
+  "text": "پیش‌بینی کنید کدام lead‌ها ظرف ۶۰ روز convert می‌شوند تا sales team روی آن‌ها تمرکز کند.",
+  "gold": {"tracks": ["prediction"], "exit": "ml_project", "fields": {
+   "target": {"any": ["convert"]}, "prediction_moment": null, "action": {"any": ["تمرکز", "sales", "focus"]}}}},
+ {"id": "d-p5", "lang": "en", "data": ["sales"], "trap": "real_prediction",
+  "text": "Show me which customers are going to buy again next month.",
+  "gold": {"tracks": ["prediction"], "exit": "ml_project", "fields": {
+   "target": {"any": ["buy again", "purchase", "repeat"]}, "prediction_moment": null, "action": null}}},
+ {"id": "d-p6", "lang": "en", "data": ["sales", "customers"],
+  "text": "Combine the orders and customer files into one table per customer, then predict who will churn next month.",
+  "gold": {"tracks": ["prediction", "preparation"], "both": true, "exit": "ml_project", "fields": {
+   "output_grain": {"any": ["per customer", "customer"]}, "target": {"any": ["churn"]}}}},
+
+ {"id": "d-a1", "lang": "en", "data": ["sales"],
+  "text": "How much revenue did we make per region last quarter? Only paid orders.",
+  "gold": {"tracks": ["analysis"], "exit": "analysis", "fields": {
+   "measure": {"any": ["revenue", "amount", "sales"]}, "breakdown": {"any": ["region"]}, "period": {"any": ["last quarter", "quarter"]},
+   "filters": {"any": ["paid"]}}}},
+ {"id": "d-a2", "lang": "en", "data": ["sales"],
+  "text": "Compare average order value between the web and the app channel over 2025.",
+  "gold": {"tracks": ["analysis"], "exit": "analysis", "fields": {
+   "measure": {"any": ["average order value", "average", "aov"]}, "breakdown": {"any": ["channel"]}, "period": {"any": ["2025"]},
+   "filters": {"any": ["web", "app"]}}}},
+ {"id": "d-a3", "lang": "fa", "data": ["sales"],
+  "text": "تعداد سفارش‌ها در هر ماه سال ۲۰۲۵ چقدر بود؟ نشان بده.",
+  "gold": {"tracks": ["analysis"], "exit": "analysis", "fields": {
+   "measure": {"any": ["تعداد", "سفارش", "count", "orders"]}, "breakdown": {"any": ["ماه", "month"]}, "period": {"any": ["۲۰۲۵", "2025"]},
+   "filters": null}}},
+ {"id": "d-a4", "lang": "fa", "data": ["customers"],
+  "text": "میانگین هزینهٔ ماهانهٔ مشتری‌ها به تفکیک نوع پلن چقدر است؟",
+  "gold": {"tracks": ["analysis"], "exit": "analysis", "fields": {
+   "measure": {"any": ["میانگین", "هزینه", "spend"]}, "breakdown": {"any": ["پلن", "plan"]}, "period": null, "filters": null}}},
+ {"id": "d-a5", "lang": "en", "data": ["customers"],
+  "text": "What share of customers in each city has more than 3 support tickets in the last 90 days? Put it on a monthly report too.",
+  "gold": {"tracks": ["analysis", "reporting"], "both": true, "exit": ["analysis", "dashboard"], "fields": {
+   "measure": {"any": ["share", "rate", "percentage"]}, "breakdown": {"any": ["city"]}, "filters": {"any": ["ticket"]},
+   "refresh": {"any": ["monthly"]}}}},
+ {"id": "d-a6", "lang": "en", "data": ["customers"], "trap": "missing_column", "missing_column": "lifetime_spend",
+  "text": "Show me the average lifetime_spend by segment.",
+  "gold": {"tracks": ["analysis"], "exit": "analysis", "fields": {"measure": null, "breakdown": {"any": ["segment"]}}}},
+
+ {"id": "d-r1", "lang": "en", "data": ["sales"],
+  "text": "Remove duplicate orders and export the clean table as an Excel file.",
+  "gold": {"tracks": ["preparation"], "exit": "dataset", "fields": {
+   "rules": {"any": ["duplicate"]}, "destination": {"any": ["excel", "xlsx"]}, "output_grain": null}}},
+ {"id": "d-r2", "lang": "en", "data": ["sales", "customers"],
+  "text": "Join the orders with the customer table on customer_id so every order has the customer's city and segment, then show revenue per segment.",
+  "gold": {"tracks": ["preparation", "analysis"], "both": true, "exit": "analysis", "fields": {
+   "inputs": {"any": ["orders", "customer"]}, "rules": {"any": ["customer_id", "join"]}, "output_grain": {"any": ["order"]},
+   "measure": {"any": ["revenue"]}, "breakdown": {"any": ["segment"]}}}},
+ {"id": "d-r3", "lang": "fa", "data": ["sales"],
+  "text": "ستون تاریخ را به فرمت درست تبدیل کن و ردیف‌هایی که مبلغ ندارند حذف کن.",
+  "gold": {"tracks": ["preparation"], "exit": "dataset", "fields": {
+   "rules": {"any": ["تاریخ", "مبلغ", "حذف", "date", "amount"]}, "destination": null}}},
+ {"id": "d-r4", "lang": "mixed", "data": ["sales"],
+  "text": "لطفاً یک pivot بساز: هر region یک ردیف و هر product_category یک ستون با جمع amount.",
+  "gold": {"tracks": ["preparation"], "exit": "dataset", "fields": {
+   "output_grain": {"any": ["region", "ردیف"]}, "rules": {"any": ["pivot", "product_category", "amount"]}, "destination": null}}},
+ {"id": "d-r5", "lang": "en", "data": ["sales"], "trap": "silent_drop",
+  "text": "Keep only the paid orders from 2026 and give me that table.",
+  "gold": {"tracks": ["preparation"], "exit": "dataset", "fields": {"rules": {"any": ["paid", "2026"]}}}},
+ {"id": "d-r6", "lang": "en", "data": ["customers"],
+  "text": "Turn signup_date into months since signup and save it as a new column.",
+  "gold": {"tracks": ["preparation"], "exit": "dataset", "fields": {
+   "rules": {"any": ["signup_date", "months since signup", "months"]}, "destination": null}}},
+
+ {"id": "d-b1", "lang": "en", "data": ["sales"],
+  "text": "Build a weekly dashboard of revenue, orders and refunds by region for the sales managers.",
+  "gold": {"tracks": ["reporting"], "exit": "dashboard", "fields": {
+   "kpis": {"any": ["revenue", "orders", "refund"]}, "audience": {"any": ["sales managers", "managers"]}, "refresh": {"any": ["weekly"]},
+   "decisions_supported": null}}},
+ {"id": "d-b2", "lang": "en", "data": ["customers"],
+  "text": "I want to track churn rate and average monthly spend every month for the leadership team.",
+  "gold": {"tracks": ["reporting"], "exit": "dashboard", "fields": {
+   "kpis": {"any": ["churn", "spend"]}, "audience": {"any": ["leadership"]}, "refresh": {"any": ["every month", "monthly"]}}}},
+ {"id": "d-b3", "lang": "fa", "data": ["sales"],
+  "text": "یک داشبورد روزانه از فروش هر کانال برای مدیر بازاریابی می‌خواهم.",
+  "gold": {"tracks": ["reporting"], "exit": "dashboard", "fields": {
+   "kpis": {"any": ["فروش", "sales"]}, "audience": {"any": ["مدیر بازاریابی", "بازاریابی", "marketing"]}, "refresh": {"any": ["روزانه", "daily"]}}}},
+ {"id": "d-b4", "lang": "en", "data": ["sales"], "trap": "report_not_model",
+  "text": "Build a model of last month's sales by region.",
+  "gold": {"tracks": ["reporting", "analysis"], "both": false, "exit": ["analysis", "dashboard"], "fields": {
+   "kpis": {"any": ["sales"]}, "breakdown": {"any": ["region"]}}}},
+ {"id": "d-b5", "lang": "en", "data": ["customers"], "trap": "rows_request",
+  "text": "Make a report listing every churned customer with their ID and monthly spend.",
+  "gold": {"tracks": ["reporting"], "exit": "dashboard", "fields": {"kpis": {"any": ["churn", "spend"]}}}},
+ {"id": "d-b6", "lang": "mixed", "data": ["bookings"],
+  "text": "یک KPI dashboard برای booking ها و cancellation rate هر destination می‌خواهم که هر هفته refresh شود.",
+  "gold": {"tracks": ["reporting"], "exit": "dashboard", "fields": {
+   "kpis": {"any": ["booking", "cancellation"]}, "refresh": {"any": ["هفته", "weekly"]}, "audience": null}}},
+
+ {"id": "d-s1", "lang": "en", "data": ["sales"],
+  "text": "Why did revenue drop in March 2026 compared with February?",
+  "gold": {"tracks": ["business"], "exit": "decision_brief", "fields": {
+   "decision": null, "period_compared": {"any": ["march", "february"]}, "success_measure": {"any": ["revenue"]}}}},
+ {"id": "d-s2", "lang": "en", "data": ["bookings"],
+  "text": "Should we stop offering free cancellation on bookings to Europe? What would it do to cancellations?",
+  "gold": {"tracks": ["business"], "exit": "decision_brief", "fields": {
+   "decision": {"any": ["free cancellation"]}, "options": {"any": ["stop", "free cancellation"]}, "success_measure": {"any": ["cancellation"]}}}},
+ {"id": "d-s3", "lang": "fa", "data": ["customers"],
+  "text": "چرا مشتری‌های پلن basic بیشتر از بقیه می‌روند و چه کار باید بکنیم؟",
+  "gold": {"tracks": ["business"], "exit": "decision_brief", "fields": {
+   "decision": {"any": ["چه کار", "کار"]}, "success_measure": {"any": ["می‌روند", "ریزش", "churn"]}, "options": null}}},
+ {"id": "d-s4", "lang": "en", "data": ["sales"],
+  "text": "Which channel should we put next quarter's marketing budget into: web, app or store?",
+  "gold": {"tracks": ["business"], "exit": "decision_brief", "fields": {
+   "decision": {"any": ["budget", "channel"]}, "options": {"any": ["web", "app", "store"]}, "success_measure": null}}},
+ {"id": "d-s5", "lang": "fa", "data": ["sales"], "trap": "persian_no_model",
+  "text": "چرا فروش منطقهٔ شارجه در سه ماه اول ۲۰۲۶ کم شد؟",
+  "gold": {"tracks": ["business"], "exit": "decision_brief", "fields": {
+   "success_measure": {"any": ["فروش"]}, "period_compared": {"any": ["سه ماه", "۲۰۲۶"]}}}},
+ {"id": "d-s6", "lang": "en", "data": ["sales"],
+  "text": "Show refunds per product category this year and tell me whether we should change our returns policy.",
+  "gold": {"tracks": ["business", "analysis"], "both": true, "exit": "decision_brief", "fields": {
+   "measure": {"any": ["refund"]}, "breakdown": {"any": ["category"]}, "decision": {"any": ["returns policy"]}}}},
+
+ {"id": "d-v1", "lang": "en", "data": [],
+  "text": "What's the difference between precision and recall, and which should I use for fraud?",
+  "gold": {"tracks": ["advice"], "exit": "answer", "fields": {"topic": {"any": ["precision", "recall"]}}}},
+ {"id": "d-v2", "lang": "en", "data": [],
+  "text": "Is it okay to use a random train/test split when my data has dates?",
+  "gold": {"tracks": ["advice"], "exit": "answer", "fields": {"topic": {"any": ["split", "random"]}}}},
+ {"id": "d-v3", "lang": "fa", "data": [],
+  "text": "برای داده‌های نامتوازن چه معیاری مناسب است؟",
+  "gold": {"tracks": ["advice"], "exit": "answer", "fields": {"topic": {"any": ["نامتوازن", "معیار", "imbalanced", "metric"]}}}},
+ {"id": "d-v4", "lang": "en", "data": [],
+  "text": "How many rows do I need to train a churn model?",
+  "gold": {"tracks": ["advice"], "exit": "answer", "fields": {"topic": {"any": ["rows", "churn"]}}}},
+ {"id": "d-v5", "lang": "mixed", "data": [],
+  "text": "فرق dashboard با prediction model چیست؟",
+  "gold": {"tracks": ["advice"], "exit": "answer", "fields": {"topic": {"any": ["dashboard", "prediction", "model"]}}}},
+ {"id": "d-v6", "lang": "en", "data": ["customers"],
+  "text": "I'm not sure if I need machine learning. We want fewer customers to leave; can you help me decide, and then build it if it's needed?",
+  "gold": {"tracks": ["advice", "prediction"], "both": true, "exit": ["answer", "ml_project"], "fields": {
+   "topic": {"any": ["machine learning", "leave"]}, "target": {"any": ["leave", "churn"]}}}}
+]
