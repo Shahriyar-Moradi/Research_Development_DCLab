@@ -181,20 +181,22 @@
  ],
  "measurements": [
   {
-   "name": "memory_retrieval_v1: gate frozen before any run",
-   "gate": "embeddings enter only if, on the sealed set against hybrid: reworded mean gain at least 0.30 with the 90% bootstrap lower end above 0, direct and Persian not worse, median query time at most 1000 ms; the method chosen on dev first",
+   "name": "memory_retrieval_v1: three local embedding models against search without a model, chosen on dev, judged once on sealed",
+   "gate": "embeddings enter only if, on the 30 sealed questions against hybrid (BM25 with LSA): reworded mean gain at least 0.30 with the 90% bootstrap lower end above 0; direct and Persian mean differences not below 0; median query time at most 1000 ms. The model and method chosen on the 36 dev questions first (highest reworded recall among those not worse on direct and Persian; a tie to the smaller download).",
    "fixed_before_run": true,
-   "result": "not run: the three models are not pulled yet (Ollama had none); the manifest holds the gate, the candidates, the prefixes and the hashes of the corpus and both question files",
-   "verdict": "not scored",
+   "result": "Dev recall at 5 (direct, reworded, Persian): hybrid 0.958, 0.083, 0.0; embeddinggemma embed 1.0, 0.875, 1.0; bge-m3 embed 1.0, 0.875, 1.0; qwen3-embedding embed 1.0, 0.792, 0.833. Chosen: embeddinggemma:300m-qat-q8_0 with embed (tied with bge-m3, the smaller download, 338 MB). Sealed: reworded mean difference 1.0 (90% interval 1.0 to 1.0), direct 0.0, Persian 0.95 (Persian recall 0.95, interval 0.85 to 1.0), median query 17.7 ms. Loaded memory on dev 401.8 MB.",
+   "verdict": "pass",
    "cost_eur": 0.0,
-   "next": "the owner pulls the three models with enough free disk, then make memory-retrieval ARGS=\"dev --ollama MODEL\" for each, choose, and sealed --yes once",
+   "against_gate": "reworded gain 1.0 against the bar of 0.30, lower end 1.0 above 0; direct 0.0, not below 0; Persian 0.95, not below 0; 17.7 ms against 1000 ms: all four hold, so embeddings enter.",
+   "next": "35.5 is built with embeddinggemma:300m-qat-q8_0 and the embed method; keyword search stays only where no model answers.",
    "limits": [
-    "one invented corpus; ten sealed questions a group, so a single question moves a group's recall a step",
-    "latency and memory are those of the owner's small laptop under its load at the time"
+    "one small invented corpus and ten sealed questions a group: on reworded questions the baseline scores zero by construction, so the gain says embeddings win clearly here, not that real memory reaches the same recall",
+    "the fused method (hybrid_embed) was worse than embeddings alone on reworded questions; the reason was not measured",
+    "latency and memory were measured on the owner's small laptop, one model loaded at a time"
    ]
   }
  ],
- "outcome": "The memory search test is built and its gate frozen; nothing is run yet. Ten review findings fixed before the freeze, the most serious two in the gate itself (pooling Persian with reworded questions, and a baseline that is 0 by construction). A bug found by a test is fixed: a question with no readable word made keyword search count an alphabetical listing as hits.",
+ "outcome": "The memory search test is built, its gate frozen before any run, and run: on dev the three local models beat search without a model on reworded and Persian questions, embeddinggemma was chosen, and on the sealed set embeddings entered on all four checks. Ten review findings were fixed before the freeze, the most serious two in the gate itself. A bug found by a test is fixed: a question with no readable word made keyword search count an alphabetical listing as hits.",
  "lessons": [
   "When a question set is built so that a method scores 0 on a group by construction, that method is not a baseline for that group: compare against the best method that can score there.",
   "Do not pool groups whose baselines differ: a gain where the baseline is blind can carry a loss where it is not.",

@@ -1,0 +1,841 @@
+{
+ "experiment_id": "MRT-100",
+ "id": "MRT-100",
+ "campaign_id": "memory_retrieval_v1",
+ "kind": "memory_retrieval_sealed",
+ "status": "completed",
+ "completed_at": "2026-10-27T22:01:23+00:00",
+ "split": "sealed",
+ "manifest_sha256": "28f067457f9dec59a3432c4a76f7e9d41dff4c8c05fdeae449daa12cac3e578d",
+ "choice": {
+  "model": "embeddinggemma:300m-qat-q8_0",
+  "method": "embed",
+  "why": "highest dev recall on reworded questions (0.875) among the qualified"
+ },
+ "training_use": "never: the sealed set is evaluation only",
+ "question": "embeddings enter only if all four hold on the sealed set, each a paired difference chosen minus hybrid per question: (1) reworded (10 questions): mean at least 0.30 and the 90% bootstrap interval's lower end above 0 (2,000 draws over questions, seed 35); (2) direct (10): mean not below 0; (3) persian (10): mean not below 0; (4) the median query time at most 1000 ms. Otherwise keywords stay, and the result is reported as it is. Persian recall is reported with its interval beside the verdict.",
+ "limitations": [
+  "one invented corpus of 116 items and 66 questions; 10 sealed questions a group move a group's recall by 0.1 each; latency and memory are this machine's (an 8 GB MacBook Air) and change with load"
+ ],
+ "model": "embeddinggemma:300m-qat-q8_0",
+ "digest": "e84a7acc23943b7a589852cf6da122f0b925631b7884f297a001303dff54ffe6",
+ "loaded_mb": 401.8,
+ "candidate": {
+  "download": "338 MB",
+  "mb": 338,
+  "languages": "100+ languages",
+  "query_prefix": "task: search result | query: ",
+  "doc_prefix": "title: none | text: "
+ },
+ "measurement": {
+  "k": 5,
+  "questions": 30,
+  "groups": {
+   "direct": 10,
+   "reworded": 10,
+   "persian": 10
+  },
+  "recall": {
+   "hybrid": {
+    "direct": 1.0,
+    "reworded": 0.0,
+    "persian": 0.0,
+    "overall": 0.333
+   },
+   "embed": {
+    "direct": 1.0,
+    "reworded": 1.0,
+    "persian": 0.95,
+    "overall": 0.983
+   }
+  },
+  "intervals_90": {
+   "hybrid": {
+    "direct": [
+     1.0,
+     1.0
+    ],
+    "reworded": [
+     0.0,
+     0.0
+    ],
+    "persian": [
+     0.0,
+     0.0
+    ]
+   },
+   "embed": {
+    "direct": [
+     1.0,
+     1.0
+    ],
+    "reworded": [
+     1.0,
+     1.0
+    ],
+    "persian": [
+     0.85,
+     1.0
+    ]
+   }
+  },
+  "median_query_ms": 17.7,
+  "build_ms": 2.1,
+  "rows": [
+   {
+    "id": "S01",
+    "group": "direct",
+    "answers": [
+     "T01"
+    ],
+    "top": {
+     "hybrid": [
+      "T01",
+      "T02",
+      "E01",
+      "T06",
+      "T03"
+     ],
+     "embed": [
+      "T01",
+      "T02",
+      "T06",
+      "T05",
+      "T04"
+     ]
+    },
+    "ms": 2192.1,
+    "hybrid": 1.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S02",
+    "group": "direct",
+    "answers": [
+     "D02"
+    ],
+    "top": {
+     "hybrid": [
+      "D02",
+      "D03",
+      "D06",
+      "W02",
+      "D05"
+     ],
+     "embed": [
+      "D02",
+      "D06",
+      "D05",
+      "D03",
+      "D01"
+     ]
+    },
+    "ms": 34.2,
+    "hybrid": 1.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S03",
+    "group": "direct",
+    "answers": [
+     "P09"
+    ],
+    "top": {
+     "hybrid": [
+      "P09",
+      "P08",
+      "R03",
+      "K24",
+      "K06"
+     ],
+     "embed": [
+      "P09",
+      "P08",
+      "P01",
+      "P03",
+      "R03"
+     ]
+    },
+    "ms": 20.0,
+    "hybrid": 1.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S04",
+    "group": "direct",
+    "answers": [
+     "H06"
+    ],
+    "top": {
+     "hybrid": [
+      "H06",
+      "B01",
+      "H02",
+      "H04",
+      "D04"
+     ],
+     "embed": [
+      "H06",
+      "E02",
+      "H04",
+      "H01",
+      "H05"
+     ]
+    },
+    "ms": 20.4,
+    "hybrid": 1.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S05",
+    "group": "direct",
+    "answers": [
+     "L03",
+     "K11"
+    ],
+    "top": {
+     "hybrid": [
+      "L03",
+      "K11",
+      "L05",
+      "L01",
+      "L02"
+     ],
+     "embed": [
+      "L03",
+      "K11",
+      "L01",
+      "L05",
+      "L02"
+     ]
+    },
+    "ms": 17.6,
+    "hybrid": 1.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S06",
+    "group": "direct",
+    "answers": [
+     "L04"
+    ],
+    "top": {
+     "hybrid": [
+      "L04",
+      "L03",
+      "L05",
+      "L01",
+      "L02"
+     ],
+     "embed": [
+      "L04",
+      "L01",
+      "L02",
+      "L05",
+      "D06"
+     ]
+    },
+    "ms": 18.7,
+    "hybrid": 1.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S07",
+    "group": "direct",
+    "answers": [
+     "E07",
+     "C01"
+    ],
+    "top": {
+     "hybrid": [
+      "E07",
+      "C01",
+      "C03",
+      "C02",
+      "E08"
+     ],
+     "embed": [
+      "E07",
+      "C01",
+      "C04",
+      "C02",
+      "E04"
+     ]
+    },
+    "ms": 17.4,
+    "hybrid": 1.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S08",
+    "group": "direct",
+    "answers": [
+     "W04"
+    ],
+    "top": {
+     "hybrid": [
+      "W04",
+      "P06",
+      "P11",
+      "B04",
+      "P07"
+     ],
+     "embed": [
+      "W04",
+      "W05",
+      "P07",
+      "W03",
+      "W02"
+     ]
+    },
+    "ms": 17.8,
+    "hybrid": 1.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S09",
+    "group": "direct",
+    "answers": [
+     "P11"
+    ],
+    "top": {
+     "hybrid": [
+      "P11",
+      "P10",
+      "K21",
+      "D02",
+      "K28"
+     ],
+     "embed": [
+      "P11",
+      "P10",
+      "K05",
+      "M02",
+      "K29"
+     ]
+    },
+    "ms": 17.1,
+    "hybrid": 1.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S10",
+    "group": "direct",
+    "answers": [
+     "W06"
+    ],
+    "top": {
+     "hybrid": [
+      "W06",
+      "W10",
+      "W05",
+      "W09",
+      "W02"
+     ],
+     "embed": [
+      "W06",
+      "W02",
+      "W01",
+      "W07",
+      "W08"
+     ]
+    },
+    "ms": 19.4,
+    "hybrid": 1.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S11",
+    "group": "reworded",
+    "answers": [
+     "P14"
+    ],
+    "top": {
+     "hybrid": [
+      "B02",
+      "E09",
+      "W04",
+      "D02",
+      "H06"
+     ],
+     "embed": [
+      "P14",
+      "D02",
+      "C02",
+      "B03",
+      "E03"
+     ]
+    },
+    "ms": 17.7,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S12",
+    "group": "reworded",
+    "answers": [
+     "P12"
+    ],
+    "top": {
+     "hybrid": [
+      "B04",
+      "W07",
+      "K25",
+      "E02",
+      "E01"
+     ],
+     "embed": [
+      "P12",
+      "B04",
+      "K23",
+      "P13",
+      "W07"
+     ]
+    },
+    "ms": 18.0,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S13",
+    "group": "reworded",
+    "answers": [
+     "D04"
+    ],
+    "top": {
+     "hybrid": [
+      "P01",
+      "W05",
+      "P14",
+      "K08",
+      "K11"
+     ],
+     "embed": [
+      "D04",
+      "D01",
+      "D06",
+      "D03",
+      "S01"
+     ]
+    },
+    "ms": 18.1,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S14",
+    "group": "reworded",
+    "answers": [
+     "K03",
+     "K27"
+    ],
+    "top": {
+     "hybrid": [
+      "K09",
+      "K29",
+      "P13",
+      "H01",
+      "P06"
+     ],
+     "embed": [
+      "K25",
+      "K27",
+      "P07",
+      "K15",
+      "K03"
+     ]
+    },
+    "ms": 18.7,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S15",
+    "group": "reworded",
+    "answers": [
+     "U03",
+     "K22"
+    ],
+    "top": {
+     "hybrid": [
+      "K29",
+      "C04",
+      "R03",
+      "E06",
+      "T01"
+     ],
+     "embed": [
+      "K22",
+      "U03",
+      "K03",
+      "E04",
+      "E11"
+     ]
+    },
+    "ms": 21.5,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S16",
+    "group": "reworded",
+    "answers": [
+     "E12"
+    ],
+    "top": {
+     "hybrid": [
+      "P06",
+      "W01",
+      "P13",
+      "P12",
+      "B04"
+     ],
+     "embed": [
+      "E12",
+      "P07",
+      "P13",
+      "W05",
+      "K09"
+     ]
+    },
+    "ms": 17.6,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S17",
+    "group": "reworded",
+    "answers": [
+     "R03"
+    ],
+    "top": {
+     "hybrid": [
+      "M04",
+      "C03",
+      "E08",
+      "K30",
+      "L03"
+     ],
+     "embed": [
+      "R03",
+      "P09",
+      "W09",
+      "K26",
+      "R01"
+     ]
+    },
+    "ms": 19.0,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S18",
+    "group": "reworded",
+    "answers": [
+     "T05"
+    ],
+    "top": {
+     "hybrid": [
+      "K12",
+      "U05",
+      "K23",
+      "D05",
+      "L02"
+     ],
+     "embed": [
+      "T05",
+      "U02",
+      "U03",
+      "U01",
+      "T04"
+     ]
+    },
+    "ms": 17.3,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S19",
+    "group": "reworded",
+    "answers": [
+     "M04",
+     "K28"
+    ],
+    "top": {
+     "hybrid": [
+      "E08",
+      "K15",
+      "B04",
+      "K07",
+      "E07"
+     ],
+     "embed": [
+      "K28",
+      "M04",
+      "K25",
+      "K16",
+      "K18"
+     ]
+    },
+    "ms": 17.0,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S20",
+    "group": "reworded",
+    "answers": [
+     "E05"
+    ],
+    "top": {
+     "hybrid": [
+      "P06",
+      "E09",
+      "W04",
+      "H02",
+      "P12"
+     ],
+     "embed": [
+      "E05",
+      "E10",
+      "K15",
+      "U05",
+      "K16"
+     ]
+    },
+    "ms": 17.7,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S21",
+    "group": "persian",
+    "answers": [
+     "T04"
+    ],
+    "top": {
+     "hybrid": [],
+     "embed": [
+      "T04",
+      "T01",
+      "T02",
+      "T05",
+      "U02"
+     ]
+    },
+    "ms": 17.5,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S22",
+    "group": "persian",
+    "answers": [
+     "H05"
+    ],
+    "top": {
+     "hybrid": [],
+     "embed": [
+      "H05",
+      "H01",
+      "H02",
+      "H04",
+      "W02"
+     ]
+    },
+    "ms": 16.5,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S23",
+    "group": "persian",
+    "answers": [
+     "R01"
+    ],
+    "top": {
+     "hybrid": [],
+     "embed": [
+      "R01",
+      "R02",
+      "H03",
+      "K29",
+      "R05"
+     ]
+    },
+    "ms": 16.8,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S24",
+    "group": "persian",
+    "answers": [
+     "P03"
+    ],
+    "top": {
+     "hybrid": [],
+     "embed": [
+      "P03",
+      "P09",
+      "P01",
+      "P02",
+      "R03"
+     ]
+    },
+    "ms": 15.6,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S25",
+    "group": "persian",
+    "answers": [
+     "P05"
+    ],
+    "top": {
+     "hybrid": [],
+     "embed": [
+      "P05",
+      "K16",
+      "K14",
+      "P04",
+      "P13"
+     ]
+    },
+    "ms": 16.0,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S26",
+    "group": "persian",
+    "answers": [
+     "S02",
+     "K04"
+    ],
+    "top": {
+     "hybrid": [],
+     "embed": [
+      "S02",
+      "S03",
+      "S05",
+      "S01",
+      "D03"
+     ]
+    },
+    "ms": 20.2,
+    "hybrid": 0.0,
+    "embed": 0.5
+   },
+   {
+    "id": "S27",
+    "group": "persian",
+    "answers": [
+     "M02"
+    ],
+    "top": {
+     "hybrid": [],
+     "embed": [
+      "M02",
+      "M01",
+      "M04",
+      "M03",
+      "U02"
+     ]
+    },
+    "ms": 16.4,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S28",
+    "group": "persian",
+    "answers": [
+     "B01"
+    ],
+    "top": {
+     "hybrid": [],
+     "embed": [
+      "B01",
+      "B04",
+      "B03",
+      "E08",
+      "B02"
+     ]
+    },
+    "ms": 17.0,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S29",
+    "group": "persian",
+    "answers": [
+     "E11"
+    ],
+    "top": {
+     "hybrid": [],
+     "embed": [
+      "E11",
+      "E02",
+      "K28",
+      "H06",
+      "R02"
+     ]
+    },
+    "ms": 20.6,
+    "hybrid": 0.0,
+    "embed": 1.0
+   },
+   {
+    "id": "S30",
+    "group": "persian",
+    "answers": [
+     "W03"
+    ],
+    "top": {
+     "hybrid": [],
+     "embed": [
+      "W03",
+      "P04",
+      "W01",
+      "T04",
+      "W06"
+     ]
+    },
+    "ms": 17.7,
+    "hybrid": 0.0,
+    "embed": 1.0
+   }
+  ]
+ },
+ "verdict": {
+  "verdict": "embeddings enter: embed by embeddinggemma:300m-qat-q8_0",
+  "checks": {
+   "reworded_gain_clear": true,
+   "direct_not_worse": true,
+   "persian_not_worse": true,
+   "fast_enough": true
+  },
+  "baseline": "hybrid",
+  "reworded_mean_difference": 1.0,
+  "reworded_interval_90": [
+   1.0,
+   1.0
+  ],
+  "direct_mean_difference": 0.0,
+  "persian_mean_difference": 0.95,
+  "persian_recall": 0.95,
+  "persian_recall_interval_90": [
+   0.85,
+   1.0
+  ],
+  "median_query_ms": 17.7,
+  "questions": {
+   "direct": 10,
+   "reworded": 10,
+   "persian": 10
+  }
+ }
+}

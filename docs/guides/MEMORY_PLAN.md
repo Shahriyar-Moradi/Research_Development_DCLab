@@ -144,6 +144,11 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
   waits for the owner to pull them (`make memory-retrieval ARGS=candidates` prints the commands) with at least 3 GB of
   disk free. Found while building: keyword search listed the first records by id for a question with no readable word
   (Persian), which counted as found by luck; `retrieval.ranked("bm25")` now drops score-0 hits.
+- **Result (2026-10-28, run once): embeddings enter.** Dev recall at 5 on reworded and Persian questions: hybrid 0.08 and
+  0.00; embeddinggemma 0.88 and 1.00, bge-m3 0.88 and 1.00, qwen3-embedding 0.79 and 0.83; all 1.00 on direct. Chosen:
+  `embeddinggemma:300m-qat-q8_0` with `embed` (tied with bge-m3, the smaller download). Sealed: every reworded answer
+  found where hybrid found none, direct unchanged, Persian 0.95 (0.85 to 1.00), 18 ms a question; all four checks hold.
+  Limits: a small invented corpus and ten sealed questions a group. 35.5 is built with this model.
 
 ### 35.1 The contract
 
