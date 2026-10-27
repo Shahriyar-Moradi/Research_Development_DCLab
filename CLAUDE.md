@@ -60,6 +60,7 @@ Environments: `.venv` from `requirements/base.txt` (ML work); `.venv-agent` (Pyt
 5. LLM critique is advisory. Deterministic code owns splits, metrics and selection rules (`dclab_rnd/critic_gate.py` checks critiques against the numbers).
 6. Report results with their uncertainty and limits. Never call a model production-ready from benchmark evidence alone.
 7. Shared code stays at the repository root so `python -m dclab_rnd` and `import general_pipeline` work without installation.
+8. Every model call keeps its thinking for training (the owner, 2026-10-28): the gateway stores the whole exchange and the model's thinking (`models/gateway.py` `_keep_exchange`), never only `thought: true`. A purpose shown no cell values keeps it whole; one shown cells keeps it after redaction. A new purpose or capture path needs a test that its thinking is stored.
 
 ## Working on the plan
 
