@@ -1,0 +1,28 @@
+{
+  "package": "dclab-code-v1.49",
+  "title": "At most two chat engines alive, closed after five quiet minutes",
+  "date": "2026-10-27",
+  "request": "Owner: the app is so huge when it runs; how can we make it better. Later: it is about runtime memory; yes, go on with fixes 1 and 2.",
+  "spec": "dclab-code server/config.js (maxLiveEngines, idleCloseMinutes, RETIRED_DEFAULTS), server/engine.js (lastActive, resting), server/app.js (trimEngines)",
+  "plan": ["measure each process of the running app", "find what grows", "limit live chat engines", "check the tools server's import cost", "tests, a live check, records"],
+  "decisions": [
+    {"decision": "limit the number of live Claude Code processes (2) and close a quiet one after 5 minutes", "why": "measured: each chat holds its own process, 125 MB at rest and more while working, kept 20 minutes; the app and tools server together are a fixed 355 MB"},
+    {"decision": "never close a process that is working, waiting for the person, rewinding or running a background job", "why": "closing those would lose an answer or kill a training run; a resting one resumes from its saved transcript"},
+    {"decision": "a saved value equal to a retired default takes the new default", "why": "the first run saves every default, so the owner's config pinned 20 minutes and the change would never reach them"},
+    {"decision": "fix 2 (lazy imports in R&D's tools server) not done", "why": "almost every DCLab tool reads a table, so pandas loads at the first tool call anyway: the 150 MB saving lasts minutes for a change across ~120 modules; stopping the whole server when idle saves 281 MB but it runs the job worker and every engine connects to it at start, so it needs job-aware restarts: proposed to the owner instead"}
+  ],
+  "change": "dclab-code 8540245: server/config.js, server/engine.js, server/app.js, tests/server.test.js.",
+  "findings": [
+    {"id": "F1", "source": "self", "defect": "the proposed lazy-import fix would barely help", "scenario": "a DCLab chat calls home_status or get_results in its first turn", "cause": "the tools read tables, so pandas, scikit-learn and pyarrow load at that call and stay", "fix": "fix 2 dropped; the owner offered a job-aware stop of the idle tools server instead", "test": "import trace: pandas via dclab_core.datacard <- contracts <- ledger <- tools; sklearn via expansion.runner <- studio.engine", "severity": "behaviour"},
+    {"id": "F2", "source": "self", "defect": "a new default would not reach existing homes", "scenario": "the owner's ~/.dclab-code/config.json holds idleCloseMinutes 20, saved by the first run", "cause": "loadConfig lets every saved key win, and the first run saves the whole default config", "fix": "RETIRED_DEFAULTS: a saved 20 gives way to 5; another chosen value stays", "test": "server test: an old default saved in config.json gives way", "severity": "behaviour"}
+  ],
+  "measurements": [
+    {"name": "memory at rest, before", "gate": "measured, no gate", "fixed_before_run": true, "result": "app 73 MB, R&D tools server 281 MB (208 MB of it imports, 2.9 s), one Claude Code process 125 MB at rest", "verdict": "pass"},
+    {"name": "live: three real chats (Haiku 5.5)", "gate": "at most 2 processes after the third chat", "fixed_before_run": true, "result": "1 -> 196 MB, 2 -> 354 MB, 3 -> still 2 (354 MB, 250 MB settled); $0.0157", "verdict": "pass"},
+    {"name": "tests", "gate": "every test passes", "fixed_before_run": true, "result": "dclab-code 146 of 146 (units 52, page 30, server 64)", "verdict": "pass"}
+  ],
+  "outcome": "Chat engines no longer pile up: two at most, a quiet one gone after five minutes, nothing lost.",
+  "lessons": ["Measure each process before proposing a memory fix: the growth was per chat, not the app.", "A lazy import only helps if the first real use is rare; check what the first tool call loads.", "When a first run saves every default, changing a default needs a migration for the saved copies."],
+  "risks": ["Reopening a chat closed after 5 minutes rebuilds its context; if the prompt cache expired, that turn costs a little more."],
+  "commits": ["dclab-code 8540245"]
+}
