@@ -1,0 +1,67 @@
+{
+  "package": "dclab-code-v1.52",
+  "title": "The Session tab: environment, context, connectors, outputs",
+  "date": "2026-10-27",
+  "request": "Owner's earlier screenshot of Claude Code's right panel (Environment, Context, Connectors, Changes, Outputs); owner: continue non-stop.",
+  "spec": "dclab-code server/session_info.js (new), server/app.js (GET sessions/{id}/info), web/app.js (renderSessionInfo), web/index.html, web/style.css",
+  "plan": [
+    "see which panel tabs exist",
+    "one read-only route from meta and records",
+    "a Session tab with four sections",
+    "test, look in the browser"
+  ],
+  "decisions": [
+    {
+      "decision": "one Session tab for the four missing sections; Changes stays its own tab",
+      "why": "Changes already existed; the rest is small and reads best together"
+    },
+    {
+      "decision": "outputs from the records' Write/Edit tool calls, not from git",
+      "why": "git shows the folder's changes (the Changes tab); outputs are what this session's agent wrote, a fork's copied work excluded"
+    },
+    {
+      "decision": "no uncommitted count outside git",
+      "why": "'nothing uncommitted' would be a claim about a folder git does not track"
+    }
+  ],
+  "change": "dclab-code cb4d5bd.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "defect": "every value in the Session tab was set in the code font",
+      "scenario": "screenshot of the tab",
+      "cause": "the drawer body sets the mono font for all its children",
+      "fix": "the cards use the sans font; paths and branches keep mono",
+      "test": "screenshot",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "defect": "a folder outside git would read 'Uncommitted: nothing'",
+      "scenario": "a project that is not a repository",
+      "cause": "dirtyCount returns 0 when git fails",
+      "fix": "count only inside a repository",
+      "test": "server test: not a git folder gives null",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "every test passes",
+      "fixed_before_run": true,
+      "result": "148 of 148 (units 52, page 31, server 65)",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "Where a session works, how full its context is, which tool servers it reached and what it wrote are one click away.",
+  "lessons": [
+    "A count that fails to zero must not be shown as a fact."
+  ],
+  "risks": [],
+  "commits": [
+    "dclab-code cb4d5bd"
+  ]
+}
