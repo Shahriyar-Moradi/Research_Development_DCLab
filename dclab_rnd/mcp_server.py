@@ -47,7 +47,12 @@ def build_server(toolbox: Toolbox):
     async def list_tools() -> list[types.Tool]:
         specs = [s["function"] for s in toolbox.schemas() + toolbox.registry.schemas("chat")  # A7: DCLab's agents beside the project tools
                  + toolbox.registry.schemas("workspace")]  # A7.4: the workspace chat's read tools (30.21), which no route serves
-        return [types.Tool(name=spec["name"], description=spec["description"], inputSchema=spec["parameters"]) for spec in specs]
+        # A tool that only reads says so (MCP's readOnlyHint, from the registry's effect): DCLab Code runs those without an
+        # Allow click unless a guard (sealed, holdout, the person's decision) asks; a write tool never carries it.
+        def hints(name: str):
+            tool = toolbox.registry.get(name)
+            return types.ToolAnnotations(readOnlyHint=True) if tool is not None and tool.effect == "read" else None
+        return [types.Tool(name=spec["name"], description=spec["description"], inputSchema=spec["parameters"], annotations=hints(spec["name"])) for spec in specs]
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any] | None) -> list[types.TextContent]:

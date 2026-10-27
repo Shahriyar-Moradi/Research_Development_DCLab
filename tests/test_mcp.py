@@ -42,6 +42,10 @@ class McpOverHttpTests(unittest.TestCase):
         names = {t["name"] for t in tools}
         self.assertTrue({"search_evidence", "list_samples", "create_project", "set_solution", "run_all", "export_notebook"} <= names)
         self.assertEqual(next(t for t in tools if t["name"] == "set_solution")["inputSchema"]["required"], ["project_id", "target", "task", "prediction_moment"])
+        # a read tool says it only reads (DCLab Code runs those without an Allow click); a write tool never does
+        hint = lambda n: (next(t for t in tools if t["name"] == n).get("annotations") or {}).get("readOnlyHint")  # noqa: E731
+        self.assertTrue(hint("get_results") and hint("get_charts") and hint("search_evidence"))
+        self.assertFalse(hint("set_solution") or hint("run_all") or hint("create_project"))
         hit = self.post(rpc("tools/call", {"name": "search_evidence", "arguments": {"query": "duration leakage bank marketing", "k": 2}}, 3))
         payload = json.loads(hit["result"]["content"][0]["text"])
         full = (ROOT / "evidence" / "knowledge" / "rag" / "records.jsonl").exists()  # the open edition packages the rules and pitfalls only
