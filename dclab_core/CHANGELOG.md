@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.122.0 (2026-10-27)
+
+- `model_evaluation.review_budgets(evaluation)`: the top 1, 5, 10, 20 and 30 % of the rows by score, each with the rows
+  flagged, the cases caught, recall, precision and lift over a random pick. `evaluate` keeps them exact in
+  `curves["budgets"]` for a binary task; an evaluation kept before reads them from its gains curve (`source: "gains"`).
+  Nothing is scored again. `BUDGETS` is the list of shares. The `Evaluation` contract is unchanged (curves is open).
+
 ## 0.121.1 (2026-10-26)
 
 - `signals.task_contradicts_words` reads machines' sensor readings with "anomaly" words (the card's streams family since

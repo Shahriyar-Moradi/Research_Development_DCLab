@@ -58,6 +58,7 @@ def compact_record(record: dict[str, Any] | None) -> dict[str, Any] | None:
         numbers = {"model": ev["model"], "recipe": ev["feature_recipe"], "holdout": {record["primary_metric"]: ev["holdout_metrics"][record["primary_metric"]]},
                    "interval95": [ev["holdout_primary_metric_ci"]["low"], ev["holdout_primary_metric_ci"]["high"]], "cv_mean": ev["cv_selected_metric_mean"],
                    "tuning_accepted": ev["tuning_decision"]["accepted"], "holdout_uses": ev.get("holdout_uses_in_this_project"), "baselines": ev["baselines"]}
+        numbers.update(_final_measures(ev))
     decision = record.get("decision") or {}
     return {
         "stage": stage, "title": record["title"], "metric": record["primary_metric"], "summary": record["setup_summary"], "numbers": numbers,
@@ -65,6 +66,26 @@ def compact_record(record: dict[str, Any] | None) -> dict[str, Any] | None:
         "notes": [{"severity": n["severity"], "title": n["title"], "text": n["text"], "proof": n["proof"]} for n in record.get("notes", []) if n["severity"] != "info"][:6],
         "decision": {k: decision[k] for k in ("kind", "selected", "chosen") if k in decision} | ({"options": [o["id"] for o in decision.get("options", [])]} if decision.get("options") else {}),
     }
+
+
+def _final_measures(ev: dict[str, Any]) -> dict[str, Any]:
+    """A binary final stage's other holdout measures and its review budgets, from the same single read (the owner,
+    2026-10-27: "plot accuracy" was refused as missing while the record kept it). Nothing is scored again."""
+    from dclab_core import model_evaluation
+
+    try:
+        evaluation = model_evaluation.from_record(ev)
+    except (TypeError, ValueError, KeyError):  # a kind whose final record has another shape: its main score is enough
+        return {}
+    if evaluation is None or evaluation.kind != "binary":
+        return {}
+    m = evaluation.metrics
+    out: dict[str, Any] = {"holdout_measures": {"cutoff": evaluation.cutoff, **{k: m.get(k) for k in
+                           ("accuracy", "precision", "recall", "f1", "average_precision", "brier", "positive_rate") if m.get(k) is not None}}}
+    budgets = model_evaluation.review_budgets(evaluation)
+    if budgets:
+        out["review_budgets"] = [{k: b[k] for k in ("share", "flagged", "caught", "recall", "precision", "lift")} for b in budgets]
+    return out
 
 
 # Tool names from before the prediction contract was renamed to the solution; old MCP and Chat UI configs still call them.
@@ -184,6 +205,11 @@ def register(registry: Registry) -> None:
     add("approve_stage", {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}, "choice": {**S, "description": "Optional: an option id from the stage's decision, to override the rule's choice (clears later stages)."}},
         ["project_id", "stage"], "Approve a completed stage, optionally choosing a different recipe or model than the rule picked.", "write", "approve_stage")
     add("get_results", {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}}, ["project_id"], "Return the records of the finished stages (or one stage).")
+    add("get_charts", pid, ["project_id"], "The project's charts as numbers to draw, from its stage records only: the leakage audit at a glance, "
+        "the feature recipes and the model screen (cross-validation means with their spread, the chosen one marked), the holdout score "
+        "with its interval beside the cross-validation mean and chance, and for a binary task the holdout measures, the review budgets "
+        "(the top 1-30 % by score: cases caught, recall, precision, lift), the gains and precision-recall curves and calibration. "
+        "Nothing is refitted, scored or read again. Use it when the person asks for a plot or a chart.")
     what_if_terms = ("value_per_case", "cost_per_action", "cost_false_positive", "cost_false_negative", "capacity_share", "base_rate", "value_scale")
     add("decision_what_if", {**pid, "changes": {"type": "object", "additionalProperties": False,
                                                 "properties": {k: {"type": "number"} for k in what_if_terms},
@@ -478,8 +504,21 @@ class Toolbox:
     def get_results(self, project_id: str, stage: str | None = None) -> dict[str, Any]:
         self.projects.get(project_id)
         records = self.projects.records(project_id)
-        if stage:
-            return compact_record(records.get(stage)) or {"error": f"{stage} has not run"}
+        if stage:  # one stage, with where the project stands: a model read the models stage alone and offered to run a final that had run
+            one = compact_record(records.get(stage)) or {"error": f"{stage} has not run"}
+            one["stages_run"] = [s for s in STAGE_KEYS if s in records]
+            final = records.get("final")
+            if final and stage != "final":
+                ev = final["evidence"]
+                metric, ci = final["primary_metric"], ev.get("holdout_primary_metric_ci") or {}
+                uses = ev.get("holdout_uses_in_this_project") or 1
+                score = (ev.get("holdout_metrics") or {}).get(metric)
+                interval = f" (95% interval {ci['low']:.3f} to {ci['high']:.3f})" if isinstance(ci.get("low"), (int, float)) and isinstance(ci.get("high"), (int, float)) else ""
+                one["final_already_ran"] = (f"The final stage has run: the holdout was read {uses} time(s), {metric} "
+                                            f"{score:.3f}{interval}. " if isinstance(score, (int, float)) else f"The final stage has run: the holdout was read {uses} time(s). ") + (
+                                            "Its other measures, review budgets and calibration are in get_results(stage='final') and get_charts. "
+                                            "Running the final stage again reads the holdout again.")
+            return one
         out = {s: compact_record(r) for s, r in records.items()}
         if not out:
             return {"error": "No stage has run yet"}
@@ -494,6 +533,15 @@ class Toolbox:
                                            "chosen or scored with them: the person adds them to the solution (its decision), then the final "
                                            "stage runs again, which reads the holdout a second time.")
         return out
+
+    def get_charts(self, project_id: str) -> dict[str, Any]:
+        from ..studio.charts import charts
+
+        self.projects.get(project_id)
+        records = self.projects.records(project_id)
+        if not records:
+            return {"error": "No stage has run yet"}
+        return charts(records, project_id)
 
     def decision_what_if(self, project_id: str, changes: dict[str, Any] | None = None) -> dict[str, Any]:
         from ..experience import hooks

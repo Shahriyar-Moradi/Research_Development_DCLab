@@ -178,7 +178,9 @@ def main(argv: list[str] | None = None) -> int:
     _load_env()  # before the workspace is chosen: DCLAB_AGENT_HOME may be set there
     app = standalone_app(args.home)
     print(f"DCLab MCP server on http://127.0.0.1:{args.port}/mcp (workspace {app.state.services.store.home})")
-    uvicorn.run(app, host="127.0.0.1", port=args.port)
+    # Idle connections kept 75 s, not uvicorn's 5 s: an MCP client that reuses one after a longer pause (a model thinking
+    # between tool calls) met a socket closed under it, ECONNRESET on the first call (DCLab Code, 2026-10-27).
+    uvicorn.run(app, host="127.0.0.1", port=args.port, timeout_keep_alive=75)
     return 0
 
 

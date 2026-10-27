@@ -5,7 +5,8 @@ F1 score and the other important things, and a confusion matrix").
 
 - binary: the measures at a cutoff (precision, recall, F1, accuracy, balanced accuracy, specificity, MCC) and those that
   need no cutoff (ROC-AUC, average precision, Brier score, log loss); the confusion counts at every cutoff on a grid of
-  51, so a page can move the cutoff without asking again; the ROC and precision-recall curves, cumulative gains,
+  51, so a page can move the cutoff without asking again; the ROC and precision-recall curves, cumulative gains, the
+  review budgets (the top 1, 5, 10, 20 and 30 % of the rows by score: the cases caught, recall, precision, lift),
   calibration in ten bins and the scores' histogram by class;
 - multiclass: accuracy, macro and weighted precision, recall and F1, log loss, each class's precision, recall, F1 and
   support, and the confusion matrix;
@@ -27,6 +28,8 @@ from pydantic import BaseModel, ConfigDict, Field
 VERSION = "1"
 MAX_POINTS = 101
 CUTOFFS = tuple(round(float(t), 2) for t in np.linspace(0, 1, 51))
+# Review budgets: a share of the rows, the highest scores first, as a team that can check only so many works.
+BUDGETS = (0.01, 0.05, 0.10, 0.20, 0.30)
 BINARY = ("binary", "binary_imbalanced", "text_tabular_binary")
 
 
@@ -115,6 +118,7 @@ def _binary(y: np.ndarray, s: np.ndarray, cutoff: float, rows: str) -> Evaluatio
         curves["roc"] = _thin(list(zip(fpr, tpr)))
         curves["pr"] = _thin(list(zip(recall[::-1], precision[::-1])))
         curves["gains"] = _thin([[0.0, 0.0]] + list(zip(share, found)))
+        curves["budgets"] = _budgets(y[order], len(y))
     edges = np.linspace(0, 1, 11)
     bins = []
     for i, lower in enumerate(edges[:-1]):
@@ -128,6 +132,41 @@ def _binary(y: np.ndarray, s: np.ndarray, cutoff: float, rows: str) -> Evaluatio
                            "negative": np.histogram(s[y == 0], hist_edges)[0].astype(int).tolist()}
     return Evaluation(kind="binary", rows=rows, n=int(len(y)), metrics=metrics, cutoff=_f(cutoff),
                       confusion={"labels": ["negative", "positive"], **chosen}, cutoffs=grid, curves=curves, notes=notes)
+
+
+def _budget_row(share: float, n: int, pos: int, caught: int, source: str) -> dict[str, Any]:
+    flagged = max(1, int(round(share * n)))
+    caught = min(caught, flagged, pos)
+    rate = pos / n if n else None
+    precision = caught / flagged
+    return {"share": _f(share), "flagged": flagged, "caught": int(caught), "positives": int(pos), "recall": _f(caught / pos) if pos else None,
+            "precision": _f(precision), "lift": _f(precision / rate) if rate else None, "source": source}
+
+
+def _budgets(y_ranked: np.ndarray, n: int) -> list[dict[str, Any]]:
+    """Each review budget's rows flagged, the cases among them, recall, precision and lift over a random pick, exact
+    from the rows ranked by score (highest first). Rows of equal score keep their order (as the gains curve does): when
+    many tie at a budget's edge, which of them count depends on that order."""
+    pos = int(y_ranked.sum())
+    return [_budget_row(b, n, pos, int(y_ranked[: max(1, int(round(b * n)))].sum()), "scores") for b in BUDGETS] if n and pos else []
+
+
+def review_budgets(evaluation: "Evaluation") -> list[dict[str, Any]]:
+    """The review budgets of a binary evaluation: the exact ones it kept, else read from its gains curve (the share of
+    the cases found against the share of the rows flagged, interpolated between its points; ``source`` says "gains").
+    Empty when neither is there. Nothing is scored again: these describe the rows the evaluation was made on."""
+    if evaluation.kind != "binary":
+        return []
+    kept = evaluation.curves.get("budgets")
+    if kept:
+        return list(kept)
+    gains = evaluation.curves.get("gains") or []
+    rate, n = evaluation.metrics.get("positive_rate"), evaluation.n
+    if len(gains) < 2 or not rate or not n:
+        return []
+    pos = int(round(rate * n))
+    xs, ys = np.array([p[0] for p in gains], dtype=float), np.array([p[1] for p in gains], dtype=float)
+    return [_budget_row(b, n, pos, int(round(float(np.interp(b, xs, ys)) * pos)), "gains") for b in BUDGETS] if pos else []
 
 
 def _multiclass(y: np.ndarray, proba: np.ndarray, labels: Sequence[Any], rows: str) -> Evaluation:
@@ -209,7 +248,8 @@ def from_record(evidence: dict[str, Any]) -> Optional[Evaluation]:
         except ValueError:
             pass
     hm = evidence.get("holdout_metrics") or {}
-    n = int(evidence.get("holdout_rows") or 0)
+    rows = evidence.get("holdout_rows")  # a count, or (a machine kind such as uplift) the holdout's row positions
+    n = rows if isinstance(rows, int) else len(rows) if isinstance(rows, (list, tuple)) else 0
     assessment = evidence.get("task_assessment") or {}
     nums = {k: _f(v) for k, v in hm.items() if isinstance(v, (int, float)) and not isinstance(v, bool) and k != "fit_seconds"}
     if "per_class_f1" in hm:
@@ -267,4 +307,4 @@ def from_record(evidence: dict[str, Any]) -> Optional[Evaluation]:
                              "a project whose final stage runs from now on keeps them. The confusion counts here are exact, from the cases and the alerts recorded."])
 
 
-__all__ = ["Evaluation", "evaluate", "from_record", "at_cutoff", "CUTOFFS", "MAX_POINTS", "VERSION"]
+__all__ = ["Evaluation", "evaluate", "from_record", "review_budgets", "at_cutoff", "BUDGETS", "CUTOFFS", "MAX_POINTS", "VERSION"]

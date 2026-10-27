@@ -9,7 +9,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from dclab_core.model_evaluation import CUTOFFS, MAX_POINTS, at_cutoff, evaluate, from_record  # noqa: E402
+from dclab_core.model_evaluation import BUDGETS, CUTOFFS, MAX_POINTS, Evaluation, at_cutoff, evaluate, from_record, review_budgets  # noqa: E402
 
 
 class ModelEvaluationTest(unittest.TestCase):
@@ -32,6 +32,36 @@ class ModelEvaluationTest(unittest.TestCase):
         self.assertLessEqual(len(ev.curves["roc"]), MAX_POINTS)
         self.assertLessEqual(len(ev.curves["gains"]), MAX_POINTS)
         self.assertEqual(sum(ev.curves["histogram"]["positive"]) + sum(ev.curves["histogram"]["negative"]), 5000)
+
+    def test_review_budgets_are_exact_from_the_ranked_rows(self):
+        rng = np.random.default_rng(3)
+        y = (rng.random(2000) < 0.12).astype(int)
+        s = np.clip(0.35 * y + rng.random(2000) * 0.65, 0, 1)
+        ev = evaluate("binary_imbalanced", y, s, rows="holdout")
+        rows = review_budgets(ev)
+        self.assertEqual([r["share"] for r in rows], list(BUDGETS))
+        order = np.argsort(-s, kind="stable")
+        for r in rows:
+            k = int(round(r["share"] * 2000))
+            self.assertEqual(r["flagged"], k)
+            self.assertEqual(r["caught"], int(y[order][:k].sum()))
+            self.assertAlmostEqual(r["recall"], r["caught"] / y.sum(), places=5)
+            self.assertAlmostEqual(r["precision"], r["caught"] / k, places=5)
+            self.assertEqual(r["source"], "scores")
+        self.assertGreater(rows[0]["lift"], 1.5, "a model with signal flags the cases first")
+        self.assertEqual([r["recall"] for r in rows], sorted(r["recall"] for r in rows), "a bigger budget never catches fewer")
+
+    def test_review_budgets_of_a_kept_evaluation_without_them_come_from_its_gains_curve(self):
+        # A project built before the budgets were kept: its gains curve at 1 % steps (1,600 rows, 204 cases)
+        gains = [[0.0, 0.0]] + [[round(i / 100, 2), min(1.0, round(3.5 * i / 100, 6))] for i in range(1, 101)]
+        kept = Evaluation(kind="binary", rows="holdout", n=1600, metrics={"positive_rate": 0.1275}, curves={"gains": gains})
+        rows = review_budgets(kept)
+        ten = next(r for r in rows if r["share"] == 0.1)
+        self.assertEqual((ten["flagged"], ten["caught"], ten["source"]), (160, 71, "gains"))  # 0.35 x 204 = 71.4
+        self.assertAlmostEqual(ten["precision"], 71 / 160, places=5)
+        self.assertEqual(review_budgets(Evaluation(kind="binary", rows="holdout", n=1600, metrics={"positive_rate": 0.1275})), [],
+                         "no curve, no budgets: nothing is made up")
+        self.assertEqual(review_budgets(Evaluation(kind="regression", rows="holdout", n=10)), [])
 
     def test_one_class_is_said_never_a_crash(self):
         ev = evaluate("binary_imbalanced", np.zeros(50), np.linspace(0, 1, 50), rows="validation")

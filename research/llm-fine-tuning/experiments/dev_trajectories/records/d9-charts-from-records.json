@@ -1,0 +1,160 @@
+{
+  "package": "d9-charts-from-records",
+  "title": "Charts from a project's records: review budgets saved, get_charts, get_results without the holes",
+  "date": "2026-10-27",
+  "request": "Owner, after a real BNPL credit-risk chat in DCLab Code: build D9, real charts in the chat from DCLab's records (feature recipes, model screen, holdout with its range, calibration), precision/recall at a review budget saved by DCLab, options as clickable question cards. Do not wait for me.",
+  "spec": "dclab_core/model_evaluation.py (BUDGETS, review_budgets), dclab_rnd/studio/charts.py, dclab_rnd/intern/tools.py (get_charts, _final_measures, one-stage get_results), dclab_rnd/mcp_server.py (keep-alive)",
+  "plan": [
+    "read what the BNPL records hold",
+    "budgets in the evaluation library",
+    "a chart builder over the records",
+    "the get_charts tool and get_results' final numbers",
+    "tests, a scan of every real record, review, harness-eval"
+  ],
+  "decisions": [
+    {
+      "decision": "no new holdout read: budgets are exact at the single read (evaluate) and read from the kept gains curve for older projects",
+      "why": "rule 2: the holdout is used once; the records already kept the gains curve at 1 % steps"
+    },
+    {
+      "decision": "charts as numbers from deterministic code; the page draws, the model only explains",
+      "why": "rule 5: code owns metrics; the model had drawn text bars and called kept numbers missing"
+    },
+    {
+      "decision": "fix get_results rather than only add charts",
+      "why": "compact_record kept only ROC-AUC of the final stage, so 'plot accuracy' was refused while accuracy, precision, recall, the threshold table and the curves were in final.json"
+    },
+    {
+      "decision": "a one-stage get_results says which stages ran and that the final ran, with its score, interval and where the rest is",
+      "why": "live: Claude read the models stage alone and offered to run a final that had already read the holdout"
+    },
+    {
+      "decision": "uvicorn keep-alive 75 s on the local MCP server",
+      "why": "live: the first get_charts call met ECONNRESET with nothing in the server log: an idle socket closed at uvicorn's 5 s and reused by the client"
+    }
+  ],
+  "change": "dclab_core 0.122.0 (review_budgets); dclab_rnd/studio/charts.py (new); dclab_rnd/intern/tools.py; dclab_rnd/mcp_server.py; tests; HRN-055.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "defect": "every uplift project's get_results, run_stage('final'), run_all and get_charts raised",
+      "scenario": "an uplift final record",
+      "cause": "from_record did int(holdout_rows), and uplift keeps the holdout's row positions as a list; TypeError is not a mapped tool error",
+      "fix": "n from a count or the list's length; from_record wrapped in _final_measures and charts",
+      "test": "test_review_findings_uplift_rows_declared_columns_caught_leaks_and_direction; test_kind_engine_library UpliftInTheEngineTest passes again; 2,738 real projects scanned without an error",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "defect": "test_harness_gate failed: tools:project stale",
+      "scenario": "a new project tool changes the specs the models see",
+      "cause": "harness-eval not rerun after the tool was added",
+      "fix": "make harness-eval: 17 of 17, HRN-055",
+      "test": "test_harness_gate",
+      "severity": "gap"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "defect": "the leakage chart said 'leak suspects to review' on most real tabular projects",
+      "scenario": "a declared leak column, already kept out",
+      "cause": "the leakage stage lists declared columns among its candidates (declared_post_outcome_or_contested); they were counted as suspects and shown twice",
+      "fix": "a candidate already kept out or declared is not a suspect",
+      "test": "same test (duration declared and caught)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "defect": "'no leak found' claimed where no detector ran",
+      "scenario": "machine kinds (uplift, streams, survival...) keep detector_canary_passed and apparent_lift as None",
+      "cause": "the verdict chain fell through to its last branch",
+      "fix": "'no detector run: the kind's own checks only', a neutral 'Not measured' badge on the page",
+      "test": "same test (uplift record)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "defect": "forecasting (MASE) and survival (integrated Brier) charts said higher is better",
+      "scenario": "152 + 143 real records",
+      "cause": "a private lower-is-better list missed them; records do not carry the direction",
+      "fix": "the list holds every lower-is-better primary metric the 2,738 records use",
+      "test": "same test (mase)",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F6",
+      "source": "self",
+      "defect": "a caught leak read as an alarm",
+      "scenario": "916 of 2,738 projects: the declared columns would lift the score and are kept out",
+      "cause": "verdict 'the unsafe columns lift the score' with a red Leak badge",
+      "fix": "'leak caught and kept out', badge Caught",
+      "test": "same test",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "defect": "the intern got cut chart JSON",
+      "scenario": "98 real binary projects over RESULT_CHARS 6,000",
+      "cause": "4 decimals, 21-point curves, long rules, per-row repeats",
+      "fix": "3 decimals, 15 points, rules to 150 characters, positives and source once per table: largest 5,960",
+      "test": "chart size asserted below RESULT_CHARS; scan of every real project",
+      "severity": "behaviour"
+    },
+    {
+      "id": "F8",
+      "source": "measurement",
+      "defect": "Claude offered to run the final stage again",
+      "scenario": "'what are my options now?' on a built project",
+      "cause": "get_results(stage='models') told nothing of the project's state",
+      "fix": "stages_run and final_already_ran (score, interval, where the measures are, that a rerun reads the holdout again)",
+      "test": "test_get_results_of_one_stage_says_where_the_project_stands; live rerun",
+      "severity": "behaviour"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "tests",
+      "gate": "affected files pass",
+      "fixed_before_run": true,
+      "result": "129 tests in 9 files (charts, evaluation, registry, intern, mcp, uplift and forecasting engines, twin, harness)",
+      "verdict": "pass"
+    },
+    {
+      "name": "scan",
+      "gate": "no error, every chart set within RESULT_CHARS",
+      "fixed_before_run": true,
+      "result": "2,738 real projects of 13 kinds: no error; largest 5,960 characters",
+      "verdict": "pass"
+    },
+    {
+      "name": "harness-eval",
+      "gate": "every case right on every step",
+      "fixed_before_run": true,
+      "result": "17 of 17, EUR 0",
+      "verdict": "pass"
+    },
+    {
+      "name": "live (Sonnet 5.5, scripted test home)",
+      "gate": "plots go through get_charts; a choice is a card; no rerun of a built final",
+      "fixed_before_run": true,
+      "result": "get_charts called and explained ($0.18); a review-capacity question answered from the budgets ($0.19); a model choice asked as a card ($0.15); after the fix the final was not offered again ($0.08)",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "A built project's charts come from its records in one call, accuracy and review budgets are no longer hidden, and the leakage verdict says what the audit actually found.",
+  "lessons": [
+    "Before saying a number is missing, check what the summary function drops: the record had it.",
+    "Run a new reader over every real record on disk, not a fixture: one kind stored a field as a list.",
+    "A verdict needs a branch for 'not measured'; falling through to the good answer is a claim.",
+    "A one-stage view of a project needs the project's state beside it."
+  ],
+  "risks": [
+    "make core-wheel-check not run (daytime: affected tests only)."
+  ],
+  "commits": []
+}
