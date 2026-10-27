@@ -19,6 +19,10 @@ fixes, planted faults, its development record for the owner's SFT, a commit push
 their measurements). Everything it leaves open, with when and by whom, is in `PHASE10_ABILITIES_PLAN.md`, section "What
 remains".
 
+**Phase 11, one memory for the agents (planned 2026-10-27, not built):** 35.0 to 35.8 in `MEMORY_PLAN.md`: five kinds
+and five scopes in one `MemoryItem` contract, a brief and a `recall` tool, forgetting without deleting; embeddings are
+measured first (35.0) and enter only if they win.
+
 ## The two goals it serves
 
 1. **DCLab solves machine-learning problems the right way, end to end**: it understands the problem and the data,
