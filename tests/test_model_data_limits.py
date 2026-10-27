@@ -53,6 +53,10 @@ class Capture:
         Capture.prompts.setdefault(self.purpose, []).append(json.dumps(messages, default=str))
         return self.replies.pop(0) if self.replies else {"content": "Noted.", "tool_calls": [], "usage": {"input_tokens": 0, "output_tokens": 0}, "assistant_message": {"role": "assistant", "content": "Noted."}}
 
+    def embed(self, texts):  # 35.5: an embedding request, kept like a prompt
+        Capture.prompts.setdefault(self.purpose, []).append(json.dumps(list(texts), default=str))
+        return {"vectors": [[float(len(t) % 7) + 1.0, 1.0] for t in texts], "usage": {"input_tokens": 0, "output_tokens": 0}}
+
 
 def gateway(replies_by_purpose=None):
     replies_by_purpose = replies_by_purpose or {}
@@ -609,12 +613,31 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(self.assertWithinLimit("reasoning_teacher"), set())
         self.assertFalse(any(PERSONAL.search(p) for p in Capture.prompts.get("reasoning_teacher", [])))
 
+    def test_memory_embedding_sees_remembered_lines_never_values(self):
+        """35.5: memory's embedding requests carry a project's notes and the question, never a cell of its table."""
+        import os
+        from unittest import mock
+
+        from dclab_rnd.memory import readers, reading, vectors
+        from dclab_rnd.studio import memory as notes
+
+        table = marked_table()
+        project = {"id": "p1", "memory": []}
+        notes.add(project, "decision", f"Target is {table.columns[-1]}", "the person named it", "human", "save_solution")
+        local = {"DCLAB_MEMORY_EMBEDDING_BASE_URL": "http://127.0.0.1:11434/v1", "DCLAB_MEMORY_EMBEDDING_MODEL": "embeddinggemma:300m-qat-q8_0",
+                 "DCLAB_MEMORY": ""}
+        with mock.patch.dict(os.environ, local):
+            emb = vectors.Embedder(Path(tempfile.mkdtemp()), gateway().client("memory_embedding"))
+            chain = [("global", "dclab"), ("workspace", "local"), ("person", "owner"), ("project", "p1")]
+            reading.recall(None, "what is the target", chain, readers.from_project(project), embedder=emb)
+        self.assertEqual(self.assertWithinLimit("memory_embedding"), set())
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "home_intent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
                   "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell",
-                  "home_orchestrator", "reflector"}
+                  "home_orchestrator", "reflector", "memory_embedding"}
         no_user_data = {"campaign", "campaign_review", "embedding",  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
                         "journey_writer", "journey_checker"}  # S8 B1: invented replica tables' column names and written people, never a workspace's data (tests/test_people_writer.py)
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")

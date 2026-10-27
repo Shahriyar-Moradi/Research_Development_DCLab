@@ -223,7 +223,7 @@ class ExchangeLogTests(unittest.TestCase):
         # to keeps_text, which decides only whether a record may leave the workspace (consent.py)
         from dclab_rnd.models import settings
 
-        no_cells = sorted(n for n, p in settings.PURPOSES.items() if not int(p.cell_values or 0) and n != "embedding")
+        no_cells = sorted(n for n, p in settings.PURPOSES.items() if not int(p.cell_values or 0) and n not in settings.NO_THINKING)  # 35.5: every embedding purpose
         self.assertIn("stage_notes", no_cells)
         replies = [{"content": f"answer {i}", "tool_calls": [], "usage": {"input_tokens": 1, "output_tokens": 1},
                     "thinking": [{"text": f"why {i}"}], "assistant_message": {"role": "assistant", "content": f"answer {i}"}}

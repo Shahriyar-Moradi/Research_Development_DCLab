@@ -68,6 +68,7 @@ ROLES: tuple[str, ...] = ("problem_analyst", "conversation_reader", "brief_check
 
 MODEL_USES: dict[str, str] = {  # purpose -> why it is not an agent: one completion for one job, recorded as model.request
     "embedding": "vectors for evidence search",
+    "memory_embedding": "vectors for memory search (35.5, a local model only)",
     "parse_pattern": "how a text file's lines split into columns",
     "synthetic_schema": "the columns of a simulated table",
     "evidence_answer": "an answer from cited evidence records",

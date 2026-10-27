@@ -234,8 +234,15 @@ class Gateway:
         ``model`` replaces the tier's model on the same endpoint (a command-line choice); the usage log records it."""
         p = settings.purpose(purpose)
         private = bool(project_id and self.project_private and self.project_private(project_id))
-        if _PRIVATE.get() or private or not self.available(purpose):
+        if _PRIVATE.get() or private:
             return None  # private data (a confidential brief, 16.13): no purpose gets a model; callers take their deterministic path
+        if purpose == "memory_embedding":  # 35.5: served only by the local embedding model, on this machine, or by nothing
+            local = settings.embedding_tier()
+            if local is None or (self.transport is _transport and os.environ.get("DCLAB_NO_LIVE_MODELS") == "1"):
+                return None
+            return Bound(self, purpose, p, {**local, "model": model} if model else local, project_id, draft_id, model)
+        if not self.available(purpose):
+            return None
         return Bound(self, purpose, p, None, project_id, draft_id, model)
 
     def record(self, purpose: str, model: str, usage: dict[str, Any] | None, seconds: float, attempts: int, outcome: str,
@@ -339,6 +346,8 @@ class Bound:
 
     def _route(self) -> None:
         """Follow the workspace's routing (A6.4): a long-lived client (the intern's) moves when a person moves the purpose."""
+        if self._serving == settings.EMBEDDING_LOCAL:  # 35.5: the local embedding model is the purpose's own; routing never moves it
+            return
         serve, shadow = self.gateway.route(self.purpose)
         if serve != self._serving:
             tier = settings.tier(serve)

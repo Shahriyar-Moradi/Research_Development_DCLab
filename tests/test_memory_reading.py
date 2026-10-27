@@ -126,7 +126,7 @@ class ReviewFindingsTest(Base):
         self.assertEqual(readers.from_project(project), [])
 
     def test_a_read_note_with_a_secret_never_reaches_the_brief(self):
-        note = m.new(kind="fact", scope="project", scope_id="p1", text="Token sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789 works.",
+        note = m.new(kind="fact", scope="project", scope_id="p1", text="Token " + "sk-" + "ant-api03-" + "abcdefghijklmnopqrstuvwxyz0123456789" + " works.",
                      source="note:p1:n2", who="person:human", at=AT)
         self.assertEqual(r.brief(self.store, CHAIN, read=[note]).items, [])
 

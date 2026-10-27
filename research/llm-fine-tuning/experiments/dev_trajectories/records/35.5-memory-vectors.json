@@ -1,0 +1,113 @@
+{
+ "package": "35.5",
+ "title": "Memory searched by meaning with the local model 35.0 chose",
+ "date": "2026-10-28",
+ "request": "The owner: continue the memory plan to the end; 35.0's verdict let embeddings into memory search.",
+ "spec": "MEMORY_PLAN.md 35.5: each item's vector through the gateway on a local model, recall by meaning as 35.0 measured, vectors recomputed when the model changes.",
+ "plan": [
+  "Route a local embedding model through the gateway for memory only.",
+  "Keep vectors per model and use them in recall.",
+  "Check on the real local model, review, fix, commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Memory gets its own purpose and settings instead of sharing the evidence search's",
+   "why": "the evidence search serves a method measured on another model; one setting with two meanings would switch it to an unmeasured one"
+  },
+  {
+   "decision": "Vectors in a JSON file per model and weights, not pgvector",
+   "why": "a workspace's memory is small; the file keeps the database unchanged and the digest separates weights pulled again"
+  },
+  {
+   "decision": "recall falls back to words when the local model fails",
+   "why": "a stopped Ollama must not break an agent's turn; before 35.5 words answered"
+  }
+ ],
+ "change": "models/settings.py (memory_embedding purpose, embedding_tier on DCLAB_MEMORY_EMBEDDING_*), models/gateway.py (that purpose served by the local tier only; routing never moves it), agents/harness.py, memory/vectors.py (new), memory/reading.py (by meaning with a fallback), memory/tools.py, tests/run_parallel.py (the two settings blanked), .env.example (these and the thinking settings), tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "The first live check sent the request to the Claude client",
+   "scenario": "with the local model set, recall raised 'Anthropic serves no embeddings'",
+   "cause": "before each request the client followed the routing table, which put the purpose back on the cheap tier",
+   "fix": "the local tier is never moved by routing",
+   "test": "test_a_request_goes_to_the_local_model_not_the_routed_tier",
+   "severity": "behaviour",
+   "impact": "memory search by meaning would never have worked in the product; the test had used one fake transport for every tier"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "defect": "recall failed when the local model was down",
+   "scenario": "Ollama stopped: recall raised and the agent's turn failed",
+   "cause": "no fallback",
+   "fix": "by words when the model fails",
+   "test": "test_a_local_model_that_is_down_falls_back_to_words",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "defect": "A chosen model was ignored on the local tier",
+   "scenario": "asking for bge-m3 returned embeddinggemma",
+   "cause": "the fixed tier kept its own model",
+   "fix": "the asked model replaces the tier's",
+   "test": "test_the_local_endpoint_serves_the_embedding_purpose_only",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "defect": "One setting had two meanings",
+   "scenario": "DCLAB_EMBEDDING_MODEL also names the evidence search's model; setting it for memory would switch the evidence search to an unmeasured model",
+   "cause": "reuse of the evidence search's setting and purpose",
+   "fix": "memory_embedding and DCLAB_MEMORY_EMBEDDING_*",
+   "test": "test_the_local_endpoint_serves_the_embedding_purpose_only",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "defect": "Vectors named by the tag only, a race between processes, no size limit, a private project's notes sent",
+   "scenario": "weights pulled again under the same tag mixed vectors; two writers lost each other's vectors; the file grew forever; a private project's notes went to the model",
+   "cause": "file per tag, a thread lock, no pruning, no project on the request",
+   "fix": "the digest in the file name, the folder's lock and unique temporary files, at most 20,000 vectors, the project on the request",
+   "test": "test_vectors_are_kept_named_by_the_model_and_reused",
+   "severity": "latent"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "defect": "The suite read the owner's .env for the new settings, and fake keys in tests tripped the secret scan",
+   "scenario": "with the settings exported a test changed its answer; test_config flagged two test lines",
+   "cause": "the runner did not blank them; key-shaped strings in tests",
+   "fix": "the runner blanks them; the fake keys are built at run time; the thinking settings documented",
+   "test": "test_config, test_run_capture",
+   "severity": "flaky"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "live local check, embeddinggemma:300m-qat-q8_0 through the gateway",
+   "gate": "three questions sharing no word with their answer line (one in Persian) each find that line first",
+   "fixed_before_run": true,
+   "result": "three of three found their line first: a call's cost, how to answer the owner (asked in Persian), the held-out period",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "three of three against three of three",
+   "limits": [
+    "three questions on three invented lines: a smoke check of the wiring, not a measurement of quality (35.0 measured that)"
+   ]
+  }
+ ],
+ "outcome": "Memory is searched by meaning on the local model 35.0 chose, through its own gateway purpose, with vectors kept per model and weights and a fallback to words. Ten review findings fixed; the live check found the routing bug the tests had hidden.",
+ "lessons": [
+  "A fake that answers every tier the same hides routing bugs: make the fake tell the tiers apart.",
+  "Never give one setting a second meaning: give the new user its own name."
+ ],
+ "risks": [
+  "A stopped local model degrades memory search to words silently (logged on stderr)."
+ ],
+ "commits": []
+}

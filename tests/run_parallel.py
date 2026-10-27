@@ -186,6 +186,7 @@ def slot_databases(jobs: int, required: bool) -> list[str] | None:
 OWNER_MODEL_CHOICE = ("DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "OPENAI_API_KEY", "DCLAB_BLOCK_PROVIDERS")
 # 35.0: the owner's spending caps in .env (a workspace cap of a few euros) refused a gateway test's scripted request
 OWNER_SPEND_CAPS = ("DCLAB_WORKSPACE_MONTHLY_EUR", "DCLAB_COLLECTOR_MONTHLY_EUR")
+OWNER_MEMORY_MODEL = ("DCLAB_MEMORY_EMBEDDING_BASE_URL", "DCLAB_MEMORY_EMBEDDING_MODEL")  # 35.5: a test sets its own
 
 
 def child_env(tmp: str, threads_one: bool = True) -> dict:
@@ -200,7 +201,7 @@ def child_env(tmp: str, threads_one: bool = True) -> dict:
     env.setdefault("DCLAB_STORE_COMMITS", "off")  # 32.21: never this repository's whole history in a test  # 32.7: no test reads this machine's Claude Code sessions; a test gives its own folder  # 32.4: no test writes into the owner's store before a deletion; a test turns it on with its own DCLAB_STORE  # 32.2: no worker of a test server runs the store's conductor behind its back
     env.setdefault("DCLAB_COLLECTOR", "0")  # S2: no worker of a test server gathers real tables or asks Claude behind its back
     env.setdefault("DCLAB_STUDENTS_LOOP", "0")  # 29.7: no worker of a test server retrains students behind its back; a test turns it on itself
-    env.update({k: "" for k in (*OWNER_MODEL_CHOICE, *OWNER_SPEND_CAPS)})  # the owner's .env picks a provider and holds keys; a test sets the model settings it reads itself
+    env.update({k: "" for k in (*OWNER_MODEL_CHOICE, *OWNER_SPEND_CAPS, *OWNER_MEMORY_MODEL)})  # the owner's .env picks a provider and holds keys; a test sets the model settings it reads itself
     env["DCLAB_NO_LIVE_MODELS"] = "1"  # tests use scripted transports only (dclab_rnd/models/gateway.py); a test that needs it off patches it itself
     env["DCLAB_TEST_RUN"] = "1"  # D3 (2026-10-23): a real model client refuses to start in a test process (dclab_rnd/models/live_guard.py)
     env.pop("DCLAB_ALLOW_LIVE_MODELS_IN_TESTS", None)  # only a test itself may ask for a live model

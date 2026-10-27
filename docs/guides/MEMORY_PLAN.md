@@ -230,6 +230,15 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
   fuses keywords and vectors by reciprocal rank, the way 35.0 measured; recomputed when the model id changes.
 - **Done when:** `recall` reproduces 35.0's dev numbers; an item embedded by an old model is recomputed, never mixed.
 
+- **Status (2026-10-28): built and reviewed.** Memory has its own model purpose, `memory_embedding`, served only by a
+  local model named by `DCLAB_MEMORY_EMBEDDING_BASE_URL` and `DCLAB_MEMORY_EMBEDDING_MODEL` (refused anywhere else; the
+  evidence search keeps its own measured model). `dclab_rnd/memory/vectors.py` keeps each line's vector in
+  `<workspace>/memory/vectors-<model>-<digest>.json` (the weights' digest in the name, a lock between processes, at most
+  20,000 vectors); `recall` ranks by meaning with it and falls back to words when the model is down. A live check on the
+  local model: three questions sharing no word with their answers, one in Persian, each found its line. Not built:
+  pgvector (a file per model is enough at this size) and fusion with keywords (35.0 chose embeddings alone); no score
+  floor yet (35.0 measured recall, not precision).
+
 ### 35.6 Forgetting and upkeep
 
 - **Delivers:** `make memory-upkeep`: merge near-duplicates, retire the never-cited and the twice-harmful, list conflicts

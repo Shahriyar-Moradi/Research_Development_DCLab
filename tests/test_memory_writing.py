@@ -149,7 +149,7 @@ class ReviewFindingsTest(Base):
 
     def test_a_key_or_password_never_enters_memory(self):
         with self.assertRaises(store_mod.Refused):
-            w.record_fact(self.store, scope="project", scope_id="p1", text="Use the key sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789",
+            w.record_fact(self.store, scope="project", scope_id="p1", text="Use the key " + "sk-" + "ant-api03-" + "abcdefghijklmnopqrstuvwxyz0123456789" + "",
                           source="test:1", who="person:owner", at=AT, log=self.log)
         self.assertEqual(self.store.log(), [])
 

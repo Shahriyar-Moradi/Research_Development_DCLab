@@ -94,18 +94,28 @@ def recall(store: MemoryStore | None, question: str, chain: list[tuple[str, str]
     items = _visible(store, chain, read, protected)
     if not items:
         found, method = [], "none"
-    elif embedder is not None:
-        vectors = embedder.vectors([str(question), *[i.text for i in items]])
-        scores = [_cosine(vectors[0], v) for v in vectors[1:]]
-        order = sorted(range(len(items)), key=lambda n: (-scores[n], items[n].id))
-        found, method = [items[n] for n in order[:k]], f"embed:{getattr(embedder, 'model', 'unknown')}"
     else:
+        found, method = [], ""
+        if embedder is not None:
+            try:
+                if hasattr(embedder, "query"):  # 35.5: the question and the items each with the model's own prefix; items' vectors kept
+                    q, docs = embedder.query(str(question)), embedder.docs([i.text for i in items])
+                else:
+                    vectors = embedder.vectors([str(question), *[i.text for i in items]])
+                    q, docs = vectors[0], vectors[1:]
+                scores = [_cosine(q, v) for v in docs]
+                order = sorted(range(len(items)), key=lambda n: (-scores[n], items[n].id))
+                found, method = [items[n] for n in order[:k]], f"embed:{getattr(embedder, 'model', 'unknown')}"
+            except Exception as exc:  # noqa: BLE001 - the local model is down or missing: recall by words, as before 35.5
+                print(f"memory: recall by meaning failed ({type(exc).__name__}); by words instead", file=sys.stderr, flush=True)
+                method = "keywords (embed failed)"
+    if items and not found and not method.startswith("embed:"):
         from ..evidence_index import EvidenceIndex
 
         index = EvidenceIndex({"record_id": i.id, "type": "memory", "title": "", "text": i.text, "metadata": {}} for i in items)
         by_id = {i.id: i for i in items}
         found = [by_id[h["record_id"]] for h in index.search(str(question), k=k) if h.get("score", 0) > 0]
-        method = "keywords"
+        method = method or "keywords"
     _record(log, "memory.recalled", {"question": str(question)[:2000], "items": [i.id for i in found], "found": len(found), "method": method}, ids)
     return found
 

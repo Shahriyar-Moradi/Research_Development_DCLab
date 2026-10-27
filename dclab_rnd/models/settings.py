@@ -46,6 +46,9 @@ PURPOSES: dict[str, Purpose] = {
                                            "never data, column names or cell values", cell_values=0),
     "home_agent": Purpose("standard", 90, "the problem sentence, the user's answers, column summaries (name, kind, missing rate, unique count) "
                                           "and descriptive findings; never rows or cell values", stream=True, cell_values=0, keeps_text=True),
+    "memory_embedding": Purpose("cheap", 60, "35.5: the text of remembered lines (a project's notes, facts, accepted lessons, a person's "
+                                             "confirmed preferences) and the question asked of memory, to rank them by meaning; served "
+                                             "only by a local model (DCLAB_MEMORY_EMBEDDING_*), never a remote one; no rows, no cell values"),
     "embedding": Purpose("cheap", 60, "the text of the evidence records (rules, pitfalls, leakage precedents, experiments) and the question typed into the "
                                       "evidence search, to find the records that answer it; no rows, no cell values, and not a workspace's lessons. "
                                       "35.0's measurement also sends its invented memory items and questions, on a local model only"),
@@ -234,6 +237,21 @@ def anthropic_default() -> bool:
     return owner_value("DCLAB_LLM_PROVIDER").strip().lower() == "anthropic"
 
 
+EMBEDDING_LOCAL = "embedding_local"  # 35.5: the local embedding model, serving the memory_embedding purpose only
+
+
+def embedding_tier() -> dict[str, Any] | None:
+    """35.5: DCLAB_MEMORY_EMBEDDING_BASE_URL and DCLAB_MEMORY_EMBEDDING_MODEL name a local embedding model (35.0 chose
+    ``embeddinggemma:300m-qat-q8_0`` on Ollama) that serves the gateway's ``memory_embedding`` purpose and nothing else
+    (the evidence search keeps its own measured model, DCLAB_EMBEDDING_MODEL). Only an endpoint on this machine is taken:
+    memory's words never leave it to be embedded. None when unset or elsewhere."""
+    base_url = owner_value("DCLAB_MEMORY_EMBEDDING_BASE_URL").strip()
+    model = owner_value("DCLAB_MEMORY_EMBEDDING_MODEL").strip()
+    if not base_url or not model or not is_local(base_url):
+        return None
+    return {"name": EMBEDDING_LOCAL, "base_url": base_url, "model": model, "api_key": "local", "provider": "openai", **options(EMBEDDING_LOCAL)}
+
+
 def tier(name: str) -> dict[str, Any]:
     """A tier's endpoint, model and key. The key is returned for the transport only; never put it in a response or a log.
 
@@ -242,6 +260,11 @@ def tier(name: str) -> dict[str, Any]:
     another provider. DCLAB_INTERN_MODEL, the single model setting from before tiers existed, still applies to every tier
     that names no model.
     """
+    if name == EMBEDDING_LOCAL:
+        local = embedding_tier()
+        if local is None:
+            raise KeyError(name)
+        return local
     if name not in ROUTABLE:
         raise KeyError(name)
     if name == TUNED:  # unset means absent: a tuned model that silently became the standard one would agree with itself
@@ -309,6 +332,7 @@ def public(name: str) -> dict[str, Any]:
 # short list below, each with its reason. DCLAB_THINKING: "off", "all", or a comma list of purposes, overrides it.
 NO_THINKING: dict[str, str] = {
     "embedding": "an embedding call returns vectors, never text: there is no thinking to ask for or keep",
+    "memory_embedding": "an embedding call returns vectors, never text: there is no thinking to ask for or keep",
 }
 THINKING_DEFAULT = tuple(n for n in PURPOSES if n not in NO_THINKING)  # every purpose but the exceptions (kept for callers)
 

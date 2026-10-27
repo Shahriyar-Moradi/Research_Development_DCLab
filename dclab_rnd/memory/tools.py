@@ -47,7 +47,10 @@ def _recall(box: Any, question: str, project_id: str | None = None) -> dict[str,
     if project_id:
         read += readers.from_project(box.projects.get(project_id))
     store = open_memory(workspace_home(box.projects)) if enabled() else None
-    found = recall(store, question, chain(box.projects, project_id), read, ids={"project": project_id})
+    from .vectors import embedder_for
+
+    embedder = embedder_for(workspace_home(box.projects), project_id) if enabled() else None  # 35.5: by meaning when a local model serves
+    found = recall(store, question, chain(box.projects, project_id), read, ids={"project": project_id}, embedder=embedder)
     return {"items": [{"id": i.id, "kind": i.kind, "scope": i.scope, "text": i.text} for i in found], "found": len(found)}
 
 
