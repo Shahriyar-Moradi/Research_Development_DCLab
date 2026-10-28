@@ -1,7 +1,9 @@
 """The reasoning of every LLM example (32.10), always labelled by where it came from:
 
-- ``recorded``: the model's own thinking, kept whole where it was made (the gateway's ``model_exchanges``: Claude's
-  extended thinking; the AI-first expert's; the development sessions' thinking in their transcripts);
+- ``recorded``: the API thinking summary, kept whole where it was made (the gateway's ``model_exchanges``: the text of
+  the thinking blocks Claude returns with ``display: "summarized"``; the AI-first expert's; the development sessions'
+  thinking in their transcripts). It is a summary, not the model's full thinking, and it is never asked for in the
+  reply text (no ``<thinking>`` tags, no "reasoning" field, no "show your steps" prompt);
 - ``from_record``: a rule's or a person's choice explained by code from its own record (what it read, the options, what
   was answered and why, what was used): it holds no claim beyond the record;
 - ``teacher``: written afterwards by a teacher model (Claude through the gateway's ``reasoning_teacher`` purpose, capped,
