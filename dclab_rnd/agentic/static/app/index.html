@@ -530,6 +530,12 @@
       </div>
     </div>
 
+    <div class="panel" data-f="proj.pipeline" id="proj-pipeline-panel" hidden>
+      <div class="panel-head"><div class="panel-title"><h2>What is out of date</h2><span class="sub">A step is stale when what it read has changed since it ran; every later step is stale with it.</span></div></div>
+      <p class="small" id="proj-pipeline-sum"></p>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Step</th><th>Graph</th><th>Why it is stale</th><th></th></tr></thead><tbody id="proj-pipeline"></tbody></table></div>
+    </div>
+
     <div class="panel" id="node-panel">
       <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="node-eyebrow">Selected step</span><h3 id="node-title">WF-10 · Knowledge capture</h3></div></div>
       <div class="panel-body small"><div class="stack tight" id="node-body"></div></div>

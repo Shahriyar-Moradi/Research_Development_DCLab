@@ -292,6 +292,26 @@ DC.view('project', {
     /* ---------- 35.7: what this project's agents remember ---------- */
     const KIND = { fact: 'Fact', episode: 'Happened', know_how: 'Know-how', knowledge: 'Knowledge' };
     const memRole = () => (($('#proj-memory-role', el) || {}).checked ? { 'X-DCLab-Role': 'reviewer' } : {});
+    async function loadPipeline() {  // 20.8: the stale steps of a real project, with a rerun for each
+      const panel = $('#proj-pipeline-panel', el), body = $('#proj-pipeline', el), want = proj;
+      if (!isReal(proj)) { panel.hidden = true; return; }
+      let r;
+      try { r = await DC.client.projectPipeline(REAL[proj].id); }
+      catch (e) { if (want !== proj) return; panel.hidden = true; return; }
+      if (want !== proj) return;
+      const stale = (r.steps || []).filter(x => x.status === 'stale');
+      panel.hidden = !stale.length;
+      $('#proj-pipeline-sum', el).textContent = stale.length ? `${stale.length} of ${r.count} steps are stale` + (r.resume_from ? `; resume from ${r.resume_from}.` : '.') : '';
+      body.innerHTML = stale.map(x => `<tr><td>${esc(x.name || x.id)}</td><td class="mono xs">${esc((x.nodes || []).join(' '))}</td><td class="small">${esc(x.why || '')}</td>`
+        + `<td>${x.kind === 'stage' || x.kind === 'report' ? `<button type="button" class="btn xs" data-pipe-rerun="${esc(x.id)}">Rerun</button>` : ''}</td></tr>`).join('');
+    }
+    $('#proj-pipeline', el).addEventListener('click', async e => {
+      const b = e.target.closest('[data-pipe-rerun]'); if (!b) return;
+      b.disabled = true;
+      try { await DC.client.rerunPipelineStep(REAL[proj].id, { query: { step: b.dataset.pipeRerun } }); toast('Rerunning: the step is replayed and compared with its record.'); }
+      catch (err) { toast(err.message || 'The rerun was refused.', { ok: false }); }
+      finally { loadPipeline(); }
+    });
     async function loadMemory() {
       const body = $('#proj-memory', el), drafts = $('#proj-memory-drafts', el), panel = $('#proj-memory-drafts-panel', el);
       if (!isReal(proj)) { DC.states.empty(body, 'Open a project of yours: memory belongs to real projects.', { cols: 5 }); panel.hidden = true; return; }
@@ -438,7 +458,7 @@ DC.view('project', {
       if (isReal(p)) { realValidator(); drawRealVerdict(); DC.setProjectLabel && DC.setProjectLabel(P[p].title); }
       else { $('#move-select', el).innerHTML = SAMPLE_MOVES; delete $('#move-select', el).dataset.real; drawValidator(); DC.setProjectLabel && DC.setProjectLabel(P[p].title + ' · sample'); }
       drawStats(); drawGraph(); drawLog(); drawNode(keepStep && selected ? selected : P[p].current); drawTeam(); DC.hydrate(el);
-      loadTwin(); loadMemory();
+      loadTwin(); loadMemory(); loadPipeline();
     }
     this.setProject = setProject; this.openReal = openReal; this.switcher = switcher;
     const SAMPLE_MOVES = $('#move-select', el).innerHTML;

@@ -1,0 +1,19 @@
+{
+ "package": "20.8 stale steps page",
+ "title": "The project page shows which pipeline steps are out of date, with a rerun",
+ "date": "2026-10-28",
+ "request": "The owner: continue by priority until tonight's full gate; 20.8 left the stale steps unshown on the page.",
+ "spec": "EXPERIENCE_AND_WORKFLOWS_PLAN.md 20.8: the pipeline route gives each step's status; the graph page did not show the stale steps.",
+ "plan": ["Read the route and the page", "Add a panel beside the graph for real projects", "Rebuild the frontend and run the browser checks"],
+ "decisions": [
+  {"decision": "A panel beside the graph, not a change to the graph's drawing", "why": "the graph is drawn from the frozen demo look; a panel adds the information without changing it"},
+  {"decision": "Shown only when a step is stale", "why": "a calm page: nothing to say when everything is current"}
+ ],
+ "change": "dclab_rnd/agentic/web/src/views/project.html (the panel, its loader, the rerun), web/src/features.js, the generated frontend, the 20.8 plan status.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "A real project's Overview lists its stale steps with why each is stale and a rerun that replays it against its record.",
+ "lessons": ["Add information beside a frozen design rather than inside it."],
+ "risks": ["The graph's nodes are not coloured stale; the panel lists them.", "The panel is not driven by a browser check with a stale project yet."],
+ "commits": []
+}

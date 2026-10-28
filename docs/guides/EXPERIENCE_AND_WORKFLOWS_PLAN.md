@@ -312,8 +312,8 @@ code are not one connected object a data scientist can read, run and change.
   same), the report rebuilt and each number compared with what its run made; a replayed final stage is written to the
   audit trail. The main product's `pipeline_versions` row: `adapters/main_product_pipeline.py` fills its graph, config
   and content digest the way its service computes it (the graph holds what the pipeline is, never how far it ran).
-  Left open: the graph page does not show the pipeline's stale steps yet (the route gives the status per node); the
-  code a run ran on is compared only by a replay; the analysis is built with the report, not as a run of its own.
+  The project's Overview shows the stale steps (2026-10-28: "What is out of date", each with why and a Rerun). Left open: the
+  graph's own nodes are not coloured stale (the panel lists them); the code a run ran on is compared only by a replay; the analysis is built with the report, not as a run of its own.
 
 ### 20.9 Code for each step
 - **Delivers:** each step renders its code (a notebook cell and a module), from the records, readable by a data
