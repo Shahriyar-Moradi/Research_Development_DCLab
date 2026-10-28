@@ -1,0 +1,32 @@
+{
+ "package": "22.8 name rule measured",
+ "title": "The leak words measured on real columns before a change: they stay",
+ "date": "2026-10-29",
+ "request": "The owner: fix the false leak alarms (contract_duration, post_code) with a small, measured change to the name rule.",
+ "spec": "decide.rule's feature.leakage_suspect flags a column whose name has a leak word; the notebook reviews ask it from the name alone since 22.8's follow-up.",
+ "plan": ["Measure the rule on labelled leak decisions", "Measure it on every real column name", "Change the words only if the measurement says so", "Pin the measurement as a test"],
+ "decisions": [
+  {"decision": "The leak words are not changed", "why": "on the real columns every flag is a known leak and the word duration makes four of the six catches; the two harmless names came from a demo notebook and a reviewer's example, not from real data"},
+  {"decision": "The invented decision sets are not used to judge the change", "why": "their generator never writes names like post_code or contract_duration, so they cannot show the false alarm at all"},
+  {"decision": "The measurement becomes a test", "why": "a later change to the leak words must keep every real flag a known leak and every name-visible real leak caught"}
+ ],
+ "change": "tests/test_name_rule_real_columns.py (column names of the committed real datasets only, never a row).",
+ "findings": [
+  {"id": "F1", "source": "measurement", "severity": "gap", "defect": "The planned fix would have removed true leak catches",
+   "scenario": "Dropping duration from the leak words to quiet contract_duration.",
+   "cause": "duration is the word that catches bank marketing's call duration and online shoppers' three page-duration columns, all measured leaks.",
+   "fix": "No change to the words; the false alarm stays visible for a person to answer, which becomes a label.",
+   "test": "tests/test_name_rule_real_columns.py"}
+ ],
+ "measurements": [
+  {"name": "name rule on real column names", "gate": "every flagged real column is a known leak, decided before the change",
+   "result": "269 names in 12 datasets: 6 flagged, 6 known leaks, 0 harmless; 4 of the 6 caught by duration", "verdict": "pass"},
+  {"name": "name rule on invented labelled decisions (dev and train, never sealed)", "gate": "false alarms by word, to see whether post or duration cause any",
+   "result": "4 false alarms in about 6,500 decisions, all from refund in prior_refund_count; none from post or duration", "verdict": "not scored"}
+ ],
+ "outcome": "The leak words stay as they are, now pinned by a test on real column names.",
+ "lessons": ["Measure a proposed fix on the data where the problem would show; a set made by a generator that never writes the name cannot judge it.",
+             "A false alarm seen once in a demo is weaker evidence than four true catches in real tables."],
+ "risks": ["Only 12 real datasets: a harmless real name with a leak word may still exist elsewhere; the person's answer is the way to learn it."],
+ "commits": []
+}
