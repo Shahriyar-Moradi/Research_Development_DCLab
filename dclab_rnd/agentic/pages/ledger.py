@@ -253,4 +253,28 @@ def feedback(body: dict[str, Any], book: Any) -> dict[str, Any]:
         if not any(x.source == "user_decision_exposed" and x.by == by for x in book.labels(record=record.id)):  # once per person
             out = ledger.label(record, not record.value_used, "user_decision_exposed", by, ledger=book)
             labelled = out.id if out is not None else None
+    thumb = {"helpful": "thumb_up", "unhelpful": "thumb_down"}.get(rating)  # "wrong" is a correction, not a thumb
+    if thumb and ids.get("draft") and ref and on in ("message", "answer") and (allows(role, "write") or allows(role, "review")):
+        _thumb_outcome(ids["draft"], ref, thumb)
     return {"recorded": event is not None, "label": labelled}
+
+
+PRODUCT_KINDS = ("answer", "dashboard", "decision_brief", "prepared")  # Home's replies that deliver a result (36.2)
+
+
+def _thumb_outcome(draft_id: str, ref: str, thumb: str) -> None:
+    """36.2: a thumb on the reply that delivered a result (an answer, a dashboard, a brief, a prepared table) is the person's
+    verdict on that result, read into the draft's outcome through Home's agent (the request's DraftWork, as draft/api's
+    routes reach it). A thumb on any other reply says nothing about a result."""
+    from ... import context
+
+    work = getattr(context.services(), "draft_work", None)
+    if work is None:
+        return
+    try:
+        draft = work.drafts.get(draft_id)
+    except Exception:  # noqa: BLE001 - no such draft (deleted, another workspace): nothing to judge
+        return
+    if any(m.get("id") == ref and m.get("role") == "agent" and m.get("kind") in PRODUCT_KINDS for m in draft.get("messages") or []
+           if isinstance(m, dict)):
+        work.agent(draft_id).acted(draft_id, thumb)

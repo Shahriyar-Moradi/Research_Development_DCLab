@@ -90,5 +90,51 @@ class ActedTest(unittest.TestCase):
         self.assertEqual(self.store.get(self.id)["outcome"]["verdict"], "refused")
 
 
+
+class ThumbTest(ActedTest):
+    """A thumb up or down from someone who may change or review the work, on the reply that delivered a result, is the
+    person's verdict; a thumb on any other reply, a viewer's thumb, or "wrong" (a correction) is not."""
+
+    def thumb(self, ref, rating, role=None):
+        from types import SimpleNamespace
+        from unittest import mock
+
+        from dclab_rnd import context
+        from dclab_rnd.agentic.pages import ledger as page
+        from dclab_rnd.draft.work import DraftWork
+
+        services = SimpleNamespace(ledger=self.ledger, draft_work=DraftWork(self.store, SimpleNamespace(client=lambda *a, **k: None, available=lambda *a, **k: False)))
+        who = SimpleNamespace(role=role, user_id="u1") if role else None
+        with context.using(services), mock.patch("dclab_rnd.accounts.principal.current", lambda: who):
+            return page.feedback({"on": "message", "ref": ref, "rating": rating, "draft": self.id}, self.ledger)
+
+    def board(self, kind="dashboard"):
+        self.agent.acted(self.id, "dashboard")
+        return self.agent.say(self.id, "Your dashboard is ready.", kind=kind)["id"]
+
+    def test_a_thumb_on_the_reply_that_delivered_the_result_is_the_verdict(self):
+        mid = self.board()
+        self.thumb(mid, "helpful")
+        self.assertEqual(self.store.get(self.id)["outcome"]["verdict"], "kept")
+        self.assertEqual(self.current("request.exit"), ["analysis"])
+        self.thumb(mid, "unhelpful")
+        self.assertEqual(self.store.get(self.id)["outcome"]["verdict"], "refused")
+        self.assertEqual(self.current("request.exit"), [])
+
+    def test_a_thumb_on_another_reply_or_wrong_is_no_verdict(self):
+        self.board()
+        other = self.agent.say(self.id, "Which period do you mean?", kind="text")["id"]
+        self.thumb(other, "helpful")
+        self.assertEqual(self.store.get(self.id)["outcome"]["verdict"], "open")
+        mid = self.agent.say(self.id, "Here it is again.", kind="dashboard")["id"]
+        self.thumb(mid, "wrong")
+        self.assertEqual(self.store.get(self.id)["outcome"]["verdict"], "open")
+
+    def test_a_viewers_thumb_is_no_verdict(self):
+        mid = self.board()
+        self.thumb(mid, "helpful", role="viewer")
+        self.assertEqual(self.store.get(self.id)["outcome"]["verdict"], "open")
+
+
 if __name__ == "__main__":
     unittest.main()

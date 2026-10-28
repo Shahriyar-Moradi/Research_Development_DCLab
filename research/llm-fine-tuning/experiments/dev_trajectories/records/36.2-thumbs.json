@@ -1,0 +1,30 @@
+{
+ "package": "36.2 thumbs",
+ "title": "A thumb on the reply that delivered a result is the person's verdict",
+ "date": "2026-10-28",
+ "request": "The owner: continue; the Home session handed over the thumbs piece so dashboards and briefs get a person's verdict too.",
+ "spec": "PHASE12_TRAINING_DATA_PLAN.md 36.2: reporting and business had no keep of their own; the existing thumbs on Home's replies are read into the track outcome.",
+ "plan": ["Find how the feedback page can reach Home's drafts", "Test first", "Read a thumb on a result's reply into the outcome",
+          "Coverage notes, record, commit"],
+ "decisions": [
+  {"decision": "Only a thumb on the reply that delivered a result counts", "why": "a thumb on a question or a note says nothing about the dashboard or the brief"},
+  {"decision": "Only someone who may change or review the work", "why": "a viewer's reaction is not the verdict of the person the help was for"},
+  {"decision": "Wrong is a correction, not a thumb", "why": "it already has its own meaning on decisions"},
+  {"decision": "Reach Home through the request's draft service", "why": "the page never builds its own agent; the same store and ledger as the routes"}
+ ],
+ "change": "dclab_rnd/agentic/pages/ledger.py (the feedback handler reads a thumb on a result's reply), dclab_rnd/store/coverage.py (reporting and business no longer list a gap), tests/test_home_track_outcome.py.",
+ "findings": [
+  {"id": "T1", "source": "test", "severity": "behaviour", "defect": "The thumb test wrote no label at first",
+   "scenario": "inside a request the ledger is the request's own, and the test's stand-in services had none",
+   "cause": "the stand-in, not the code: the product's services always carry the workspace ledger",
+   "fix": "the test's stand-in services carry the test ledger",
+   "test": "test_a_thumb_on_the_reply_that_delivered_the_result_is_the_verdict"}
+ ],
+ "measurements": [],
+ "outcome": "A thumb up or down on the reply that delivered an answer, a dashboard, a brief or a prepared table is now the person's verdict, so every track that is not a prediction (but advice) can record one.",
+ "lessons": ["A reaction counts only on the thing it judges and only from the person the help was for.",
+             "Inside a request, shared services decide which ledger is written: test with the same shape."],
+ "risks": ["One verdict per conversation: a thumb on an older result changes the conversation's verdict.",
+           "Advice still has no product to judge."],
+ "commits": []
+}

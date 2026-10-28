@@ -78,15 +78,13 @@ CAPTURE: dict[str, Capture] = {
 }
 
 _ASKED = ("point:request.intent", "event:chat.person", "event:chat.agent")  # every track: the reading of the request and the chat
-_NO_OUTCOME = ("no person's verdict yet (36.2): a dashboard or a brief has no keep of its own, and the thumbs on its "
-               "message are not read into track.outcome yet, so its outcome is only open or asked again")
 _JUDGED = "event:track.outcome"  # 36.2: what the person did with the result (kept, changed, refused, asked again)
 TRACK_CAPTURE: dict[str, Capture] = {
     "prediction": Capture((*_ASKED, "event:draft.built", "event:stage.finished", "event:outcome.observed", "point:workflow.g4")),
     "analysis": Capture((*_ASKED, "event:data.analysed", _JUDGED)),  # 36.2: an answer saved, let go or edited
     "preparation": Capture((*_ASKED, "event:data.cleaned", "point:data.cleaning_step", _JUDGED)),  # 36.2: a yes or no on a step, the table taken
-    "reporting": Capture((*_ASKED, _JUDGED), missing=_NO_OUTCOME),
-    "business": Capture((*_ASKED, _JUDGED), missing=_NO_OUTCOME),
+    "reporting": Capture((*_ASKED, _JUDGED)),  # 36.2: a thumb on the reply that delivered the dashboard
+    "business": Capture((*_ASKED, _JUDGED)),  # 36.2: a thumb on the reply that delivered the brief
     "advice": Capture((*_ASKED, "purpose:evidence_answer", "point:evidence.records"), missing="the advice track has no product of its own yet: its exit (answer) is not built, and the Evidence library's record "
                                                                                                 "carries no draft id, so there is nothing to judge"),
 }
