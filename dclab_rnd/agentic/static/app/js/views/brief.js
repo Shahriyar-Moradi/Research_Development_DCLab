@@ -140,7 +140,8 @@ DC.view('brief', {
       }
       const ev = F.ev, ci = F.ci;
       const base = m === 'roc_auc' ? 'a random ranking scores 0.50' : (() => { const b = Object.entries(ev.baselines || {}).find(([, x]) => x && typeof x[m] === 'number'); return b ? `${b[0].replace(/_/g, ' ')} baseline ${num(b[1][m], m)}` : 'no trivial baseline recorded'; })();
-      const c1 = `<div class="stat"><span class="v">${esc(num(F.point, m))}${ci ? ` <small>${esc(num(ci.low, m))}–${esc(num(ci.high, m))}</small>` : ''}</span><span class="l">${esc(ml(m))} on ${int(ev.holdout_rows)} rows the model never saw · ${esc(base)}</span></div>`;
+      const c1 = `<div class="stat"><span class="v">${esc(num(F.point, m))}${ci ? ` <small>${esc(num(ci.low, m))}–${esc(num(ci.high, m))}</small>` : ''}</span><span class="l">${esc(ml(m))} on ${int(ev.holdout_rows)} rows the model never saw · ${esc(base)}</span>`
+        + `<button type="button" class="link-btn xs" data-trace="final.evidence.holdout_metrics.${esc(m)}">Where this number comes from →</button></div>`;
       const gap = ev.cv_to_holdout_gap, cv = ev.cv_selected_metric_mean;
       const cGap = gap == null ? '' : `<div class="stat"><span class="v ${gap < -0.02 ? 'warn' : ''}">${gap >= 0 ? '+' : '−'}${esc(gapNum(gap, m))}</span><span class="l">holdout ${gap >= 0 ? 'better' : 'worse'} than the training-CV mean (${esc(num(cv, m))}) · ${gap >= -0.02 ? 'the cross-validation estimate held' : 'cross-validation was optimistic'}</span></div>`;
       let c2;
@@ -334,6 +335,22 @@ DC.view('brief', {
         return true;
       }, 2000);
     }
+    el.addEventListener('click', async e => {  // 19.5: a report's number traced to the run that made it
+      const t = e.target.closest('[data-trace]');
+      if (!t || !this.s.p) return;
+      let r;
+      try { r = await DC.client.projectLineage(this.s.p.id, { query: { path: t.dataset.trace } }); }
+      catch (err) { DC.toast(err.message || 'This number cannot be traced.', { ok: false }); return; }
+      const run = r.run || {}, inp = run.inputs || {}, code = run.code || {};
+      const row = (k, v) => v == null || v === '' ? '' : `<tr><th class="small">${esc(k)}</th><td class="mono small">${esc(String(v))}</td></tr>`;
+      const html = r.run ? `<table class="data compact">${row('Value', r.value)}${row('Stage', r.stage)}${row('Run', run.run)}${row('Status', run.status)}`
+          + `${row('Finished', run.finished)}${row('Seconds', run.seconds)}${row('Table', inp.data_rows != null ? `${inp.data_rows} rows × ${inp.data_columns} columns` : '')}`
+          + `${row('Table hash', (inp.data_sha256 || inp.data_hash || '').slice(0, 16))}${row('Solution hash', (inp.solution_hash || '').slice(0, 16))}`
+          + `${row('Code', code.commit ? code.commit.slice(0, 10) + (code.dirty ? ' (with uncommitted changes)' : '') : '')}${row('dclab-core', code.core)}`
+          + `${row('Fingerprint', (run.fingerprint || '').slice(0, 16))}</table>`
+        : `<p>${esc(r.note || 'No run is recorded for this number.')}</p>`;
+      DC.modal.open({ eyebrow: '<span class="eyebrow">Lineage</span>', title: 'Where this number comes from', html, confirm: 'Close' });
+    });
     el.addEventListener('click', async e => {
       const run = e.target.closest('[data-run-rest]');
       if (run && this.s.p) {

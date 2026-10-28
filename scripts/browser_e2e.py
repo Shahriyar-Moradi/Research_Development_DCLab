@@ -187,6 +187,11 @@ def check_flow(b: Browser) -> str:
     check(abs(shown - record["holdout_metrics"][metric]) < 0.006, f"the brief shows {shown}, the record says {record['holdout_metrics'][metric]}")
     report = b.context.request.get(b.base + href)
     check(report.ok and b"holdout" in report.body().lower(), "the report does not download")
+    run_id = (final.get("run") or {}).get("run")  # 19.5: the headline number traced to the run that made it
+    page.click("#brief-stats [data-trace]")
+    page.wait_for_function("id => document.body.innerText.includes('Where this number comes from') && (!id || document.body.innerText.includes(id))",
+                           arg=run_id, timeout=15_000)
+    page.keyboard.press("Escape")
     b.view("decision", settle=1)  # 34.4: the page says what the project's decision is, or how to state one
     page.wait_for_selector("#dc-box .empty, #dc-box .panel", timeout=30_000)
     stated = b.api(f"/projects/{project_id}/decision")

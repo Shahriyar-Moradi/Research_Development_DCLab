@@ -111,8 +111,9 @@ person's overrides.
   with `run.recorded`, v1 events read as v2), `adapters/main_product_lineage.py` (experiments, stage runs, agent runs),
   `dclab_rnd/studio/lineage.py` (the stage's run in its record; `trace`, `replay` in a scratch copy, refused when the
   table, the solution or an earlier choice changed), every `agents.run()` and every draft data pipeline a run with its
-  id on the events inside it; `GET /api/projects/{id}/lineage`, `make lineage`, `make replay`. Left open: a page for
-  lineage (the report's numbers as links), job runs other than stages (synthetic data, exports), and stage records from
+  id on the events inside it; `GET /api/projects/{id}/lineage`, `make lineage`, `make replay`. The Brief's headline
+  number links to its run (2026-10-28: "Where this number comes from", checked in `make browser-test`'s flow). Left open:
+  the report's other numbers as links, job runs other than stages (synthetic data, exports), and stage records from
   before 19.5 (they say so; a rerun records its run).
 
 ## Phase C3 — The decision ledger

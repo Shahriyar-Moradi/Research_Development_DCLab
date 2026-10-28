@@ -1,0 +1,19 @@
+{
+ "package": "19.5 lineage link",
+ "title": "The Brief's headline number links to the run that made it",
+ "date": "2026-10-28",
+ "request": "The owner: keep going by priority until tonight's full gate; 19.5 left a page for lineage open.",
+ "spec": "CAPTURE_AND_DECISION_DATA_PLAN.md 19.5: for any number in a project's report, the run that made it, its inputs and its code version are one query away; the page for it was left open.",
+ "plan": ["Read the lineage route and the Brief page", "A link beside the headline number, its run in a dialog", "Drive it in the browser flow check"],
+ "decisions": [
+  {"decision": "Start with the headline number", "why": "it is the number people act on; the route traces any path, so others can follow"},
+  {"decision": "Show hashes short and say when code had uncommitted changes", "why": "readable on the page, honest about what ran"}
+ ],
+ "change": "dclab_rnd/agentic/web/src/views/brief.html (the link and its dialog), the generated frontend, scripts/browser_e2e.py (the flow check clicks it), the 19.5 plan status.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "On a project's Brief, the headline number opens the run that made it: its stage, run id, time, table, solution hash and code version.",
+ "lessons": ["Trace the number people act on first."],
+ "risks": ["The report's other numbers are not links yet."],
+ "commits": []
+}
