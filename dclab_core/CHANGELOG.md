@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.129.0 (2026-10-28)
+
+- `recipe` (H9 of the Home plan): a table prepared step by step, the original never changed. `Recipe` v1 holds typed
+  `Step`s (rename, drop_columns, filter with the query engine's filters, dedupe, to_date, drop_missing, sort, months_since,
+  join, pivot); `preview` says what a step does (rows and columns before and after, the share it removes, what it added or
+  dropped) with the guard's verdict: a step removing more than 5% of the rows, a join changing the row count, or dates that
+  fail on more than 5% of the values needs the person's yes. `apply` runs a recipe on a copy; `undo` drops the last step.
+- `ledger`: the point `recipe.step` (is a guarded preparation step applied? labelled by the person's yes or no) and the
+  state field `step_kind`.
+
 ## 0.128.0 (2026-10-28)
 
 - `ledger` (H8 of the Home plan): the point `request.exit`, where a request leaves Home (`ml_project`, `analysis`,

@@ -8,6 +8,7 @@ nothing is learned from the data that could leak, and nothing looks at a possibl
 
 from __future__ import annotations
 
+import shutil
 import os
 
 import secrets
@@ -208,6 +209,9 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
         from ..audit import sha256_of
 
         clean_sha = sha256_of(out)  # H6: a question is answered only from the table this hash names
+        kept = store.data_dir(draft_id) / f"clean_{asset_id}.parquet"  # H9: each table's own copy, so a later upload never
+        shutil.copyfile(out, kept)                                      # erases one a join still needs (same bytes, same hash)
+        _record(store, kept)
         card = data_card(store, draft_id, asset.get("name") or "table", frame)  # 19.11: the table without its rows
         final: dict[str, Any] = {}
 
@@ -215,7 +219,7 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
             for a in d["assets"]:
                 if a["id"] == asset_id:
                     a.update(status="ready", rows=int(len(frame)), columns=int(frame.shape[1]), category_codes=codes, clean_file="clean.parquet",
-                             clean_sha256=clean_sha)
+                             clean_sha256=clean_sha, kept_file=kept.name)
                     final.update(a)
             d["cleaning_log"], d["analysis"], d["structure"], d["active_asset"] = log, report, info, asset_id
             d["data_card"] = card

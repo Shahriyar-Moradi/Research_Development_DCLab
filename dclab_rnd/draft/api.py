@@ -593,6 +593,36 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(422, str(exc)) from None
         return Response(body, media_type="application/zip", headers={"Content-Disposition": 'attachment; filename="answers.zip"'})
 
+    @router.get("/api/drafts/{draft_id}/prepared", response_class=Response, responses=download("application/octet-stream"))
+    async def prepared_table(draft_id: str, format: str = "csv"):
+        """H9: the prepared table (a new file beside the original) as CSV, Excel or Parquet."""
+        import io
+
+        import pandas as pd
+
+        from . import prepare
+
+        draft = get(draft_id)
+        rec = draft.get("recipe") or {}
+        path = drafts.data_dir(draft_id) / str(rec.get("file") or prepare.PREPARED)
+        if not rec.get("done") or not path.is_file():
+            raise HTTPException(404, "No prepared table yet")
+        fmt = prepare.FORMATS.get(format.lower())
+        if fmt is None:
+            raise HTTPException(422, "Formats: csv, excel, parquet")
+        frame = await asyncio.to_thread(pd.read_parquet, path)
+        if fmt in ("csv", "xlsx"):  # a text cell that would open as a live formula in a spreadsheet stays text
+            frame = prepare.safe_cells(frame)
+        out = io.BytesIO()
+        if fmt == "csv":
+            await asyncio.to_thread(lambda: out.write(frame.to_csv(index=False).encode("utf-8")))
+        elif fmt == "xlsx":
+            await asyncio.to_thread(lambda: frame.to_excel(out, index=False))
+        else:
+            await asyncio.to_thread(lambda: frame.to_parquet(out, index=False))
+        media = {"csv": "text/csv", "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "parquet": "application/octet-stream"}[fmt]
+        return Response(out.getvalue(), media_type=media, headers={"Content-Disposition": f'attachment; filename="prepared.{fmt}"'})
+
     @router.put("/api/drafts/{draft_id}/data", response_model=Doc, openapi_extra=OCTET)
     async def upload(draft_id: str, request: Request, filename: str):
         get(draft_id)

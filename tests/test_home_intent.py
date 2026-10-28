@@ -178,7 +178,7 @@ class AgentTests(unittest.TestCase):
             self.assertEqual([q for q in d["questions"] if not q.get("brief")], [], track)  # H4: only the track's brief asks
             said = " ".join(m.get("text") or "" for m in d["messages"] if m.get("role") == "agent")  # H4: a brief question may follow
             self.assertIn(intent.NEXT[track], said)
-            if track in ("preparation", "reporting", "business"):  # H7: analysis is answered from the table now
+            if track in ("reporting", "business"):  # H7: analysis is answered from the table now; H9: preparation is built
                 self.assertIn("not built yet", said)  # never a promise of what does not exist
 
     def test_a_chosen_pack_means_a_prediction(self):

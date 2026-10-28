@@ -76,6 +76,7 @@ CAPTURED = {
     "problem.pack": "draft/chat.py: the pack detected or chosen",
     "request.intent": "draft/chat.py: the kind of help read from the request (rules, or the model where they find no winner), labelled by the person's choice on the card (H2)",
     "request.exit": "draft/chat.py route: where the request leads, by rule from its kind of help, with the cross-route suggestion its words gave; labelled when an answer is given or a project is built (H8)",
+    "recipe.step": "draft/chat.py confirm_step: a preparation step the guard holds, not applied unasked; labelled by the person's yes or no (H9)",
     "map.size": "draft/map.py draw: the rules' reading of the words and the decomposer's, when it serves",
     "map.edit": "draft/map.py edit: a person's add, remove, merge or confirm of the map",
     "solution.route": "draft/map.py store_routes: the approach the router chose for each sub-problem, the rules' and the advisor's",

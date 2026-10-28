@@ -130,8 +130,8 @@ _COMPILED = [(t, i, w, re.compile(p, re.I)) for t, i, w, p in SIGNALS + lang.SIG
 NEXT = {
     "analysis": "Upload or connect the table and I'll answer from it: numbers per group, never single rows. If you need a "
                 "prediction instead, change the type of help above.",
-    "preparation": "Preparing data on request is not built yet. When you upload the table, DCLab cleans it (names, numbers, dates, "
-                   "empty rows, exact duplicates) and lists every step it took.",
+    "preparation": "Upload or connect the table and I'll prepare it as you asked, step by step, into a new table you can download; "
+                   "a step that removes many rows waits for your yes, and the original file is never changed.",
     "reporting": "Reports and dashboards are not built yet. Upload or connect the data and I'll prepare it and show what it holds.",
     "business": "Answering business questions in this chat is not built yet. Upload the data and I'll prepare it and show what it holds; "
                 "if part of the question is a prediction, change the type of help above.",

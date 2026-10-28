@@ -291,6 +291,7 @@
     editMap: ["POST", "/drafts/{draft_id}/map/edit", ["draft_id"], []],
     message: ["POST", "/drafts/{draft_id}/messages", ["draft_id"], []],
     choosePack: ["POST", "/drafts/{draft_id}/pack", ["draft_id"], []],
+    preparedTable: ["GET", "/drafts/{draft_id}/prepared", ["draft_id"], ["format"]],
     draftSettings: ["PUT", "/drafts/{draft_id}/settings", ["draft_id"], []],
     draftSolution: ["PUT", "/drafts/{draft_id}/solution", ["draft_id"], []],
     draftSolutionMap: ["GET", "/drafts/{draft_id}/solution-map", ["draft_id"], []],
@@ -763,6 +764,13 @@
    *  @returns {Promise<Draft>} */
   client.choosePack = (...args) => call('choosePack', args);
   client.path.choosePack = (...args) => build('choosePack', args).path;
+  /** GET /api/drafts/{draft_id}/prepared: Prepared Table
+   *  @param {string} draft_id
+   *  @param {{query?: {format?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<*>} */
+  client.preparedTable = (...args) => call('preparedTable', args);
+  client.path.preparedTable = (...args) => build('preparedTable', args).path;
+  client.href.preparedTable = (...args) => '/api' + build('preparedTable', args).path;
   /** PUT /api/drafts/{draft_id}/settings: Draft Settings
    *  @param {string} draft_id
    *  @param {{body: AnyObject, headers?: Object}} [opts]

@@ -481,6 +481,24 @@ def exit_reached(record_id: Optional[str], kind: str) -> int:
 
 
 @_quiet
+def recipe_step_answered(draft_id: str, recipe: dict[str, Any], index: Any, decided: Optional[str]) -> Optional[str]:
+    """H9: a guarded preparation step (one that removes many rows, or a join that changes the row count): the rule's answer is
+    not to apply it unasked; the person's yes or no labels it. The state is the step's kind and the share it removes, never a value."""
+    if decided not in ("yes", "skip"):
+        return None
+    try:
+        raw = recipe["planned"][int(index)]
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+    asked = next((a for a in reversed(recipe.get("asked") or []) if a.get("index") == int(index)), {})
+    record = _put("recipe.step", ("draft", draft_id), [answer("rule", "rule:recipe_guard_v1", False)], False, "rule",
+                  state={"step_kind": str(raw.get("kind")), "share": float(asked.get("removed_share") or 0.0)}, draft=draft_id, conversation=draft_id)
+    if record is not None:
+        label(record, decided == "yes", "user_decision_exposed", "person")
+    return getattr(record, "id", None)
+
+
+@_quiet
 def intent_chosen(record_id: Optional[str], track: str) -> int:
     """H2: the person's choice on the card is the label of this draft's own reading, never of another draft's."""
     if not record_id or track not in TRACKS:

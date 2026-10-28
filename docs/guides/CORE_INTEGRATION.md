@@ -1201,3 +1201,12 @@ group, every group under the floor removed and counted in `suppressed_groups`; n
 names the columns the plan related; keep it beside the conversation, so a later prediction on the same table knows what the
 person already looked at. The main product has no such front door at the pinned commit: `QueryPlan` and `QueryResult` are
 library output it would store with an answer (no row maps onto them).
+
+## A table prepared on request (H9, dclab-core 0.129.0)
+
+The library's: `dclab_core.recipe`. A host that lets a person clean, filter, join or reshape their own table builds a
+`Recipe` v1 of typed steps, from its own form or a model's proposal, and calls `recipe.preview(step, frame, tables)` for each
+before applying it: when the preview says `needs_confirmation` (more than 5% of the rows removed, a join that changes the row
+count), the host asks the person and applies the step only on a yes. `recipe.apply` works on a copy, so the original table
+is never changed; keep the result as a new table. The main product has no such front door at the pinned commit: `Recipe` is
+library output it would store beside a dataset (no row maps onto it).

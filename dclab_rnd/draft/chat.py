@@ -634,7 +634,8 @@ class HomeAgent:
         def put(d):
             if door and (d.get("exit") or {}).get("kind") != door["kind"]:
                 # a destination reached earlier stays reached when the person comes back to it (the review of H8)
-                reached = (door["kind"] == "analysis" and d.get("answers")) or (door["kind"] == "ml_project" and d.get("project_id"))
+                reached = (door["kind"] == "analysis" and d.get("answers")) or (door["kind"] == "ml_project" and d.get("project_id")) \
+                    or (door["kind"] == "dataset" and (d.get("recipe") or {}).get("done"))
                 d["exit"] = {**door, "at": now(), **({"record": record} if record else {}),
                              **({"status": "reached"} if reached else {})}
             d["route_suggestion"] = idea
@@ -697,8 +698,8 @@ class HomeAgent:
         for field, absent in missing.items():
             self.say(draft_id, f"Your data has no column named {', '.join(f'`{a}`' for a in absent)}, so I did not use it for the "
                                f"{field.replace('_', ' ')}. Which column did you mean?", kind="text")
-        if self.ask_brief(draft_id) is None:
-            self.answer_analysis(draft_id)
+        if self.ask_brief(draft_id) is None and self.answer_analysis(draft_id) is None:
+            self.prepare_table(draft_id)  # H9
 
     def answer_analysis(self, draft_id: str) -> dict[str, Any] | None:
         """H7: on the analysis track, with the table ready and nothing important left to ask, the question is answered from
@@ -777,6 +778,166 @@ class HomeAgent:
                         answer={"n": n, "columns": result.columns, "rows": result.rows[:50], "suppressed_groups": result.suppressed_groups,
                                 "chart": home_chart.spec(plan, result), "edits": home_query.edits(plan, briefs.columns_of(draft))})
 
+    def _other_tables(self, draft: dict[str, Any]) -> dict[str, Any]:
+        """H9: the draft's other prepared tables by name (a join's second table), each checked against its recorded hash."""
+        import pandas as pd
+
+        from ..audit import sha256_of
+
+        out: dict[str, Any] = {}
+        for a in draft.get("assets") or []:
+            if a.get("id") == draft.get("active_asset") or a.get("status") != "ready" or not (a.get("kept_file") or a.get("clean_file")):
+                continue
+            path = Path(self.store.data_dir(draft["id"])) / (a.get("kept_file") or a["clean_file"])  # each table's own copy
+            if path.is_file() and (not a.get("clean_sha256") or sha256_of(path) == a["clean_sha256"]):
+                out[Path(str(a.get("name") or a["id"])).stem.lower()] = pd.read_parquet(path)
+        return out
+
+    def prepare_table(self, draft_id: str, said: str | None = None) -> dict[str, Any] | None:
+        """H9: on the preparation track, with the table described and nothing left to ask, the steps the person's words ask
+        for (dclab_core.recipe), each previewed and applied in order to a copy; a step that removes over 5% of the rows, or a
+        join that changes the row count, waits for the person's yes ("not sure" skips it: rows are never dropped by default).
+        The result is a new file beside the original (never written), ready to download in the format asked for."""
+        from .. import home_query
+        from dclab_core import recipe as R
+        from . import prepare
+
+        draft = self.store.get(draft_id)
+        if self.track(draft) != "preparation" or self.pending(draft) is not None:
+            return None
+        active = draft.get("active_asset")
+        if not any(m.get("kind") == "analysis" and m.get("asset") == active for m in draft.get("messages") or []):
+            return None
+        rec = dict(draft.get("recipe") or {})
+        mine = rec.get("for") == active  # the recipe made for this upload (its main table may be another, for a join)
+        follow_up = bool(said) and mine and rec.get("unread_said") and not rec.get("done")
+        if mine and (rec.get("done") or rec.get("unread_said")) and not follow_up:
+            return None
+        made_for = active
+        try:
+            frame = home_query.table(self.store, draft)
+        except ValueError as error:
+            return self.say(draft_id, f"I can't prepare the table yet: {error}.", kind="text")
+        tables = self._other_tables(draft)
+        told = ((draft.get("track_brief") or {}).get("preparation") or {}).get("rules") or {}
+        # the steps: a reply to Home's request for them, else the person's own answer to "What should I do to the data?",
+        # else their first sentence
+        text = said if follow_up else str(told.get("value")) if told.get("source") == "user" and told.get("value") else \
+            str(draft.get("problem") or "")
+        joins = prepare.JOIN.search(lang.normalize(text).lower())
+        if joins and not tables and not rec.get("waiting_said"):  # a join needs its second table: wait for it, said once
+            self.store.update(draft_id, lambda d: d.update(recipe={"waiting_said": True}))
+            return self.say(draft_id, "Your request joins two tables: add the second one and I'll prepare them together.", kind="text",
+                            actions=["upload", "connect"])
+        if joins and not tables:
+            return None
+        if tables:  # the table a join adds to is the one where the key repeats, never just the last upload (the review of H9a)
+            here = Path(str(next((a.get("name") for a in draft.get("assets") or [] if a.get("id") == active), active))).stem.lower()
+            main = prepare.main_table(text, {here: frame, **tables})
+            if main and main != here:
+                tables = {**{k: v for k, v in tables.items() if k != main}, here: frame}
+                frame = self._other_tables(draft)[main]
+                active = next((a["id"] for a in draft.get("assets") or [] if Path(str(a.get("name") or "")).stem.lower() == main), active)
+        if not mine or follow_up:
+            steps, unread = prepare.read_steps(text, frame, tables)
+            rec = {"for": made_for, "asset": active, "planned": [x.model_dump(mode="json") for x in steps], "unread": unread, "decisions": {},
+                   "format": prepare.destination(text) if follow_up and prepare.destination(text) != "csv" else
+                   prepare.destination(str(draft.get("problem") or "")), "source_sha256": next(
+                       (a.get("clean_sha256") for a in draft.get("assets") or [] if a.get("id") == active), None)}
+        if not rec["planned"]:
+            rec["unread_said"] = True
+            self.store.update(draft_id, lambda d: d.update(recipe=rec))
+            words = "; ".join(f"“{w}”" for w in rec.get("unread") or [])
+            return self.say(draft_id, "I could not read the steps from your words yet" + (f" ({words})" if words else "")
+                            + ". Say them one at a time, for example: remove duplicate orders; keep only the paid orders.", kind="text")
+        current, done = frame, []
+        for i, raw in enumerate(rec["planned"]):
+            step = R.Step.model_validate(raw)
+            decision = rec["decisions"].get(str(i))
+            if decision == "skip":
+                done.append({"kind": step.kind, "why": step.why, "skipped": True, "removed_share": 0.0, "confirmed": False})
+                continue
+            try:
+                p, after = R.preview(step, current, tables)
+            except ValueError as error:
+                done.append({"kind": step.kind, "why": step.why, "error": str(error)[:300], "removed_share": 0.0, "confirmed": False})
+                continue
+            if p.needs_confirmation and decision != "yes":
+                rec["pending"] = {"index": i, "needs_confirmation": True, "reason": p.reason, "kind": step.kind}
+                rec.setdefault("asked", []).append({"index": i, "kind": step.kind, "reason": p.reason, "rows_before": p.rows_before,
+                                                    "rows_after": p.rows_after, "removed_share": p.removed_share})  # kept: what was asked
+                unread = f" (Not read from your words: {'; '.join(rec['unread'])}.)" if rec.get("unread") else ""
+                q = {"id": f"q{len(draft['questions']) + 1}", "field": "confirm_step", "brief": None, "step": i,
+                     "text": f"This step will {prepare.describe(step)}: {p.reason}.{unread} Apply it?", "options": ["Yes, apply it", "No, skip it"],
+                     "why": "A step that removes many rows, or a join that changes the row count, is applied only with your yes.",
+                     "answered": None}
+                self.store.update(draft_id, lambda d: (d.update(recipe=rec), d["questions"].append(q)))
+                self.moved(draft_id, "confirm_step", {"kind": step.kind}, {"removed_share": p.removed_share})
+                return self.say(draft_id, q["text"], kind="question", question=q)
+            current = after
+            done.append({"kind": step.kind, "why": step.why, **p.model_dump(mode="json"), "confirmed": decision == "yes"})
+        name = prepare.prepared_name(active)
+        path = Path(self.store.data_dir(draft_id)) / name
+        current.to_parquet(path, index=False)  # a new file under a name an upload never takes: the original is never written
+        from .pipeline import _record
+
+        _record(self.store, path)  # in file storage too, so the download works where the worker ran elsewhere
+        recipe = R.Recipe(source_sha256=rec.get("source_sha256"), steps=[R.Step.model_validate(r) for i, r in enumerate(rec["planned"])
+                                                                        if rec["decisions"].get(str(i)) != "skip" and not done[i].get("error")])
+        rec.update(done=True, pending=None, steps=done, recipe=recipe.model_dump(mode="json"), file=name, asset=active,
+                   rows=int(len(current)), columns=int(current.shape[1]), at=now())
+
+        def keep(d):
+            d["recipe"] = rec
+            d["exit"] = {**(d.get("exit") or {}), "kind": "dataset", "track": "preparation", "status": "reached", "at": now()}
+        self.store.update(draft_id, keep)
+        from ..ledger import capture
+
+        capture.exit_reached((draft.get("exit") or {}).get("record"), "dataset")
+        self.moved(draft_id, "prepare_table",  # what the rules read (kinds and column names, never a value) and what came of it
+                   {"steps": [{"kind": x["kind"], **({k: v for k, v in raw.items() if k in ("columns", "keys", "index", "spread", "values", "agg", "table")})}
+                              for x, raw in zip(done, rec["planned"])], "unread": len(rec.get("unread") or [])},
+                   {"rows": int(len(current)), "columns": int(current.shape[1]),
+                    "applied": [not (x.get("skipped") or x.get("error")) for x in done]})
+        described = [prepare.describe(R.Step.model_validate(raw)) for raw in rec["planned"]]
+        lines = [f"{n}. {described[n - 1]}" + (" (skipped)" if x.get("skipped") else f" (not applied: {x['error']})" if x.get("error")
+                 else f": {x['rows_before']:,} → {x['rows_after']:,} rows" + (f", added {', '.join(x['added'])}" if x.get("added") else ""))
+                 for n, x in enumerate(done, 1)]
+        unread = f"\n\nNot read from your words: {'; '.join(rec['unread'])}." if rec.get("unread") else ""
+        return self.say(draft_id, f"Your prepared table is ready: {len(current):,} rows and {current.shape[1]} columns. The original "
+                                  "file is unchanged.\n\n" + "\n".join(lines) + unread, kind="prepared",
+                        prepared={"format": rec["format"], "rows": int(len(current)), "columns": int(current.shape[1])})
+
+    def confirm_step(self, draft_id: str, q: dict[str, Any], text: str) -> bool:
+        """H9: the person's answer to a guarded step. Only a whole yes applies it ("ok no", "اعمال نکن" never do); a whole no
+        or "not sure" skips it. Anything else is not an answer: the question closes undecided and the message is read as a
+        message (False), so "actually I want a prediction" is never lost as a skip (the review of H9a)."""
+        from . import prepare
+
+        said = str(text or "").strip()
+        yes = bool(prepare.YES.fullmatch(said)) and not prepare.NEGATION.search(said)
+        no = bool(prepare.NO.fullmatch(said)) or not_known(said)
+        decided = "yes" if yes else "skip" if no else None
+
+        def put(d):
+            for x in d["questions"]:
+                if x["id"] == q["id"]:
+                    x.update(answered=said[:400], **({} if decided else {"superseded": True, "declined": True}))
+            r = d.setdefault("recipe", {})
+            if decided:
+                r.setdefault("decisions", {})[str(q.get("step"))] = decided
+            r["pending"] = None
+            if not decided:
+                r["undecided_said"] = True
+        self.store.update(draft_id, put)
+        self.moved(draft_id, "confirm_step_answer", {"answer": decided or "other"}, {})
+        from ..ledger import capture
+
+        capture.recipe_step_answered(draft_id, (self.store.get(draft_id).get("recipe") or {}), q.get("step"), decided)
+        if decided:
+            self.prepare_table(draft_id)
+        return decided is not None
+
     def save_answer(self, draft_id: str, n: int, saved: bool = True) -> dict[str, Any]:
         """H7c: the person keeps an answer (it goes into the notebook export) or lets it go."""
         def put(d):
@@ -844,7 +1005,7 @@ class HomeAgent:
         self.store.update(draft_id, put)
         self.store.emit(draft_id, "status", {"track_brief": self.store.get(draft_id).get("track_brief")})
         self.moved(draft_id, "brief_answer", {"track": track, "field": field})
-        if self.ask_brief(draft_id) is None and self.answer_analysis(draft_id) is None:
+        if self.ask_brief(draft_id) is None and self.answer_analysis(draft_id) is None and self.prepare_table(draft_id) is None:
             self.say(draft_id, "Noted. " + intents.NEXT.get(track, ""), kind="text")
 
     @turn
@@ -1068,6 +1229,13 @@ class HomeAgent:
             self.store.update(draft_id, lambda d: [x.update(answered=text[:400], declined=True, superseded=True)
                                                    for x in d["questions"] if x["id"] == open_question["id"] and not x.get("answered")])
             # the person said something else (another kind of help, simulated data, a question): the normal path reads it
+        if open_question is not None and open_question["field"] == "confirm_step":  # H9: a guarded step's yes or no, by code
+            if self.confirm_step(draft_id, open_question, text):
+                return
+        rec = self.store.get(draft_id).get("recipe") or {}
+        if self.track(self.store.get(draft_id)) == "preparation" and rec.get("unread_said") and not rec.get("done"):
+            if self.prepare_table(draft_id, said=text) is not None:  # H9: Home asked for the steps one at a time: this is them
+                return
         if open_question is not None and open_question["field"] == "intent":  # H2: the kind of help: code reads the answer
             self.take_answer(draft_id, open_question, text)
             return

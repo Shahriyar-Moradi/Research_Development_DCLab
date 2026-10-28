@@ -20,7 +20,7 @@ from . import lang
 
 EXITS = {"prediction": "ml_project", "analysis": "analysis", "preparation": "dataset", "reporting": "dashboard",
          "business": "decision_brief", "advice": "answer"}
-BUILT = {"ml_project", "analysis"}  # the exits DCLab can take a person to today; the others are said as not built yet
+BUILT = {"ml_project", "analysis", "dataset"}  # the exits DCLab can take a person to today; the others are said as not built yet
 
 _FA = r"[ء-غف-يٱ-ۓۺ-ۿ]"
 _NEXT = r"(?:next|coming|upcoming|following)\s+(?:day|week|month|quarter|year|season)s?|tomorrow|soon|in\s+the\s+future"

@@ -86,6 +86,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
                    "adapters/main_product_memory.py is the row it would add, as_row and from_row)",
     "query_plan": LIBRARY + " (H6: a question asked of a table, aggregates only; the main product has no such front door at the pinned commit)",
     "query_result": LIBRARY + " (H6: the aggregates a plan returned, small groups suppressed and counted; stored with an answer, never as rows)",
+    "recipe": LIBRARY + " (H9: a table prepared step by step on request; the main product has no such front door at the pinned commit)",
     "memory_brief": LIBRARY + " (35.1: what an agent reads at a session's start, built by memory.select; never stored as a row)",
     "exam": LIBRARY + " (a model type's frozen exam, 36.4: rows named by key and hash, never their content; the main product trains "
             "no model of its own at the pinned commit, so it has no exam table)",
@@ -126,6 +127,7 @@ _NO_NAME = "the main product has no governed decision point of this name: it is 
 POINTS_NOT_MAPPED: dict[str, str] = {
     "request.intent": "H2: the studio's Home reads the kind of help (prediction, analysis, ...) before anything else; the main product has no such front door yet",
     "request.exit": "H8: where a request leaves the studio's Home (an ML project, answers, a prepared table, a dashboard, a decision brief, a cited answer); the main product has no such front door yet",
+    "recipe.step": "H9: a guarded preparation step on the studio's Home, labelled by the person's yes or no; the main product has no such front door yet",
     "department.proposal": "the main product has no department agents yet: its governed point is added with them (30.22)",
     **{p: _NO_NAME.format(what="data preparation step") for p in (
         "column.category_code", "column.time", "column.group", "task.framing", "labels.situation", "labels.join_key", "data.cases_table",

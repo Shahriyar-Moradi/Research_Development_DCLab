@@ -1,0 +1,284 @@
+{
+  "$defs": {
+    "Filter": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "maxLength": 200,
+          "title": "Column",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "eq",
+            "ne",
+            "in",
+            "not_in",
+            "gt",
+            "ge",
+            "lt",
+            "le",
+            "between",
+            "is_null",
+            "not_null"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "column",
+        "op"
+      ],
+      "title": "Filter",
+      "type": "object"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "agg": {
+          "default": "sum",
+          "enum": [
+            "sum",
+            "mean",
+            "count",
+            "min",
+            "max",
+            "median"
+          ],
+          "title": "Agg",
+          "type": "string"
+        },
+        "at": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "months_since: the day counted to (ISO); the column's latest by default",
+          "title": "At"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 200,
+          "title": "Columns",
+          "type": "array"
+        },
+        "desc": {
+          "default": false,
+          "title": "Desc",
+          "type": "boolean"
+        },
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/Filter"
+          },
+          "maxItems": 20,
+          "title": "Filters",
+          "type": "array"
+        },
+        "how": {
+          "default": "left",
+          "enum": [
+            "left",
+            "inner"
+          ],
+          "title": "How",
+          "type": "string"
+        },
+        "index": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        },
+        "keys": {
+          "description": "dedupe: the columns that make a row the same; join: the keys",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Keys",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "rename",
+            "drop_columns",
+            "filter",
+            "dedupe",
+            "to_date",
+            "drop_missing",
+            "sort",
+            "months_since",
+            "join",
+            "pivot"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "spread": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "pivot: the column whose values become columns",
+          "title": "Spread"
+        },
+        "table": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "join: the other table's name",
+          "title": "Table"
+        },
+        "to": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "rename: the new name; months_since: the new column",
+          "title": "To"
+        },
+        "values": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Values"
+        },
+        "why": {
+          "default": "",
+          "description": "the person's words this step comes from, or why it was proposed",
+          "maxLength": 400,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "Step",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.recipe.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "dclab_core.recipe.v1",
+      "default": "dclab_core.recipe.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_sha256": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the original table the recipe starts from",
+      "title": "Source Sha256"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "maxItems": 100,
+      "title": "Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "Recipe",
+  "type": "object"
+}
