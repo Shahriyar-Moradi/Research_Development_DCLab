@@ -252,7 +252,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v15"
+   "version": "dclab_core.experience_event.v16"
   },
   {
    "contract": "experience_session",
@@ -560,6 +560,11 @@
    "version": "dclab_core.team_record.v1"
   },
   {
+   "contract": "track_outcome",
+   "reads": [],
+   "version": "dclab_core.track_outcome.v1"
+  },
+  {
    "contract": "training_example",
    "reads": [],
    "version": "dclab_core.training_example.v1"
@@ -662,7 +667,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.134.0",
+ "dclab_core": "0.135.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -2603,6 +2608,26 @@
     "arguments",
     "result"
    ],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/ledger/capture.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind track.outcome",
+   "family": "track",
+   "fields": {
+    "actions": "count",
+    "by": "meta",
+    "evidence": "meta",
+    "exit": "meta",
+    "produced": "meta",
+    "track": "meta",
+    "verdict": "meta"
+   },
+   "kind": "track.outcome",
+   "leaves_at": "improve",
+   "never_leaves": [],
    "train_only": []
   },
   {

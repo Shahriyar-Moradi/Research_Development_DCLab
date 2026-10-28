@@ -78,14 +78,17 @@ CAPTURE: dict[str, Capture] = {
 }
 
 _ASKED = ("point:request.intent", "event:chat.person", "event:chat.agent")  # every track: the reading of the request and the chat
-_NO_OUTCOME = "no outcome a person judges yet (36.2): the track says what DCLab can do and stops"
+_NO_OUTCOME = ("the outcome's contract, capture and store side exist (36.2: track.outcome), but Home does not call it yet, "
+               "so no person's verdict is recorded")
+_JUDGED = "event:track.outcome"  # 36.2: what the person did with the result (kept, changed, refused, asked again)
 TRACK_CAPTURE: dict[str, Capture] = {
     "prediction": Capture((*_ASKED, "event:draft.built", "event:stage.finished", "event:outcome.observed", "point:workflow.g4")),
-    "analysis": Capture((*_ASKED, "event:data.analysed"), missing=_NO_OUTCOME),
-    "preparation": Capture((*_ASKED, "event:data.cleaned", "point:data.cleaning_step"), missing=_NO_OUTCOME),
-    "reporting": Capture(_ASKED, missing=_NO_OUTCOME),
-    "business": Capture(_ASKED, missing=_NO_OUTCOME),
-    "advice": Capture((*_ASKED, "purpose:evidence_answer", "point:evidence.records"), missing="the evidence answer is not tied to the draft that asked yet (36.2)"),
+    "analysis": Capture((*_ASKED, "event:data.analysed", _JUDGED), missing=_NO_OUTCOME),
+    "preparation": Capture((*_ASKED, "event:data.cleaned", "point:data.cleaning_step", _JUDGED), missing=_NO_OUTCOME),
+    "reporting": Capture((*_ASKED, _JUDGED), missing=_NO_OUTCOME),
+    "business": Capture((*_ASKED, _JUDGED), missing=_NO_OUTCOME),
+    "advice": Capture((*_ASKED, "purpose:evidence_answer", "point:evidence.records"), missing="the advice track has no product of its own yet: its exit (answer) is not built, and the Evidence library's record "
+                                                                                                "carries no draft id, so there is nothing to judge"),
 }
 
 

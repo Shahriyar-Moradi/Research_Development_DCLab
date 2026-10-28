@@ -1,0 +1,57 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "by": {
+      "enum": [
+        "person",
+        "rule"
+      ],
+      "type": "string"
+    },
+    "evidence": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 5,
+      "type": "array"
+    },
+    "produced": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 4,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.track_outcome.v1",
+      "default": "dclab_core.track_outcome.v1",
+      "type": "string"
+    },
+    "track": {
+      "maxLength": 40,
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "kept",
+        "changed",
+        "refused",
+        "asked_again",
+        "open"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "track",
+    "verdict",
+    "by",
+    "actions"
+  ],
+  "type": "object"
+}

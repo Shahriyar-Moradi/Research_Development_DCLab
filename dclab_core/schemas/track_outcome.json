@@ -1,0 +1,71 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.track_outcome.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "description": "how many known actions were counted",
+      "minimum": 0,
+      "title": "Actions",
+      "type": "integer"
+    },
+    "by": {
+      "description": "person: an action of theirs decided it; rule: inferred from the order of requests",
+      "enum": [
+        "person",
+        "rule"
+      ],
+      "title": "By",
+      "type": "string"
+    },
+    "evidence": {
+      "description": "the last actions' names, never their content",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 5,
+      "title": "Evidence",
+      "type": "array"
+    },
+    "produced": {
+      "description": "the kinds of result produced, in order",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 4,
+      "title": "Produced",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.track_outcome.v1",
+      "default": "dclab_core.track_outcome.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "track": {
+      "description": "the kind of help (analysis, preparation, reporting, business, ...)",
+      "maxLength": 40,
+      "title": "Track",
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "kept",
+        "changed",
+        "refused",
+        "asked_again",
+        "open"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "track",
+    "verdict",
+    "by",
+    "actions"
+  ],
+  "title": "TrackOutcome",
+  "type": "object"
+}

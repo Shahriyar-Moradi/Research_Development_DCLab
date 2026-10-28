@@ -86,6 +86,7 @@ FIELDS_MISSING = {
 KINDS_MISSING = {
     **{k: "no memory for its agents there yet (35.3): an item written, proposed, retired, shown, recalled or cited is recorded when it "
           "adopts dclab_core.memory" for k in ("memory.written", "memory.proposed", "memory.retired", "memory.shown", "memory.recalled", "memory.cited")},
+    "track.outcome": "no Home front door with kinds of help there yet (36.2): what a person did with an answer, table, brief or dashboard is recorded when it adopts dclab_core.track_outcome",
     "team.handoff": "no team of agents there yet (28.2): its agent runs are one loop; a hand-off is recorded when it adopts the board",
     "team.interrupt": "no team of agents there yet (28.2): its pauses for a person are rows of their own pages, not a team's",
     "team.recorded": "no team of agents there yet (28.3): a walk's record has no counterpart",

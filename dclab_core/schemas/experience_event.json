@@ -178,7 +178,7 @@
     },
     "JsonValue": {}
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v15.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v16.json",
   "additionalProperties": false,
   "allOf": [
     {
@@ -16248,6 +16248,353 @@
       "if": {
         "properties": {
           "kind": {
+            "const": "track.outcome"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "actions"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "actions"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "actions"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "actions"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "by"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "exit"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "exit"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "exit"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "exit"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "produced"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "produced"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "produced"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "produced"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "track"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "track"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "track"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "track"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "verdict"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "actions": {
+                "const": "count"
+              },
+              "by": {
+                "const": "meta"
+              },
+              "evidence": {
+                "const": "meta"
+              },
+              "exit": {
+                "const": "meta"
+              },
+              "produced": {
+                "const": "meta"
+              },
+              "track": {
+                "const": "meta"
+              },
+              "verdict": {
+                "const": "meta"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "actions",
+                "by",
+                "evidence",
+                "exit",
+                "produced",
+                "track",
+                "verdict"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "actions",
+                "by",
+                "evidence",
+                "exit",
+                "produced",
+                "track",
+                "verdict"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
             "const": "ui.action"
           }
         },
@@ -17442,7 +17789,8 @@
         "memory.retired",
         "memory.shown",
         "memory.recalled",
-        "memory.cited"
+        "memory.cited",
+        "track.outcome"
       ],
       "title": "Kind",
       "type": "string"
@@ -17463,8 +17811,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.experience_event.v15",
-      "default": "dclab_core.experience_event.v15",
+      "const": "dclab_core.experience_event.v16",
+      "default": "dclab_core.experience_event.v16",
       "title": "Schema Version",
       "type": "string"
     },

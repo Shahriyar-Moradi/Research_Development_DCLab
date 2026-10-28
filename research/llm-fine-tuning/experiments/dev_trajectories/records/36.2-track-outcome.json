@@ -1,0 +1,115 @@
+{
+ "package": "36.2",
+ "title": "What a person did with what a kind of help produced: the outcome's contract, capture and store side",
+ "date": "2026-10-28",
+ "request": "The owner: do 36.2 next, so the tracks that are not prediction leave training data with an outcome label.",
+ "spec": "PHASE12_TRAINING_DATA_PLAN.md 36.2: a non-prediction track ends with something a person can judge and the person's verdict; recorded as events and as labels of request.intent and the routing decision (person gold, rules silver); m2 gets the routing with its outcome, m4 each conversation with thinking labelled by its outcome. The Home session owns draft/; this package adds the store side and the contract, agreed with it first.",
+ "plan": [
+  "Map what Home records today and what the store builds",
+  "Agree the contract with the Home session before any change",
+  "Test first, then the contract, the event, the capture and the store side",
+  "Review, fix, gate, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "Read the verdict from the conversation's ordered action names",
+   "why": "the Home session's calls give an action list; thumbs alone miss saving, taking a table, or saying no to a step"
+  },
+  {
+   "decision": "Fold the Home session's tested rule into dclab_core instead of writing a second rule",
+   "why": "one rule read by Home, the ledger capture and the store"
+  },
+  {
+   "decision": "Only a person's kept or changed labels the route taken",
+   "why": "a refusal says the result was poor, not that the kind of help was wrong; guessing a right answer from it would teach the routing model a lie"
+  },
+  {
+   "decision": "A later non-confirming verdict supersedes the earlier label with an empty one",
+   "why": "Home records on every change; a keep then an unsave must leave no confirmed route"
+  },
+  {
+   "decision": "The store picks labels only among those no later label supersedes",
+   "why": "the ledger's own rule; without it a retraction would be ignored"
+  },
+  {
+   "decision": "A dashboard refresh is no verdict; a thumb is",
+   "why": "a refresh only recomputes the tiles, maybe because the numbers look wrong"
+  }
+ ],
+ "change": "dclab_core/track_outcome.py; ExperienceEvent v16 track.outcome (schemas, baseline, adapters, dclab-core 0.135.0); dclab_rnd/ledger/capture.py track_outcome; store/sets/llm.py check.outcome; store/sets/decisions.py current labels only; store/coverage.py; CORE_INTEGRATION.md; PHASE12 status; tests.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The event's new version broke tests and a generated file elsewhere",
+   "scenario": "four test files and the data catalog still said version 15",
+   "cause": "the version is pinned in several places outside the package's own files",
+   "fix": "the pins moved to version 16 and the catalog was rebuilt by its command",
+   "test": "test_data_catalog, test_lineage, test_phase2_capture, test_team_analysis"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A keep followed by a refusal left a confirmed route",
+   "scenario": "the person saves an answer, then unsaves it; the routing model would learn the route as right",
+   "cause": "labels were written on a keep and never taken back",
+   "fix": "a later verdict that does not confirm supersedes the function's own label with an empty one; the store reads only labels no later label supersedes",
+   "test": "test_a_keep_then_a_refusal_leaves_no_confirmed_route_and_a_second_keep_restores_it"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A verdict read by the rules could become a confirmed label",
+   "scenario": "an outcome kept by the rules would have written a measured label, counted as gold",
+   "cause": "the contract did not tie who decided to the verdict",
+   "fix": "the contract refuses a kept, changed or refused verdict not decided by the person, and only the person's verdicts label",
+   "test": "test_the_rules_never_keep_change_or_refuse_and_the_person_never_asks_again"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A result nobody judged recorded no event",
+   "scenario": "produced and never judged could not be counted",
+   "cause": "the function returned early on an open verdict",
+   "fix": "an open verdict is an event without a label",
+   "test": "test_an_unjudged_result_is_an_event_without_a_label"
+  },
+  {
+   "id": "P1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A dashboard refresh counted as kept",
+   "scenario": "a person refreshing because the numbers look wrong would be recorded as keeping the dashboard",
+   "cause": "refresh was in the decisive actions",
+   "fix": "refresh is no verdict; a thumb up or down on the reply is",
+   "test": "test_a_thumb_is_a_verdict_and_a_dashboard_refresh_is_not"
+  },
+  {
+   "id": "C1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "A third session wrote a different design into the same files",
+   "scenario": "two designs interleaved in the store code and a shared test file was overwritten",
+   "cause": "two sessions picked the same package in one working tree",
+   "fix": "the other session removed its edits; the agreed design stands; tests moved to their own file",
+   "test": "test_core_track_outcome"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The outcome of a non-prediction track now has a contract, an event, ledger labels and a store field: a person's kept or changed confirms the route taken, a later refusal takes it back, and each Home conversation in m4 carries its verdict. No verdict is recorded yet: Home's calls are the Home session's next step.",
+ "lessons": [
+  "Agree a shared contract with the session that owns the calling code before writing it.",
+  "Labels written on every change need a way back: supersede, never edit.",
+  "Tie who decided to the verdict in the contract, so a rule's reading can never become gold.",
+  "When a version is pinned in many files, search the whole repository before committing."
+ ],
+ "risks": [
+  "Refused and asked again reach m4 only, not m2: an outcome field on m2 examples is a later contract change.",
+  "One verdict per conversation: earlier results in a long conversation lose theirs."
+ ],
+ "commits": []
+}

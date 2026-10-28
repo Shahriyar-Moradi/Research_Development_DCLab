@@ -1192,6 +1192,16 @@ its own at the pinned commit. When it does, every version sits its type's exam b
 results beside each version's card. DCLab's studio is the reference: `dclab_rnd/store/exams.py` (draw, sit, accept, retire)
 and `models/tuned.py`, which serves no tuned model whose exam result is refused, retired, missing or unreadable.
 
+## What a person did with what a kind of help produced (36.2, dclab-core 0.135.0)
+
+`dclab_core.track_outcome.read(track, actions)` turns a conversation's ordered action names (what was produced: answer,
+table, brief, dashboard; what the person did: save, export, notebook, a yes or no on a guarded step, undo, edit, change, a
+thumb up or down) into a `TrackOutcome`: kept, changed, refused, asked again (read by the rules), or open. Names and
+counts only. `ExperienceEvent` v16 carries it as `track.outcome`. Where it goes there: the main product has no Home front
+door with kinds of help at the pinned commit, so it produces none (`KINDS_MISSING`); when it gets one, keep the action
+names per conversation and record the outcome on each change. Only kept or changed confirms the route taken (a person's
+label on the exit and the reading); refused and asked again are outcomes, never a guessed right answer.
+
 ## Questions answered from a table (H6, dclab-core 0.127.0)
 
 The library's: `dclab_core.query`. A host that lets a person ask for numbers from their own table (an analysis, a report, a

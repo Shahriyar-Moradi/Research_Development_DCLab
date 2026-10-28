@@ -322,9 +322,12 @@ def from_draft(record: StoreRecord, thinking: Optional[dict[str, str]] = None) -
                 for m in turns]
     group = f"project:{b['project_id']}" if b.get("project_id") else f"draft:{b.get('id')}"
     track = str(((b.get("intent") or {}).get("track")) or "prediction")
+    check: dict[str, Any] = {"built": bool(b.get("project_id")), "track": track}
+    outcome = b.get("outcome") if isinstance(b.get("outcome"), dict) else {}
+    if outcome.get("verdict") in ("kept", "changed", "refused", "asked_again"):  # 36.2: what the person did with the result; open is none
+        check.update(outcome=outcome["verdict"], outcome_by=outcome.get("by"))
     return ChatExample(id=f"m4_workflow_llm:{record.id}", model_type="m4_workflow_llm", split=split_of(group), provenance=record.provenance,
-                       task="home_conversation", stage=TRACK_STAGES.get(track, "understand_problem"), messages=messages,
-                       check={"built": bool(b.get("project_id")), "track": track})
+                       task="home_conversation", stage=TRACK_STAGES.get(track, "understand_problem"), messages=messages, check=check)
 
 
 def trajectories(records: Iterable[StoreRecord]) -> Iterable[SolverTrajectory]:

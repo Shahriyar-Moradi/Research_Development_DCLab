@@ -241,10 +241,10 @@ class ContractTests(unittest.TestCase):
         ev = x.make("chat.agent", "agent", {"workspace": "w1", "conversation": "d1"},
                     {"text": "What is one row: an order or a biker?", "kind": "question", "question_field": "entity", "question_source": "critic"},
                     id="ev0000101", at="2026-10-18T10:00:00+00:00", seq=1)
-        self.assertEqual((ev.schema_version, ev.classes["question_source"]), ("dclab_core.experience_event.v15", "meta"))
+        self.assertEqual((ev.schema_version, ev.classes["question_source"]), ("dclab_core.experience_event.v16", "meta"))
         old = {"schema_version": "dclab_core.experience_event.v10", "id": "ev0000102", "at": "2026-10-18T10:00:00+00:00", "seq": 0, "ids": {"workspace": "w1"},
                "actor": "agent", "kind": "chat.agent", "payload": {"kind": "question", "question_field": "entity"}, "classes": {"kind": "meta", "question_field": "meta"}}
-        self.assertEqual(x.ExperienceEvent.read(old).schema_version, "dclab_core.experience_event.v15")
+        self.assertEqual(x.ExperienceEvent.read(old).schema_version, "dclab_core.experience_event.v16")
 
 
 if __name__ == "__main__":

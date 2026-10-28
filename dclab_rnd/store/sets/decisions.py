@@ -56,8 +56,13 @@ def placements(layout: Layout) -> dict[tuple[str, str], dict[str, Any]]:
 
 
 def _best_label(labels: list[StoreRecord]) -> tuple[Any, Optional[str]]:
+    """The best label among those no later label supersedes (the ledger's rule: a new label supersedes an older one, never
+    edits it); an empty value is a retraction (36.2: a route the person finally turned down), never a label."""
+    gone = {lab.body.get("supersedes") for lab in labels if lab.body.get("supersedes")}
     best = None
     for lab in labels:
+        if lab.body.get("id") in gone or lab.body.get("value") is None:
+            continue
         source = LEDGER_SOURCES.get(str(lab.body.get("source")), lab.body.get("source"))
         if source not in RANK:
             continue

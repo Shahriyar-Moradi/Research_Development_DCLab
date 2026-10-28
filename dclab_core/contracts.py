@@ -461,3 +461,4 @@ import dclab_core.memory  # noqa: E402,F401  (one memory for the agents: the ite
 import dclab_core.query  # noqa: E402,F401  (questions answered from a table, never its rows, H6; it imports recipe (H9), change (H11)
 #                                  and dashboard (H10) at its end, which read its names: importing query first must work too)
 import dclab_core.exam  # noqa: E402,F401  (a frozen exam per model type and the no-forgetting gate, 36.4)
+import dclab_core.track_outcome  # noqa: E402,F401  (what a person did with what Home produced: kept, changed, refused, asked again, 36.2)

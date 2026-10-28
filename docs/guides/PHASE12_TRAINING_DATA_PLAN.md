@@ -79,6 +79,13 @@ memory.
   track's conversation whole, with thinking, labelled by its outcome.
 - The Home session owns `draft/` (its chat and routing); this package adds only the store side and the events'
   contract, agreed with it before any change.
+- **Status (2026-10-28): the core, capture and store side built** (agreed with the Home session, which owns `draft/`):
+  `dclab_core/track_outcome.py` (the Home session's verdict rule from the conversation's ordered actions; a refresh is no
+  verdict, a thumb is), `ExperienceEvent` v16 `track.outcome`, `capture.track_outcome` (a person's kept or changed labels
+  the draft's `request.exit` and `request.intent`; refused and asked again never label a route), the m4 Home conversation's
+  `check.outcome` from `draft["outcome"]`, and coverage naming the event per track. Left open: Home's calls (the Home
+  session's next step); refused and asked again reach m4 only, not m2 (an outcome field on m2 examples is a contract change);
+  one verdict per conversation.
 
 ### 36.3 Written journeys for the sparse tracks (paid, owner's budget)
 - Where 36.1 shows a track with few runs (likely analysis, BI, preparation), written people with their own problems

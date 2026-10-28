@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.135.0 (2026-10-28)
+
+- `track_outcome` (36.2): `TrackOutcome` v1 and `read(track, actions)`, what a person did with what a kind of help that is
+  not a prediction produced (an answer, a prepared table, a brief, a dashboard): kept, changed, refused, asked again, or
+  open while nothing was done with it. Read by rule from the conversation's ordered action names (the last decisive action
+  wins; asking for a second result before judging the first is the rules' reading); names and counts only.
+- `experience`: `ExperienceEvent` v16 adds `track.outcome` (the track, exit, kinds produced, verdict, who decided it, the
+  actions' count and names). v15 events are read as v16. The main product produces none yet (`KINDS_MISSING` says why).
+
 ## 0.134.0 (2026-10-28)
 
 - `ledger`: two workflow and technical points Home decides and no point recorded (S4 of the students plan):

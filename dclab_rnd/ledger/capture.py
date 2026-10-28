@@ -590,6 +590,48 @@ def intent_chosen(record_id: Optional[str], track: str) -> int:
     return int(bool(label(SimpleNamespace(id=record_id, point="request.intent"), track, "user_decision_exposed", "person")))
 
 
+OUTCOME_BY = "person:outcome"  # 36.2: the labels track_outcome writes, so it retracts only its own (never the person's track choice)
+
+
+@_quiet
+def track_outcome(draft_id: str, outcome: Any, *, exit_record: Optional[str], exit_kind: Optional[str], intent_record: Optional[str],
+                  log: Any = None) -> int:
+    """36.2: what the person did with what the routing produced (a dclab_core.track_outcome.TrackOutcome, read by its rule
+    from the draft's ordered actions). Call it when the outcome changes. One track.outcome event each time, names and
+    counts only (open too: produced and not judged yet is counted). The draft's own exit (the exit kind taken) and reading
+    (the track) carry the person's label only while the final verdict is kept or changed: a later refused, asked again or
+    open supersedes it with an empty label, so a route the person finally turned down is never confirmed. Refused and asked
+    again are never labels of a route themselves (no right answer is guessed from them). Returns the labels written."""
+    if outcome is None:
+        return 0
+    from types import SimpleNamespace
+
+    from .. import experience
+    from . import current_ledger
+
+    experience.record("track.outcome", "person" if outcome.by == "person" else "system",
+                      {"track": outcome.track, "exit": exit_kind if exit_kind in EXITS else None, "produced": list(outcome.produced),
+                       "verdict": outcome.verdict, "by": outcome.by, "actions": outcome.actions, "evidence": list(outcome.evidence)},
+                      log=log, conversation=draft_id)
+    confirms = outcome.verdict in ("kept", "changed") and outcome.by == "person"
+    ledger_ = current_ledger()
+    n = 0
+    for record_id, point, value in ((exit_record, "request.exit", exit_kind if exit_kind in EXITS else None),
+                                    (intent_record, "request.intent", outcome.track if outcome.track in TRACKS else None)):
+        if not record_id or value is None:
+            continue
+        mine = [lb for lb in (ledger_.labels(record=record_id) if ledger_ is not None else []) if getattr(lb, "by", None) == OUTCOME_BY]
+        gone = {lb.supersedes for lb in mine if lb.supersedes}
+        current = next((lb for lb in reversed(mine) if lb.id not in gone), None)  # this function's latest label, not superseded
+        held = current is not None and current.value is not None
+        if confirms and not held:
+            n += int(bool(label(SimpleNamespace(id=record_id, point=point), value, "user_decision_exposed", OUTCOME_BY,
+                                supersedes=current.id if current is not None else None)))
+        elif not confirms and held:
+            n += int(bool(label(SimpleNamespace(id=record_id, point=point), None, "user_decision_exposed", OUTCOME_BY, supersedes=current.id)))
+    return n
+
+
 @_quiet
 def map_drawn(draft_id: str, m: Any, rules_size: str, by_model: bool) -> int:
     """The problem map drawn (24.2): one problem or several. The rules' reading is an answer; the decomposer's, when it served, another."""
