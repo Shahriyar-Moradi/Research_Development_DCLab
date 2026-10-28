@@ -1,5 +1,6 @@
 """Home prepares a table on request (package H9): each H1 dev preparation request makes the expected table, a step
 that removes many rows waits for a yes, and the original file is never changed."""
+import json
 import shutil
 import sys
 import tempfile
@@ -267,6 +268,135 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual(safe["x"].tolist(), [1, -2, 3, 4])  # numbers stay numbers
         self.assertEqual(frame["note"][0], "=HYPERLINK(1)")  # on a copy
         self.assertTrue(io)
+
+
+
+class ToolsTests(Base):
+    """H9b: Home's model prepares the table through propose_step, undo_step and export_data, behind the recipe guard."""
+
+    def setUp(self):
+        super().setUp()
+        from dclab_rnd.draft.chat import Turn
+        self.agent, self.draft_id = self.ask("Please tidy up my orders file.", "sales")
+        if self.agent.track(self.store.get(self.draft_id)) != "preparation":
+            self.agent.choose_intent(self.draft_id, "preparation")
+        self.store.update(self.draft_id, lambda d: [q.update(answered="(test)", superseded=True) for q in d["questions"] if not q.get("answered")])
+        self.turn = Turn(self.agent, self.draft_id)
+
+    def tool(self, name, **args):
+        from dclab_rnd.agents import default_registry
+        from dclab_rnd.draft.chat import DraftGuard
+        t = default_registry().get(name)
+        refused = DraftGuard().refusal(t, self.turn, args)
+        return refused if refused is not None else t.handler(self.turn, **args)
+
+    def test_a_step_applies_a_guarded_one_is_asked_and_the_model_never_sees_a_count(self):
+        src, asset = self.original(self.draft_id)
+        out = self.tool("propose_step", step={"kind": "dedupe", "keys": ["order_id"]}, why="remove duplicate orders")
+        self.assertEqual(out, {"applied": True, "asked": False})  # no row count reaches the model
+        self.assertEqual(len(self.prepared(self.draft_id)), src["order_id"].nunique())
+        out = self.tool("propose_step", step={"kind": "filter", "filters": [{"column": "status", "op": "eq", "value": "paid"}]})
+        self.assertEqual(out, {"applied": False, "asked": True})
+        q = self.agent.pending(self.store.get(self.draft_id))
+        self.assertEqual(q["field"], "confirm_step")
+        self.assertIn("status = paid", q["text"])
+        self.assertIn("error", self.tool("propose_step", step={"kind": "dedupe"}))  # a question is open: wait
+        self.agent.reply(self.draft_id, "Yes, apply it")
+        self.assertTrue((self.prepared(self.draft_id)["status"] == "paid").all())
+        self.assertEqual(sha256_of(Path(self.store.data_dir(self.draft_id)) / asset["clean_file"]), asset["clean_sha256"])
+
+    def test_undo_takes_back_the_last_step_and_export_offers_the_format(self):
+        src, _ = self.original(self.draft_id)
+        self.tool("propose_step", step={"kind": "drop_columns", "columns": ["channel"]})
+        self.assertNotIn("channel", self.prepared(self.draft_id).columns)
+        self.tool("propose_step", step={"kind": "dedupe", "keys": ["order_id"]})
+        self.assertEqual(self.tool("undo_step"), {"undone": True, "steps": 1})
+        self.assertEqual(len(self.prepared(self.draft_id)), len(src))  # made again from the original, without the last step
+        self.assertEqual(self.tool("export_data", format="excel"), {"format": "xlsx"})
+        last = [m for m in self.store.get(self.draft_id)["messages"] if m.get("kind") == "prepared"][-1]
+        self.assertEqual(last["prepared"]["format"], "xlsx")
+
+    def test_the_guard_and_bad_steps(self):
+        self.assertIn("error", self.tool("propose_step", step={"kind": "drop_columns", "columns": ["nope"]}))
+        self.assertIn("error", self.tool("propose_step", step={"kind": "rename", "columns": ["amount"]}))  # no new name
+        self.assertIn("error", self.tool("export_data", format="csv"))  # nothing prepared yet
+        self.agent.choose_intent(self.draft_id, "analysis")
+        self.assertIn("error", self.tool("propose_step", step={"kind": "dedupe"}))  # not a preparation request
+
+
+class Script:
+    """A scripted chat model: plays tool calls in order, then says it is done."""
+
+    def __init__(self, turns):
+        self.turns, self.i, self.seen = turns, 0, []
+
+    def complete(self, messages, tools=None, max_tokens=1800, **kw):
+        self.seen.append(messages)
+        offered = {(t.get("function") or t).get("name") for t in tools or []}
+        if self.i < len(self.turns) and self.turns[self.i][0] not in offered:  # another of Home's requests (no such tool): not its turn
+            return {"content": "", "tool_calls": [], "assistant_message": {"role": "assistant", "content": ""}}
+        self.i += 1
+        if self.i > len(self.turns):
+            return {"content": "Done.", "tool_calls": [], "assistant_message": {"role": "assistant", "content": "Done."}}
+        name, args = self.turns[self.i - 1]
+        call = {"id": f"c{self.i}", "name": name, "arguments": args}
+        return {"content": "", "tool_calls": [call], "assistant_message": {"role": "assistant", "content": "", "tool_calls": [
+            {"id": call["id"], "type": "function", "function": {"name": name, "arguments": json.dumps(args)}}]}}
+
+
+class ReviewOfH9bTests(ToolsTests):
+    """The review's findings (H9b), each with what showed it."""
+
+    def test_a_reply_the_rules_cannot_read_reaches_the_model_and_its_step(self):
+        script = Script([("propose_step", {"step": {"kind": "dedupe", "keys": ["order_id"]}, "why": "remove the junk"})])
+        d = self.store.create("Prepare the table nicely, please.")
+        agent = HomeAgent(self.store, script, on_request=lambda *a: None)
+        agent.start(d["id"])
+        if agent.track(self.store.get(d["id"])) != "preparation":
+            agent.choose_intent(d["id"], "preparation")
+        name = tables.write("sales", self.store.data_dir(d["id"]))
+        asset = pipeline.new_asset(self.store, d["id"], "upload", name, name)
+        pipeline.run(self.store, d["id"], asset["id"], agent, None)
+        self.store.update(d["id"], lambda x: [q.update(answered="(test)", superseded=True) for q in x["questions"] if not q.get("answered")]
+                          + [x.setdefault("recipe", {}).update(unread_said=True, **{"for": x["active_asset"]}, planned=[])])
+        agent.reply(d["id"], "remove the junk")
+        self.assertGreaterEqual(script.i, 1)  # the model had its turn
+        self.assertTrue(self.made(d["id"]))
+
+    def test_the_yes_to_a_model_step_keeps_the_recipe_even_when_the_words_ask_for_a_join(self):
+        self.store.update(self.draft_id, lambda d: d.update(problem="Join the orders with the customer table on customer_id, and keep only the paid orders."))
+        out = self.tool("propose_step", step={"kind": "filter", "filters": [{"column": "status", "op": "eq", "value": "paid"}]})
+        self.assertTrue(out["asked"])
+        self.agent.reply(self.draft_id, "Yes, apply it")
+        self.assertTrue((self.prepared(self.draft_id)["status"] == "paid").all())
+
+    def test_the_model_never_reads_a_count_after_a_step_it_chose(self):
+        from dclab_rnd.draft import memory
+        self.tool("propose_step", step={"kind": "filter", "filters": [{"column": "status", "op": "eq", "value": "paid"}]})
+        d = self.store.get(self.draft_id)
+        seen = json.dumps(memory.recent(d)) + self.agent.context(d) + json.dumps(memory.summary(d))
+        q = self.agent.pending(d)
+        import re as _re
+        shown = _re.findall(r"\d[\d,]*", q["text"].split(":", 1)[1])  # the counts the person sees
+        self.assertTrue(shown)
+        for number in shown:
+            self.assertNotIn(f"{number} of", seen)
+        self.agent.reply(self.draft_id, "Yes, apply it")
+        d = self.store.get(self.draft_id)
+        self.assertFalse(_re.search(r"\\d[\\d,]* rows|→", json.dumps(memory.recent(d)[-1], ensure_ascii=False)))  # the steps, never their counts
+
+    def test_a_step_is_checked_where_it_stands_and_a_type_error_is_an_error(self):
+        self.assertEqual(self.tool("propose_step", step={"kind": "rename", "columns": ["amount"], "to": "revenue"})["applied"], True)
+        self.assertEqual(self.tool("propose_step", step={"kind": "filter", "filters": [{"column": "revenue", "op": "gt", "value": 0}]}).get("error"), None)
+        self.tool("propose_step", step={"kind": "drop_columns", "columns": ["channel"]})
+        out = self.tool("propose_step", step={"kind": "sort", "columns": ["channel"]})
+        self.assertIn("error", out)  # dropped earlier: taken back, said to the model
+        self.assertNotIn("sort", [s["kind"] for s in self.store.get(self.draft_id)["recipe"]["planned"]])
+        self.assertIn("error", self.tool("propose_step", step={"kind": "pivot", "index": "region", "spread": "channel" if False else "status",
+                                                              "values": "product_category", "agg": "mean"}))
+
+    def test_undo_on_an_empty_recipe_says_so(self):
+        self.assertEqual(self.tool("undo_step"), {"undone": False, "steps": 0})
 
 
 if __name__ == "__main__":

@@ -847,9 +847,34 @@ class HomeAgent:
         if not rec["planned"]:
             rec["unread_said"] = True
             self.store.update(draft_id, lambda d: d.update(recipe=rec))
+            if follow_up and self.client is not None:
+                return None  # H9b: words the rules cannot read are the model's to read, through propose_step (the review of H9b)
             words = "; ".join(f"“{w}”" for w in rec.get("unread") or [])
             return self.say(draft_id, "I could not read the steps from your words yet" + (f" ({words})" if words else "")
                             + ". Say them one at a time, for example: remove duplicate orders; keep only the paid orders.", kind="text")
+        return self.run_recipe(draft_id, rec, frame, tables)
+
+    def _frames_for(self, draft: dict[str, Any], asset_id: str | None) -> tuple[Any, dict[str, Any]]:
+        """H9b: the recipe's main table (by its asset) and the draft's other tables by name, every one checked by its hash."""
+        from .. import home_query
+
+        active = draft.get("active_asset")
+        here = Path(str(next((a.get("name") for a in draft.get("assets") or [] if a.get("id") == active), active))).stem.lower()
+        frames = {here: home_query.table(self.store, draft), **self._other_tables(draft)}
+        main = Path(str(next((a.get("name") for a in draft.get("assets") or [] if a.get("id") == (asset_id or active)), here))).stem.lower()
+        frame = frames.pop(main, None)
+        if frame is None:
+            frame = frames.pop(here)
+        return frame, frames
+
+    def run_recipe(self, draft_id: str, rec: dict[str, Any], frame: Any, tables: dict[str, Any]) -> dict[str, Any] | None:
+        """H9: every planned step in order, from the original table (never written), stopping at a guarded step that has no
+        yes; the result written as its own file and said with each step as it ran."""
+        from dclab_core import recipe as R
+        from . import prepare
+
+        draft = self.store.get(draft_id)
+        active = rec.get("asset") or draft.get("active_asset")
         current, done = frame, []
         for i, raw in enumerate(rec["planned"]):
             step = R.Step.model_validate(raw)
@@ -859,7 +884,7 @@ class HomeAgent:
                 continue
             try:
                 p, after = R.preview(step, current, tables)
-            except ValueError as error:
+            except (ValueError, TypeError) as error:  # a pandas type error is the step's, never the turn's (the review of H9b)
                 done.append({"kind": step.kind, "why": step.why, "error": str(error)[:300], "removed_share": 0.0, "confirmed": False})
                 continue
             if p.needs_confirmation and decision != "yes":
@@ -870,10 +895,13 @@ class HomeAgent:
                 q = {"id": f"q{len(draft['questions']) + 1}", "field": "confirm_step", "brief": None, "step": i,
                      "text": f"This step will {prepare.describe(step)}: {p.reason}.{unread} Apply it?", "options": ["Yes, apply it", "No, skip it"],
                      "why": "A step that removes many rows, or a join that changes the row count, is applied only with your yes.",
-                     "answered": None}
+                     "answered": None,
+                     "model_text": f"Apply this step: {prepare.describe(step)}? (It removes many rows or changes the row count.)"}
                 self.store.update(draft_id, lambda d: (d.update(recipe=rec), d["questions"].append(q)))
                 self.moved(draft_id, "confirm_step", {"kind": step.kind}, {"removed_share": p.removed_share})
-                return self.say(draft_id, q["text"], kind="question", question=q)
+                # the model reads the question without its counts: a filter it chose plus a count would tell it a row's value
+                return self.say(draft_id, q["text"], kind="question", question=q,
+                                model_text=f"(Asked the person whether to {prepare.describe(step)}; it removes many rows or changes the row count.)")
             current = after
             done.append({"kind": step.kind, "why": step.why, **p.model_dump(mode="json"), "confirmed": decision == "yes"})
         name = prepare.prepared_name(active)
@@ -904,9 +932,32 @@ class HomeAgent:
                  else f": {x['rows_before']:,} → {x['rows_after']:,} rows" + (f", added {', '.join(x['added'])}" if x.get("added") else ""))
                  for n, x in enumerate(done, 1)]
         unread = f"\n\nNot read from your words: {'; '.join(rec['unread'])}." if rec.get("unread") else ""
+        applied = [f"{n}. {described[n - 1]}" + (" (skipped)" if x.get("skipped") else " (not applied)" if x.get("error") else "")
+                   for n, x in enumerate(done, 1)]
         return self.say(draft_id, f"Your prepared table is ready: {len(current):,} rows and {current.shape[1]} columns. The original "
                                   "file is unchanged.\n\n" + "\n".join(lines) + unread, kind="prepared",
-                        prepared={"format": rec["format"], "rows": int(len(current)), "columns": int(current.shape[1])})
+                        prepared={"format": rec["format"], "rows": int(len(current)), "columns": int(current.shape[1])},
+                        model_text="(The prepared table is ready; the steps as run:\n" + "\n".join(applied) + ")")
+
+    def change_recipe(self, draft_id: str, change: Callable[[dict[str, Any]], None], main: str | None = None) -> dict[str, Any] | None:
+        """H9b: the recipe changed (a step added or the last one undone) and run again from the original table. ``main``: for
+        a new recipe, the asset a join adds to (the table where its key repeats)."""
+        from .. import home_query
+
+        draft = self.store.get(draft_id)
+        active = draft.get("active_asset")
+        rec = dict(draft.get("recipe") or {})
+        if rec.get("for") != active or "planned" not in rec:
+            rec = {"for": active, "asset": main or active, "planned": [], "unread": [], "decisions": {}, "format": "csv",
+                   "source_sha256": next((a.get("clean_sha256") for a in draft.get("assets") or [] if a.get("id") == active), None)}
+            home_query.table(self.store, draft)  # the table's hash checked before anything is planned on it
+        change(rec)
+        rec.update(done=False, pending=None, unread_said=False)
+        frame, tables = self._frames_for(draft, rec.get("asset"))
+        if not rec["planned"]:
+            self.store.update(draft_id, lambda d: d.update(recipe={**rec, "done": False}))
+            return None
+        return self.run_recipe(draft_id, rec, frame, tables)
 
     def confirm_step(self, draft_id: str, q: dict[str, Any], text: str) -> bool:
         """H9: the person's answer to a guarded step. Only a whole yes applies it ("ok no", "اعمال نکن" never do); a whole no
@@ -935,7 +986,12 @@ class HomeAgent:
 
         capture.recipe_step_answered(draft_id, (self.store.get(draft_id).get("recipe") or {}), q.get("step"), decided)
         if decided:
-            self.prepare_table(draft_id)
+            rec = self.store.get(draft_id).get("recipe") or {}
+            if rec.get("planned"):  # the recipe as it stands, on its own main table: never read again from the words (the review of H9b)
+                frame, tables = self._frames_for(self.store.get(draft_id), rec.get("asset"))
+                self.run_recipe(draft_id, rec, frame, tables)
+            else:
+                self.prepare_table(draft_id)
         return decided is not None
 
     def save_answer(self, draft_id: str, n: int, saved: bool = True) -> dict[str, Any]:
@@ -1886,7 +1942,8 @@ class HomeAgent:
             "brief": (draft.get("track_brief") or {}).get(self.track(draft)),  # H4: what is known for this kind of help, with its sources
             "conversation": memories.summary(draft),  # H5: everything the conversation settled, however long it grew
             "plan": {**{f: ((draft.get("plan") or {}).get(f) or {}).get("status", "unknown") for f in plans.fields_for(draft)}, "next": (draft.get("plan") or {}).get("next")},
-            "questions_asked": [{k: q.get(k) for k in ("field", "text", "answered")} for q in draft["questions"]],
+            "questions_asked": [{"field": q.get("field"), "text": q.get("model_text") or q.get("text"), "answered": q.get("answered")}
+                                for q in draft["questions"]],  # H9b: a guard question as the model may read it, without counts
             "questions_left": MAX_QUESTIONS - len(counted(draft)),
             "data": {"summary": a.get("summary"), "columns": cols, "highlights": [h.get("title") for h in (a.get("highlights") or [])][:8],
                      "target_candidates": (a.get("profile") or {}).get("target_candidates")} if a else None,
@@ -2190,6 +2247,73 @@ def query_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
     return {"answered": said.get("kind") == "answer" or "plan_hash" in said, "answer": (said.get("answer") or {}).get("n", said.get("n"))}
 
 
+def propose_step(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    """H9b: one preparation step the model read from the person's words, added to the recipe and the recipe run again from
+    the original table: applied, or asked (a guarded step waits for the person's yes). A step that does not run on the table
+    as the earlier steps left it is taken back and its error returned. The model gets only which: never a row count, which
+    repeated filters would turn into a row's value."""
+    from dclab_core import recipe as R
+
+    from . import prepare
+
+    try:
+        step = R.Step.model_validate({**(args.get("step") or {}), "why": str(args.get("why") or "proposed from the person's words")[:400]})
+    except Exception as error:  # noqa: BLE001 - the model's malformed step is its error to fix, never said to the person
+        return {"error": f"Not a step ({type(error).__name__}): {str(error)[:300]}"}
+    agent, draft_id = turn.agent, turn.draft_id
+    draft = agent.store.get(draft_id)
+    main = None
+    if step.kind == "join" and not (draft.get("recipe") or {}).get("planned"):  # the table a join adds to: where its key repeats
+        frames = {}
+        for a in draft.get("assets") or []:
+            if a.get("status") == "ready":
+                frames[Path(str(a.get("name") or a["id"])).stem.lower()] = a["id"]
+        frame, tables = agent._frames_for(draft, None)
+        here = next((k for k, v in frames.items() if v == draft.get("active_asset")), None)
+        name = prepare.main_table(f"join on {step.keys[0]}", {**({here: frame} if here else {}), **tables})
+        main = frames.get(name) if name else None
+    index = len((draft.get("recipe") or {}).get("planned") or []) if (draft.get("recipe") or {}).get("for") == draft.get("active_asset") else 0
+    said = agent.change_recipe(draft_id, lambda rec: rec["planned"].append(step.model_dump(mode="json")), main=main) or {}
+    rec = agent.store.get(draft_id).get("recipe") or {}
+    mine = (rec.get("steps") or [None] * (index + 1))[index:index + 1]
+    if mine and mine[0] and mine[0].get("error"):  # it did not run where it stands: taken back, said to the model
+        agent.change_recipe(draft_id, lambda r: r["planned"].pop())
+        error = mine[0]["error"]
+        if error.startswith("join: no table"):  # the names a join can use (the review of H9b)
+            _, others = agent._frames_for(agent.store.get(draft_id), rec.get("asset"))
+            error += f" (the other tables: {', '.join(sorted(others)) or 'none yet'})"
+        return {"error": error}
+    asked = said.get("kind") == "question" and (rec.get("pending") or {}).get("index") == index
+    return {"applied": bool(rec.get("done")), "asked": asked}
+
+
+def undo_step(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    """H9b: the last step taken back; the recipe run again from the original table."""
+    if not (turn.agent.store.get(turn.draft_id).get("recipe") or {}).get("planned"):
+        return {"undone": False, "steps": 0}
+
+    def drop(rec: dict[str, Any]) -> None:
+        if rec["planned"]:
+            rec["decisions"].pop(str(len(rec["planned"]) - 1), None)
+            rec["planned"].pop()
+    turn.agent.change_recipe(turn.draft_id, drop)
+    return {"undone": True, "steps": len((turn.agent.store.get(turn.draft_id).get("recipe") or {}).get("planned") or [])}
+
+
+def export_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    """H9b: the prepared table offered in the format the person asked for (csv, excel or parquet)."""
+    from . import prepare
+
+    fmt = prepare.FORMATS.get(str(args.get("format") or "csv").lower())
+    if fmt is None:
+        return {"error": "Formats: csv, excel, parquet."}
+    rec = turn.agent.store.get(turn.draft_id).get("recipe") or {}
+    turn.agent.store.update(turn.draft_id, lambda d: d.setdefault("recipe", {}).update(format=fmt))
+    turn.agent.say(turn.draft_id, f"Your prepared table ({rec.get('rows', 0):,} rows) is ready to download.", kind="prepared",
+                   prepared={"format": fmt, "rows": rec.get("rows"), "columns": rec.get("columns")})
+    return {"format": fmt}
+
+
 def make_chart(turn: Turn, /, **args: Any) -> dict[str, Any]:
     """H7c: the chart code chose for an answer (its kind and title; the numbers are the person's to see)."""
     for m in reversed(turn.agent.store.get(turn.draft_id).get("messages") or []):
@@ -2324,7 +2448,8 @@ def simulate_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
 # only add to the conversation or the understanding, which the user can always correct.
 DRAFT_MOVES = {"ask_user": "ask", "record": "record", "set_pack": "set_pack", "propose_workflow": "propose_workflow",
                "request_data": "request_data", "simulate_data": "simulate", "build_solution": "build", "set_intent": "set_intent",
-               "query_data": "answer", "save_answer": "save_answer"}
+               "query_data": "answer", "save_answer": "save_answer", "propose_step": "prepare", "undo_step": "prepare",
+               "export_data": "export"}
 ML_MOVES = ("set_pack", "propose_workflow", "build")  # H2: the prediction track's moves, refused on the others
 PREPARING = ("queued", "structuring", "cleaning", "analysing")
 
@@ -2333,7 +2458,8 @@ REFUSED = {"record": "The answer was not backed by the user's own words", "ask":
            "set_pack": "Not a known pack, or the user chose the pack", "simulate": "Data was already being prepared",
            "propose_workflow": "The workflow did not pass the workflow checks", "build": "The user had not asked to build",
            "set_intent": "Not backed by the user's words, or the user chose the type of help",
-           "answer": "Not an analysis question, or the table is not ready", "save_answer": "No such answer"}
+           "answer": "Not an analysis question, or the table is not ready", "save_answer": "No such answer",
+           "prepare": "Not a preparation request, or the table is not ready", "export": "No prepared table yet"}
 
 
 class DraftGuard:
@@ -2367,6 +2493,16 @@ class DraftGuard:
                 return {"error": "The table is not prepared yet: wait for it, or offer the person ways to bring data."}
             if tool.move == "save_answer" and not 0 <= _int(arguments.get("answer")) < len(draft.get("answers") or []):
                 return {"error": "No such answer."}
+        if tool.move in ("prepare", "export"):  # H9b, the recipe guard: preparation only, on a described table, one step at a time
+            draft = agent.store.get(draft_id)
+            if agent.track(draft) != "preparation":
+                return {"error": "Preparing a table is for preparation requests; this request is another kind of help."}
+            if not any(m.get("kind") == "analysis" and m.get("asset") == draft.get("active_asset") for m in draft.get("messages") or []):
+                return {"error": "The table is not prepared yet: wait for it, or offer the person ways to bring data."}
+            if agent.pending(draft) is not None:
+                return {"error": "A question is open: wait for the person's answer first."}
+            if tool.move == "export" and not (draft.get("recipe") or {}).get("done"):
+                return {"error": "No prepared table yet: propose the steps first."}
         if tool.move == "set_intent":
             draft = agent.store.get(draft_id)
             if not draft.get("intent"):  # a draft from before H2 is a prediction and stays one (the review: old drafts behave as before)
@@ -2468,6 +2604,14 @@ def register(registry: Registry) -> None:
         "refused. The person sees the answer and its chart, written by code; you get only whether it was answered.",
         {"plan": {"type": "object"}}, ["plan"], "write")
     add("make_chart", "The chart DCLab drew for an answer: its kind and title.", {"answer": I}, ["answer"], "read")
+    add("propose_step", "Prepare the person's table: one step read from their words, applied to a copy (the original never "
+        "changes). step: {kind: rename|drop_columns|filter|dedupe|to_date|drop_missing|sort|months_since|join|pivot, columns, to, "
+        "filters [{column, op, value}], keys, table, how, index, spread, values, agg, at, desc}; why: their words. A step that "
+        "removes over 5% of the rows, or a join that changes the row count, is asked to the person before it applies. You learn "
+        "whether it applied or was asked, never the rows.", {"step": {"type": "object"}, "why": S}, ["step"], "write")
+    add("undo_step", "Take back the last preparation step (the table is made again from the original).", {}, [], "write")
+    add("export_data", "Offer the prepared table for download in the format the person asked for.",
+        {"format": {**S, "enum": ["csv", "excel", "parquet"]}}, ["format"], "write")
     add("save_answer", "Keep an answer for the person's notebook export. Only after they asked to keep or save it.",
         {"answer": I}, ["answer"], "write")
     add("get_profile", "Column summaries of the prepared table: name, kind, missing rate, unique count, and which columns look like outcomes, timestamps, identifiers or text. Aggregates only, never values. Name columns, or page through a wide table with offset.",

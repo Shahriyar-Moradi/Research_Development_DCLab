@@ -39,7 +39,7 @@ def summary(draft: dict[str, Any]) -> dict[str, Any]:
                 known.setdefault(field, {"value": _clip(entry["value"]), "from": entry.get("source") or "rules", "track": t})
     answered = [{"field": q.get("field"), "answer": _clip(q.get("answered")), **({"declined": True} if q.get("declined") else {})}
                 for q in draft.get("questions") or [] if q.get("answered") and not q.get("superseded")]
-    still_open = [{"field": q.get("field"), "question": _clip(q.get("text"))}
+    still_open = [{"field": q.get("field"), "question": _clip(q.get("model_text") or q.get("text"))}
                   for q in draft.get("questions") or [] if not q.get("answered")]
     data = ((draft.get("analysis") or {}).get("summary") or {})
     return {"track": track, "track_read": {k: intent.get(k) for k in ("status", "source") if intent.get(k)},
@@ -50,7 +50,9 @@ def summary(draft: dict[str, Any]) -> dict[str, Any]:
 
 def recent(draft: dict[str, Any], n: int = RECENT) -> list[dict[str, str]]:
     """The last ``n`` messages as the model reads them."""
-    return [{"role": "user" if m.get("role") == "user" else "assistant", "content": m["text"]}
+    # a message with model_text is read by the model in that form (H9b: a guard question or a prepared table without its row
+    # counts, so a filter the model chose never tells it a row's value); the person sees the full text
+    return [{"role": "user" if m.get("role") == "user" else "assistant", "content": m.get("model_text") or m["text"]}
             for m in (draft.get("messages") or [])[-n:] if m.get("text")]
 
 
