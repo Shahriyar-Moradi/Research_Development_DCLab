@@ -290,6 +290,16 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
     test that could not pass, so it is left to the owner. A v2 would draw its treated cases from this model's own mistakes
     in a pilot, size the test before freezing it, and be a new pre-registered run.
 
+- **Status v2 (2026-10-28): the gate is met; memory stays on.** The owner chose to keep the brief on and measure again.
+  `python -m dclab_rnd.agent_eval.memory_value_v2` (gate `memory_value_gate_v3`, rules committed in 21a9f4a2 before
+  the pilot, plan frozen in 299a3f12 before the main run), result `results/MV2-001_dev.json`.
+  - A memory-off pilot (51 sessions, €2.52) found the intern wrong every time on 12 of 17 candidates; the first 10
+    by the rule became the treated cases, with 4 controls and 3 repeats.
+  - The main run (84 sessions, €3.85, Claude Sonnet 5.5): with memory, 0 of 30 treated sessions repeated a corrected
+    mistake; without memory, 29 of 30. Mean -0.967, sign-flip p 0.00098. Every guard held, leaks included.
+  - Limits: the cases are this model's own mistakes, not every column; the tables are invented; the sealed read waits
+    for the owner and needs new kinds of case.
+
 ## Decisions the owner makes
 
 | Decision | Proposal |

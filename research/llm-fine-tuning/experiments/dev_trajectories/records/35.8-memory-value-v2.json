@@ -1,0 +1,181 @@
+{
+ "package": "35.8 v2",
+ "date": "2026-10-28",
+ "title": "Does memory help? Measured on the intern's own mistakes, the gate sized before it was frozen",
+ "request": "The owner: keep the intern's memory brief on; build a v2 test that picks cases from Claude's own mistakes, with the gate sized before it is frozen; each run capped at one euro.",
+ "spec": "MEMORY_PLAN.md 35.8 v2: a memory-off pilot chooses the treated cases; a simulation sizes the repeats; the plan is frozen once; paired sessions on against off; stored with intervals.",
+ "plan": [
+  "Pre-screen candidate columns with the rules, free",
+  "Write the pool, the pilot, the selection and the sizing rules in a manifest",
+  "Test first with a scripted model",
+  "Review before any spend",
+  "Commit the rules, run the pilot, freeze and commit the plan",
+  "Run the main comparison in chunks of one euro",
+  "Store the verdict once"
+ ],
+ "decisions": [
+  {
+   "decision": "Choose the treated cases in a memory-off pilot",
+   "why": "v1 chose them from another model's mistakes, so only 3 of 8 could move"
+  },
+  {
+   "decision": "Shrink pilot rates toward the pool's own rate",
+   "why": "cases chosen for being wrong look worse in the pilot than they are"
+  },
+  {
+   "decision": "Refuse to start a run that cannot reach its gate",
+   "why": "spending on a test that cannot pass teaches nothing"
+  },
+  {
+   "decision": "Commit the rules before the pilot and the frozen plan before the main run",
+   "why": "a commit time proves the choice did not follow the result"
+  },
+  {
+   "decision": "Plant real leaks beside two corrected columns",
+   "why": "memory must not make the intern keep everything"
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/memory_value_v2.py; memory_value.py helpers take an explicit manifest; evidence/campaigns/memory_value_v2 (manifest, frozen, MV2-001); tests/test_memory_value_v2.py; MEMORY_PLAN.md status.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The rules could change after the pilot was seen",
+   "scenario": "only four cases qualify; a person lowers the minimum and freezes; the run starts",
+   "cause": "freeze recorded the manifest as it was at freeze time, never the pilot's",
+   "fix": "freeze reads the pilot's run record and refuses another manifest; the frozen plan keeps the pilot's model, prompts and code; the main run refuses any change",
+   "test": "test_freezing_refuses_another_manifest_a_second_pilot_and_the_main_run_another_model"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The verdict read whatever the frozen plan said at the end",
+   "scenario": "a case that went badly is removed from the plan after the run; the verdict improves",
+   "cause": "summarize never compared the run's record with the frozen plan",
+   "fix": "summarize refuses unless the run's campaign, frozen plan and manifest all match; pilot sessions are named P- so they never count as main sessions",
+   "test": "test_a_plan_edited_after_the_run_is_refused_at_the_verdict"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Sizing was too hopeful when true mistake rates were moderate",
+   "scenario": "a pool with rates near one half: the predicted power was high, the true power low",
+   "cause": "rates were pulled toward one half, not toward the pool",
+   "fix": "rates are pulled toward the pool's own pilot rate with a fixed strength in the manifest",
+   "test": "test_enough_mistakes_give_power_and_the_fewest_repeats"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The leak check was pooled, so one case's loss was hidden",
+   "scenario": "memory makes the intern keep a planted leak in one of three sessions of one case; the pooled share still passes",
+   "cause": "every case with a leak was mixed into one share",
+   "fix": "a new check reads each treated case that holds a leak on its own",
+   "test": "test_one_case_losing_its_leak_fails_even_when_the_pooled_guard_passes"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Stored sessions carried the wrong role",
+   "scenario": "a control or pilot session was saved as treated",
+   "cause": "the scenario passed to the session had no role",
+   "fix": "each session is stored with its true role: candidate, treated or control",
+   "test": "test_pilot_freeze_run_and_judge_with_thinking_kept"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A case could be chosen for a mistake its correction does not cover",
+   "scenario": "a pilot session drops a base column; the case is chosen anyway",
+   "cause": "selection counted any column judged against memory",
+   "fix": "selection counts a session only when the corrected column itself was the mistake",
+   "test": "test_wrong_two_times_in_three_is_treated_the_most_often_wrong_first"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "More than one pilot could be run and the best one frozen",
+   "scenario": "two pilot folders under other names; the better one is frozen",
+   "cause": "the check looked only at folder names",
+   "fix": "freeze refuses when any other folder's run record says it is a pilot with sessions",
+   "test": "test_freezing_refuses_another_manifest_a_second_pilot_and_the_main_run_another_model"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The main run did not check the intern's code against the pilot's",
+   "scenario": "the intern loop or the scoring changes between pilot and main run; the run starts anyway",
+   "cause": "only model, thinking and prompts were compared",
+   "fix": "the main run also refuses a change in the intern's loop, memory reading and writing, and scoring code",
+   "test": "test_freezing_refuses_another_manifest_a_second_pilot_and_the_main_run_another_model"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Two of three was not counted as two thirds",
+   "scenario": "a case wrong in 2 of 3 pilot sessions was not chosen",
+   "cause": "a rounded share 0.6667 fell below 0.667",
+   "fix": "selection compares whole counts: wrong times 3 at least 2 times scored",
+   "test": "test_wrong_two_times_in_three_is_treated_the_most_often_wrong_first"
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The workspace monthly cap stopped the main run part way",
+   "scenario": "33 sessions stopped at once with no spend",
+   "cause": "the workspace's shared monthly model budget was reached by all sessions together",
+   "fix": "the owner raised the cap; the stopped sessions reran as later attempts, the first attempts kept whole",
+   "test": "test_a_failed_session_runs_again_and_its_first_attempt_is_kept"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "pilot: corrected column judged against memory, memory off",
+   "gate": "a case is treated when wrong in at least 2 of 3 scored pilot sessions",
+   "result": "12 of 17 candidates wrong in every pilot session; 10 taken by the rule",
+   "verdict": "pass",
+   "against_gate": "10 cases chosen, the simulated power at three repeats reached the bar",
+   "cost_eur": 2.52,
+   "limits": [
+    "the pilot only chooses cases; it never enters the verdict"
+   ]
+  },
+  {
+   "name": "main run: against_memory on treated cases, on minus off",
+   "gate": "mean at most -0.15 and exact sign-flip p below 0.05 over the case means",
+   "result": "with memory 0 of 30 sessions repeated a corrected mistake, without memory 29 of 30; mean -0.967, sign-flip p 0.00098, bootstrap [-1.0, -0.9]",
+   "verdict": "pass",
+   "against_gate": "every guard held: leaks kept on controls and on each treated case with a leak, no new false alarms, solutions saved, tokens lower with memory",
+   "cost_eur": 3.85,
+   "limits": [
+    "the effect is memory's on mistakes this model makes, not an average over every column",
+    "the earlier session is scripted; the tables are invented; the sealed read waits for the owner"
+   ]
+  }
+ ],
+ "outcome": "Memory helps on dev: the intern stopped repeating every corrected mistake that it made without memory, kept every planted leak, and used fewer input tokens. The gate was met; the brief stays on.",
+ "lessons": [
+  "Choose the treated cases from the measured model's own mistakes, in a pilot that never enters the verdict.",
+  "Check that a gate can be passed before freezing it; refuse to spend on one that cannot.",
+  "Commit the rules before the pilot and the plan before the main run, so the choice cannot follow the result.",
+  "A shared monthly cap can stop a run part way; resumable sessions with kept attempts make that harmless."
+ ],
+ "risks": [
+  "Cases are near copies of a few kinds of mistake; a sealed read needs new kinds of case.",
+  "Memory might help less when a real person's earlier note is vaguer than the scripted one."
+ ],
+ "commits": [
+  "21a9f4a2",
+  "299a3f12"
+ ]
+}
