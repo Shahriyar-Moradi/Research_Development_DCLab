@@ -34,7 +34,8 @@ DENIED_STDLIB = {"sqlite3", "dbm", "shelve", "socket", "ssl", "http", "urllib", 
 DEPENDENCY_TREE = ALLOWED_THIRD_PARTY | {"annotated_types", "typing_inspection", "dateutil", "pytz", "tzdata", "six",
                                          "scipy", "joblib", "threadpoolctl", "dclab_core", "_distutils_hack", "sitecustomize",
                                          "_virtualenv", "pyarrow", "numexpr", "bottleneck", "packaging",
-                                         "cloudpickle"}  # joblib loads it with scikit-learn 1.9 (found on a fresh install, 2026-10-21)
+                                         "cloudpickle",  # joblib loads it with scikit-learn 1.9 (found on a fresh install, 2026-10-21)
+                                         "_cyutility"}  # Cython's shared helper, a top-level module of pandas 3 and SciPy 1.17 builds (2026-10-28)
 
 
 def _sources() -> list[Path]:

@@ -67,6 +67,17 @@ class RulesTests(unittest.TestCase):
         self.assertTrue(whole["holdout_seen"])  # an answer over every row: the holdout's rows were seen
         self.assertEqual(whole["related_to_target"], [])
 
+    def test_only_what_was_explored_on_the_built_table_is_carried(self):  # the review of 2026-10-28
+        a = {"id": "a1", "status": "ready", "clean_sha256": "aaa"}
+        b = {"id": "a2", "status": "ready", "clean_sha256": "bbb"}
+        on_a = {"columns_related": [["plan", "churned"]], "period": {"column": "signup_date", "end": "2025-06-30"}, "asset": "a1", "table_sha256": "aaa"}
+        self.assertIsNone(exits.conversion({"assets": [a, b], "active_asset": "a2", "exposure": [on_a]}, "churned"))  # built on B
+        out = exits.conversion({"assets": [a, b], "active_asset": "a1", "exposure": [on_a]}, "churned")
+        self.assertEqual(out["related_to_target"], ["plan"])
+        old_entry = {k: v for k, v in on_a.items() if k not in ("asset", "table_sha256")}  # written before tables were named
+        self.assertIsNone(exits.conversion({"assets": [a, b], "active_asset": "a2", "exposure": [old_entry]}, "churned"))
+        self.assertIsNotNone(exits.conversion({"assets": [a], "active_asset": "a1", "exposure": [old_entry]}, "churned"))
+
 
 class AgentTests(unittest.TestCase):
     def setUp(self):
@@ -124,6 +135,8 @@ class AgentTests(unittest.TestCase):
         home_query.run(self.store, draft_id, plan)
         d = self.store.get(draft_id)
         self.assertEqual(d["exposure"][-1]["period"]["end"], "2024-12-31")
+        active = next(a for a in d["assets"] if a["id"] == d["active_asset"])
+        self.assertEqual((d["exposure"][-1]["asset"], d["exposure"][-1]["table_sha256"]), (active["id"], active["clean_sha256"]))
 
     def test_a_reached_exit_is_never_undone(self):
         agent, draft_id = self.start("What was the average monthly spend per plan?")

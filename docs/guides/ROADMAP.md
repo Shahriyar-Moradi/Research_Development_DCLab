@@ -32,7 +32,7 @@ cross-route suggestions, preparing a table on request, dashboards, business ques
 36 on dev, so they overfit the dev wordings); nothing is tuned on it, and a fresh sealed set is the next measurement. The
 review of 2026-10-28 kept every answer's, brief's and export's values out of the Home model's history, and made the new
 Home code work on pandas 3. Its leftovers fixed the same day: a build from a button asks H3.1's column question in the chat, and
-small filters that together remove many rows ask first. Open: the exposure log (H8) is written but no split reads it yet (rule 2).
+small filters that together remove many rows ask first. The exposure log (H8) is now read beside every holdout number: a holdout the chat's answers already looked at is said so, the split never moved.
 
 **Phase 12, training data that teaches why and never forgets (planned 2026-10-28):** 36.0 to 36.7 in
 `PHASE12_TRAINING_DATA_PLAN.md`: every agent's thinking and reasoning collected, coverage per agent and per kind of help,

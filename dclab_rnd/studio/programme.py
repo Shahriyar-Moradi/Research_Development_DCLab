@@ -279,6 +279,10 @@ def run(store: Any, project_id: str, actor: str = "human", reuse_reason: Optiona
                         "difference": prior.holdout.difference.value, "reason": (reuse_reason or "")[:300] or None})
     project["programme"] = {"document": json.loads(p.model_dump_json()), "inputs": inputs, "ran_at": _now(), "earlier": earlier[-10:],
                             "reads": reads_of(project) + (1 if read else 0)}
+    if read and project.get("exposure"):  # H8: a programme splits by its own rule, so an analysis in the chat may have seen its holdout
+        from dclab_core.exposure import holdout_exposure
+
+        project["programme"]["holdout_exposure"] = holdout_exposure(project["exposure"], None, None)
     project["running"] = None
     if read:
         project["holdout_uses"] = int(project.get("holdout_uses", 0) or 0) + 1

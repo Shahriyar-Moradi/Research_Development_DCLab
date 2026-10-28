@@ -1,0 +1,79 @@
+{
+  "package": "H8-holdout-exposure",
+  "title": "A holdout the chat already looked at is said beside its number (H8's open gap, rule 2)",
+  "date": "2026-10-28",
+  "request": "The owner chose to close the gap the review of 2026-10-28 found: H8 carried what an analysis explored into the project, but no split or report read it.",
+  "spec": "dclab_core.exposure.holdout_exposure reads the carried exposure against the split that ran (after, seen, may_hold); the final stage keeps it in its evidence and adds its note once to the holdout's claim unless the holdout was a first look; the split is never moved.",
+  "plan": [
+    "Write the rule in dclab_core: names and dates only, never a value.",
+    "Read it in the final stage of every kind, its own machine included, and in the programme's record.",
+    "Tie every exposure entry to the table it was computed on, and carry only the built table's.",
+    "Test the three statuses, the engine path, a machine kind, the report and two tables."
+  ],
+  "decisions": [
+    {
+      "decision": "The split is never moved; the number is marked.",
+      "why": "A deterministic split owns the holdout; moving it from the chat's history would make the holdout depend on what a person asked."
+    },
+    {
+      "decision": "A holdout starting the day after the answers' last date is may_hold, not after.",
+      "why": "The answers read times in UTC and the split in the table's own clock; a false after is the dangerous direction."
+    },
+    {
+      "decision": "The note sits on the holdout's claim only.",
+      "why": "The report lists the evidence's limits and the claims' limitations together, so it was said twice."
+    }
+  ],
+  "change": "New dclab_core/exposure.py (holdout_exposure, mark_claims; dclab-core 0.133.0, CHANGELOG, CORE_INTEGRATION section, data catalog); studio/engine.py: Prepared.exposure, the final stage and a machine kind's final mark the holdout claim; studio/programme.py keeps the verdict; home_query.table_identity on every answer's and dashboard tile's exposure entry; draft/exits.conversion carries only the built table's entries; tests/test_holdout_exposure.py, test_home_exits; test_core_contracts allows Cython's _cyutility module (pandas 3, SciPy 1.17).",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Kinds with their own machine and the programme never got the mark.",
+      "scenario": "Monthly sales were explored in the chat, then a forecast was built: the forecasting machine's final stage reported a clean holdout number.",
+      "cause": "Only the tabular stage_final read the exposure.",
+      "fix": "The engine marks a machine's final record after it runs (may_hold when the machine does not say its holdout's dates); the programme keeps the verdict when it reads the holdout.",
+      "test": "test_a_forecast_after_an_analysis_is_marked"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "Time zones could give a false after.",
+      "scenario": "A row at 02:00 at UTC+4 on the day after the answers' last date is the day before in UTC, inside what the chat read, yet the holdout was called a first look.",
+      "cause": "The query reads dates in UTC; the engine keeps the table's clock.",
+      "fix": "after needs more than a day between the last explored date and the holdout's start; the day after is may_hold, said with the reason.",
+      "test": "test_after_seen_and_may_hold"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "What was explored on one table was said about a project built on another.",
+      "scenario": "Answers on table A related plan to churned; table B was uploaded and built: its project was marked and told to check plan for leakage.",
+      "cause": "An exposure entry did not say which table it was computed on.",
+      "fix": "Every entry keeps its asset and table hash; the conversion carries only the built table's (an unnamed old entry only when the draft never had another table).",
+      "test": "test_only_what_was_explored_on_the_built_table_is_carried"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The report printed the note twice.",
+      "scenario": "The project built after a chat that saw its holdout showed the same sentence twice in the report's limits.",
+      "cause": "The note was in the evidence's limits and in the holdout claim's limitations.",
+      "fix": "mark_claims adds it once, to the holdout's claim.",
+      "test": "test_a_holdout_the_chat_saw_is_said_beside_its_number_once"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Every holdout number of a project built after an analysis says whether the chat already looked at its rows, once and in plain words, without moving the split.",
+  "lessons": [
+    "Two readers of one date column must agree on its clock before they compare: when they do not, keep a margin on the safe side."
+  ],
+  "risks": [
+    "A machine that does not report its holdout's dates is always may_hold, which can mark a holdout the chat never reached."
+  ],
+  "commits": []
+}

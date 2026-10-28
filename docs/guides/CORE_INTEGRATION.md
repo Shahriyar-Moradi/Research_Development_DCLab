@@ -1228,3 +1228,14 @@ the table's hash, at=now)` whenever the table changes or the person asks; every 
 row floor, and each run is recorded on the board. Log what each tile related (`query.exposure`) beside the conversation, as
 an answer's, so a later prediction on the same table knows what was already looked at. The main product has no such front
 door at the pinned commit: `Dashboard` is library output it would store beside a dataset.
+
+## Was the holdout already looked at? (H8, dclab-core 0.133.0)
+
+The library's: `dclab_core.exposure`. A host that answered questions from a table (`query.exposure` kept per answer)
+and then builds a prediction on the same table calls `exposure.holdout_exposure(carried, time_column, [holdout_first,
+holdout_last])` with what the answers covered on that same table (the columns related to the outcome, and the last date
+when every answer was bounded on one date column); keep each answer's table hash so another table's answers never count.
+Unless the status is `after`, say its `note` beside the holdout number (`exposure.mark_claims`): the number may not be a
+first look (rule 2). It never moves a split. The main product has no analysis front door at the pinned commit, so nothing
+maps onto it yet; its experiments would carry the note in their holdout result's limits.
+

@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.133.0 (2026-10-28)
+
+- `exposure` (H8's open gap, rule 2): `holdout_exposure(exposure, time_column, holdout_range)` reads what an analysis in
+  the chat explored (the columns it related, the dates its answers covered) against the split that ran: `after` (the
+  holdout starts more than a day after every date the answers covered, a margin for time zones: a first look), `seen`
+  (they covered dates the holdout holds) or `may_hold` (not bounded on the split's time column, a machine that does not say
+  its holdout's dates, or the day after), with a note built from names and dates only; `mark_claims(claims, seen)` adds
+  the note once to the holdout's claim. It never moves the split; the studio's final stage (every kind, its own machine
+  included) and the programme keep it in their records. No contract changed.
+
 ## 0.132.1 (2026-10-28)
 
 - `from dclab_core import query` as a program's first import works again: `contracts` imported `query` while it was

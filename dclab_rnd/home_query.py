@@ -49,6 +49,13 @@ def table(store: Any, draft: dict[str, Any]) -> pd.DataFrame:
     return pd.read_parquet(path)
 
 
+def table_identity(draft: dict[str, Any]) -> dict[str, Any]:
+    """Which table an answer was computed on: the active asset and its cleaned table's hash (H8: a prediction built on
+    another table must not carry what was explored on this one)."""
+    asset = next((a for a in draft.get("assets") or [] if a.get("id") == draft.get("active_asset")), None) or {}
+    return {"asset": asset.get("id"), "table_sha256": asset.get("clean_sha256")}
+
+
 def summaries(draft: dict[str, Any]) -> list[dict[str, Any]]:
     return [{k: c.get(k) for k in SUMMARY} for c in ((draft.get("analysis") or {}).get("columns") or []) if c.get("name")]
 
@@ -380,7 +387,7 @@ def run(store: Any, draft_id: str, plan: Q.QueryPlan) -> Q.QueryResult:
 
     draft = store.get(draft_id)
     result = Q.execute(plan, table(store, draft), floor=floor())
-    entry = {**Q.exposure(plan), "at": now(),  # H8: the dates it covered, so a later prediction knows which rows were seen
+    entry = {**Q.exposure(plan), "at": now(), **table_identity(store.get(draft_id)),  # H8: the dates it covered, on which table
              **({"period": {"column": plan.period.column, "start": plan.period.start, "end": plan.period.end}} if plan.period else {})}
     store.update(draft_id, lambda d: d.setdefault("exposure", []).append(entry))
     return result

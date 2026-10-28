@@ -80,6 +80,12 @@ def conversion(draft: dict[str, Any], target: Optional[str]) -> Optional[dict[st
     from dclab_core import query as Q
 
     entries = [e for e in draft.get("exposure") or [] if isinstance(e, dict)]
+    built = next((a for a in draft.get("assets") or [] if a.get("id") == draft.get("active_asset")), None) or {}
+    tables = [a for a in draft.get("assets") or [] if a.get("status") == "ready" and a.get("kind") != "labels"]
+    # only what was explored on the table the prediction is built on (the review: answers on table A said about table B); an
+    # entry from before tables were named counts only when the draft never had another table
+    entries = [e for e in entries if (e.get("table_sha256") == built.get("clean_sha256") if e.get("table_sha256")
+                                      else len(tables) <= 1)]
     if not entries:
         return None
     ids = {c.get("name") for c in (draft.get("analysis") or {}).get("columns") or [] if c.get("id_like")}
@@ -99,7 +105,7 @@ def conversion(draft: dict[str, Any], target: Optional[str]) -> Optional[dict[st
     else:
         out["holdout_seen"] = True
         out["note"] = ("Answers in the chat covered rows the holdout may hold, so its number may not be a first look; a time split "
-                       "on a column the answers did not reach keeps it clean (DCLab does not mark this on the report yet).")
+                       "on a column the answers did not reach keeps it clean (the final stage says so beside the holdout number).")
     if related:
         out["note"] += f" Already compared with {target} on the rows the answers covered: {', '.join(related)}; worth checking for leakage."
     return out

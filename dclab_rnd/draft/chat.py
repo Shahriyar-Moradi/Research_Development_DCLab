@@ -835,7 +835,7 @@ class HomeAgent:
             d["dashboard"] = record
             for k, t in zip(board.kpis, tiles):  # what each tile related, kept like an answer's (H8 carries it into a prediction)
                 if t.get("result"):
-                    d.setdefault("exposure", []).append({**Q.exposure(k.plan), "at": now(), "by": "dashboard",
+                    d.setdefault("exposure", []).append({**Q.exposure(k.plan), "at": now(), "by": "dashboard", **home_query.table_identity(d),
                                                          **({"period": {"column": k.plan.period.column, "start": k.plan.period.start,
                                                                         "end": k.plan.period.end}} if k.plan.period else {})})
             if computed:  # a board none of whose tiles ran has not taken the person anywhere

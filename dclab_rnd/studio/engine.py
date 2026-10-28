@@ -98,6 +98,7 @@ class Prepared:
         self.labels_by_source: dict[str, int] = {}  # 30.12: rows per label source among the rows with an outcome
         self.noisy_rules: list[dict[str, Any]] = []  # 30.12: the rule behind each noisy source's labels (capacity.rule_columns)
         self.score_rows: pd.DataFrame | None = None  # 30.12: every unconfirmed row, scored for a capacity's queue, never judged on
+        self.exposure: dict[str, Any] | None = None  # H8: what the chat's answers explored before the build, set on every prepare
         self.dated = False  # 30.12: whether the time column holds dates (a capacity's periods), set on every prepare
         self.brief: dict[str, Any] | None = None  # 30.14: the project's Solution Brief, set on every prepare
         self.source_rows: np.ndarray | None = None  # each row of the bundle's X: its place in the table as loaded (after a label file's join)
@@ -146,6 +147,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     if key in _BUNDLES:
         _BUNDLES[key].plan, _BUNDLES[key].label_info = project.get("plan"), project.get("labels")
         _BUNDLES[key].brief = project.get("brief")  # 30.14: read again on every prepare (signed between stages)
+        _BUNDLES[key].exposure = project.get("exposure")  # H8: the analysis carried into the project
         _BUNDLES[key].critic = _critic_advisor(project)
         _BUNDLES[key].critic_examples = _critic_examples(project, _BUNDLES[key].critic)
         return _BUNDLES[key]
@@ -299,6 +301,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     prepared.dated = bool(datetime_time)  # 30.12: a capacity's periods need dates, never a counter
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
     prepared.brief = project.get("brief")  # 30.14: the Solution Brief, its bar judged at the one holdout read
+    prepared.exposure = project.get("exposure")  # H8: what the chat explored, read beside the holdout number
     from . import search as studio_search
 
     prepared.search = studio_search.settings(project)  # 34.7: off unless the project's settings ask for a search
@@ -1604,6 +1607,13 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
                       + "): their meaning in the label file is unknown, so they were never taken from it.")
     if info.get("not_found"):
         limits.append(f"{info['not_found']} label rows are not in the table: they could not be scored, and say the table may miss cases.")
+    from dclab_core.exposure import holdout_exposure
+
+    t = spec.time_column
+    seen = holdout_exposure(getattr(p, "exposure", None), t,
+                            [str(bundle.X_test[t].min()), str(bundle.X_test[t].max())] if t and t in bundle.X_test and len(bundle.X_test) else None)
+    if seen is not None:  # H8 (rule 2): an analysis in the chat looked at the table before the build (said on the holdout's claim)
+        evidence["holdout_exposure"] = seen
     if limits:
         evidence["limits"] = limits
     scored = _evaluation(p, selected, y_test, predictions, holdout)
@@ -1641,6 +1651,9 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
     claims.append(_claim(f"{eid}-C3", "fact", f"Trivial baselines on the same holdout: {base_text}.", ["evidence.baselines"]))
     if chosen_action is not None:
         claims.append(_decision_claim(eid, chosen_action))
+    from dclab_core.exposure import mark_claims
+
+    mark_claims(claims, seen)
     summary = (f"Tried {len(candidates)} explicit {family} parameter candidates on {bundle.cv_description} (tuning {'accepted' if decision['accepted'] else 'rejected'}), "
                f"fitted {selected['config_id']} on all {len(bundle.y_train)} training rows and scored the sealed holdout once: {label} {rn._f(holdout_value)} "
                f"({rn._f(ci['low'])}–{rn._f(ci['high'])}).")
@@ -1883,6 +1896,13 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
                 from . import workflow_run as wrun
 
                 evidence["monitoring"] = wrun.machine_monitoring(p)  # 30.15: the inputs' baseline (the machine keeps no training table)
+                from dclab_core.exposure import holdout_exposure, mark_claims
+
+                hold = (evidence.get("time_range") or {}).get("holdout") if isinstance(evidence.get("time_range"), dict) else None
+                seen = holdout_exposure(project.get("exposure"), p.solution.time_column, hold)  # H8: a machine's holdout too
+                if seen is not None:
+                    evidence["holdout_exposure"] = seen
+                    mark_claims(claims, seen)
         elif stage == "data":
             evidence, claims, summary = stage_data(p, eid)
         elif stage == "leakage":
