@@ -1,8 +1,9 @@
-"""python -m dclab_rnd.agent_eval.conversation --split dev|sealed [--arm rules|reader] [--model NAME] [--yes --cap-eur N] | --report
+"""python -m dclab_rnd.agent_eval.conversation --split dev|sealed_v3 [--arm rules|reader] [--model NAME] [--yes --cap-eur N] | --report
 
-Plays the written conversations and scores them against conversation_gate_v1. The rules arm is free and runs at once;
-the reader arm sends each answer the rules could not read to the conversation reader role (a model), so it prints its
-plan and runs only with --yes and a cap. A sealed set is run once per arm: a second sealed run is refused.
+Plays the written conversations and scores them against the split's gate (``GATES``; dev is read under the latest).
+The rules arm is free and runs at once on dev; the reader arm sends each answer the rules could not read to the
+conversation reader role (a model), so it prints its plan and runs only with --yes and a cap. A sealed set is run once,
+for every arm, and only with --yes (even the free rules arm: a run spends the set). "sealed" and "sealed_v2" are spent.
 """
 
 import argparse
@@ -14,10 +15,10 @@ def main(argv=None) -> int:
     from dclab_rnd.memory.reading import memory_off_for_evaluation
 
     memory_off_for_evaluation()  # 35.4: a graded run never reads a remembered line
-    from . import GATES, measure, sealed_runs, store, verdict
+    from . import GATES, SEALED, measure, sealed_runs, store, verdict
 
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.agent_eval.conversation", description=__doc__.split("\n")[0])
-    parser.add_argument("--split", choices=("dev", "sealed", "sealed_v2"), default="dev")
+    parser.add_argument("--split", choices=("dev", *SEALED), default="dev")
     parser.add_argument("--arm", choices=("rules", "reader"), default="rules")
     parser.add_argument("--yes", action="store_true", help="send the reader's requests (the reader arm only)")
     parser.add_argument("--cap-eur", type=float, default=0.5)
@@ -40,6 +41,10 @@ def main(argv=None) -> int:
         print(f"The {args.split} set was run already ({sealed_runs('*', args.split)[0].name}): a sealed set is spent for every arm.",
               file=sys.stderr)
         return 2
+    if args.split in SEALED and not args.yes:  # an exam is spent by its one run, so even the free arm asks first
+        print(f"Plan: the {args.arm} arm plays the {args.split} conversations once; the set is then spent for every arm. "
+              "Add --yes to run it.")
+        return 0
     reader = None
     spent = 0.0
     if args.arm == "reader":

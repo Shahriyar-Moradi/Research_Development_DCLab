@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -135,6 +136,24 @@ class HarnessTest(unittest.TestCase):
 
         for arm in ("rules", "reader"):  # spent for every arm, not only the arm that ran it
             self.assertEqual(main(["--split", "sealed_v2", "--arm", arm, "--yes"]), 2)
+
+    def test_the_third_sealed_set_is_pinned_unrun_and_asks_before_its_one_run(self):
+        cases = harness.load("sealed_v3")
+        self.assertEqual(len(cases), 9)
+        self.assertGreaterEqual(len({c["family"] for c in cases}), 9)  # one conversation per family
+        earlier = {c["problem"] for split in ("dev", "sealed", "sealed_v2") for c in harness.load(split)}
+        self.assertFalse(earlier & {c["problem"] for c in cases})  # no text reused from an earlier set
+        self.assertEqual(harness.GATES["sealed_v3"]["version"], "conversation_gate_v3")
+        self.assertEqual({k: v for k, v in harness.GATE_V3.items() if k not in ("version", "split")},
+                         {k: v for k, v in harness.GATE.items() if k not in ("version", "split")})  # the same criteria
+        self.assertEqual(harness.sealed_runs("*", "sealed_v3"), [])
+        from dclab_rnd.agent_eval.conversation.__main__ import main
+
+        with mock.patch.object(harness, "measure", side_effect=AssertionError("played without --yes")):
+            self.assertEqual(main(["--split", "sealed_v3"]), 0)  # the plan only: nothing played, nothing stored
+        self.assertEqual(harness.sealed_runs("*", "sealed_v3"), [])
+        with self.assertRaises(ValueError):
+            harness.load("sealed_v9")
 
     def test_a_changed_sealed_file_is_refused(self):
         import shutil

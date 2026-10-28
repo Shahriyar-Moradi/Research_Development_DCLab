@@ -14,7 +14,7 @@ from dclab_rnd.agent_eval import home  # noqa: E402
 class SplitTests(unittest.TestCase):
     def test_the_splits_have_the_planned_mix(self):
         seen_ids, seen_texts = set(), set()
-        for split in ("dev", "sealed"):
+        for split in ("dev", "sealed", "sealed_v2"):
             cases = home.load(split)
             self.assertEqual(len(cases), 36, split)
             mains = [c["gold"]["tracks"][0] for c in cases]
@@ -39,12 +39,27 @@ class SplitTests(unittest.TestCase):
                 if c.get("trap") == "missing_column":  # the column the request names is really absent
                     columns = {col for d in c["data"] for col in home.tables.build(d).columns}
                     self.assertNotIn(c["missing_column"], columns)
-        self.assertEqual(home.fingerprint(home.SPLITS["sealed"]), home.recorded_fingerprint())
+        for split in home.SEALED:
+            self.assertEqual(home.fingerprint(home.SPLITS[split]), home.recorded_fingerprint(split), split)
 
     def test_a_changed_sealed_file_is_refused(self):
-        with mock.patch.object(home, "recorded_fingerprint", return_value="0" * 64):
-            with self.assertRaises(ValueError):
-                home.load("sealed")
+        for split in home.SEALED:
+            with mock.patch.object(home, "recorded_fingerprint", return_value="0" * 64):
+                with self.assertRaises(ValueError):
+                    home.load(split)
+        with self.assertRaises(ValueError):
+            home.load("sealed_v3")  # a split that does not exist is named, not a KeyError
+
+    def test_each_sealed_set_has_its_gate_and_its_own_one_run(self):
+        self.assertEqual(home.gate_for("sealed")["version"], "home_gate_v1")
+        self.assertEqual(home.gate_for("sealed_v2")["version"], "home_gate_v2")
+        self.assertEqual(home.gate_for("dev"), home.GATES[home.LATEST_SEALED])
+        for k in home.GATE:  # the second set is read under the same written gate: only its name and split differ
+            if k not in ("version", "split"):
+                self.assertEqual(home.GATE_V2[k], home.GATE[k], k)
+        names = {p.name for p in home.sealed_runs("sealed")}
+        self.assertTrue(names and all(n.endswith("_sealed.json") for n in names))  # HOME-011 spent the first set
+        self.assertEqual(home.sealed_runs("sealed_v2"), [])  # it does not spend the second
 
 
 class ScoringTests(unittest.TestCase):
@@ -190,6 +205,7 @@ class RunTests(unittest.TestCase):
         result = {"arms": ["rules", "model", "plain"], "requests": 40, "failures": [],
                   "summary": {"rules": {**arm, "track_accuracy": 0.75}, "model": dict(arm), "plain": dict(arm)}}
         self.assertEqual(home.verdict(result, "sealed")["status"], "pass")
+        self.assertEqual(home.verdict(result, "sealed_v2"), {**home.verdict(result, "sealed"), "gate": "home_gate_v2"})
         self.assertTrue(home.verdict(result, "dev")["status"].startswith("pass (dev"))
         result["summary"]["model"]["uncited"] = 1
         self.assertEqual(home.verdict(result, "sealed")["status"], "fail")

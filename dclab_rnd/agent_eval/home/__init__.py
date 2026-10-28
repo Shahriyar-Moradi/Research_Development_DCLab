@@ -48,7 +48,8 @@ from . import tables
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RESULTS = ROOT / "evidence" / "campaigns" / "home_v1" / "results"
-SPLITS = {"dev": HERE / "requests_dev.json", "sealed": HERE / "requests_sealed.json"}
+SPLITS = {"dev": HERE / "requests_dev.json", "sealed": HERE / "requests_sealed.json", "sealed_v2": HERE / "requests_sealed_v2.json"}
+SEALED = {"sealed": HERE / "sealed.sha256", "sealed_v2": HERE / "sealed_v2.sha256"}  # each sealed set's committed fingerprint
 TRACKS = ("prediction", "analysis", "preparation", "reporting", "business", "advice")
 EXITS = ("ml_project", "analysis", "dataset", "dashboard", "decision_brief", "answer")
 TRAPS = ("real_prediction", "report_not_model", "silent_drop", "rows_request", "persian_no_model", "missing_column")
@@ -71,19 +72,31 @@ GATE = {
     "traps": "every trap passes with the model; the Persian trap with the rules alone",
 }
 THRESHOLDS = {"model_track_accuracy": 0.85, "rules_track_accuracy": 0.70, "median_questions": 3}
+# The first sealed set was spent (HOME-011). A second, written by an independent agent on 2026-10-28 with the same mix and
+# traps, is read under the same thresholds, fixed here before its one run.
+GATE_V2 = {**GATE, "version": "home_gate_v2", "split": "sealed_v2"}
+GATES = {"sealed": GATE, "sealed_v2": GATE_V2}
+LATEST_SEALED = "sealed_v2"
+
+
+def gate_for(split: str) -> dict[str, Any]:
+    """The gate a run on ``split`` is read under: its own for a sealed set, the latest sealed set's for dev."""
+    return GATES.get(split, GATES[LATEST_SEALED])
 
 
 def fingerprint(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def recorded_fingerprint() -> str:
-    return (HERE / "sealed.sha256").read_text(encoding="utf-8").strip()
+def recorded_fingerprint(split: str = "sealed") -> str:
+    return SEALED[split].read_text(encoding="utf-8").strip()
 
 
 def load(split: str) -> list[dict[str, Any]]:
+    if split not in SPLITS:
+        raise ValueError(f"no Home requests named {split!r}: one of {', '.join(SPLITS)}")
     path = SPLITS[split]
-    if split == "sealed" and fingerprint(path) != recorded_fingerprint():
+    if split in SEALED and fingerprint(path) != recorded_fingerprint(split):
         raise ValueError("the sealed requests changed after they were sealed: a sealed set is never edited")
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -477,6 +490,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
 def verdict(result: Mapping[str, Any], split: str) -> dict[str, Any]:
     """The gate on a run: pass or fail on the sealed set with the model; otherwise "not scored", with the checks that
     can be read (a rules-only run shows where today's Home stands against the gate)."""
+    gate = gate_for(split)
     summary = result["summary"]
     rules, model = summary["rules"], summary.get("model")
     checked = [a for a in (rules, model) if a]
@@ -489,17 +503,17 @@ def verdict(result: Mapping[str, Any], split: str) -> dict[str, Any]:
         checks["model_track_accuracy"] = model["track_accuracy"] >= THRESHOLDS["model_track_accuracy"]
         checks["new_wrong"] = not model["new_wrong"]
     if model is None and "model" not in (result.get("arms") or []):
-        return {"gate": GATE["version"], "status": "not scored (rules only: the gate is read with the model)", "checks": checks}
+        return {"gate": gate["version"], "status": "not scored (rules only: the gate is read with the model)", "checks": checks}
     if result.get("failures"):
-        return {"gate": GATE["version"], "status": "not scored", "why": f"{len(result['failures'])} request(s) failed", "checks": checks}
+        return {"gate": gate["version"], "status": "not scored", "why": f"{len(result['failures'])} request(s) failed", "checks": checks}
     missing = [a for a in result.get("arms") or [] if a not in summary]
     if missing or not result.get("requests"):  # an arm that was asked for and did not run, or a model run that sent nothing
         why = f"arm(s) {', '.join(missing)} did not run" if missing else "no request was sent"
-        return {"gate": GATE["version"], "status": "not scored", "why": why, "checks": checks}
+        return {"gate": gate["version"], "status": "not scored", "why": why, "checks": checks}
     status = "pass" if all(checks.values()) else "fail"
-    if split != GATE["split"]:
+    if split != gate["split"]:
         status = f"{status} (dev: the gate is read on the sealed set)"
-    return {"gate": GATE["version"], "status": status, "checks": checks}
+    return {"gate": gate["version"], "status": status, "checks": checks}
 
 
 # ------------------------------------------------------------------------------------------------ plan and records
@@ -525,8 +539,9 @@ def plan(gateway: Any, cases: list[dict[str, Any]], max_tokens: int) -> dict[str
             "max_eur": round(each * requests, 3) if each is not None else None}
 
 
-def sealed_runs() -> list[Path]:
-    return sorted(RESULTS.glob("HOME-*_sealed.json"))
+def sealed_runs(split: str = "sealed") -> list[Path]:
+    """The stored scored runs of one sealed set (``HOME-NNN_<split>.json``): a sealed set is run once."""
+    return sorted(RESULTS.glob(f"HOME-*_{split}.json"))
 
 
 def next_id() -> str:

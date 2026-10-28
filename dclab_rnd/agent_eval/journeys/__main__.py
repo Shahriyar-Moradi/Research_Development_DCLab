@@ -1,4 +1,7 @@
-"""``python -m dclab_rnd.agent_eval.journeys --split dev|sealed|sealed_v2|sealed_v3 [--workers N] [--only ID|KIND ...] [--no-store]``."""
+"""``python -m dclab_rnd.agent_eval.journeys --split dev|sealed_v7 [--workers N] [--only ID|KIND ...] [--no-store] [--yes]``.
+
+Every sealed set up to sealed_v6 is spent; sealed_v7 is run once, whole, with --yes (even the free rules arm: a run
+spends the set for every arm)."""
 
 from __future__ import annotations
 
@@ -18,7 +21,7 @@ from . import GATES, PARTS as PARTS_, SEALED, families, measure, sealed_runs, st
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--split", default="dev", choices=("dev", "sealed", "sealed_v2", "sealed_v3", "sealed_v4", "sealed_v5", "sealed_v6"))
+    parser.add_argument("--split", default="dev", choices=("dev", *SEALED))
     parser.add_argument("--workers", type=int, default=min(4, max(1, (os.cpu_count() or 2) - 1)))  # each one an engine: memory
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--no-store", action="store_true")
@@ -64,6 +67,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     if sealed and args.seed not in (None, gate["seed"]):
         print(f"the sealed journeys run on the gate's seed, {gate['seed']}")
         return 2
+    if sealed and not args.yes:  # an exam is spent by its one run, so even the free rules arm asks first
+        print(f"Plan: {args.split} is played once, whole, on its gate's seed, and stored; it is then spent for every arm. "
+              "Add --yes to run it.")
+        return 0
     seed = gate["seed"] if sealed else (0 if args.seed is None else args.seed)
     if args.compare:
         if sealed:

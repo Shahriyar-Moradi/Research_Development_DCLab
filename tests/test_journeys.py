@@ -139,6 +139,33 @@ class JourneyTest(unittest.TestCase):
         with mock.patch.object(journeys, "RESULTS", Path(tempfile.mkdtemp())):
             self.assertFalse(journeys.reader_passed())
 
+    def test_the_seventh_sealed_set_is_frozen_unrun_and_asks_before_its_one_run(self):
+        from dclab_rnd.agent_eval.journeys import __main__ as cli
+
+        people = journeys.load("sealed_v7")
+        self.assertEqual(len(people), 30)
+        by_kind = {}
+        for j in people:
+            by_kind[j["kind"]] = by_kind.get(j["kind"], 0) + 1
+        self.assertEqual(set(by_kind.values()), {2})  # two people a kind
+        self.assertEqual(set(by_kind), SEALED_KINDS)
+        earlier = {j["words"] for split in journeys.SEALED if split != "sealed_v7" for j in journeys.load(split)}
+        earlier |= {j["words"] for j in journeys.load("dev")}
+        self.assertFalse(earlier & {j["words"] for j in people})  # nobody copied from an earlier set
+        gate = journeys.GATES["sealed_v7"]
+        self.assertEqual((gate["seed"], gate["split"], gate["version"]), (7, "sealed_v7", "journeys_gate_v7"))
+        self.assertEqual({k: gate[k] for k in ("journey", "suite")}, {k: journeys.GATE_V2[k] for k in ("journey", "suite")})
+        self.assertEqual(len({g["seed"] for g in journeys.GATES.values()}), len(journeys.GATES))  # every set on its own seed
+        self.assertEqual(journeys.sealed_runs("sealed_v7"), [])
+        with mock.patch.object(sys, "argv", ["journeys", "--split", "sealed_v7"]), \
+                mock.patch.object(cli, "measure", side_effect=AssertionError("played without --yes")):
+            self.assertEqual(cli.main(), 0)  # the plan only
+        for argv in (["--only", "JS7-01", "--yes"], ["--seed", "0", "--yes"]):  # a sealed run is whole, on its gate's seed
+            with mock.patch.object(sys, "argv", ["journeys", "--split", "sealed_v7", *argv]), \
+                    mock.patch.object(cli, "measure", side_effect=AssertionError("played")):
+                self.assertEqual(cli.main(), 2, argv)
+        self.assertEqual(journeys.sealed_runs("sealed_v7"), [])
+
     def test_the_fourth_sealed_set_is_frozen_with_its_own_gate_and_seed(self):
         people = journeys.load("sealed_v4")
         self.assertEqual(len(people), 30)

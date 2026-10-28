@@ -35,8 +35,11 @@ GATE = {
 # spent. The rule was made general on dev, and a new sealed set, written before any run on it, is judged by v2: the
 # same criteria, a new version, never the old set again.
 GATE_V2 = {**GATE, "version": "conversation_gate_v2", "split": "sealed_v2"}
-GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "dev": GATE_V2}
-SEALED = {"sealed": "sealed.sha256", "sealed_v2": "sealed_v2.sha256"}
+# v2 failed too (CONV-004) and is spent. A third set, written by an independent agent on 2026-10-28 with one conversation
+# per family and none of the earlier texts, is judged by v3: the same criteria again, fixed before its one run.
+GATE_V3 = {**GATE, "version": "conversation_gate_v3", "split": "sealed_v3"}
+GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3, "dev": GATE_V3}
+SEALED = {"sealed": "sealed.sha256", "sealed_v2": "sealed_v2.sha256", "sealed_v3": "sealed_v3.sha256"}
 
 
 def fingerprint(path: Path) -> str:
@@ -44,6 +47,8 @@ def fingerprint(path: Path) -> str:
 
 
 def load(split: str) -> list[dict[str, Any]]:
+    if split != "dev" and split not in SEALED:
+        raise ValueError(f"no conversations named {split!r}: dev or one of {', '.join(SEALED)}")
     path = HERE / f"conversations_{split}.json"
     if split in SEALED and fingerprint(path) != (HERE / SEALED[split]).read_text(encoding="utf-8").strip():
         raise ValueError("the sealed conversations changed since they were sealed: a sealed set is never edited")
@@ -138,4 +143,4 @@ def measured(role: str, prompt: Optional[str], models: list[str], results: Optio
     return {}
 
 
-__all__ = ["GATE", "GATE_V2", "GATES", "load", "measure", "score", "verdict", "store", "sealed_runs", "runs", "by_model", "measured"]
+__all__ = ["GATE", "GATE_V2", "GATE_V3", "GATES", "SEALED", "load", "measure", "score", "verdict", "store", "sealed_runs", "runs", "by_model", "measured"]

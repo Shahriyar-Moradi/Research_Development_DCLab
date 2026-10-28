@@ -1,0 +1,102 @@
+[
+  {
+    "id": "CS3-01",
+    "family": "classification",
+    "problem": "We run three dental clinics and a lot of people book a slot and then just never come in. I'd like to know a few days ahead which bookings are likely to leave the chair empty so the front desk can double-book or call them.",
+    "columns": ["booking_id", "patient_age", "days_booked_ahead", "clinic_branch", "treatment_type", "sms_reminder_sent", "prior_missed_visits", "chair_filled"],
+    "answers": {
+      "outcome": "chair_filled, it's 1 if they actually turned up and 0 if the slot stayed empty",
+      "prediction_moment": "two or three days before the appointment, when we still have time to call"
+    },
+    "gold": {"family": "classification", "labels": "column"}
+  },
+  {
+    "id": "CS3-02",
+    "family": "regression",
+    "problem": "Before harvest I want a rough idea of how many tonnes each of our wheat plots will give, so I can book trucks and storage early. We've kept records per plot for about six seasons.",
+    "columns": ["plot_id", "season", "crop_variety", "sowing_date", "rainfall_mm", "fertilizer_kg_per_ha", "soil_ph", "tonnes_harvested"],
+    "answers": {
+      "outcome": "tonnes_harvested for the plot",
+      "prediction_moment": "about a month before harvest starts"
+    },
+    "gold": {"family": "regression", "labels": "column"}
+  },
+  {
+    "id": "CS3-03",
+    "family": "rare_event",
+    "problem": "Our cell tower sites almost never go down, maybe a handful of site-days a year out of thousands, but when the power unit trips the whole area loses signal. I want to flag which sites are at risk tomorrow so engineers can visit first.",
+    "columns": ["site_id", "log_date", "avg_temperature_c", "power_fluctuations", "traffic_load_pct", "alarm_count", "battery_age_months", "rectifier_tripped"],
+    "answers": {
+      "outcome": "rectifier_tripped",
+      "prediction_moment": "the evening before, for the next day",
+      "labels": "the field team logs it whenever a trip happens, so that column is filled in from their reports"
+    },
+    "gold": {"family": "rare_event", "labels": "column"}
+  },
+  {
+    "id": "CS3-04",
+    "family": "anomaly",
+    "problem": "We get hourly readings from about forty thousand electricity meters. Some of them look really strange, maybe someone tampering, maybe the meter is broken, and I just want the odd ones pulled out so an inspector can go and look.",
+    "columns": ["meter_id", "reading_hour", "kwh_consumed", "voltage", "power_factor", "tariff_type", "district"],
+    "answers": {
+      "outcome": "hmm, not really a column, more like just tell me which readings look off",
+      "labels": "honestly nobody has ever gone through and marked any of them, there's no list of bad meters anywhere"
+    },
+    "gold": {"family": "anomaly", "labels": "none"}
+  },
+  {
+    "id": "CS3-05",
+    "family": "forecasting",
+    "problem": "I need to know how many pallets will arrive at each of our warehouses every day over the next six weeks, so we can roster forklift drivers properly. Right now the shift manager guesses and we're either idle or drowning.",
+    "columns": ["date", "warehouse_code", "pallets_received", "public_holiday", "promo_week", "inbound_containers_booked"],
+    "answers": {
+      "outcome": "pallets_received per warehouse per day",
+      "prediction_moment": "every Monday morning, looking six weeks ahead"
+    },
+    "gold": {"family": "forecasting"}
+  },
+  {
+    "id": "CS3-06",
+    "family": "time_to_event",
+    "problem": "At the mine we have a few hundred conveyor motors and I want to know roughly how many weeks each one has left before it needs replacing. Some have been replaced already, most are still running.",
+    "columns": ["motor_id", "install_date", "last_inspection_date", "vibration_mm_s", "operating_hours", "bearing_temp_c", "replaced_date"],
+    "answers": {
+      "outcome": "the time from now until replaced_date, which is empty for motors that are still going",
+      "prediction_moment": "after each monthly inspection"
+    },
+    "gold": {"family": "time_to_event"}
+  },
+  {
+    "id": "CS3-07",
+    "family": "ranking",
+    "problem": "When a player opens the in-game shop there are about three hundred skins to scroll through. I want the first row to show the ones that particular player is most likely to actually buy.",
+    "columns": ["player_id", "item_id", "item_category", "price_coins", "player_level", "viewed_at", "purchased"],
+    "answers": {
+      "outcome": "an order of items for each player, top of the list = most likely to be bought",
+      "prediction_moment": "every time the shop screen opens"
+    },
+    "gold": {"family": "ranking"}
+  },
+  {
+    "id": "CS3-08",
+    "family": "segmentation",
+    "problem": "We have loyalty card data for about eighty thousand shoppers and marketing is tired of sending everyone the same leaflet. Can we sort them into a handful of types of people who shop in a similar way?",
+    "columns": ["loyalty_id", "visits_per_month", "avg_basket_aed", "share_fresh_food", "share_own_brand", "preferred_store", "weekend_share"],
+    "answers": {
+      "family": "like groups of shoppers, kind of personas I guess? whatever marketing can actually use",
+      "outcome": "there isn't one thing to predict really, we just want the groups"
+    },
+    "gold": {"family": "segmentation"}
+  },
+  {
+    "id": "CS3-09",
+    "family": "uplift",
+    "problem": "Last term our mentors phoned some students' parents a few weeks before exams. Not every student needs that call, some would pass anyway and some won't whatever we do, so I want to know whose result actually changes because we called.",
+    "columns": ["student_id", "school_id", "grade_level", "attendance_rate", "previous_term_score", "mentor_call_made", "passed_term_exam"],
+    "answers": {
+      "outcome": "passed_term_exam",
+      "prediction_moment": "about four weeks before exams, when we plan the call list"
+    },
+    "gold": {"family": "uplift"}
+  }
+]

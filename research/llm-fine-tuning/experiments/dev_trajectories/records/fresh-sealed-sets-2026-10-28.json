@@ -1,0 +1,64 @@
+{
+  "package": "fresh-sealed-sets-2026-10-28",
+  "title": "Three fresh sealed sets, pinned before any run: Home v2, the conversation v3 and the journeys v7",
+  "date": "2026-10-28",
+  "request": "The owner chose 'Fresh sealed sets, then stop': every sealed set of Home, the understanding conversation and the journeys was spent, so nothing the studio changed since could be judged once more.",
+  "spec": "An independent agent writes each set from the format and the tables only; the file is copied unchanged, its SHA-256 committed, a gate written beside it before any run, and the split wired into its runner so a second run is refused. No set is played here.",
+  "plan": [
+    "Have a fresh agent write each set from a pack of the format and the replicas' or the seeded tables, never the rules or an earlier set.",
+    "Check each file's shape against its loader's rules without scoring it.",
+    "Pin it, write its gate (the same criteria as the last one, a new version and its own seed) and wire it into the runner.",
+    "Make a sealed run ask for --yes even on the free rules arm, since that run spends the set.",
+    "Stop before any run: running a set is the owner's choice."
+  ],
+  "decisions": [
+    {
+      "decision": "Each new gate keeps the earlier set's criteria and only gets a new version, split and seed.",
+      "why": "Criteria changed after the earlier sets failed would be tuned on what was seen; a new set under the old bar is the honest second reading."
+    },
+    {
+      "decision": "A sealed conversation or journeys run now needs --yes even for the rules arm.",
+      "why": "The rules arm ran at once, so one mistyped command would spend an exam with no model involved."
+    },
+    {
+      "decision": "Home's runner reads each split's gate and its own runs (gate_for, sealed_runs(split)).",
+      "why": "HOME-011 spent the first set; with one fingerprint and one glob, the second set would have read as spent, or a run on it would have been stored under the first gate."
+    },
+    {
+      "decision": "The journeys set is on seed 7, which joins the lake's evaluation seeds.",
+      "why": "Every set is read on tables no earlier set or dev fix used; self-play examples on seed 7 tables leave the lake's train split at its next build."
+    }
+  ],
+  "change": "agent_eval/home: requests_sealed_v2.json and sealed_v2.sha256, SEALED, GATE_V2 (home_gate_v2), GATES, gate_for, recorded_fingerprint(split) and sealed_runs(split); the CLI reads its splits. agent_eval/conversation: conversations_sealed_v3.json and sealed_v3.sha256, GATE_V3, an unknown split refused by name, a sealed run asks for --yes. agent_eval/journeys: journeys_sealed_v7.json and sealed_v7.sha256, GATE_V7 (seed 7), the CLI's splits from SEALED, a sealed run asks for --yes after the whole-run and seed refusals. Tests in test_home_eval, test_conversation and test_journeys; harness suite rerun (HRN-077) for the conversation gates' fingerprint.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "Home's runner knew one sealed set.",
+      "scenario": "A second sealed file added to Home: load checked it against the first set's fingerprint and refused it, and sealed_runs found HOME-011, so its one run was refused as already done.",
+      "cause": "One fingerprint file, one gate and one glob for the sealed split.",
+      "fix": "A fingerprint, a gate and a run glob per sealed split.",
+      "test": "test_each_sealed_set_has_its_gate_and_its_own_one_run"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The free rules arm played a sealed set without asking.",
+      "scenario": "python -m dclab_rnd.agent_eval.conversation --split sealed_v3 typed to see the plan would have played and stored the set, spending it.",
+      "cause": "Only the reader and team arms, which send model requests, asked for --yes.",
+      "fix": "Every sealed run of the conversation and the journeys asks for --yes first and prints its plan otherwise.",
+      "test": "test_the_third_sealed_set_is_pinned_unrun_and_asks_before_its_one_run"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Home, the conversation and the journeys each have one unread sealed set, pinned and gated, waiting for the owner's run.",
+  "lessons": [
+    "A runner written for one sealed set has to learn the second set's name everywhere it reads the first: the fingerprint, the gate and the stored runs."
+  ],
+  "risks": [
+    "The journeys and Home sets were checked for shape only; a person the engine cannot play shows up only in the one run."
+  ],
+  "commits": []
+}

@@ -3,7 +3,8 @@
     python -m dclab_rnd.agent_eval.home --split dev                   # the rules alone, printed, and the plan of a model run
     python -m dclab_rnd.agent_eval.home --split dev --save            # the same, stored as the baseline (no model, nothing sent)
     python -m dclab_rnd.agent_eval.home --split dev --yes --cap-eur 2    # sends: Home with the model, and the plain arm
-    python -m dclab_rnd.agent_eval.home --split sealed --yes --cap-eur 2 # once: a second sealed run is refused
+    python -m dclab_rnd.agent_eval.home --split sealed_v2 --yes --cap-eur 2 # once: a second run of a sealed set is refused
+                                                                         # ("sealed" was spent by HOME-011)
 
 A stored run is evidence/campaigns/home_v1/results/HOME-NNN_<split>.json with its plan, its cost and the gate's verdict.
 """
@@ -17,7 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from . import GATE, RESULTS, load, measure, next_id, plan, sealed_runs, verdict
+from . import RESULTS, SEALED, SPLITS, gate_for, load, measure, next_id, plan, sealed_runs, verdict
 
 MAX_TOKENS = 1800
 
@@ -70,9 +71,10 @@ def _print(summary: dict[str, Any]) -> None:
 
 def _record(result: dict[str, Any], split: str, the_plan: dict[str, Any] | None, spent: float, scored: bool) -> dict[str, Any]:
     at = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    record = {"id": next_id(), "campaign_id": "home_v1", "kind": "home_agent_measured", "split": split, "at": at, "gate": GATE,
+    gate = gate_for(split)
+    record = {"id": next_id(), "campaign_id": "home_v1", "kind": "home_agent_measured", "split": split, "at": at, "gate": gate,
               "plan": the_plan, "spent_eur": round(spent, 4), **result,
-              "verdict": verdict(result, split) if scored else {"gate": GATE["version"], "status": "not scored",
+              "verdict": verdict(result, split) if scored else {"gate": gate["version"], "status": "not scored",
                                                                 "why": f"{len(result['failures'])} request(s) failed"},
               "rule": "Scores on 36 written requests say how Home handles these requests; they are not a claim about any other "
                       "text or about production readiness."}
@@ -85,7 +87,7 @@ def main(argv: list[str] | None = None) -> int:
 
     memory_off_for_evaluation()  # 35.4: a graded run never reads a remembered line
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.agent_eval.home")
-    parser.add_argument("--split", choices=("dev", "sealed"), default="dev")
+    parser.add_argument("--split", choices=tuple(SPLITS), default="dev")
     parser.add_argument("--lang", choices=("en", "fa", "mixed"), default=None,
                         help="dev only: run the requests of one language (the owner, 2026-10-28: live runs in English only)")
     parser.add_argument("--yes", action="store_true", help="send the requests (the plan is printed either way)")
@@ -100,7 +102,7 @@ def main(argv: list[str] | None = None) -> int:
     load_dotenv(Path(__file__).resolve().parents[3] / ".env", override=False)
     cases = load(args.split)
     if args.lang:
-        if args.split == "sealed":
+        if args.split in SEALED:
             parser.error("--lang is for dev: the sealed set is run once, whole")
         cases = [c for c in cases if c.get("lang") == args.lang]
     from dclab_rnd.models.gateway import for_workspace
@@ -118,8 +120,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(the_plan, indent=1))
         print("nothing was sent: add --yes and --cap-eur to run Home with the model")
         return 0
-    if args.split == "sealed" and sealed_runs():
-        print(f"refused: the sealed set was already run ({sealed_runs()[0].name}); it is run once", file=sys.stderr)
+    if args.split in SEALED and sealed_runs(args.split):
+        print(f"refused: the sealed set was already run ({sealed_runs(args.split)[0].name}); it is run once", file=sys.stderr)
         return 2
     if not the_plan["available"]:
         print("refused: no model serves home_agent here", file=sys.stderr)
@@ -129,7 +131,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     gateway.shadows = None  # measurement traffic stays out of the shadow log
     budget = Budget(gateway, args.cap_eur)
-    keep = None if args.split == "sealed" else \
+    keep = None if args.split in SEALED else \
         KEEP_ROOT / f"{datetime.now(timezone.utc):%Y-%m-%d}-home-eval" / f"{args.split}-{datetime.now(timezone.utc):%H%M%S}"  # a sealed run is an exam: never kept
     result = measure(cases, budget.client, lambda case_id: budget.client("home-eval-plain"), keep=keep)
     result["kept"] = _shown(keep) if keep else None  # the run's drafts and replies, whole (agent_runs is the store's, never committed)

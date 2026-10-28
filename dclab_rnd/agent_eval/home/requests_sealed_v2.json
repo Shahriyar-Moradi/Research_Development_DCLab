@@ -1,0 +1,578 @@
+[
+  {
+    "id": "s2-p1",
+    "lang": "en",
+    "data": ["bookings"],
+    "text": "Every time a booking comes in I want a score for how likely it is to be cancelled before the travel date, so ops can overbook a little on the risky ones. Use the bookings table.",
+    "gold": {
+      "tracks": ["prediction"],
+      "exit": "ml_project",
+      "fields": {
+        "target": {"any": ["cancelled", "cancellation", "likely to be cancelled"]},
+        "prediction_moment": {"any": ["booking comes in", "at booking time", "every time a booking comes in"]},
+        "action": {"any": ["overbook", "ops can overbook"]},
+        "data_plan": {"any": ["bookings table", "bookings"]}
+      }
+    }
+  },
+  {
+    "id": "s2-p2",
+    "lang": "en",
+    "data": ["customers"],
+    "text": "We need to know who is going to churn next month. Score every customer on the 1st of each month using the customers table, then put the scores into a dashboard the retention team opens every Monday, showing churn risk broken down by plan.",
+    "both": true,
+    "gold": {
+      "tracks": ["prediction", "reporting"],
+      "exit": ["ml_project", "dashboard"],
+      "both": true,
+      "fields": {
+        "target": {"any": ["churn next month", "churn"]},
+        "prediction_moment": {"any": ["1st of each month", "start of each month"]},
+        "data_plan": {"any": ["customers table", "customers"]},
+        "kpis": {"any": ["churn risk by plan", "churn risk"]},
+        "audience": {"any": ["retention team"]},
+        "refresh": {"any": ["every Monday", "weekly"]}
+      }
+    }
+  },
+  {
+    "id": "s2-p3",
+    "lang": "en",
+    "data": ["customers"],
+    "trap": "real_prediction",
+    "text": "My manager wants a weekly report of which business customers are likely to bump up their monthly spend next quarter - just the top 20 each week so the sales team knows who to call.",
+    "gold": {
+      "tracks": ["prediction"],
+      "exit": "ml_project",
+      "fields": {
+        "target": {"any": ["bump up their monthly spend", "spend increase next quarter", "monthly spend next quarter"]},
+        "prediction_moment": {"any": ["weekly", "each week"]},
+        "action": {"any": ["sales team knows who to call", "call", "top 20 each week"]}
+      }
+    }
+  },
+  {
+    "id": "s2-p4",
+    "lang": "fa",
+    "data": ["sales"],
+    "text": "سلام. می‌خواهیم همان لحظه‌ای که سفارش ثبت می‌شود بدانیم چقدر احتمال دارد بعداً مرجوع شود، تا سفارش‌های پرریسک پیش از ارسال یک بار دیگر بررسی شوند. داده‌ها در جدول فروش است.",
+    "gold": {
+      "tracks": ["prediction"],
+      "exit": "ml_project",
+      "fields": {
+        "target": {"any": ["مرجوع شود", "مرجوعی", "refund"]},
+        "prediction_moment": {"any": ["لحظه‌ای که سفارش ثبت می‌شود", "ثبت سفارش", "at order time"]},
+        "action": {"any": ["بررسی شوند", "پیش از ارسال بررسی", "review before shipping"]},
+        "data_plan": {"any": ["جدول فروش", "sales"]}
+      }
+    }
+  },
+  {
+    "id": "s2-p5",
+    "lang": "mixed",
+    "data": ["bookings"],
+    "text": "یه مدل می‌خوام که اول رزرو، قبل از اینکه مسافر گزینه‌ها رو ببینه، با lead_time_days و nationality و destination حدس بزنه free_cancellation رو انتخاب می‌کنه یا نه. خروجیش رو تیم pricing لازم داره که همون لحظه قیمت رو تنظیم کنه.",
+    "gold": {
+      "tracks": ["prediction"],
+      "exit": "ml_project",
+      "fields": {
+        "target": {"any": ["free_cancellation", "انتخاب free_cancellation"]},
+        "prediction_moment": {"any": ["اول رزرو", "قبل از اینکه مسافر گزینه‌ها رو ببینه", "start of booking"]},
+        "action": {"any": ["قیمت رو تنظیم کنه", "تیم pricing", "adjust price"]},
+        "data_plan": {"any": ["lead_time_days", "nationality", "destination"]}
+      }
+    }
+  },
+  {
+    "id": "s2-p6",
+    "lang": "en",
+    "data": ["customers", "sales"],
+    "text": "need to forcast how much each customer will spend next month, based on whatever we know at month end. finance wants it for budgeting. we have like 2 yrs of history across customers and sales",
+    "gold": {
+      "tracks": ["prediction"],
+      "exit": "ml_project",
+      "fields": {
+        "target": {"any": ["spend next month", "how much each customer will spend"]},
+        "prediction_moment": {"any": ["month end", "whatever we know at month end"]},
+        "action": {"any": ["budgeting", "finance"]},
+        "data_plan": {"any": ["2 yrs of history", "customers and sales"]}
+      }
+    }
+  },
+  {
+    "id": "s2-a1",
+    "lang": "en",
+    "data": ["sales"],
+    "text": "What was our refund rate by region in Q1 2026? Only count web and app orders.",
+    "gold": {
+      "tracks": ["analysis"],
+      "exit": "analysis",
+      "fields": {
+        "measure": {"any": ["refund rate", "refunded"]},
+        "breakdown": {"any": ["region"]},
+        "period": {"any": ["Q1 2026", "January to March 2026"]},
+        "filters": {"any": ["web and app", "only web and app orders"]}
+      }
+    }
+  },
+  {
+    "id": "s2-a2",
+    "lang": "en",
+    "data": ["sales"],
+    "trap": "report_not_model",
+    "text": "Can you build a model that predicts which product_category brought in the most revenue last year? Honestly I just need the top three for our planning deck.",
+    "gold": {
+      "tracks": ["analysis"],
+      "exit": "analysis",
+      "fields": {
+        "measure": {"any": ["revenue", "most revenue"]},
+        "breakdown": {"any": ["product_category", "category"]},
+        "period": {"any": ["last year", "2025"]},
+        "filters": null
+      }
+    }
+  },
+  {
+    "id": "s2-a3",
+    "lang": "en",
+    "data": ["sales"],
+    "trap": "missing_column",
+    "missing_column": "discount_pct",
+    "text": "Average discount_pct per channel across all 2025 orders, please.",
+    "gold": {
+      "tracks": ["analysis"],
+      "exit": "analysis",
+      "fields": {
+        "measure": {"any": ["average discount_pct", "discount_pct"]},
+        "breakdown": {"any": ["channel", "per channel"]},
+        "period": {"any": ["2025"]}
+      }
+    }
+  },
+  {
+    "id": "s2-a4",
+    "lang": "en",
+    "data": ["bookings"],
+    "text": "Monthly booking count and average price per destination since January - something I can drop into the team update.",
+    "gold": {
+      "tracks": ["analysis", "reporting"],
+      "exit": ["analysis", "dashboard"],
+      "both": false,
+      "fields": {
+        "measure": {"any": ["booking count", "average price"]},
+        "breakdown": {"any": ["destination", "monthly"]},
+        "period": {"any": ["since January"]},
+        "kpis": {"any": ["booking count", "average price"]},
+        "audience": {"any": ["team", "team update"]}
+      }
+    }
+  },
+  {
+    "id": "s2-a5",
+    "lang": "fa",
+    "data": ["bookings"],
+    "text": "در سال ۲۰۲۵ نرخ لغو رزروها به تفکیک ملیت مسافر چقدر بوده؟ فقط رزروهایی را حساب کن که امکان لغو رایگان داشتند.",
+    "gold": {
+      "tracks": ["analysis"],
+      "exit": "analysis",
+      "fields": {
+        "measure": {"any": ["نرخ لغو", "cancellation rate"]},
+        "breakdown": {"any": ["ملیت", "nationality"]},
+        "period": {"any": ["سال ۲۰۲۵", "2025"]},
+        "filters": {"any": ["لغو رایگان", "free cancellation"]}
+      }
+    }
+  },
+  {
+    "id": "s2-a6",
+    "lang": "mixed",
+    "data": ["customers"],
+    "text": "تعداد customer هایی که support_tickets_90d شون بیشتر از ۳ تاست رو به تفکیک plan و segment می‌خوام.",
+    "gold": {
+      "tracks": ["analysis"],
+      "exit": "analysis",
+      "fields": {
+        "measure": {"any": ["تعداد customer", "تعداد مشتری", "count of customers"]},
+        "breakdown": {"any": ["plan", "segment"]},
+        "filters": {"any": ["support_tickets_90d بیشتر از ۳", "support_tickets_90d", "more than 3 tickets"]}
+      }
+    }
+  },
+  {
+    "id": "s2-r1",
+    "lang": "en",
+    "data": ["sales"],
+    "trap": "silent_drop",
+    "text": "Take the sales table, keep only the paid orders from 2026, drop the status column and send it back to me as a CSV.",
+    "gold": {
+      "tracks": ["preparation"],
+      "exit": "dataset",
+      "fields": {
+        "inputs": {"any": ["sales table", "sales"]},
+        "rules": {"any": ["keep only the paid orders", "from 2026", "drop the status column"]},
+        "destination": {"any": ["CSV"]}
+      }
+    }
+  },
+  {
+    "id": "s2-r2",
+    "lang": "en",
+    "data": ["bookings", "customers"],
+    "text": "Could you merge customers onto bookings by customer_id and give me one row per customer with their number of bookings and total spent on trips? Save it to the shared drive as an Excel file.",
+    "gold": {
+      "tracks": ["preparation"],
+      "exit": "dataset",
+      "fields": {
+        "inputs": {"any": ["customers", "bookings"]},
+        "output_grain": {"any": ["one row per customer"]},
+        "rules": {"any": ["merge by customer_id", "number of bookings", "total spent"]},
+        "destination": {"any": ["Excel", "shared drive"]}
+      }
+    }
+  },
+  {
+    "id": "s2-r3",
+    "lang": "en",
+    "data": ["sales", "customers"],
+    "text": "Join sales with customers, throw out the pending orders, and then tell me the average order amount for consumer versus business customers.",
+    "both": true,
+    "gold": {
+      "tracks": ["preparation", "analysis"],
+      "exit": ["dataset", "analysis"],
+      "both": true,
+      "fields": {
+        "inputs": {"any": ["sales", "customers"]},
+        "rules": {"any": ["join sales with customers", "throw out the pending orders"]},
+        "measure": {"any": ["average order amount", "amount"]},
+        "breakdown": {"any": ["consumer versus business", "segment"]}
+      }
+    }
+  },
+  {
+    "id": "s2-r4",
+    "lang": "en",
+    "data": ["bookings"],
+    "text": "the bookings table is a mess. dupes on booking_id, some prices negative. dedupe it, blank out the negative prices, lowercase the channel values. one row per booking pls",
+    "gold": {
+      "tracks": ["preparation"],
+      "exit": "dataset",
+      "fields": {
+        "inputs": {"any": ["bookings table", "bookings"]},
+        "output_grain": {"any": ["one row per booking"]},
+        "rules": {"any": ["dedupe", "blank out the negative prices", "lowercase the channel"]}
+      }
+    }
+  },
+  {
+    "id": "s2-r5",
+    "lang": "fa",
+    "data": ["customers"],
+    "text": "جدول مشتریان را بر اساس ماه ثبت‌نام و شهر خلاصه کن؛ هر سطر یک ماه و یک شهر باشد، با تعداد مشتری و میانگین هزینهٔ ماهانه. نتیجه را به‌صورت یک جدول جدید در پایگاه‌داده ذخیره کن.",
+    "gold": {
+      "tracks": ["preparation"],
+      "exit": "dataset",
+      "fields": {
+        "inputs": {"any": ["جدول مشتریان", "customers"]},
+        "output_grain": {"any": ["هر سطر یک ماه و یک شهر", "ماه ثبت‌نام و شهر", "one row per month and city"]},
+        "rules": {"any": ["خلاصه کن", "تعداد مشتری", "میانگین هزینهٔ ماهانه"]},
+        "destination": {"any": ["جدول جدید در پایگاه‌داده", "پایگاه‌داده", "database"]}
+      }
+    }
+  },
+  {
+    "id": "s2-r6",
+    "lang": "mixed",
+    "data": ["sales"],
+    "text": "یه خروجی pivot شده از sales می‌خوام: هر customer_id یک ردیف، برای هر channel یک ستون با جمع amount. بریزش توی Google Sheets.",
+    "gold": {
+      "tracks": ["preparation"],
+      "exit": "dataset",
+      "fields": {
+        "inputs": {"any": ["sales"]},
+        "output_grain": {"any": ["هر customer_id یک ردیف", "one row per customer_id"]},
+        "rules": {"any": ["pivot", "برای هر channel یک ستون", "جمع amount"]},
+        "destination": {"any": ["Google Sheets"]}
+      }
+    }
+  },
+  {
+    "id": "s2-b1",
+    "lang": "en",
+    "data": ["customers"],
+    "trap": "rows_request",
+    "text": "Set up a dashboard for our support lead that lists every premium customer by customer_id along with their support_tickets_90d and monthly_spend. Refresh it daily.",
+    "gold": {
+      "tracks": ["reporting"],
+      "exit": "dashboard",
+      "fields": {
+        "kpis": {"any": ["support_tickets_90d", "monthly_spend"]},
+        "audience": {"any": ["support lead"]},
+        "refresh": {"any": ["daily"]}
+      }
+    }
+  },
+  {
+    "id": "s2-b2",
+    "lang": "en",
+    "data": ["sales"],
+    "text": "I'd like a weekly dashboard for the regional managers with revenue, order count and refund share per region, so they can decide where to push promotions next.",
+    "gold": {
+      "tracks": ["reporting"],
+      "exit": "dashboard",
+      "fields": {
+        "kpis": {"any": ["revenue", "order count", "refund share"]},
+        "audience": {"any": ["regional managers"]},
+        "refresh": {"any": ["weekly"]},
+        "decisions_supported": {"any": ["where to push promotions", "promotions"]}
+      }
+    }
+  },
+  {
+    "id": "s2-b3",
+    "lang": "en",
+    "data": ["bookings"],
+    "text": "Before we build the bookings dashboard for the exec team, the data needs a clean-up: drop the test bookings with a price of 0 and fix travel dates that fall before the booking date. Then the dashboard itself - cancellations and average lead time by destination, updated every morning.",
+    "both": true,
+    "gold": {
+      "tracks": ["reporting", "preparation"],
+      "exit": ["dashboard", "dataset"],
+      "both": true,
+      "fields": {
+        "kpis": {"any": ["cancellations", "average lead time"]},
+        "audience": {"any": ["exec team"]},
+        "refresh": {"any": ["every morning", "daily"]},
+        "inputs": {"any": ["bookings"]},
+        "rules": {"any": ["drop the test bookings with a price of 0", "fix travel dates"]}
+      }
+    }
+  },
+  {
+    "id": "s2-b4",
+    "lang": "en",
+    "data": ["customers"],
+    "text": "boss wants a one-pager she can open at the end of every month: active customers, avg monthly spend and churn, split by plan. nothing fancy",
+    "gold": {
+      "tracks": ["reporting"],
+      "exit": "dashboard",
+      "fields": {
+        "kpis": {"any": ["active customers", "avg monthly spend", "churn"]},
+        "audience": {"any": ["boss"]},
+        "refresh": {"any": ["end of every month", "monthly"]},
+        "decisions_supported": null
+      }
+    }
+  },
+  {
+    "id": "s2-b5",
+    "lang": "fa",
+    "data": ["sales"],
+    "text": "برای مدیر بازاریابی یک داشبورد ماهانه می‌خواهم که سهم هر کانال فروش (وب، اپلیکیشن، فروشگاه) از درآمد و روند آن را نشان دهد. قرار است بر اساس آن بودجهٔ تبلیغات بین کانال‌ها تقسیم شود.",
+    "gold": {
+      "tracks": ["reporting"],
+      "exit": "dashboard",
+      "fields": {
+        "kpis": {"any": ["سهم هر کانال فروش از درآمد", "سهم کانال", "channel revenue share"]},
+        "audience": {"any": ["مدیر بازاریابی", "marketing manager"]},
+        "refresh": {"any": ["ماهانه", "monthly"]},
+        "decisions_supported": {"any": ["بودجهٔ تبلیغات", "تقسیم بودجه", "ad budget"]}
+      }
+    }
+  },
+  {
+    "id": "s2-b6",
+    "lang": "fa",
+    "data": ["bookings"],
+    "text": "یک گزارش ثابت لازم داریم که هر دوشنبه به‌روز شود و تعداد رزروها، نرخ لغو و میانگین قیمت را برای هر مقصد نشان دهد. مخاطبش تیم عملیات است.",
+    "gold": {
+      "tracks": ["reporting"],
+      "exit": "dashboard",
+      "fields": {
+        "kpis": {"any": ["تعداد رزروها", "نرخ لغو", "میانگین قیمت"]},
+        "audience": {"any": ["تیم عملیات", "operations team"]},
+        "refresh": {"any": ["هر دوشنبه", "weekly"]}
+      }
+    }
+  },
+  {
+    "id": "s2-s1",
+    "lang": "en",
+    "data": ["sales"],
+    "text": "Revenue in Sharjah fell off a cliff in March compared with February 2026. What happened, and is it something we should be worried about?",
+    "gold": {
+      "tracks": ["business"],
+      "exit": "decision_brief",
+      "fields": {
+        "success_measure": {"any": ["revenue", "revenue in Sharjah"]},
+        "period_compared": {"any": ["March compared with February 2026", "March vs February"]},
+        "constraints": null
+      }
+    }
+  },
+  {
+    "id": "s2-s2",
+    "lang": "en",
+    "data": ["customers"],
+    "text": "We're debating killing the basic plan. Pull churn and spend by plan for the last 12 months and tell us if dropping basic makes sense - we can't afford to lose more than 5 percent of revenue.",
+    "both": true,
+    "gold": {
+      "tracks": ["business", "analysis"],
+      "exit": ["decision_brief", "analysis"],
+      "both": true,
+      "fields": {
+        "decision": {"any": ["killing the basic plan", "dropping basic"]},
+        "constraints": {"any": ["can't lose more than 5 percent of revenue", "5 percent of revenue"]},
+        "measure": {"any": ["churn", "spend"]},
+        "breakdown": {"any": ["by plan", "plan"]},
+        "period": {"any": ["last 12 months"]}
+      }
+    }
+  },
+  {
+    "id": "s2-s3",
+    "lang": "en",
+    "data": ["sales"],
+    "text": "Did shifting our promo budget to the app channel in Ajman acutally pay off? We made the switch in January.",
+    "gold": {
+      "tracks": ["business", "analysis"],
+      "exit": ["decision_brief", "analysis"],
+      "both": false,
+      "fields": {
+        "decision": {"any": ["shifting our promo budget to the app channel", "promo budget"]},
+        "period_compared": {"any": ["since January", "before and after January", "made the switch in January"]},
+        "filters": {"any": ["Ajman", "app channel"]}
+      }
+    }
+  },
+  {
+    "id": "s2-s4",
+    "lang": "en",
+    "data": ["bookings"],
+    "text": "Option A: make free cancellation standard on every booking. Option B: keep charging extra for it. Which one gets us more net revenue without the cancellation rate going above twenty percent?",
+    "gold": {
+      "tracks": ["business"],
+      "exit": "decision_brief",
+      "fields": {
+        "decision": {"any": ["free cancellation standard", "free cancellation"]},
+        "options": {"any": ["make free cancellation standard", "keep charging extra"]},
+        "success_measure": {"any": ["net revenue"]},
+        "constraints": {"any": ["cancellation rate going above twenty percent", "twenty percent"]}
+      }
+    }
+  },
+  {
+    "id": "s2-s5",
+    "lang": "fa",
+    "data": ["customers"],
+    "trap": "persian_no_model",
+    "text": "مدیرعامل پرسیده چرا تعداد مشتریان تجاری‌ای که ماه گذشته از دست دادیم بیشتر از ماه‌های قبل بوده. باید تصمیم بگیریم تیم پشتیبانی را برای این گروه تقویت کنیم یا نه.",
+    "gold": {
+      "tracks": ["business"],
+      "exit": "decision_brief",
+      "fields": {
+        "decision": {"any": ["تیم پشتیبانی را تقویت کنیم", "تقویت تیم پشتیبانی", "strengthen support team"]},
+        "success_measure": {"any": ["مشتریان تجاری از دست دادیم", "ریزش مشتریان تجاری", "business churn"]},
+        "period_compared": {"any": ["ماه گذشته", "ماه‌های قبل", "last month vs earlier months"]}
+      }
+    }
+  },
+  {
+    "id": "s2-s6",
+    "lang": "fa",
+    "data": ["sales"],
+    "text": "داریم فکر می‌کنیم در راس‌الخیمه یک فروشگاه حضوری باز کنیم یا همچنان فقط روی فروش آنلاین تمرکز کنیم. سقف بودجه دو میلیون درهم است و معیار موفقیت برای ما رشد فروش در سال اول است.",
+    "gold": {
+      "tracks": ["business"],
+      "exit": "decision_brief",
+      "fields": {
+        "decision": {"any": ["فروشگاه حضوری باز کنیم", "باز کردن فروشگاه در راس‌الخیمه", "open a store"]},
+        "options": {"any": ["فروشگاه حضوری", "فروش آنلاین"]},
+        "constraints": {"any": ["دو میلیون درهم", "سقف بودجه", "2 million AED budget"]},
+        "success_measure": {"any": ["رشد فروش در سال اول", "رشد فروش", "sales growth"]}
+      }
+    }
+  },
+  {
+    "id": "s2-v1",
+    "lang": "en",
+    "data": [],
+    "text": "In plain words, what's the difference between precision and recall? And which one matters more if we're flagging fraud?",
+    "gold": {
+      "tracks": ["advice"],
+      "exit": "answer",
+      "fields": {
+        "topic": {"any": ["precision and recall", "precision vs recall"]}
+      }
+    }
+  },
+  {
+    "id": "s2-v2",
+    "lang": "en",
+    "data": [],
+    "text": "how do i set up a time based train/test split for a churn model so i dont leak future info into training",
+    "gold": {
+      "tracks": ["advice"],
+      "exit": "answer",
+      "fields": {
+        "topic": {"any": ["time based split", "leak future info", "leakage"]}
+      }
+    }
+  },
+  {
+    "id": "s2-v3",
+    "lang": "en",
+    "data": [],
+    "text": "Quick one: is the median better than the mean for reporting order values when a handful of orders are huge?",
+    "gold": {
+      "tracks": ["advice"],
+      "exit": "answer",
+      "fields": {
+        "topic": {"any": ["median vs mean", "median better than the mean"]}
+      }
+    }
+  },
+  {
+    "id": "s2-v4",
+    "lang": "en",
+    "data": [],
+    "text": "Our team keeps going back and forth on whether to send discount codes to people who look like they're about to cancel their plan. Generally speaking, how should we think about that?",
+    "gold": {
+      "tracks": ["advice", "business"],
+      "exit": ["answer", "decision_brief"],
+      "both": false,
+      "fields": {
+        "topic": {"any": ["discount codes for people about to cancel", "retention discounts"]},
+        "decision": {"any": ["send discount codes", "whether to send discount codes"]}
+      }
+    }
+  },
+  {
+    "id": "s2-v5",
+    "lang": "fa",
+    "data": [],
+    "text": "تفاوت اعتبارسنجی متقاطع معمولی با اعتبارسنجی مبتنی بر زمان چیست و چه وقت باید از هر کدام استفاده کرد؟",
+    "gold": {
+      "tracks": ["advice"],
+      "exit": "answer",
+      "fields": {
+        "topic": {"any": ["اعتبارسنجی متقاطع", "اعتبارسنجی مبتنی بر زمان", "cross-validation"]}
+      }
+    }
+  },
+  {
+    "id": "s2-v6",
+    "lang": "mixed",
+    "data": ["customers"],
+    "text": "اول یه توضیح ساده بده که cohort retention یعنی چی، بعد همینو روی جدول customers بر اساس ماهِ signup_date حساب کن.",
+    "both": true,
+    "gold": {
+      "tracks": ["advice", "analysis"],
+      "exit": ["answer", "analysis"],
+      "both": true,
+      "fields": {
+        "topic": {"any": ["cohort retention"]},
+        "measure": {"any": ["retention", "cohort retention"]},
+        "breakdown": {"any": ["ماهِ signup_date", "signup_date", "signup month"]}
+      }
+    }
+  }
+]
