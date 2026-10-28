@@ -115,9 +115,10 @@
   {
    "contract": "chat_example",
    "reads": [
-    "dclab_core.chat_example.v1"
+    "dclab_core.chat_example.v1",
+    "dclab_core.chat_example.v2"
    ],
-   "version": "dclab_core.chat_example.v2"
+   "version": "dclab_core.chat_example.v3"
   },
   {
    "contract": "collect_advice",
@@ -184,9 +185,10 @@
   {
    "contract": "decision_example",
    "reads": [
-    "dclab_core.decision_example.v1"
+    "dclab_core.decision_example.v1",
+    "dclab_core.decision_example.v2"
    ],
-   "version": "dclab_core.decision_example.v2"
+   "version": "dclab_core.decision_example.v3"
   },
   {
    "contract": "decision_label",
@@ -227,8 +229,10 @@
   },
   {
    "contract": "episode",
-   "reads": [],
-   "version": "dclab_core.episode.v1"
+   "reads": [
+    "dclab_core.episode.v1"
+   ],
+   "version": "dclab_core.episode.v2"
   },
   {
    "contract": "evaluation_board",
@@ -388,9 +392,10 @@
   {
    "contract": "preference_pair",
    "reads": [
-    "dclab_core.preference_pair.v1"
+    "dclab_core.preference_pair.v1",
+    "dclab_core.preference_pair.v2"
    ],
-   "version": "dclab_core.preference_pair.v2"
+   "version": "dclab_core.preference_pair.v3"
   },
   {
    "contract": "problem_brief",
@@ -529,9 +534,10 @@
   {
    "contract": "solver_trajectory",
    "reads": [
-    "dclab_core.solver_trajectory.v1"
+    "dclab_core.solver_trajectory.v1",
+    "dclab_core.solver_trajectory.v2"
    ],
-   "version": "dclab_core.solver_trajectory.v2"
+   "version": "dclab_core.solver_trajectory.v3"
   },
   {
    "contract": "store_entry",
@@ -656,7 +662,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.131.0",
+ "dclab_core": "0.132.1",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
