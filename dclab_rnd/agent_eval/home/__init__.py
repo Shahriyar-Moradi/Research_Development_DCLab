@@ -274,6 +274,17 @@ def _isolated():
                 os.environ[key] = value
 
 
+WHY = "written Home requests answered by a script (I'm not sure, test replies): their acts are a script's, never a person's label"
+
+
+def mark_scripted(folder: Path, why: str = WHY) -> None:
+    """A kept run's people are a script: ``scripted.json`` at its top tells the store (keepers.workspaces.scripted) never to
+    read their choices (an intent picked, a save, a yes) as a person's label."""
+    folder = Path(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "scripted.json").write_text(json.dumps({"by": "script", "why": why}, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
 def observe(case: Mapping[str, Any], client_for: Optional[Callable[[str], Any]] = None,
             keep: Optional[Path] = None) -> dict[str, Any]:
     """Run the real Home agent on one request in a throwaway draft store, answer its questions "I'm not sure", read the
@@ -293,6 +304,8 @@ def observe(case: Mapping[str, Any], client_for: Optional[Callable[[str], Any]] 
         store = DraftStore(Path(tmp) / "drafts")
         if keep is not None:  # a kept live run keeps its decisions too, beside its drafts (the owner: every test's data, all six models)
             Path(keep).mkdir(parents=True, exist_ok=True)
+            if not any((p / "scripted.json").is_file() for p in (Path(keep), *Path(keep).parents)):
+                mark_scripted(keep)  # a direct caller's keep folder: marked where it is
             restore.callback(_ledger.install, _ledger.current_ledger())  # put back whatever happens
             _ledger.install(_ledger.FileLedger(Path(keep) / "ledger", Path(keep).name))
         draft = store.create(case["text"])
@@ -428,6 +441,8 @@ def measure(cases: list[dict[str, Any]], client_for: Optional[Callable[[str], An
     """Every case read by every arm asked for (the rules alone when no model client is given), scored. A client that is
     not there when asked for (no model serves the purpose any more, a cap) is a failure: the run is reported, not scored.
     ``keep``: the folder the model arms' drafts and replies are kept whole in (``model/<case>/``, ``plain/<case>.json``)."""
+    if keep is not None:
+        mark_scripted(keep)  # the whole run: its people are a script (S8)
     counter = Counter()
 
     def model_client(draft_id: str) -> Any:

@@ -39,6 +39,7 @@ PROBES = [
     ("t-b2", "Were spring 2026 sales weaker than the winter before? Show me where the difference sits.", "sales", "business",
      "Spring is March to May 2026; winter is December 2025 to February 2026."),
 ]
+WHY = "the Home tools probe: written requests and replies, the kind of help chosen by the probe: a script's acts, never a person's label"
 TOOLS = ("query_data", "save_answer", "propose_step", "undo_step", "export_data", "compare_periods", "decision_brief")
 
 
@@ -91,7 +92,9 @@ def main(argv: list[str] | None = None) -> int:
         return c
 
     keep = KEEP / f"{datetime.now(timezone.utc):%Y-%m-%d}-home-tools" / f"{datetime.now(timezone.utc):%H%M%S}"
-    keep.mkdir(parents=True, exist_ok=True)
+    from dclab_rnd.agent_eval.home import mark_scripted
+
+    mark_scripted(keep, WHY)  # the probe picks the kind of help itself: never a person's label
     from dclab_rnd import ledger
 
     before = ledger.current_ledger()

@@ -1,0 +1,29 @@
+{
+ "package": "home tests scripted",
+ "title": "Home's kept test runs say their people are a script, so their acts never become a person's label",
+ "date": "2026-10-28",
+ "request": "The owner: continue non-stop; collect every test's data for the six models. Before writing more Home journeys (36.3), check how the store keeps a scripted run apart.",
+ "spec": "keepers.workspaces.scripted: a folder with scripted.json at or above it is a script's; decisions.build sets its person labels aside. Home's eval runs and its tools probe kept their drafts and ledgers without that file.",
+ "plan": ["Check which kept Home runs carry scripted.json", "Test first", "One helper writes it; the eval run and the probe call it",
+          "Mark the runs already kept", "Record, commit"],
+ "decisions": [
+  {"decision": "The marker is written at the top of the kept run, and by observe() when its caller's folder has none", "why": "scripted() walks up the folders; one file covers every case's workspace, and a direct caller of observe() is covered too"},
+  {"decision": "The runs kept before the fix are marked by hand", "why": "their labels were already in the store as a person's; the next build sets them aside"},
+  {"decision": "The orchestrator run of 2026-10-21 is left unmarked", "why": "it was not checked here whether a person drove it; marking it would hide a real label if one is there"}
+ ],
+ "change": "the Home eval package (agent_eval.home) (mark_scripted; measure and observe call it), its tools probe (agent_eval.home.tools_probe) (calls it), tests/test_home_eval.py; scripted.json added by hand to the Home test folders kept on 2026-10-27 and 2026-10-28 (not in git).",
+ "findings": [
+  {"id": "F1", "source": "self", "severity": "behaviour", "defect": "A kept Home test run's script acts were read as a person's labels",
+   "scenario": "the tools probe picks the kind of help itself (choose_intent), which writes a user_decision_exposed label on request.intent; the eval arms answer questions the same way; none of the four kept Home folders had scripted.json",
+   "cause": "the runners kept a workspace layout (drafts/ and ledger/) so the store would collect them, but never said a script drove them",
+   "fix": "mark_scripted writes scripted.json at the kept run's top; the four folders already kept were marked",
+   "test": "tests/test_home_eval.py::RunTests::test_a_live_run_keeps_its_drafts_and_replies_whole, test_the_tools_probe_marks_its_kept_run_scripted"}
+ ],
+ "measurements": [
+  {"name": "Kept Home test workspaces the store sees as scripted", "gate": "every kept Home eval and probe workspace", "result": "65 (28 from 2026-10-27, 35 from the 2026-10-28 eval, 2 from the tools probe); the home-model folder holds logs only", "verdict": "pass"}
+ ],
+ "outcome": "Home's test runs still reach the store whole, but a script's choices are no longer mistaken for a person's verdict.",
+ "lessons": ["Keeping a test's data for training needs two things: the data, and a mark of who made its choices."],
+ "risks": ["The store's sets built before the next store build still hold those labels as a person's.", "The 2026-10-21 orchestrator run was not checked."],
+ "commits": []
+}

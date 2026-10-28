@@ -255,6 +255,19 @@ class RunTests(unittest.TestCase):
         kept = json.loads((keep / "plain" / "d-a1.json").read_text(encoding="utf-8"))
         self.assertEqual((kept["case"], kept["reply"]), ("d-a1", reply))
         self.assertFalse((keep / "rules").exists())  # the rules arm costs nothing and reruns the same: not kept
+        # its people are a script: the store must never read their acts as a person's label (scripted.json, S8)
+        self.assertTrue(workspaces.scripted(keep / "model" / "d-a1", keep.parent))
+        self.assertEqual(json.loads((keep / "scripted.json").read_text(encoding="utf-8"))["by"], "script")
+
+    def test_the_tools_probe_marks_its_kept_run_scripted(self):
+        import tempfile
+
+        from dclab_rnd.agent_eval.home import tools_probe
+        from dclab_rnd.store.keepers import workspaces
+
+        keep = Path(tempfile.mkdtemp()) / "run"
+        home.mark_scripted(keep, tools_probe.WHY)
+        self.assertTrue(workspaces.scripted(keep / "drafts", keep.parent))
 
     def test_a_live_plan_is_printed_before_anything_is_sent(self):
         gateway = mock.Mock()
