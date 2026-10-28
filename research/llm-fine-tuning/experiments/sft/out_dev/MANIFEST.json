@@ -535,19 +535,20 @@
     "thinking-A",
     "thinking-C1",
     "thinking-capture",
+    "thinking-final-turn-sets",
     "thinking-slot-every-step",
     "tooling-fast-gates",
     "ui-tripssource-kit",
     "username-login"
   ],
-  "total": 5596,
-  "train": 4487,
+  "total": 5599,
+  "train": 4490,
   "val": 1109,
   "by_task": {
-    "fix_finding": 3545,
+    "fix_finding": 3546,
     "judge_measurement": 661,
-    "plan_package": 530,
-    "retrospective": 519,
+    "plan_package": 531,
+    "retrospective": 520,
     "review_change": 341
   },
   "val_packages": [
@@ -663,6 +664,12 @@
     "role-student-real-exam",
     "selfplay-every-kind"
   ],
-  "refused": [],
+  "refused": [
+    {
+      "package": "thinking-final-turn-sets",
+      "task": "judge_measurement",
+      "why": "a number the prompt does not give"
+    }
+  ],
   "validation_policy": "whole packages held out by the hash of their id (about 20%)"
 }

@@ -48,8 +48,12 @@ def wire_call(call: dict[str, Any], n: int) -> dict[str, Any]:
     return {"id": str(call.get("id") or f"call_{n}"), "type": "function", "function": {"name": str(name or ""), "arguments": arguments}}
 
 
-def chat_line(ex: ChatExample) -> dict[str, Any]:
+def chat_line(ex: ChatExample, final_only: bool = False) -> dict[str, Any]:
+    """``final_only`` (the final-turn sets): every assistant turn but the last carries ``weight: 0`` (context the model reads,
+    never a target), the last ``weight: 1``; a trainer that reads per-turn weights then learns only the turn whose thinking
+    was recorded with it."""
     messages: list[dict[str, Any]] = []
+    last = max((i for i, m in enumerate(ex.messages) if m.role == "assistant"), default=-1)
     pending: list[str] = []  # the ids of the last assistant turn's calls, for tool turns recorded without their call id
     for n, m in enumerate(ex.messages):
         msg: dict[str, Any] = {"role": m.role, "content": m.content}
@@ -59,6 +63,8 @@ def chat_line(ex: ChatExample) -> dict[str, Any]:
             if m.tool_calls:
                 msg["tool_calls"] = [wire_call(c, i) for i, c in enumerate(m.tool_calls) if isinstance(c, dict)]
                 pending = [c["id"] for c in msg["tool_calls"]]
+            if final_only:
+                msg["weight"] = 1 if n == last else 0
         elif m.role == "tool":
             msg["tool_call_id"] = m.tool_call_id or (pending.pop(0) if pending else f"call_{n}")
         if m.name:
@@ -85,12 +91,12 @@ def trajectory_line(t: SolverTrajectory) -> dict[str, Any]:
     return {"id": t.id, "split": t.split, "weight": t.weight, "tools": list(t.tools), "messages": messages}
 
 
-def lines_of(rows: Iterable[dict[str, Any]]) -> Iterable[tuple[dict[str, Any] | None, str]]:
+def lines_of(rows: Iterable[dict[str, Any]], final_only: bool = False) -> Iterable[tuple[dict[str, Any] | None, str]]:
     """Each stored example as an export line, or None with why it is skipped (a preference pair is not an SFT line)."""
     for row in rows:
         shape = str(row.get("schema_version") or "").split(".")[-2] if row.get("schema_version") else ""
         if shape == "chat_example":
-            yield chat_line(ChatExample.model_validate(row)), ""
+            yield chat_line(ChatExample.model_validate(row), final_only), ""
         elif shape == "solver_trajectory":
             yield trajectory_line(SolverTrajectory.model_validate(row)), ""
         else:
@@ -137,7 +143,7 @@ def export(layout: Layout, model_type: str, folder: str, version: str, out: Path
             if row.get("split") not in SPLITS:  # a hand-edited or older set: the rule holds whatever the file says
                 skipped["a row whose split is not train or dev"] = skipped.get("a row whose split is not train or dev", 0) + 1
                 continue
-            line, why = next(lines_of([row]))
+            line, why = next(lines_of([row], folder.startswith("reasoning/final_turn")))
             if line is None:
                 skipped[why] = skipped.get(why, 0) + 1
                 continue

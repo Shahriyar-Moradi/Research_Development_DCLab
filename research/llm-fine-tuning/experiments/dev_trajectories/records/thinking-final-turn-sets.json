@@ -1,0 +1,61 @@
+{
+ "package": "thinking-final-turn-sets",
+ "title": "Every model turn that was thought on reaches training, not only conversations whose every turn was",
+ "date": "2026-10-28",
+ "request": "The owner, many times on 2026-10-28: the model's thinking kept for training, for every agent; 'make sure all previous data has thinking and reasoning parts, it's crucial'.",
+ "spec": "The reasoning-only sets took an exchange only when every assistant turn in it carried recorded thinking. An agent sends its history back as text, so earlier turns never carry their thinking inside a later exchange; of 18 Home calls with recorded thinking, 3 qualified. Add final-turn sets: an exchange whose last turn (the one its own call wrote) carries its recorded thinking, earlier turns kept as context with weight 0 at export.",
+ "plan": [
+  "Measure why the sets are nearly empty.",
+  "final_recorded and two sets (clean; a provider's as silver, apart, under provider_outputs' consent).",
+  "The exporter writes per-turn weights for these sets only.",
+  "Test on the fixture's exchange whose earlier turn had no reasoning."
+ ],
+ "decisions": [
+  {
+   "decision": "Train the final turn; keep earlier turns as context with weight 0.",
+   "why": "Each exchange is one decision with its own recorded thinking; earlier turns' thinking lives in their own exchanges, so each turn is trained once, never with thinking that was not recorded with it."
+  },
+  {
+   "decision": "A provider's model's (Claude's) examples go to a silver set apart, at weight 0.5, under provider_outputs' consent.",
+   "why": "The owner's standing decision: a provider's outputs train too, silver and apart; the exporter refuses that consent until the owner allows it."
+  },
+  {
+   "decision": "The all-turns sets are unchanged.",
+   "why": "Their rule is right for what they are; the new sets add, never replace."
+  }
+ ],
+ "change": "dclab_rnd/store/sets/llm.py (final_recorded, REASONING_FINAL, REASONING_FINAL_SILVER); dclab_rnd/store/export_chat.py (per-turn weight for the final-turn sets); tests/test_store_sets_llm.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Recorded thinking did not reach the reasoning sets.",
+   "scenario": "18 Home calls with recorded thinking after the fix; the silver reasoning set held 3.",
+   "cause": "Every earlier assistant turn in a stored request had no reasoning: Home sends its history back as plain text, so the all-turns rule rejected the exchange.",
+   "fix": "Final-turn sets keep each exchange for the turn its own call wrote.",
+   "test": "tests/test_store_sets_llm.py::LlmSetsTest::test_an_exchange_whose_last_turn_was_thought_on_trains_that_turn"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Exchanges with recorded thinking reaching a reasoning set",
+   "gate": "every exchange whose own turn was thought on",
+   "fixed_before_run": true,
+   "result": "Before: 3 of 18 Home calls (all turns recorded). After: every exchange whose final turn is recorded; counted at the next store build",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the 317 calls before the fix hold hidden thinking only: lost, labelled so"
+   ]
+  }
+ ],
+ "outcome": "A model turn that was thought on is now a training example for that turn, with its own thinking, whatever came before it in the conversation.",
+ "lessons": [
+  "A strict 'every turn' rule silently empties a set when the history format drops a field: measure the set's size against what was captured."
+ ],
+ "risks": [
+  "A trainer that ignores per-turn weights would learn earlier turns without their thinking; the set's card and the export say so."
+ ],
+ "commits": []
+}

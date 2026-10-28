@@ -199,6 +199,14 @@ def all_recorded(example: Any) -> bool:
     return bool(steps) and all(s.thought_source == "recorded" and bool(s.thought) for s in steps)
 
 
+def final_recorded(example: Any) -> bool:
+    """The final-turn sets' rule: the example's last assistant turn (the one this exchange's own model call wrote) carries
+    reasoning recorded when it was made. Earlier turns are the conversation it answered, trained as context only (weight 0 at
+    export): an agent sends its history back as text, so their thinking is in their own exchanges, never repeated here."""
+    turns = [m for m in getattr(example, "messages", None) or [] if m.role == "assistant"]
+    return bool(turns) and turns[-1].reasoning_source == "recorded" and bool(turns[-1].reasoning)
+
+
 def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None) -> Optional[ChatExample]:
     """One kept exchange as an M4 example: its messages (each earlier assistant turn with the reasoning and the tool calls the
     agent sent back, each tool turn with the call it answers), the tools offered, and the reply with its thinking as the reasoning."""
@@ -751,6 +759,8 @@ def newest_per_table(placed: list[tuple[str, SolverTrajectory]]) -> Iterable[tup
 
 
 FAILED = "trajectories/failed"  # D2 / P3: runs that went wrong, kept whole with why; never mixed into studio
+REASONING_FINAL = "reasoning/final_turn"  # the owner (2026-10-28): every turn the model thought on is kept for training
+REASONING_FINAL_SILVER = "reasoning/final_turn_silver_frontier"  # the same from a provider's model (Claude): silver, apart
 REASONING_SILVER = "reasoning/silver_frontier"  # a provider's model (Claude): silver, apart (owner, 2026-10-25; provider_outputs.py)
 REASONING = "reasoning"  # D2 / P4: M4's reasoning-only set (every assistant turn's reasoning recorded)
 TRAJECTORIES_REASONING = "trajectories/reasoning"  # D2 / P4: M5's (every tool step's thought recorded), from studio only
@@ -892,6 +902,10 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
                 "training data too; never mixed into studio, and a frontier model's failed run is in silver_frontier, not here. A run "
                 "with no holdout is sealed when any final of its project ran on a sealed table; a project with no final at all cannot "
                 "be tied to a table, so its split follows its session.",
+        REASONING_FINAL: "The final-turn reasoning set of the workflow LLM: exchanges whose last assistant turn carries the thinking "
+                         "its model recorded when it wrote it; earlier turns are context (weight 0 at export). A clean answerer's only.",
+        REASONING_FINAL_SILVER: "The final-turn reasoning set from a provider's model (Claude): silver, apart, weight 0.5, under "
+                                "provider_outputs' consent; earlier turns are context (weight 0 at export).",
         REASONING: "D2 / P4: the reasoning-only set of the workflow LLM: exchanges whose every assistant turn carries reasoning recorded "
                    "where it was made (the local model's reasoning field sent back on every turn, P1), answered by a clean model only "
                    "(a provider's model's exchanges are evaluation and silver until the owner's D11). Teaches why; the stage sets teach "
@@ -910,7 +924,7 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         examples = keep_sealed(layout, model_type, folder, versions.get(folder, "v1"), examples)
         written[(model_type, folder)] = examples
         sources = {e.provenance.entry: {"entry": e.provenance.entry, "sha256": e.provenance.sha256} for e in examples}
-        silver = folder in ("trajectories/silver_frontier", REASONING_SILVER)
+        silver = folder in ("trajectories/silver_frontier", REASONING_SILVER, REASONING_FINAL_SILVER)
         about = folder_abouts.get(folder) or abouts[model_type]
         m = write_set(layout, model_type, folder, examples, version=versions.get(folder, "v1"), sources=sources.values(),
                       consent=provider_outputs.consent() if silver else "train",  # the owner's decision (provider_outputs.py)
@@ -932,6 +946,11 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
                                                if mt == "m4_workflow_llm" and f != REASONING for e in kept
                                                if all_recorded(e) and e.check.get("model")
                                                and not clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
+    m4_stage = [e for (mt, f), kept in written.items() if mt == "m4_workflow_llm" and not f.startswith("reasoning") for e in kept
+                if final_recorded(e)]
+    write("m4_workflow_llm", REASONING_FINAL, [e for e in m4_stage if clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
+    write("m4_workflow_llm", REASONING_FINAL_SILVER, [e.model_copy(update={"weight": 0.5}) for e in m4_stage if e.check.get("model")
+                                                     and not clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
     write("m5_solver_llm", TRAJECTORIES_REASONING, [e for e in written.get(("m5_solver_llm", "trajectories/studio"), []) if all_recorded(e)])
     return report
 

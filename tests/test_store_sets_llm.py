@@ -205,6 +205,28 @@ class LlmSetsTest(unittest.TestCase):
         self.assertNotIn("maria.lopez", json.dumps(mailed.model_dump(mode="json")))
         self.assertFalse(any("Also write to" in json.dumps(e.model_dump(mode="json")) for e in stage.values() if e.split != "sealed"))
 
+    def test_an_exchange_whose_last_turn_was_thought_on_trains_that_turn(self):
+        """The owner (2026-10-28): every turn a model thought on is kept for training. An agent sends its history back as text,
+        so earlier turns carry no thinking in a later exchange; the final-turn set keeps the exchange for its last turn, the
+        earlier turns as context (weight 0 at export), a provider's model apart as silver."""
+        from dclab_core.store import ChatExample
+        from dclab_rnd.store import export_chat
+        from dclab_rnd.store.sets import llm
+
+        with mock.patch.object(llm, "BENCHMARKS", self.benchmarks):
+            llm.build(self.layout)
+        stage = {e["id"]: ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "plan", "v2")}
+        partial = next(e for e in stage.values() if e.check.get("model") == "qwen3.6:35b-a3b" and e.messages[2].no_reasoning)
+        final = {e["id"] for e in self.examples("m4_workflow_llm", "reasoning/final_turn")}
+        self.assertIn(partial.id, final)  # left out of the all-turns set, kept here for its last turn
+        self.assertTrue(all(llm.final_recorded(stage[i]) for i in final if i in stage))
+        line = export_chat.chat_line(partial, final_only=True)
+        weights = [m["weight"] for m in line["messages"] if m["role"] == "assistant"]
+        self.assertEqual(weights, [0] * (len(weights) - 1) + [1])
+        self.assertNotIn("weight", json.dumps([m for m in export_chat.chat_line(partial)["messages"]]))  # other sets: unchanged
+        silver = [ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "reasoning/final_turn_silver_frontier")]
+        self.assertTrue(all(e.weight == 0.5 and e.check.get("model") for e in silver))
+
 
 if __name__ == "__main__":
     unittest.main()
