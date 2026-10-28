@@ -33,6 +33,7 @@ from dclab_rnd.agents.traces import Tracer
 from . import brief as briefs
 from . import intent as intents
 from . import lang
+from . import memory as memories
 from . import pack as packs
 from . import plan as plans
 from . import workflow as wflow
@@ -735,8 +736,9 @@ class HomeAgent:
     def model_turn(self, draft_id: str, max_replies: int = MODEL_REPLIES, text: str = "") -> None:
         draft = self.store.get(draft_id)
         open_question = self.pending(draft)
-        history = [{"role": "user" if m["role"] == "user" else "assistant", "content": m["text"]} for m in draft["messages"][-12:] if m.get("text")]
-        messages = [{"role": "system", "content": POLICY}, {"role": "system", "content": "Current state: " + self.context(draft)}, *history]
+        # H5: the whole conversation as a summary kept by code, then the last messages in full (was the last 12 only)
+        messages = [{"role": "system", "content": POLICY}, {"role": "system", "content": "Current state: " + self.context(draft)},
+                    *memories.history(draft)]
 
         def on_step(step: Step) -> None:
             # A proposal the guard or the workflow check saw reports its own verdict; one the schema refused does not.

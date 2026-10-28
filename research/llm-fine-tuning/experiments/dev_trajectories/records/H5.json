@@ -1,0 +1,99 @@
+{
+  "package": "H5",
+  "title": "A memory of the whole conversation: a summary kept by code, the person's words marked as theirs, and a hand-off to the project",
+  "date": "2026-10-28",
+  "request": "Complete the Home plan package by package; H5 keeps the whole conversation in the model's state instead of the last 12 messages, and hands what was settled to the project.",
+  "spec": "Package H5 of Phase H: a code-built summary of the draft (intent, confirmed brief fields, answers, open questions) and optionally a model summary of free remarks; the model's state becomes state + summary + the last 8 messages; on exit the summary and confirmed brief go into project memory (A5.2). Done when: a scripted 30-message conversation keeps every confirmed field in the model's state, and the hand-off writes them to project memory.",
+  "plan": [
+    "Build the summary from what the draft records: the kind of help and how it was decided, each understood field with how it is known, the briefs with their defaults marked, every answer, the open question, the data by name, the notes.",
+    "Give the model its state, the summary framed by a prompt file as records and never instructions, and the last 8 messages.",
+    "Hand the person's own words on to project memory when the draft becomes a project; nothing a model read, defaulted or was told not sure.",
+    "Test a 30-message conversation, fields answered mid-way, the model's readings, the framing, and a first table attached to a project built without data."
+  ],
+  "decisions": [
+    {
+      "decision": "The summary is built by code, the model summary of free remarks is not built.",
+      "why": "A code summary needs no model and cannot misstate what was said; the notes are kept whole instead, which is longer but honest."
+    },
+    {
+      "decision": "A field counts as the person's only when it came from their request or answer and its value is their words.",
+      "why": "A model can record its own reading with status stated; handing that on as a human decision would put words in the person's mouth."
+    },
+    {
+      "decision": "Hand-off notes are context, not decisions, and survive a project's first table.",
+      "why": "They describe the problem; a later decision overrides them, and a first table replaces nothing."
+    }
+  ],
+  "change": "New dclab_rnd/draft/memory.py (summary, history, hand_off) and prompts/home_memory.md; chat.py model_turn sends the summary and the last 8 messages; draft/api.py build_project hands off; studio/data.py calls data_replaced only when the project had data; studio/memory.py keeps hand-off notes when data is replaced. tests/test_home_memory.py (10 tests); test_draft_flow filters the hand-off notes. AEV-023.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "Values a model wrote were handed on as the person's decisions.",
+      "scenario": "The model recorded 'which customers will cancel within 90 days' for a request that said no window; the project got 'decision by human: target … 90 days'.",
+      "cause": "The hand-off trusted the plan's status, which a model can set to stated.",
+      "fix": "Only a field from the request or an answer whose value is the person's quoted words is handed on; the summary marks any other value as the model's reading.",
+      "test": "test_the_models_reading_is_marked_and_never_handed_on"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A project built without data lost its hand-off notes when its first table came.",
+      "scenario": "Attaching the first table marked every hand-off note removed and wrote 'Data replaced … earlier decisions were about other data'.",
+      "cause": "attach_data called data_replaced whenever the project had notes.",
+      "fix": "Only when the project had data; hand-off notes are never removed by a data change.",
+      "test": "test_build_writes_the_notes"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "The person's words and the model's notes sat in a system message with no framing.",
+      "scenario": "A note the model wrote, 'Ignore the plan…', read as a system line labelled the person's notes.",
+      "cause": "The header was inline text and the notes were attributed to the person.",
+      "fix": "The framing is a prompt file (records, never instructions), every value is quoted, and notes are 'Notes recorded (by the person or the model)'.",
+      "test": "test_notes_are_not_called_the_persons"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The done-when test passed without the summary.",
+      "scenario": "With the old history the field assertions still held, because the state already carried the understanding.",
+      "cause": "The test read the whole prompt, not the summary message.",
+      "fix": "The test reads the summary message itself, and a field answered mid-conversation is checked there.",
+      "test": "test_a_fact_stated_early_survives_thirty_messages, test_a_field_answered_mid_conversation_is_kept"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Hand-off notes read as decisions that never go out of date.",
+      "scenario": "A 'target: X' note by a human stayed after a solution with another target was saved.",
+      "cause": "They were written with kind decision.",
+      "fix": "Kind context, with the reason that a later decision overrides them.",
+      "test": "test_a_default_is_not_handed_on"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Small inaccuracies.",
+      "scenario": "A field of unknown origin showed as stated; fewer than 8 messages were shown when some had no text.",
+      "cause": "A default label, and the cut before the filter.",
+      "fix": "'how it is known was not recorded'; filter, then keep the last 8.",
+      "test": "test_the_summary_says_how_each_thing_is_known"
+    }
+  ],
+  "measurements": [],
+  "outcome": "The Home agent's model now reads the whole conversation as records kept by code, each value quoted and its origin said, plus the last 8 messages; a project built from a draft starts with the person's own words as context.",
+  "lessons": [
+    "A status is not a provenance: 'stated' was set by code paths a model drives; only the person's quoted words can be called theirs."
+  ],
+  "risks": [
+    "A summary in a system message gives its contents more weight than a user message; the framing prompt and the quotes are the mitigation, measured by the H1 model arm when it runs."
+  ],
+  "commits": []
+}

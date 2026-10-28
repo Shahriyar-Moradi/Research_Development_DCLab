@@ -326,11 +326,12 @@ def attach_data(store, project_id: str, filename: str, source: dict[str, Any] | 
             except Exception:  # noqa: BLE001 — a leftover the storage never recorded: just remove the file
                 old.unlink(missing_ok=True)
     project = store.get(project_id)
+    had_data = bool(project.get("data"))  # a project's first table replaces nothing
     project["data"] = {"filename": filename, "rows": int(len(frame)), "columns": [str(c) for c in frame.columns],
                        "sha256": stored["sha256"], "profile": profile_table(frame)}
     project["solution"], project["proposal"], project["suggestion"] = None, None, None
     project["labels"] = None  # its file was removed with the old table, and it was keyed on that table
-    if project.get("memory"):
+    if project.get("memory") and had_data:
         from . import memory
         memory.data_replaced(project, filename)  # A5.2: what the notes settled was about the old table
     store.save(project)

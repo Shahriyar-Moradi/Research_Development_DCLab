@@ -667,6 +667,9 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
     project["draft"] = {"id": draft_id, "problem": draft["problem"], "pack": draft.get("pack"), "understanding": u, "settings": draft.get("settings"),
                         "workflow": draft.get("workflow"), "cleaning_log": draft.get("cleaning_log"),
                         "synthetic": bool(asset and asset.get("synthetic"))}
+    from . import memory as draft_memory
+
+    draft_memory.hand_off(project, draft)  # H5: what the conversation settled becomes the project's memory (A5.2)
     projects.save(project)
     projects.log(pid, "built_from_draft", {"draft": draft_id, "rows": (project.get("data") or {}).get("rows")})
     if draft.get("solution") and project.get("data"):

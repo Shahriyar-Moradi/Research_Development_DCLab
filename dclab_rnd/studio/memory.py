@@ -112,7 +112,7 @@ def data_replaced(project: dict[str, Any], filename: str, who: str = "human") ->
     """New data clears the solution and every stage, so what the notes settled no longer holds: each active note is
     marked removed by the system (kept, with the reason), and one note says what happened."""
     for note in project.get("memory") or []:
-        if not note.get("removed"):
+        if not note.get("removed") and note.get("move") != "home_handoff":  # the conversation's notes describe the problem, not the table
             note["removed"] = {"at": now(), "by": "system", "reason": "the data was replaced: the solution and every stage were cleared"}
     project.pop("solution_saved_by", None)
     add(project, "decision", f"Data replaced with {filename}; the solution and every stage were cleared", "Earlier decisions were about other data", who, "attach_data")
