@@ -1,0 +1,95 @@
+{
+ "package": "dclab-code-v1.57",
+ "title": "HyperAck live through the chat after H3.1, an Agent SDK billing block diagnosed, and an OpenMP hang fixed",
+ "date": "2026-10-28",
+ "request": "Owner: the app works; credit added; run the live HyperAck check through the chat (cap $1). Later: write a simple script that uses the API, show the code, test it together.",
+ "spec": "dclab-code docs/PARITY_PLAN.md (real-use pass); R&D H3.1 (ecae6364); agent_runs/live_tests/2026-10-28-dclab-code-hyperack-rerun/",
+ "plan": [
+  "probe the key before spending: plain request vs a request that identifies as the Agent SDK",
+  "when blocked, diagnose and hand the owner exact steps and request ids, never route around a billing rule",
+  "write a small key-check script the owner can run",
+  "once unblocked, run hyper.py through DCLab Code with a scripted 'use your recommendation' person",
+  "fix what the run finds, with a failing test first"
+ ],
+ "decisions": [
+  {
+   "decision": "never change the chat's system prompt to avoid the Agent SDK refusal",
+   "why": "that would dodge a billing rule; the owner settles it with Anthropic"
+  },
+  {
+   "decision": "give the owner a 40-line stdlib script that prints only the key's last 4 characters",
+   "why": "the owner wanted to see and run the test themselves; the key must never reach the chat"
+  },
+  {
+   "decision": "recover the frozen project by restarting R&D's server with OMP_NUM_THREADS=1 and rerunning models then final",
+   "why": "the holdout had not been read yet, so one honest read remained"
+  },
+  {
+   "decision": "fix the hang in DCLab Code's child environment, keeping a person's own OMP_NUM_THREADS",
+   "why": "R&D's tests already run with one OpenMP thread; the server DCLab Code starts did not"
+  }
+ ],
+ "change": "dclab-code 376b166 (one OpenMP thread for R&D's server, test, parity plan); R&D run notes and check_key.py in agent_runs (gitignored).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "every Agent SDK request refused with 'credit balance is too low' while plain requests on the same key worked",
+   "scenario": "DCLab Code's chat on the owner's key; curl with the Agent SDK system line refused, without it ok; same key, same workspace, seconds apart",
+   "cause": "on Anthropic's side (account billing for Agent SDK traffic); not the key, the prefix, the workspace or the org: six keys and two workspaces behaved the same; resolved by Anthropic later the same evening",
+   "fix": "none in code; the owner was guided to support with request ids and a key-check script",
+   "test": "check_key.py: #2 turned from REFUSED to WORKS once Anthropic fixed it",
+   "severity": "gap"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "defect": "R&D's models stage froze at 0% CPU in the server DCLab Code starts",
+   "scenario": "live HyperAck: models stage 'running' 15 min, intern heartbeat stale; macOS sample: two libomp copies (miniconda via PyTorch, Homebrew via LightGBM), all OpenMP threads at a fork barrier",
+   "cause": "two OpenMP runtimes in one process; R&D's tests and runners set OMP_NUM_THREADS=1, the DCLab Code child environment did not",
+   "fix": "childEnv sets OMP_NUM_THREADS=1 unless the person set it; the stuck project rerun: models in 30 s",
+   "test": "units.test.js: one thread by default on both paths, the person's value wins (55/55 pass)",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "defect": "my diagnoses along the way were wrong twice (the sk-ant-usr- prefix; 'the SDK credit is spent') and one curl test gave a false 'ok' from a mangled string",
+   "scenario": "the owner made new keys on my advice",
+   "cause": "guessing from one signal; shell quoting",
+   "fix": "stated as unproven, corrected in notes and memory; the script replaces ad hoc curl",
+   "test": "check_key.py",
+   "severity": "latent"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "HyperAck live through the chat after H3.1",
+   "gate": "Home asks about the statistics-only column; 'use your recommendation' keeps it only when the reviewer names the moment; the fares stay out; the holdout read once near 0.945",
+   "fixed_before_run": true,
+   "result": "asked with the reviewer's words; kept; fares out; holdout ROC-AUC 0.934 (0.923 to 0.946), 2,219 rows, CV 0.894; Claude reported it with its limits; $0.46",
+   "verdict": "pass"
+  },
+  {
+   "name": "DCLab Code unit tests",
+   "gate": "every unit test passes, the new OpenMP checks included",
+   "fixed_before_run": true,
+   "result": "55/55",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "DCLab Code's chat carried the owner's HyperAck table live to an honest 0.934, with the fixed Home asking the right question; a hang that would hit any DCLab Code user on a Mac with both PyTorch and LightGBM is fixed.",
+ "lessons": [
+  "Compare two requests that differ in one thing: it separated a billing rule from a key problem in one run.",
+  "A stage at 0% CPU is waiting, not working: sample the process before blaming the data.",
+  "Say a diagnosis is a guess until a test proves it; a wrong confident answer costs the owner real work."
+ ],
+ "risks": [
+  "One OpenMP thread makes large model stages slower in DCLab Code's server.",
+  "R&D's own server started by hand (make notebook) can still load two OpenMP runtimes; not changed here.",
+  "The intern job left running by the restart stays 'running' until the worker recovers it."
+ ],
+ "commits": [
+  "dclab-code 376b166"
+ ]
+}
