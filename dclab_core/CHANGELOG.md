@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.131.1 (2026-10-28)
+
+- `from dclab_core import query` as a program's first import works again: `contracts` imported `query` while it was
+  loading and then `recipe`, whose `from dclab_core.query import Filter` found no `Filter` yet (ImportError, and
+  `tests/test_home_chart.py` failed on its own). `query` now imports `recipe`, `change` and `dashboard` at its end; no
+  contract or schema changed.
+
 ## 0.131.0 (2026-10-28)
 
 - `dashboard` (H10 of the Home plan): KPIs and dashboards on a person's table. A `Kpi` is a named

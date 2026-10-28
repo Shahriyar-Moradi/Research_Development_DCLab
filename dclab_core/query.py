@@ -275,3 +275,10 @@ def exposure(plan: QueryPlan) -> dict[str, Any]:
 
 
 __all__ = ["QueryPlan", "QueryResult", "Filter", "Period", "Measure", "Sort", "validate", "execute", "exposure", "plan_hash", "FLOOR"]
+
+# The contracts that read this module's names, registered once it is complete: imported here rather than by
+# contracts.py, so `from dclab_core import query` as a program's first import works (contracts.py imports this module
+# while it is still loading, and recipe's `from dclab_core.query import Filter` would find no Filter yet).
+import dclab_core.recipe  # noqa: E402,F401  (a table prepared step by step, the original never changed, H9)
+import dclab_core.change  # noqa: E402,F401  (why a number changed between two periods, H11)
+import dclab_core.dashboard  # noqa: E402,F401  (KPIs and dashboards on a person's table, H10)

@@ -23,7 +23,7 @@
       "why": "Each is a design choice or another package's record that this review cannot write faithfully."
     }
   ],
-  "change": "dclab_rnd/home_query.py model_text(plan); dclab_rnd/draft/chat.py: the answer, the decision brief and export_data carry model_text, the compare tool uses is_text; dclab_rnd/draft/business.py: the year of the period asked about when only the baseline has one, is_text; dclab_rnd/draft/prepare.py: is_text in the value lookup and the formula guard. Tests in test_model_data_limits, test_home_answer, test_home_business, test_home_prepare.",
+  "change": "dclab_rnd/home_query.py model_text(plan); dclab_rnd/draft/chat.py: the answer, the decision brief and export_data carry model_text, the compare tool uses is_text; dclab_rnd/draft/business.py: the year of the period asked about when only the baseline has one, is_text; dclab_rnd/draft/prepare.py: is_text in the value lookup and the formula guard. Tests in test_model_data_limits, test_home_answer, test_home_business, test_home_prepare. dclab_core/query.py and contracts.py: the import order (0.131.1, CHANGELOG, data catalog); tests/test_agents_runtime.py: the draft tools.",
   "findings": [
     {
       "id": "F1",
@@ -74,10 +74,30 @@
       "cause": "dtype == object finds no text column on pandas 3, where text is the string type.",
       "fix": "dclab_core.times.is_text in business.py, prepare.py and the compare tool.",
       "test": "test_home_business and test_home_prepare on pandas 3"
+    },
+    {
+      "id": "F6",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "from dclab_core import query as a program's first import raised ImportError.",
+      "scenario": "test_home_chart, test_home_query, test_home_notebook and test_core_query failed when run on their own; a host importing the query engine first could not load it.",
+      "cause": "contracts imported query while query was still loading, then recipe, whose from dclab_core.query import Filter found no Filter yet.",
+      "fix": "query imports recipe, change and dashboard at its end; contracts imports query only (dclab-core 0.131.1, no contract or schema changed).",
+      "test": "test_every_table_module_imports_first (a fresh interpreter per module)"
+    },
+    {
+      "id": "F7",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The registry test still listed the draft tools before H7c, H9b and H11b.",
+      "scenario": "test_every_tool_is_registered_once_and_well_formed failed on main with eight tools it did not know.",
+      "cause": "The packages that added the tools did not update the test's expected set.",
+      "fix": "The expected set names every draft tool with the package that added it.",
+      "test": "test_every_tool_is_registered_once_and_well_formed"
     }
   ],
   "measurements": [],
-  "outcome": "Home's model reads what an answer, a brief or an export computed and never its values; the period of a business question is the one the person meant; the new Home code works on pandas 3 as the rest of the repository does.",
+  "outcome": "Home's model reads what an answer, a brief or an export computed and never its values; the period of a business question is the one the person meant; the new Home code works on pandas 3 as the rest of the repository does. The query engine imports first in any program, and the registry test knows every draft tool.",
   "lessons": [
     "A tool that returns nothing still tells the model everything if the chat history carries the person's view.",
     "A check written as dtype == object is a pandas 2 check."

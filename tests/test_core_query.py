@@ -202,3 +202,17 @@ class ReviewOfH6Tests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ImportOrderTests(unittest.TestCase):
+    """The review of 2026-10-28: `from dclab_core import query` first raised ImportError (contracts imported query while
+    it was loading, then recipe, which read query's Filter). Every module a host may import first, in a fresh interpreter."""
+
+    def test_every_table_module_imports_first(self):
+        import subprocess
+        for name in ("query", "recipe", "change", "dashboard", "contracts"):
+            done = subprocess.run([sys.executable, "-c", f"from dclab_core import {name}; from dclab_core.contracts import CONTRACTS; "
+                                   "assert {'query_plan', 'recipe', 'change_result', 'dashboard'} <= set(CONTRACTS)"],
+                                  cwd=str(ROOT), capture_output=True, text=True, timeout=120)
+            self.assertEqual(done.returncode, 0, f"{name}: {done.stderr[-400:]}")
+
