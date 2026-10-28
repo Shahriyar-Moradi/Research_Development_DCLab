@@ -95,6 +95,10 @@
    *  @property {*=} message
    *  @property {*=} source
    */
+  /** @typedef {Object} MemoryRetirement
+   *  @property {*=} reason
+   *  @property {*=} project_id
+   */
   /** @typedef {Object} MemoryReview
    *  @property {*=} action
    *  @property {*=} text
@@ -343,6 +347,7 @@
     memoryView: ["GET", "/memory", [], ["project_id"]],
     memoryPropose: ["POST", "/memory/proposals", [], []],
     memoryCorrect: ["POST", "/memory/{item_id}/correct", ["item_id"], []],
+    memoryRetire: ["POST", "/memory/{item_id}/retire", ["item_id"], []],
     memoryReview: ["POST", "/memory/{item_id}/review", ["item_id"], []],
     modelOverview: ["GET", "/models", [], []],
     agentServing: ["GET", "/models/agents", [], []],
@@ -1080,6 +1085,12 @@
    *  @returns {Promise<MemoryItemDoc>} */
   client.memoryCorrect = (...args) => call('memoryCorrect', args);
   client.path.memoryCorrect = (...args) => build('memoryCorrect', args).path;
+  /** POST /api/memory/{item_id}/retire: Memory Retire
+   *  @param {string} item_id
+   *  @param {{body: MemoryRetirement, headers?: Object}} [opts]
+   *  @returns {Promise<MemoryItemDoc>} */
+  client.memoryRetire = (...args) => call('memoryRetire', args);
+  client.path.memoryRetire = (...args) => build('memoryRetire', args).path;
   /** POST /api/memory/{item_id}/review: Memory Review
    *  @param {string} item_id
    *  @param {{body: MemoryReview, headers?: Object}} [opts]

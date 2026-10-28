@@ -304,13 +304,24 @@ DC.view('project', {
       if (!items.length) DC.states.empty(body, 'Nothing remembered yet. Saving the solution and approving stages leave notes here.', { cols: 5 });
       else body.innerHTML = items.map(i => `<tr><td>${esc(KIND[i.kind] || i.kind)}${i.correction ? ' <span class="pill ok xs">correction</span>' : ''}</td><td class="small">${esc(i.scope)}</td>`
         + `<td>${esc(i.text)}</td><td class="mono xs">${esc(i.source)}</td>`
-        + `<td><button type="button" class="btn xs" data-mem-correct="${esc(i.id)}" data-kind="${esc(i.kind)}">Correct</button></td></tr>`).join('');
+        + `<td class="row"><button type="button" class="btn xs" data-mem-correct="${esc(i.id)}" data-kind="${esc(i.kind)}">Correct</button>`
+        + `<button type="button" class="btn xs" data-mem-retire="${esc(i.id)}" data-kind="${esc(i.kind)}">Retire</button></td></tr>`).join('');
       $('#proj-memory-drafts-panel', el).hidden = !waiting.length;
       drafts.innerHTML = waiting.map(i => `<tr><td>${esc(KIND[i.kind] || i.kind)}</td><td>${esc(i.text)}</td><td class="mono xs">${esc(i.source)}</td>`
         + `<td class="row"><button type="button" class="btn xs primary" data-mem-review="accept" data-id="${esc(i.id)}">Accept</button>`
         + `<button type="button" class="btn xs" data-mem-review="reject" data-id="${esc(i.id)}">Reject</button></td></tr>`).join('');
     }
     $('#proj-memory-role', el).addEventListener('change', () => loadMemory());
+    $('#proj-memory', el).addEventListener('click', async e => {  // 35.7: retire a line with no replacement (kept in the log)
+      const b = e.target.closest('[data-mem-retire]'); if (!b) return;
+      if (b.dataset.kind === 'know_how' && !memRole()['X-DCLab-Role']) { toast('Know-how is retired by a reviewer: tick the box above first.', { ok: false }); return; }
+      const reason = window.prompt('Why retire this line? Agents stop reading it; it stays in the history.');
+      if (reason === null) return;
+      b.disabled = true;
+      try { await DC.client.memoryRetire(b.dataset.memRetire, { headers: memRole(), body: { reason: reason.trim(), project_id: REAL[proj].id } }); toast('Retired: later sessions no longer read it.'); }
+      catch (err) { toast(err.message || 'Retiring was refused.', { ok: false }); }
+      finally { loadMemory(); }
+    });
     $('#proj-memory', el).addEventListener('click', async e => {
       const b = e.target.closest('[data-mem-correct]'); if (!b) return;
       if (b.dataset.kind === 'know_how' && !memRole()['X-DCLab-Role']) { toast('Know-how is corrected by a reviewer: tick the box above first.', { ok: false }); return; }

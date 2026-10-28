@@ -1,0 +1,21 @@
+{
+ "package": "35.7 memory retire",
+ "title": "A person retires a remembered line from the project page",
+ "date": "2026-10-28",
+ "request": "The owner: continue by priority until tonight's full gate; 35.7 left retire from the page open.",
+ "spec": "MEMORY_PLAN.md 35.7: the person sees and corrects what is remembered; retiring a line from the page was left open.",
+ "plan": ["Read the correction route and its rules", "A forget function beside correct", "The route, its test and its route-list line",
+          "The Retire button, the frontend rebuilt, the browser check"],
+ "decisions": [
+  {"decision": "Retiring keeps the line in the log", "why": "the store never deletes; retired lines are only never read again"},
+  {"decision": "A line read where it lives is retired there", "why": "project notes and accepted lessons belong to their own stores"},
+  {"decision": "Know-how needs the reviewer role, as for a correction", "why": "reviewed knowledge is changed only by a reviewer"}
+ ],
+ "change": "dclab_rnd/memory/writing.py (forget), dclab_rnd/agentic/routers/memory.py (retire route), api_models.py, web/src/views/project.html (Retire button), the generated frontend, tests/test_memory_writing.py, tests/test_experience_log.py, MEMORY_PLAN 35.7 status.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "A person can retire a remembered line from the project page: agents stop reading it, the log keeps it, know-how needs a reviewer.",
+ "lessons": ["A delete in the product is a retirement in the store."],
+ "risks": ["The owner still cannot see other people's person lines."],
+ "commits": []
+}

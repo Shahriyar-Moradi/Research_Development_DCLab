@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import Depends, HTTPException, Request
 
 from ...memory import Refused, latest, open_memory, readers, view, writing
-from ..api_models import MemoryCorrection, MemoryItemDoc, MemoryProposal, MemoryReview, MemoryView, Router
+from ..api_models import MemoryCorrection, MemoryItemDoc, MemoryProposal, MemoryRetirement, MemoryReview, MemoryView, Router
 from ..services import Services, services
 from .intern import declared_role
 
@@ -82,6 +82,25 @@ async def memory_correct(item_id: str, body: MemoryCorrection, request: Request,
         raise HTTPException(422, str(exc)) from None
     _audit(s, request, "memory_correct", {"item": item_id, "by_item": fixed.id, "scope": fixed.scope}, str(body.reason or ""))
     return fixed.model_dump(exclude={"vector"})
+
+
+@router.post("/api/memory/{item_id}/retire", response_model=MemoryItemDoc)
+async def memory_retire(item_id: str, body: MemoryRetirement, request: Request, s: Services = Depends(services)):
+    """35.7: a person retires a stored line their agents see, with no replacement (kept in the log, never shown again)."""
+    store = open_memory(s.store.home)
+    project_id = str(body.project_id) if body.project_id else None
+    seen = {i.id: i for i in view(store, _chain(s, project_id), _read(s, project_id))}  # only what this person's agents see
+    old = seen.get(item_id)
+    if old is None:
+        raise HTTPException(404, "No such item in what you see (a draft is reviewed, not retired)")
+    try:
+        gone = writing.forget(store, old, by=_person(), role=declared_role(request), reason=str(body.reason or ""), log=s.experience)
+    except PermissionError as exc:
+        raise HTTPException(403, str(exc)) from None
+    except (Refused, writing.ReviewError, ValueError) as exc:
+        raise HTTPException(422, str(exc)) from None
+    _audit(s, request, "memory_retire", {"item": item_id, "scope": gone.scope}, str(body.reason or ""))
+    return gone.model_dump(exclude={"vector"})
 
 
 @router.post("/api/memory/{item_id}/review", response_model=MemoryItemDoc)

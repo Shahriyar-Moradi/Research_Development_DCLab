@@ -258,6 +258,34 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(c.post("/api/memory/M-000000000000/review", json={"action": "accept"}).status_code, 404)
 
 
+    def test_a_line_retired_on_the_page_is_never_read_again_and_stays_in_the_log(self):
+        """35.7: retire with no replacement: gone from the brief and the page, kept in the log; know-how needs a reviewer;
+        a line read where it lives (a project's notes) is retired there, not here."""
+        from types import SimpleNamespace
+
+        from dclab_rnd.memory import reading
+        from dclab_rnd.memory.tools import chain
+
+        c = self.client
+        project = c.post("/api/projects", json={"name": "Memory retire"}).json()
+        store = store_mod.open_memory(self.home)
+        fact = w.record_fact(store, scope="project", scope_id=project["id"], text="The churn window is ninety days.", source="test:retire",
+                             who="agent:intern", at=AT)
+        done = c.post(f"/api/memory/{fact.id}/retire", json={"reason": "no longer true", "project_id": project["id"]})
+        self.assertEqual((done.status_code, done.json()["status"]), (200, "retired"), done.text)
+        text = reading.brief(store_mod.open_memory(self.home), chain(SimpleNamespace(workspace_id=None), project["id"])).text
+        self.assertNotIn("ninety days", text)
+        self.assertNotIn(fact.id, [i["id"] for i in c.get("/api/memory", params={"project_id": project["id"]}).json()["items"]])
+        self.assertIn(fact.id, [i.id for i in store_mod.open_memory(self.home).log()])  # kept, never deleted
+        self.assertEqual(c.post(f"/api/memory/{fact.id}/retire", json={"project_id": project["id"]}).status_code, 404)  # no longer seen
+
+        know = w.draft_know_how(store, scope="workspace", scope_id="local", text="Sort by time before a rolling mean.", source="test:retire",
+                                who="agent:reflector", at=AT)
+        role = {"X-DCLab-Role": "reviewer", **self.client.headers}
+        self.assertEqual(c.post(f"/api/memory/{know.id}/review", json={"action": "accept"}, headers=role).status_code, 200)
+        self.assertEqual(c.post(f"/api/memory/{know.id}/retire", json={"project_id": project["id"]}).status_code, 403)
+        self.assertEqual(c.post(f"/api/memory/{know.id}/retire", json={"project_id": project["id"]}, headers=role).status_code, 200)
+
     def test_a_correction_on_the_page_is_the_next_brief_and_know_how_needs_the_declared_role(self):
         """35.7: the page's calls, with exactly the headers it sends: an edit there is what the next agent reads."""
         from types import SimpleNamespace

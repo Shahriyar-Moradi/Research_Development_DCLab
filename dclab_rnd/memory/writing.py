@@ -155,4 +155,23 @@ def correct(store: MemoryStore, old: MemoryItem, text: Any, *, by: str, role: st
     return fixed
 
 
-__all__ = ["REVIEWERS", "ReviewError", "first_line", "record_fact", "draft_know_how", "propose_preference", "review", "correct"]
+def forget(store: MemoryStore, old: MemoryItem, *, by: str, role: str | None = None, reason: str = "", log: Any = None) -> MemoryItem:
+    """A person retires a stored, active line with no replacement (35.7): kept in the log, never deleted, never shown
+    again. A line read where it lives (a project's notes, an accepted lesson) is retired there, not here; know-how needs a
+    reviewer, as for a correction."""
+    if old.status != "active":
+        raise ReviewError("only an active item is retired; a draft is reviewed")
+    if old.kind == "know_how" and role not in REVIEWERS:
+        raise PermissionError("know-how is retired by a reviewer or the owner")
+    held = next((v for v in latest(store.log()) if v.id == old.id), None)
+    if held is None:
+        raise ReviewError("this line is read where it lives (a project's notes or an accepted lesson): retire it there")
+    if held.status == "retired":
+        return held
+    gone = retire(held)
+    store.write(gone)
+    event(log, "memory.retired", held, reason=reason or "retired by a person", by=f"person:{by}")
+    return gone
+
+
+__all__ = ["REVIEWERS", "ReviewError", "first_line", "record_fact", "draft_know_how", "propose_preference", "review", "correct", "forget"]

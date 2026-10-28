@@ -263,8 +263,10 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
   read (with each line's source), corrects a line, and accepts or rejects drafts. Know-how is reviewed and corrected only
   after the person declares the reviewer role on the page (as lessons are, until accounts exist). `make browser-test`'s
   `memory` check corrects a line on the page and reads it back from the API, at 1280 and 375 px; an API test shows the
-  corrected line is the next brief's text. Not built: the owner seeing other people's person lines, and edit or retire
-  from the page (a correction replaces a line; a draft is accepted or rejected).
+  corrected line is the next brief's text. Retire from the page added 2026-10-28 (`POST /api/memory/{id}/retire`,
+  `writing.forget`): a stored line retired with no replacement, kept in the log and never read again; know-how needs the
+  reviewer role; a line read where it lives (a project's notes, an accepted lesson) is retired there. Not built: the
+  owner seeing other people's person lines.
 
 ### 35.8 Does memory help?
 

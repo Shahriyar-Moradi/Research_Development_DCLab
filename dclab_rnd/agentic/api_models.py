@@ -274,6 +274,11 @@ class MemoryCorrection(Doc):
     project_id: Any = None
 
 
+class MemoryRetirement(Doc):
+    reason: Any = None
+    project_id: Any = None
+
+
 class MemoryReview(Doc):
     action: Any = ""
     text: Any = None
