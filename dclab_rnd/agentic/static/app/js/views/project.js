@@ -289,6 +289,45 @@ DC.view('project', {
         DC.hydrate($('#validator-out', el));
       } catch (e) { $('#validator-out', el).innerHTML = `<div class="callout bad"><span class="ic">${icon('alert')}</span><span>${esc(e.message)}</span></div>`; }
     }
+    /* ---------- 35.7: what this project's agents remember ---------- */
+    const KIND = { fact: 'Fact', episode: 'Happened', know_how: 'Know-how', knowledge: 'Knowledge' };
+    const memRole = () => (($('#proj-memory-role', el) || {}).checked ? { 'X-DCLab-Role': 'reviewer' } : {});
+    async function loadMemory() {
+      const body = $('#proj-memory', el), drafts = $('#proj-memory-drafts', el), panel = $('#proj-memory-drafts-panel', el);
+      if (!isReal(proj)) { DC.states.empty(body, 'Open a project of yours: memory belongs to real projects.', { cols: 5 }); panel.hidden = true; return; }
+      const want = proj;
+      let r;
+      try { r = await DC.client.memoryView({ query: { project_id: REAL[want].id }, headers: memRole(), quiet: true }); }
+      catch (e) { if (want !== proj) return; panel.hidden = true; DC.states.failed(body, e, { retry: loadMemory, cols: 5 }); return; }
+      if (want !== proj) return;  /* the person opened another project meanwhile: this answer is not its memory */
+      const items = r.items || [], waiting = r.drafts || [];
+      if (!items.length) DC.states.empty(body, 'Nothing remembered yet. Saving the solution and approving stages leave notes here.', { cols: 5 });
+      else body.innerHTML = items.map(i => `<tr><td>${esc(KIND[i.kind] || i.kind)}${i.correction ? ' <span class="pill ok xs">correction</span>' : ''}</td><td class="small">${esc(i.scope)}</td>`
+        + `<td>${esc(i.text)}</td><td class="mono xs">${esc(i.source)}</td>`
+        + `<td><button type="button" class="btn xs" data-mem-correct="${esc(i.id)}" data-kind="${esc(i.kind)}">Correct</button></td></tr>`).join('');
+      $('#proj-memory-drafts-panel', el).hidden = !waiting.length;
+      drafts.innerHTML = waiting.map(i => `<tr><td>${esc(KIND[i.kind] || i.kind)}</td><td>${esc(i.text)}</td><td class="mono xs">${esc(i.source)}</td>`
+        + `<td class="row"><button type="button" class="btn xs primary" data-mem-review="accept" data-id="${esc(i.id)}">Accept</button>`
+        + `<button type="button" class="btn xs" data-mem-review="reject" data-id="${esc(i.id)}">Reject</button></td></tr>`).join('');
+    }
+    $('#proj-memory-role', el).addEventListener('change', () => loadMemory());
+    $('#proj-memory', el).addEventListener('click', async e => {
+      const b = e.target.closest('[data-mem-correct]'); if (!b) return;
+      if (b.dataset.kind === 'know_how' && !memRole()['X-DCLab-Role']) { toast('Know-how is corrected by a reviewer: tick the box above first.', { ok: false }); return; }
+      const text = window.prompt('The corrected line (one line, no table values, no keys):');
+      if (!text || !text.trim()) return;
+      b.disabled = true;
+      try { await DC.client.memoryCorrect(b.dataset.memCorrect, { headers: memRole(), body: { text: text.trim(), project_id: REAL[proj].id } }); toast('Corrected: later sessions read the new line.'); }
+      catch (err) { toast(err.message || 'The correction was refused.', { ok: false }); }
+      finally { loadMemory(); }
+    });
+    $('#proj-memory-drafts', el).addEventListener('click', async e => {
+      const b = e.target.closest('[data-mem-review]'); if (!b) return;
+      $$('[data-mem-review]', b.closest('tr')).forEach(x => { x.disabled = true; });  /* one answer per draft */
+      try { await DC.client.memoryReview(b.dataset.id, { headers: memRole(), body: { action: b.dataset.memReview } }); toast(b.dataset.memReview === 'accept' ? 'Accepted: agents read it from now on.' : 'Rejected: kept in the record, never shown.'); }
+      catch (err) { toast(err.message || 'The review was refused.', { ok: false }); }
+      finally { loadMemory(); }
+    });
     /* ---------- 25.6: Claude beside DCLab on this project ---------- */
     async function loadTwin() {
       const body = $('#proj-twin-runs', el);
@@ -388,7 +427,7 @@ DC.view('project', {
       if (isReal(p)) { realValidator(); drawRealVerdict(); DC.setProjectLabel && DC.setProjectLabel(P[p].title); }
       else { $('#move-select', el).innerHTML = SAMPLE_MOVES; delete $('#move-select', el).dataset.real; drawValidator(); DC.setProjectLabel && DC.setProjectLabel(P[p].title + ' · sample'); }
       drawStats(); drawGraph(); drawLog(); drawNode(keepStep && selected ? selected : P[p].current); drawTeam(); DC.hydrate(el);
-      loadTwin();
+      loadTwin(); loadMemory();
     }
     this.setProject = setProject; this.openReal = openReal; this.switcher = switcher;
     const SAMPLE_MOVES = $('#move-select', el).innerHTML;

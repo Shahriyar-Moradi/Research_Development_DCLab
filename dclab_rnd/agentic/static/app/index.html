@@ -545,6 +545,20 @@
     </div>
   </div>
 
+  <div class="pane" data-pane="memory" data-label="Memory">
+    <p class="pane-intro">What this project's agents remember: its notes, your workspace's accepted lessons, and what you and this workspace told DCLab. Each line says where it came from. A correction replaces a line for every later session; nothing is deleted.</p>
+    <div class="panel" data-f="proj.memory">
+      <div class="panel-head"><div class="panel-title"><h2>Remembered here</h2><span class="sub">Corrections first, then the narrower scope, then the newest: the order an agent reads them in.</span></div>
+        <label class="row small"><input type="checkbox" id="proj-memory-role"> I review know-how as the workspace's reviewer</label></div>
+      <p class="xs muted">Know-how is reviewed and corrected by a reviewer. Until accounts exist, the role is the one you declare here; the audit trail records it.</p>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>What</th><th>Scope</th><th>Line</th><th>From</th><th></th></tr></thead><tbody id="proj-memory"></tbody></table></div>
+    </div>
+    <div class="panel" id="proj-memory-drafts-panel" hidden>
+      <div class="panel-head"><div class="panel-title"><h3>Waiting for you</h3><span class="sub">Know-how an agent drafted, or a preference you said in a chat. A draft is never shown to an agent until it is accepted.</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>What</th><th>Line</th><th>From</th><th></th></tr></thead><tbody id="proj-memory-drafts"></tbody></table></div>
+    </div>
+  </div>
+
   <div class="pane" data-pane="log" data-label="Transition log">
     <p class="pane-intro">Pick a step in the strip to see it on the graph. Every row below is a move: who proposed it, what checked it, and the evidence it carried.</p>
     <div class="wf-rail" id="wf-rail" data-f="proj.stages"></div>

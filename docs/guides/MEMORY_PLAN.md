@@ -259,6 +259,13 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
   where each item came from, edit, correct, retire; the owner sees every scope, a person their own.
 - **Done when:** `make browser-test` covers it at 1280 and 375 px; an edit made there is the next brief's text.
 
+- **Status (2026-10-28): built and reviewed, narrower than planned.** The project page's Memory tab lists what its agents
+  read (with each line's source), corrects a line, and accepts or rejects drafts. Know-how is reviewed and corrected only
+  after the person declares the reviewer role on the page (as lessons are, until accounts exist). `make browser-test`'s
+  `memory` check corrects a line on the page and reads it back from the API, at 1280 and 375 px; an API test shows the
+  corrected line is the next brief's text. Not built: the owner seeing other people's person lines, and edit or retire
+  from the page (a correction replaces a line; a draft is accepted or rejected).
+
 ### 35.8 Does memory help?
 
 - **Delivers:** paired dev journeys, memory on against off, the same people and the same order (a second session on a

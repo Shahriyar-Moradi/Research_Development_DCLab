@@ -258,5 +258,37 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(c.post("/api/memory/M-000000000000/review", json={"action": "accept"}).status_code, 404)
 
 
+    def test_a_correction_on_the_page_is_the_next_brief_and_know_how_needs_the_declared_role(self):
+        """35.7: the page's calls, with exactly the headers it sends: an edit there is what the next agent reads."""
+        from types import SimpleNamespace
+
+        from dclab_rnd.memory import reading
+        from dclab_rnd.memory.tools import chain
+
+        c = self.client
+        project = c.post("/api/projects", json={"name": "Memory page"}).json()
+        store = store_mod.open_memory(self.home)
+        fact = w.record_fact(store, scope="project", scope_id=project["id"], text="The holdout is the last two weeks.", source="test:page",
+                             who="agent:intern", at=AT)
+        fixed = c.post(f"/api/memory/{fact.id}/correct", json={"text": "The holdout is the last four weeks.", "project_id": project["id"]})
+        self.assertEqual(fixed.status_code, 200, fixed.text)
+        agent_chain = chain(SimpleNamespace(workspace_id=None), project["id"])  # the chain the intern reads with
+        text = reading.brief(store_mod.open_memory(self.home), agent_chain).text
+        self.assertIn("(correction) The holdout is the last four weeks.", text)
+        self.assertNotIn("last two weeks", text)
+
+        know = w.draft_know_how(store, scope="workspace", scope_id="local", text="Read the row count after every join.", source="test:page",
+                                who="agent:reflector", at=AT)
+        plain = c.get("/api/memory", params={"project_id": project["id"]}).json()
+        self.assertNotIn(know.id, [i["id"] for i in plain["drafts"]])  # the box unticked: no reviewer role declared
+        role = {"X-DCLab-Role": "reviewer", **self.client.headers}
+        declared = c.get("/api/memory", params={"project_id": project["id"]}, headers=role).json()
+        self.assertIn(know.id, [i["id"] for i in declared["drafts"]])  # the box ticked: the reviewer sees the draft
+        self.assertEqual(c.post(f"/api/memory/{know.id}/review", json={"action": "accept"}, headers=role).status_code, 200)
+        self.assertEqual(c.post(f"/api/memory/{know.id}/correct", json={"text": "Check the row count after every join.", "project_id": project["id"]}).status_code, 403)
+        self.assertEqual(c.post(f"/api/memory/{know.id}/correct", json={"text": "Check the row count after every join.", "project_id": project["id"]},
+                                headers=role).status_code, 200)
+
+
 if __name__ == "__main__":
     unittest.main()

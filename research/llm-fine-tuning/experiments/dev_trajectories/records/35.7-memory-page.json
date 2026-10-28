@@ -1,0 +1,99 @@
+{
+ "package": "35.7",
+ "title": "The memory page: what a project's agents remember, corrected and reviewed by people",
+ "date": "2026-10-28",
+ "request": "The owner: continue the memory plan to the end; 35.7 lets a person see and correct what the agents remember.",
+ "spec": "MEMORY_PLAN.md 35.7: a Memory tab on the project page; every line with its source; correct, review drafts; the browser test covers it.",
+ "plan": [
+  "Add the pane on the existing /api/memory routes.",
+  "Check it in the browser.",
+  "Review, fix, add the browser check, record, commit."
+ ],
+ "decisions": [
+  {
+   "decision": "The reviewer role is declared by a tick box, as on the evidence page",
+   "why": "without accounts the server reads only the declared role; sending it silently would let anyone review know-how"
+  },
+  {
+   "decision": "Let the browser check use the installed Chrome when asked (DCLAB_BROWSER_CHANNEL)",
+   "why": "Playwright's own Chromium was not installed, and a download needs the owner's approval"
+  },
+  {
+   "decision": "Write the narrower scope into the plan instead of building it now",
+   "why": "seeing other people's lines needs accounts and a policy the owner has not set"
+  }
+ ],
+ "change": "web/src/views/project.html (the Memory pane), web/src/features.js, the generated static app, scripts/browser_e2e.py (memory check), tests.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "defect": "In local mode the owner could not review or correct know-how from the page",
+   "scenario": "an accepted lesson's Correct answered 403 and know-how drafts were never listed",
+   "cause": "the page sent no role, and without accounts the server reads only the declared role",
+   "fix": "a tick box declares the reviewer role and the page sends it",
+   "test": "test_a_correction_on_the_page_is_the_next_brief_and_know_how_needs_the_declared_role",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "defect": "The browser test did not open the Memory tab",
+   "scenario": "a wide table or a broken button would pass make browser-test",
+   "cause": "the checks open each page on its default tab",
+   "fix": "a memory check: open the tab, correct a line, read it back, measure at 375 px",
+   "test": "scripts/browser_e2e.py check_memory",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "defect": "Nothing showed that an edit on the page is the next brief's text",
+   "scenario": "the correction route and the brief were tested apart",
+   "cause": "no test joined them",
+   "fix": "an API test corrects with the page's call and reads the agent's brief",
+   "test": "test_a_correction_on_the_page_is_the_next_brief_and_know_how_needs_the_declared_role",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "defect": "The plan's 'owner sees every scope' and edit/retire were not built",
+   "scenario": "a signed-in owner sees only their own person lines",
+   "cause": "the route's chain is the caller's own",
+   "fix": "written as not built in the plan's status",
+   "test": "docs only",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "defect": "A refused correction or review showed a success toast",
+   "scenario": "a 403 showed a green check",
+   "cause": "the toast was called without ok:false",
+   "fix": "ok:false on both refusals",
+   "test": "browser check",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "defect": "A late answer could draw another project's memory",
+   "scenario": "switch from A to B quickly: A's lines under B, then Correct sends B's id",
+   "cause": "no check that the project was still the same",
+   "fix": "the answer is dropped when the project changed",
+   "test": "browser check",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The Memory tab is built and reviewed: a person sees what the agents read with its source, corrects a line (the next brief carries it), and reviews drafts after declaring the role; the browser test covers it at 1280 and 375 px.",
+ "lessons": [
+  "A page that calls a role-checked route must say which role it acts in, and a person must declare it; a silent header is a hole.",
+  "A tab not opened by the browser test is not tested, however well its API is."
+ ],
+ "risks": [
+  "The owner cannot yet see other people's person lines."
+ ],
+ "commits": []
+}

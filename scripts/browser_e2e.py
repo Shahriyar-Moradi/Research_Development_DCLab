@@ -68,7 +68,8 @@ def number(text: str) -> float:
 class Browser:
     def __init__(self, playwright, base: str, out: Path, width: int = 1280, height: int = 900):
         self.base, self.out = base.rstrip("/"), out
-        self.browser = playwright.chromium.launch()
+        channel = os.environ.get("DCLAB_BROWSER_CHANNEL", "").strip()  # "chrome": the Chrome installed on this machine, with a fresh profile
+        self.browser = playwright.chromium.launch(**({"channel": channel} if channel else {}))
         token = os.environ.get("DCLAB_E2E_TOKEN", "").strip()  # against a server with sign-in: an API token of a test member, from the environment only
         self.context = self.browser.new_context(viewport={"width": width, "height": height}, accept_downloads=True,
                                                 **({"extra_http_headers": {"Authorization": f"Bearer {token}"}} if token else {}))
@@ -507,6 +508,43 @@ def check_mobile(b: Browser) -> str:
     return f"{len(VIEWS)} pages fit 375 px without sideways scroll"
 
 
+def check_memory(b: Browser) -> str:
+    """35.7: a project's Memory tab lists what its agents remember; a correction made there replaces the line, at 1280 and 375 px."""
+    from product_e2e import Api
+
+    api = Api(b.base)
+    project = api.call("POST", "/projects", {"name": f"Memory check {int(time.time())}"})
+    said = api.call("POST", "/memory/proposals", {"message": "From now on, answer in short sentences.", "source": "browser:memory"})
+    if isinstance(said, dict) and said.get("status") == "draft":  # on a server that already holds it, the line is there already
+        api.call("POST", f"/memory/{said['id']}/review", {"action": "accept"})
+    page = b.page
+    page.reload()  # the page was drawn before the project was made through the API
+    b.view("home", settle=2)
+    page.wait_for_selector("#view-home .proj-switch", state="visible", timeout=15_000)
+    page.click("#view-home .proj-switch")
+    page.wait_for_selector("#view-home .ps-opt", timeout=15_000)
+    page.locator("#view-home .ps-opt").filter(has_text=project["name"]).first.click()
+    page.wait_for_function("n => document.querySelector('#view-home .ps-name').textContent === n", arg=project["name"], timeout=15_000)
+    b.view("project", settle=1)
+    page.click("#view-project .ptab[data-ptab='memory']")
+    row = page.locator("#proj-memory tr").filter(has_text="short sentences").first
+    row.wait_for(timeout=30_000)
+    new = f"Answer in short, plain sentences ({int(time.time())})."
+    page.evaluate("t => { window.prompt = () => t; }", new)
+    row.locator("[data-mem-correct]").click()
+    page.wait_for_function("t => (document.querySelector('#proj-memory') || {}).textContent.includes(t)", arg=new, timeout=30_000)
+    seen = api.call("GET", f"/memory?project_id={project['id']}")
+    held = [i for i in seen["items"] if i["text"] == new]
+    check(bool(held) and held[0]["correction"], "the correction made on the page is not the line the API lists")
+    check(not [i for i in seen["items"] if "short sentences" in i["text"]], "the corrected line is still listed beside its correction")
+    page.set_viewport_size({"width": 375, "height": 812})
+    time.sleep(0.8)
+    over = page.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+    check(over <= 1, f"the Memory tab is wider than 375 px (+{over}px, {page.evaluate(CULPRIT)})")
+    check(not b.problems(), f"the Memory tab: {b.problems()[:3]}")
+    return "the Memory tab lists the line, a correction on the page replaces it, and it fits 375 px"
+
+
 # the outermost element wider than the screen that is not inside a box that scrolls or clips it
 CULPRIT = """() => { const w = document.documentElement.clientWidth;
   const clipped = e => { for (let a = e.parentElement; a && a !== document.body; a = a.parentElement) { const o = getComputedStyle(a).overflowX; if (o !== 'visible') return true; } return false; };
@@ -514,7 +552,7 @@ CULPRIT = """() => { const w = document.documentElement.clientWidth;
   return el ? el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + ' "' + (el.textContent || '').trim().slice(0, 40) + '"' : '?'; }"""
 
 
-CHECKS = {"flow": (check_flow, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "mobile": (check_mobile, 375)}
+CHECKS = {"flow": (check_flow, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "memory": (check_memory, 1280), "mobile": (check_mobile, 375)}
 
 
 def main(argv: list[str] | None = None) -> int:
