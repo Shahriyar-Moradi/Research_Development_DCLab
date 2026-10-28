@@ -78,13 +78,13 @@ def schedule(repeats: int | None = None) -> list[dict[str, Any]]:
 
 
 # ------------------------------------------------------------------------------------------------ the first session
-def seed_memory(home: Path, workspace: str, project_id: str, scenario: dict[str, Any]) -> list[str]:
+def seed_memory(home: Path, workspace: str, project_id: str, scenario: dict[str, Any], m: dict[str, Any] | None = None) -> list[str]:
     """What the earlier session left, through the product's write paths: the workspace's columns, the agent's wrong line
     and the person's correction, a preference and accepted know-how. Returns the ids active now."""
     from dclab_rnd.memory import latest, open_memory
     from dclab_rnd.memory import writing as w
 
-    m = manifest()
+    m = m or manifest()
     store = open_memory(home)
     w.record_fact(store, scope="workspace", scope_id=workspace, text=m["workspace_line"], source="session:first", who="person:owner", at=AT)
     w.record_fact(store, scope="person", scope_id="owner", text=m["preference_line"], source="session:first", who="person:owner", at=AT)
@@ -96,10 +96,10 @@ def seed_memory(home: Path, workspace: str, project_id: str, scenario: dict[str,
     return [i.id for i in latest(store.log()) if i.status == "active"]
 
 
-def held(case: Any, scenario: dict[str, Any]) -> dict[str, str]:
+def held(case: Any, scenario: dict[str, Any], m: dict[str, Any] | None = None) -> dict[str, str]:
     """What memory says about this case's columns: keep or out (the correction, and the workspace's columns in this table)."""
     columns = set(case.table().columns)
-    said = {c: "keep" for c in manifest()["workspace_columns"] if c in columns and c not in case.leaks and c not in (case.time_column, case.group_column)}
+    said = {c: "keep" for c in (m or manifest())["workspace_columns"] if c in columns and c not in case.leaks and c not in (case.time_column, case.group_column)}
     said.update({c: scenario["expect"] for c in scenario.get("columns") or []})
     return said
 
@@ -134,7 +134,10 @@ TRAINING_USE = ("eval_only: the memory brief of the 'on' sessions shows the judg
                 "judged on agent_eval cases with these sessions")
 
 
-def one_session(gateway: Any, item: dict[str, Any], budget_eur: float | None, max_steps: int, home: Path) -> dict[str, Any]:
+def one_session(gateway: Any, item: dict[str, Any], budget_eur: float | None, max_steps: int, home: Path,
+                scenario: dict[str, Any] | None = None, case: Any = None, m: dict[str, Any] | None = None) -> dict[str, Any]:
+    """One live intern session on a fresh project whose memory holds the scripted first session (v2 passes its own
+    scenario, case and manifest; v1 reads its manifest)."""
     from dclab_rnd.expansion.runner import fast_profile
     from dclab_rnd.intern import Intern, SessionStore
     from dclab_rnd.intern.tools import Toolbox
@@ -144,13 +147,14 @@ def one_session(gateway: Any, item: dict[str, Any], budget_eur: float | None, ma
     from .live import _cut_short
     from .run import TASK, _known_ids, score
 
-    scenario = next(s for s in manifest()["scenarios"] if s["case"] == item["case"])
-    case = next(c for c in cases() if c.id == item["case"])
+    m = m or manifest()
+    scenario = scenario or next(s for s in m["scenarios"] if s["case"] == item["case"])
+    case = case or next(c for c in cases() if c.id == item["case"])
     store = ProjectStore(home / "projects")
     pid = store.create(case.title[:60], "general", "Predict the target column")["id"]
     case.table().to_parquet(store.data_dir(pid) / "table.parquet", index=False)
     studio_data.attach_data(store, pid, "table.parquet")
-    active = seed_memory(workspace_home(store), getattr(store, "workspace_id", None) or "local", pid, scenario)
+    active = seed_memory(workspace_home(store), getattr(store, "workspace_id", None) or "local", pid, scenario, m)
     budget: dict[str, Any] = {"max_steps": max_steps, "max_minutes": 10}
     if budget_eur is not None:
         budget["max_eur"] = budget_eur
@@ -168,7 +172,7 @@ def one_session(gateway: Any, item: dict[str, Any], budget_eur: float | None, ma
         return {**out, "ran": False, "why": why}
     project = store.get(pid)
     s = score(case, project, store.records(pid), store.transitions(pid, limit=1000), [], _known_ids())
-    said = held(case, scenario)
+    said = held(case, scenario, m)
     wrong = against(said, project)
     return {**out, "ran": True, "held": said, "against": wrong, "against_memory": bool(wrong), "solution_saved": bool((project.get("solution") or {}).get("target")),
             **{k: s[k] for k in ("leak_caught", "false_alarm", "valid_moves", "kept_out", "declared")}}
@@ -199,11 +203,14 @@ def attempts(folder: Path, item_id: str) -> int:
     return len(list(folder.glob(f"{item_id}.attempt*.json"))) + (1 if (folder / f"{item_id}.json").exists() else 0)
 
 
-def pending(folder: Path) -> list[dict[str, Any]]:
-    """The planned sessions still to run: never run, or not scored and under the manifest's attempts."""
+def pending_of(folder: Path, items: list[dict[str, Any]], most: int) -> list[dict[str, Any]]:
+    """Of these planned sessions, those still to run: never run, or not scored and under `most` attempts."""
     rows = done(folder)
-    most = manifest()["gate"]["max_attempts"]
-    return [i for i in schedule() if i["id"] not in rows or (not rows[i["id"]].get("ran") and attempts(folder, i["id"]) < most)]
+    return [i for i in items if i["id"] not in rows or (not rows[i["id"]].get("ran") and attempts(folder, i["id"]) < most)]
+
+
+def pending(folder: Path) -> list[dict[str, Any]]:
+    return pending_of(folder, schedule(), manifest()["gate"]["max_attempts"])
 
 
 def setup() -> dict[str, Any]:
@@ -222,13 +229,22 @@ def setup() -> dict[str, Any]:
 
 def run_chunk(gateway: Any, folder: Path, cap_eur: float | None, max_requests: int, max_steps: int, log=print) -> dict[str, Any]:
     """The next planned sessions until the next one might cross the cap; each kept as soon as it ends."""
+    m = manifest()
+    return run_items(gateway, folder, lambda: pending(folder), lambda *a: one_session(*a), campaign=CAMPAIGN, now=setup(),
+                     estimate=m["estimate_eur_per_session"], cap_eur=cap_eur, max_requests=max_requests, max_steps=max_steps, log=log)
+
+
+def run_items(gateway: Any, folder: Path, todo, session, *, campaign: str, now: dict[str, Any], estimate: float, cap_eur: float | None,
+              max_requests: int, max_steps: int, log=print) -> dict[str, Any]:
+    """The loop every memory study shares: `todo()` gives the sessions still to run, `session(gateway, item, budget, steps,
+    home)` runs one. Refuses a changed setup or thinking off; stops before the next session might cross the cap."""
     from unittest import mock
 
     from dclab_rnd.models import gateway as gateway_module, install
 
     from .live import _counted, _NoModels
 
-    now = {**setup(), "model": getattr(gateway.client("intern"), "model", None)}
+    now = {**now, "model": getattr(gateway.client("intern"), "model", None)}
     if now["thinking"] is None:
         raise SystemExit("the intern's thinking is off (DCLAB_THINKING): every session must keep its thinking; nothing was sent")
     folder.mkdir(parents=True, exist_ok=True)
@@ -239,14 +255,14 @@ def run_chunk(gateway: Any, folder: Path, cap_eur: float | None, max_requests: i
         if moved:
             raise SystemExit(f"{folder.name} was started under another setup ({', '.join(moved)}): one verdict never mixes two; nothing was sent")
     else:
-        meta.write_text(json.dumps({"campaign": CAMPAIGN, "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), **now,
+        meta.write_text(json.dumps({"campaign": campaign, "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), **now,
                                     "training_use": TRAINING_USE}, indent=1) + "\n", encoding="utf-8")
     rows = done(folder)
-    for item in pending(folder):  # a session a whole cap could not hold would be cut again: say so instead of paying again
+    for item in todo():  # a session a whole cap could not hold would be cut again: say so instead of paying again
         old = rows.get(item["id"])
         if old and not old.get("ran") and old.get("status") == "budget_exhausted" and cap_eur is not None and (old.get("budget_eur") or 0) >= cap_eur:
             raise SystemExit(f"{item['id']} was cut with the whole cap of €{old['budget_eur']}: raise --cap-eur; nothing was sent")
-    dearest = max((float(r.get("eur") or 0) for r in rows.values()), default=0.0) or manifest()["estimate_eur_per_session"]
+    dearest = max((float(r.get("eur") or 0) for r in rows.values()), default=0.0) or estimate
     counter = {"requests": 0}
     spent = 0.0
     _counted(gateway, counter, max_requests)
@@ -257,7 +273,7 @@ def run_chunk(gateway: Any, folder: Path, cap_eur: float | None, max_requests: i
         patch.start()
     ran = []
     try:
-        for item in pending(folder):
+        for item in todo():
             if cap_eur is not None and spent + dearest > cap_eur:
                 log(f"  stopping before {item['id']}: €{spent:.3f} spent, the dearest session so far costs €{dearest:.3f}, the cap is €{cap_eur}")
                 break
@@ -265,7 +281,7 @@ def run_chunk(gateway: Any, folder: Path, cap_eur: float | None, max_requests: i
                 log(f"  stopping: the request cap ({max_requests}) is reached")
                 break
             with tempfile.TemporaryDirectory() as tmp:
-                row = one_session(gateway, item, None if cap_eur is None else max(0.0, cap_eur - spent), max_steps, Path(tmp))
+                row = session(gateway, item, None if cap_eur is None else max(0.0, cap_eur - spent), max_steps, Path(tmp))
             row["kept_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
             path = folder / f"{item['id']}.json"
             if path.exists():  # an earlier attempt is kept whole beside it, never overwritten
@@ -280,7 +296,7 @@ def run_chunk(gateway: Any, folder: Path, cap_eur: float | None, max_requests: i
         for patch in quiet:
             patch.stop()
         install(previous)
-    return {"ran": ran, "spent_eur": round(spent, 4), "requests": counter["requests"], "left": len(pending(folder))}
+    return {"ran": ran, "spent_eur": round(spent, 4), "requests": counter["requests"], "left": len(todo())}
 
 
 # ------------------------------------------------------------------------------------------------ the verdict
@@ -323,10 +339,13 @@ def sign_flip_p(case_means: list[float]) -> float:
 
 def summarize(folder: Path) -> dict[str, Any]:
     m = manifest()
-    gate = m["gate"]
-    rows = done(folder)
-    plan = schedule()
-    role = {s["case"]: s.get("role", "treated") for s in m["scenarios"]}
+    return judge(done(folder), schedule(), {s["case"]: s.get("role", "treated") for s in m["scenarios"]}, m["gate"], len(pending(folder)))
+
+
+def judge(rows: dict[str, dict[str, Any]], plan: list[dict[str, Any]], role: dict[str, str], gate: dict[str, Any], left: int,
+          leaks_over: str = "control") -> dict[str, Any]:
+    """The paired verdict over planned sessions: `role` names each case treated or control; the leak guard reads the
+    control cases (v1) or every case with a planted leak ("all", v2: a treated case may hold a leak beside its correction)."""
     ran = {i["id"]: rows[i["id"]] for i in plan if rows.get(i["id"], {}).get("ran")}
     pairs: dict[str, list[float]] = {}
     paired: list[tuple[dict[str, Any], dict[str, Any]]] = []
@@ -350,7 +369,7 @@ def summarize(folder: Path) -> dict[str, Any]:
     planned_pairs = {w: sum(1 for i in plan if i["arm"] == "on" and role[i["case"]] == w) for w in ("treated", "control")}
     got_pairs = {w: sum(1 for on, _ in paired if role[on["case"]] == w) for w in ("treated", "control")}
     out: dict[str, Any] = {"planned_sessions": len(plan), "scored_sessions": len(ran), "pairs": got_pairs, "planned_pairs": planned_pairs,
-                           "not_scored": sorted(k for k, r in rows.items() if not r.get("ran")), "left": len(pending(folder)), "arms": arms,
+                           "not_scored": sorted(k for k, r in rows.items() if not r.get("ran")), "left": left, "arms": arms,
                            "by_case": {c: {"pairs": len(v), "against_on_minus_off": round(statistics.fmean(v), 3)} for c, v in sorted(pairs.items())}}
     if out["left"]:
         return {**out, "verdict": "incomplete", "note": f"{out['left']} planned sessions can still run: no verdict yet"}
@@ -370,7 +389,7 @@ def summarize(folder: Path) -> dict[str, Any]:
 
     checks = {
         "fewer_decisions_against_memory": mean <= gate["against_mean_at_most"] and p < gate["sign_flip_p_below"],
-        "controls_keep_their_traps": (diff(c, "leak_caught") or 0.0) >= -gate["control_loss_at_most"],
+        "controls_keep_their_traps": (diff(a if leaks_over == "all" else c, "leak_caught") or 0.0) >= -gate["control_loss_at_most"],
         "controls_no_new_false_alarms": (diff(c, "false_alarm") or 0.0) <= gate["control_loss_at_most"],
         "solutions_still_saved": (diff(a, "solution_saved") or 0.0) >= -gate["control_loss_at_most"],
         "tokens_bounded": a["on"]["input_tokens"] <= gate["input_tokens_ratio_at_most"] * max(1, a["off"]["input_tokens"]),
@@ -380,23 +399,30 @@ def summarize(folder: Path) -> dict[str, Any]:
             "checks": checks, "verdict": "memory_helps" if all(checks.values()) else "memory_does_not_help"}
 
 
-def store_result(folder: Path, summary: dict[str, Any]) -> Path:
-    RESULTS.mkdir(parents=True, exist_ok=True)
-    for old in RESULTS.glob("MV-*.json"):  # one result per run: summarizing again never adds a second
+QUESTION = "Does the intern's second session on a project judge fewer columns against what an earlier session settled when it reads memory?"
+LIMITS = [SCOPE, "the earlier session is scripted through the write paths; a real person's earlier session can say less, or say it worse",
+          "the dev cases are the judgment suite's; the sealed read waits for the owner and needs cases no run has seen",
+          "questions asked again are not measured: the intern asks none in this suite, and Home does not read memory yet"]
+
+
+def store_result(folder: Path, summary: dict[str, Any], *, results: Path | None = None, campaign: str | None = None, prefix: str = "MV",
+                 limitations: list[str] | None = None, extra: dict[str, Any] | None = None) -> Path:
+    """One result per run, numbered <prefix>-NNN_dev.json; summarizing the same run again is refused."""
+    results = results or RESULTS
+    campaign = campaign or CAMPAIGN
+    results.mkdir(parents=True, exist_ok=True)
+    for old in results.glob(f"{prefix}-*.json"):  # one result per run: summarizing again never adds a second
         if json.loads(old.read_text(encoding="utf-8")).get("run") == folder.name:
             raise SystemExit(f"{folder.name} is already stored as {old.name}")
-    numbers = [int(x.group(1)) for p in RESULTS.glob("MV-*.json") if (x := re.match(r"MV-(\d+)", p.name))]
+    numbers = [int(x.group(1)) for p in results.glob(f"{prefix}-*.json") if (x := re.match(rf"{re.escape(prefix)}-(\d+)", p.name))]
     meta = json.loads((folder / "run.json").read_text(encoding="utf-8"))
-    path = RESULTS / f"MV-{max(numbers, default=0) + 1:03d}_dev.json"
-    doc = {"experiment_id": path.stem.split("_")[0], "campaign_id": CAMPAIGN, "kind": "memory_value_dev", "status": "completed",
+    path = results / f"{prefix}-{max(numbers, default=0) + 1:03d}_dev.json"
+    doc = {"experiment_id": path.stem.split("_")[0], "campaign_id": campaign, "kind": "memory_value_dev", "status": "completed",
            "completed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "split": "dev", "model": meta.get("model"), "run": folder.name,
            "setup": {k: meta.get(k) for k in ("manifest_sha256", "thinking", "prompts", "code")},
-           "question": "Does the intern's second session on a project judge fewer columns against what an earlier session settled when it reads memory?",
-           "measurement": summary, "sessions_kept": f"agent_runs/live_tests/{CAMPAIGN}/{folder.name}/",
+           "question": QUESTION, "measurement": summary, "sessions_kept": f"agent_runs/live_tests/{campaign}/{folder.name}/",
            "training_use": "every session is kept whole (plan, steps with their thinking, messages, report); " + TRAINING_USE,
-           "limitations": [SCOPE, "the earlier session is scripted through the write paths; a real person's earlier session can say less, or say it worse",
-                           "the dev cases are the judgment suite's; the sealed read waits for the owner and needs cases no run has seen",
-                           "questions asked again are not measured: the intern asks none in this suite, and Home does not read memory yet"]}
+           "limitations": limitations or LIMITS, **(extra or {})}
     with path.open("x", encoding="utf-8") as fh:
         json.dump(doc, fh, indent=1, ensure_ascii=False)
         fh.write("\n")

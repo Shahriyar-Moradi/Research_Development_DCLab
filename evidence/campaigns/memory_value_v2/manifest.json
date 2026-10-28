@@ -1,0 +1,256 @@
+{
+ "campaign": "memory_value_v2",
+ "package": "35.8 v2",
+ "written_at": "2026-10-28",
+ "question": "Does the intern's second session on a project judge fewer columns against what an earlier session settled when it reads memory?",
+ "why_v2": "MV-001 chose its treated cases from another model's mistakes: the intern's model was wrong without memory on only 3 of 8, so the sign-flip test could not reach p < 0.05 (1/2^3 = 0.125) whatever memory did. v2 chooses them from this model's own mistakes in a pilot and checks the gate can be reached before freezing it.",
+ "estimate_eur_per_session": 0.06,
+ "workspace_line": "In our customer tables, age, tenure_months, plan, support_calls and monthly_spend are recorded before the monthly snapshot: keep them as inputs.",
+ "workspace_columns": [
+  "age",
+  "tenure_months",
+  "plan",
+  "support_calls",
+  "monthly_spend"
+ ],
+ "preference_line": "Answer in short sentences.",
+ "know_how_line": "Check the row count after every join.",
+ "pool": [
+  {
+   "case": "MEM-01",
+   "columns": [
+    "calls_after_hours"
+   ],
+   "expect": "keep",
+   "agent_line": "calls_after_hours was kept out: its name says after.",
+   "correction": "calls_after_hours counts support calls made outside office hours, all before the snapshot: keep it.",
+   "fingerprint": "958f454cf879bd65"
+  },
+  {
+   "case": "MEM-02",
+   "columns": [
+    "cancellation_fee_eur"
+   ],
+   "expect": "keep",
+   "agent_line": "cancellation_fee_eur was kept out: it sounds like it is written when a customer cancels.",
+   "correction": "cancellation_fee_eur is the fee written in the contract at signup, not a fee charged at cancelling: keep it.",
+   "fingerprint": "e7fa327cc1353d7f"
+  },
+  {
+   "case": "MEM-03",
+   "columns": [
+    "churn_risk_band"
+   ],
+   "expect": "keep",
+   "agent_line": "churn_risk_band was kept out: its name says it is about churn.",
+   "correction": "churn_risk_band is set at signup by a marketing rule from plan and age, before any outcome: keep it.",
+   "fingerprint": "5e71609a7e78f4b6"
+  },
+  {
+   "case": "MEM-04",
+   "columns": [
+    "final_offer_discount"
+   ],
+   "expect": "keep",
+   "agent_line": "final_offer_discount was kept out: final suggests it comes at the end.",
+   "correction": "final_offer_discount is the discount of the last offer made before signup: keep it.",
+   "fingerprint": "15cafd929ba7adad"
+  },
+  {
+   "case": "MEM-05",
+   "columns": [
+    "exit_fee_waived"
+   ],
+   "expect": "keep",
+   "agent_line": "exit_fee_waived was kept out as a leak suspect.",
+   "correction": "exit_fee_waived is a promotion chosen at signup: keep it.",
+   "fingerprint": "349f7f0fb4c37dc1"
+  },
+  {
+   "case": "MEM-06",
+   "columns": [
+    "retention_offer_eligible"
+   ],
+   "expect": "keep",
+   "agent_line": "retention_offer_eligible was kept out: retention offers come when a customer wants to leave.",
+   "correction": "retention_offer_eligible is set at signup by a rule on plan and age, not when a customer wants to leave: keep it.",
+   "fingerprint": "67d73fe2f53d05e8"
+  },
+  {
+   "case": "MEM-07",
+   "columns": [
+    "previous_term_outcome"
+   ],
+   "expect": "keep",
+   "agent_line": "previous_term_outcome was kept out: it is an outcome.",
+   "correction": "previous_term_outcome is how the customer's previous contract term ended, before the current term started: keep it.",
+   "fingerprint": "9cbd00a9380b81f0"
+  },
+  {
+   "case": "MEM-08",
+   "columns": [
+    "region",
+    "data_feed"
+   ],
+   "expect": "keep",
+   "agent_line": "region and data_feed were kept out as suspicious.",
+   "correction": "region and data_feed are known for every customer before the snapshot; one value each is no reason to forbid them: keep them.",
+   "fingerprint": "04a08337815dd915"
+  },
+  {
+   "case": "MEM-09",
+   "columns": [
+    "closing_balance_prev_month"
+   ],
+   "expect": "keep",
+   "agent_line": "closing_balance_prev_month was kept out: a closing balance sounds like it comes at the end.",
+   "correction": "closing_balance_prev_month is the balance at the end of the month before the snapshot: keep it.",
+   "fingerprint": "5dd4b07a631921f9"
+  },
+  {
+   "case": "MEM-10",
+   "columns": [
+    "usage_first_week_after_signup"
+   ],
+   "expect": "keep",
+   "agent_line": "usage_first_week_after_signup was kept out: its name says after.",
+   "correction": "usage_first_week_after_signup is the use in the first week after signup, before the monthly snapshot: keep it.",
+   "fingerprint": "f7b261322655c31f"
+  },
+  {
+   "case": "MEM-11",
+   "columns": [
+    "days_to_renewal"
+   ],
+   "expect": "keep",
+   "agent_line": "days_to_renewal predicts too well and was kept out as a leak suspect.",
+   "correction": "days_to_renewal is read from the contract at the snapshot; it is strong because it is honest: keep it.",
+   "fingerprint": "370df5239d6eec31"
+  },
+  {
+   "case": "MEM-12",
+   "columns": [
+    "cancellations_requested_last_year"
+   ],
+   "expect": "keep",
+   "agent_line": "cancellations_requested_last_year was kept out: cancellation requests sound like the outcome.",
+   "correction": "cancellations_requested_last_year counts requests in the year before the snapshot, not this outcome: keep it.",
+   "fingerprint": "5ded78581fb7b175"
+  },
+  {
+   "case": "MEM-13",
+   "columns": [
+    "onboarding_outcome_score"
+   ],
+   "expect": "keep",
+   "agent_line": "onboarding_outcome_score was kept out: it is an outcome score.",
+   "correction": "onboarding_outcome_score is the score of the onboarding call in the first week, before the monthly snapshot: keep it.",
+   "fingerprint": "210a3b686f1b77b8"
+  },
+  {
+   "case": "AE-14",
+   "columns": [
+    "country",
+    "schema_version"
+   ],
+   "expect": "keep",
+   "agent_line": "country and schema_version looked suspicious and were kept out.",
+   "correction": "country and schema_version are known at signup; little signal is no reason to forbid them: keep them.",
+   "fingerprint": "1d581a54166976c4"
+  },
+  {
+   "case": "AE-15",
+   "columns": [
+    "declared_income"
+   ],
+   "expect": "keep",
+   "agent_line": "declared_income is often missing and was kept out as a leak suspect.",
+   "correction": "declared_income is asked at signup, before the snapshot; its gaps are people who declined: keep it.",
+   "fingerprint": "aef92f375092b275"
+  },
+  {
+   "case": "AE-16",
+   "columns": [
+    "post_signup_survey"
+   ],
+   "expect": "keep",
+   "agent_line": "post_signup_survey was kept out: its name says it comes after.",
+   "correction": "post_signup_survey is answered in the first week after signup, long before the snapshot: keep it.",
+   "fingerprint": "96190d7f3f92cee8"
+  },
+  {
+   "case": "AE-17",
+   "columns": [
+    "contract_months_left"
+   ],
+   "expect": "keep",
+   "agent_line": "contract_months_left predicts too well and was kept out as a leak suspect.",
+   "correction": "contract_months_left is read from the contract at the snapshot; it is strong because it is honest: keep it.",
+   "fingerprint": "c1159f2630084a98"
+  }
+ ],
+ "controls": [
+  {
+   "case": "AE-01",
+   "fingerprint": "2a29395068e46a92"
+  },
+  {
+   "case": "AE-04",
+   "fingerprint": "4590a4aea1620866"
+  },
+  {
+   "case": "AE-11",
+   "fingerprint": "45d5c36f9f25b1f1"
+  },
+  {
+   "case": "AE-12",
+   "fingerprint": "d97bdf6bc0625383"
+  }
+ ],
+ "pilot": {
+  "repeats": 3,
+  "arm": "off",
+  "rule": "every candidate runs with memory off; the pilot's sessions choose the treated cases and size the repeats, and never enter the verdict"
+ },
+ "selection": {
+  "min_scored": 2,
+  "min_against_fraction": [
+   2,
+   3
+  ],
+  "max_treated": 10,
+  "rule": "a candidate is treated when at least 2 of its pilot sessions were scored and at least two thirds of them judged the column its correction names against it; the most often wrong first, then pool order, at most 10"
+ },
+ "sizing": {
+  "assumed_on_rate": 0.1,
+  "sensitivity_on_rate": 0.25,
+  "repeats_options": [
+   3,
+   4,
+   5
+  ],
+  "min_power": 0.8,
+  "min_cases": 5,
+  "draws": 2000,
+  "seed": 36,
+  "rule": "each treated case's rate without memory is (wrong + 4 x pool rate) / (scored + 4), the pool rate being all the pilot's wrong sessions over all its scored ones (shrunk toward the pool, since the cases were chosen for being wrong); with memory on every case is assumed wrong at 0.10; the main run uses the fewest repeats of 3, 4, 5 whose simulated power (2,000 draws, seed 36) to pass the primary check is at least 0.8; with fewer than 5 treated cases or no such count the main run is not started; the power at 0.25 with memory on is reported, not judged",
+  "prior_strength": 4
+ },
+ "measure": "per session, against_memory: a column memory says to keep is lost (kept out, or made the time or group column), a column memory says to keep out is used, or no solution was saved (doing nothing never counts as obeying memory); plus the judgment suite's leak_caught and false_alarm, whether a solution was saved, tokens and euros",
+ "pairing": "the same case and repeat in both arms, the arms' order alternating; memory off reads no stored line, the project's own notes still count",
+ "gate": {
+  "max_attempts": 3,
+  "min_pair_share": 0.9,
+  "min_pairs_per_case": 2,
+  "against_mean_at_most": -0.15,
+  "sign_flip_p_below": 0.05,
+  "control_loss_at_most": 0.1,
+  "input_tokens_ratio_at_most": 1.25,
+  "draws": 2000,
+  "seed": 35,
+  "id": "memory_value_gate_v3",
+  "rule": "as memory_value_gate_v2 (MV-001), on the frozen treated cases and the 4 controls: every planned session has run (at most 3 attempts; a verdict needs 90% of the pairs of each role and 2 pairs of every treated case) and all hold: (1) on the treated cases the mean paired difference on minus off in against_memory is at most -0.15 and the exact one-sided sign-flip test over the case means gives p < 0.05; (2) on every case with a planted leak (the controls and any treated case that holds one beside its correction) leak_caught on is not more than 0.10 below off; (3) on the controls false_alarm on is not more than 0.10 above off; (4) over all cases the share of sessions that saved a solution on is not more than 0.10 below off; (5) over all cases mean input tokens on are at most 1.25 times off. (6) on each treated case that holds a planted leak, alone, leak_caught on is not below off. Intervals are reported, not judged. Otherwise memory does not help on dev, reported as it is; what follows is the owner's decision. A sealed read waits for the owner and needs cases no run has seen.",
+  "limit": "the treated cases are the ones this model gets wrong without memory: the effect is memory's on those mistakes, not an average over every column; the earlier session is scripted; the tables are invented"
+ },
+ "roles": "treated: memory holds a person's correction or the workspace's columns about this case's trap, and the primary measure is read on them; control: memory holds only the workspace line and the distractors, nothing about the case's trap, and the guards are read on them"
+}
