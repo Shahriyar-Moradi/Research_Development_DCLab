@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.134.0 (2026-10-28)
+
+- `ledger`: two workflow and technical points Home decides and no point recorded (S4 of the students plan):
+  `query.plan` (how a question about the person's table is computed: the rules' plan from the brief or a model's, its
+  answer the plan's shape, column names only; labelled by the plan of the answer the person keeps) and
+  `column.statistics_only` (on the column: a column kept out on statistics alone, `feature` or `keep_out`, the rule's
+  recommendation against the person's answer, H3.1). State fields `brief_fields`, `reviewer` (a code), `names_moment`.
+  Both are in the conformance's `POINTS_NOT_MAPPED`, `query.plan` in `workflow_labels.NOT_LEARNED`. No contract version
+  changed: the points and fields are additions to the vocabulary.
+
 ## 0.133.0 (2026-10-28)
 
 - `exposure` (H8's open gap, rule 2): `holdout_exposure(exposure, time_column, holdout_range)` reads what an analysis in

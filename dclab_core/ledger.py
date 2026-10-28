@@ -62,6 +62,8 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "has_data": (FLAG, ()), "words": (COUNT, ()), "signals": (COUNT, ()),  # H2: a request's kind of help, read from its words
     "track": (CODE, ()), "suggested": (CODE, ()),  # H8: the kind of help a request is on, and the other route its words suggest
     "step_kind": (CODE, ()),  # H9: a preparation step's kind (filter, dedupe, join, ...)
+    "brief_fields": (COUNT, ()),  # S4: the analysis brief's fields an answer's plan was read from
+    "reviewer": (CODE, ()), "names_moment": (FLAG, ()),  # S4: the leakage reviewer's verdict on a column, and whether it said when it is set
     "moment_known": (FLAG, ()), "outcome_known": (FLAG, ()), "open_questions": (COUNT, ()), "blocking": (COUNT, ()),
     "parts": (COUNT, ()), "parts_before": (COUNT, ()), "parts_after": (COUNT, ()), "template": (CODE, ()), "sub_problem": (CODE, ()),  # 24.2: the problem map's size and the rule that drew it
     "positives": (COUNT, ()), "related_tables": (COUNT, ()),  # 24.7: the confirmed cases a choice was made on; the tables beside the main one (a route changes when one arrives)
@@ -252,6 +254,12 @@ POINTS: dict[str, Point] = {p.key: p for p in (
        choices=("ml_project", "analysis", "dataset", "dashboard", "decision_brief", "answer")),
     # H9 (2026-10-28): a preparation step the guard holds (it removes many rows, or a join changes the row count): applied?
     _p("recipe.step", W, "draft", "noul", "Is this guarded preparation step applied?"),
+    # S4 (2026-10-28): two of Home's own choices that no point recorded. How an analysis question is computed (the rules'
+    # plan from the brief, or a model's), labelled by the plan of the answer the person keeps; and a column kept out on
+    # statistics alone (H3.1), the rule's recommendation labelled by the person's answer
+    _p("query.plan", W, "draft", "value", "How is the person's question about their table computed?"),
+    _p("column.statistics_only", T, "column", "choice", "Is a column kept out on statistics alone a feature after all?",
+       choices=("feature", "keep_out")),
     _p("command.intent_route", W, "conversation", "value", "Which quick action does the person's message ask for?",
        "command.intent_route", "command.intent_route"),
     # operations, after a model is in use (the main product's governed points; this studio decides none of them yet)

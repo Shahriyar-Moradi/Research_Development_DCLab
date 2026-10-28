@@ -139,6 +139,30 @@ class ColumnCheckInHome(unittest.TestCase):
         self.assertNotIn("column_check_pending", d)
         self.assertEqual(self.builds, ["build"], "the build is asked again after the answer")
 
+    def test_the_rules_recommendation_is_a_decision_the_answer_labels(self):  # S4: column.statistics_only
+        from dclab_rnd import ledger
+        led = ledger.FileLedger(Path(tempfile.mkdtemp()), "wtest")
+        ledger.install(led)
+        self.addCleanup(ledger.install, None)
+        for said, label in (("Use your recommendation.", None), (checks.OPTIONS[0], "feature"), (checks.OPTIONS[1], "keep_out")):
+            item = checks.disputed(hyperack_proposal())[0]
+            self.store.update(self.draft["id"], lambda d: d.update(column_check_pending={"item": item, "moment": "At order creation, before dispatch.",
+                                                                                         "target": "hyper_ack"}))
+            self.agent.built(self.draft["id"], {"refused": "column", "rule": "column check"})
+            self.agent.reply(self.draft["id"], said)
+            record = led.records(point="column.statistics_only")[-1]
+            self.assertEqual(record.answers[0].value, "feature" if checks.recommended(item) else "keep_out")  # the rule's recommendation
+            self.assertEqual([x.value for x in led.labels(record=record.id)], [label] if label else [])  # "not sure" is no label
+            self.assertEqual((record.subject.kind, record.subject.key, record.draft), ("column", item["column"], self.draft["id"]))
+            self.assertEqual(record.state["column"], item["column"])  # joined with the column's other records by name
+        from dclab_rnd.ledger import capture
+
+        late = {**item, "reviewer": "after the moment"}  # the review of S4: the usual keep_out case, refused by the state's codes before
+        rid = capture.column_checked(self.draft["id"], late, "later", {"columns": [{"name": item["column"], "kind": "numeric"}]})
+        record = next(r for r in led.records(point="column.statistics_only") if r.id == rid)
+        self.assertEqual((record.state["reviewer"], record.answers[0].value), ("after_moment", "keep_out"))
+        self.assertEqual(record.state["dtype"], "float")  # with the column profiled, its bands are in the state
+
 
 def wait(fn, timeout=60.0, every=0.1):
     end = time.time() + timeout

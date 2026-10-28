@@ -1,0 +1,99 @@
+{
+  "package": "S4-home-points",
+  "title": "Two of Home's own choices become decision points: how a question is computed, and a column kept out on statistics alone",
+  "date": "2026-10-28",
+  "request": "The owner chose 'Students, data first': before more student models, the choices Home makes and no point recorded should be captured with their labels.",
+  "spec": "query.plan (workflow, on the draft): the plan's shape (operation and column, grouping columns, grain, filtered columns; names only), the rules' or a model's, labelled by the plan of the first answer the person keeps for the question. column.statistics_only (technical, on the column): the rule's recommendation (feature or keep_out) against the person's answer in the column check, with the column's bands and what the rule read.",
+  "plan": [
+    "Add the two points and three state fields in dclab_core's ledger; record them in dclab_rnd's capture where Home makes the choice.",
+    "Keep every value out of the state and the answers: a plan's shape holds column names, never a filter's value.",
+    "Label each with what the person did, and say which labels count.",
+    "List both in the main product's conformance and the workflow models' NOT_LEARNED with the reason."
+  ],
+  "decisions": [
+    {
+      "decision": "Only a save labels query.plan; an edit alone labels nothing.",
+      "why": "The edit controls change the operation, the split or the grain, which is often a person looking at another view rather than correcting a wrong plan; keeping one answer is what they chose."
+    },
+    {
+      "decision": "A kept answer nobody changed is recorded as agreement, which never counts.",
+      "why": "A person shown the answer who agrees is not evidence that it was right (effective_label); the record says so instead of claiming a positive label."
+    },
+    {
+      "decision": "column.statistics_only is about the column, with its bands from the draft's profile.",
+      "why": "On the draft, two disputed columns gave records nobody could tell apart or join to the same column's feature.leakage_suspect record, and a student could only copy the rule."
+    }
+  ],
+  "change": "dclab_core/ledger.py: points query.plan and column.statistics_only, state fields brief_fields, reviewer, names_moment (dclab-core 0.134.0, CHANGELOG); adapters/conformance.py POINTS_NOT_MAPPED and workflow_labels.NOT_LEARNED entries; dclab_rnd/ledger/capture.py plan_shape, query_planned (planner, rules_asked), query_judged, column_checked (REVIEWER_CODES, the column's bands); draft/chat.py give_answer records the plan with its planner, save_answer labels the question's first plan once inside the store update, column_answer passes the profile; the query_data tool passes planner home_agent. Tests in test_home_answer and test_home_column_check; data catalog regenerated.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "A column the leakage reviewer read as late was never recorded.",
+      "scenario": "The reviewer said 'after the moment', the usual case where the rule says keep_out: the record was refused and silently lost.",
+      "cause": "The verdict went into the state as a code, and 'after the moment' is not a lower-case key.",
+      "fix": "The verdicts are mapped to codes (available, after_moment, else none).",
+      "test": "test_the_rules_recommendation_is_a_decision_the_answer_labels"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Two gate tests failed on the new points.",
+      "scenario": "test_conformance and test_workflow_models: every point is mapped to the main product or says why not, and every workflow point is learned or says why not.",
+      "cause": "Neither list had the new points.",
+      "fix": "Both points in POINTS_NOT_MAPPED and query.plan in NOT_LEARNED, each with its reason.",
+      "test": "test_every_workflow_point_is_learned_or_says_why_not"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "column.statistics_only did not say which column it was about.",
+      "scenario": "Two disputed columns in one draft gave records with the same subject and state, joined to neither column's leakage record.",
+      "cause": "The subject was the draft and the state held only what the rule read.",
+      "fix": "The subject is the column, with the draft id beside it, and the state holds the column's bands from the draft's profile.",
+      "test": "test_the_rules_recommendation_is_a_decision_the_answer_labels"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The Home agent's own plans were credited to the wrong answerers.",
+      "scenario": "The query_data tool answered a question: the record showed the rules abstaining, though they were never asked, and the plan credited to home_query rather than home_agent.",
+      "cause": "give_answer knew only that a model planned, not which one or whether the rules were asked.",
+      "fix": "give_answer takes the planner; the rules' answer is written only on the path that asked them.",
+      "test": "test_the_agents_own_plan_is_credited_to_it_and_never_to_rules_not_asked"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The 'kept' half of query.plan's labels could never count, and every edit labelled the first plan.",
+      "scenario": "A person kept an answer unchanged: the agreeing label never counted. A person who switched to another view labelled the first plan wrong.",
+      "cause": "A label from a person shown the answer counts only when it disagrees; edits were read as corrections.",
+      "fix": "Only the first save labels, with the kept answer's plan; an edit alone labels nothing; agreement is documented as never counting.",
+      "test": "test_how_a_question_was_computed_is_a_decision_the_person_labels"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "Two saves at once could write the label twice.",
+      "scenario": "A double click on Keep runs two saves on two threads.",
+      "cause": "The judged check and its setting were outside the store update.",
+      "fix": "judged is set inside the update and only the call that set it writes the label.",
+      "test": "test_how_a_question_was_computed_is_a_decision_the_person_labels"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Home's way of computing a question and its column check are recorded on the right subject, credited to the answerer that gave them, with labels that say what the person chose.",
+  "lessons": [
+    "Before writing a label, ask whether the ledger will ever count it: a label that can only agree with what the person was shown is a record of agreement, not of being right."
+  ],
+  "risks": [
+    "A question whose answers are never kept stays unlabelled, so query.plan's labels will come mostly from people who corrected a plan."
+  ],
+  "commits": []
+}

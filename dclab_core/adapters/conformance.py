@@ -130,6 +130,8 @@ POINTS_NOT_MAPPED: dict[str, str] = {
     "request.intent": "H2: the studio's Home reads the kind of help (prediction, analysis, ...) before anything else; the main product has no such front door yet",
     "request.exit": "H8: where a request leaves the studio's Home (an ML project, answers, a prepared table, a dashboard, a decision brief, a cited answer); the main product has no such front door yet",
     "recipe.step": "H9: a guarded preparation step on the studio's Home, labelled by the person's yes or no; the main product has no such front door yet",
+    "query.plan": "S4: how the studio's Home computed a question about the person's table, labelled by the answer they kept; the main product has no such front door yet",
+    "column.statistics_only": "S4: the studio's Home asks the person about a column its audit kept out on statistics alone (H3.1); the main product's leakage review is feature.leakage_suspect",
     "department.proposal": "the main product has no department agents yet: its governed point is added with them (30.22)",
     **{p: _NO_NAME.format(what="data preparation step") for p in (
         "column.category_code", "column.time", "column.group", "task.framing", "labels.situation", "labels.join_key", "data.cases_table",

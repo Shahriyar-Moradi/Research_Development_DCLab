@@ -498,6 +498,88 @@ def recipe_step_answered(draft_id: str, recipe: dict[str, Any], index: Any, deci
     return getattr(record, "id", None)
 
 
+def plan_shape(plan: Any) -> str:
+    """A query plan as its decision: the operation and its column, the grouping columns, the grain, the filtered columns.
+    Column names only, never a filter's value (S4)."""
+    p = plan if isinstance(plan, dict) else plan.model_dump(mode="json")
+    m = (p.get("measures") or [{}])[0]
+    parts = [f"{m.get('op')}({m.get('column') or 'rows'})"]
+    if p.get("group_by"):
+        parts.append("by:" + ",".join(map(str, p["group_by"])))
+    period = p.get("period") or {}
+    if period.get("grain"):
+        parts.append(f"per:{period['grain']}({period.get('column')})")
+    if period.get("start") or period.get("end"):
+        parts.append(f"dates:{period.get('column')}")
+    if p.get("filters"):
+        parts.append("where:" + ",".join(sorted({str(f.get("column")) for f in p["filters"]})))
+    return " ".join(parts)[:300]
+
+
+@_quiet
+def query_planned(draft_id: str, plan: Any, by: str, *, fields: int, columns: int, planner: Optional[str] = None,
+                  rules_asked: bool = True) -> Optional[str]:
+    """S4: how an analysis question was computed: the rules' plan from the brief, or a model's, by its purpose (``planner``:
+    home_query when the rules could not map the words, home_agent when its query_data tool planned it); the rules' answer
+    is written only when they were asked (an abstention), never on the agent's path. The record's id is kept on the
+    answer, so the plan of the answer the person keeps labels it."""
+    if by not in ("rules", "model"):
+        return None
+    shape = plan_shape(plan)
+    answers = [answer("rule", "rule:plan_from_brief_v1", shape if by == "rules" else None)] if by == "rules" or rules_asked else []
+    if by == "model":
+        answers.append(answer("model_role", planner or "home_query", shape))
+    record = _put("query.plan", ("draft", draft_id), answers, shape, "rule" if by == "rules" else "model_role",
+                  level=2 if by == "model" else 0, state={"brief_fields": int(fields), "columns": int(columns)},
+                  draft=draft_id, conversation=draft_id)
+    return getattr(record, "id", None)
+
+
+@_quiet
+def query_judged(record_id: Optional[str], plan: Any) -> int:
+    """S4: the person kept an answer to the question: the kept answer's plan labels the question's first plan. Kept after
+    an edit, a different plan is a correction (it counts); kept as it was, it is agreement, which a label shown to the
+    person never counts as evidence (``effective_label``). An edit alone labels nothing: it may be another view."""
+    if not record_id:
+        return 0
+    from types import SimpleNamespace
+
+    return int(bool(label(SimpleNamespace(id=record_id, point="query.plan"), plan_shape(plan), "user_decision_exposed", "person")))
+
+
+COLUMN_CHECK = ("feature", "keep_out")
+
+
+REVIEWER_CODES = {"available": "available", "after the moment": "after_moment"}  # the leakage reviewer's verdicts as codes
+
+
+@_quiet
+def column_checked(draft_id: str, item: dict[str, Any], answered: str, profile: Optional[dict[str, Any]] = None) -> Optional[str]:
+    """S4: a column the audit kept out on statistics alone (H3.1): the rule recommends (a feature only when the leakage
+    reviewer read it as known in time and said when it is set); the person, shown the recommendation, answers: known (a
+    feature) or written later (kept out). "Not sure" is no label. The record is the column's (joined with its
+    feature.leakage_suspect record by name); its state is the column's bands from the draft's profile and what the rule
+    read, never a value."""
+    from ..draft import column_check as checks
+
+    name = str(item.get("column") or "")
+    if not name:
+        return None
+    rule = "feature" if checks.recommended(item) else "keep_out"
+    person = {"known": "feature", "later": "keep_out"}.get(answered)
+    answers = [answer("rule", "rule:column_check_v1", rule)] + ([answer("person", "person", person)] if person else [])
+    profiled = next((c for c in (profile or {}).get("columns") or [] if str(c.get("name")) == name), None)
+    bands = column_state(profiled) if profiled else {"column": name[:200]}
+    record = _put("column.statistics_only", ("column", name[:200]), answers, person or rule,
+                  "person" if person else "rule", options=COLUMN_CHECK,  # labelled below, agreeing or not
+                  state={**bands, "reviewer": REVIEWER_CODES.get(str(item.get("reviewer") or ""), "none"),
+                         "names_moment": bool(item.get("names_moment"))},
+                  draft=draft_id, conversation=draft_id)
+    if record is not None and person:
+        label(record, person, "user_decision_exposed", "person")
+    return getattr(record, "id", None)
+
+
 @_quiet
 def intent_chosen(record_id: Optional[str], track: str) -> int:
     """H2: the person's choice on the card is the label of this draft's own reading, never of another draft's."""

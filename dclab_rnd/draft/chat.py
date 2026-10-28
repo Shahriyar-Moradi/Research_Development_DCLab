@@ -735,9 +735,10 @@ class HomeAgent:
                 why = ""
         if plan is None:
             return self.say(draft_id, f"I can't answer from the table yet: {why}.", kind="text")
-        return self.give_answer(draft_id, plan, by, why if by == "rules" else "")
+        return self.give_answer(draft_id, plan, by, why if by == "rules" else "", planner="home_query" if by == "model" else None)
 
-    def give_answer(self, draft_id: str, plan: Any, by: str, note: str = "", edited_from: int | None = None) -> dict[str, Any]:
+    def give_answer(self, draft_id: str, plan: Any, by: str, note: str = "", edited_from: int | None = None,
+                    planner: str | None = None) -> dict[str, Any]:
         """H7: one plan answered from the draft's table, the one way every answer is given (the rules' plan, the model's tool,
         a person's edit): never a personal column, the same plan on the same table once, run by the query engine, the words
         and the chart written by code, the answer kept with what it showed and the floor it ran under."""
@@ -777,6 +778,12 @@ class HomeAgent:
 
         for record, kind in exits_reached:  # H8: where the request really left labels the exit read for it
             capture.exit_reached(record, kind)
+        if by in ("rules", "model"):  # S4: how the question was computed, labelled later by the answer the person keeps
+            # the agent's query_data tool plans without asking the rules; answer_analysis asks them first (planner home_query)
+            rid = capture.query_planned(draft_id, plan, by, fields=len(((draft.get("track_brief") or {}).get("analysis") or {})),
+                                        columns=len(briefs.columns_of(draft)), planner=planner, rules_asked=planner != "home_agent")
+            if rid:
+                self.store.update(draft_id, lambda d: d["answers"][n].update(record=rid))
         self.moved(draft_id, "answer_analysis", {"plan_by": by, **({"edited_from": edited_from} if edited_from is not None else {})},
                    {"rows": len(result.rows), "suppressed": result.suppressed_groups})
         return self.say(draft_id, text, kind="answer", message_id=message_id, model_text=home_query.model_text(plan),
@@ -1161,15 +1168,36 @@ class HomeAgent:
                 self.prepare_table(draft_id)
         return decided is not None
 
-    def save_answer(self, draft_id: str, n: int, saved: bool = True) -> dict[str, Any]:
-        """H7c: the person keeps an answer (it goes into the notebook export) or lets it go."""
+    @staticmethod
+    def _answer_root(answers: list[dict[str, Any]], n: int) -> int | None:
+        """The answer an edit started from: the first in its chain of edits (S4), by its number."""
+        seen = set()
+        while 0 <= n < len(answers) and answers[n].get("edited_from") is not None and n not in seen:
+            seen.add(n)
+            n = answers[n]["edited_from"]
+        return n if 0 <= n < len(answers) else None
+
+    def save_answer(self, draft_id: str, n: int, saved: bool = True, by: str = "person") -> dict[str, Any]:
+        """H7c: the person keeps an answer (it goes into the notebook export) or lets it go. S4: the first answer a person
+        keeps for a question labels that question's first plan with the kept answer's plan, once (the model's save_answer,
+        on the person's word, is not that label)."""
+        judge: list[tuple[str, Any]] = []
+
         def put(d):
             answers = d.get("answers") or []
             if not 0 <= n < len(answers):
                 raise ValueError("No such answer")
             answers[n]["saved"] = bool(saved)
+            root = self._answer_root(answers, n) if saved and by == "person" else None
+            if root is not None and answers[root].get("record") and not answers[root].get("judged"):
+                answers[root]["judged"] = True  # inside the update: two saves at once label once
+                judge.append((answers[root]["record"], answers[n]["plan"]))
         self.store.update(draft_id, put)
         self.moved(draft_id, "save_answer", {"answer": n, "saved": bool(saved)}, {})
+        if judge:
+            from ..ledger import capture
+
+            capture.query_judged(*judge[0])
         return self.store.get(draft_id)["answers"][n]
 
     def edit_answer(self, draft_id: str, n: int, change: dict[str, Any]) -> dict[str, Any]:
@@ -1580,6 +1608,11 @@ class HomeAgent:
         answer = "recommendation" if not_known(value) else checks.read_answer(value)
         column = q.get("column")
         pending = self.store.get(draft_id).get("column_check_pending") or {}
+        if pending.get("item"):  # S4: the rule's recommendation against what the person said
+            from ..ledger import capture
+
+            capture.column_checked(draft_id, pending["item"], answer,
+                                   ((self.store.get(draft_id).get("analysis") or {}).get("profile") or {}))
 
         def put(d):
             # the answer is about this outcome and this moment: a new version with another outcome asks again
@@ -2460,7 +2493,7 @@ def query_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
     marked = home_query.sensitive_columns(plan, briefs.columns_of(draft))
     if problems or marked:
         return {"error": "; ".join([*problems, *(f"{c} holds personal data" for c in marked)])[:600]}
-    said = agent.give_answer(draft_id, plan, "model")
+    said = agent.give_answer(draft_id, plan, "model", planner="home_agent")
     # whether it was answered and its number only: a count of groups or of hidden small groups would let repeated plans
     # recover a hidden row's value (the review of H7c recovered one in forty calls)
     return {"answered": said.get("kind") == "answer" or "plan_hash" in said, "answer": (said.get("answer") or {}).get("n", said.get("n"))}
@@ -2609,7 +2642,7 @@ def make_chart(turn: Turn, /, **args: Any) -> dict[str, Any]:
 
 def save_answer(turn: Turn, /, **args: Any) -> dict[str, Any]:
     """H7c: keep an answer for the notebook export, only when the person asked to keep it."""
-    turn.agent.save_answer(turn.draft_id, _int(args.get("answer")))
+    turn.agent.save_answer(turn.draft_id, _int(args.get("answer")), by="model")
     return {"saved": True}
 
 

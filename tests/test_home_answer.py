@@ -22,7 +22,8 @@ class AnswerTests(unittest.TestCase):
         self.home = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.home, True)
         self.store = DraftStore(self.home / "drafts")
-        ledger.install(ledger.FileLedger(self.home / "ledger", "wtest"))
+        self.ledger = ledger.FileLedger(self.home / "ledger", "wtest")
+        ledger.install(self.ledger)
         self.addCleanup(ledger.install, None)
 
     def ask(self, question, table):
@@ -301,6 +302,40 @@ class ControlsTests(AnswerTests):
                 self.assertNotIn("hidden", m["model_text"])
                 for row in m["answer"]["rows"]:
                     self.assertNotIn(str(row[-1]), m["model_text"])
+
+    def test_how_a_question_was_computed_is_a_decision_the_person_labels(self):  # S4: query.plan
+        agent, d = self.ask("What was the average monthly spend per plan?", "customers")
+        [record] = self.ledger.records(point="query.plan")
+        self.assertEqual(record.answers[0].value, "mean(monthly_spend) by:plan")
+        self.assertNotIn("premium", json.dumps(record.model_dump(mode="json")))  # the shape, never a value
+        self.assertEqual([(a.by, a.answerer) for a in record.answers], [("rule", "rule:plan_from_brief_v1")])
+        agent.edit_answer(d["id"], 0, {"op": "sum"})  # the person looks at another view...
+        agent.edit_answer(d["id"], 1, {"op": "median"})
+        self.assertEqual(self.ledger.labels(point="query.plan"), [])  # ...which labels nothing on its own
+        agent.save_answer(d["id"], 2)  # and keeps the median: the first plan's label, a correction
+        agent.save_answer(d["id"], 1)  # a later keep for the same question: once
+        [kept] = self.ledger.labels(point="query.plan")
+        self.assertEqual((kept.record, kept.value, kept.by), (record.id, "median(monthly_spend) by:plan", "person"))
+        from dclab_core.ledger import effective_label
+
+        self.assertEqual(effective_label(record, [kept]).value, "median(monthly_spend) by:plan")  # it counts: it disagrees
+        agent2, d2 = self.ask("What was the average monthly spend per plan?", "customers")
+        agent2.save_answer(d2["id"], 0, by="model")  # the model's save, on the person's word: no label
+        agent2.save_answer(d2["id"], 0)  # the person keeps it unchanged: agreement
+        agent2.save_answer(d2["id"], 0)  # once
+        [second] = [r for r in self.ledger.records(point="query.plan") if r.draft == d2["id"]]
+        agreed = self.ledger.labels(record=second.id)
+        self.assertEqual([x.value for x in agreed], ["mean(monthly_spend) by:plan"])
+        self.assertIsNone(effective_label(second, agreed))  # agreement shown to the person is never evidence
+
+    def test_the_agents_own_plan_is_credited_to_it_and_never_to_rules_not_asked(self):  # the review of S4, finding 4
+        from dclab_rnd.draft.chat import Turn, query_data
+
+        agent, d = self.ask("What was the average monthly spend per plan?", "customers")
+        said = query_data(Turn(agent, d["id"]), plan={"group_by": ["plan"], "measures": [{"name": "n", "op": "count"}]})
+        self.assertTrue(said["answered"], said)
+        record = [r for r in self.ledger.records(point="query.plan") if r.draft == d["id"]][-1]
+        self.assertEqual([(a.by, a.answerer, a.value) for a in record.answers], [("model_role", "home_agent", "count(rows) by:plan")])
 
     def test_the_guard_refuses_answers_off_track_before_the_table_and_for_a_missing_answer(self):
         from dclab_rnd.agents import default_registry

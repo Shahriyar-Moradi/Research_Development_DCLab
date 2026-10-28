@@ -217,6 +217,10 @@ whether the cleaner keeps it as written in a column of two-letter codes and says
   Data engineer's change checks, the "several tasks" splitter). Each found choice becomes a point with its question,
   options, state fields (never a value) and its capture line.
 - **Done when:** 34 new points are recorded where they are made, each with a truth source from the table above.
+- **Status (2026-10-28):** 73 points. Two more of Home's own choices are now recorded where they are made (record
+  `S4-home-points`): `query.plan`, how a question about the person's table is computed (its truth: the plan of the
+  answer the person keeps), and `column.statistics_only`, a column kept out on statistics alone (its truth: the
+  person's answer in the column check). The inventory of the engine's choices above is still open.
 
 ### S5. Better homework (the owner's five, in order)
 1. **Real labels:** the people's queue first; testers (Ali, Mehdi) through `make share` / `make collect`.
