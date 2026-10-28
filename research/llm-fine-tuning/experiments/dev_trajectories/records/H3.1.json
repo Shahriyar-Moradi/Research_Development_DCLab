@@ -1,0 +1,134 @@
+{
+ "package": "H3.1",
+ "title": "Home asks about a column kept out on statistics alone before a build",
+ "date": "2026-10-28",
+ "request": "Live finding through DCLab Code (HyperAck, 0.664 vs honest 0.945); the owner's rule: Home asks with the evidence, and 'use your recommendation' follows the leakage reviewer only when it says available and names the moment. Handed over by the Home session, which drafted column_check.py.",
+ "spec": "dclab_rnd/draft/column_check.py (new), draft/api.py quick_build, draft/chat.py (ask_column_check, column_answer), tests/test_home_column_check.py",
+ "plan": [
+  "port the Home session's WIP patch onto H4-H12's chat.py",
+  "test the decisions and the route end to end",
+  "review, fix, review again",
+  "home-eval and harness-eval unchanged"
+ ],
+ "decisions": [
+  {
+   "decision": "ask only about columns kept out on statistics alone (proof within R04/R05)",
+   "why": "a name signal, a precedent, the research's own forbidden list or a label source is never overruled, even when the reviewer model says available"
+  },
+  {
+   "decision": "a doubtful answer reads as later or as the recommendation",
+   "why": "both keep the column out: the safe side of a leak"
+  },
+  {
+   "decision": "an answer counts only for the outcome and moment it was given about",
+   "why": "a new version copies the understanding with a new target"
+  },
+  {
+   "decision": "a build Claude asks for through MCP still goes through home_build after the answer",
+   "why": "A7: an external chat builds only through the call its host asks the person about"
+  }
+ ],
+ "change": "R&D: column_check.py, api.py, chat.py, tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "defect": "Home dropped an honest strong column without asking",
+   "scenario": "HyperAck through DCLab Code: deliverey_category_id forbidden on AUC 0.816 alone, reviewer said available, holdout 0.664 vs 0.945",
+   "cause": "statistics-only flags kept out unless confirmed, but nothing asked for the confirmation",
+   "fix": "the build refuses with a 'column check' and Home asks with the evidence, outside the question cap; the answer decides",
+   "test": "e2e route test: refused 409 naming the column, asked, 'known' keeps it with the reason in the notes",
+   "severity": "leakage"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "a late answer read as known",
+   "scenario": "'yes it is written later', 'known after the delivery'",
+   "cause": "KNOWN matched the first word before any late word",
+   "fix": "LATE and HEDGE words: exact option, recommendation, late, then known without hedge",
+   "test": "units: the reviewer's answers",
+   "severity": "leakage"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "defect": "a precedent column could be kept on a plain yes",
+   "scenario": "the reviewer model wrongly says final_customer_fare is available",
+   "cause": "disputed() asked about every reviewer-available column",
+   "fix": "statistics-only with proof within R04/R05 only",
+   "test": "unit: precedent and R01 columns never asked",
+   "severity": "leakage"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "defect": "answers reused for a new outcome",
+   "scenario": "build_new_version copies understanding.column_checks",
+   "cause": "answers keyed by column only",
+   "fix": "answers stored with target and moment; current() ignores others",
+   "test": "unit: current()",
+   "severity": "leakage"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "defect": "'names the moment' almost always true",
+   "scenario": "'Probably set at creation, though it could be updated after'",
+   "cause": "every reviewer reason quotes the moment",
+   "fix": "per clause, no hedge and no late word in that clause",
+   "test": "units: three hedged reasons, the real HyperAck reason",
+   "severity": "leakage"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "defect": "'yes, I guess' read as known; 'set at completion' named a moment",
+   "scenario": "second review",
+   "cause": "HEDGE and LATE missed a few words",
+   "fix": "guess/think/suppose/believe; completion/finished/closed/resolved/ended",
+   "test": "units",
+   "severity": "leakage"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "tests",
+   "gate": "Home and draft suites pass",
+   "fixed_before_run": true,
+   "result": "435 tests in 22 files OK; tests/test_home_column_check 10 OK",
+   "verdict": "pass"
+  },
+  {
+   "name": "home-eval rules",
+   "gate": "fields 65 right 0 wrong, traps 6/6, uncited 0 (the Home session's dev baseline)",
+   "fixed_before_run": true,
+   "result": "right 65, wrong 0, traps 6/6, uncited 0",
+   "verdict": "pass"
+  },
+  {
+   "name": "harness-eval",
+   "gate": "every case right on every step",
+   "fixed_before_run": true,
+   "result": "17 of 17 (HRN-075, HRN-076)",
+   "verdict": "pass"
+  },
+  {
+   "name": "review",
+   "gate": "no high finding open",
+   "fixed_before_run": true,
+   "result": "first review FAIL (4 high), all fixed; second review PASS",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "Home no longer drops an honest strong column silently: it asks with the evidence, and its recommendation follows the reviewer only when the reviewer plainly names the moment.",
+ "lessons": [
+  "A recommendation that silently decides a leak is a default, and defaults need a question.",
+  "Every false-ask cut opens a door: read answers for the late word before the yes."
+ ],
+ "risks": [
+  "Not yet rerun live on HyperAck through DCLab Code (next).",
+  "With the team switch on and no outcome named, the walk builds without this check (unchanged)."
+ ],
+ "commits": []
+}

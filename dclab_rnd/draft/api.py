@@ -1153,12 +1153,26 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             if flagged is not None:
                 note += (f" `{time_column}` orders the time split and is never a feature; the audit flagged it ({str(flagged.get('reason') or 'a leak signal')[:300]}): "
                          "check that it is known before the prediction moment.")
+            # H3.1 (live, HyperAck 2026-10-28): a column kept out on statistics alone, or one the leakage reviewer reads as
+            # available, is asked about first, one at a time, with its evidence; the answers decide (column_check.py)
+            from . import column_check as checks
+
+            given = (get(draft_id).get("understanding") or {}).get("column_checks") or {}
+            answers = {c: a for c, a in given.items() if checks.current(a, target, moment)}  # about this outcome and moment only
+            items = checks.disputed(proposal, time_column)
+            waiting = [i for i in items if i["column"] not in answers]
+            if waiting:
+                drafts.update(draft_id, lambda d: d.update(column_check_pending={"item": waiting[0], "moment": moment, "target": target}))
+                raise HTTPException(409, checks.question(waiting[0], moment), headers={"X-DCLab-Rule": "column check"})
+            decided = {i["column"]: checks.decide(i, answers[i["column"]]) for i in items}
+            note += "".join(" " + why for _, why in decided.values())
             kinded = proposal.get("kind_proposed") is not None  # S9 (the review): the kind the card understood, with its fields and metric
             body = {"target": proposal.get("target") if kinded else target, "task": task, "prediction_moment": moment,
                     **({"kind": proposal["kind"], "kind_fields": proposal.get("kind_fields") or {}} if kinded else {}),
                     "positive_label": str(proposal["positive_label"]) if task == "binary" and proposal.get("positive_label") is not None else None,
                     "forbidden": [{"column": f["column"], "reason": f.get("reason") or "declared unavailable at the prediction moment"}
-                                  for f in proposal.get("forbidden") or [] if f["column"] != time_column],
+                                  for f in proposal.get("forbidden") or [] if f["column"] != time_column
+                                  and not decided.get(f["column"], (False, ""))[0]],
                     "identifiers": list(proposal.get("identifiers") or []), "time_column": time_column,
                     "group_column": proposal.get("group_column"), "text_columns": list(proposal.get("text_columns") or []), "metric": proposal.get("metric"),
                     "label_source_column": proposal.get("label_source_column"),  # 30.12: the labels' source, never a feature

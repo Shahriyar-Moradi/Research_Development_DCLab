@@ -32,6 +32,7 @@ from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer
 
 from . import brief as briefs
+from . import column_check as checks
 from . import intent as intents
 from . import lang
 from . import memory as memories
@@ -84,7 +85,7 @@ def counted(draft: dict[str, Any]) -> list[dict[str, Any]]:
     """The questions that count against MAX_QUESTIONS: never a superseded one, never an optional field's (asked once at
     most: costs would otherwise take the place of a pack's last field)."""
     return [q for q in draft.get("questions") or [] if not q.get("superseded") and q.get("field") not in OPTIONAL
-            and q.get("field") != "intent" and not q.get("brief")]  # H2: the kind of help is not one of the prediction's questions  # what one prediction is for: the meet check blocks on it, so only the rules read it from the person's words
+            and q.get("field") not in ("intent", checks.FIELD) and not q.get("brief")]  # H2: the kind of help is not one of the prediction's questions; H3.1: nor a column check  # what one prediction is for: the meet check blocks on it, so only the rules read it from the person's words
 BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
 
 
@@ -317,7 +318,7 @@ class HomeAgent:
             return None  # H2 (the review): off a prediction no question of the prediction path is asked, the critic's included
         asked = counted(draft)
         critic = source in ("critic", "second_opinion")  # 28.4, 28.6: a field the card settled is put to the person again
-        over = len(asked) >= MAX_QUESTIONS and field not in self.CONTRADICTIONS.values() and not critic  # 21.5: the words and the data disagreeing
+        over = len(asked) >= MAX_QUESTIONS and field not in (*self.CONTRADICTIONS.values(), checks.FIELD) and not critic  # 21.5: the words and the data disagreeing
         if over or any(q.get("field") == field and not q.get("answered") for q in draft["questions"]):  # is asked past the cap, once
             return None
         if self.settled(draft, field) and field not in self.CONTRADICTIONS.values() and not critic:
@@ -1452,7 +1453,7 @@ class HomeAgent:
         if self.track(self.store.get(draft_id)) == "preparation" and rec.get("unread_said") and not rec.get("done"):
             if self.prepare_table(draft_id, said=text) is not None:  # H9: Home asked for the steps one at a time: this is them
                 return
-        if open_question is not None and open_question["field"] == "intent":  # H2: the kind of help: code reads the answer
+        if open_question is not None and open_question["field"] in ("intent", checks.FIELD):  # H2, H3.1: code reads these answers
             self.take_answer(draft_id, open_question, text)
             return
         if asks_to_build(self.store.get(draft_id)["messages"]) and self.track(self.store.get(draft_id)) == "prediction":
@@ -1514,6 +1515,8 @@ class HomeAgent:
     def built(self, draft_id: str, done: dict[str, Any]) -> None:
         """25.13: what "build it" did, in the chat: the project and its running stages, or what is missing first."""
         self.moved(draft_id, "build", {}, {k: done.get(k) for k in ("project_id", "started", "refused")})
+        if done.get("rule") == "column check" and self.ask_column_check(draft_id) is not None:
+            return  # H3.1: a column kept out on statistics alone is the person's to decide; the build goes on after the answer
         if done.get("refused"):  # what is missing, with the step that clears it when there is one
             actions = ["confirm_map", "show_map"] if done.get("rule") == "problem map not confirmed" else \
                 ["upload", "connect", "simulate"] if "no table" in done["refused"] else []
@@ -1545,11 +1548,44 @@ class HomeAgent:
         text += ("\n\nThe plan:\n" + "\n".join(steps)) if steps else ""
         self.say(draft_id, text, kind="build", project_id=done.get("project_id"), session_id=done.get("session_id"))
 
+    def ask_column_check(self, draft_id: str) -> dict[str, Any] | None:
+        """H3.1: ask about the column the build is waiting on, with its evidence and a recommendation."""
+        pending = self.store.get(draft_id).get("column_check_pending") or {}
+        item = pending.get("item")
+        if not item:
+            return None
+        why = "A column that is only strong may be honest; whether it is known at the prediction moment is a fact about your business."
+        return self.ask(draft_id, checks.FIELD, checks.question(item, str(pending.get("moment") or "")), list(checks.OPTIONS), why=why,
+                        extra={"column": item["column"]})
+
+    def column_answer(self, draft_id: str, q: dict[str, Any], value: str) -> None:
+        """H3.1: the person's answer about one column (known, written later, or left to DCLab), then the build goes on."""
+        answer = "recommendation" if not_known(value) else checks.read_answer(value)
+        column = q.get("column")
+        pending = self.store.get(draft_id).get("column_check_pending") or {}
+
+        def put(d):
+            # the answer is about this outcome and this moment: a new version with another outcome asks again
+            d.setdefault("understanding", {}).setdefault("column_checks", {})[column] = {
+                "answer": answer, "said": value.strip()[:200], "target": pending.get("target"), "moment": pending.get("moment")}
+            d.pop("column_check_pending", None)
+            for item in d["questions"]:
+                if item["id"] == q["id"]:
+                    item["answered"] = value.strip()[:400]
+        self.store.update(draft_id, put)
+        self.moved(draft_id, "column_check", {"column": column}, {"answer": answer})
+        done = self.on_request(draft_id, "build", {})
+        if done is not None:
+            self.built(draft_id, done)
+
     def take_answer(self, draft_id: str, q: dict[str, Any], value: str, then_next: bool = True) -> None:
         """The user's message answers the open question: record it, redraw the workflow, ask the next thing (``then_next``:
         not when a model has already replied)."""
         if q.get("source") == "second_opinion":
             self.take_second_opinion(draft_id, q, value)
+            return
+        if q["field"] == checks.FIELD:
+            self.column_answer(draft_id, q, value)
             return
         draft = self.store.get(draft_id)
         if q["field"] == "intent":  # H2: the kind of help, from a button or the person's words
