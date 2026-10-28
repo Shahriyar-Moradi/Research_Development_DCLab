@@ -1202,6 +1202,13 @@ door with kinds of help at the pinned commit, so it produces none (`KINDS_MISSIN
 names per conversation and record the outcome on each change. Only kept or changed confirms the route taken (a person's
 label on the exit and the reading); refused and asked again are outcomes, never a guessed right answer.
 
+## Trained versions and roll-back (36.7, dclab-core 0.137.0)
+
+`dclab_core.model_version.TrainedVersion` keeps a trained version with the replay round it was trained on, the frozen
+exam it sits and a history that only grows (trained, accepted or refused, retired with the roles switched back and
+why). Where it goes there: the main product trains no model of its own at the pinned commit; when it does, keep one
+record per served model name, and retire in one change: switch every role it serves back first, then mark it retired.
+
 ## Replay rounds: a model must not forget (36.5, dclab-core 0.136.0)
 
 `dclab_core.replay.pick(rows, share, salt, round)` draws, stratum by stratum, the share of an earlier round's rows that

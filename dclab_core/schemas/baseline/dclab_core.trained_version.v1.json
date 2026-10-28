@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "VersionEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "type": "string"
+        },
+        "by": {
+          "maxLength": 120,
+          "type": "string"
+        },
+        "forgotten": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 600,
+          "type": "string"
+        },
+        "roles": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "trained",
+            "accepted",
+            "refused",
+            "retired"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "at",
+        "status",
+        "by"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "base_model": {
+      "maxLength": 120,
+      "type": "string"
+    },
+    "exam_hash": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "exam_version": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "history": {
+      "items": {
+        "$ref": "#/$defs/VersionEvent"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "model_type": {
+      "maxLength": 40,
+      "type": "string"
+    },
+    "replay_share": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "type": "number"
+    },
+    "round": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "round_train_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.trained_version.v1",
+      "default": "dclab_core.trained_version.v1",
+      "type": "string"
+    },
+    "served_as": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    },
+    "sets": {
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "version": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_type",
+    "version",
+    "served_as",
+    "base_model",
+    "round",
+    "round_train_sha256",
+    "replay_share",
+    "history"
+  ],
+  "type": "object"
+}

@@ -4,6 +4,12 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.137.0 (2026-10-28)
+
+- `model_version` (36.7): `TrainedVersion` v1, a trained version of DCLab's own models with the replay round it was
+  trained on (number, train-set hash, share, the sets read), the frozen exam it sits, and a history that only grows
+  (trained, accepted or refused by the no-forgetting gate, retired with the roles switched back and why).
+
 ## 0.136.0 (2026-10-28)
 
 - `replay` (36.5): `ReplayRound` v1 and `pick(rows, share, salt, round)`, a training round's set: its new rows plus a fixed

@@ -158,6 +158,15 @@ class Layout:
             out = out / _part(p)
         return out
 
+    def versions(self, model_type: str, *parts: str) -> Path:
+        """36.7: a model type's trained versions (``<version>.json``: its round, its exam, its history)."""
+        if model_type not in MODEL_TYPES:
+            raise ValueError(f"{model_type!r} is not a model type ({', '.join(MODEL_TYPES)})")
+        out = self.root / "versions" / model_type
+        for p in parts:
+            out = out / _part(p)
+        return out
+
     def runs(self) -> Path:
         return self.root / "runs"
 

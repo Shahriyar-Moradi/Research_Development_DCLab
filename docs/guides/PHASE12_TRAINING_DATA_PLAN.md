@@ -148,6 +148,15 @@ memory.
 - Every trained version kept with its data manifest (sets, replay share, exam version) and its exam result; a version
   that forgets is retired in one change (`models/tuned.retire`). Training itself waits for the M1 Max; this prepares
   the data and the gates.
+- **Status (2026-10-28): built** (`dclab_core/model_version.py`, `dclab_rnd/store/versions.py`, `python -m
+  dclab_rnd.store.versions register|status|retire`, dclab-core 0.137.0). A trained version is registered once with its
+  served name, the replay round it was trained on (refused unless that round rebuilds byte for byte) and the exam it sits
+  with that exam's hash; every exam decision (accepted, refused, retired, with the sections it fell on) joins its history.
+  A retirement is one change: every role the tuned tier serves under its served name goes back to the model before it
+  and its shadows end, then its exam record says retired once, then its own history; a failed switch leaves nothing in
+  the version's record, and a retirement stopped half way finishes on the next try naming every role. `models.tuned.plan`
+  never serves a retired version again. No version is registered: training waits for the M1 Max. Left open: registering
+  is a command, not yet a step of a training run; the exam's score itself stays in the exam's result file.
 
 ## Order
 

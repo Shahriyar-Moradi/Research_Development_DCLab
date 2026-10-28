@@ -66,6 +66,8 @@ def plan(purpose: str, home: Path) -> dict[str, Any]:
     if suite is None:
         missing.append("the harness suite has not passed with it serving this role (make harness-eval with the tuned tier serving it)")
     exam = _exam_standing(model) if model else None  # 36.4: a version that forgot an old skill is not served
+    if model and _retired(model):  # 36.7: a version retired for forgetting is never served again
+        missing.append(f"{model} was retired (python -m dclab_rnd.store.versions status): register a new version to serve")
     if exam is not None and exam.get("error"):
         missing.append(f"its frozen exam's record cannot be read ({exam['error']}): fix it before serving")
     elif exam is not None and exam.get("status") is None:
@@ -76,6 +78,15 @@ def plan(purpose: str, home: Path) -> dict[str, Any]:
     return {"purpose": purpose, "tuned_model": model or None, "endpoint": tier.get("endpoint"), "routing": current,
             "shadow_agreement": seen, "harness_suite": suite["id"] if suite else None, "exam": exam, "missing": missing,
             "needs_measurement": purpose in UNDERSTANDING, "ready": not missing, "serving": False}
+
+
+def _retired(model: str) -> bool:
+    try:
+        from ..store import versions
+
+        return versions.is_retired(None, model)
+    except Exception:  # noqa: BLE001 - a store that cannot be read: the exam check below still stands
+        return False
 
 
 def _exam_standing(model: str) -> Optional[dict[str, Any]]:
