@@ -133,6 +133,16 @@ memory.
   re-computes (`studio/code.py`, `make code-check`); dev commits whose tests passed (dev records with their diffs);
   self-play solutions that passed their checks. Each as problem → reasoning → code, into m5 (and m4 where it is workflow
   code), with its source and weight.
+- **Status (2026-10-28): built for the engine's exported pipelines** (`dclab_rnd/store/sets/code.py`, `scripts/code_check.py
+  --keep DIR`, the store build's `verified_code` step). Every engine kind's replica is exported as code and re-run in a
+  clean Python 3.12; each pipeline that reproduced its recorded number becomes an m5 example: the problem as stated
+  (`problem.json`: kind, moment of prediction, target, columns, the agreed solution; never a result), then the code. The
+  code is DCLab's engine's, so no reasoning is given (the owner's rule: only a model's own thinking summary, never
+  code-written or teacher reasoning); the turn says who wrote it. The split is the replica's self-play group's, the
+  stricter rule, so a table sealed for self-play is sealed here. A kind comes from its newest finished run in which it
+  passed. First real run: 16 of 16 kinds reproduced (Python 3.12.13): 4 train, 5 dev, 7 sealed. Left open: dev commits
+  with their diffs (they re-run to tests, not to a number) and project exports beyond the replicas; self-play solutions
+  already reach m5 as trajectories.
 
 ### 36.7 Versions and roll-back
 - Every trained version kept with its data manifest (sets, replay share, exam version) and its exam result; a version

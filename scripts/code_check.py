@@ -5,7 +5,8 @@ For each kind: its replica is built into a project, every stage run by the engin
 (``dclab_rnd.studio.code``), then ``python -I pipeline.py`` run from an unrelated folder in a fresh ``uv venv`` that
 holds only the pinned requirements the exports name (no dclab_rnd, no repository on the path). Prints one JSON line per
 kind and a summary; exit 0 when every kind reproduced its number, 75 when it could not run here (no uv, no Python 3.12,
-no network for the dependencies), 1 otherwise.
+no network for the dependencies), 1 otherwise. ``--keep DIR`` (36.6) keeps each kind's exported folder with its
+``result.json`` and the run's ``summary.json`` there, for the verified-code set (``python -m dclab_rnd.store.sets.code DIR``).
 """
 
 from __future__ import annotations
@@ -52,7 +53,30 @@ def export_all(keys: list[str], into: Path) -> dict[str, dict]:
         with runner.fast_profile(), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
             engine.run_all(store, pid)
         out[key] = code.export(store, pid, into / "code" / key)
+        (into / "code" / key / "problem.json").write_text(json.dumps(problem_of(key), indent=1, default=str) + "\n", encoding="utf-8")
     return out
+
+
+def problem_of(key: str) -> dict:
+    """36.6: the replica's problem as a person would state it (the kind, the moment of prediction, the target, the
+    solution's columns and roles, the table's columns), never a result: the verified example's question."""
+    from dclab_rnd import kinds
+
+    case = kinds.get(key).case(0)
+    table = getattr(case, "table", None)
+    columns = [str(c) for c in getattr(table, "columns", [])] if table is not None else []
+    return {"kind": key, "task": case.task, "moment": case.moment, "target": case.target, "solution": case.solution, "columns": columns}
+
+
+def keep_arg(argv: list[str]) -> tuple[Path | None, list[str]]:
+    """``--keep DIR`` taken out of the arguments; a missing folder name is a usage error (exit 2)."""
+    if "--keep" not in argv:
+        return None, argv
+    i = argv.index("--keep")
+    if i + 1 >= len(argv) or argv[i + 1].startswith("--"):
+        print("usage: scripts/code_check.py [--keep DIR] [kind ...]", file=sys.stderr)
+        raise SystemExit(2)
+    return Path(argv[i + 1]), argv[:i] + argv[i + 2:]
 
 
 def main(argv: list[str]) -> int:
@@ -60,6 +84,9 @@ def main(argv: list[str]) -> int:
     if uv is None:
         print(json.dumps({"status": "skipped", "reason": "uv is not installed"}))
         return SKIP
+    keep, argv = keep_arg(argv)  # 36.6: keep the verified exports for the solver model's set
+    if keep is not None:
+        keep.mkdir(parents=True, exist_ok=False)
     keys, uncovered = (argv, []) if argv else engine_kinds()
     if uncovered:  # "every kind" must mean every kind: one without a replica is a failure of this check, said
         print(json.dumps({"status": "failed", "reason": "kinds the engine runs without a replica to check", "kinds": uncovered}))
@@ -96,9 +123,16 @@ def main(argv: list[str]) -> int:
             results.append({"kind": key, "metric": exported[key]["metric"], "recorded": exported[key]["value"], "reproduced": got.get("value"),
                             "same": ok, "seconds": round(time.perf_counter() - started, 1), **({} if ok else {"log": (run.stdout + run.stderr)[-1500:]})})
             print(json.dumps(results[-1]), flush=True)
+            if keep is not None:
+                shutil.copytree(tmp / "code" / key, keep / key)
+                (keep / key / "result.json").write_text(json.dumps(results[-1], indent=1) + "\n", encoding="utf-8")
         version = _run([str(python), "-c", "import sys; print(sys.version.split()[0])"]).stdout.strip()
-        print(json.dumps({"status": "passed" if not failed else "failed", "kinds": len(keys), "reproduced": len(keys) - failed,
-                          "python": version, "requirements": wanted}))
+        summary = {"status": "passed" if not failed else "failed", "kinds": len(keys), "reproduced": len(keys) - failed,
+                   "python": version, "requirements": wanted,
+                   "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+        print(json.dumps(summary))
+        if keep is not None:  # written last: a run cut short has no summary, and nothing in it is taken as verified
+            (keep / "summary.json").write_text(json.dumps(summary, indent=1) + "\n", encoding="utf-8")
         return 1 if failed else 0
 
 
