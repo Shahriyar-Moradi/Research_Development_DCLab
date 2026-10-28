@@ -1,0 +1,103 @@
+{
+ "package": "dclab-code-v1.56",
+ "title": "Home's other kinds of help on DCLab Code's card, memory in the chat, thinking always kept, and HyperAck after H3.1",
+ "date": "2026-10-28",
+ "request": "Owner: did you update the chat UI; do not wait for me, keep going. Sync DCLab Code with R&D's new Home tracks (H7-H12), memory (35.x) and the thinking rule, then rerun HyperAck after H3.1.",
+ "spec": "dclab-code docs/PARITY_PLAN.md; R&D H7-H12 routes under /api/drafts/{id}/(brief|answers|dashboard|prepared), /api/memory/proposals, the recall tool; R&D CLAUDE.md rule 8 (keep every model's thinking)",
+ "plan": [
+  "draw each new Home turn kind on the card: answer (kpi, bars, line, with its numbers), prepared table, dashboard, decision brief, route suggestion, project answer",
+  "relay the person's clicks for them (answer edit and save, brief field, dashboard refresh, switch kind) through the person's channel, and the downloads through a checked GET relay",
+  "give the chat recall and the memory proposal route; keep corrections and reviews on DCLab's page",
+  "make thinking always kept (summarized); remove the setting that turned it off",
+  "lock R&D, run sync-check and the whole suite; rerun HyperAck"
+ ],
+ "decisions": [
+  {
+   "decision": "thinking can no longer be turned off in DCLab Code; an old saved 'off' is dropped on load",
+   "why": "the owner's rule: every model call keeps its thinking for training; a setting that loses it breaks the rule silently"
+  },
+  {
+   "decision": "memory corrections and reviews are never relayed from the chat; only a proposal the person then confirms",
+   "why": "memory changes what every agent reads later: the person decides it on DCLab's own page"
+  },
+  {
+   "decision": "check H3.1 on the real table with no model when the live run was blocked by the account's credit",
+   "why": "the deterministic path shows the question, the person's answer and the honest number at no cost; the live arm stays marked owed"
+  },
+  {
+   "decision": "bars from zero, one hue per series from validated tokens (--chart-2, --chart-3), numbers in a table under the figure",
+   "why": "a count compares by length; colour checked by the palette validator in light and dark; a table view for every chart"
+  }
+ ],
+ "change": "dclab-code ed3a146 (card kinds, relays, memory, thinking, sync-check fix, lock at R&D ecae6364), 867fc38 (parity plan).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "sync-check crashed with a TypeError on the new per-answer routes",
+   "scenario": "npm run sync-check after adding answer_save and answer_edit acts whose path needs the answer's number",
+   "cause": "sync-check called each act's path(draft) with no args, so a.n was read from undefined",
+   "fix": "sync-check passes placeholder args ({n: '{n}'}) and lists the route with {n}",
+   "test": "npm run sync-check passes; the lock lists 86 person's writes",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "defect": "the whole suite hung for hours in tests/server.test.js",
+   "scenario": "npm test under heavy machine load (other sessions running): the keep-awake test failed at 300 ms and the file never exited",
+   "cause": "a timing-sensitive test under load; alone it passes in 0.6 s; not caused by this change",
+   "fix": "none to the code; the suite rerun with a stop timer passed 152/152",
+   "test": "node --test the three files, 152 pass",
+   "severity": "flaky"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "defect": "the live HyperAck rerun could not run",
+   "scenario": "hyper.py through DCLab Code on 4398: Claude's first reply was 'Credit balance is too low'",
+   "cause": "the Anthropic account had no credit",
+   "fix": "the owner adds credit; checked H3.1 on the rules path meanwhile",
+   "test": "rules_check.py on the real table",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "DCLab Code suite",
+   "gate": "units, server, Chromium page tests all pass",
+   "fixed_before_run": true,
+   "result": "152/152",
+   "verdict": "pass"
+  },
+  {
+   "name": "HyperAck after H3.1, no model",
+   "gate": "Home asks about deliverey_category_id before the build; the person's 'known' keeps it; the fares stay out; holdout read once near the research's 0.945",
+   "fixed_before_run": true,
+   "result": "asked with the evidence (AUC 0.816); kept as a feature; fares out; holdout ROC-AUC 0.934 (0.923 to 0.946), CV 0.894, 2,219 rows; was 0.664",
+   "verdict": "pass"
+  },
+  {
+   "name": "HyperAck live through the chat",
+   "gate": "the same, with Claude and a recommend-only person",
+   "fixed_before_run": true,
+   "result": "not run: account credit; $0",
+   "verdict": "not scored"
+  }
+ ],
+ "outcome": "DCLab Code shows every kind of help R&D's Home gives and sends the person's clicks for each; the chat can recall memory and propose a preference; thinking is always kept. On the owner's HyperAck table the fixed Home asks about the strong column and, with the person's answer, the holdout is honest again (0.934).",
+ "lessons": [
+  "When a sync tool reads a shape from code, give it placeholder arguments: a new route with a parameter should not crash the check.",
+  "When a live run is blocked, run the deterministic path on the same real data: it proves the rule, and the live arm stays honestly owed.",
+  "A setting that can turn off a training rule is a silent breach; remove it rather than default it."
+ ],
+ "risks": [
+  "The live arm (reviewer names the moment, person says 'use your recommendation') is unit-tested but not live-checked.",
+  "The keep-awake server test is timing-sensitive under load.",
+  "The lock's onGitHub is false while other sessions have uncommitted dclab_core files."
+ ],
+ "commits": [
+  "dclab-code ed3a146",
+  "dclab-code 867fc38"
+ ]
+}
