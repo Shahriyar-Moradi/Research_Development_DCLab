@@ -261,6 +261,8 @@
     readConsent: ["GET", "/consent", [], []],
     setConsent: ["PUT", "/consent", [], []],
     datasetsCatalog: ["GET", "/datasets", [], []],
+    failureCandidates: ["GET", "/datasets/failures", [], []],
+    reviewFailure: ["POST", "/datasets/failures/{candidate_id}/review", ["candidate_id"], []],
     datasetsLineage: ["GET", "/datasets/lineage", [], ["path"]],
     decideRoute: ["POST", "/decide", [], []],
     decideChoose: ["POST", "/decide/choose", [], []],
@@ -558,6 +560,18 @@
   client.datasetsCatalog = (...args) => call('datasetsCatalog', args);
   client.path.datasetsCatalog = (...args) => build('datasetsCatalog', args).path;
   client.href.datasetsCatalog = (...args) => '/api' + build('datasetsCatalog', args).path;
+  /** GET /api/datasets/failures: Failure Candidates
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.failureCandidates = (...args) => call('failureCandidates', args);
+  client.path.failureCandidates = (...args) => build('failureCandidates', args).path;
+  client.href.failureCandidates = (...args) => '/api' + build('failureCandidates', args).path;
+  /** POST /api/datasets/failures/{candidate_id}/review: Review Failure
+   *  @param {string} candidate_id
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.reviewFailure = (...args) => call('reviewFailure', args);
+  client.path.reviewFailure = (...args) => build('reviewFailure', args).path;
   /** GET /api/datasets/lineage: Datasets Lineage
    *  @param {{query?: {path?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

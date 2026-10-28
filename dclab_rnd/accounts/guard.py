@@ -83,6 +83,8 @@ SPECIAL = {
     ("GET", "/api/drafts/{draft_id}/assets/{asset_id}/download"): "write",  # 25.13: the whole table, as export/code
     ("GET", "/api/drafts/{draft_id}/assets/{asset_id}/rows"): "write",  # 25.13: the table's values
     ("GET", "/api/datasets/lineage"): "admin",
+    ("GET", "/api/datasets/failures"): "admin",  # 19.12: the failure candidates and their reviews
+    ("POST", "/api/datasets/failures/{candidate_id}/review"): "admin",
     ("GET", "/api/students"): "admin",  # 29.1: the students' register, every choice and how far its model is trusted
     ("GET", "/api/teams"): "admin",  # 28.8: every walk of the teams, its nodes, pauses, cost and the models asked
     # Claude beside the system (25.4): the owner's switch; the sessions are the record's, as the timelines

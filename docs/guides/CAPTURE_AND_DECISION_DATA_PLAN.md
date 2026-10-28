@@ -260,7 +260,8 @@ person's overrides.
   the events the consent lets out; a row still holding an e-mail address or a path is refused, and the manifest is
   recounted from what was kept; a reviewer accepts a candidate in `datasets/failures/reviews.json` and the accepted ones
   are `accepted.jsonl` for the next benchmark version; (g) the development records are listed beside them. Left open:
-  a page to review the candidates; the code of a pipeline in the workflow examples; the catalog (19.13).
+  the code of a pipeline in the workflow examples; the catalog (19.13). The owner reviews the candidates on the Admin
+  page's Datasets tab since 2026-10-28 (`GET /api/datasets/failures`, `POST .../{id}/review`, `make browser-test` `failures`).
 
 ### 19.13 The archive and its catalog
 - **Delivers:** one documented layout (`docs/guides/EXPERIENCE_ARCHIVE.md`): per workspace, events by day and visit,
@@ -277,7 +278,7 @@ person's overrides.
   `python -m dclab_rnd.experience catalog [--lineage BUILDER/NAME]`; the Admin page's **Datasets** tab
   (`GET /api/datasets`, `/api/datasets/lineage`, the owner only); `make backup` takes the datasets with the rest of the
   workspace folder, and a restore gives the same catalog and the same lineage (tested on PostgreSQL). Milestone B is
-  done. Left open: a page to review the failure candidates; datasets kept outside the workspace folder.
+  done. Left open: datasets kept outside the workspace folder (the failure candidates' page is built, 19.12).
 
 ---
 

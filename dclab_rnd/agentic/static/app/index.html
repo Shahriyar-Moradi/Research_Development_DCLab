@@ -2297,6 +2297,10 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Set</th><th>Rows</th><th>Consent</th><th>Built</th><th>From</th></tr></thead><tbody id="ds-body"></tbody></table></div>
       <div class="panel-body" id="ds-lineage" hidden></div>
     </div>
+    <div class="panel" data-f="admin.failures">
+      <div class="panel-head"><div class="panel-title"><h2>Failure candidates</h2><span class="sub">Sessions a detector flagged. Accept one to make it a case of the next benchmark version; reject it to leave it out. The next <code>make datasets</code> writes the accepted ones.</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Candidate</th><th>Flagged by</th><th>Problem</th><th>Review</th><th></th></tr></thead><tbody id="fc-body"></tbody></table></div>
+    </div>
   </div>
   <!-- dclab:closed-end -->
 

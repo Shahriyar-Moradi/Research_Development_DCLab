@@ -1,0 +1,19 @@
+{
+ "package": "19.12 failure review page",
+ "title": "The owner reviews failure candidates on the Admin page",
+ "date": "2026-10-28",
+ "request": "The owner: keep going by priority until tonight's full gate; 19.12 and 19.13 left the failure candidates without a page.",
+ "spec": "CAPTURE_AND_DECISION_DATA_PLAN.md 19.12: a reviewer accepts a failure candidate in datasets/failures/reviews.json and the accepted ones go to the next benchmark version; the page to review them was left open.",
+ "plan": ["Read how the build reads the reviews", "Two routes, owner only", "A panel on the Admin Datasets tab", "A browser check"],
+ "decisions": [
+  {"decision": "The verdict is written where the next build already reads it", "why": "one place for reviews; the build stays the one writer of the accepted set"},
+  {"decision": "Owner only, like the rest of the datasets pages", "why": "the candidates are sessions of the workspace"}
+ ],
+ "change": "dclab_rnd/agentic/pages/datasets.py (the two routes), dclab_rnd/accounts/guard.py, web/src/views/admin.html and features.js, the generated frontend, scripts/browser_e2e.py (failures check), tests/test_failure_review_page.py, tests/test_experience_log.py, tests/test_web_client.py, the plan's status.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "The owner sees the sessions a detector flagged on the Admin page and accepts or rejects each; the next build writes the accepted ones for the next benchmark version.",
+ "lessons": ["Write a page's verdict where its reader already looks."],
+ "risks": ["A verdict waits for the next make datasets to reach the accepted set."],
+ "commits": []
+}

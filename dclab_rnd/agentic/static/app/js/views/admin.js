@@ -191,7 +191,7 @@ DC.view('admin', {
     this.S.offset = 0;
     await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadAgents(el),
       // dclab:closed-begin  (the twin, the students, the teams, the datasets and the evaluation board: the full edition's)
-      this.loadDatasets(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el),
+      this.loadDatasets(el), this.loadFailures(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el),
       // dclab:closed-end
     ]);
   },
@@ -320,6 +320,26 @@ DC.view('admin', {
       try { l = await DC.client.datasetsLineage({ query: { path: row.dataset.ds }, quiet: true }); } catch (e) { DC.states.failed(box, e); return; }
       box.innerHTML = `<b>${esc(l.path)}</b>: ${n(l.sessions.length)} session${l.sessions.length === 1 ? '' : 's'}`
         + (l.sessions.length ? `<div class="row wrap small">${l.sessions.slice(0, 60).map(s => `<span class="pill outline mono">${esc(s.visit)} · ${n(s.events)}</span>`).join(' ')}</div>` : '');
+    }));
+  },
+
+  // 19.12: the failure candidates, accepted or rejected by the owner
+  async loadFailures(el) {
+    const { $, esc } = DC;
+    const body = $('#fc-body', el);
+    if (!body) return;
+    let r;
+    try { r = await DC.client.failureCandidates({ quiet: true }); } catch (e) { DC.states.failed(body, e, { retry: () => this.loadFailures(el), cols: 5 }); return; }
+    if (!r.items.length) { DC.states.empty(body, 'No failure candidate yet: make datasets lists the sessions a detector flagged.', { cols: 5 }); return; }
+    body.innerHTML = r.items.map(i => `<tr><td class="mono small">${esc(i.id)}</td><td class="small">${esc((i.detectors || []).join(', '))}</td>`
+      + `<td class="small">${esc(i.problem || '')}${i.family ? ` <span class="pill outline">${esc(i.family)}</span>` : ''}</td>`
+      + `<td class="small">${esc(i.review)}${i.reviewed_by ? ` · ${esc(i.reviewed_by)}` : ''}</td>`
+      + `<td class="row"><button type="button" class="btn xs" data-fc="accept" data-id="${esc(i.id)}">Accept</button><button type="button" class="btn xs" data-fc="reject" data-id="${esc(i.id)}">Reject</button></td></tr>`).join('');
+    body.querySelectorAll('[data-fc]').forEach(b => b.addEventListener('click', async () => {
+      b.disabled = true;
+      try { await DC.client.reviewFailure(b.dataset.id, { body: { verdict: b.dataset.fc } }); DC.toast(b.dataset.fc === 'accept' ? 'Accepted for the next benchmark version.' : 'Left out.'); }
+      catch (e) { DC.toast(e.message || 'The review was refused.', { ok: false }); }
+      finally { this.loadFailures(el); }
     }));
   },
 

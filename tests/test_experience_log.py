@@ -125,6 +125,8 @@ WRITE_ROUTES = {
     "POST /api/memory/{item_id}/review": (EVENTS, ["memory.written", "memory.retired"]),  # 35.3: accepted or edited; rejected or replaced
     "POST /api/memory/proposals": (EVENTS, ["memory.proposed"]),  # 35.3: a preference proposed; nothing when the words state none
     "POST /api/memory/{item_id}/retire": (EVENTS, ["memory.retired"]),  # 35.7: a person retires a stored line, no replacement
+    "POST /api/datasets/failures/{candidate_id}/review": (NONE, "19.12: the owner's verdict on a failure candidate, kept in "
+                                                              "datasets/failures/reviews.json for the next build and in the audit trail"),
     "POST /api/drafts/{draft_id}/intent": (NONE, "H2: the person's choice of the kind of help is a label of the request.intent decision in the "
                                                   "decision ledger (draft/capture.intent_chosen), not an event of its own"),
     "POST /api/drafts/{draft_id}/answers/{n}/save": (EVENTS, ["track.outcome"]),  # 36.2: the person's keep or let-go, when the verdict changes

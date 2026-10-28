@@ -597,6 +597,32 @@ def check_review(b: Browser) -> str:
     return f"an anomaly project's alerts are listed on its Overview, and one confirmed on the page is kept as its first reviewed round"
 
 
+def check_failures(b: Browser) -> str:
+    """19.12: the failure candidates on the Admin page's Datasets tab; Accept on the page is kept for the next build."""
+    if WORKSPACE is None:
+        return "skipped: the failures check writes its candidates in the script's own server's workspace (not with --base)"
+    folder = WORKSPACE / "datasets" / "failures" / "benchmark_candidates"
+    folder.mkdir(parents=True, exist_ok=True)
+    rows = [{"id": "fc-check-1", "detectors": ["identifier_target"], "flags": [], "problem": "Predict churn", "family": "binary", "review": "pending"}]
+    (folder / "rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    page = b.page
+    page.reload()
+    b.view("admin", settle=2)
+    page.click("#view-admin .ptab[data-ptab='datasets']")
+    button = page.locator("#fc-body [data-fc='accept'][data-id='fc-check-1']")
+    button.wait_for(timeout=30_000)
+    button.click()
+    reviews = WORKSPACE / "datasets" / "failures" / "reviews.json"
+    for _ in range(30):
+        if reviews.exists() and json.loads(reviews.read_text(encoding="utf-8")).get("fc-check-1", {}).get("verdict") == "accept":
+            break
+        time.sleep(0.5)
+    check(reviews.exists() and json.loads(reviews.read_text(encoding="utf-8"))["fc-check-1"]["verdict"] == "accept",
+          "the verdict given on the page is not kept for the next build")
+    check(not b.problems(), f"the failures panel: {b.problems()[:3]}")
+    return "a failure candidate is listed on the Admin page's Datasets tab, and Accept there is kept for the next build"
+
+
 # the outermost element wider than the screen that is not inside a box that scrolls or clips it
 CULPRIT = """() => { const w = document.documentElement.clientWidth;
   const clipped = e => { for (let a = e.parentElement; a && a !== document.body; a = a.parentElement) { const o = getComputedStyle(a).overflowX; if (o !== 'visible') return true; } return false; };
@@ -604,7 +630,7 @@ CULPRIT = """() => { const w = document.documentElement.clientWidth;
   return el ? el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + ' "' + (el.textContent || '').trim().slice(0, 40) + '"' : '?'; }"""
 
 
-CHECKS = {"flow": (check_flow, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "memory": (check_memory, 1280), "review": (check_review, 1280), "mobile": (check_mobile, 375)}
+CHECKS = {"flow": (check_flow, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "memory": (check_memory, 1280), "review": (check_review, 1280), "failures": (check_failures, 1280), "mobile": (check_mobile, 375)}
 
 
 def main(argv: list[str] | None = None) -> int:
