@@ -1,0 +1,149 @@
+{
+ "package": "H8",
+ "title": "Home says where each kind of help leads, offers the other route a request's words mean, and turns an analysis into a prediction safely",
+ "date": "2026-10-28",
+ "request": "The owner's goal: Home understands what a person needs (a model, analysis, preparation, BI, a business answer, advice) and routes them to the right solution. Plan H8: draft/exits.py, one exit per track, three cross-route suggestions with their reason, the safe conversion of an analysis into a prediction; record request.exit.",
+ "spec": "One exit per track (reached, open, or not built yet, said never promised); three rules on the person's words, each pointing to another route with its reason and the words that show it, offered only when it names another track and never moving the draft; an analysis turned prediction carries the exposure log, flags the columns already compared with the outcome, and keeps the holdout after the last explored period or says its rows were seen; request.exit in the ledger.",
+ "plan": [
+  "exits.py: EXITS, exit_for, suggest, conversion.",
+  "route() on every opened track; reached exits kept; the suggestion said once with a Switch button.",
+  "request.exit ledger point (dclab-core 0.128.0) and its capture.",
+  "build_project carries the conversion; the chat says it at build time.",
+  "H1 dev; review adversarially."
+ ],
+ "decisions": [
+  {
+   "decision": "Suggestions never move the draft; the person switches with a button.",
+   "why": "A rule on words can be wrong; the person's choice labels it (request.intent) and stays theirs."
+  },
+  {
+   "decision": "'A model of last month's sales' points to a report only when a named past period follows 'model of'.",
+   "why": "'A model of churn by plan' is a real prediction; the broader rule flagged it."
+  },
+  {
+   "decision": "An answer over every row marks the holdout as seen rather than pretending it is untouched.",
+   "why": "The chat's answers related columns to the outcome on the holdout's rows too; a later holdout number is then not a first look."
+  },
+  {
+   "decision": "Exits not built yet (dataset, dashboard, decision brief, cited answer) are recorded with status not_built.",
+   "why": "The exit says where the request belongs; the status keeps it from being a promise."
+  }
+ ],
+ "change": "dclab_rnd/draft/exits.py (new); draft/chat.py (route, exits on answers and builds, the conversion said at build); draft/api.py (build_project carries the exposure); home_query.py (the exposure keeps the period's dates); ledger/capture.py (request_exit); dclab_core/ledger.py (request.exit, state fields track and suggested); home.html (Switch button); tests/test_home_exits.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "'Build a model of churn by plan' was suggested as a report.",
+   "scenario": "A real churn prediction got 'Another way to read this: a report'.",
+   "cause": "The rule took any 'model of X by Y' as a summary.",
+   "fix": "Only a model of a named past period ('last month's sales') points to a report.",
+   "test": "tests/test_home_exits.py::RulesTests::test_the_traps_get_the_other_route_when_read_the_wrong_way"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "request.exit was refused by the ledger.",
+   "scenario": "No request.exit record after a track opened.",
+   "cause": "The ledger's state accepts only known fields; track and suggested were not among them.",
+   "fix": "Both added to dclab_core's STATE_FIELDS as codes.",
+   "test": "tests/test_home_exits.py::AgentTests::test_the_exit_follows_the_track_and_the_ledger_keeps_it"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The new ledger point broke three completeness checks.",
+   "scenario": "test_decision_capture, test_conformance and test_workflow_models failed on request.exit.",
+   "cause": "A point must be named as captured, unmapped to the main product, and learned or not, and the catalog regenerated.",
+   "fix": "CAPTURED, POINTS_NOT_MAPPED and NOT_LEARNED each name it with a reason; the catalog is rebuilt; dclab-core 0.128.0.",
+   "test": "tests/test_decision_capture.py, tests/test_conformance.py, tests/test_workflow_models.py"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The conversion note promised what the product does not do.",
+   "scenario": "'Keep the holdout after that date, so the model is judged on rows nobody looked at' while the split is stratified unless a time column is declared; 'reported as such' while no report reads it.",
+   "cause": "The note described a preference the engine never applies.",
+   "fix": "The note says what the chat covered, how to keep the holdout clean, and that DCLab's split does not choose the date by itself yet.",
+   "test": "tests/test_home_exits.py::RulesTests::test_the_conversion_carries_what_the_chat_showed"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Suggestion rules misfired on ordinary requests.",
+   "scenario": "'Score every customer with their ID by churn risk' suggested a prepared table; 'a model of last year's bookings to predict cancellations' suggested a report; Persian 'بعد' (after) read as 'next'.",
+   "cause": "Each rule ignored the track and the rest of the sentence.",
+   "fix": "rows_list silent on prediction and advice; model_of_the_past silent when the request asks for the future; Persian future needs a period word before آینده/بعدی; bare نام and شماره dropped.",
+   "test": "tests/test_home_exits.py::RulesTests::test_ordinary_requests_get_no_suggestion"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A switch away and back wiped a reached exit.",
+   "scenario": "An answered analysis, switched to prediction and back, read 'open'.",
+   "cause": "The exit was rebuilt from the track alone, from a read made before the update.",
+   "fix": "Inside the update, an analysis with answers (or a prediction with a project) is reached.",
+   "test": "tests/test_home_exits.py::AgentTests::test_a_reached_exit_survives_a_switch_away_and_back_and_labels_the_ledger"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The conversion mixed date columns and named identifiers.",
+   "scenario": "Answers on signup_date and order_date gave one date for both; customer_id listed as compared with the outcome.",
+   "cause": "max over every end date; no identifier filter.",
+   "fix": "One holdout date only when every answer is bounded on one column; otherwise 'seen'; identifiers dropped; 'on the rows the answers covered'.",
+   "test": "tests/test_home_exits.py::RulesTests::test_the_conversion_carries_what_the_chat_showed"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "request.exit promised a label never written.",
+   "scenario": "No label after an answer or a build.",
+   "cause": "The docstring described a later step that did not exist.",
+   "fix": "exit_reached labels the record (measured, by the studio) when an answer is first given or a project built.",
+   "test": "tests/test_home_exits.py::AgentTests::test_a_reached_exit_survives_a_switch_away_and_back_and_labels_the_ledger"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Paths untested.",
+   "scenario": "No test drove a run to the exposure's period, the build's note, or a switch after an answer.",
+   "cause": "Tests used hand-written entries.",
+   "fix": "Tests for each.",
+   "test": "tests/test_home_exits.py::AgentTests"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Home on the H1 dev requests (rules alone)",
+   "gate": "the exit right for every request; no wrong field",
+   "fixed_before_run": true,
+   "result": "Exits 36 of 36 (9 before); fields 65 right, 0 wrong; traps 5 of 6. The exit is a fixed table from the track, so on dev it equals track accuracy by construction: it shows every request now has a destination, not that the destinations were judged.",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "rules only",
+    "traps 1 and 2 are read on the right track already, so their suggestions are tested with the wrong track chosen, not by the eval"
+   ]
+  }
+ ],
+ "outcome": "Every request now has a destination, said honestly when it is not built yet; a person who picked the wrong kind of help is shown the other route with the words that point to it; a prediction made after an analysis is told which rows and columns the chat already showed.",
+ "lessons": [
+  "A destination recorded with its status is honest; a destination without one is a promise.",
+  "A measure that follows from another by construction (exit from track) says that something exists, not that it is right: say which."
+ ],
+ "risks": [
+  "The engine's split does not read holdout_after: the note says so; wiring it into the time split is later work.",
+  "The solution report does not mark a holdout whose rows the chat saw."
+ ],
+ "commits": []
+}

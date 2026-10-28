@@ -34,6 +34,7 @@ NOT_LEARNED = {
     "map.edit": "the person's own change to the map: an action recorded, not a decision DCLab makes",
     "problem.pack": "only two problem kinds declare a pack, too few to learn from",
     "request.intent": "H2: labelled by the person's choice on Home's card, not by a journey's truth (the written journeys are all predictions)",
+    "request.exit": "H8: labelled by where the request really left Home (an answer given, a project built), not by a journey's truth",
     "workflow.template": "drawn from the pack by a fixed table: there is nothing to learn",
     "workflow.move": "the workflow graph's validator owns it: no model decides a move (principle 1 of the plan)",
     "workflow.revisit": "a person's or an agent's request to run a stage again: no journey asks for one",

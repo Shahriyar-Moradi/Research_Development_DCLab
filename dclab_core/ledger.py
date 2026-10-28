@@ -60,6 +60,7 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "rows": (BAND, SIZE_BANDS), "columns": (COUNT, ()), "classes": (COUNT, ()), "positive_rate": (BAND, RATIO_BANDS),
     "has_time": (FLAG, ()), "has_groups": (FLAG, ()), "has_text": (FLAG, ()), "tables": (COUNT, ()),
     "has_data": (FLAG, ()), "words": (COUNT, ()), "signals": (COUNT, ()),  # H2: a request's kind of help, read from its words
+    "track": (CODE, ()), "suggested": (CODE, ()),  # H8: the kind of help a request is on, and the other route its words suggest
     "moment_known": (FLAG, ()), "outcome_known": (FLAG, ()), "open_questions": (COUNT, ()), "blocking": (COUNT, ()),
     "parts": (COUNT, ()), "parts_before": (COUNT, ()), "parts_after": (COUNT, ()), "template": (CODE, ()), "sub_problem": (CODE, ()),  # 24.2: the problem map's size and the rule that drew it
     "positives": (COUNT, ()), "related_tables": (COUNT, ()),  # 24.7: the confirmed cases a choice was made on; the tables beside the main one (a route changes when one arrives)
@@ -245,6 +246,9 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     # H2 (2026-10-28): the kind of help a request needs, read before anything else on Home; labelled by the person's choice
     _p("request.intent", W, "draft", "choice", "Which kind of help does the request need?",
        choices=("prediction", "analysis", "preparation", "reporting", "business", "advice")),
+    # H8 (2026-10-28): where the request leads (one exit per kind of help), by rule, with the cross-route suggestion beside it
+    _p("request.exit", W, "draft", "choice", "Where does the request leave Home?",
+       choices=("ml_project", "analysis", "dataset", "dashboard", "decision_brief", "answer")),
     _p("command.intent_route", W, "conversation", "value", "Which quick action does the person's message ask for?",
        "command.intent_route", "command.intent_route"),
     # operations, after a model is in use (the main product's governed points; this studio decides none of them yet)

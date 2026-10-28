@@ -320,6 +320,13 @@ DC.view('home', {
       sel.disabled = false;
     });
     el.addEventListener('click', async e => {
+      const sw = e.target.closest('[data-switch-track]');
+      if (sw && S.draft) {  // H8: the person takes the suggested route (the same choice as the card's Change control)
+        sw.disabled = true;
+        try { S.draft = await DC.client.chooseIntent(S.draft.id, { body: { track: sw.dataset.switchTrack } }); drawIntent(S.draft.intent); }
+        catch (err) { sw.disabled = false; toast(err.message, { ok: false }); }
+        return;
+      }
       const keep = e.target.closest('[data-answer-save]');
       if (keep && S.draft) {
         keep.disabled = true;
@@ -622,6 +629,9 @@ DC.view('home', {
         body = `<p data-style="white-space:pre-line">${esc(m.text)}</p><div class="row">${m.session_id ? `<button type="button" class="btn primary sm" data-follow="${esc(m.session_id)}" data-project="${esc(m.project_id || '')}">Follow the agent</button>` : ''}${m.project_id ? `<button type="button" class="btn sm" data-open-project="${esc(m.project_id)}">Open the project</button>` : ''}</div>`;
       } else if (m.kind === 'analysis') {
         body = `<p>${esc(m.text)}</p>${analysisCard(S.analysis[m.asset], m.asset)}`;
+      } else if (m.kind === 'route_suggestion' && m.suggestion) {  // H8: another route the person's words may mean; they choose
+        const TRACK = { prediction: 'a prediction', analysis: 'numbers from my data', preparation: 'a prepared table', reporting: 'a report or dashboard', business: 'a business question', advice: 'advice' };
+        body = `<p>${esc(m.text)}</p><div class="row"><button type="button" class="btn sm" data-switch-track="${esc(m.suggestion.track)}">Switch to ${esc(TRACK[m.suggestion.track] || m.suggestion.track)}</button></div>`;
       } else if (m.kind === 'answer') {  // H7b: an answer from the person's own table, with the chart code chose
         body = `<p>${esc(m.text)}</p>${answerCard(m.answer)}`;
       } else if (m.kind === 'summary') {

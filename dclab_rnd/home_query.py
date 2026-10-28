@@ -364,7 +364,8 @@ def run(store: Any, draft_id: str, plan: Q.QueryPlan) -> Q.QueryResult:
 
     draft = store.get(draft_id)
     result = Q.execute(plan, table(store, draft), floor=floor())
-    entry = {**Q.exposure(plan), "at": now()}
+    entry = {**Q.exposure(plan), "at": now(),  # H8: the dates it covered, so a later prediction knows which rows were seen
+             **({"period": {"column": plan.period.column, "start": plan.period.start, "end": plan.period.end}} if plan.period else {})}
     store.update(draft_id, lambda d: d.setdefault("exposure", []).append(entry))
     return result
 

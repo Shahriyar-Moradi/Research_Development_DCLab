@@ -616,9 +616,38 @@ class HomeAgent:
         self.store.emit(draft_id, "status", {"intent": value})
         return value
 
+    def route(self, draft_id: str) -> None:
+        """H8: where the draft's kind of help leads (its exit; one already reached is kept) and, from the person's own words,
+        another route they may mean, said once with its reason and a button; it never moves the draft by itself."""
+        from . import exits
+        from ..ledger import capture
+
+        draft = self.store.get(draft_id)
+        if (draft.get("intent") or {}).get("status") == "asked":
+            return
+        track = self.track(draft)
+        door = exits.exit_for(track)
+        idea = exits.suggest(str(draft.get("problem") or ""), track)
+        changed = door is not None and (draft.get("exit") or {}).get("kind") != door["kind"]
+        record = capture.request_exit(draft_id, track, door["kind"], (idea or {}).get("track")) if changed else None
+
+        def put(d):
+            if door and (d.get("exit") or {}).get("kind") != door["kind"]:
+                # a destination reached earlier stays reached when the person comes back to it (the review of H8)
+                reached = (door["kind"] == "analysis" and d.get("answers")) or (door["kind"] == "ml_project" and d.get("project_id"))
+                d["exit"] = {**door, "at": now(), **({"record": record} if record else {}),
+                             **({"status": "reached"} if reached else {})}
+            d["route_suggestion"] = idea
+        self.store.update(draft_id, put)
+        offered = {m.get("suggestion", {}).get("track") for m in draft.get("messages") or [] if m.get("kind") == "route_suggestion"}
+        if idea and idea["track"] not in offered:
+            self.say(draft_id, f"Another way to read this: {intents.LABELS[idea['track']].lower()}. {idea['why']} "
+                               f"(Your words: “{idea['quote']}”.)", kind="route_suggestion", suggestion=idea)
+
     def open_track(self, draft_id: str) -> None:
         """What Home says and does once the kind of help is known: the prediction path as it always was, or, on another
         track, a plain statement of what DCLab can do for it now (no pack, no ML workflow, no ML questions)."""
+        self.route(draft_id)  # H8: the exit and a cross-route suggestion, before the track's own words
         draft = self.store.get(draft_id)
         track = self.track(draft)
         if track == "prediction":
@@ -723,6 +752,7 @@ class HomeAgent:
             return self.say(draft_id, f"That question could not be answered from this table: {str(error)[:300]}", kind="text")
         text = home_query.answer_text(plan, result, note)
         message_id = "m" + secrets.token_hex(5)
+        exits_reached: list[tuple[Any, str]] = []
         answer = {"plan": plan.model_dump(mode="json"), "plan_hash": Q.plan_hash(plan), "asset": draft.get("active_asset"),
                   "result": result.model_dump(mode="json"), "shown": home_query.shown_numbers(result), "by": by, "at": now(),
                   "floor": home_query.floor(), "message": message_id, **({"edited_from": edited_from} if edited_from is not None else {})}
@@ -730,9 +760,17 @@ class HomeAgent:
         def keep(d):
             d.setdefault("answers", []).append(answer)
             answer["n"] = len(d["answers"]) - 1
-            d["exit"] = {"kind": "analysis", "answers": len(d["answers"])}
+            first = (d.get("exit") or {}).get("status") != "reached"
+            d["exit"] = {**(d.get("exit") or {}), "kind": "analysis", "track": "analysis", "status": "reached", "answers": len(d["answers"]),
+                         "at": now(), **({"labelled": True} if first else {})}
+            if first:
+                exits_reached.append((d["exit"].get("record"), "analysis"))
         self.store.update(draft_id, keep)
         n = answer["n"]  # set inside the update: two answers at once never swap numbers (the review of H7c)
+        from ..ledger import capture
+
+        for record, kind in exits_reached:  # H8: where the request really left labels the exit read for it
+            capture.exit_reached(record, kind)
         self.moved(draft_id, "answer_analysis", {"plan_by": by, **({"edited_from": edited_from} if edited_from is not None else {})},
                    {"rows": len(result.rows), "suppressed": result.suppressed_groups})
         return self.say(draft_id, text, kind="answer", message_id=message_id,
@@ -1099,6 +1137,19 @@ class HomeAgent:
             return
         if done.get("project_id"):  # H5: what the person stated becomes the project's memory
             from .. import experience
+            from . import exits
+
+            carried = exits.conversion(self.store.get(draft_id), (self.store.get(draft_id).get("understanding") or {}).get("target"))
+            if carried:  # H8: what the chat's answers already showed, said where the build is said
+                self.say(draft_id, carried["note"], kind="text")
+
+            from ..ledger import capture
+
+            before = self.store.get(draft_id).get("exit") or {}
+            self.store.update(draft_id, lambda d: d.update(exit={**(d.get("exit") or {}), "kind": "ml_project", "track": "prediction",
+                                                                  "status": "reached", "project": str(done["project_id"]), "at": now()}))  # H8
+            if before.get("status") != "reached":
+                capture.exit_reached(before.get("record"), "ml_project")
 
             memories.hand_off(self.store, self.store.get(draft_id), str(done["project_id"]), log=experience.current_log())
         steps = [f"{i}. {line}" for i, line in enumerate(done.get("plan") or [], 1)]

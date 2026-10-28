@@ -456,6 +456,30 @@ def intent_read(draft_id: str, value: dict[str, Any], *, has_data: bool, words: 
     return getattr(record, "id", None)
 
 
+EXITS = ("ml_project", "analysis", "dataset", "dashboard", "decision_brief", "answer")  # draft/exits.py (H8)
+
+
+@_quiet
+def request_exit(draft_id: str, track: str, kind: str, suggested: Optional[str]) -> Optional[str]:
+    """H8: where the draft's kind of help leads, by rule from its track, with the cross-route suggestion the person's words
+    gave (none, or another track); labelled by exit_reached when the request really leaves (an answer, a built project)."""
+    if kind not in EXITS:
+        return None
+    record = _put("request.exit", ("draft", draft_id), [answer("rule", "rule:exits_v1", kind)], kind, "rule", options=EXITS,
+                  state={"track": track, **({"suggested": suggested} if suggested in TRACKS else {})}, draft=draft_id, conversation=draft_id)
+    return getattr(record, "id", None)
+
+
+@_quiet
+def exit_reached(record_id: Optional[str], kind: str) -> int:
+    """H8: where the request really left (an answer given, a project built) labels the exit read for it."""
+    if not record_id or kind not in EXITS:
+        return 0
+    from types import SimpleNamespace
+
+    return int(bool(label(SimpleNamespace(id=record_id, point="request.exit"), kind, "measured", "studio")))
+
+
 @_quiet
 def intent_chosen(record_id: Optional[str], track: str) -> int:
     """H2: the person's choice on the card is the label of this draft's own reading, never of another draft's."""

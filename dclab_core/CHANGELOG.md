@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.128.0 (2026-10-28)
+
+- `ledger` (H8 of the Home plan): the point `request.exit`, where a request leaves Home (`ml_project`, `analysis`,
+  `dataset`, `dashboard`, `decision_brief`, `answer`), by rule from its kind of help; labelled by where it really left.
+  State fields `track` and `suggested` (codes: the kind of help it is on, and the other route its words suggest; never
+  the words). Not mapped to the main product, which has no such front door yet.
+
 ## 0.127.0 (2026-10-28)
 
 - `query` (H6 of the Home plan): questions answered from a table, never by listing its rows. `QueryPlan` v1 (filters,

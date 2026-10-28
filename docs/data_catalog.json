@@ -641,7 +641,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.127.0",
+ "dclab_core": "0.128.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1227,6 +1227,17 @@
    "point": "report.claim",
    "subjects": [
     "project"
+   ]
+  },
+  {
+   "about": "Where does the request leave Home?",
+   "answer": "choice",
+   "decided_in": "draft/chat.py route: where the request leads, by rule from its kind of help, with the cross-route suggestion its words gave; labelled when an answer is given or a project is built (H8)",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "request.exit",
+   "subjects": [
+    "draft"
    ]
   },
   {

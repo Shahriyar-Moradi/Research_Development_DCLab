@@ -1545,6 +1545,13 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
         target = u.get("target")
         if target and target in project["data"]["columns"]:
             suggestion["target"] = target
+        from . import exits  # H8: an analysis made a prediction carries what it showed (no exposure: as before)
+
+        carried = exits.conversion(draft, target if target in project["data"]["columns"] else None)
+        if carried:
+            project["exposure"] = carried
+            projects.log(pid, "exposure_carried", {k: carried[k] for k in ("answers", "related_to_target") if k in carried}
+                         | {"holdout": carried.get("holdout_after") or "seen"})
         if u.get("prediction_moment"):
             suggestion.setdefault("prediction_moment", u["prediction_moment"])
         if (u.get("assumed") or {}).get("prediction_moment"):  # S8 B3: the person did not know; kept beside the suggestion, as the budget is
