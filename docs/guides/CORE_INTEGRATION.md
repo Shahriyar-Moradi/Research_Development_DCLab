@@ -1202,6 +1202,14 @@ door with kinds of help at the pinned commit, so it produces none (`KINDS_MISSIN
 names per conversation and record the outcome on each change. Only kept or changed confirms the route taken (a person's
 label on the exit and the reading); refused and asked again are outcomes, never a guessed right answer.
 
+## The learning loop's record (31.17, dclab-core 0.138.0)
+
+`dclab_core.loop_record.LoopRecord` is one turn of DCLab's learning loop on its invented challenge packs: the pack (its id
+and hashes, never the key), the attempt, the grade, the reflection and the playbook changes, joined by their ids, with
+`replay` to check a chain from the records alone and `row` to recount a scoreboard row. Where it goes there: nowhere yet;
+the main product runs no learning loop at the pinned commit. If it adopts one, keep one record per attempt and never open
+an exam's attempt to training.
+
 ## Trained versions and roll-back (36.7, dclab-core 0.137.0)
 
 `dclab_core.model_version.TrainedVersion` keeps a trained version with the replay round it was trained on, the frozen

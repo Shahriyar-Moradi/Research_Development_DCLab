@@ -267,9 +267,11 @@ def _count_once(home: Path, books: FilePlaybooks, family: str, lineage: str, bul
     if counts["shown"]:
         books.count(family, bullet, {k: v for k, v in counts.items() if v}, by="probe",
                     reason=f"probe_gate_v1: {counts['shown']} pairs, {counts['helpful']} helped, {counts['harmful']} hurt", lineage=lineage)
+        written = books.deltas(family, lineage)
+        index, at = len(written) - 1, written[-1].at  # 31.17: the tally names the change it wrote, never a second clock
         for folder, g in marks:
-            (folder / "probe_counted.json").write_text(json.dumps({"bullet": bullet, "gain": g,
-                                                                   "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}) + "\n", encoding="utf-8")
+            (folder / "probe_counted.json").write_text(json.dumps({"bullet": bullet, "gain": g, "at": at, "lineage": lineage,
+                                                                   "delta": index}) + "\n", encoding="utf-8")
     return counts
 
 

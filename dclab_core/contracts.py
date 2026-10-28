@@ -464,3 +464,4 @@ import dclab_core.exam  # noqa: E402,F401  (a frozen exam per model type and the
 import dclab_core.track_outcome  # noqa: E402,F401  (what a person did with what Home produced: kept, changed, refused, asked again, 36.2)
 import dclab_core.replay  # noqa: E402,F401  (replay rounds: a training round is its new rows and a share of every earlier round, 36.5)
 import dclab_core.model_version  # noqa: E402,F401  (trained versions with their round, exam and history, and their roll-back, 36.7)
+import dclab_core.loop_record  # noqa: E402,F401  (the learning loop's own record and its replay, 31.17)

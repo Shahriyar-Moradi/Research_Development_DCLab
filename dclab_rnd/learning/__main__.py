@@ -1,4 +1,4 @@
-"""``python -m dclab_rnd.learning baseline|refusal|draft|pilot|probe|decisions``: the baseline (H0), the refusal test (H1), drafting lessons (H2), the pilot and the probe (H3)."""
+"""``python -m dclab_rnd.learning baseline|refusal|draft|pilot|probe|decisions|loop-records``: the baseline (H0), the refusal test (H1), drafting lessons (H2), the pilot and the probe (H3), the loop's own records (31.17)."""
 
 from __future__ import annotations
 
@@ -60,7 +60,11 @@ def main(argv: list[str] | None = None) -> int:
     dec.add_argument("--n", type=int, default=20, help="variants per partition (learning and check; a sealed one is never read)")
     dec.add_argument("--retrain", action="store_true", help="measure: also train each point's student again with the learning rows")
     dec.add_argument("--write", action="store_true", help="measure: store the result in evidence/campaigns/learning_v1/results/")
+    loops = sub.add_parser("loop-records", help="31.17: the loop's own records joined from what each seat wrote; replayed from the records alone")
+    loops.add_argument("--write", action="store_true", help="write them to lake/bronze/loop/<family>/ with a manifest")
     args = parser.parse_args(argv)
+    if args.command == "loop-records":
+        return _loop_records(args)
     if args.command == "decisions":
         return _decisions(args)
     if args.command == "probe":
@@ -86,7 +90,8 @@ def main(argv: list[str] | None = None) -> int:
     if before is None:
         experience.install(experience.open_log(Settings.load().agent_home))
     try:
-        result = baseline(args.family, args.split, args.n, write=args.write)
+        result = baseline(args.family, args.split, args.n, write=args.write,
+                          keep=Path(Settings.load().agent_home) if args.write else None)  # 31.17: a stored baseline keeps its attempts
     except SealedSpent as error:
         print(str(error), file=sys.stderr)
         return 2
@@ -330,6 +335,28 @@ def _draft(args) -> int:
             experience.install(None)
     print(json.dumps(result, indent=1, ensure_ascii=False))
     return 0
+
+
+
+def _loop_records(args: argparse.Namespace) -> int:
+    from collections import Counter
+
+    from dclab_core.loop_record import replay, training
+
+    from ..settings import Settings
+    from .loop_records import build, write
+
+    records, changes = build(Path(Settings.load().agent_home))
+    problems = replay(records, changes)
+    kinds = Counter(r.attempt.kind for r in records)
+    print(f"{len(records)} records ({', '.join(f'{k} {n}' for k, n in sorted(kinds.items()))}); {len(training(records))} open to training, "
+          f"{sum(r.exam for r in records)} an exam's")
+    for line in problems:
+        print("problem:", line)
+    if args.write:
+        for path in write(records, changes):
+            print("wrote", path)
+    return 1 if problems else 0
 
 
 if __name__ == "__main__":

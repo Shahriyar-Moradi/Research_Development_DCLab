@@ -1,0 +1,528 @@
+{
+  "$defs": {
+    "AttemptRef": {
+      "additionalProperties": false,
+      "properties": {
+        "arm": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "rules or reference (baseline); with or without (probe)",
+          "title": "Arm"
+        },
+        "at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "At"
+        },
+        "counted": {
+          "anyOf": [
+            {
+              "maxLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the bullet a probe's tally counted this attempt for",
+          "title": "Counted"
+        },
+        "id": {
+          "description": "the attempt's own id: its kept folder, or its harness run",
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "baseline",
+            "draft",
+            "pilot",
+            "probe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "producer": {
+          "description": "rule:<name>, model:<name>, person",
+          "maxLength": 120,
+          "title": "Producer",
+          "type": "string"
+        },
+        "reads": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reads"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "run": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the harness run id",
+          "title": "Run"
+        },
+        "tag": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tag"
+        },
+        "trace": {
+          "description": "where the whole trace is kept, relative to the workspace",
+          "items": {
+            "type": "string"
+          },
+          "title": "Trace",
+          "type": "array"
+        },
+        "valid": {
+          "default": true,
+          "title": "Valid",
+          "type": "boolean"
+        },
+        "why_invalid": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Why Invalid"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "producer"
+      ],
+      "title": "AttemptRef",
+      "type": "object"
+    },
+    "DeltaRef": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "At"
+        },
+        "bullet": {
+          "anyOf": [
+            {
+              "maxLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bullet"
+        },
+        "by": {
+          "maxLength": 120,
+          "title": "By",
+          "type": "string"
+        },
+        "index": {
+          "description": "its place in the change log: the playbook's version after it is index + 1",
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "lineage": {
+          "maxLength": 40,
+          "title": "Lineage",
+          "type": "string"
+        },
+        "op": {
+          "maxLength": 20,
+          "title": "Op",
+          "type": "string"
+        }
+      },
+      "required": [
+        "lineage",
+        "index",
+        "op",
+        "by"
+      ],
+      "title": "DeltaRef",
+      "type": "object"
+    },
+    "GradeRef": {
+      "additionalProperties": false,
+      "properties": {
+        "codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Codes",
+          "type": "array"
+        },
+        "decision_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision Score"
+        },
+        "grader": {
+          "maxLength": 40,
+          "title": "Grader",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{8,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the kept grade file's hash, when one is kept",
+          "title": "Sha256"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "grader",
+        "verdict"
+      ],
+      "title": "GradeRef",
+      "type": "object"
+    },
+    "PackRef": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "maxLength": 40,
+          "title": "Family",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^pk-[0-9a-f]{6,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "key_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{8,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the key's hash only: the key never travels",
+          "title": "Key Sha256"
+        },
+        "split": {
+          "enum": [
+            "learning",
+            "check",
+            "sealed"
+          ],
+          "title": "Split",
+          "type": "string"
+        },
+        "table_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{8,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Table Sha256"
+        }
+      },
+      "required": [
+        "id",
+        "family",
+        "split"
+      ],
+      "title": "PackRef",
+      "type": "object"
+    },
+    "Reads": {
+      "additionalProperties": false,
+      "description": "What an attempt was shown from the playbook, and which of it the attempt named.",
+      "properties": {
+        "lineage": {
+          "maxLength": 40,
+          "title": "Lineage",
+          "type": "string"
+        },
+        "shown": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Shown",
+          "type": "array"
+        },
+        "text_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{8,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text Sha256"
+        },
+        "used": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Used",
+          "type": "array"
+        },
+        "version": {
+          "description": "the playbook's version shown: the number of deltas applied",
+          "minimum": 0,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "lineage",
+        "version"
+      ],
+      "title": "Reads",
+      "type": "object"
+    },
+    "Reflection": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "At"
+        },
+        "filed": {
+          "description": "the bullets filed from this attempt",
+          "items": {
+            "type": "string"
+          },
+          "title": "Filed",
+          "type": "array"
+        },
+        "producer": {
+          "default": "rule:reflect_v1",
+          "maxLength": 120,
+          "title": "Producer",
+          "type": "string"
+        },
+        "refused": {
+          "items": {},
+          "title": "Refused",
+          "type": "array"
+        },
+        "step": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the first wrong step found",
+          "title": "Step"
+        },
+        "why": {
+          "default": "",
+          "maxLength": 600,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "title": "Reflection",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.loop_record.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "attempt": {
+      "$ref": "#/$defs/AttemptRef"
+    },
+    "consent": {
+      "maxLength": 200,
+      "title": "Consent",
+      "type": "string"
+    },
+    "deltas": {
+      "items": {
+        "$ref": "#/$defs/DeltaRef"
+      },
+      "title": "Deltas",
+      "type": "array"
+    },
+    "exam": {
+      "default": false,
+      "title": "Exam",
+      "type": "boolean"
+    },
+    "family": {
+      "maxLength": 40,
+      "title": "Family",
+      "type": "string"
+    },
+    "grade": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GradeRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "id": {
+      "maxLength": 320,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "pack": {
+      "$ref": "#/$defs/PackRef"
+    },
+    "producer": {
+      "maxLength": 120,
+      "title": "Producer",
+      "type": "string"
+    },
+    "reflection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Reflection"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "result": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the stored result (LRN-NNN) its row is counted in",
+      "title": "Result"
+    },
+    "schema_version": {
+      "const": "dclab_core.loop_record.v1",
+      "default": "dclab_core.loop_record.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "training_allowed": {
+      "default": true,
+      "title": "Training Allowed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "family",
+    "pack",
+    "attempt",
+    "producer",
+    "consent"
+  ],
+  "title": "LoopRecord",
+  "type": "object"
+}

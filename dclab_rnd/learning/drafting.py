@@ -27,7 +27,7 @@ def draft_lessons(home: Path, family: str = "groups", n: int = 5, client: Any = 
     rows, spent = [], 0.0
     with tempfile.TemporaryDirectory() as tmp:
         for seed in V.seeds(family, "learning", n):  # the learning partition only
-            row = attempt(Path(tmp), family, seed)
+            row = attempt(Path(tmp), family, seed, keep=Path(home), step="draft")  # 31.17: the attempt a lesson is drawn from is kept
             key = read_key(Path(tmp), family, row["pack"])
             pack, _ = read_public(public_dir(Path(tmp), family, row["pack"]))
             book, _ = books.book(family)
@@ -61,7 +61,8 @@ def _keep_drafts(home: Path, family: str, row: dict[str, Any], out: dict[str, An
     path = Path(home) / "learning" / "drafts.jsonl"
     path.parent.mkdir(parents=True, exist_ok=True)
     doc = {"family": family, "pack": row["pack"], "run": row.get("run"), "codes": row["arms"]["rules"]["codes"], "step": out.get("step"),
-           "filed": filed, "refused": out.get("refused") or [], "why": out.get("why"), "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+           "filed": filed, "refused": out.get("refused") or [], "why": out.get("why"), "kept": row.get("kept"),
+           "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(doc, ensure_ascii=False, default=str) + "\n")
 

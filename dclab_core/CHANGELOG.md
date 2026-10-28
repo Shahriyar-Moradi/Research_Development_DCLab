@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.138.0 (2026-10-29)
+
+- `loop_record` (31.17): `LoopRecord` v1, one turn of the learning loop for one attempt: the pack (its id, the table's and
+  the key's hashes, never the key), the attempt (who solved it, its arm, where its whole trace is kept, what it read from
+  the playbook), the grade, the reflection drawn from it and the playbook changes it caused, with its producer, consent
+  and whether it is an exam's (a sealed variant's attempt is never open to training). `replay(records, logs)` lists what
+  stops a chain of records from replaying from the records alone; `row(records, result)` recounts a scoreboard row from
+  them; `training(records)` the records a training set may take.
+
 ## 0.137.0 (2026-10-28)
 
 - `model_version` (36.7): `TrainedVersion` v1, a trained version of DCLab's own models with the replay round it was

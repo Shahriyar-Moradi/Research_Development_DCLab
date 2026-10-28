@@ -94,6 +94,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
             "no model of its own at the pinned commit, so it has no exam table)",
     "exam_result": LIBRARY + " (one model version's score on its exam and the no-forgetting gate, 36.4; kept with the version beside its card)",
     "trained_version": LIBRARY + " (36.7: a trained version with its round, exam and history; the main product trains no model of its own at the pinned commit)",
+    "loop_record": LIBRARY + " (31.17: one turn of DCLab's learning loop on its invented challenge packs; the main product runs no such loop at the pinned commit)",
     "replay_round": LIBRARY + " (36.5: a training round's set, new rows and a share of every earlier round; the main product trains no model of its own at the pinned commit)",
     "track_outcome": LIBRARY + " (36.2: what a person did with an answer, table, brief or dashboard Home produced; the main product has no such front door at the pinned commit)",
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",

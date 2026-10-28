@@ -14,7 +14,11 @@ owner are its sources, read here against the repository at `07fa011`:
   steps to add a kind or a modifier. Phase 8 built its registry and first modifiers (30.10, 30.11); here it is the shape
   of what the loop's third level writes.
 
-**Status: a plan only; widened 2026-10-19.** The owner's order (2026-10-18): nothing of phase 9 is built while phases 6, 7
+**Status (2026-10-29): partly built.** The harness-learning track (H0 to H3, 2026-10-23 and 24) built most of stage 0 and the
+core of stage 1 under other names, for one family (groups): the pack and its grader (`dclab_core/challenge_pack.py`), the
+variants (`dclab_core/variants.py`), the baseline and scoreboard, the reflector, the playbook, case memory, the pilot and
+the probe (`dclab_rnd/learning/`, results LRN-001 to LRN-008). What each package still lacks is in "Status by package"
+below. **Before (widened 2026-10-19): a plan only.** The owner's order (2026-10-18): nothing of phase 9 is built while phases 6, 7
 and 8 are being finished, and the capture of everything keeps running meanwhile. On 2026-10-19 the owner added that every
 action and decision is recorded for training the three kinds of model, above all the workflow LLM, and that an agentic LLM,
 a model that solves a machine-learning problem by itself as the agent, is fine-tuned beside them (Part F2, 31.13 to 31.16);
@@ -392,6 +396,25 @@ its development record, the gate, capture in its "Done when", gates fixed before
 | | 31.14 The agentic training set | the builder into the tool-calling chat format, a sealed partition by problem family, pass/fail pairs as preferences, Claude's trajectories apart under the owner's rule | the set's manifest; no sealed family in training; a whole trajectory replays through the registry's tools |
 | **agentic model** (after 31.10; the owner's runs) | 31.15 The agentic LLM, fine-tuned | LoRA SFT of the base model on 31.14 (the owner's run), then preferences | on sealed variants it solves more problems end to end than the base model in the same harness, with no move the validator would refuse |
 | | 31.16 The agentic LLM beside the agents | the tuned model in shadow beside the harness's agents, then through the routing levels on measured evidence | its shadow record on real sessions; served only where it measured better, retired in one change |
+
+**Status by package (2026-10-29).** 31.1 partial (packs generated, not converted from the replicas; no hand-made packs
+or rubric files). 31.2 mostly done (grader_v1 with codes and the gaming traces; no outcome score scaled between baseline and
+target, no weighted rubric). 31.3 partial (the groups family, 4 skins; the sealed set comes from the same generator, not an
+independent writer; LRN-008 found names memorised across skins). 31.4 partial (the baseline LRN-001 check 7 of 20 and LRN-002
+learning 3 of 20, from before fix fa6be0a6; no `make curriculum`, no per-family row beside `capability.json`). 31.5 partial
+(first wrong step, rules drafter, capped reflector; no `Lesson` v1 with a gap type). 31.6 partial (cases matched by code;
+no memory on/off arm). 31.7 partial (append-only playbook with counters, quarantine, budget, lineages; probes of 3 pairs,
+too few to promote). 31.8 to 31.12, 31.15, 31.16 not built or blocked (a second family, accepted runs, the owner's runs and
+downloads). 31.13 and 31.14 partial (the store's solver trajectories and the M5 exports). **31.17 built (2026-10-29,
+dclab-core 0.138.0):** `dclab_core/loop_record.py` (`LoopRecord` v1, `replay`, `row`, `training`) and
+`dclab_rnd/learning/loop_records.py` (`python -m dclab_rnd.learning loop-records [--write]`, to `lake/bronze/loop/`). The
+baseline and the draft step now keep a learning variant's attempt (its grades, the pack, the key's hash; the reference
+arm's grade only, as its observations are the key's) beside the pilots' and probes'; a check or sealed attempt keeps only
+its result row. Before, they solved in a temporary folder and kept only the rows and a note. Only learning variants'
+attempts are open to training (71 of the 141). On the workspace's records: 141 records
+(80 baseline, 30 draft, 20 pilot, 11 probe) replay with no problem, and LRN-001's and LRN-002's rows recount exactly from
+them. Left: the loop's datasets built from the records (decisions from answer keys, pass/fail preferences, lessons with
+their measured effect), and the store and archive taking `lake/bronze/loop/`.
 
 **What to track from day one:** for each family, the challenges learned from, the check score, the sealed score, the
 playbook's size and the spend a challenge.

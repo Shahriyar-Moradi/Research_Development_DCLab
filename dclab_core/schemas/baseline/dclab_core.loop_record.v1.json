@@ -1,0 +1,459 @@
+{
+  "$defs": {
+    "AttemptRef": {
+      "additionalProperties": false,
+      "properties": {
+        "arm": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "counted": {
+          "anyOf": [
+            {
+              "maxLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "baseline",
+            "draft",
+            "pilot",
+            "probe"
+          ],
+          "type": "string"
+        },
+        "producer": {
+          "maxLength": 120,
+          "type": "string"
+        },
+        "reads": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reads"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "run": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tag": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "trace": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "valid": {
+          "default": true,
+          "type": "boolean"
+        },
+        "why_invalid": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "producer"
+      ],
+      "type": "object"
+    },
+    "DeltaRef": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "bullet": {
+          "anyOf": [
+            {
+              "maxLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "by": {
+          "maxLength": 120,
+          "type": "string"
+        },
+        "index": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "lineage": {
+          "maxLength": 40,
+          "type": "string"
+        },
+        "op": {
+          "maxLength": 20,
+          "type": "string"
+        }
+      },
+      "required": [
+        "lineage",
+        "index",
+        "op",
+        "by"
+      ],
+      "type": "object"
+    },
+    "GradeRef": {
+      "additionalProperties": false,
+      "properties": {
+        "codes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "decision_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "grader": {
+          "maxLength": 40,
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{8,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "grader",
+        "verdict"
+      ],
+      "type": "object"
+    },
+    "PackRef": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "maxLength": 40,
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^pk-[0-9a-f]{6,40}$",
+          "type": "string"
+        },
+        "key_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{8,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "split": {
+          "enum": [
+            "learning",
+            "check",
+            "sealed"
+          ],
+          "type": "string"
+        },
+        "table_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{8,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "family",
+        "split"
+      ],
+      "type": "object"
+    },
+    "Reads": {
+      "additionalProperties": false,
+      "properties": {
+        "lineage": {
+          "maxLength": 40,
+          "type": "string"
+        },
+        "shown": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "text_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{8,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "used": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "version": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "lineage",
+        "version"
+      ],
+      "type": "object"
+    },
+    "Reflection": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "filed": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "producer": {
+          "default": "rule:reflect_v1",
+          "maxLength": 120,
+          "type": "string"
+        },
+        "refused": {
+          "items": {},
+          "type": "array"
+        },
+        "step": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "why": {
+          "default": "",
+          "maxLength": 600,
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "attempt": {
+      "$ref": "#/$defs/AttemptRef"
+    },
+    "consent": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "deltas": {
+      "items": {
+        "$ref": "#/$defs/DeltaRef"
+      },
+      "type": "array"
+    },
+    "exam": {
+      "default": false,
+      "type": "boolean"
+    },
+    "family": {
+      "maxLength": 40,
+      "type": "string"
+    },
+    "grade": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GradeRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "id": {
+      "maxLength": 320,
+      "minLength": 1,
+      "type": "string"
+    },
+    "pack": {
+      "$ref": "#/$defs/PackRef"
+    },
+    "producer": {
+      "maxLength": 120,
+      "type": "string"
+    },
+    "reflection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Reflection"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "result": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.loop_record.v1",
+      "default": "dclab_core.loop_record.v1",
+      "type": "string"
+    },
+    "training_allowed": {
+      "default": true,
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "family",
+    "pack",
+    "attempt",
+    "producer",
+    "consent"
+  ],
+  "type": "object"
+}

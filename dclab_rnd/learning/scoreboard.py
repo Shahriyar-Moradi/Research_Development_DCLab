@@ -90,13 +90,34 @@ def _answers_unrecorded() -> Iterator[None]:
         ledger.install(before)
 
 
-def attempt(root: Path, family: str, seed: int) -> dict[str, Any]:
+def _keep(keep: Path, variant: Any, run_id: str, kept: dict[str, Any], root: Path, family: str, step: str = "baseline") -> str:
+    """31.17: a learning variant's attempt kept beside the pilots' and probes' (``learning_attempts/<day>/<time>-<pack>-<step>``):
+    each arm's whole grade, what the rules arm observed (the reference arm's observations are the key's answers, so they
+    are not kept), the pack as the solver read it, and the key's hash (never the key: it stays the grader's). A check or
+    sealed variant's attempt keeps only its result row, which never names a column."""
+    now = datetime.now(timezone.utc)
+    folder = Path(keep) / "learning_attempts" / now.strftime("%Y-%m-%d") / f"{now.strftime('%H%M%S')}-{variant.pack.id}-{step}"
+    folder.mkdir(parents=True, exist_ok=True)
+    public = public_dir(root, family, variant.pack.id)
+    (folder / "pack.json").write_text((public / "pack.json").read_text(encoding="utf-8"), encoding="utf-8")
+    from .packs import key_path
+
+    sha = {"key_sha256": hashlib.sha256(key_path(root, family, variant.pack.id).read_bytes()).hexdigest(),
+           "partition": variant.key.partition, "run": run_id}
+    (folder / "attempt.json").write_text(json.dumps(sha, indent=1) + "\n", encoding="utf-8")
+    (folder / "grade.json").write_text(json.dumps(kept, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    return str(folder.relative_to(keep))
+
+
+def attempt(root: Path, family: str, seed: int, keep: Path | None = None, step: str = "baseline") -> dict[str, Any]:
     """One variant, both arms, as a run of the learning agent: the pack written, each arm solved from the public folder
-    alone, then graded against the key read through the grader's own door."""
+    alone, then graded against the key read through the grader's own door. With ``keep`` (a workspace folder) the
+    attempt is kept there whole (31.17)."""
     started = time.perf_counter()
     variant = materialize(root, family, seed)
     folder = public_dir(root, family, variant.pack.id)
     arms: dict[str, Any] = {}
+    kept: dict[str, Any] = {}
     with harness.session(AGENT, params={"family": family, "pack": variant.pack.id, "partition": variant.key.partition}) as current:
         run_id = current.run_id
         for arm in ("rules", "reference"):
@@ -108,9 +129,14 @@ def attempt(root: Path, family: str, seed: int) -> dict[str, Any]:
                         run = solve(folder, V.reference(read_key(root, family, variant.pack.id)))
                 grade, observed = grade_run(read_key(root, family, variant.pack.id), run)  # the grader's door, after the solve
                 arms[arm] = _arm(grade, observed)
+                # 31.17: the reference arm states the key's answers, so its observations would be the key: its grade only
+                kept[arm] = {"grade": grade.model_dump(mode="json"), **({"observed": observed.model_dump(mode="json")} if arm == "rules" else {})}
                 out["result"] = _codes_only(grade)
-    return {"pack": variant.pack.id, "seed": int(seed), "partition": variant.key.partition, "knobs": variant.key.knobs, "run": run_id,
-            "arms": arms, "solvable": arms["reference"]["verdict"] == "pass", "seconds": round(time.perf_counter() - started, 2)}
+    row = {"pack": variant.pack.id, "seed": int(seed), "partition": variant.key.partition, "knobs": variant.key.knobs, "run": run_id,
+           "arms": arms, "solvable": arms["reference"]["verdict"] == "pass", "seconds": round(time.perf_counter() - started, 2)}
+    if keep is not None and variant.key.partition == "learning":  # a check or sealed attempt keeps only its row (as the solver's do)
+        row["kept"] = _keep(keep, variant, run_id, kept, root, family, step)
+    return row
 
 
 def wilson(hits: int, n: int) -> list[float] | None:
@@ -181,7 +207,7 @@ def _store(result: dict[str, Any], family: str, split: str) -> Path:
             continue
 
 
-def baseline(family: str = "groups", split: str = "check", n: int = 20, write: bool = False, log=print) -> dict[str, Any]:
+def baseline(family: str = "groups", split: str = "check", n: int = 20, write: bool = False, log=print, keep: Path | None = None) -> dict[str, Any]:
     if split not in cp.PARTITIONS:
         raise ValueError(f"split must be one of {', '.join(cp.PARTITIONS)}")
     if split == "sealed":
@@ -196,7 +222,7 @@ def baseline(family: str = "groups", split: str = "check", n: int = 20, write: b
     with tempfile.TemporaryDirectory() as tmp:  # the packs and keys are drawn again from their seeds: nothing kept on disk
         for seed in seeds:
             try:
-                row = attempt(Path(tmp), family, seed)
+                row = attempt(Path(tmp), family, seed, keep=keep)
             except Exception as exc:  # noqa: BLE001 - one attempt that breaks is a row with its reason, never the end of the baseline
                 row = {"pack": f"seed-{seed}", "seed": int(seed), "partition": split, "knobs": {}, "arms": {}, "solvable": False,
                        "error": f"{type(exc).__name__}: {exc}"}

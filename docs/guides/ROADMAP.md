@@ -110,7 +110,7 @@ A ──► B ──► (training data can leave the workspace)
 
 Each milestone's status is kept here as it moves: **A — done** (19.4–19.8, 2026-10-14). **B — done** (19.9–19.13). **C — done** (20.3, 21.3, 20.4; 20.2 built, its gate failed twice and waits for an independent sealed set). **D — done** (22.0–22.3). **E — done** (21.1, 21.2, 21.4). **F — done** (20.5, 20.6, 20.7; 16.15 C: several tables, entity tables, streams and long texts in the engine). **G — done** (20.8 the pipeline, 20.9 its code: 12 of 12 kinds reproduce their holdout in a clean Python 3.12). **H — done** (its check-all passed 2026-10-15; 22.6, 22.8, 22.9 done; 22.4 built: the classifiers in shadow; the leakage one, sealed-gate passed on generated tables, is right on 2 of 11 labelled disagreements on the replicas, the rule on 9; accuracy for four of six waits for blind labels; 22.5 built: the decision sets in three formats, a model answering through the same interface, a local Qwen 1.5B right on 45% of dev decisions where the rules are on 93%). **I — in progress** (20.10 built: its sealed sets, each written by an agent that never read the rules, 16, 24 and 25 of 30 against a bar of 26; on a fourth, the conversation reader (Claude) 25 against the rules' 20, still below the bar, so it stays off; 21.5, 22.7, 16.14 and 16.15 B done; 15.11 waits for the owner's machine).
 
-**After phases 6, 7 and 8: phase 9, the learning loop (planned 2026-10-18, nothing built yet).** Every new problem given to
+**After phases 6, 7 and 8: phase 9, the learning loop (planned 2026-10-18; much of stage 0 and the core of stage 1 built as the harness-learning track H0 to H3, 2026-10-23 and 24; 31.17 built 2026-10-29).** Every new problem given to
 DCLab enters as a Challenge Pack with a hidden answer key; the agent attempts it, is graded, diagnosed at its first wrong
 step, and learns at one of four levels (case memory, the playbook, skills as code, model weights), kept only when it
 passes variants it never saw. The plan, its stages and the owner's decisions: `PHASE9_LEARNING_LOOP_PLAN.md`.
@@ -123,7 +123,7 @@ the students (`PHASE7_STUDENTS_PLAN.md`): every package built or run; what each 
 new students failed their sealed exams, 29.9 waits for a GPU, 29.15 for the Kaggle key). Phase 8, the knowledge cards and
 recipes (`PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md`): built; open per its status lines (30.6's fresh sealed set failed, no
 part certified in 30.12, 30.18's switch off, live runs of 30.20 and 30.21). Phase 9, the learning
-loop (`PHASE9_LEARNING_LOOP_PLAN.md`): planned only, built after phases 6 to 8.
+loop (`PHASE9_LEARNING_LOOP_PLAN.md`): stage 0 and the core of stage 1 built as H0 to H3 (one family, groups); its status lines say what each package still lacks.
 
 **Lessons from MLE-bench (planned 2026-10-21, nothing built yet).** The leading agents on OpenAI's MLE-bench win by
 searching many solutions, remembering what worked and blending the best; packages 33.1 to 33.9 bring that into DCLab

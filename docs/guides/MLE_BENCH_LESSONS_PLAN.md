@@ -139,7 +139,12 @@ saw test-set feedback: Disarray 77.8% and LoongFlow 62.7%.
   the policy can weigh it.
 - **Done when:** each new entry has a test that it fits inside the folds only and a replica where it is kept; the
   existing replicas' acceptance decisions are unchanged.
-- **Status:** planned; can go with 33.3.
+- **Status:** planned; can go with 33.3. **Looked at 2026-10-29: nothing worth building now.** Of the three entries not
+  runnable, two need a person by design (segment features, merging tiny classes). Entity history exists as 15.4's
+  `entity_behaviour` recipe, which the feature ladder already screens on the same folds whenever a group column exists;
+  a review move for it would retry what the ladder measured, adding attempts (optimism) and no new search. New
+  hyperparameter moves are not added: `search_v2` measured no gain. A tree over structural moves (33.3) waits for
+  33.9's baseline, which needs the owner's yes on downloads (the OpenML tables were read for their bands and deleted).
 
 ### 33.5 Ensembles at the models stage
 - **Why:** almost every leading agent blends its best solutions at the end.
