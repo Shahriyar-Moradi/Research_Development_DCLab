@@ -1,0 +1,51 @@
+{
+ "package": "store-contamination-speed",
+ "title": "The store's sealed-words check scans the model-4 sets in minutes, not hours",
+ "date": "2026-10-28",
+ "request": "The owner: every agent's thinking kept for training; the store rebuild after adding reasoning took over an hour on the model-4 conversation sets.",
+ "spec": "Keep the contamination check's result the same (a sealed person's words or a benchmark task keep an example out of train and dev) and make it fast.",
+ "plan": [
+  "Measure where the build spends its time.",
+  "Replace the slow part, keep the behaviour, test."
+ ],
+ "decisions": [
+  {
+   "decision": "Plain substring checks for the sealed sentences, and a memo of texts already checked.",
+   "why": "One regex of 1,897 alternatives took 132 ms per 10 KB of text; substrings take 9 ms, and a system prompt or tool list repeats in thousands of examples."
+  }
+ ],
+ "change": "dclab_rnd/store/sets/llm.py (Contamination).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The model-4 build step ran for about 45 minutes with no output.",
+   "scenario": "After every example began carrying its thinking text, the store rebuild sat on model 4 at one CPU, writing nothing.",
+   "cause": "Every text of every example was matched against one regular expression of 1,897 sealed sentences: 132 ms per 10 KB.",
+   "fix": "Substring checks (9 ms per 10 KB) and a memo keyed by the text, so a repeated system prompt is checked once.",
+   "test": "tests/test_store_sets_llm.py (the sealed and benchmark cases still kept out)"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Contamination check per 10 KB of text",
+   "gate": "faster, same verdicts",
+   "fixed_before_run": true,
+   "result": "132 ms with the regex, 9.4 ms with substrings, before the memo",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "a synthetic 10 KB text; the build's own time is measured on its next run"
+   ]
+  }
+ ],
+ "outcome": "Adding thinking to every example no longer makes the store's rebuild take hours.",
+ "lessons": [
+  "When examples grow (here, by their thinking), every per-text check grows with them: measure the slowest step before guessing."
+ ],
+ "risks": [
+  "The memo is cleared at 200,000 texts; memory stays bounded."
+ ],
+ "commits": []
+}

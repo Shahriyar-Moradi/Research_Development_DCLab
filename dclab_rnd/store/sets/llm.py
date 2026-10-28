@@ -79,22 +79,35 @@ def benchmark_names(path: Optional[Path] = None) -> set[str]:
 
 
 class Contamination:
-    """Every sealed sentence and benchmark task as one compiled pattern, matched against an example's own texts (its messages,
-    its thoughts, its results), never against their JSON (a quote or a line break in a sealed sentence would not match there)."""
+    """Every sealed sentence (as plain substrings) and benchmark task (one pattern), matched against an example's own texts
+    (its messages, its thoughts, its results), never against their JSON (a quote or a line break in a sealed sentence would
+    not match there)."""
+
+    MEMO = 200_000  # texts remembered (a system prompt or a tool list repeats in thousands of examples)
 
     def __init__(self, sealed: set[str], benchmarks: set[str]):
-        self.sealed = re.compile("|".join(re.escape(x) for x in sorted(sealed, key=len, reverse=True))) if sealed else None
+        # plain substring checks, not one regex of every sealed sentence: on 1,897 sentences the regex took 132 ms per 10 KB
+        # of text and the model-4 build hours; substrings take 9 ms, and a repeated text is checked once (2026-10-28)
+        self.sealed = sorted({x.lower() for x in sealed if x}, key=len, reverse=True)
         self.benchmarks = re.compile("|".join(re.escape(x) for x in sorted(benchmarks, key=len, reverse=True))) if benchmarks else None
+        self.seen: dict[tuple[int, int], Optional[str]] = {}
+
+    def _one(self, low: str) -> Optional[str]:
+        if any(x in low for x in self.sealed):
+            return "a sealed person's words"
+        hit = self.benchmarks.search(low) if self.benchmarks is not None else None
+        return f"a benchmark task ({hit.group(0)})" if hit else None
 
     def why(self, texts: Iterable[str]) -> Optional[str]:
         for text in texts:
             low = str(text or "").lower()
-            if self.sealed is not None and self.sealed.search(low):
-                return "a sealed person's words"
-            if self.benchmarks is not None:
-                hit = self.benchmarks.search(low)
-                if hit:
-                    return f"a benchmark task ({hit.group(0)})"
+            key = (len(low), hash(low))
+            if key not in self.seen:
+                if len(self.seen) >= self.MEMO:
+                    self.seen.clear()
+                self.seen[key] = self._one(low)
+            if self.seen[key]:
+                return self.seen[key]
         return None
 
 
