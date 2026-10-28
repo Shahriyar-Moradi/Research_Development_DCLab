@@ -1,0 +1,93 @@
+{
+ "package": "dclab-code-v1.58",
+ "title": "OMP_NUM_THREADS=1 on macOS for every R&D entry point, said honestly, and memory retire kept on DCLab's page",
+ "date": "2026-10-28",
+ "request": "Owner: continue (after 'what else remains'): the same OpenMP freeze could hit R&D's server started by hand; re-sync DCLab Code after R&D's new commits; clear the stuck job.",
+ "spec": "dclab-code v1.57 finding F2; R&D 55af168c (POST /api/memory/{item_id}/retire)",
+ "plan": [
+  "set the default where every R&D entry point starts (dclab_rnd/__init__.py), macOS only, a person's value wins",
+  "test it in a fresh interpreter with the variable removed",
+  "review with dclab-reviewer before committing",
+  "sync-check DCLab Code and decide what the new route means",
+  "leave the stuck intern job to R&D's worker recovery"
+ ],
+ "decisions": [
+  {
+   "decision": "put the default in dclab_rnd/__init__.py, macOS only",
+   "why": "it is the one module every entry point imports before PyTorch or LightGBM (the reviewer confirmed for mcp_server, worker, uvicorn via make notebook and scripts/dev.py); Linux runs a single OpenMP runtime"
+  },
+  {
+   "decision": "keep the guard but word it as unproven",
+   "why": "the reviewer measured that LightGBM's explicit n_jobs=4 ignores OMP_NUM_THREADS, and the cure rests on one restart; predictions are identical with one thread, so it is harmless"
+  },
+  {
+   "decision": "do not change LightGBM's n_jobs now",
+   "why": "no evidence yet that LightGBM's team is the one that hung; it is the next step if a freeze comes back"
+  },
+  {
+   "decision": "add memory/{id}/retire to the never-relayed rule",
+   "why": "retiring a memory changes what every agent reads; like review and correct it is the person's, on DCLab's page"
+  }
+ ],
+ "change": "R&D: dclab_rnd/__init__.py, tests/test_openmp_default.py. dclab-code 32c1cab (retire never relayed, lock at R&D 55af168c), and the reworded OpenMP comment.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "defect": "the change claimed 'one OpenMP thread' but LightGBM still runs several",
+   "scenario": "with OMP_NUM_THREADS=1, LightGBM n_jobs=4 measured CPU/wall 2.4 (default n_jobs 3.2); XGBoost hist 0.98, HistGradientBoosting 0.99, torch 1 thread",
+   "cause": "dclab_rnd/expansion/runner.py builds LightGBM with an explicit n_jobs, which overrides the variable",
+   "fix": "comments in both repos now say what it limits and that the cure is one run; the next step is written down",
+   "test": "tests/test_openmp_default.py (fails on the old file, passes under run_parallel.py)",
+   "severity": "latent"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "defect": "timing-based decisions shift on macOS",
+   "scenario": "slower single-thread XGBoost/HGB fits: engine.py skips refits over REFIT_SECONDS sooner; search.py fits fewer trials before its deadline",
+   "cause": "one thread for those libraries",
+   "fix": "noted, no code change",
+   "test": "none needed",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "defect": "R&D added a person's memory route the chat must not send",
+   "scenario": "sync-check after R&D 55af168c: personWrites added POST /api/memory/{item_id}/retire",
+   "cause": "new R&D route",
+   "fix": "NEVER_RELAYED includes retire; lock updated",
+   "test": "units.test.js relayed decisions (fails before, 55/55 after)",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "OpenMP default",
+   "gate": "fresh interpreter: '1' on macOS when unset; a person's value wins",
+   "fixed_before_run": true,
+   "result": "2/2; lint clean",
+   "verdict": "pass"
+  },
+  {
+   "name": "DCLab Code sync",
+   "gate": "sync-check passes against R&D's latest commit",
+   "fixed_before_run": true,
+   "result": "in sync with R&D, 18/18 agents reached",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "R&D's own servers on macOS get the same OpenMP setting DCLab Code gives them, with its limits written down; DCLab Code keeps retiring a memory as the person's act.",
+ "lessons": [
+  "An environment variable is a request, not a rule: a library given an explicit thread count ignores it. Measure what it changes.",
+  "When a fix rests on one run, say so in the code."
+ ],
+ "risks": [
+  "A LightGBM-heavy stage could still freeze if LightGBM's own thread team is the cause.",
+  "On macOS, search and refit decisions that depend on time can differ from Linux and CI."
+ ],
+ "commits": [
+  "dclab-code 32c1cab"
+ ]
+}
