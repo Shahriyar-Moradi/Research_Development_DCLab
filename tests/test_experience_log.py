@@ -126,6 +126,12 @@ WRITE_ROUTES = {
     "POST /api/memory/proposals": (EVENTS, ["memory.proposed"]),  # 35.3: a preference proposed; nothing when the words state none
     "POST /api/drafts/{draft_id}/intent": (NONE, "H2: the person's choice of the kind of help is a label of the request.intent decision in the "
                                                   "decision ledger (draft/capture.intent_chosen), not an event of its own"),
+    "POST /api/drafts/{draft_id}/answers/{n}/save": (EVENTS, ["track.outcome"]),  # 36.2: the person's keep or let-go, when the verdict changes
+    "POST /api/drafts/{draft_id}/answers/{n}/edit": (EVENTS, ["track.outcome"]),  # 36.2: a changed answer, when the verdict changes
+    "POST /api/drafts/{draft_id}/brief": (NONE, "H4: the person corrects one field of what DCLab understood for this kind of help; "
+                                                "kept on the draft's track brief with source user, no session event of its own"),
+    "POST /api/drafts/{draft_id}/dashboard/refresh": (NONE, "H10: the tiles computed again on the table now, recorded as the agent's "
+                                                            "refresh_dashboard step; 36.2: a refresh is no verdict, so no track.outcome"),
     "POST /api/intern/sessions": (EVENTS, ["chat.person", "agent.step", "chat.agent"]),
     "POST /api/intern/sessions/{session_id}/message": (EVENTS, ["chat.person", "chat.agent"]),
     "DELETE /api/intern/sessions/{session_id}": (NONE, "the session's events stay until retention (19.6)"),

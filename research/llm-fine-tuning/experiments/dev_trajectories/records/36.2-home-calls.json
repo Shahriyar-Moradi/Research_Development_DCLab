@@ -1,0 +1,41 @@
+{
+ "package": "36.2 Home calls",
+ "title": "Home records what the person did with an answer or a prepared table",
+ "date": "2026-10-28",
+ "request": "The owner: push and continue; the Home session was unreachable, so wire Home's calls to the 36.2 outcome capture.",
+ "spec": "PHASE12_TRAINING_DATA_PLAN.md 36.2: each result Home produces and each act of the person on it joins the draft's ordered actions; the verdict is kept on the draft and recorded through capture.track_outcome when it changes.",
+ "plan": ["Find where Home produces a result and where the person acts on it", "Test first", "One helper, called from each place",
+          "Route list and coverage notes", "Review by the Home session, record, commit"],
+ "decisions": [
+  {"decision": "One helper keeps the action list, reads the verdict and records it", "why": "one place to get right; every call site is one line"},
+  {"decision": "Only the person's own acts count: their save, edit, download, or a whole yes or no on a step", "why": "a model's tool call (save, undo, a new step) can happen unasked, and a person's label must be the person's"},
+  {"decision": "A dashboard refresh is neither a verdict nor a new result", "why": "it recomputes the same board; counting it as a result would turn into asked again"},
+  {"decision": "Record only when the verdict, who decided or what was produced changes", "why": "the counts change on every action; one event per real change"}
+ ],
+ "change": "dclab_rnd/draft/chat.py (acted and its calls), dclab_rnd/draft/api.py (the two download routes), dclab_rnd/store/coverage.py (per-track notes), tests/test_home_track_outcome.py, tests/test_experience_log.py (four Home routes).",
+ "findings": [
+  {"id": "H1", "source": "reviewer", "severity": "latent", "defect": "Model tool calls were counted as the person's verdict",
+   "scenario": "the model calls undo or adds a step unasked; a person's gold label would be written on the route",
+   "cause": "the undo and new-step tools were wired as acts of the person",
+   "fix": "both left out; only the person's own controls count",
+   "test": "test_a_save_by_the_person_counts_and_a_models_save_alone_does_not"},
+  {"id": "H2", "source": "reviewer", "severity": "behaviour", "defect": "A not-sure answer on a step counted as a refusal",
+   "scenario": "the person says not sure; the step is skipped and the table recorded as refused",
+   "cause": "skip covers both a no and a not-sure answer",
+   "fix": "only a whole no is a refusal; not sure adds nothing",
+   "test": "test_only_a_whole_no_on_a_step_is_a_refusal"},
+  {"id": "H3", "source": "test", "severity": "gap", "defect": "Four Home routes had no line in the route registry",
+   "scenario": "the registry test failed on main",
+   "cause": "Home packages added routes without saying what they record",
+   "fix": "save and edit record track.outcome; the brief and the refresh say why they record no event",
+   "test": "test_every_write_route_says_what_it_records"}
+ ],
+ "measurements": [],
+ "outcome": "Home now records a person's verdict on answers and prepared tables: a save, a let-go, an edit, a download, a yes or no on a step. Dashboards and briefs still have no verdict of the person's: their thumbs are not read yet.",
+ "lessons": ["A model's tool call is not the person's act, even when it follows the person's words.",
+             "When one answer means two things (skip: no, or not sure), count only the clear one.",
+             "A refresh of the same result must never look like a new result."],
+ "risks": ["Dashboards and briefs need the thumbs on their message read into the outcome (a follow-up across the feedback page and Home).",
+           "Undo and new steps have no person control of their own yet, so they give no verdict."],
+ "commits": []
+}

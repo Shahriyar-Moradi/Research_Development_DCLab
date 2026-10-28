@@ -591,6 +591,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             body = await asyncio.to_thread(home_notebook.archive, drafts, draft)
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
+        await asyncio.to_thread(agent(draft_id).acted, draft_id, "notebook")  # 36.2: the person took the answers away
         return Response(body, media_type="application/zip", headers={"Content-Disposition": 'attachment; filename="answers.zip"'})
 
     @router.post("/api/drafts/{draft_id}/dashboard/refresh", response_model=Draft)
@@ -632,6 +633,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         else:
             await asyncio.to_thread(lambda: frame.to_parquet(out, index=False))
         media = {"csv": "text/csv", "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "parquet": "application/octet-stream"}[fmt]
+        await asyncio.to_thread(agent(draft_id).acted, draft_id, "export")  # 36.2: the person took the prepared table
         return Response(out.getvalue(), media_type=media, headers={"Content-Disposition": f'attachment; filename="prepared.{fmt}"'})
 
     @router.put("/api/drafts/{draft_id}/data", response_model=Doc, openapi_extra=OCTET)

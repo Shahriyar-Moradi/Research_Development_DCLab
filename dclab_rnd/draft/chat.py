@@ -778,6 +778,9 @@ class HomeAgent:
 
         for record, kind in exits_reached:  # H8: where the request really left labels the exit read for it
             capture.exit_reached(record, kind)
+        if edited_from is not None:  # 36.2: the person changed an answer; the changed one is the next result
+            self.acted(draft_id, "edit")
+        self.acted(draft_id, "answer")
         if by in ("rules", "model"):  # S4: how the question was computed, labelled later by the answer the person keeps
             # the agent's query_data tool plans without asking the rules; answer_analysis asks them first (planner home_query)
             rid = capture.query_planned(draft_id, plan, by, fields=len(((draft.get("track_brief") or {}).get("analysis") or {})),
@@ -852,6 +855,8 @@ class HomeAgent:
 
         if computed and (draft.get("exit") or {}).get("status") != "reached":
             capture.exit_reached((draft.get("exit") or {}).get("record"), "dashboard")
+        if computed and not refreshed:  # 36.2: a new board is a result; a refresh recomputes the same one (no second result)
+            self.acted(draft_id, "dashboard")
         self.moved(draft_id, "refresh_dashboard" if refreshed else "build_dashboard",  # names and hashes only, never a value
                    {"kpis": [{"op": k.plan.measures[0].op, "column": k.plan.measures[0].column, "groups": k.plan.group_by,
                               "filtered_by": [f.column for f in k.plan.filters], "version": k.version, "plan_hash": r.plan_hash}
@@ -935,6 +940,7 @@ class HomeAgent:
 
         if (draft.get("exit") or {}).get("status") != "reached":
             capture.exit_reached((draft.get("exit") or {}).get("record"), "decision_brief")
+        self.acted(draft_id, "brief")  # 36.2
         self.moved(draft_id, "answer_business", {"by": result.by, "measure": result.measure, "periods": [result.a.label, result.b.label],
                                                   "narrowed_by": sorted(spec["narrow"]), "splits": spec["splits"], "planned_by": by,
                                                   "scores": {k: round(v, 4) for k, v in spec.get("scores", {}).items()}},
@@ -1096,6 +1102,7 @@ class HomeAgent:
         from ..ledger import capture
 
         capture.exit_reached((draft.get("exit") or {}).get("record"), "dataset")
+        self.acted(draft_id, "table")  # 36.2
         self.moved(draft_id, "prepare_table",  # what the rules read (kinds and column names, never a value) and what came of it
                    {"steps": [{"kind": x["kind"], **({k: v for k, v in raw.items() if k in ("columns", "keys", "index", "spread", "values", "agg", "table")})}
                               for x, raw in zip(done, rec["planned"])], "unread": len(rec.get("unread") or [])},
@@ -1156,6 +1163,8 @@ class HomeAgent:
                 r["undecided_said"] = True
         self.store.update(draft_id, put)
         self.moved(draft_id, "confirm_step_answer", {"answer": decided or "other"}, {})
+        if yes or prepare.NO.fullmatch(said):  # 36.2: a whole yes or a whole no; "not sure" also skips the step but is no verdict
+            self.acted(draft_id, "step_yes" if yes else "step_no")
         from ..ledger import capture
 
         capture.recipe_step_answered(draft_id, (self.store.get(draft_id).get("recipe") or {}), q.get("step"), decided)
@@ -1194,6 +1203,8 @@ class HomeAgent:
                 judge.append((answers[root]["record"], answers[n]["plan"]))
         self.store.update(draft_id, put)
         self.moved(draft_id, "save_answer", {"answer": n, "saved": bool(saved)}, {})
+        if by == "person":  # 36.2: the person's own keep or let-go; a model's save on its own is not their verdict
+            self.acted(draft_id, "save" if saved else "unsave")
         if judge:
             from ..ledger import capture
 
@@ -2025,6 +2036,38 @@ class HomeAgent:
             running[1].step(tool, arguments, result)
         else:
             harness.step("home.script", draft_id, tool, arguments, result)
+
+    def acted(self, draft_id: str, name: str) -> dict[str, Any] | None:
+        """36.2: a result produced (answer, table, brief, dashboard) or the person's act on it (save, export, notebook, a yes
+        or no on a step, undo, edit, change) joins the draft's ordered actions, names only and capped. The verdict read from
+        them (dclab_core.track_outcome) is kept on the draft and, when it changes, recorded through capture.track_outcome: an
+        event, and the person's label on the draft's route while they keep or change the result."""
+        from dclab_core import track_outcome as T
+
+        if name not in T.PRODUCED and name not in T.DECISIVE:
+            return None
+        before: dict[str, Any] = {}
+
+        def put(d):
+            before.update(outcome=d.get("outcome"))
+            d["actions"] = [*(d.get("actions") or []), name][-200:]
+        self.store.update(draft_id, put)
+        draft = self.store.get(draft_id)
+        track = str((draft.get("intent") or {}).get("track") or "prediction")
+        outcome = T.read(track, list(draft.get("actions") or []))
+        if outcome is None:
+            return None
+        now_ = outcome.model_dump(mode="json")
+        self.store.update(draft_id, lambda d: d.update(outcome=now_))
+        key = ("verdict", "by", "produced")
+        if {k: now_.get(k) for k in key} == {k: (before.get("outcome") or {}).get(k) for k in key}:
+            return now_  # the same verdict on the same results: recorded already
+        from ..ledger import capture
+
+        exit_ = draft.get("exit") or {}
+        capture.track_outcome(draft_id, outcome, exit_record=exit_.get("record"), exit_kind=exit_.get("kind"),
+                              intent_record=(draft.get("intent") or {}).get("record"))
+        return now_
 
     def next_turn(self, draft_id: str, opening: bool = False) -> None:
         """Ask the next missing thing, or summarise when everything needed is known."""
