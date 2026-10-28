@@ -1,0 +1,172 @@
+{
+ "campaign": "memory_value_v2",
+ "frozen_at": "2026-10-28T06:19:12+00:00",
+ "manifest_sha256": "de1533dbe5fe773a731be24d7e80ed8555366065c821bb4c1b0eb500494e13a2",
+ "pilot_run": "PILOT-20261028T054640",
+ "pilot_sessions": 51,
+ "pilot_eur": 2.4623,
+ "pilot_setup": {
+  "model": "claude-sonnet-5-5",
+  "thinking": "adaptive",
+  "prompts": {
+   "prompt:intern": "940712db9ba17a4e",
+   "prompt:intern_memory": "0e8a3dba8fab5dbd",
+   "prompt:memory_brief": "8b47ae3bd71eea8b",
+   "tools:project": "69b20bb1c6023856",
+   "tools:session": "efe01ef63a00e175",
+   "validator:graph": "1c08971c7f828f3e"
+  },
+  "code": {
+   "dclab_rnd/intern/loop.py": "8bca1ede057909a8",
+   "dclab_rnd/memory/reading.py": "92578238765c0842",
+   "dclab_rnd/memory/writing.py": "aa7b9815fe04165d",
+   "dclab_rnd/agent_eval/run.py": "12360c628634db82",
+   "dclab_rnd/agent_eval/memory_value.py": "b1371dc7397286f2",
+   "dclab_rnd/agent_eval/memory_value_v2.py": "42008a6000dbd43f"
+  }
+ },
+ "tally": {
+  "MEM-01": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 0
+  },
+  "MEM-02": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 1
+  },
+  "MEM-03": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 2
+  },
+  "MEM-04": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 3
+  },
+  "MEM-05": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 4
+  },
+  "MEM-06": {
+   "scored": 3,
+   "against": 2,
+   "share": 0.6667,
+   "order": 5
+  },
+  "MEM-07": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 6
+  },
+  "MEM-08": {
+   "scored": 3,
+   "against": 2,
+   "share": 0.6667,
+   "order": 7
+  },
+  "MEM-09": {
+   "scored": 3,
+   "against": 0,
+   "share": 0.0,
+   "order": 8
+  },
+  "MEM-10": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 9
+  },
+  "MEM-11": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 10
+  },
+  "MEM-12": {
+   "scored": 3,
+   "against": 0,
+   "share": 0.0,
+   "order": 11
+  },
+  "MEM-13": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 12
+  },
+  "AE-14": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 13
+  },
+  "AE-15": {
+   "scored": 3,
+   "against": 0,
+   "share": 0.0,
+   "order": 14
+  },
+  "AE-16": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 15
+  },
+  "AE-17": {
+   "scored": 3,
+   "against": 3,
+   "share": 1.0,
+   "order": 16
+  }
+ },
+ "treated": [
+  "MEM-01",
+  "MEM-02",
+  "MEM-03",
+  "MEM-04",
+  "MEM-05",
+  "MEM-07",
+  "MEM-10",
+  "MEM-11",
+  "MEM-13",
+  "AE-14"
+ ],
+ "off_rates": {
+  "MEM-01": 0.8768,
+  "MEM-02": 0.8768,
+  "MEM-03": 0.8768,
+  "MEM-04": 0.8768,
+  "MEM-05": 0.8768,
+  "MEM-07": 0.8768,
+  "MEM-10": 0.8768,
+  "MEM-11": 0.8768,
+  "MEM-13": 0.8768,
+  "AE-14": 0.8768
+ },
+ "power_by_repeats": {
+  "3": 1.0,
+  "4": 1.0,
+  "5": 1.0
+ },
+ "power_if_memory_on_rate_is": {
+  "rate": 0.25,
+  "by_repeats": {
+   "3": 0.9985,
+   "4": 1.0,
+   "5": 1.0
+  }
+ },
+ "repeats": 3,
+ "runnable": true,
+ "why_not": null
+}
