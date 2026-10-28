@@ -385,6 +385,16 @@ class ReviewOfH9bTests(ToolsTests):
         d = self.store.get(self.draft_id)
         self.assertFalse(_re.search(r"\\d[\\d,]* rows|→", json.dumps(memory.recent(d)[-1], ensure_ascii=False)))  # the steps, never their counts
 
+    def test_an_export_never_tells_the_model_the_row_count(self):  # the review of H7a..H12
+        from dclab_rnd.draft import memory
+        self.tool("propose_step", step={"kind": "filter", "filters": [{"column": "status", "op": "eq", "value": "paid"}]})
+        self.agent.reply(self.draft_id, "Yes, apply it")
+        self.assertEqual(self.tool("export_data", format="csv"), {"format": "csv"})
+        d = self.store.get(self.draft_id)
+        last = d["messages"][-1]
+        self.assertIn("rows", last["text"])  # the person sees the count
+        self.assertEqual(memory.recent(d)[-1]["content"], "(The prepared table is offered to download as csv.)")
+
     def test_a_step_is_checked_where_it_stands_and_a_type_error_is_an_error(self):
         self.assertEqual(self.tool("propose_step", step={"kind": "rename", "columns": ["amount"], "to": "revenue"})["applied"], True)
         self.assertEqual(self.tool("propose_step", step={"kind": "filter", "filters": [{"column": "revenue", "op": "gt", "value": 0}]}).get("error"), None)

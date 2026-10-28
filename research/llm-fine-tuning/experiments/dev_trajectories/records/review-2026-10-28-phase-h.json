@@ -1,0 +1,89 @@
+{
+  "package": "review-2026-10-28-phase-h",
+  "title": "The review of Phase H's last packages: answers, briefs and exports no longer reach Home's model, and Home works on pandas 3",
+  "date": "2026-10-28",
+  "request": "Review the current repo, make sure everything is fine, and get the latest update.",
+  "spec": "An independent review of the commits from H7a to the head of main (H7a to H12, 35.8, H3.1), each finding checked by running it; the findings that are defects fixed with a test that fails before the fix.",
+  "plan": [
+    "Fast-forward main to the remote, run the R&D gates and the suite.",
+    "Have an independent reviewer read H7a..HEAD for privacy, leakage, behaviour and process breaks.",
+    "Fix what was confirmed, each with a test, and report what is the owner's to decide."
+  ],
+  "decisions": [
+    {
+      "decision": "The model reads an answer, a decision brief or an export as what was computed, never its values (model_text).",
+      "why": "home_agent is shown no cell values and its prompts are kept whole for training; the tools' clean return values were undone by the chat history."
+    },
+    {
+      "decision": "Text columns are found with dclab_core.times.is_text in the new Home code.",
+      "why": "The requirements allow pandas 3, where text is the string type: the business brief, the model's compare tool, the prepare step's value lookup and the spreadsheet formula guard all skipped every text column."
+    },
+    {
+      "decision": "35.8 v2's missing devlog record, the H3.1 Team-panel question, the unused exposure log and H3.1 keeping columns on the reviewer's words are reported to the owner, not changed.",
+      "why": "Each is a design choice or another package's record that this review cannot write faithfully."
+    }
+  ],
+  "change": "dclab_rnd/home_query.py model_text(plan); dclab_rnd/draft/chat.py: the answer, the decision brief and export_data carry model_text, the compare tool uses is_text; dclab_rnd/draft/business.py: the year of the period asked about when only the baseline has one, is_text; dclab_rnd/draft/prepare.py: is_text in the value lookup and the formula guard. Tests in test_model_data_limits, test_home_answer, test_home_business, test_home_prepare.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "An answer's group names and totals reached home_agent's next prompt.",
+      "scenario": "query_data grouped by city: the tool returned only its id, but the next turn's history held every city with its total and the count of hidden groups, and the prompt was kept for training.",
+      "cause": "The answer was said without model_text, and memory.recent reads model_text or the text.",
+      "fix": "The answer message carries model_text: the operation, the columns and the period, never a value or a count.",
+      "test": "test_home_agent_sees_no_value_of_an_answer_it_asked_for (19 cell values before the fix, none after), test_the_models_history_holds_what_was_computed_never_a_value"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A decision brief's totals and segments reached home_agent's history.",
+      "scenario": "A business question about revenue between two months: the brief with its totals and region names was the next prompt's history.",
+      "cause": "The same: the brief message had no model_text.",
+      "fix": "model_text names the measure, the two periods and the split column only.",
+      "test": "test_the_model_reads_what_was_compared_never_the_numbers"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "export_data told the model the row count after a filter it chose.",
+      "scenario": "Filter, export, undo, filter with the next value: each count in the history narrows one row's value.",
+      "cause": "The export message had no model_text.",
+      "fix": "model_text says the format only.",
+      "test": "test_an_export_never_tells_the_model_the_row_count"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The period asked about was the wrong year when only the baseline named one.",
+      "scenario": "Why did revenue fall in January compared with December 2025 compared January 2025 with December 2025.",
+      "cause": "Only a missing baseline year was moved; the mirror case was not handled.",
+      "fix": "A month without its year that comes before the baseline's month is in the year after.",
+      "test": "test_periods_in_english_and_persian"
+    },
+    {
+      "id": "F5",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "On pandas 3 the business brief never ran and the formula guard skipped every text cell.",
+      "scenario": "The suite on pandas 3.0.2: every business-brief test failed with no column to split by; a cell starting with = was exported unchanged.",
+      "cause": "dtype == object finds no text column on pandas 3, where text is the string type.",
+      "fix": "dclab_core.times.is_text in business.py, prepare.py and the compare tool.",
+      "test": "test_home_business and test_home_prepare on pandas 3"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Home's model reads what an answer, a brief or an export computed and never its values; the period of a business question is the one the person meant; the new Home code works on pandas 3 as the rest of the repository does.",
+  "lessons": [
+    "A tool that returns nothing still tells the model everything if the chat history carries the person's view.",
+    "A check written as dtype == object is a pandas 2 check."
+  ],
+  "risks": [
+    "Any new message that shows table values needs its model_text; the new data-limit test covers answers only through query_data."
+  ],
+  "commits": []
+}

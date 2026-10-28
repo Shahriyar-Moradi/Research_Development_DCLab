@@ -16,6 +16,7 @@ from typing import Any, Optional
 import pandas as pd
 
 from dclab_core import recipe as R
+from dclab_core.times import is_text  # object on pandas 2, the string type on pandas 3
 
 from . import lang
 
@@ -58,7 +59,7 @@ def _column(words: str, frame: pd.DataFrame, *, dates: bool = False) -> Optional
 
 def _value_column(value: str, frame: pd.DataFrame) -> Optional[str]:
     """The one text column that holds the value the person named (read by code from the table, never sent anywhere)."""
-    hits = [str(c) for c in frame.columns if frame[c].dtype == object and frame[c].astype(str).str.lower().eq(value.lower()).any()]
+    hits = [str(c) for c in frame.columns if is_text(frame[c]) and frame[c].astype(str).str.lower().eq(value.lower()).any()]
     return hits[0] if len(hits) == 1 else None
 
 
@@ -208,7 +209,7 @@ def safe_cells(frame: pd.DataFrame) -> pd.DataFrame:
     """For a spreadsheet: a text cell starting = + - @ would open as a live formula, so it is kept as text (a leading ')."""
     out = frame.copy()
     for c in out.columns:
-        if out[c].dtype == object:
+        if is_text(out[c]):  # object on pandas 2, the string type on pandas 3: never skipped
             out[c] = out[c].map(lambda v: "'" + v if isinstance(v, str) and v[:1] in ("=", "+", "-", "@") else v)
     return out
 

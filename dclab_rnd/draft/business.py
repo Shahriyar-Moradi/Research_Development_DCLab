@@ -18,6 +18,7 @@ import pandas as pd
 
 from dclab_core import change as C
 from dclab_core import query as Q
+from dclab_core.times import is_text  # object on pandas 2, the string type on pandas 3
 
 from . import lang
 
@@ -52,6 +53,8 @@ def windows(text: str) -> Optional[tuple[C.Window, C.Window]]:
             return None  # no year is ever assumed
         if not a_year and MONTHS[a_name[:3]] > MONTHS[b_name[:3]]:  # "January compared with December": the year before
             year_a -= 1
+        elif a_year and not b_year and MONTHS[b_name[:3]] < MONTHS[a_name[:3]]:  # "January compared with December 2025": the year after
+            year_b += 1
         a, b = _month(a_name, year_a), _month(b_name, year_b)
         return None if a.start == b.start else (a, b)
     quarter = r"\bq([1-4])\s*(20\d\d)\b|\b(first|second|third|fourth)\s+quarter\s+(?:of\s+)?(20\d\d)\b|سه\s+ماه\s+(اول|دوم|سوم|چهارم)\s+(?:سال\s+)?(20\d\d)"
@@ -117,7 +120,7 @@ def read(text: str, frame: pd.DataFrame, measure_words: str = "", columns: Optio
     for w in re.findall(r"[A-Za-z][A-Za-z\-]*", text):  # the person's own spelling: a name, not a common word
         if len(w) < 3 or _COMMON.match(w) or not (w[0].isupper() or w.isupper()):
             continue
-        hits = [str(c) for c in frame.columns if frame[c].dtype == object and usable(c)
+        hits = [str(c) for c in frame.columns if is_text(frame[c]) and usable(c)
                 and frame[c].astype(str).str.lower().eq(w.lower()).any()]
         if len(hits) == 1:
             value = str(frame[hits[0]][frame[hits[0]].astype(str).str.lower() == w.lower()].iloc[0])
@@ -126,7 +129,7 @@ def read(text: str, frame: pd.DataFrame, measure_words: str = "", columns: Optio
             named[hits[0]] = value
     for c in clash:
         named.pop(c, None)
-    splits = [str(c) for c in frame.columns if frame[c].dtype == object and str(c) not in named and str(c) != date
+    splits = [str(c) for c in frame.columns if is_text(frame[c]) and str(c) not in named and str(c) != date
               and usable(c) and 1 < frame[c].nunique() <= MAX_SPLIT]
     if not splits:
         return None, "a column to split the change by (a region, a channel, a category)"

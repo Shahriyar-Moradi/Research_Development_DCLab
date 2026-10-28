@@ -30,6 +30,10 @@ class WindowsTests(unittest.TestCase):
         self.assertEqual((a.label, b.label), ("Q4 2025", "Q1 2026"))  # a quarter against the one before it
         self.assertIsNone(business.windows("Should we change our returns policy?"))
         self.assertIsNone(business.windows("Revenue in March compared with February"))  # no year: never assumed
+        a, b = business.windows("Why did revenue fall in January compared with December 2025?")
+        self.assertEqual((a.label, b.label), ("December 2025", "January 2026"))  # the year only on the baseline: the month after it
+        a, b = business.windows("June compared with May 2025")
+        self.assertEqual((a.label, b.label), ("May 2025", "June 2025"))
 
 
 class HomeTests(unittest.TestCase):
@@ -55,6 +59,21 @@ class HomeTests(unittest.TestCase):
                 break
             agent.reply(d["id"], "I'm not sure")
         return agent, self.store.get(d["id"])
+
+    def test_the_model_reads_what_was_compared_never_the_numbers(self):
+        """The review of H7a..H12: the brief's message reached home_agent's history whole (totals, segment names); its
+        limit is no cell value at all, and its prompts are kept for training."""
+        from dclab_rnd.draft import memory
+        agent, d = self.ask("Why did revenue drop in March 2026 compared with February?")
+        text = self.brief_of(d)
+        r = C.ChangeResult.model_validate(d["business"]["result"])
+        seen = json.dumps(memory.recent(d), ensure_ascii=False)
+        self.assertIn("decision brief is shown to the person", seen)
+        self.assertNotIn(text, seen)
+        for seg in r.segments:
+            self.assertNotIn(str(seg.value) if hasattr(seg, "value") else str(seg), seen)
+        for number in (r.total_a, r.total_b):
+            self.assertNotIn(f"{number:,.0f}", seen)
 
     def brief_of(self, d):
         return next((m["text"] for m in d["messages"] if m.get("kind") == "decision_brief"), None)
