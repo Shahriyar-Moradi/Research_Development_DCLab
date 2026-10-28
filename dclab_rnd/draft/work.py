@@ -22,7 +22,9 @@ class DraftWork:
 
     def agent(self, draft_id: str | None = None) -> HomeAgent:
         return HomeAgent(self.drafts, self.models.client("home_agent", draft_id=draft_id), on_request=self.requests, traces=self.traces,
-                         intent_client=self.models.client("home_intent", draft_id=draft_id))
+                         intent_client=self.models.client("home_intent", draft_id=draft_id),
+                         query_client=self.models.client("home_query", draft_id=draft_id),
+                         answer_client=self.models.client("home_answer", draft_id=draft_id))
 
     def requests(self, draft_id: str, what: str, args: dict[str, Any]) -> None:
         """The agent asked for something that runs in the background (today: simulate data)."""

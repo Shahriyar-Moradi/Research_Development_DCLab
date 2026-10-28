@@ -115,8 +115,9 @@ def moment_options(pack: str | None) -> list[str]:
 
 class HomeAgent:
     def __init__(self, store: DraftStore, client=None, on_request: Callable[[str, str, dict[str, Any]], None] | None = None,
-                 registry: Registry | None = None, traces: Any = None, intent_client=None):
+                 registry: Registry | None = None, traces: Any = None, intent_client=None, query_client=None, answer_client=None):
         self.store, self.client, self.traces, self.intent_client = store, client, traces, intent_client
+        self.query_client, self.answer_client = query_client, answer_client  # H7: a plan from column summaries; a short answer
         self.on_request = on_request or (lambda draft_id, what, args: None)
         if registry is None:
             from dclab_rnd.agents import default_registry
@@ -319,7 +320,8 @@ class HomeAgent:
         self.say(draft_id, f"I read this as {intents.LABELS[track].lower()}: “{draft['problem']}”. {intents.NEXT[track]}", kind="text",
                  actions=offer, track=track)
         self.refresh_brief(draft_id)
-        self.ask_brief(draft_id)
+        if not self.answer_brief(draft_id):
+            self.ask_brief(draft_id)
 
     # ------------------------------------------------------------------ the other tracks' briefs (H4)
     def refresh_brief(self, draft_id: str) -> dict[str, Any]:
@@ -353,6 +355,114 @@ class HomeAgent:
         column = next((m[1] for m in draft.get("brief_missing") or [] if isinstance(m, (list, tuple)) and m[0] == f.name), None)
         question = f"I can't find a column named “{column}” in the table. {f.question}" if column else f.question
         self.ask(draft_id, f.name, question, options, f.why, track=track)
+
+    # ------------------------------------------------------------------ answers from the data (H7)
+    def answer_brief(self, draft_id: str, text: str | None = None) -> dict[str, Any] | None:
+        """An analysis whose brief leads to a plan on the ready table is answered at once, a first result instead of a
+        question (H2.1). The plan is code's reading of the brief; when the words do not lead to one, a model may write it
+        from the column summaries (``home_query``). None when nothing was answered: the brief's question comes next.
+
+        ``text``: a follow-up message ("and by channel?"); the fields its words give replace the brief's for this answer
+        only, and a message that gives none is not a question about the data (None)."""
+        from ..query import brief_plan, propose
+        from ..query.execute import TableError, table
+        from ..query.plan import plan_hash
+        from ..query.validate import PlanError, validate
+
+        draft = self.store.get(draft_id)
+        waiting = self.pending(draft)
+        if self.track(draft) != "analysis" or (waiting and waiting.get("track") != "analysis"):
+            return None  # an open brief question may be overtaken by a first result; any other question waits for its answer
+        tables = [a for a in draft.get("assets") or [] if a.get("status") == "ready" and a.get("kind") != "labels"]
+        if len(tables) != 1:  # a question over two tables may need them joined (preparation, H9): not answered from one alone
+            return None
+        try:
+            frame, _ = table(self.store, draft)
+        except TableError:
+            return None
+        entries = {f: dict(e or {}) for f, e in ((draft.get("track_brief") or {}).get("analysis") or {}).items()}
+        if text is not None:
+            said = briefs.extract("analysis", text)
+            if not said:
+                return None
+            entries.update({f: {"value": value, "source": "answer", "quote": quote} for f, (value, quote) in said.items()})
+        plan, notes = brief_plan.plan_from_brief(entries, frame)
+        by = "code"
+        if plan is None and self.query_client is not None:
+            words = {f: (e or {}).get("value") for f, e in entries.items() if (e or {}).get("source") in ("problem", "answer")}
+            plan, _ = propose.propose(text or draft["problem"], frame, self.query_client, words)
+            by, notes = "model", ["A model wrote this calculation from your question and the column names; check what was computed above."]
+        if plan is None:
+            return None
+        try:
+            key = plan_hash(validate(plan, frame))
+        except PlanError:
+            return None
+        if any(a.get("plan_hash") == key for a in draft.get("answers") or []):
+            return None  # this calculation is on the page already
+        record = self.answer(draft_id, plan, question=text or draft["problem"], notes=notes, plan_by=by)
+        if record is not None and waiting:  # the result answers what the brief was asking: the question is withdrawn
+            self.store.update(draft_id, lambda d: [q.update(answered="(answered from the data)", superseded=True)
+                                                   for q in d["questions"] if q["id"] == waiting["id"]])
+        return record
+
+    def answer(self, draft_id: str, plan: dict[str, Any], *, question: str, notes: list[str] | None = None, plan_by: str = "code",
+               edited_from: str | None = None, writer: bool = True) -> dict[str, Any] | None:
+        """Run a plan on the draft's table (logged in the exposure log), keep the answer on the draft and say it: a
+        model's short answer when every number in it is in the result, the code's template otherwise."""
+        from ..query import answer as answers, run
+        from ..query.execute import TableError
+        from ..query.validate import PlanError
+
+        try:
+            result = run(self.store, draft_id, plan)
+        except (PlanError, TableError) as exc:
+            reason = "; ".join(exc.problems) if isinstance(exc, PlanError) else str(exc)
+            self.say(draft_id, f"I couldn't compute that: {reason[:300]}.")
+            return None
+        checked = result.pop("plan")
+        text = answers.sentence(self.answer_client, question, checked, result) if writer else None
+        written = "model" if text else "template"
+        text = (text + (" " + " ".join(notes) if notes else "")) if text else answers.template(checked, result, notes)
+        draft = self.store.get(draft_id)
+        record = {"id": f"a{len(draft.get('answers') or []) + 1}", "question": str(question)[:600], "plan": checked,
+                  "plan_hash": result["plan_hash"], "plan_by": plan_by, "written_by": written, "text": text, "notes": list(notes or []),
+                  "result": {k: result.get(k) for k in ("columns", "rows", "floor", "suppressed_groups", "withheld_extremes", "rows_matched")},
+                  "display": answers.display(result["rows"]),  # the values as the answer and the chart show them
+                  "chart": answers.chart(result, checked), "title": answers.label(checked), "saved": False, "edited_from": edited_from,
+                  "asset": draft.get("active_asset"), "at": now()}
+        self.store.update(draft_id, lambda d: d.setdefault("answers", []).append(record))
+        self.say(draft_id, text, kind="answer", answer=record)
+        return record
+
+    @turn
+    def edit_answer(self, draft_id: str, answer_id: str, change: dict[str, Any]) -> dict[str, Any] | None:
+        """The answer's controls (split by, per period, the aggregate, the dates) change its plan in code, never through a
+        model, and the new answer is written by the template."""
+        from ..query import answer as answers
+
+        draft = self.store.get(draft_id)
+        old = next((a for a in draft.get("answers") or [] if a["id"] == answer_id), None)
+        if old is None:
+            raise KeyError(answer_id)
+        plan = answers.edited(old["plan"], change)
+        return self.answer(draft_id, plan, question=old["question"], notes=old.get("notes"), plan_by="person", edited_from=answer_id, writer=False)
+
+    def save_answer(self, draft_id: str, answer_id: str, title: str | None = None, saved: bool = True) -> dict[str, Any]:
+        found: dict[str, Any] = {}
+
+        def put(d):
+            for a in d.get("answers") or []:
+                if a["id"] == answer_id:
+                    a["saved"] = bool(saved)
+                    if title:
+                        a["title"] = str(title).strip()[:120]
+                    found.update(a)
+        self.store.update(draft_id, put)
+        if not found:
+            raise KeyError(answer_id)
+        self.store.emit(draft_id, "answer", {"answer": found})
+        return found
 
     def choose_intent(self, draft_id: str, track: str) -> dict[str, Any]:
         """The person chose the kind of help (the card's Change control, the question's button, or a pack): it wins over
@@ -461,7 +571,8 @@ class HomeAgent:
         if not prediction:  # another track: the description, then the brief against the table's columns; no pack or workflow
             if self.track(self.store.get(draft_id)) in briefs.TRACK_FIELDS:
                 self.refresh_brief(draft_id)
-                self.ask_brief(draft_id)
+                if not self.answer_brief(draft_id):  # an analysis the brief can answer gets its first result now
+                    self.ask_brief(draft_id)
             return
         if (draft.get("pack") or {}).get("source") != "user":
             det = packs.detect(draft["problem"], analysis)
@@ -559,7 +670,8 @@ class HomeAgent:
             elif f is not None and any(m[0] == q["field"] for m in found["missing"]):
                 column = next(m[1] for m in found["missing"] if m[0] == q["field"])
                 self.say(draft_id, f"I can't find a column named “{column}” in the table, so the {label} stays open.")
-            self.ask_brief(draft_id)
+            if not self.answer_brief(draft_id):
+                self.ask_brief(draft_id)
             return
         unsure = lang.not_sure(value) or (q["field"] == "target" and value.strip() == "Something else")
         if unsure:
@@ -594,6 +706,8 @@ class HomeAgent:
         if SIMULATE_WORDS.search(text):
             self.say(draft_id, "I'll simulate a dataset from this conversation. It will be labelled synthetic everywhere.")
             self.on_request(draft_id, "simulate", {"prompt": draft["problem"] + " " + text})
+            return
+        if self.track(draft) == "analysis" and self.answer_brief(draft_id, text):  # a follow-up question about the data
             return
         if BUILD_WORDS.search(text):
             if self.track(draft) != "prediction":
@@ -946,10 +1060,46 @@ def simulate_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
     return {"simulating": True, "rows": rows}
 
 
+def query_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    """Compute an answer from the prepared table with a plan, and show it to the person. The model gets back the answer's
+    shape (its columns, how many groups are shown and hidden), never its values: those reach the person only."""
+    agent, draft_id = turn.agent, turn.draft_id
+    plan = args.get("plan") if isinstance(args.get("plan"), dict) else {}
+    record = agent.answer(draft_id, plan, question=str(args.get("question") or agent.store.get(draft_id)["problem"])[:600], plan_by="model",
+                          notes=["A model wrote this calculation from your question and the column names; check what was computed above."])
+    if record is None:
+        return {"error": "The plan was not computed; the reason was said to the person. Fix the plan (columns from get_profile) or ask."}
+    r = record["result"]
+    return {"answer": record["id"], "columns": r["columns"], "groups_shown": len(r["rows"]), "small_groups_hidden": r.get("suppressed_groups", 0),
+            "chart": record["chart"]["kind"], "note": "The person sees the values; do not restate or guess them."}
+
+
+def make_chart(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    from ..query import answer as answers
+
+    agent, draft_id = turn.agent, turn.draft_id
+    found: dict[str, Any] = {}
+
+    def put(d):
+        for a in d.get("answers") or []:
+            if a["id"] == args.get("answer"):
+                a["chart"] = answers.chart_as(a, str(args.get("kind")))
+                found.update(a)
+    agent.store.update(draft_id, put)
+    agent.store.emit(draft_id, "answer", {"answer": found})
+    return {"answer": found["id"], "chart": found["chart"]["kind"]}
+
+
+def save_answer(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    a = turn.agent.save_answer(turn.draft_id, str(args.get("answer")), str(args.get("title") or "") or None)
+    return {"saved": a["id"], "title": a["title"]}
+
+
 # What each Home write does to a draft. The draft guard checks set_pack, propose_workflow and simulate; the others
 # only add to the conversation or the understanding, which the user can always correct.
 DRAFT_MOVES = {"ask_user": "ask", "record": "record", "set_pack": "set_pack", "propose_workflow": "propose_workflow",
-               "request_data": "request_data", "simulate_data": "simulate", "set_intent": "set_intent"}
+               "request_data": "request_data", "simulate_data": "simulate", "set_intent": "set_intent",
+               "query_data": "query", "make_chart": "chart", "save_answer": "save_answer"}
 ML_MOVES = ("set_pack", "propose_workflow")  # the prediction track's moves: refused on the others (package H2)
 PREPARING = ("queued", "structuring", "cleaning", "analysing")
 
@@ -957,7 +1107,9 @@ PREPARING = ("queued", "structuring", "cleaning", "analysing")
 REFUSED = {"record": "The answer was not backed by the user's own words", "ask": "Not the question the plan asks now",
            "set_pack": "Not a known pack, or the user chose the pack", "simulate": "Data was already being prepared",
            "propose_workflow": "The workflow did not pass the workflow checks",
-           "set_intent": "Not backed by the user's words, or the user chose the type of help"}
+           "set_intent": "Not backed by the user's words, or the user chose the type of help",
+           "query": "No prepared table to compute from", "chart": "Not an answer on this draft, or a chart its shape cannot take",
+           "save_answer": "Not an answer on this draft"}
 
 
 class DraftGuard:
@@ -1005,6 +1157,18 @@ class DraftGuard:
             if question is None or question[0] != arguments["field"]:
                 nxt = f"ask about {question[0]} next" if question else "nothing in the plan is open; summarise instead"
                 return {"error": f"The plan does not ask about {arguments['field']} now: {nxt}."}
+        if tool.move == "query":
+            draft = agent.store.get(draft_id)
+            if not any(a.get("id") == draft.get("active_asset") and a.get("status") == "ready" for a in draft.get("assets") or []):
+                return {"error": "No table is ready yet; offer to upload or connect one (request_data)."}
+        if tool.move in ("chart", "save_answer"):
+            from ..query import answer as answers
+
+            found = next((a for a in agent.store.get(draft_id).get("answers") or [] if a.get("id") == arguments.get("answer")), None)
+            if found is None:
+                return {"error": "No answer with that id on this draft; query_data returns the id."}
+            if tool.move == "chart" and arguments.get("kind") not in answers.chart_kinds(found):
+                return {"error": f"This answer can be shown as: {', '.join(answers.chart_kinds(found))}."}
         if tool.move == "set_pack":
             if arguments.get("key") not in packs.KEYS:
                 return {"error": f"Unknown pack {str(arguments.get('key'))[:40]!r}. Packs: {', '.join(packs.KEYS)}."}
@@ -1052,6 +1216,14 @@ def register(registry: Registry) -> None:
         {"columns": {"type": "array", "items": S}, "offset": {"type": "integer"}}, [], "read")
     add("get_analysis", "The descriptive analysis of the prepared table: size, column kinds, missing share, duplicate rows, findings worth a question, and the strongest feature-to-feature correlations. Says nothing about the outcome.",
         {}, [], "read")
+    add("query_data", "Compute an answer about what happened from the prepared table and show it to the person (a table and a chart). "
+        "plan: filters [{column, op, value}], group_by (up to 3 category columns), period {column, from, to, grain}, measures "
+        "[{name, op: count|count_distinct|sum|mean|median|min|max|p50..p99|rate, column, where}], sort, limit. Never lists rows; "
+        "small groups are hidden. You get the answer's shape back, not its values.",
+        {"plan": {"type": "object"}, "question": S}, ["plan"], "write")
+    add("make_chart", "Show an answer as another chart: kpi, line, bar or table.", {"answer": S, "kind": {**S, "enum": ["kpi", "line", "bar", "table"]}},
+        ["answer", "kind"], "write")
+    add("save_answer", "Keep an answer the person wants (it goes into the notebook export).", {"answer": S, "title": S}, ["answer"], "write")
     add("simulate_data", "Generate a synthetic table. Only after the user asked for simulated data.",
         {"description": {**S, "description": "The table to simulate: rows, columns, the outcome and its rate."}, "rows": {"type": "integer"}},
         ["description"], "write")

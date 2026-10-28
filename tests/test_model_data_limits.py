@@ -124,6 +124,21 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(plan["group_by"], ["segment"])
         self.assertEqual(self.assertWithinLimit("home_query"), set())
 
+    def test_home_answer_sees_at_most_twenty_aggregate_rows(self):
+        from dclab_rnd.query import answer, execute, validate  # the package exports the functions
+        frame = marked_table()
+        plan = validate({"group_by": ["city"], "measures": [{"name": "spend", "op": "sum", "column": "spend"}]}, frame)
+        result = execute(plan, frame)  # 40 cities of 7 or 8 rows: all above the floor
+        self.assertEqual(len(result["rows"]), 40)
+        gw = gateway({"home_answer": [{"content": "Spend by city.", "tool_calls": [], "usage": {}}]})
+        answer.sentence(gw.client("home_answer"), "Spend per city?", plan, result)
+        seen = self.assertWithinLimit("home_answer")
+        self.assertLessEqual(len(seen), answer.MODEL_ROWS)  # one city name per row shown, never a note or a date
+        Capture.prompts = {}
+        with mock.patch.dict(os.environ, {"DCLAB_MODEL_READS_AGGREGATES": "0"}):
+            self.assertIsNone(answer.sentence(gw.client("home_answer"), "Spend per city?", plan, result))
+        self.assertEqual(Capture.prompts.get("home_answer"), None)  # off: no request at all
+
     def test_parse_pattern_sees_at_most_twenty_lines(self):
         from dclab_rnd.draft import structure
         path = Path(tempfile.mkdtemp()) / "odd.log"
@@ -344,7 +359,7 @@ class DataLimitTests(unittest.TestCase):
         self.assertIn('\\"train_rows\\": 240', Capture.prompts["twin_designer"][1])  # the aggregates still arrive
 
     def test_every_purpose_has_a_limit_and_a_test(self):
-        tested = {"home_agent", "home_intent", "home_query", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
+        tested = {"home_agent", "home_intent", "home_query", "home_answer", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter", "twin_designer"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")

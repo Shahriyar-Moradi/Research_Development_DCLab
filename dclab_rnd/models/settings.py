@@ -40,6 +40,10 @@ PURPOSES: dict[str, Purpose] = {
                                            "never data, column names or cell values", cell_values=0),
     "home_query": Purpose("standard", 60, "the person's question, what Home understood about it, and the table's column summaries (name, kind, "
                                           "missing share, distinct count), to write a query plan; never rows, values, category names or results", cell_values=0),
+    "home_answer": Purpose("standard", 60, "the person's question, what was computed, and the result's aggregate rows (group names and their totals, "
+                                           "averages or counts; groups under the row floor hidden; at most 20 rows of 6 columns), to write a "
+                                           "1-3 sentence answer checked against the result; never a row of the table; DCLAB_MODEL_READS_AGGREGATES=0 "
+                                           "turns this off", cell_values=20 * 6),
     "embedding": Purpose("cheap", 60, "the text of the evidence records (rules, pitfalls, leakage precedents, experiments) and the question typed into the "
                                       "evidence search, to find the records that answer it; no rows, no cell values, and not a workspace's lessons"),
     "parse_pattern": Purpose("cheap", 60, "up to 20 lines of a file no built-in reader can parse (400 characters each); "

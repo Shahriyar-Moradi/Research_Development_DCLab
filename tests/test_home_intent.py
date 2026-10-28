@@ -170,8 +170,10 @@ class AgentTests(unittest.TestCase):
             self.assertEqual(d["questions"], [], track)
             said = d["messages"][-1]["text"]
             self.assertIn(intent.NEXT[track], said)
-            if track in ("analysis", "preparation", "reporting", "business"):
+            if track in ("preparation", "reporting", "business"):
                 self.assertIn("not built yet", said)  # never a promise of what does not exist
+            if track == "analysis":  # built in H7: the answer needs a table first
+                self.assertIn("Once your table is ready", said)
 
     def test_a_chosen_pack_means_a_prediction(self):
         d = self.store.create(BY_TRACK["analysis"][0], pack="imbalanced")

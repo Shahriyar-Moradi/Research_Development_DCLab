@@ -226,6 +226,9 @@
     deleteDraft: ["DELETE", "/drafts/{draft_id}", ["draft_id"], []],
     readDraft: ["GET", "/drafts/{draft_id}", ["draft_id"], []],
     editDraft: ["PATCH", "/drafts/{draft_id}", ["draft_id"], []],
+    answersNotebook: ["GET", "/drafts/{draft_id}/answers/notebook", ["draft_id"], []],
+    editAnswer: ["POST", "/drafts/{draft_id}/answers/{answer_id}/edit", ["draft_id", "answer_id"], []],
+    saveAnswer: ["POST", "/drafts/{draft_id}/answers/{answer_id}/save", ["draft_id", "answer_id"], []],
     build: ["POST", "/drafts/{draft_id}/build", ["draft_id"], []],
     upload: ["PUT", "/drafts/{draft_id}/data", ["draft_id"], ["filename"]],
     dataCloud: ["POST", "/drafts/{draft_id}/data/cloud", ["draft_id"], []],
@@ -425,6 +428,27 @@
    *  @returns {Promise<Draft>} */
   client.editDraft = (...args) => call('editDraft', args);
   client.path.editDraft = (...args) => build('editDraft', args).path;
+  /** GET /api/drafts/{draft_id}/answers/notebook: Answers Notebook
+   *  @param {string} draft_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<*>} */
+  client.answersNotebook = (...args) => call('answersNotebook', args);
+  client.path.answersNotebook = (...args) => build('answersNotebook', args).path;
+  client.href.answersNotebook = (...args) => '/api' + build('answersNotebook', args).path;
+  /** POST /api/drafts/{draft_id}/answers/{answer_id}/edit: Edit Answer
+   *  @param {string} draft_id
+   *  @param {string} answer_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Draft>} */
+  client.editAnswer = (...args) => call('editAnswer', args);
+  client.path.editAnswer = (...args) => build('editAnswer', args).path;
+  /** POST /api/drafts/{draft_id}/answers/{answer_id}/save: Save Answer
+   *  @param {string} draft_id
+   *  @param {string} answer_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Draft>} */
+  client.saveAnswer = (...args) => call('saveAnswer', args);
+  client.path.saveAnswer = (...args) => build('saveAnswer', args).path;
   /** POST /api/drafts/{draft_id}/build: Build
    *  @param {string} draft_id
    *  @param {{headers?: Object}} [opts]

@@ -226,12 +226,12 @@ def read_draft(draft: Mapping[str, Any], columns: set[str], id_values: set[str])
     return {"track": track, "tracks": tracks, "fields": fields, "questions": len(questions), "exit": exit_,
             "suggestion": (draft.get("route_suggestion") or {}).get("track"), "confirmation_asked": confirmation,
             "quote_invalid": quote_invalid, "uncited": uncited, "rows_exposed": rows_exposed, "phantom": phantom,
-            "destructive_unconfirmed": destructive}
+            "destructive_unconfirmed": destructive, "answers": len(draft.get("answers") or [])}
 
 
 def empty_observation() -> dict[str, Any]:
     return {"track": None, "tracks": [], "fields": {}, "questions": 0, "exit": None, "suggestion": None, "confirmation_asked": False,
-            "quote_invalid": [], "uncited": [], "rows_exposed": [], "phantom": [], "destructive_unconfirmed": 0, "lost": []}
+            "quote_invalid": [], "uncited": [], "rows_exposed": [], "phantom": [], "destructive_unconfirmed": 0, "lost": [], "answers": 0}
 
 
 # ------------------------------------------------------------------------------------------------ the arms
@@ -383,6 +383,7 @@ def score_case(case: Mapping[str, Any], obs: Mapping[str, Any]) -> dict[str, Any
         **{k: len(obs[k]) for k in ("quote_invalid", "uncited", "rows_exposed", "phantom")},
         "destructive_unconfirmed": obs["destructive_unconfirmed"],
         "lost": len(obs.get("lost") or []),
+        "answered": (obs.get("answers") or 0) > 0 if "analysis" in gold["tracks"] else None,  # H7: an answer from the data
     }
 
 
@@ -434,6 +435,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
             here = [r["scores"][arm]["track"] for r in mine if r["lang"] == lang]
             by_lang[lang] = round(sum(t == "right" for t in here) / len(here), 3)
         traps = {r["trap"]: r["scores"][arm]["trap"] for r in mine if r["trap"]}
+        answered = [x.get("answered") for x in s if x.get("answered") is not None]
         out[arm] = {
             "cases": len(mine), "track": counts, "track_accuracy": round(counts["right"] / len(mine), 3), "track_accuracy_by_lang": by_lang,
             "tracks_complete": f"{sum(both)} of {len(both)}",
@@ -442,6 +444,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "median_questions": statistics.median(x["questions"] for x in s),
             **{k: sum(x[k] for x in s) for k in ("quote_invalid", "uncited", "rows_exposed", "phantom", "destructive_unconfirmed", "lost")},
             "traps": traps,
+            "answered": f"{sum(answered)} of {len(answered)}",
         }
         if arm != "rules":
             out[arm]["new_wrong"] = [f"{r['case']}.{f}" for r in mine for f, v in r["scores"][arm]["fields"].items()

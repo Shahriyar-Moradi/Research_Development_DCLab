@@ -8,6 +8,9 @@
     POST   /api/drafts/{id}/messages {text}   a user turn
     POST   /api/drafts/{id}/pack {key}        the user picks a pack (wins over detection)
     POST   /api/drafts/{id}/intent {track}    the user picks the kind of help (prediction, analysis, ...; package H2)
+    POST   /api/drafts/{id}/answers/{aid}/edit {split_by?, grain?, op?, from?, to?}  an answer's controls, applied in code (H7)
+    POST   /api/drafts/{id}/answers/{aid}/save {title?, saved?}  keep an answer for the notebook export
+    GET    /api/drafts/{id}/answers/notebook  the saved answers as a notebook that reproduces each on the cleaned table
     PUT    /api/drafts/{id}/data?filename=    upload a file (raw body), processed in the background
     POST   /api/drafts/{id}/data/sample {key} a dataset the R&D already studied
     POST   /api/drafts/{id}/data/synthetic {prompt?, rows?, template?}  simulated rows, labelled synthetic
@@ -333,6 +336,55 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(422, "Unknown type of help: " + ", ".join(intents.TRACKS))
         await asyncio.to_thread(agent(draft_id).choose_intent, draft_id, track)
         return drafts.get(draft_id)
+
+    @router.post("/api/drafts/{draft_id}/answers/{answer_id}/edit", response_model=Draft)
+    async def edit_answer(draft_id: str, answer_id: str, payload: AnyObject):
+        """Split by another column, per period, another aggregate or other dates: the plan changes in code, never through
+        a model; the new answer is checked and computed like any other (H7)."""
+        get(draft_id)
+        change = {k: v for k, v in dump(payload).items() if k in ("split_by", "grain", "op", "from", "to", "date_column")}
+        if not change:
+            raise HTTPException(422, "Say what to change: split_by, grain, op, from or to")
+        try:
+            out = await asyncio.to_thread(agent(draft_id).edit_answer, draft_id, answer_id, change)
+        except KeyError:
+            raise HTTPException(404, "Answer not found") from None
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        if out is None:
+            raise HTTPException(422, "That change could not be computed; the reason is in the chat")
+        return drafts.get(draft_id)
+
+    @router.post("/api/drafts/{draft_id}/answers/{answer_id}/save", response_model=Draft)
+    async def save_answer(draft_id: str, answer_id: str, payload: AnyObject):
+        get(draft_id)
+        body = dump(payload)
+        try:
+            agent(draft_id).save_answer(draft_id, answer_id, body.get("title"), bool(body.get("saved", True)))
+        except KeyError:
+            raise HTTPException(404, "Answer not found") from None
+        return drafts.get(draft_id)
+
+    @router.get("/api/drafts/{draft_id}/answers/notebook")
+    async def answers_notebook(draft_id: str):
+        """The saved answers as a notebook: each cell runs its plan on the cleaned table with the same row floor."""
+        from ..query import answer as answers
+        from ..query.execute import TableError, floor, table
+        from ..query.validate import kinds
+
+        draft = get(draft_id)
+        every = [a for a in draft.get("answers") or [] if a.get("saved")]
+        saved = [a for a in every if a.get("asset") == draft.get("active_asset")]  # the notebook reads today's table
+        if not saved:
+            raise HTTPException(409, "Save an answer on the current table first")
+        try:
+            frame, _ = await asyncio.to_thread(table, drafts, draft)
+        except TableError as exc:
+            raise HTTPException(409, str(exc)) from None
+        people = [c for c, k in kinds(frame).items() if k == "identifier"]
+        body = json.dumps(answers.notebook(saved, floor(), people, skipped=len(every) - len(saved)), indent=1, ensure_ascii=False)
+        return Response(body, media_type="application/x-ipynb+json",
+                        headers={"Content-Disposition": f'attachment; filename="dclab-answers-{draft_id}.ipynb"'})
 
     @router.put("/api/drafts/{draft_id}/data", response_model=Doc, openapi_extra=OCTET)
     async def upload(draft_id: str, request: Request, filename: str):

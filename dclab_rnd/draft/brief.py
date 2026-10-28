@@ -75,7 +75,7 @@ _MONTH = r"(?:january|february|march|april|may|june|july|august|september|octobe
 _GROUP = r"(?:type|category|channel|plan|segment|group|region|city|country)"
 _END = r"(?=\s+(?:by|for|every|each|per|to|that|which|so|in|over|with)\b|[.,;?!:]|$)"
 _LIST_END = r"(?=,?\s+(?:by|for|every|each|per|to|that|which|so|in|over|with|refreshed|updated|daily|weekly|monthly)\b|[.;?!:]|$)"  # a list of numbers keeps its commas
-_FA_END = r"(?=\s+(?:برای|در|که|تا|و)\s|[.,;؟?!،:]|$)"
+_FA_END = r"(?=\s+(?:برای|در|که|تا|و|چقدر|چند|چه|است|بود|بودند|هست|را)(?:\s|[.,;؟?!،:]|$)|[.,;؟?!،:]|$)"
 
 # (track, field, pattern, group): the group is the value, quoted from the person's text. Written in the normalised form
 # (lang.normalize); English first, then Persian. Several patterns per field: the first that matches wins.
@@ -86,9 +86,10 @@ RULES: list[tuple[str, str, str, int]] = [
     ("analysis", "measure", rf"\bshow\s+(?:me\s+)?(?:the\s+)?((?!me\b|the\b|breakdown\b|trend\b|split\b|list\b|report\b|dashboard\b|numbers\b|data\b|table\b|results?\b)[\w-]+){_END}", 1),
     ("analysis", "measure", r"(?:^|\s)((?:میانگین|مجموع|جمع|تعداد)\s+\S+(?:\s+(?!(?:بر|در|به|از|برای|که|و|هر|را|با)(?:\s|$))\S+)?)", 1),
     ("analysis", "breakdown", rf"\bbetween\s+(?:the\s+)?\w+\s+and\s+(?:the\s+)?\w+\s+({_GROUP})\b", 1),
-    ("analysis", "breakdown", rf"\b(?:by|per|for each|in each|across)\s+(?!(?:the\s+)?(?:end|way|time|then|now|default|far|hand|next|last|this|day|week|month|year|quarter|monday)\b)(?:the\s+)?((?!the\b)[\w-]+(?:\s+{_GROUP})?)\b", 1),
+    ("analysis", "breakdown", rf"\b(?:by|per|for each|in each|across)\s+(?!(?:the\s+)?(?:end|way|time|then|now|default|far|hand|next|last|this|day|week|month|year|quarter|monday)\b)(?:(?:the|our|their|my|your|all)\s+)?((?!the\b|our\b|their\b|my\b|your\b|all\b)[\w-]+(?:\s+{_GROUP})?)\b", 1),
     ("analysis", "breakdown", r"(?:به\s+تفکیک|بر\s+اساس)\s+(\S+(?:\s+\S+)?)" + _FA_END, 1),
     ("analysis", "breakdown", r"(?:در|برای)\s+هر\s+(\S+)", 1),
+    ("analysis", "breakdown", r"(?:^|\s)هر\s+(\S+)", 1),
     ("analysis", "period", rf"\b((?:last|this|previous|past)\s+(?:week|month|quarter|year)|(?:the\s+)?last\s+\d+\s+days)\b", 1),
     ("analysis", "period", rf"\b(?:in|over|during|for)\s+((?:{_MONTH}\s+)?(?:19|20)\d\d|{_MONTH})\b", 1),
     ("analysis", "period", r"((?:سال\s+)?\d{4}|ماه\s+گذشته|پارسال|امسال|سه\s+ماه\s+(?:اول|دوم|سوم|آخر|گذشته))", 1),

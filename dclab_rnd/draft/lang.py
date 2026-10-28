@@ -174,3 +174,24 @@ NOT_SURE = re.compile(r"^\s*(?:(?:i'?m\s+|i\s+am\s+|i\s+(?:really\s+)?)?(?:not\s
 
 def not_sure(text: str) -> bool:
     return has(NOT_SURE, text or "")
+
+
+# Persian words for common column names (H7): "به تفکیک نوع پلن" finds a column named plan, "هزینهٔ ماهانه" monthly_spend.
+COLUMN_WORDS_FA = {
+    "پلن": "plan", "طرح": "plan", "اشتراک": "plan", "کانال": "channel", "شهر": "city", "منطقه": "region", "ناحیه": "region",
+    "استان": "region", "دسته": "category", "دسته بندی": "category", "گروه": "segment", "بخش": "segment", "سگمنت": "segment",
+    "وضعیت": "status", "محصول": "product", "کالا": "product", "مشتری": "customer", "فروشگاه": "store", "کشور": "country",
+    "جنسیت": "gender", "سن": "age", "مبلغ": "amount", "درآمد": "revenue", "فروش": "sales", "هزینه": "spend", "ماهانه": "monthly",
+    "سفارش": "order", "تیکت": "tickets", "پشتیبانی": "support",
+}
+_COLUMN_WORDS = sorted(COLUMN_WORDS_FA, key=len, reverse=True)
+
+
+def english_words(text: str) -> list[str]:
+    """The English column words a Persian phrase names, in order (a word is matched whole, with its suffixes: «پلن‌ها»)."""
+    folded = fold(text or "")
+    out = []
+    for word in _COLUMN_WORDS:
+        if re.search(rf"(?<![{_FA_LETTER}]){re.escape(fold(word))}", folded):
+            out.append(COLUMN_WORDS_FA[word])
+    return list(dict.fromkeys(out))

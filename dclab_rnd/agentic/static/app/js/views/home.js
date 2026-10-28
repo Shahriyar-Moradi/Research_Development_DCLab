@@ -177,6 +177,10 @@ DC.view('home', {
       else if (kind === 'pipeline') renderPipeline(data);
       else if (kind === 'analysis') { S.analysis[data.asset] = data.analysis; }
       else if (kind === 'workflow') drawWorkflow(data.workflow, data.rejected);
+      else if (kind === 'answer' && data.answer && S.draft) {
+        S.draft.answers = (S.draft.answers || []).map(x => x.id === data.answer.id ? data.answer : x);
+        redrawAnswers();
+      }
       else if (kind === 'status') onStatus(data);
     }
     function onStatus(d) {
@@ -228,6 +232,9 @@ DC.view('home', {
       if (m.kind === 'question') {
         const q = m.question || {};
         body = `<div class="ask-card"><div class="q">${esc(m.text)}</div>${q.why ? `<div class="small muted">${esc(q.why)}</div>` : ''}<div class="ask-options">${(q.options || []).map(o => `<button type="button" class="ask-option" data-answer="${esc(o)}">${esc(o)}</button>`).join('')}${(q.options || []).some(o => /^not sure$/i.test(o)) ? '' : '<button type="button" class="ask-option" data-answer="Not sure">Not sure</button>'}</div>${(q.options || []).length ? '' : '<div class="small muted">Or answer below in your own words.</div>'}</div>`;
+      } else if (m.kind === 'answer') {
+        if (S.draft && m.answer && !(S.draft.answers || []).some(x => x.id === m.answer.id)) S.draft.answers = [...(S.draft.answers || []), m.answer];
+        body = `<div data-answer-card="${esc((m.answer || {}).id || '')}">${answerCard(m.answer || {}, m.text)}</div>`;
       } else if (m.kind === 'analysis') {
         body = `<p>${esc(m.text)}</p>${analysisCard(S.analysis[m.asset], m.asset)}`;
       } else if (m.kind === 'summary') {
@@ -267,6 +274,74 @@ DC.view('home', {
       const pill = $('#home-data-pill', el);
       pill.hidden = !last;
       if (last) pill.textContent = `${last.name}${last.synthetic ? ' · synthetic' : ''}`;
+    }
+
+    /* An answer from the data (package H7): the sentence, its chart, the table, and controls that change the plan in code. */
+    function answerCard(a, text) {
+      const r = a.result || {}, rows = a.display || r.rows || [], cols = r.columns || [], plan = a.plan || {};
+      const keys = cols.filter(c => c === 'period' || (plan.group_by || []).includes(c)), nk = keys.length;
+      const num = v => (v === null || v === undefined) ? '—' : (typeof v === 'number' ? v.toLocaleString(undefined, { maximumFractionDigits: 3 }) : String(v));
+      const kind = (a.chart || {}).kind || 'table';
+      const vals = rows.map(row => row[nk]).filter(v => typeof v === 'number');
+      let chart = '';
+      if (kind === 'kpi' && rows.length) {
+        chart = `<div class="stats">${cols.map((c, i) => `<div class="stat"><span class="v">${esc(num(rows[0][i]))}</span><span class="l">${esc(c)}</span></div>`).join('')}</div>`;
+      } else if (kind === 'line' && vals.length > 1) {
+        const pts = rows.map((row, i) => [i, typeof row[nk] === 'number' ? row[nk] : 0]);
+        const step = Math.max(1, Math.ceil(rows.length / 6));
+        chart = DC.charts.line([{ pts, dots: true }], { width: 520, height: 200, xTicks: pts.map(p => p[0]).filter(i => i % step === 0), xFmt: i => esc(String((rows[i] || [])[0]).slice(0, 10)), yFmt: v => num(v), yMin: Math.min(0, ...vals), aria: a.title || 'answer' });
+      } else if ((kind === 'bar' || kind === 'line') && vals.length) {
+        chart = DC.charts.barsH(rows.slice(0, 12).filter(row => typeof row[nk] === 'number').map(row => ({ label: row.slice(0, nk).map(String).join(' / ').slice(0, 22), value: row[nk], valueText: num(row[nk]) })),
+          { width: 520, labelW: 150, valW: 90, rowH: 24, min: Math.min(0, ...vals), aria: a.title || 'answer' });
+      }
+      const table = `<div class="table-wrap"><table class="data compact"><thead><tr>${cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(v => `<td>${esc(num(v))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+      const columns = ((S.draft || {}).analysis || {}).columns || [];
+      const groupable = columns.filter(c => ['categorical', 'boolean', 'category', 'binary'].includes(c.kind) && (c.unique || 0) <= 60).map(c => c.name);
+      const split = (plan.group_by || [])[0] || '', grain = (plan.period || {}).grain || '', op = ((plan.measures || [])[0] || {}).op;
+      const opt = (v, label, cur) => `<option value="${esc(v)}"${v === cur ? ' selected' : ''}>${esc(label)}</option>`;
+      const hidden = r.suppressed_groups ? `<span class="pill warn">${esc(String(r.suppressed_groups))} small group${r.suppressed_groups === 1 ? '' : 's'} hidden (under ${esc(String(r.floor))} rows)</span>` : '';
+      const by = a.plan_by === 'model' ? '<span class="pill outline">plan by a model</span>' : a.plan_by === 'person' ? '<span class="pill outline">edited</span>' : '';
+      const anySaved = ((S.draft || {}).answers || []).some(x => x.saved) || a.saved;
+      return `<p>${esc(text || a.text || '')}</p>
+        <div class="stack tight">
+          <div class="row"><span class="small strong">${esc(a.title || '')}</span>${by}${hidden}${a.written_by === 'model' ? '<span class="pill outline">sentence checked against the result</span>' : ''}</div>
+          ${chart ? `<div class="inset">${chart}</div>` : ''}
+          <details${chart ? '' : ' open'}><summary class="small">Table (${esc(String(rows.length))} row${rows.length === 1 ? '' : 's'})</summary>${table}</details>
+          <div class="row small" data-answer-controls="${esc(a.id || '')}">
+            <label>Split by <select data-answer-edit="split_by">${opt('', 'nothing', split)}${groupable.map(c => opt(c, c, split)).join('')}</select></label>
+            <label>Per <select data-answer-edit="grain">${opt('', 'whole period', grain)}${['day', 'week', 'month', 'quarter', 'year'].map(g => opt(g, g, grain)).join('')}</select></label>
+            <label>As <select data-answer-edit="op">${['count', 'sum', 'mean', 'median'].map(o => opt(o, { count: 'count', sum: 'total', mean: 'average', median: 'median' }[o], op)).join('')}</select></label>
+            <button type="button" class="btn sm" data-answer-save="${esc(a.id || '')}"${a.saved ? ' aria-pressed="true"' : ''}>${a.saved ? 'Saved' : 'Save'}</button>
+            ${anySaved && S.draft ? `<a class="link-btn small" href="${esc(DC.client.href.answersNotebook(S.draft.id))}" download data-answer-notebook>Export notebook (.ipynb) →</a>` : ''}
+          </div>
+          <div class="xs muted">Computed by DCLab on your cleaned table; no row is listed and groups with fewer than ${esc(String(r.floor || ''))} rows are hidden.</div>
+        </div>`;
+    }
+
+    async function editAnswer(id, field, value) {
+      const change = { [field]: value };
+      if (field === 'grain' && value) {
+        const dates = (((S.draft || {}).analysis || {}).columns || []).filter(c => c.kind === 'datetime').map(c => c.name);
+        if (dates.length) change.date_column = dates[0];
+      }
+      try { S.draft = await DC.client.editAnswer(S.draft.id, id, { body: change }); }
+      catch (err) { toast(err.message, { ok: false }); }
+    }
+
+    async function saveAnswer(id, button) {
+      const saved = button.getAttribute('aria-pressed') !== 'true';
+      try {
+        S.draft = await DC.client.saveAnswer(S.draft.id, id, { body: { saved } });
+        redrawAnswers();
+      } catch (err) { toast(err.message, { ok: false }); }
+    }
+
+    function redrawAnswers() {
+      const thread = $('#home-thread', el);
+      ((S.draft || {}).answers || []).forEach(a => {
+        const box = $(`[data-answer-card="${a.id}"]`, thread);
+        if (box) { box.innerHTML = answerCard(a, a.text); DC.hydrate(box); }
+      });
     }
 
     function analysisCard(a, assetId) {
@@ -319,6 +394,12 @@ DC.view('home', {
     $('#home-thread', el).addEventListener('click', e => {
       const opt = e.target.closest('.ask-option[data-answer]');
       if (opt && !opt.disabled) send(opt.dataset.answer);
+      const save = e.target.closest('[data-answer-save]');
+      if (save) saveAnswer(save.dataset.answerSave, save);
+    });
+    $('#home-thread', el).addEventListener('change', e => {
+      const sel = e.target.closest('[data-answer-edit]');
+      if (sel) editAnswer(sel.closest('[data-answer-controls]').dataset.answerControls, sel.dataset.answerEdit, sel.value);
     });
 
     /* ---------- bring the data ---------- */
