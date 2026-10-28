@@ -128,8 +128,16 @@ class WalkTests(unittest.TestCase):
     def test_an_approval_given_to_a_card_that_went_stale_is_asked_again(self):
         """A chat's card shows the pause it was read from, with its key; the person's yes carries that key. When the pause
         changed while the card waited (its summary is what gets built), the walk asks again and builds nothing."""
+        import os
+        from unittest import mock
+
         from dclab_rnd.orchestra import service
 
+        # the service reads the walk's checkpoints where this test's walk writes them (SQLite in its home), also when the
+        # suite runs on PostgreSQL: else the pause is saved in one store and looked for in another
+        same_store = mock.patch.dict(os.environ, {"DCLAB_DATABASE_URL": ""})
+        same_store.start()
+        self.addCleanup(same_store.stop)
         walk = self.walk(self.home)
         out = self._to_the_build_approval(walk)
         thread = f"draft:{self.cases_draft}"

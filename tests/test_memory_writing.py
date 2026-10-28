@@ -226,6 +226,8 @@ class ApiTest(unittest.TestCase):
         cls.home = Path(tempfile.mkdtemp())
         cls.client = TestClient(create_app(cls.home))
         cls.client.headers.update({"X-DCLab-Token": cls.client.get("/api/config").json()["csrf"]})  # the local UI's request token
+        # the workspace's own id, as the memory chain reads it: "local" for the file store, the database's id on PostgreSQL
+        cls.workspace = getattr(cls.client.app.state.services.projects, "workspace_id", None) or "local"
 
     def test_view_correct_review_and_propose(self):
         c = self.client
@@ -250,7 +252,7 @@ class ApiTest(unittest.TestCase):
         accepted = c.post(f"/api/memory/{draft['id']}/review", json={"action": "accept"})
         self.assertEqual(accepted.json()["status"], "active", accepted.text)
 
-        know = w.draft_know_how(store, scope="workspace", scope_id="local", text="Check the row count after each join.", source="test:api",
+        know = w.draft_know_how(store, scope="workspace", scope_id=self.workspace, text="Check the row count after each join.", source="test:api",
                                 who="agent:reflector", at=AT)
         refused = c.post(f"/api/memory/{know.id}/review", json={"action": "accept"}, headers={"X-DCLab-Role": "viewer", **self.client.headers})
         self.assertEqual(refused.status_code, 403)
@@ -279,7 +281,7 @@ class ApiTest(unittest.TestCase):
         self.assertIn(fact.id, [i.id for i in store_mod.open_memory(self.home).log()])  # kept, never deleted
         self.assertEqual(c.post(f"/api/memory/{fact.id}/retire", json={"project_id": project["id"]}).status_code, 404)  # no longer seen
 
-        know = w.draft_know_how(store, scope="workspace", scope_id="local", text="Sort by time before a rolling mean.", source="test:retire",
+        know = w.draft_know_how(store, scope="workspace", scope_id=self.workspace, text="Sort by time before a rolling mean.", source="test:retire",
                                 who="agent:reflector", at=AT)
         role = {"X-DCLab-Role": "reviewer", **self.client.headers}
         self.assertEqual(c.post(f"/api/memory/{know.id}/review", json={"action": "accept"}, headers=role).status_code, 200)
@@ -305,7 +307,7 @@ class ApiTest(unittest.TestCase):
         self.assertIn("(correction) The holdout is the last four weeks.", text)
         self.assertNotIn("last two weeks", text)
 
-        know = w.draft_know_how(store, scope="workspace", scope_id="local", text="Read the row count after every join.", source="test:page",
+        know = w.draft_know_how(store, scope="workspace", scope_id=self.workspace, text="Read the row count after every join.", source="test:page",
                                 who="agent:reflector", at=AT)
         plain = c.get("/api/memory", params={"project_id": project["id"]}).json()
         self.assertNotIn(know.id, [i["id"] for i in plain["drafts"]])  # the box unticked: no reviewer role declared

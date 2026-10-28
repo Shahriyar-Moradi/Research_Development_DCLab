@@ -1,0 +1,59 @@
+{
+ "package": "gate 2026-10-29 PostgreSQL tests",
+ "title": "Three tests that held only when the machine was quiet or the store was files, made to hold on both",
+ "date": "2026-10-29",
+ "request": "The owner: run the full gate and fix what it finds.",
+ "spec": "check-all runs the suite on files and again on PostgreSQL; a test must hold on both.",
+ "plan": [
+  "Read each failure and which pass it came from",
+  "Reproduce on PostgreSQL alone",
+  "Fix the test where it reads another store than it writes",
+  "Run on both stores"
+ ],
+ "decisions": [
+  {
+   "decision": "Fix the tests, not the product",
+   "why": "in both cases the product reads and writes one store consistently; the tests wrote with one assumption and read with another"
+  }
+ ],
+ "change": "tests/test_memory_writing.py (the app's own workspace id), tests/test_orchestra_walk.py (the service reads the walk's own checkpoint store). tests/test_chat_agents.py (the team walk test follows a still-working reply).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The memory API tests wrote workspace know-how under the id local",
+   "scenario": "The suite's PostgreSQL pass: a reviewer's accept saw no draft and a retire answered 404 instead of 403.",
+   "cause": "The memory chain reads workspace items under the store's workspace id, which is local for the file store and the database's id on PostgreSQL; the tests hard-coded local.",
+   "fix": "The tests write under the app's own workspace id.",
+   "test": "tests/test_memory_writing.py ApiTest, on files and with --pg"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "A walk test saved its pause in SQLite and looked for it in PostgreSQL",
+   "scenario": "The suite's PostgreSQL pass: service.view found no pause waiting, so the card's key was None.",
+   "cause": "The test opens its walk's checkpoints with database_url empty (SQLite in its home), while service.view and resume_value follow DCLAB_DATABASE_URL.",
+   "fix": "For that test the service calls run with DCLAB_DATABASE_URL empty, so they read the walk's own store.",
+   "test": "tests/test_orchestra_walk.py test_an_approval_given_to_a_card_that_went_stale_is_asked_again, with --pg"
+  },
+  {
+   "id": "F3",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The team walk over MCP test failed when the walk outlasted the 100 s wait",
+   "scenario": "The suite's PostgreSQL pass beside a second gate: starting the walk answered 202, still working, and the test expected a pause at once.",
+   "cause": "As with the intern test fixed earlier tonight, the test took only the quick answer; the reply names GET /api/projects/{id}/team to follow.",
+   "fix": "On a still-working reply the test follows the walk's board until the pause appears.",
+   "test": "tests/test_chat_agents.py test_a_team_walk_started_over_mcp_pauses_and_resumes_on_the_persons_answer, also with the wait cut to 2 s"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The three tests hold on the file store and on PostgreSQL, quick or slow.",
+ "lessons": [
+  "A test that opens one store explicitly and then calls code that chooses its store from the environment tests two stores at once."
+ ],
+ "risks": [],
+ "commits": []
+}

@@ -469,6 +469,15 @@ class LongAgentsOverMcpTests(McpChatCase):
         started = self.call("dclab_call", {"method": "POST", "path": f"/api/projects/{pid}/team", "body": {}})
         first = started.get("body") or started.get("result") or started
         waiting = first.get("asks") if first.get("status") == "paused" else None
+        if started.get("running"):  # still working after the call's wait (a loaded machine): follow the board as the reply says
+            self.assertIn(f"GET /api/projects/{pid}/team", started["says"])
+            for _ in range(180):
+                seen = self.call("dclab_call", {"method": "GET", "path": f"/api/projects/{pid}/team"})
+                view = seen.get("body") or seen.get("result") or seen
+                if isinstance(view.get("waiting"), dict) and view["waiting"].get("key"):
+                    waiting = view["waiting"]
+                    break
+                time.sleep(5)
         self.assertTrue(waiting, f"the walk did not pause for the person: {str(first)[:300]}")
         refused = self.call("dclab_call", {"method": "POST", "path": f"/api/projects/{pid}/team", "body": {"approve": True}})
         self.assertIn("person", json.dumps(refused))  # the chat never answers or approves for the person
