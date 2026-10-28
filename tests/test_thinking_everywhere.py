@@ -113,6 +113,59 @@ class GatewayKeeps(unittest.TestCase):
         self.assertIn("why 7", kept)  # the text, never only "thought: true"
         self.assertEqual(docs[0]["purpose"], "home_business")
 
+    def test_each_exchange_says_what_thinking_its_request_asked_for(self):
+        # live 2026-10-28 (HyperAck): home_agent and leakage_review kept `thinking: []`; the line could not tell "asked, the
+        # model chose not to think" from "never asked". The setting the request carried is now on every line.
+        def run(purpose, env, answer):
+            transport = Scripted([answer])
+            home = Path(tempfile.mkdtemp())
+            with mock.patch.object(gw, "_transport", lambda tier, p: transport), \
+                    mock.patch.dict(os.environ, {"DCLAB_AGENT_HOME": str(home), **env}), \
+                    mock.patch.object(experience, "current_log", lambda: None):
+                gw.Gateway(transport=gw._transport).client(purpose).complete([{"role": "user", "content": "go"}], None)
+            docs = exchanges(home)
+            self.assertEqual(len(docs), 1)
+            return docs[0]
+
+        silent = {**reply(), "thinking": []}
+        asked = run("leakage_review", {}, silent)
+        self.assertEqual((asked["thinking_asked"], asked["thinking"]), ("adaptive", []))  # asked; the model did not think
+        off = run("leakage_review", {"DCLAB_THINKING": "off"}, silent)
+        self.assertIsNone(off["thinking_asked"])  # never asked
+        cells = run("home_business", {}, reply(3))  # shown cells: only its shape is kept, the setting with it
+        self.assertFalse(cells["whole"])
+        self.assertEqual(cells["thinking_asked"], "adaptive")
+        from dclab_rnd.models import anthropic_client
+
+        with mock.patch.object(anthropic_client, "NO_THINKING_MODELS", {"m-old"}), \
+                mock.patch.object(gw.Bound, "_think", lambda self: setattr(self, "model", "m-old") or setattr(self._transport, "thinking", "adaptive")):
+            dropped = run("leakage_review", {}, silent)
+        self.assertEqual(dropped["thinking_asked"], "adaptive")
+        self.assertIn("refused", dropped["thinking_dropped"])  # the client sent it without thinking: said, never hidden
+        # review: another request marked the model while this one, sent with thinking, was out: its thinking is no drop
+        with mock.patch.object(anthropic_client, "NO_THINKING_MODELS", {"m-old"}), \
+                mock.patch.object(gw.Bound, "_think", lambda self: setattr(self, "model", "m-old") or setattr(self._transport, "thinking", "adaptive")):
+            thought = run("leakage_review", {}, reply(5))
+        self.assertNotIn("thinking_dropped", thought)
+        self.assertEqual(thought["thinking"], [{"text": "why 5"}])
+
+    def test_a_transport_with_no_thinking_setting_is_not_read_as_never_asked(self):
+        # review: an OpenAI-style local client (ChatClient) has no `thinking` attribute yet may return reasoning
+        class Local:
+            def __init__(self):
+                self.replies = [reply(9)]
+
+            def complete(self, messages, tools=None, max_tokens=1800, **options):
+                return self.replies.pop(0)
+        local = Local()
+        with mock.patch.object(gw, "_transport", lambda tier, p: local), \
+                mock.patch.dict(os.environ, {"DCLAB_AGENT_HOME": str(self.home)}), \
+                mock.patch.object(experience, "current_log", lambda: None):
+            gw.Gateway(transport=gw._transport).client("stage_notes").complete([{"role": "user", "content": "go"}], None)
+        doc = exchanges(self.home)[0]
+        self.assertEqual((doc["thinking_asked"], doc["thinking"]), (gw.TRANSPORT_DECIDES, [{"text": "why 9"}]))
+        self.assertIsNone(gw._asked_of(None))  # no transport was made: the call never ran
+
     def test_a_scripted_gateway_with_no_workspace_writes_nowhere(self):
         with mock.patch.dict(os.environ, {"DCLAB_AGENT_HOME": str(self.home)}), mock.patch.object(experience, "current_log", lambda: None):
             gw.Gateway(transport=lambda tier, purpose: Scripted([reply()])).client("stage_notes").complete([{"role": "user", "content": "go"}], None)
@@ -141,6 +194,7 @@ class GatewayKeeps(unittest.TestCase):
         self.assertEqual(len(docs), 1)
         self.assertEqual((docs[0]["model"], docs[0]["reply"], docs[0]["thinking"]), ("qwen", "answer 1", [{"text": "why 1"}]))
         self.assertEqual(local.thinking, "adaptive")  # the shadow was asked to think
+        self.assertEqual(docs[0]["thinking_asked"], "adaptive")  # and its line says so (the shadow's own setting)
 
     def test_a_prompt_shown_cells_never_reaches_the_usage_log(self):
         from dclab_rnd.models.usage import FileUsage

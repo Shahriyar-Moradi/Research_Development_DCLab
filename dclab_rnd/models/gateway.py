@@ -329,6 +329,20 @@ class Gateway:
                 "failing": self.usage.failing(month_start()) if self.usage else []}
 
 
+
+TRANSPORT_DECIDES = "no setting: the transport decides"  # an OpenAI-style local client that may still return reasoning
+
+
+def _asked_of(transport: Any) -> str | None:
+    """The thinking setting a request carried, for its kept exchange: the transport's ``thinking`` (None: off), or
+    TRANSPORT_DECIDES for a transport with no such setting; None when no transport was made (the call never ran)."""
+    if transport is None:
+        return None
+    if not hasattr(transport, "thinking"):
+        return TRANSPORT_DECIDES
+    value = getattr(transport, "thinking", None)
+    return value if isinstance(value, str) or value is None else str(value)
+
 class Bound:
     def __init__(self, gateway: Gateway, purpose: str, p: settings.Purpose, tier: dict[str, Any] | None, project_id: str | None,
                  draft_id: str | None, model: str | None = None):
@@ -382,7 +396,7 @@ class Bound:
         def run() -> None:
             from .shadow import compare
 
-            started, reply, outcome = time.monotonic(), None, "ok"
+            started, reply, outcome, transport = time.monotonic(), None, "ok", None
             try:
                 transport = gateway.transport(shadow, self.p)
                 if hasattr(transport, "thinking") and getattr(transport, "thinking", None) is None:
@@ -395,7 +409,8 @@ class Bound:
             # shadow, by the same rule as the served model's (whole when shown no cells; the comparison log stays numbers only)
             import secrets as _secrets
 
-            self._keep_exchange("mr" + _secrets.token_hex(8), snapshot, reply, outcome, tools, shadow=shadow)
+            self._keep_exchange("mr" + _secrets.token_hex(8), snapshot, reply, outcome, tools, shadow=shadow,
+                                asked=_asked_of(transport))
             try:
                 gateway.shadows.record({"at": gateway.clock(), "purpose": self.purpose, "primary_tier": served["tier"], "primary_model": served["model"],
                                         "shadow_tier": shadow["name"], "shadow_model": shadow["model"], "project_id": project_id, "draft_id": draft_id,
@@ -499,12 +514,14 @@ class Bound:
             return out
 
     def _keep_exchange(self, request_id: str, messages: list[dict[str, Any]], out: dict[str, Any] | None, outcome: str,
-                       tools: list[dict[str, Any]] | None = None, shadow: dict[str, Any] | None = None) -> None:
+                       tools: list[dict[str, Any]] | None = None, shadow: dict[str, Any] | None = None, asked: Any = ...) -> None:
         """32.10: the whole exchange kept, never cut: every message as sent, the reply, its tool calls and the model's thinking, one
         line in ``<workspace>/model_exchanges/YYYY/MM/DD.jsonl`` (the store's model_requests keeper keeps it). Where the workspace
         keeps no model text, or the purpose was shown cell values, only its shape is kept (sizes, tokens, whether it thought).
         D2 (2026-10-23): the tools offered too, their names and a hash always, their schemas whole with a whole exchange, so a
-        model trained on the record learns what it could call at that moment."""
+        model trained on the record learns what it could call at that moment. ``thinking_asked`` is the thinking setting the
+        request carried (the served transport's, or ``asked`` for a shadow), so an empty ``thinking`` reads as "asked, the
+        model did not think" or "never asked" (live HyperAck run, 2026-10-28: home_agent and leakage_review kept none)."""
         from datetime import datetime, timezone
 
         from .. import experience
@@ -532,6 +549,13 @@ class Bound:
                                    "may_leave": may_leave,
                                    "tool_names": [str((t.get("function") or {}).get("name") or t.get("name") or "") for t in tools or []],
                                    "tools_sha256": hashlib.sha256(json.dumps(tools, sort_keys=True, default=str).encode()).hexdigest()[:16] if tools else None}
+            if asked is ...:  # the served call: its own transport's setting
+                asked = _asked_of(getattr(self, "_transport", None))
+            doc["thinking_asked"] = asked
+            from .anthropic_client import NO_THINKING_MODELS
+
+            if asked and not thinking and str(doc["model"]) in NO_THINKING_MODELS:  # sent without: said, never hidden (a reply with thinking was sent with it)
+                doc["thinking_dropped"] = "the model refused a thinking request in this process, so it was sent without thinking"
             if whole:
                 doc.update(messages=messages, reply=(out or {}).get("content"), tool_calls=(out or {}).get("tool_calls"), thinking=thinking,
                            tools=tools or [])

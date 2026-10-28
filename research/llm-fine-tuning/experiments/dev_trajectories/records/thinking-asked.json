@@ -1,0 +1,99 @@
+{
+ "package": "thinking-asked",
+ "title": "Every kept model exchange says what thinking its request asked for",
+ "date": "2026-10-28",
+ "request": "The owner, after the live HyperAck run: yes, make each saved model exchange record the thinking setting its request carried, so an empty thinking can be told apart from thinking never asked for.",
+ "spec": "Owner's rule (rule 8 and ~/.claude/CLAUDE.md): every model call keeps its API thinking summary; reasoning only from summarized thinking blocks, never asked for in the reply text. A kept exchange with no thinking must say whether thinking was asked.",
+ "plan": [
+  "Find where exchanges are written (Bound._keep_exchange) and its tests",
+  "Test first: asked and silent, off, shown cells, refused model, shadow",
+  "Record the setting on every line, served and shadow",
+  "Review, fix, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "Record the setting the transport carried, not a guess from the reply",
+   "why": "only the request knows what was asked; an empty reply cannot tell 'chose not to think' from 'never asked'"
+  },
+  {
+   "decision": "Write it before the whole / shape-only branch",
+   "why": "a purpose shown cell values keeps only its shape, and its line must still say whether thinking was asked"
+  },
+  {
+   "decision": "A transport with no thinking setting gets its own value, not None",
+   "why": "None means the setting was off; an OpenAI-style local client has no setting yet may return reasoning"
+  },
+  {
+   "decision": "Never ask the model for reasoning in its reply to fill an empty thinking",
+   "why": "the owner's rule: reasoning only from summarized thinking blocks; an empty result is kept as it is"
+  }
+ ],
+ "change": "dclab_rnd/models/gateway.py (_asked_of, TRANSPORT_DECIDES; Bound._keep_exchange writes thinking_asked on every line and thinking_dropped when the client sent the request without thinking; the shadow passes its own transport's setting), tests/test_thinking_everywhere.py (3 tests, 1 extended).",
+ "findings": [
+  {
+   "id": "L1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A kept exchange with thinking [] could not say whether thinking was asked",
+   "scenario": "live HyperAck run 2026-10-28 (agent_runs/live_tests/2026-10-28-rnd-hyperack-live): home_agent (1 call) and leakage_review (3 calls) on Claude Sonnet 5.5 kept thinking [] while stage_notes kept summaries",
+   "cause": "the line kept the reply's thinking but not the request's thinking setting",
+   "fix": "thinking_asked on every line: the served transport's setting, or the shadow's",
+   "test": "test_each_exchange_says_what_thinking_its_request_asked_for"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A local model's line said 'never asked' while it held thinking",
+   "scenario": "a local Qwen tier (OpenAI-style ChatClient, no thinking attribute) serves or shadows a purpose and returns reasoning; the line had thinking_asked null and non-empty thinking",
+   "cause": "getattr(transport, 'thinking', None) gave None both for 'off' and for 'no such setting'",
+   "fix": "_asked_of: TRANSPORT_DECIDES for a transport with no thinking setting, None only when the setting is off or no transport was made",
+   "test": "test_a_transport_with_no_thinking_setting_is_not_read_as_never_asked"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "thinking_dropped could mark a call that did think",
+   "scenario": "two requests on one model at once; B is refused for thinking and marks the model in NO_THINKING_MODELS while A, sent with thinking, is out; A's line said 'sent without thinking' beside its thinking",
+   "cause": "the process-wide set was read when the line was written, not when the request was sent",
+   "fix": "thinking_dropped only when the reply has no thinking",
+   "test": "test_each_exchange_says_what_thinking_its_request_asked_for (the overlap case)"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "related test files",
+   "gate": "every test in the 12 files that read or write kept exchanges passes",
+   "fixed_before_run": true,
+   "result": "131 tests in 12 files pass",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "no live call was made after the change; the field is checked on scripted transports only"
+   ]
+  },
+  {
+   "name": "live HyperAck run that found it",
+   "gate": "not scored: the run that showed kept lines with empty thinking",
+   "fixed_before_run": true,
+   "result": "20 calls, EUR 0.20; stage_notes 10/10 kept summaries, intern 2/6 thought (kept redacted), home_agent 0/1 and leakage_review 0/3 returned no thinking",
+   "verdict": "not scored",
+   "cost_eur": 0.2,
+   "limits": [
+    "it cannot show whether thinking was asked on those calls: that is what this change records from now on"
+   ]
+  }
+ ],
+ "outcome": "Every kept model exchange now says what thinking its request asked for (adaptive, off, or the transport decides), and says when the client had to send it without thinking, so an empty thinking is never mistaken for one never asked.",
+ "lessons": [
+  "Record what was asked beside what came back: an empty answer alone cannot be read.",
+  "None should mean one thing; give 'no such setting' its own value.",
+  "A process-wide flag read at write time can mislabel a request that was already out; check it against the reply."
+ ],
+ "risks": [
+  "Older lines have no thinking_asked; readers must treat a missing field as unknown.",
+  "One refusal still turns thinking off for a model for the whole process (older code); the label now makes it visible."
+ ],
+ "commits": []
+}
