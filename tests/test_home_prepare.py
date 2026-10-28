@@ -305,6 +305,19 @@ class ToolsTests(Base):
         self.assertTrue((self.prepared(self.draft_id)["status"] == "paid").all())
         self.assertEqual(sha256_of(Path(self.store.data_dir(self.draft_id)) / asset["clean_file"]), asset["clean_sha256"])
 
+    def test_small_filters_that_together_remove_many_rows_ask_first(self):  # the review of 2026-10-28
+        src, _ = self.original(self.draft_id)
+        cuts = [float(src["amount"].quantile(q)) for q in (0.01, 0.04, 0.06)]
+        out = self.tool("propose_step", step={"kind": "filter", "filters": [{"column": "amount", "op": "gt", "value": cuts[0]}]})
+        self.assertEqual(out, {"applied": True, "asked": False})  # about 1%, and the rows with no amount: under the guard alone
+        out = self.tool("propose_step", step={"kind": "filter", "filters": [{"column": "amount", "op": "gt", "value": cuts[1]}]})
+        self.assertEqual(out, {"applied": False, "asked": True})  # about 3% more: under the guard alone, over it together: asked
+        q = self.agent.pending(self.store.get(self.draft_id))
+        self.assertIn("with the steps before it", q["text"])
+        self.agent.reply(self.draft_id, "Yes, apply it")
+        out = self.tool("propose_step", step={"kind": "filter", "filters": [{"column": "amount", "op": "gt", "value": cuts[2]}]})
+        self.assertEqual(out, {"applied": True, "asked": False})  # counted again from the table the person said yes to
+
     def test_undo_takes_back_the_last_step_and_export_offers_the_format(self):
         src, _ = self.original(self.draft_id)
         self.tool("propose_step", step={"kind": "drop_columns", "columns": ["channel"]})

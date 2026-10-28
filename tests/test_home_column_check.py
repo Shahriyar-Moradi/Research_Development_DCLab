@@ -170,7 +170,8 @@ class ColumnCheckThroughTheRoutes(unittest.TestCase):
     def draft(self, did):
         return self.client.get(f"/api/drafts/{did}").json()
 
-    def test_a_strong_column_is_asked_before_the_build_and_kept_when_known(self):
+    def ready_draft(self):
+        """A draft whose outcome and moment are answered, on a table where `segment` alone separates the outcome."""
         c = self.client
         d = c.post("/api/drafts", json={"problem": "Predict which customers cancel next month"}, headers=self.h).json()
         # `segment` alone separates the outcome (its value is the outcome on 6 rows of 7, in both classes): strong, not late by its name
@@ -184,10 +185,11 @@ class ColumnCheckThroughTheRoutes(unittest.TestCase):
             text = answers.pop(q["field"])
             wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": text}, headers=self.h).status_code == 202)
             wait(lambda: any(x["id"] == q["id"] and x.get("answered") for x in self.draft(d["id"])["questions"]))
-        refused = c.post(f"/api/drafts/{d['id']}/build/run", json={}, headers=self.h)
-        self.assertEqual(refused.status_code, 409, refused.text)
-        self.assertIn("segment", refused.json()["detail"])
-        self.assertEqual(refused.headers.get("X-DCLab-Rule"), "column check")
+        return d
+
+    def test_a_strong_column_is_asked_before_the_build_and_kept_when_known(self):
+        c = self.client
+        d = self.ready_draft()
         wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": "build it"}, headers=self.h).status_code == 202)
         q = wait(lambda: next((q for q in self.draft(d["id"])["questions"] if q["field"] == checks.FIELD and not q.get("answered")), None))
         self.assertEqual((q["column"], q["options"]), ("segment", list(checks.OPTIONS)))
@@ -197,6 +199,19 @@ class ColumnCheckThroughTheRoutes(unittest.TestCase):
         project = c.get(f"/api/projects/{built}").json()
         self.assertNotIn("segment", [f["column"] for f in project["solution"]["forbidden"]], "the person said it is known: a feature")
         self.assertIn("the person said it is known", project["solution"]["notes"])
+
+    def test_a_button_build_asks_the_column_question_in_the_chat(self):  # the review of 2026-10-28: the Team panel's Build
+        c = self.client
+        d = self.ready_draft()
+        for body in ({}, {"team": True}):
+            refused = c.post(f"/api/drafts/{d['id']}/build/run", json=body, headers=self.h)
+            self.assertEqual(refused.status_code, 409, refused.text)
+            self.assertIn("segment", refused.json()["detail"])
+            self.assertEqual(refused.headers.get("X-DCLab-Rule"), "column check")
+        open_ = [q for q in self.draft(d["id"])["questions"] if q["field"] == checks.FIELD and not q.get("answered")]
+        self.assertEqual([q["column"] for q in open_], ["segment"])  # asked once, in the chat, however many times refused
+        wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": checks.OPTIONS[0]}, headers=self.h).status_code == 202)
+        self.assertTrue(wait(lambda: self.draft(d["id"]).get("project_id")))  # the reply in the chat is the answer, and the build goes on
 
 
 if __name__ == "__main__":

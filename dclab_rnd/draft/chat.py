@@ -1036,6 +1036,7 @@ class HomeAgent:
         draft = self.store.get(draft_id)
         active = rec.get("asset") or draft.get("active_asset")
         current, done = frame, []
+        since_yes = len(frame)  # rows when the person last said yes (or the original): small steps that together remove many ask too
         for i, raw in enumerate(rec["planned"]):
             step = R.Step.model_validate(raw)
             decision = rec["decisions"].get(str(i))
@@ -1047,6 +1048,10 @@ class HomeAgent:
             except (ValueError, TypeError) as error:  # a pandas type error is the step's, never the turn's (the review of H9b)
                 done.append({"kind": step.kind, "why": step.why, "error": str(error)[:300], "removed_share": 0.0, "confirmed": False})
                 continue
+            together = max(0, since_yes - p.rows_after) if step.kind in ("filter", "dedupe", "drop_missing") else 0
+            if not p.needs_confirmation and since_yes and together / since_yes > R.GUARD_SHARE:  # the review of 2026-10-28
+                p = p.model_copy(update={"needs_confirmation": True, "reason": f"with the steps before it, it leaves {p.rows_after:,} of "
+                                                                                  f"{since_yes:,} rows ({together / since_yes:.0%} removed)"})
             if p.needs_confirmation and decision != "yes":
                 rec["pending"] = {"index": i, "needs_confirmation": True, "reason": p.reason, "kind": step.kind}
                 rec.setdefault("asked", []).append({"index": i, "kind": step.kind, "reason": p.reason, "rows_before": p.rows_before,
@@ -1063,6 +1068,8 @@ class HomeAgent:
                 return self.say(draft_id, q["text"], kind="question", question=q,
                                 model_text=f"(Asked the person whether to {prepare.describe(step)}; it removes many rows or changes the row count.)")
             current = after
+            if p.needs_confirmation:  # asked and confirmed: what is removed from here on is counted from this table
+                since_yes = p.rows_after
             done.append({"kind": step.kind, "why": step.why, **p.model_dump(mode="json"), "confirmed": decision == "yes"})
         name = prepare.prepared_name(active)
         path = Path(self.store.data_dir(draft_id)) / name
@@ -1559,6 +1566,12 @@ class HomeAgent:
         if not item:
             return None
         why = "A column that is only strong may be honest; whether it is known at the prediction moment is a fact about your business."
+
+        def waiting_on_the_build(d):  # the person asked to build past an open question: the build's question is the one answered next
+            for q in d["questions"]:
+                if not q.get("answered") and q.get("field") != checks.FIELD:
+                    q.update(answered="(the build was asked for without it)", superseded=True)
+        self.store.update(draft_id, waiting_on_the_build)
         return self.ask(draft_id, checks.FIELD, checks.question(item, str(pending.get("moment") or "")), list(checks.OPTIONS), why=why,
                         extra={"column": item["column"]})
 

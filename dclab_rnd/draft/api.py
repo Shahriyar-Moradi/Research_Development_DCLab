@@ -1220,7 +1220,14 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
     async def build_and_run(draft_id: str, payload: AnyObject | None = Body(None)):
         """25.13: build the project and start its five stages in one step (what "Let's build the solution" and "build it" do).
         ``{"team": true}`` (28.8, the Team panel's approval of the build): through the understanding walk, whatever the switch."""
-        return await quick_build(draft_id, team=bool(dump(payload).get("team")))
+        try:
+            return await quick_build(draft_id, team=bool(dump(payload).get("team")))
+        except HTTPException as exc:
+            if (exc.headers or {}).get("X-DCLab-Rule") == "column check":
+                # H3.1 (the review of 2026-10-28): a build from a button (the summary's or the Team panel's) asks the column's
+                # question in the chat too, so the person's reply there is read as the answer, as after "build it"
+                await asyncio.to_thread(agent(draft_id).ask_column_check, draft_id)
+            raise
 
     def build_from_chat(draft_id: str) -> dict[str, Any]:
         """The Home agent's "build it", from its own thread: the same step as the button, a refusal said as its reason."""

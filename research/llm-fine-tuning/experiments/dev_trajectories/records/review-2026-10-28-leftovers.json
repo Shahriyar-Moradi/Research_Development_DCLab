@@ -1,0 +1,54 @@
+{
+  "package": "review-2026-10-28-leftovers",
+  "title": "A button's build asks the column question in the chat, and small row drops that add up ask first",
+  "date": "2026-10-28",
+  "request": "The owner chose to clear what the review of 2026-10-28 left open before the next plans.",
+  "spec": "The Team panel's Build (and the summary's) refused with H3.1's column check left no question in the chat; a recipe's guard asked only about a step that removed more than the guard's share alone.",
+  "plan": [
+    "Ask the column question in the chat when a build from a button is refused by the column check.",
+    "Count the rows removed since the person's last yes, and ask when the steps together pass the guard.",
+    "Test both, and check the Home measurement on dev is unchanged."
+  ],
+  "decisions": [
+    {
+      "decision": "The route asks the question where the refusal is raised; the open questions the person built past are closed.",
+      "why": "The person's next reply must be read as the column's answer, which then carries the build on, as after build it in the chat."
+    },
+    {
+      "decision": "Removed rows are counted from the table the person last said yes to.",
+      "why": "After a yes, what follows is new; counting from the original would ask again about rows already accepted."
+    }
+  ],
+  "change": "dclab_rnd/draft/api.py build_and_run asks the column question on a column-check refusal; chat.py ask_column_check closes the questions the build went past; chat.py run_recipe counts rows removed since the last yes. Tests: test_a_button_build_asks_the_column_question_in_the_chat, test_small_filters_that_together_remove_many_rows_ask_first; ROADMAP's open items updated.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A build from the Team panel refused by the column check asked nothing in the chat.",
+      "scenario": "The person pressed Build on the Team panel; the page said the team could not build with the question's text, and their reply in the chat was not read as the answer.",
+      "cause": "Only the chat's build it path asked the column question; the route raised a 409.",
+      "fix": "The route asks the question before it raises; an open question the person built past is closed so the reply answers the column.",
+      "test": "test_a_button_build_asks_the_column_question_in_the_chat"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A chain of small filters could remove many rows without a question.",
+      "scenario": "Two filters, each under the guard's share, removed more than it together; nothing was asked.",
+      "cause": "The guard read each step against the table just before it.",
+      "fix": "Rows removed since the last yes are counted, and the step that passes the share is asked, with the reason said.",
+      "test": "test_small_filters_that_together_remove_many_rows_ask_first"
+    }
+  ],
+  "measurements": [],
+  "outcome": "A refused build from any button asks its column question where the person answers, and no table loses many rows to small steps without a yes.",
+  "lessons": [
+    "A guard per step is not a guard on the result: count against the last thing the person agreed to."
+  ],
+  "risks": [
+    "A model can still split a large drop across a yes; each yes is the person's, said with its count."
+  ],
+  "commits": []
+}
