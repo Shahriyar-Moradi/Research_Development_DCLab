@@ -92,7 +92,7 @@ _STOP = r"(?:last|this|next|previous|in|over|during|since|between|from|to|with|a
 _WORDS = r"[A-Za-z_][\w\-]*(?:\s+(?!" + _STOP + r"\b)[A-Za-z_][\w\-]*)?"  # one name, or two when the second is not a joining word
 _MONTH = r"(?:january|february|march|april|may|june|july|august|september|october|november|december)"
 # a month name only after a time word or before a year ("I may want" and "march on" are not periods: the review of H4)
-_EN_PERIOD = (rf"\b(?:(?:last|this|previous|past)\s+(?:\d+\s+)?(?:quarters?|months?|years?|weeks?|days?)|(?:in|over|during|for)\s+(?:the\s+)?(?:year\s+)?20\d\d"
+_EN_PERIOD = (rf"\b(?:(?:last|this|previous|past)\s+(?:\d+\s+)?(?:quarters?|months?|years?|weeks?|days?)|(?:in|over|during|for)\s+(?:the\s+)?(?:year\s+)?20\d\d|of\s+(?:the\s+year\s+)?20\d\d(?=\s*(?:$|[.?!,;]|by\b|per\b))"
               rf"|(?:in|during|for|since|from|until|between)\s+{_MONTH}(?:\s+20\d\d)?|{_MONTH}\s+20\d\d)\b")
 _NOT_A_GROUP = r"(?!(?:end|way|time|bridge|now|then|far|default|hand|chance|mistake|today|tomorrow|myself|itself|far)\b)"
 _ARTICLE = r"(?:(?:the|a|an|our|my)\s+)?"

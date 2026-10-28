@@ -45,6 +45,9 @@ class AnswerTests(unittest.TestCase):
         self.assertEqual(d["exit"]["kind"], "analysis")
         self.assertEqual(d["answers"][0]["by"], "rules")
         self.assertTrue(d["exposure"])  # what the answer related, kept for a later prediction on the same table
+        chart = answers[0]["answer"]["chart"]  # H7b: the chart, chosen by code, with the answer's own number texts
+        self.assertEqual((chart["kind"], chart["title"]), ("bar", "Mean of monthly_spend by plan"))
+        self.assertTrue(all(t in answers[0]["text"] for t in chart["texts"]))
 
     def test_no_row_and_no_identifier_ever_reaches_the_chat(self):
         agent, d = self.ask("What is the total amount per customer_id?", "sales")
@@ -88,6 +91,12 @@ class ReviewOfH7aTests(unittest.TestCase):
         self.assertEqual(plan.measures[0].op, "count")
         self.assertIsNone(home_query.plan_from_brief(self.brief(measure="share of refunded orders"), self.columns)[0])
         self.assertIsNone(home_query.plan_from_brief(self.brief(measure="happiness"), self.columns)[0])
+        # the brief keeps "orders"; the person's sentence says it is a count, and with no column naming them, rows are counted
+        cols = [{"name": "order_date", "kind": "datetime"}, {"name": "amount", "kind": "numeric"}]
+        plan, note = home_query.plan_from_brief(self.brief(measure="orders", breakdown="month"), cols, "How many orders did we get each month?")
+        self.assertEqual((plan.measures[0].op, plan.period.grain), ("count", "month"))
+        self.assertIn("taking each row as one order;", note)
+        self.assertIsNone(home_query.plan_from_brief(self.brief(measure="orders"), cols)[0])  # no count said: not summed by guess
 
     def test_a_loose_word_never_picks_another_quantity(self):
         from dclab_rnd import home_query
@@ -126,7 +135,59 @@ class ReviewOfH7aTests(unittest.TestCase):
         self.assertIsNone(home_query.plan_from_brief(self.brief(measure="total amount", breakdown="postcode"), cols)[0])
 
 
+class ReviewOfH7bTests(unittest.TestCase):
+    """The review's findings (H7b), each read from the whole sentence by the real brief reader, as Home reads it."""
+
+    COLS = [{"name": "order_date", "kind": "datetime"}, {"name": "amount", "kind": "numeric"},
+            {"name": "region", "kind": "categorical"}, {"name": "status", "kind": "categorical"}]
+
+    def plan(self, question):
+        from dclab_rnd import home_query
+        from dclab_rnd.draft import brief
+        fields = brief.read("analysis", question, [c["name"] for c in self.COLS])["fields"]
+        return home_query.plan_from_brief(fields, self.COLS, question), fields
+
+    def test_a_count_never_drops_the_rest_of_the_question(self):
+        for q in ("How many orders were refunded per region?", "How many orders came from Dubai?",
+                  "How many orders per region, excluding returns?", "How many web orders per region?",
+                  "How many orders did we get each month?"):
+            (plan, why), _ = self.plan(q)
+            self.assertIsNone(plan, q)
+            self.assertIn("says more than I can apply", why)
+
+    def test_words_no_field_holds_are_said_in_the_answer(self):
+        (plan, note), _ = self.plan("Total amount by region for orders with a value of 2050 or more")
+        self.assertEqual(plan.group_by, ["region"])
+        self.assertIn("I did not use these words of your question", note)
+        self.assertIn("value", note)
+
+    def test_an_amount_of_a_year_like_number_is_never_a_period(self):
+        for q in ("How many orders per region have an amount of 2000 or more?", "Total amount by region for orders with a value of 2050 or more"):
+            _, fields = self.plan(q)
+            self.assertNotEqual(fields.get("period", {}).get("source"), "rules", q)
+        _, fields = self.plan("What was the total amount per region of 2025?")
+        self.assertEqual(fields["period"]["value"], "of 2025")
+
+    def test_a_second_how_many_never_turns_a_sum_into_a_count(self):
+        (plan, note), _ = self.plan("How much amount did we make per region, and how many amounts were refunded?")
+        self.assertEqual(plan.measures[0].op, "sum")
+        self.assertIn("refunded", note)
+        from dclab_rnd import home_query
+        cols = [*self.COLS, {"name": "orders", "kind": "numeric"}]
+        plan, _ = home_query.plan_from_brief({"measure": {"value": "orders", "source": "rules"}}, cols, "How many orders?")
+        self.assertEqual(plan.measures[0].op, "count")  # a quantity column is never counted as distinct values: rows are
+
+
 class FlowTests(AnswerTests):
+    def test_no_answer_before_the_table_is_described(self):
+        d = self.store.create("What was the average monthly spend per plan?")
+        agent = HomeAgent(self.store, None, on_request=lambda *a: None)
+        agent.start(d["id"])
+        name = tables.write("customers", self.store.data_dir(d["id"]))
+        asset = pipeline.new_asset(self.store, d["id"], "upload", name, name)
+        self.store.update(d["id"], lambda x: [a.update(status="ready") for a in x["assets"]])  # ready, never described
+        self.assertIsNone(agent.answer_analysis(d["id"]))
+
     def test_the_same_table_twice_is_answered_once(self):
         agent, d = self.ask("What was the average monthly spend per plan?", "customers")
         agent.answer_analysis(d["id"])

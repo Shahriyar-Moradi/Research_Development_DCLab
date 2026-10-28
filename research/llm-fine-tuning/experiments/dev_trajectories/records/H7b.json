@@ -1,0 +1,178 @@
+{
+ "package": "H7b",
+ "title": "An answer from the person's table comes with its chart, chosen by code and drawn from the result alone",
+ "date": "2026-10-28",
+ "request": "The owner's goal: Home helps people who want numbers, BI and reports from their data; H7a answered in words, H7b shows the chart beside them.",
+ "spec": "Package H7, part b: each answer carries a chart spec chosen by code from the result's shape (one number, a line over periods, bars for one group, a table otherwise), drawn on the page with the page's own chart helpers; every number in it written as the answer writes it; the numbers' table under the chart.",
+ "plan": [
+  "home_chart.spec from the plan and the result; title and headers from the plan.",
+  "The answer message carries the spec; home.html draws it.",
+  "Check on the real server at desktop and phone width; review adversarially."
+ ],
+ "decisions": [
+  {
+   "decision": "The chart kind is chosen by code from the result's shape, never by a model.",
+   "why": "A chart is part of the answer: it must follow from the result, the same every time."
+  },
+  {
+   "decision": "The chart's title and table headers are built from the plan (operation, column, period), never from a measure's name.",
+   "why": "A model may write a measure's name ('Revenue over 1000') that says something the computation does not."
+  },
+  {
+   "decision": "The server writes every number's text; the page never formats a number itself.",
+   "why": "The chart, the table and the sentence must show the same rounded numbers, each traced to the result."
+  },
+  {
+   "decision": "At most four lines (the page's four series styles); one period point or more lines fall back to bars or a table.",
+   "why": "No new colours outside the design kit; a line of one point says nothing."
+  }
+ ],
+ "change": "dclab_rnd/home_chart.py (new); dclab_rnd/home_query.py (count cue from the sentence, row count with its assumption said, 'of 2025', note as sentences); dclab_rnd/draft/brief.py ('of 20XX' as a period); dclab_rnd/draft/chat.py (answer only after the table is described; question passed; chart in the answer); agentic/web/src/views/home.html (answerCard); tests/test_home_chart.py, tests/test_home_answer.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "privacy",
+   "defect": "A model-written measure name reached the chart's table header.",
+   "scenario": "A plan naming its mean 'Revenue over 1000' showed that header under the chart.",
+   "cause": "The table's headers were the result's column names.",
+   "fix": "Headers are built from the plan's operation and column.",
+   "test": "tests/test_home_chart.py::test_the_title_is_the_plan_never_a_measure_name_a_model_wrote"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The answer came before the table was described.",
+   "scenario": "On the real server, a draft created and uploaded at once answered 'Mean of monthly_spend by plan' before 'Your data is ready'.",
+   "cause": "The start turn ran after a fast upload finished and answered from the ready table.",
+   "fix": "Home answers only after the active table's description was said.",
+   "test": "tests/test_home_answer.py::AnswerTests"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "'How many orders … in each month of 2025' was refused.",
+   "scenario": "The brief kept 'orders' as the measure and 'all rows' as the period.",
+   "cause": "The brief's 'how many X' pattern keeps X only; 'of 2025' was not a period form.",
+   "fix": "A count cue before the measure in the person's sentence makes a count; with no column naming the thing, rows are counted and the answer says each row was taken as one; 'of 20XX' is a period.",
+   "test": "tests/test_home_answer.py::ReviewOfH7aTests::test_a_count_is_named_what_it_counts"
+  },
+  {
+   "id": "F4",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A one-point period or many groups drew a useless line.",
+   "scenario": "A count per year on one year's data drew a line of one point.",
+   "cause": "Any period became a line.",
+   "fix": "A line needs two periods and at most four series; otherwise bars or a table.",
+   "test": "tests/test_home_chart.py::test_one_period_point_or_many_lines_are_not_a_line"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A count from 'how many' dropped the rest of the question.",
+   "scenario": "'How many orders were refunded per region?' answered the number of rows by region; 'came from Dubai', 'excluding returns' and 'web' vanished the same way.",
+   "cause": "The brief keeps one word after 'how many'; the new count cue made a row count without reading the rest of the sentence.",
+   "fix": "A count from the cue is made only when every word of the sentence is held by a brief field or is plain; otherwise Home says what it cannot apply (the model, where configured, may plan it).",
+   "test": "tests/test_home_answer.py::ReviewOfH7bTests::test_a_count_never_drops_the_rest_of_the_question"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'of 2000' read an amount as a year.",
+   "scenario": "'orders with an amount of 2000 or more' became the period 2000-01-01 to 2000-12-31.",
+   "cause": "'of 20XX' was accepted anywhere.",
+   "fix": "'of 20XX' is a period only at the end of a clause (before punctuation, 'by' or 'per').",
+   "test": "tests/test_home_answer.py::ReviewOfH7bTests::test_an_amount_of_a_year_like_number_is_never_a_period"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A second 'how many' turned a sum into a count, and a quantity was counted as distinct values.",
+   "scenario": "'How much amount per region, and how many amounts were refunded?' answered the distinct amounts by region.",
+   "cause": "The cue matched a prefix anywhere in the sentence; numeric columns were countable.",
+   "fix": "The cue needs a word end; 'how much' with it is refused; a quantity column is never counted as distinct values.",
+   "test": "tests/test_home_answer.py::ReviewOfH7bTests::test_a_second_how_many_never_turns_a_sum_into_a_count"
+  },
+  {
+   "id": "R3b",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A condition the brief missed vanished from a sum.",
+   "scenario": "'Total amount by region for orders with a value of 2050 or more' answered the total over all orders, saying nothing.",
+   "cause": "No field held the condition, and nothing compared the sentence with the brief.",
+   "fix": "Every rules answer names the words of the question no field holds.",
+   "test": "tests/test_home_answer.py::ReviewOfH7bTests::test_words_no_field_holds_are_said_in_the_answer"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An empty group showed as withheld, and number keys were written two ways.",
+   "scenario": "The group with no store (8,738.61) read 'withheld (too few rows)' in the table; 10001 was '10,001' there and '10001.0' in the sentence.",
+   "cause": "Keys went through the number formatter.",
+   "fix": "Keys are written by one function: an empty group '(no value)', a whole number without decimals, in the sentence, the chart and the table.",
+   "test": "tests/test_home_chart.py::ChartTests::test_an_empty_group_and_a_whole_number_key_are_written_as_the_answer_writes_them"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A period the floor removed was joined over.",
+   "scenario": "February removed; the line went from January straight to March.",
+   "cause": "The axis held only the periods present.",
+   "fix": "The axis is every period from the first to the last; a missing one breaks the line.",
+   "test": "tests/test_home_chart.py::ChartTests::test_a_period_the_floor_removed_is_a_gap_never_joined"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A period label went into the SVG unescaped, and the ordering guard had no test.",
+   "scenario": "Not exploitable today (labels come from the engine), against the escape-everything rule.",
+   "cause": "The line chart's tick formatter writes raw text.",
+   "fix": "The label is escaped; a test shows no answer before the table is described.",
+   "test": "tests/test_home_answer.py::FlowTests::test_no_answer_before_the_table_is_described"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Home on the H1 dev requests (rules alone)",
+   "gate": "no wrong field, no row, no uncited number",
+   "fixed_before_run": true,
+   "result": "Unchanged by the chart: exits 9 of 36, fields 65 right and 0 wrong, rows 0, uncited 0; the 'of 20XX' period form misread no field",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "rules only"
+   ]
+  },
+  {
+   "name": "The page on the real server",
+   "gate": "bar and line answers drawn, no horizontal scroll at 375 px, no page error",
+   "fixed_before_run": true,
+   "result": "A bar answer (mean spend by plan) and a line answer (orders per month of 2025, 2024 rows left out) drawn; 375 px wide with no horizontal scroll",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "checked by hand in the built-in browser"
+   ]
+  }
+ ],
+ "outcome": "A person asking for numbers sees the answer in words and as a chart, both from the same result, with the numbers' table under it.",
+ "lessons": [
+  "Every label beside a number is part of the answer: build it from the computation, not from a name someone chose.",
+  "A check on the real server finds order and wording faults a unit test does not.",
+  "A rule that answers sooner must also prove it heard the whole sentence: compare the sentence with what was read, and say the rest.",
+  "Test the reader and the planner together on whole sentences; a test that hands the planner a clean brief hides what the reader drops."
+ ],
+ "risks": [
+  "The count of rows rests on 'each row is one'; the answer says so, and the person can name the column."
+ ],
+ "commits": []
+}

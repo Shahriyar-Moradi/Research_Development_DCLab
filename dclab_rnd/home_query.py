@@ -85,7 +85,7 @@ OPS = [(re.compile(r"\b(?:average|avg|mean)\b|میانگین|متوسط", re.I),
        (re.compile(r"\b(?:number\s+of|count\s+of|count|how\s+many)\b|تعداد|چند\s*تا", re.I), "count")]
 SHARE = re.compile(r"\b(?:share|percentage|percent|proportion|rate|ratio|fraction)\b|درصد|نسبت|سهم", re.I)  # needs its condition: not by rules
 _ROWS = re.compile(r"\b(?:rows?|records?|entries|lines)\b|ردیف|رکورد", re.I)
-_WORD = re.compile(r"[a-z0-9]+|[؀-ۿ]+", re.I)
+_WORD = re.compile(r"[a-z0-9]+|[\u0621-\u063A\u0641-\u064A\u0671-\u06D3\u06FA-\u06FF]+", re.I)  # letters only, never "؟" or "،"
 _STEM = lambda w: w.lower()[:5]  # noqa: E731  "orders" and "order", "spending" and "spend" meet at five letters
 _FILLER = re.compile(r"^(?:the|a|an|of|per|by|in|for|our|my|each|all|every|and|was|were|is|are|did|do|does|what|how|much|many|"
                      r"average|avg|mean|median|total|sum|max|maximum|min|minimum|highest|lowest|largest|smallest|number|count|"
@@ -143,7 +143,24 @@ def _covers(said: list[str], name: str) -> bool:
     return tokens <= named
 
 
-def plan_from_brief(brief: dict[str, Any], columns: list[dict[str, Any]]) -> tuple[Optional[Q.QueryPlan], str]:
+_PLAIN = re.compile(r"^(?:did|do|does|we|get|got|have|had|has|there|been|be|were|was|made|make|receive[ds]?|received|see|show|"
+                    r"tell|give|sold|sell|place[ds]?|total|me|us|you|this|that|these|those|so|far|overall|altogether|only|please|"
+                    r"then|also|just|happened|look|like|customers?|clients?|users?|people|persons?|مشتری|مشتریان|کاربر|کاربران|چقدر|بود|است|هست|نشان|بده|بدهید|بدین|تفکیک|برای|لطفا|کن|کنید|بگو|بگویید)$", re.I)
+
+
+def _left_over(question: str, said: list[str]) -> list[str]:
+    """The words of the person's question that no field of the brief holds (the review of H7b: a condition such as
+    "refunded" or "a value of 2050 or more" must never vanish from an answer)."""
+    known = {_STEM(w) for value in said for w in _content(value)}
+    seen: set[str] = set()
+    return [w for w in _content(question) if _STEM(w) not in known and not _PLAIN.match(w) and not w.isdigit()
+            and not (w in seen or seen.add(w))]
+
+
+_COUNT_CUE = r"(?:\bhow\s+many|\bnumber\s+of|\bcount\s+of|تعداد|چند)\s+"
+
+
+def plan_from_brief(brief: dict[str, Any], columns: list[dict[str, Any]], question: str = "") -> tuple[Optional[Q.QueryPlan], str]:
     """H7: the rules' plan from what the person said (the brief's measure, breakdown and period) and the column names, or
     None with what is missing (then the model, or Home asks). With a plan, the second value lists what of the question
     the rules could not apply, which the answer says. No model, no value: the plan names columns only."""
@@ -154,15 +171,32 @@ def plan_from_brief(brief: dict[str, Any], columns: list[dict[str, Any]]) -> tup
     if SHARE.search(measure):
         return None, f"a share (“{measure}”) needs the condition it counts, which I can't read from words yet"
     op = next((o for rx, o in OPS if rx.search(measure)), None)
+    if op is None and re.search(_COUNT_CUE + re.escape(lang_digits(measure).lower()) + r"(?!\w)", lang_digits(question).lower()):
+        # "how many orders": the brief kept "orders", the person's sentence says it is a count. Only when the sentence says
+        # nothing more than the brief holds (the review of H7b: "how many orders were refunded" counted every row)
+        if re.search(r"\bhow\s+much\b|چقدر", lang_digits(question).lower()):
+            return None, "the question asks for both a count and an amount; ask one at a time"
+        left = _left_over(question, [value(f) for f in ("measure", "breakdown", "period", "filters")])
+        if left:
+            return None, f"the question says more than I can apply by rules (“{' '.join(left[:4])}”); say it again in parts"
+        op = "count"
     words = _content(measure)
+    assumed = ""
     if op == "count":
         if not words or _ROWS.search(measure):
             measures = [{"name": "rows", "op": "count"}]
         else:  # "how many customers": the distinct values of the column that names them, never rows called customers
-            column = _column(measure, columns, ("categorical", "numeric", "boolean", "text"))
-            if column is None:
-                return None, f"no column names the “{' '.join(words)}” to count; say which column holds them"
-            measures = [{"name": f"distinct {column}", "op": "count_distinct", "column": column}]
+            countable = ("categorical", "boolean", "text")  # never a date ("orders" is not order_date), never a quantity
+            column = _column(measure, columns, countable)
+            if column is None and any(_covers(words, str(c["name"])) for c in columns if c.get("kind") in countable):
+                return None, f"more than one column could hold the “{' '.join(words)}” to count; say which one"
+            if column is None:  # no column names them: each row is one, said in the answer
+                measures = [{"name": "rows", "op": "count"}]
+                thing = re.sub(r"(?<=[a-z][^s])s$", "", " ".join(words))  # "orders": one order
+                assumed = (f"I counted rows, taking each row as one {thing}; if a row is not one {thing}, say which column "
+                           "names them.")
+            else:
+                measures = [{"name": f"distinct {column}", "op": "count_distinct", "column": column}]
     else:
         column = _column(measure, columns, ("numeric",))
         if column is None:
@@ -181,7 +215,7 @@ def plan_from_brief(brief: dict[str, Any], columns: list[dict[str, Any]]) -> tup
     period = {"column": when[0], "grain": grain} if grain else None
     unused: list[str] = []
     said = lang_digits(value("period")).strip().lower()
-    year = re.fullmatch(r"(?:(?:in|for|during|over)\s+)?(?:the\s+year\s+)?(?:سال\s+)?(20\d\d)", said)  # a bare year only, never widened
+    year = re.fullmatch(r"(?:(?:in|for|during|over|of)\s+)?(?:the\s+year\s+)?(?:سال\s+)?(20\d\d)", said)  # a bare year only, never widened
     if said and year and len(when) == 1:
         period = {"column": when[0], "grain": grain or "year", "start": f"{year.group(1)}-01-01", "end": f"{year.group(1)}-12-31"}
     elif said:
@@ -190,8 +224,13 @@ def plan_from_brief(brief: dict[str, Any], columns: list[dict[str, Any]]) -> tup
         unused.append(f"the filter “{value('filters')}”")
     try:
         order = [{"by": period["column"], "desc": False}] if period and grain else [{"by": measures[0]["name"], "desc": True}]  # time reads in order
-        return Q.QueryPlan(measures=measures, group_by=group_by, period=period, sort=order), \
-            " and ".join(unused)
+        unread = _left_over(question, [value(f) for f in ("measure", "breakdown", "period", "filters")]) if question else []
+        if unread:
+            assumed = " ".join(x for x in (assumed, f"I did not use these words of your question: “{' '.join(unread[:6])}”; tell me "
+                                                     "how they change the answer.") if x)
+        note = " ".join(x for x in (assumed, f"I could not apply {' and '.join(unused)} yet, so it is not in this answer; tell me "
+                                             "how to apply it." if unused else "") if x)
+        return Q.QueryPlan(measures=measures, group_by=group_by, period=period, sort=order), note
     except Exception as error:  # noqa: BLE001
         return None, f"the plan could not be made ({type(error).__name__})"
 
@@ -208,6 +247,15 @@ def lang_digits(text: str) -> str:
     from .draft import lang
 
     return lang.normalize(text)
+
+
+def key_text(v: Any) -> str:
+    """A group's value as the answer and the chart write it: an empty group says so, a whole number has no decimals."""
+    if v is None or (isinstance(v, float) and v != v):
+        return "(no value)"
+    if isinstance(v, float) and v.is_integer():
+        return str(int(v))
+    return str(v)
 
 
 def shown(v: Any) -> str:
@@ -242,7 +290,7 @@ def describe(plan: Q.QueryPlan) -> str:
 
 def answer_text(plan: Q.QueryPlan, result: Q.QueryResult, note: str = "") -> str:
     """The answer in words, written by code from the plan and the result alone: what was computed (operation, column,
-    filters, period), then the numbers; ``note`` says what of the question was not applied."""
+    filters, period), then the numbers; ``note`` (whole sentences) says what was assumed and what was not applied."""
     keys = len(result.columns) - len(plan.measures)
     head = describe(plan)
     if not result.rows:
@@ -250,11 +298,11 @@ def answer_text(plan: Q.QueryPlan, result: Q.QueryResult, note: str = "") -> str
     elif keys == 0:
         text = f"{head}: {shown(result.rows[0][-len(plan.measures)])}."
     else:
-        parts = [f"{' '.join(str(k) for k in row[:keys])} {shown(row[keys])}" for row in result.rows[:12]]
+        parts = [f"{' '.join(key_text(k) for k in row[:keys])} {shown(row[keys])}" for row in result.rows[:12]]
         more = f", and {len(result.rows) - 12} more" if len(result.rows) > 12 else ""
         text = f"{head}: " + "; ".join(parts) + more + "."
-    if note:
-        text += f" I could not apply {note} yet, so it is not in this answer; tell me how to apply it."
+    if note:  # whole sentences from the plan's making: what it assumed and what of the question it could not apply
+        text += " " + note
     if result.suppressed_groups:
         text += f" {result.suppressed_groups} small group{'s' if result.suppressed_groups != 1 else ''} hidden (fewer than {floor()} rows)."
     return text

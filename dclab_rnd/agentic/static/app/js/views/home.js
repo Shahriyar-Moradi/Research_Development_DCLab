@@ -541,6 +541,39 @@ DC.view('home', {
       scrollThread();
     }
 
+    /* H7b: the chart of an answer from the person's table, as code chose it from the result (one number, bars, lines or a
+       table) and drawn from its numbers only; every number shown as the answer writes it, and the numbers' table under it. */
+    function answerCard(a) {
+      const c = (a || {}).chart;
+      if (!c) return '';
+      const t = c.table || { columns: [], rows: [] };
+      const grid = `<div class="table-wrap"><table class="data compact"><thead><tr>${t.columns.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>`
+        + `<tbody>${t.rows.map(r => `<tr>${r.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+      let fig = '';
+      if (c.kind === 'kpi') {
+        fig = `<div class="stats"><div class="stat"><span class="v">${esc(c.text)}</span><span class="l">${esc(c.title)}</span></div></div>`;
+      } else if (c.kind === 'bar') {
+        const known = c.values.filter(v => v != null), lo = Math.min(0, ...known), hi = Math.max(0, ...known) || 1;
+        fig = DC.charts.barsH(c.x.map((x, i) => ({ label: String(x).slice(0, 24), value: c.values[i] == null ? lo : c.values[i], valueText: c.texts[i], cls: c.values[i] == null ? 'muted' : '' })),
+          { width: 560, labelW: 150, valW: 170, min: lo, max: hi, rowH: 26, tickFmt: v => numText(v, Math.abs(hi - lo) >= 10 ? 0 : 2), aria: c.title });
+      } else if (c.kind === 'line') {
+        const cls = ['', 's2', 's3', 's4'];
+        // a missing period (removed by the row floor) breaks the line: each run of known values is drawn on its own
+        const series = c.series.flatMap((s, k) => s.values.reduce((runs, v, i) => {
+          if (v == null) runs.push([]); else runs[runs.length - 1].push([i, v]);
+          return runs;
+        }, [[]]).filter(run => run.length).map(pts => ({ cls: cls[k] || '', dots: true, pts })));
+        const ys = series.flatMap(s => s.pts.map(p => p[1]));
+        const step = Math.max(1, Math.ceil(c.x.length / 6));
+        fig = (c.series.length > 1 ? `<div class="legend">${c.series.map((s, k) => `<span><i class="${cls[k] || ''}"></i>${esc(s.name)}</span>`).join('')}</div>` : '')
+          + (ys.length ? DC.charts.line(series, { width: 560, height: 220, xMin: 0, xMax: Math.max(1, c.x.length - 1), yMin: Math.min(0, ...ys), yMax: Math.max(...ys) || 1,
+            xTicks: c.x.map((_, i) => i).filter(i => i % step === 0), xFmt: i => esc(c.x[i] || ''), yFmt: v => numText(v, 0), aria: c.title }) : '');
+      }
+      const held = c.suppressed_groups ? `<div class="small muted">${c.suppressed_groups} group${c.suppressed_groups === 1 ? '' : 's'} with too few rows ${c.suppressed_groups === 1 ? 'is' : 'are'} not shown.</div>` : '';
+      return `<div class="inset stack tight" data-answer-card="${esc(c.kind)}"><div class="eyebrow">${esc(c.title)}</div>${fig || grid}${held}`
+        + (fig ? `<details class="small"><summary>The numbers</summary>${grid}</details>` : '') + '</div>';
+    }
+
     function renderMessage(m) {
       setThinking(false);
       if (m.role === 'agent' && S.draft) {
@@ -563,6 +596,8 @@ DC.view('home', {
         body = `<p data-style="white-space:pre-line">${esc(m.text)}</p><div class="row">${m.session_id ? `<button type="button" class="btn primary sm" data-follow="${esc(m.session_id)}" data-project="${esc(m.project_id || '')}">Follow the agent</button>` : ''}${m.project_id ? `<button type="button" class="btn sm" data-open-project="${esc(m.project_id)}">Open the project</button>` : ''}</div>`;
       } else if (m.kind === 'analysis') {
         body = `<p>${esc(m.text)}</p>${analysisCard(S.analysis[m.asset], m.asset)}`;
+      } else if (m.kind === 'answer') {  // H7b: an answer from the person's own table, with the chart code chose
+        body = `<p>${esc(m.text)}</p>${answerCard(m.answer)}`;
       } else if (m.kind === 'summary') {
         const c = m.card;  // 20.2: the problem as DCLab understood it, to confirm before the build
         const fam = c ? (c.family ? c.family.replace(/_/g, ' ') : (c.in_play || []).map(f => f.replace(/_/g, ' ')).join(' or ') || 'not settled') : '';

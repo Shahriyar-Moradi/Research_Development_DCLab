@@ -685,9 +685,11 @@ class HomeAgent:
             return None
         if not any(a.get("status") == "ready" for a in draft.get("assets") or []):
             return None
+        if not any(m.get("kind") == "analysis" and m.get("asset") == draft.get("active_asset") for m in draft.get("messages") or []):
+            return None  # the table is described before it is answered from (a start turn may run after a fast upload)
         brief = (draft.get("track_brief") or {}).get("analysis") or {}
         columns = briefs.columns_of(draft)
-        plan, why = home_query.plan_from_brief(brief, columns)
+        plan, why = home_query.plan_from_brief(brief, columns, draft.get("problem") or "")
         by = "rules"
         if plan is None and self.query_client is not None:
             plan, model_why = home_query.write_plan(self.query_client, draft.get("problem") or "", draft, brief)
@@ -718,8 +720,11 @@ class HomeAgent:
             d["exit"] = {"kind": "analysis", "answers": len(d["answers"])}
         self.store.update(draft_id, keep)
         self.moved(draft_id, "answer_analysis", {"plan_by": by}, {"rows": len(result.rows), "suppressed": result.suppressed_groups})
+        from .. import home_chart
+
         return self.say(draft_id, text, kind="answer", answer={"columns": result.columns, "rows": result.rows[:50],
-                                                                "suppressed_groups": result.suppressed_groups})
+                                                                "suppressed_groups": result.suppressed_groups,
+                                                                "chart": home_chart.spec(plan, result)})  # H7b: drawn by code
 
     def ask_brief(self, draft_id: str) -> dict[str, Any] | None:
         """The next brief question of the current track: unknown, no safe default, not asked before, within its budget; with
