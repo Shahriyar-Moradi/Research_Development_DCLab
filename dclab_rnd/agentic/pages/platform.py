@@ -309,6 +309,23 @@ def _spend() -> dict[str, Any]:
                      + " GPU jobs are not switched on.")}
 
 
+def _answers() -> dict[str, Any]:
+    """The query engine's limits as the privacy list states them (package H6): the row floor, and what a model may read."""
+    from ...query.execute import FLOOR_MIN, floor, model_reads_aggregates
+
+    reads = model_reads_aggregates()
+    return {"title": "Answers from your data", "on": True,
+            "text": f"Home answers questions with typed query plans that always aggregate: no plan lists rows, groups or filters on an "
+                    f"identifier or a free-text column, and a group of fewer than {floor()} rows is hidden and counted "
+                    f"(DCLAB_ROW_FLOOR, never below {FLOOR_MIN}); a group must also hold that many different people where the table "
+                    f"has an identifier, and a lowest, highest or extreme percentile is shown only for large groups. The floor holds per "
+                    f"answer: two answers can still be compared to narrow a hidden group, so it is a guard, not anonymisation. "
+                    f"A model that writes a plan sees column summaries only. "
+                    + ("A model may read an answer's aggregate result to write its sentence (DCLAB_MODEL_READS_AGGREGATES=0 turns it off)."
+                       if reads else "No model reads an answer's result (DCLAB_MODEL_READS_AGGREGATES is off): answers are written by a template.")
+                    + " Every plan run on a draft is logged with the columns it related, for any later prediction project."}
+
+
 def _retention() -> dict[str, Any]:
     """The retention rule as the privacy list states it (package 12.5): what DCLAB_RETENTION_RAW_DAYS does, and that it is off."""
     from ... import retention
@@ -345,6 +362,7 @@ def limits(projects) -> dict[str, Any]:
                "a file that no built-in reader can parse is the one exception: up to 20 of its lines (400 characters each) go to the "
                "model to work out the format, the data step says when that happened, and DCLAB_MODEL_READS_SAMPLE_LINES=0 turns it off; "
                "the intern gets its tool results, and describe_data includes up to three example values per column."},
+            _answers(),
             {"title": "Scan uploads for personal data", "on": False, "text": "Not built yet: uploads are not scanned for personal data."},
             _retention(),
             {"title": "Training the policy model on your projects", "on": False,

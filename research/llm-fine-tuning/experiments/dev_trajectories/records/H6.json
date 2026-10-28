@@ -1,0 +1,129 @@
+{
+  "package": "H6",
+  "title": "The query engine and the exposure log: typed plans that can never list rows, a row floor, and a record of every relation explored",
+  "date": "2026-10-28",
+  "request": "Complete the Home plan package by package; H6 lets Home compute aggregates from the person's table without ever showing a row or giving a model the values.",
+  "spec": "Package H6 of Phase H: a versioned typed query plan, a validator (no row listing; no free-text or identifier grouping), a pandas executor on the checked clean table, the row floor, an exposure log of every relation explored; purpose home_query (column summaries only); DCLAB_MODEL_READS_AGGREGATES and DCLAB_ROW_FLOOR on the Admin page and in .env.example. Done when: the H1 analysis requests' expected tables are reproduced by plans on the H1 tables, no plan can list rows, and the Admin page states the new limit.",
+  "plan": [
+    "Write the plan's shape: filters, group_by (a few columns), an optional period with a grain, measures from a fixed list, sort and a limit; a plan hash for the log.",
+    "Validate against the table's column kinds: refuse identifiers, personal columns and free text as groups or filters, unknown columns and keys, operations that do not fit the kind, a measure-free plan; any malformed plan is a PlanError, never a crash.",
+    "Execute on the cleaned table read through the file store and checked against its recorded SHA-256; hide groups under the floor, and groups with too few different people; withhold extremes for small groups.",
+    "Log every plan run on the draft (columns related, the table and its hash) for the later holdout choice.",
+    "Let a model write a plan from column summaries only, one retry with the validator's reasons; state the limits on the Admin page and in .env.example."
+  ],
+  "decisions": [
+    {
+      "decision": "The package is dclab_rnd/query, not dclab_rnd/analysis as the plan says.",
+      "why": "dclab_rnd/analysis.py already exists; a package of that name would shadow it."
+    },
+    {
+      "decision": "A plan has no way to ask for rows: every output column is a group key or an aggregate.",
+      "why": "A rule against listing rows is easier to keep when the shape cannot express a listing than when a validator must spot one."
+    },
+    {
+      "decision": "Personal columns (email, phone, names, addresses, account numbers) are identifiers whatever their uniqueness.",
+      "why": "A customer's email repeats across orders, so a uniqueness test calls it a category; grouping by it lists one person's orders."
+    },
+    {
+      "decision": "The floor counts different people as well as rows, and min, max and high percentiles of small groups are withheld.",
+      "why": "Twelve orders of one customer pass a row floor; the maximum of a small group is often one row's value."
+    },
+    {
+      "decision": "The floor can be raised and never set below a fixed minimum; the Admin text says it is not anonymisation.",
+      "why": "Differencing two allowed answers can still reveal a small group; saying so is more honest than promising privacy."
+    }
+  ],
+  "change": "New dclab_rnd/query (plan.py, validate.py, execute.py, propose.py) and prompts/home_query.md; the home_query purpose (models/settings.py); draft/pipeline.py records the cleaned table's SHA-256; settings.py checks DCLAB_ROW_FLOOR; the Admin page's answers item (agentic/pages/platform.py) and .env.example state the floor and DCLAB_MODEL_READS_AGGREGATES. tests/test_query_engine.py; test_model_data_limits covers home_query. AEV-024.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A personal column could be a group or a filter.",
+      "scenario": "Grouping orders by email listed each customer's orders under their address, because an email that repeats looked like a category.",
+      "cause": "Identifiers were found by uniqueness and an _id name only.",
+      "fix": "Personal names (email, phone, person names, account, address, ip) and value shapes (email, phone) mark a column an identifier; camelCase ids are read case-sensitively so 'paid' is not one.",
+      "test": "test_personal_columns_are_never_groups_or_filters"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A group of one person's rows passed the floor.",
+      "scenario": "A city with a single customer and twelve orders showed that customer's total spend.",
+      "cause": "The floor counted rows only.",
+      "fix": "A group must also hold at least the floor's number of different values of every identifier column.",
+      "test": "test_a_group_of_one_persons_rows_is_hidden"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A hidden group's size came back as an exact count.",
+      "scenario": "Filtering to one VIP with a high salary returned no rows but rows_matched said exactly one.",
+      "cause": "rows_matched was always reported.",
+      "fix": "rows_matched is reported only when no group was hidden.",
+      "test": "test_a_hidden_group_never_comes_with_an_exact_count"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "Extremes of small groups showed single rows' values.",
+      "scenario": "The maximum salary of a group just above the floor was one person's salary.",
+      "cause": "Every measure was shown once a group passed the floor.",
+      "fix": "min, max and high percentiles are withheld for groups under a multiple of the floor and counted in withheld_extremes.",
+      "test": "test_an_extreme_is_shown_only_for_large_groups"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Malformed plans crashed instead of being refused.",
+      "scenario": "A sort given as a list of strings, a period given as a string, or a text value on a numeric filter raised TypeError from inside pandas.",
+      "cause": "The validator checked known shapes and let others through.",
+      "fix": "Every check runs inside one wrapper that turns any exception into a PlanError; values are type-checked against the column's kind.",
+      "test": "test_malformed_plans_are_refused_never_crash"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Time-zone-aware dates and odd values broke the executor or the JSON.",
+      "scenario": "A tz-aware order date compared with a plain date raised; a Decimal group key did not serialise.",
+      "cause": "Dates and values were used as pandas gave them.",
+      "fix": "Dates are made naive before comparison; every output value is turned into a JSON type.",
+      "test": "test_odd_tables_still_answer_as_json"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A group or measure named period collided with the period column.",
+      "scenario": "A plan with a grain and a measure called period returned two columns of that name.",
+      "cause": "The name was not reserved.",
+      "fix": "With a grain, a group or measure named period is refused.",
+      "test": "test_malformed_plans_are_refused_never_crash"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The exposure log did not say which table was explored, and the Admin page did not name the floor.",
+      "scenario": "After a table was replaced, the log could not tell which relations were explored on which version; an owner could not see the active floor.",
+      "cause": "The entry held the plan only; the Admin text was generic.",
+      "fix": "Each entry carries the asset and the table's SHA-256; the Admin item states the floor, its minimum, whether a model reads aggregates, and the differencing caveat.",
+      "test": "test_the_log_says_which_table, test_the_admin_page_states_the_floor"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Home can now compute an aggregate answer on the person's cleaned table from a plan that cannot list rows; small groups and single people are hidden, every relation explored is logged with its table, and a model that writes a plan sees only column summaries.",
+  "lessons": [
+    "Uniqueness is a poor test for an identifier: a person's email repeats across their orders; the name and the value's shape say more.",
+    "A floor on rows is not a floor on people."
+  ],
+  "risks": [
+    "Differencing two allowed answers can still reveal a small group; the floor narrows this but is not anonymisation, and the Admin page says so."
+  ],
+  "commits": []
+}

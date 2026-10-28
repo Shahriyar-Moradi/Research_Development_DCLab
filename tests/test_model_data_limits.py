@@ -116,6 +116,14 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(self.assertWithinLimit("home_intent"), set())
         self.assertNotIn("segment", Capture.prompts["home_intent"][0])  # no column names either
 
+    def test_home_query_sees_column_summaries_never_values(self):
+        from dclab_rnd.query import propose
+        gw = gateway({"home_query": [{"content": '{"group_by": ["segment"], "measures": [{"name": "spend", "op": "sum", "column": "spend"}]}', "tool_calls": [], "usage": {}}]})
+        plan, problems = propose.propose("What is the total spend per segment?", marked_table(), gw.client("home_query"), {"measure": "total spend"})
+        self.assertEqual(problems, [])
+        self.assertEqual(plan["group_by"], ["segment"])
+        self.assertEqual(self.assertWithinLimit("home_query"), set())
+
     def test_parse_pattern_sees_at_most_twenty_lines(self):
         from dclab_rnd.draft import structure
         path = Path(tempfile.mkdtemp()) / "odd.log"
@@ -336,7 +344,7 @@ class DataLimitTests(unittest.TestCase):
         self.assertIn('\\"train_rows\\": 240', Capture.prompts["twin_designer"][1])  # the aggregates still arrive
 
     def test_every_purpose_has_a_limit_and_a_test(self):
-        tested = {"home_agent", "home_intent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
+        tested = {"home_agent", "home_intent", "home_query", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter", "twin_designer"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")

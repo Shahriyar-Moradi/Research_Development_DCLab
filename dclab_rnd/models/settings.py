@@ -38,6 +38,8 @@ PURPOSES: dict[str, Purpose] = {
                                           "and descriptive findings; never rows or cell values", stream=True, cell_values=0),
     "home_intent": Purpose("standard", 60, "the person's request and their replies to Home's questions, to read which kind of help they need; "
                                            "never data, column names or cell values", cell_values=0),
+    "home_query": Purpose("standard", 60, "the person's question, what Home understood about it, and the table's column summaries (name, kind, "
+                                          "missing share, distinct count), to write a query plan; never rows, values, category names or results", cell_values=0),
     "embedding": Purpose("cheap", 60, "the text of the evidence records (rules, pitfalls, leakage precedents, experiments) and the question typed into the "
                                       "evidence search, to find the records that answer it; no rows, no cell values, and not a workspace's lessons"),
     "parse_pattern": Purpose("cheap", 60, "up to 20 lines of a file no built-in reader can parse (400 characters each); "
