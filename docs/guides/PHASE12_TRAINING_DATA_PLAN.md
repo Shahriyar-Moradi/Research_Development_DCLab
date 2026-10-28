@@ -79,13 +79,17 @@ memory.
   track's conversation whole, with thinking, labelled by its outcome.
 - The Home session owns `draft/` (its chat and routing); this package adds only the store side and the events'
   contract, agreed with it before any change.
-- **Status (2026-10-28): the core, capture and store side built** (agreed with the Home session, which owns `draft/`):
-  `dclab_core/track_outcome.py` (the Home session's verdict rule from the conversation's ordered actions; a refresh is no
-  verdict, a thumb is), `ExperienceEvent` v16 `track.outcome`, `capture.track_outcome` (a person's kept or changed labels
-  the draft's `request.exit` and `request.intent`; refused and asked again never label a route), the m4 Home conversation's
-  `check.outcome` from `draft["outcome"]`, and coverage naming the event per track. Left open: Home's calls (the Home
-  session's next step); refused and asked again reach m4 only, not m2 (an outcome field on m2 examples is a contract change);
-  one verdict per conversation.
+- **Status (2026-10-28): built end to end** (agreed with and reviewed by the Home session). The core, capture and store
+  side (a70e49e1): `dclab_core/track_outcome.py` (the verdict from the conversation's ordered actions; a refresh is no
+  verdict), `ExperienceEvent` v16 `track.outcome`, `capture.track_outcome` (a person's kept or changed labels the draft's
+  `request.exit` and `request.intent`; a later refusal supersedes it; refused and asked again never label a route), and
+  the m4 Home conversation's `check.outcome`. Home's calls (0dc39a68): an answer saved, let go or edited; a whole yes or no
+  on a guarded step; the notebook or the prepared table taken. Thumbs (abe0cad7): a thumb up or down from a write or
+  review role on the reply that delivered an answer, dashboard, brief or prepared table. Left open: advice has no product
+  to judge; refused and asked again reach m4 only, not m2 (an outcome field on m2 examples is a contract change); undo and
+  a new step have no person control of their own, so they give no verdict; one verdict per conversation, so a thumb on an
+  older result sets the whole conversation's verdict (answer 1, answer 2, a thumb down on answer 1 reads refused though
+  answer 2 was never judged; per-result verdicts need the reply's id carried into the actions).
 
 ### 36.3 Written journeys for the sparse tracks (paid, owner's budget)
 - Where 36.1 shows a track with few runs (likely analysis, BI, preparation), written people with their own problems
