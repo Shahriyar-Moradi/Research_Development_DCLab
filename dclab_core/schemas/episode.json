@@ -45,6 +45,38 @@
           "default": null,
           "title": "Outcome"
         },
+        "reasoning": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reasoning"
+        },
+        "reasoning_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "recorded",
+                "from_record",
+                "teacher",
+                "visible",
+                "replayed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reasoning Source"
+        },
         "state": {
           "additionalProperties": true,
           "title": "State",
@@ -178,9 +210,9 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.episode.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.episode.v2.json",
   "additionalProperties": false,
-  "description": "M6: a process decided step by step, each step's (state, options, action, outcome), and its final outcome (v1).",
+  "description": "M6: a process decided step by step, each step's (state, options, action, outcome, v2: its reasoning), and its final\noutcome.",
   "properties": {
     "gaps": {
       "items": {
@@ -237,8 +269,8 @@
       "$ref": "#/$defs/Provenance"
     },
     "schema_version": {
-      "const": "dclab_core.episode.v1",
-      "default": "dclab_core.episode.v1",
+      "const": "dclab_core.episode.v2",
+      "default": "dclab_core.episode.v2",
       "title": "Schema Version",
       "type": "string"
     },

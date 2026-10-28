@@ -64,7 +64,7 @@ LabelSource = Literal["person", "measured", "benchmark", "blind", "teacher", "ru
 CONFIRMED = ("person", "measured", "benchmark", "blind")  # the sources that confirm a label (blind: weighted by its draw)
 LEDGER_SOURCES: dict[str, str] = {  # the ledger's label sources (dclab_core.ledger.LABEL_SOURCES) in the store's words
     "user_decision_exposed": "person", "measured": "measured", "benchmark": "benchmark", "blind": "blind", "model": "teacher"}
-ReasoningSource = Literal["recorded", "from_record", "teacher", "visible"]
+ReasoningSource = Literal["recorded", "from_record", "teacher", "visible", "replayed"]  # replayed: the same inputs asked again with thinking on
 REASONING_SOURCES = ("recorded", "from_record", "teacher", "visible")
 Quality = Literal["keep", "silver", "out"]  # out: kept out of the set (quarantined with why), never deleted
 SLUG = re.compile(r"^[a-z0-9][a-z0-9_.:\-]{0,119}$")
@@ -170,8 +170,8 @@ class DecisionExample(_Example):
     """M1, M2, M3: one decision as a classifier learns it (v2: ``split_group``, the table or project it belongs to, so folds and
     splits keep one table's rows together; v1 reads, its split group unknown)."""
 
-    schema_version: Literal["dclab_core.decision_example.v2"] = _version("decision_example", 2)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_example.v1"})
+    schema_version: Literal["dclab_core.decision_example.v3"] = _version("decision_example", 3)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_example.v1", "dclab_core.decision_example.v2"})
     point: str = Field(max_length=120)
     group: str = Field(max_length=80)            # M2: the system (dclab, rnd, internal); M3: the family; M1: the student's model
     split_group: Optional[str] = Field(default=None, max_length=200)  # the record's sealed group (a project, a draft's project, a table)
@@ -180,15 +180,25 @@ class DecisionExample(_Example):
     answers: list[Answer] = Field(default_factory=list)
     label: Any = None
     label_source: Optional[LabelSource] = None
+    # v3 (2026-10-28, the owner: every example carries its reasoning): why the decision, from what was known when it was made
+    # (never the label or a person's answer), with its source; None on rows whose builder has none, read from v1 and v2
+    reasoning: Optional[str] = Field(default=None, max_length=2000)
+    reasoning_source: Optional[ReasoningSource] = None
 
     _state = field_validator("state")(classmethod(lambda cls, v: _state_ok(v)))
 
     @model_validator(mode="before")
     @classmethod
     def _read_v1(cls, data: Any) -> Any:
-        if isinstance(data, dict) and data.get("schema_version") == "dclab_core.decision_example.v1":
-            data = {**data, "schema_version": "dclab_core.decision_example.v2"}
+        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.decision_example.v1", "dclab_core.decision_example.v2"):
+            data = {**data, "schema_version": "dclab_core.decision_example.v3"}
         return data
+
+    @model_validator(mode="after")
+    def _reasoning_labelled(self):
+        if (self.reasoning is None) != (self.reasoning_source is None):
+            raise ValueError("a reasoning and its source come together")
+        return self
 
     @model_validator(mode="after")
     def _label_says_who(self):
@@ -197,13 +207,14 @@ class DecisionExample(_Example):
         return self
 
 
-def _reads(old: str, new: str) -> Any:
-    """A validator that reads the previous version's rows as this one (every field the version added has a default)."""
+def _reads(old: str | tuple[str, ...], new: str) -> Any:
+    """A validator that reads earlier versions' rows as this one (every field a version added has a default)."""
+    olds = (old,) if isinstance(old, str) else old
 
     @model_validator(mode="before")
     @classmethod
     def _read(cls, data: Any) -> Any:
-        if isinstance(data, dict) and data.get("schema_version") == old:
+        if isinstance(data, dict) and data.get("schema_version") in olds:
             data = {**data, "schema_version": new}
         return data
     return _read
@@ -230,11 +241,12 @@ class Message(Contract):
 
 class ChatExample(_Example):
     """M4, M5: messages as the model is trained, every assistant turn with its labelled reasoning, and the tools the model
-    was offered (v2: ``tools``, ``Message.tool_call_id`` and the ``visible`` reasoning source; v1 reads, its tools unknown)."""
+    was offered (v2: ``tools``, ``Message.tool_call_id`` and the ``visible`` reasoning source; v1 reads, its tools unknown;
+    v3: the ``replayed`` reasoning source; v1 and v2 read)."""
 
-    schema_version: Literal["dclab_core.chat_example.v2"] = _version("chat_example", 2)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.chat_example.v1"})
-    _read_v1 = _reads("dclab_core.chat_example.v1", "dclab_core.chat_example.v2")
+    schema_version: Literal["dclab_core.chat_example.v3"] = _version("chat_example", 3)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.chat_example.v1", "dclab_core.chat_example.v2"})
+    _read_v1 = _reads(("dclab_core.chat_example.v1", "dclab_core.chat_example.v2"), "dclab_core.chat_example.v3")
     task: str = Field(max_length=120)
     stage: str = Field(max_length=60)            # M4: understand_problem, understand_data, design_solution, plan, code, report
     messages: list[Message] = Field(min_length=2)
@@ -244,11 +256,11 @@ class ChatExample(_Example):
 
 class PreferencePair(_Example):
     """M4, M5, M7: one prompt, the chosen and the rejected answers, and who decided (v2: its messages may carry a
-    ``tool_call_id`` and the ``visible`` reasoning source; v1 reads)."""
+    ``tool_call_id`` and the ``visible`` reasoning source; v1 reads; v3: the ``replayed`` reasoning source; v1 and v2 read)."""
 
-    schema_version: Literal["dclab_core.preference_pair.v2"] = _version("preference_pair", 2)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.preference_pair.v1"})
-    _read_v1 = _reads("dclab_core.preference_pair.v1", "dclab_core.preference_pair.v2")
+    schema_version: Literal["dclab_core.preference_pair.v3"] = _version("preference_pair", 3)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.preference_pair.v1", "dclab_core.preference_pair.v2"})
+    _read_v1 = _reads(("dclab_core.preference_pair.v1", "dclab_core.preference_pair.v2"), "dclab_core.preference_pair.v3")
     task: str = Field(max_length=120)
     prompt: list[Message] = Field(min_length=1)
     chosen: Message
@@ -278,11 +290,12 @@ class TrajectoryStep(Contract):
 
 class SolverTrajectory(_Example):
     """M5: a problem solved as an agent, every step, the submission and its score on the problem's own metric (v2: ``tools``,
-    the schemas the agent was offered, and the ``visible`` thought source; v1 reads, its tools unknown)."""
+    the schemas the agent was offered, and the ``visible`` thought source; v1 reads, its tools unknown; v3: the ``replayed``
+    thought source; v1 and v2 read)."""
 
-    schema_version: Literal["dclab_core.solver_trajectory.v2"] = _version("solver_trajectory", 2)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.solver_trajectory.v1"})
-    _read_v1 = _reads("dclab_core.solver_trajectory.v1", "dclab_core.solver_trajectory.v2")
+    schema_version: Literal["dclab_core.solver_trajectory.v3"] = _version("solver_trajectory", 3)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.solver_trajectory.v1", "dclab_core.solver_trajectory.v2"})
+    _read_v1 = _reads(("dclab_core.solver_trajectory.v1", "dclab_core.solver_trajectory.v2"), "dclab_core.solver_trajectory.v3")
     problem_kind: str = Field(max_length=80)
     problem: dict[str, Any] = Field(default_factory=dict)  # its description and data card (never a row)
     tools: list[dict[str, Any]] = Field(default_factory=list)  # the tool schemas offered, as sent ([]: none, or not kept)
@@ -299,14 +312,25 @@ class EpisodeStep(Contract):
     action: str = Field(max_length=200)
     outcome: Optional[str] = Field(default=None, max_length=200)
     at: Optional[str] = None
+    reasoning: Optional[str] = Field(default=None, max_length=2000)  # v2: why this action, from what was known at the step, by its source
+    reasoning_source: Optional[ReasoningSource] = None
 
     _state = field_validator("state")(classmethod(lambda cls, v: _state_ok(v)))
 
+    @model_validator(mode="after")
+    def _reasoning_labelled(self):
+        if (self.reasoning is None) != (self.reasoning_source is None):
+            raise ValueError("a reasoning and its source come together")
+        return self
+
 
 class Episode(_Example):
-    """M6: a process decided step by step, each step's (state, options, action, outcome), and its final outcome (v1)."""
+    """M6: a process decided step by step, each step's (state, options, action, outcome, v2: its reasoning), and its final
+    outcome."""
 
-    schema_version: Literal["dclab_core.episode.v1"] = _version("episode")
+    schema_version: Literal["dclab_core.episode.v2"] = _version("episode", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.episode.v1"})
+    _read_v1 = _reads("dclab_core.episode.v1", "dclab_core.episode.v2")
     process: str = Field(max_length=80)          # the walk, a stage, the intern's session, a team's walk, a conductor run
     steps: list[EpisodeStep] = Field(min_length=1)
     gaps: list[int] = Field(default_factory=list)  # step numbers missing from the record, said

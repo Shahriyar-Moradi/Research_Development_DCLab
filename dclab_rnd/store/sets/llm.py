@@ -207,7 +207,8 @@ def final_recorded(example: Any) -> bool:
     return bool(turns) and turns[-1].reasoning_source == "recorded" and bool(turns[-1].reasoning)
 
 
-def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None) -> Optional[ChatExample]:
+def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None, replayed: Optional[dict[str, dict[str, Any]]] = None
+                  ) -> Optional[ChatExample]:
     """One kept exchange as an M4 example: its messages (each earlier assistant turn with the reasoning and the tool calls the
     agent sent back, each tool turn with the call it answers), the tools offered, and the reply with its thinking as the reasoning."""
     b = record.body
@@ -228,7 +229,9 @@ def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None) 
             messages.append(Message(role=role, content=_content(m), name=m.get("name") if isinstance(m.get("name"), str) else None))
     thinking = "\n\n".join(str(t.get("text") or t.get("thinking") or "") for t in b.get("thinking") or [] if isinstance(t, dict)).strip()
     taught = (taught or {}).get(record.id)
+    again = (replayed or {}).get(str(b.get("model_request") or ""), {}).get("text")  # the same inputs asked again, the same answer
     labelled = ({"reasoning": thinking, "reasoning_source": "recorded"} if thinking else
+                {"reasoning": again, "reasoning_source": "replayed"} if again else
                 {"reasoning": taught, "reasoning_source": "teacher"} if taught else {"no_reasoning": f"{_lost_or(b.get('at') or record.at, 'not kept')}: the model did not think, or its thinking was not kept"})
     reply = Message(role="assistant", content=str(b.get("reply") or ""), tool_calls=[c for c in b.get("tool_calls") or [] if isinstance(c, dict)], **labelled)
     messages.append(reply)
@@ -238,7 +241,7 @@ def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None) 
     return ChatExample(id=f"m4_workflow_llm:{record.id}", model_type="m4_workflow_llm", split=record.split or split_of(str(b.get("model_request") or record.id)),
                        provenance=record.provenance, task=purpose, stage=STAGES.get(purpose, "plan"), messages=messages,
                        tools=[t for t in b.get("tools") or [] if isinstance(t, dict)],  # P1 keeps the schemas offered with a whole exchange
-                       weight=0.5 if (taught and not thinking) else 1.0, check={"outcome": b.get("outcome"), "model": b.get("model")})
+                       weight=0.5 if ((taught or again) and not thinking) else 1.0, check={"outcome": b.get("outcome"), "model": b.get("model")})
 
 
 LOST_BEFORE = "lost before 2026-10-28"  # the owner's rule took effect that night: older thinking was not kept (thinking-reasoning-all-data-plan)
@@ -808,6 +811,9 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
     layout = layout or Layout()
     choices = standing(layout)
     taught = teacher_reasonings(layout)
+    from ..backfill import replays as _replays
+
+    replayed = _replays(layout)  # the agreeing replays' thinking, labelled "replayed" (silver, weight 0.5)
     sealed, benchmarks = sealed_texts(), benchmark_names()
     sets: dict[tuple[str, str], list[Any]] = defaultdict(list)
     out: dict[str, int] = defaultdict(int)
@@ -826,7 +832,7 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         if not allowed(r, "m4_workflow_llm", choices):
             continue
         if r.provenance.source.startswith("model_exchanges/"):
-            ex = from_exchange(r, taught)
+            ex = from_exchange(r, taught, replayed)
             if ex is not None:
                 add("m4_workflow_llm", ex.stage, ex)  # the reasoning-only set is derived from the stage sets below, after their sealed rows are carried
     newest: dict[tuple[str, str], StoreRecord] = {}

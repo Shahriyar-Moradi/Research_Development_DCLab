@@ -1,0 +1,103 @@
+{
+ "package": "thinking-C2-decision-reasoning",
+ "title": "Decision rows and process steps get a reasoning field; code fills only what it can say without the answer",
+ "date": "2026-10-28",
+ "request": "The owner: 'make sure all previous data has thinking and reasoning parts, it's crucial'. The decision models' rows (m1, m2, m3, m6: about 560,000) had no reasoning field at all (REASONING.json: no_field).",
+ "spec": "DecisionExample v3 and Episode v2 gain an optional reasoning with its source (read from v1 and v2; 'replayed' joins the sources). Code fills a step's reasoning from what was known before it (the previous move's verdict, the board before, a stage's selection rule). Code never fills a decision row's: it cannot explain a decision without its answer; those rows are counted as missing until a real source (a model's recorded thinking, a checked teacher) explains them.",
+ "plan": [
+  "Contract fields with the reasoning-and-source pair rule.",
+  "decision_reasoning and the m6 steps' reasons.",
+  "reasoning_counts counts decision rows by source.",
+  "Tests: no label in the reasoning, old rows read, steps say why."
+ ],
+ "decisions": [
+  {
+   "decision": "No code-written reasoning on decision rows.",
+   "why": "The rule's answer is the label of a rule-labelled row and argues against a person's label (written when they disagree); built from the state alone it restates the input. Either way it would teach copying or nothing."
+  },
+  {
+   "decision": "A step's reasoning is what was known before it.",
+   "why": "The step's own verdict is its outcome; a model trained to reason with it learns to predict the verdict before acting."
+  },
+  {
+   "decision": "Rows with the field but no reasoning are counted as missing.",
+   "why": "'none' means another reason was stated; nothing was."
+  }
+ ],
+ "change": "dclab_core/store.py (DecisionExample v3, Episode v2, EpisodeStep reasoning; dclab-core 0.132.0); dclab_rnd/store/sets/decisions.py (decision_reasoning); store/sets/others.py (_move_why; stages and team steps); store/sets/__init__.py (counts); tests/test_store_decision_reasoning.py.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A decision row's reasoning stated the rule's answer: the label, or the opposite of a person's label.",
+   "scenario": "A person's label is written when they disagree with the rule; the reasoning said 'The rule answered True' over a False label. An exam's expected answer is the rule's, word for word in the reasoning.",
+   "cause": "The reasoning was built from the rule's answer and reason.",
+   "fix": "Code writes no decision row's reasoning; the field waits for a real source.",
+   "test": "tests/test_store_decision_reasoning.py::DecisionReasoningTests::test_code_never_writes_a_decision_rows_reasoning"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A step's reasoning repeated its own outcome.",
+   "scenario": "'… was checked by the validator: refused, failing leakage_audit' as the reasoning of that refused move.",
+   "cause": "The move's own verdict was used.",
+   "fix": "The previous move's verdict and the board before the step.",
+   "test": "tests/test_store_decision_reasoning.py::DecisionReasoningTests::test_a_step_says_what_was_known_before_it_never_its_own_outcome"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Schemas not regenerated after the version bump.",
+   "scenario": "No baseline for decision_example.v3 and episode.v2.",
+   "cause": "make core-schemas not run.",
+   "fix": "Regenerated with the release, in the worktree.",
+   "test": "tests/test_core_contracts.py"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The counts called unexplained rows 'none'.",
+   "scenario": "Every step with no reasoning and no note moved from no_field to none.",
+   "cause": "'none' meant 'another reason stated'.",
+   "fix": "A 'missing' key for the field present with nothing in it; the store check knows it.",
+   "test": "tests/test_store_decision_reasoning.py::DecisionReasoningTests::test_code_never_writes_a_decision_rows_reasoning"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The record claimed an unmeasured pass.",
+   "scenario": "'verdict: pass' with 'counted at the next store build'.",
+   "cause": "Written before the build.",
+   "fix": "The measurement says not run until the build counts it.",
+   "test": "this record"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Reasoning on the sets after the change",
+   "gate": "decision rows counted as missing, steps from what was known before",
+   "fixed_before_run": true,
+   "result": "Not run yet: counted at the next store build (REASONING.json per set).",
+   "verdict": "not_run",
+   "cost_eur": 0.0,
+   "limits": [
+    "code-written: it explains what the rule saw, not why a person chose otherwise"
+   ]
+  }
+ ],
+ "outcome": "The contract can carry a reasoning on every decision row and step; code fills it only where it can say something true without the answer, and the counts now show honestly what is still missing.",
+ "lessons": [
+  "Code cannot explain a decision without its answer; leave it missing rather than teach copying.",
+  "A reason is what was known before the act; the act's verdict is its outcome."
+ ],
+ "risks": [
+  "Decision rows need a real reasoning source (recorded thinking or a checked teacher): not done.",
+  "No test goes through the whole episodes() build."
+ ],
+ "commits": []
+}

@@ -227,6 +227,142 @@
         "8812"
       ],
       "port": 8812
+    },
+    {
+      "name": "label-queue",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=agent_runs/live_tests/2026-10-23-real-shadow/workspace",
+        "OPENAI_API_KEY=",
+        "ANTHROPIC_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_AUTH=",
+        "DCLAB_DECISION_SHADOW=1",
+        "DCLAB_STUDENTS_LOOP=0",
+        "DCLAB_STORE_LOOP=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8813"
+      ],
+      "port": 8813
+    },
+    {
+      "name": "decision-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/614ac851-e283-442e-80e4-ba104d2ba40f/scratchpad/decision-home",
+        "OPENAI_API_KEY=",
+        "ANTHROPIC_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_AUTH=",
+        "DCLAB_DECISION_SHADOW=0",
+        "DCLAB_STUDENTS_LOOP=0",
+        "DCLAB_STORE_LOOP=0",
+        "DCLAB_STORE_CAPTURE=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8814"
+      ],
+      "port": 8814
+    },
+    {
+      "name": "dclab-code",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_CODE_PORT=4317",
+        "node",
+        "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/dclab-code/bin/dclab-code.js",
+        "--no-open"
+      ],
+      "port": 4317
+    },
+    {
+      "name": "dclab-code-dev",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_CODE_PORT=4319",
+        "DCLAB_CODE_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/b3034e2c-951c-4beb-a3ae-c60c5efc35c3/scratchpad/dc-term-home",
+        "node",
+        "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/dclab-code/bin/dclab-code.js",
+        "--no-open"
+      ],
+      "port": 4319
+    },
+    {
+      "name": "dclab-code-agents",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_CODE_PORT=4318",
+        "DCLAB_CODE_HOME=/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/agent_runs/live_tests/2026-10-25-dclab-code-agents/home",
+        "node",
+        "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/dclab-code/bin/dclab-code.js",
+        "--no-open"
+      ],
+      "port": 4318
+    },
+    {
+      "name": "dclab-code-farbox",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_CODE_PORT=4330",
+        "DCLAB_CODE_HOME=/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/agent_runs/live_tests/2026-10-26-dclab-code-remote/server-home",
+        "node",
+        "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/dclab-code/bin/dclab-code.js",
+        "--no-open"
+      ],
+      "port": 4330
+    },
+    {
+      "name": "home-brief-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/9769b0b1-1bcd-40b5-b501-6512dfe1d3ed/scratchpad/ui-brief",
+        "OPENAI_API_KEY=",
+        "ANTHROPIC_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_DECISION_SHADOW=0",
+        "DCLAB_STUDENTS_LOOP=0",
+        "DCLAB_STORE_LOOP=0",
+        "DCLAB_STORE_CAPTURE=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8815"
+      ],
+      "port": 8815
+    },
+    {
+      "name": "memory-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/772e7d28-88f6-4084-a690-bc4b9269f852/scratchpad/memory-home",
+        "OPENAI_API_KEY=",
+        "ANTHROPIC_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_DECISION_SHADOW=0",
+        "DCLAB_STUDENTS_LOOP=0",
+        "DCLAB_STORE_LOOP=0",
+        "DCLAB_STORE_CAPTURE=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8816"
+      ],
+      "port": 8816
     }
   ]
 }

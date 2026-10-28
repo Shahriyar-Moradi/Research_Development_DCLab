@@ -52,7 +52,7 @@ class PureTests(unittest.TestCase):
         v1 = {"schema_version": "dclab_core.chat_example.v1", "id": "a", "model_type": "m4_workflow_llm", "split": "train", "provenance": p.model_dump(),
               "task": "t", "stage": "plan", "messages": [{"role": "user", "content": "hi"}, {"role": "assistant", "content": "ok", "no_reasoning": "none kept"}]}
         read = ChatExample.model_validate(v1)
-        self.assertEqual((read.schema_version, read.tools), ("dclab_core.chat_example.v2", []))
+        self.assertEqual((read.schema_version, read.tools), ("dclab_core.chat_example.v3", []))
         t = SolverTrajectory(id="b", model_type="m5_solver_llm", split="train", provenance=p, problem_kind="k",
                              steps=[TrajectoryStep(n=0, thought="I will look.", thought_source="visible")])
         self.assertEqual(json.loads(t.model_dump_json())["steps"][0]["thought_source"], "visible")

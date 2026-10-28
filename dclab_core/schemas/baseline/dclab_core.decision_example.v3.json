@@ -1,0 +1,283 @@
+{
+  "$defs": {
+    "Answer": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "maxLength": 120,
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 1200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "value": {
+          "default": null
+        }
+      },
+      "required": [
+        "by"
+      ],
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "type": "string"
+        },
+        "by": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "commit": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "consent": {
+          "default": "operate",
+          "enum": [
+            "operate",
+            "improve",
+            "train"
+          ],
+          "type": "string"
+        },
+        "deleted": {
+          "default": false,
+          "type": "boolean"
+        },
+        "draft": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "entry": {
+          "maxLength": 200,
+          "type": "string"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rule": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "workspace": {
+          "maxLength": 120,
+          "type": "string"
+        }
+      },
+      "required": [
+        "entry",
+        "sha256",
+        "source",
+        "workspace",
+        "at"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "answers": {
+      "items": {
+        "$ref": "#/$defs/Answer"
+      },
+      "type": "array"
+    },
+    "group": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "label": {
+      "default": null
+    },
+    "label_source": {
+      "anyOf": [
+        {
+          "enum": [
+            "person",
+            "measured",
+            "benchmark",
+            "blind",
+            "teacher",
+            "rule"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "model_type": {
+      "enum": [
+        "m1_students",
+        "m2_workflow_decisions",
+        "m3_ml_decisions",
+        "m4_workflow_llm",
+        "m5_solver_llm",
+        "m6_stepwise_decisions",
+        "m7_judges",
+        "m8_retrieval"
+      ],
+      "type": "string"
+    },
+    "more": {
+      "items": {
+        "$ref": "#/$defs/Provenance"
+      },
+      "type": "array"
+    },
+    "options": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "point": {
+      "maxLength": 120,
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "reasoning": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reasoning_source": {
+      "anyOf": [
+        {
+          "enum": [
+            "recorded",
+            "from_record",
+            "teacher",
+            "visible",
+            "replayed"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.decision_example.v3",
+      "default": "dclab_core.decision_example.v3",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "dev",
+        "sealed"
+      ],
+      "type": "string"
+    },
+    "split_group": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "state": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "weight": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "model_type",
+    "split",
+    "provenance",
+    "point",
+    "group"
+  ],
+  "type": "object"
+}

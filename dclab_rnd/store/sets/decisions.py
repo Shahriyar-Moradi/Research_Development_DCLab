@@ -33,6 +33,15 @@ STUDENTS = ("classifier", "student")
 SILVER = 0.5  # the weight of a teacher's or a rule's label against a confirmed one (the owner's rule: silver, apart, lower)
 
 
+
+def decision_reasoning(point: str, state: dict[str, Any], options: list[str], answers: list[Any]) -> Optional[str]:
+    """None: code cannot explain a decision without its answer (the review of C2). The rule's answer is the label of a
+    rule-labelled row and argues against a person's label (a person's label is written when they disagree), so a reasoning
+    built from it teaches copying; one built from the state alone restates the input. A decision row's reasoning comes only
+    from a real source (a model's recorded thinking, a checked teacher), when there is one; until then it is counted as
+    missing, never filled."""
+    return None
+
 def placements(layout: Layout) -> dict[tuple[str, str], dict[str, Any]]:
     """The curators' standing choice per (record, model type): the latest a rule made and the write tool let through."""
     store = Store(layout)
@@ -95,11 +104,13 @@ def build(layout: Optional[Layout] = None, scripted: Optional[frozenset[str]] = 
         answers = [Answer(by=str(a.get("by") or a.get("answerer") or "unknown"), value=a.get("value"), reason=a.get("reason"))
                    for a in record.body.get("answers") or [] if isinstance(a, dict)]
         state = {k: v for k, v in (record.body.get("state") or {}).items()}
+        why = decision_reasoning(str(record.body.get("point")), state, [str(o) for o in record.body.get("options") or []], answers)
         try:
             ex = DecisionExample(id=f"{model_type}:{rid}", model_type=model_type, split=split_of(str(group)), provenance=record.provenance,
                                  weight=weight, point=str(record.body.get("point")), group=str(choice.get("folder") or "").split("/")[0] or "general",
                                  split_group=str(group),
-                                 state=state, options=[str(o) for o in record.body.get("options") or []], answers=answers, label=value, label_source=source)
+                                 state=state, options=[str(o) for o in record.body.get("options") or []], answers=answers, label=value, label_source=source,
+                                 **({"reasoning": why, "reasoning_source": "from_record"} if why else {}))
         except Exception as exc:  # noqa: BLE001 - a record whose state the contract refuses (a value in it) never enters a set
             out_of_sets[f"refused by its contract: {type(exc).__name__}"] += 1
             continue

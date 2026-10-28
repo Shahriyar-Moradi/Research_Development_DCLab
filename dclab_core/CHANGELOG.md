@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.132.0 (2026-10-28)
+
+- `store`: every training example carries its reasoning (the owner, 2026-10-28). `DecisionExample` v3 and `EpisodeStep`
+  (in `Episode` v2) gain `reasoning` and `reasoning_source`: why the decision or the action, from what was known when it
+  was made (never the label or a person's answer); the two come together or not at all. A new reasoning source,
+  `replayed`, marks thinking from a past call asked again with the same inputs and thinking on, kept only when its answer
+  agrees with the original's; it is never `recorded`. Because `Message` and `TrajectoryStep` use the same sources,
+  `ChatExample`, `PreferencePair` and `SolverTrajectory` move to v3 with no other change. Every earlier version reads.
+
 ## 0.131.0 (2026-10-28)
 
 - `dashboard` (H10 of the Home plan): KPIs and dashboards on a person's table. A `Kpi` is a named

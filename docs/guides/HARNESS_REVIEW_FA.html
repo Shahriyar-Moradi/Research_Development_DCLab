@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بررسی هارنس و Hermes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fbfaf7; --card: #ffffff; --text: #1f2328; --muted: #5b6370; --line: #e4e1da;
+    --accent: #6d3fd1; --good: #1a7f4b; --bad: #b42318; --warn: #9a6700; --soft: #f3effc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161a; --card: #1c1f25; --text: #e8e6e1; --muted: #a3a9b4; --line: #2e323a;
+      --accent: #b69cff; --good: #5fd39a; --bad: #ff8a80; --warn: #e6b85c; --soft: #241f33;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161a; --card: #1c1f25; --text: #e8e6e1; --muted: #a3a9b4; --line: #2e323a;
+    --accent: #b69cff; --good: #5fd39a; --bad: #ff8a80; --warn: #e6b85c; --soft: #241f33;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Vazirmatn", sans-serif; font-size: 20px; line-height: 2.1;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 34px; line-height: 1.6; margin: 0 0 4px; font-weight: 800; }
+  .sub { color: var(--muted); margin: 0 0 28px; font-size: 17px; }
+  h2 { font-size: 25px; margin: 40px 0 8px; font-weight: 800; color: var(--accent); }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0; padding-inline-start: 28px; }
+  li { margin: 4px 0; }
+  .en, code { direction: ltr; unicode-bidi: isolate; }
+  code { font-family: "JetBrains Mono", monospace; font-size: 16px; background: var(--soft); padding: 1px 6px; border-radius: 6px; }
+  .tldr { background: var(--card); border: 1px solid var(--line); border-inline-start: 5px solid var(--accent);
+          border-radius: 12px; padding: 16px 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 20px; margin: 12px 0; }
+  .example { background: var(--soft); border-radius: 12px; padding: 12px 18px; margin: 12px 0; }
+  .verdict-no { color: var(--bad); font-weight: 800; }
+  .verdict-ok { color: var(--warn); font-weight: 800; }
+  .verdict-yes { color: var(--good); font-weight: 800; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 18px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: start; }
+  th { color: var(--muted); font-weight: 600; }
+  td.num { direction: ltr; text-align: center; font-variant-numeric: tabular-nums; }
+  .hi { color: var(--good); font-weight: 800; }
+  .lo { color: var(--bad); font-weight: 800; }
+  .sources { font-size: 16px; line-height: 1.9; }
+  .sources a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>بررسی هارنس، Hermes و آزمایش بعدی</h1>
+<p class="sub">جمع‌بندی گفت‌وگوی <span class="en">2026-10-25</span> · فقط برنامه؛ هیچ کدی ساخته یا اجرا نشده است.</p>
+
+<div class="tldr">
+  <p><b>خلاصه در چهار جمله:</b></p>
+  <ol>
+    <li><span class="en">Hermes</span> را داخل <span class="en">DCLab</span> نیاورید. هارنس خودتان چیزهایی دارد که <span class="en">Hermes</span> ندارد.</li>
+    <li>عدد ۶۲٪ در برابر ۳۳٪ واقعی است. اما معنایش «هارنس بهتر، جهش بزرگ» نیست. معنایش این است که هارنسِ نامناسب، یک مدل خیلی کوچک را پایین کشید.</li>
+    <li>داده‌های خود ما نشان می‌دهد مدل محلی کوچک بیشتر در <b>قضاوت</b> شکست خورد، نه در <b>فرمت</b> فراخوانی ابزار.</li>
+    <li>پس اول یک بررسی رایگان روی رکوردهای موجود انجام دهید، بعد تصمیم بگیرید چه چیزی ساخته شود.</li>
+  </ol>
+</div>
+
+<h2>۱. هارنس چیست؟</h2>
+<p>عامل (<span class="en">agent</span>) = مدل + هارنس. هارنس کدی است که دور مدل می‌پیچد.</p>
+<p>هارنس چهار کار می‌کند: حلقه را اجرا می‌کند، ابزارها را در اختیار دارد، متنی را که مدل می‌خواند می‌نویسد، و جواب مدل را می‌خواند و اگر جور نباشد رد می‌کند.</p>
+<p><span class="en">DCLab</span> هر چهار کار را دارد و یک کار پنجم هم دارد: <b>همه چیز را ثبت می‌کند</b>. اعتبارسنج گراف هم هر حرکت را قبل از اجرا چک می‌کند.</p>
+<div class="example">
+  <b>مثال:</b> مدل مثل یک راننده است و هارنس مثل ماشین و نقشه. راننده‌ی خوب با ماشین بد هم کند می‌رود.
+</div>
+
+<h2>۲. ایده‌ی <span class="en">Hermes</span></h2>
+<p><span class="en">Hermes Agent</span> یک عامل متن‌باز از <span class="en">Nous Research</span> است. از تلگرام و اسلک جواب می‌دهد و از تجربه‌اش «مهارت» می‌نویسد.</p>
+<div class="card">
+  <p><span class="verdict-no">نه:</span> <span class="en">Hermes</span> به‌جای هارنس <span class="en">DCLab</span>.</p>
+  <p>چرا؟ اعتبارسنج، سقف هزینه (<span class="en">€0.5</span>) و ثبت کامل را از دست می‌دهید. <span class="en">Hermes</span> به‌طور پیش‌فرض مهارت‌ها را بدون تأیید می‌نویسد. یک درس غلط می‌ماند، درست مثل مشکلی که در فاز ۹ دیدید (درسی که جواب را لو می‌داد). دو باگ امنیتی هم در سپتامبر ۲۰۲۶ داشت.</p>
+</div>
+<div class="card">
+  <p><span class="verdict-ok">شاید:</span> <span class="en">Hermes</span> به‌عنوان کاربرِ ابزارهای <span class="en">DCLab</span> از راه <code>/mcp</code>.</p>
+  <p>ارزان است و حرکت‌ها هنوز از اعتبارسنج می‌گذرند. اما فکر کردنِ <span class="en">Hermes</span> ثبت نمی‌شود، فقط فراخوانی ابزارها. این برای آموزش مدل‌های ۴ و ۵ بد است.</p>
+  <p>برنامه‌ی آزمایش کوچک: <code>docs/guides/HERMES_TRIAL_PLAN.md</code></p>
+</div>
+<div class="card">
+  <p><span class="verdict-yes">بله:</span> ایده‌ی خوبش را بگیرید، نه کدش را.</p>
+  <p>نوشتن مهارت از تجربه همان «دفترچه‌ی درس‌ها» در برنامه‌ی خودتان است، با یک قانون سخت‌تر: درس فقط وقتی می‌ماند که نمره را بالا ببرد.</p>
+</div>
+
+<h2>۳. اسلاید ۶۲٪ و ۳۳٪: دقیقاً چه می‌گوید؟</h2>
+<p>مدل <span class="en">LFM2.5-2.6B</span> (خیلی کوچک و آموزش‌ندیده برای این هارنس‌ها) روی ۲۵۰ سؤال تحلیل داده:</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>هارنس</th><th>مدل پایه</th><th>بعد از آموزش فقط روی <span class="en">OpenCode</span></th><th>بعد از آموزش روی هر چهار</th></tr></thead>
+  <tbody>
+    <tr><td class="en">Mini-SWE-Agent</td><td class="num hi">62.1%</td><td class="num">—</td><td class="num">—</td></tr>
+    <tr><td class="en">Codex</td><td class="num">40.0%</td><td class="num">43%</td><td class="num">54%</td></tr>
+    <tr><td class="en">OpenCode</td><td class="num">33.6%</td><td class="num">58%</td><td class="num">50%</td></tr>
+    <tr><td class="en">Claude Code</td><td class="num lo">33.2%</td><td class="num">42%</td><td class="num">49%</td></tr>
+    <tr><td><b>میانگین</b></td><td class="num">42.2%</td><td class="num">52.3%</td><td class="num">54.2%</td></tr>
+  </tbody>
+</table>
+</div>
+<ul>
+  <li><b>واقعی است یا شانس؟</b> با ۲۵۰ سؤال واقعی است. خطای هر عدد حدود ۳± است و فاصله ۲۹ امتیاز.</li>
+  <li><b>با ۲۵ سؤال شانس است.</b> در آزمایش کوچک خودشان، همان مدل یک بار ۵۲٪ و یک بار ۳۲٪ گرفت.</li>
+  <li><b>علت آزمایش نشده است.</b> برداشت من (اثبات‌نشده): <span class="en">Mini-SWE-Agent</span> فقط یک خط <span class="en">bash</span> در متن ساده می‌خواهد. سه هارنس دیگر فراخوانی ساختاریافته‌ی ابزار می‌خواهند و همه بین ۳۳ تا ۴۰ ماندند. این مدل ابزار را با فرمت مخصوص خودش صدا می‌زند. سازنده‌اش هم می‌گوید برای کدنویسیِ عاملی توصیه نمی‌شود.</li>
+  <li><b>آموزش مهم‌تر از عوض کردن هارنس بود.</b> آموزش روی یک هارنس، داخل همان هارنس بهترین نتیجه را داد (۵۸٪ در برابر ۵۰٪). آموزش روی چند هارنس فقط حدود ۲ امتیاز اضافه کرد.</li>
+</ul>
+<div class="example">
+  <b>مثال:</b> یک کارمند تازه‌کار یادداشت ساده را خوب می‌نویسد، اما در فرم ده‌خانه‌ای شرکت گیج می‌شود. مهارتش همان است؛ فقط کاغذبازی فرق دارد.
+</div>
+
+<h2>۴. شواهد دیگر</h2>
+<ul>
+  <li>هارنسی که برای یک مدل ساخته شده به همان مدل کمک می‌کند: <span class="en">Claude Opus 4.5</span> در یک هارنس استاندارد ۴۵٫۹٪ و در <span class="en">Claude Code</span> ۵۵٫۴٪ گرفت.</li>
+  <li>در جدول <span class="en">SWE-bench</span>، یک مدل در هارنس‌های مختلف به‌طور میانه حدود ۱۵٫۶ امتیاز فرق دارد (مشاهده است، نه آزمایش کنترل‌شده).</li>
+  <li><b>نتیجه:</b> هیچ هارنسی برای همه‌ی مدل‌ها بهترین نیست. چیزی که مهم است، جور بودنِ مدل و هارنس است.</li>
+</ul>
+
+<h2>۵. برای <span class="en">DCLab</span> چه معنایی دارد؟</h2>
+<div class="card">
+  <p><b>برای <span class="en">Claude</span>:</b> جهش بزرگ انتظار نداشته باشید. هارنس شما دور <span class="en">Claude</span> ساخته شده، پس سود چند امتیاز است. پژوهش خودتان (<span class="en">2026-10-23</span>) هم همین را گفت: ۱ تا ۳ امتیاز برای مدل‌های قوی.</p>
+</div>
+<div class="card">
+  <p><b>برای مدل محلی کوچک (<span class="en">Qwen</span>، مدل‌های ۴ و ۵):</b> داده‌ی خودمان چیز دیگری می‌گوید.</p>
+  <ul>
+    <li><span class="en">qwen3.5:4b-16k</span> در آزمایش <span class="en">LRN-003</span>: هر ۵ تمرین را <b>تمام کرد</b>، ولی فقط ۱ از ۵ را <b>درست</b> انجام داد.</li>
+    <li>خطاها: تقسیم داده‌ی غلط (۴ بار) و هشدار اشتباه (۳ بار). این‌ها خطای <b>قضاوت</b> است.</li>
+    <li>در نتیجه‌ها هیچ فراخوانی ابزارِ ردشده‌ای ثبت نشده است. پس شاید فرمت، مشکل اصلی ما نباشد.</li>
+    <li><span class="en">Claude</span> روی همان تمرین‌ها ۴ از ۵ را درست انجام داد.</li>
+  </ul>
+</div>
+<div class="card">
+  <p><b>یک اصلاح:</b> سفرهای <span class="en">dev</span> (<code>make journeys</code>) نمی‌توانند این را آزمایش کنند. در آن‌ها هیچ مدلی بین ابزارها انتخاب نمی‌کند و فقط ۱۵ مورد دارند. جای درست، آزمایش یادگیری <span class="en">H3</span> است.</p>
+</div>
+
+<h2>۶. قدم‌های بعدی (به ترتیب)</h2>
+<ol>
+  <li><b>بررسی رایگان (حدود یک ساعت، بدون کد):</b> جلسه‌های کامل <span class="en">LRN-003</span> را بخوانید و خطاهای فرمت ابزار را بشمارید. اگر کمتر از ۱۰٪ قدم‌ها باشد، آزمایش «متن ساده در برابر <span class="en">JSON</span>» حذف می‌شود.</li>
+  <li><b>تعداد ابزار:</b> ۲۸ ابزار در برابر ۸ ابزار، روی همان ۲۰ تمرین. هزینه صفر یورو، حدود ۱۵ تا ۳۰ ساعت در پس‌زمینه.</li>
+  <li><b>فرمت ابزار:</b> فقط اگر قدم ۱ نشان دهد فرمت مهم است. کد جدید لازم دارد و تصمیمش با شماست.</li>
+  <li><b>تأیید یک‌باره</b> روی ۲۰ تمرین <span class="en">check</span>. مجموعه‌ی <span class="en">sealed</span> دست‌نخورده می‌ماند.</li>
+</ol>
+<p>قانون نگه‌داشتن: تغییر فقط وقتی می‌ماند که دست‌کم ۴ تمرین بیشتر از آنچه می‌بازد ببرد، تست امتناع ۱۱ از ۱۱ بماند، و نمره‌ی <span class="en">check</span> پایین نیاید.</p>
+<p>برنامه‌ی کامل: <code>docs/guides/TOOL_FORMAT_TRIAL_PLAN.md</code></p>
+<p><b>توجه:</b> مدل محلی الان نصب نیست (<code>ollama list</code> خالی است). نصب دوباره‌ی آن قدم شماست. حداقل ۲ گیگابایت فضای خالی دیسک لازم است.</p>
+
+<h2>۷. چیزهایی که مطمئن نیستم</h2>
+<ul>
+  <li>علت دقیق فاصله‌ی ۶۲ و ۳۳ را کسی آزمایش نکرده است. توضیح «فرمت ابزار» برداشت من است.</li>
+  <li><span class="en">Hermes</span> را خودم اجرا نکرده‌ام.</li>
+  <li>چند عدد از وبلاگ‌ها و پیش‌چاپ‌ها آمده و مستقل بررسی نشده است.</li>
+</ul>
+
+<h2>منابع</h2>
+<div class="sources en" dir="ltr">
+  <a href="https://fineenvs-multi-harness-rl.hf.space/">The ultimate guide to multi-harness RL</a> ·
+  <a href="https://github.com/adithya-s-k/FineEnvs/blob/main/05-multi-harness-rl/RESULTS.md">FineEnvs RESULTS.md</a> ·
+  <a href="https://sumantthakur.substack.com/p/the-same-model-is-not-the-same-agent">The Same Model Is Not the Same Agent</a> ·
+  <a href="https://huggingface.co/LiquidAI/LFM2.5-2.6B">LFM2.5-2.6B model card</a> ·
+  <a href="https://github.com/SWE-agent/mini-swe-agent">mini-swe-agent</a> ·
+  <a href="https://arxiv.org/html/2605.23950v1">Stop Comparing LLM Agents Without Disclosing the Harness</a> ·
+  <a href="https://arxiv.org/pdf/2609.17394">Coding Agents Have Converged</a> ·
+  <a href="https://hermes-agent.nousresearch.com/">Hermes Agent</a> ·
+  <a href="https://safeguard.sh/resources/blog/what-is-hermes-agent-nous-research-self-improving-agent-explained">Safeguard: Hermes explained</a>
+</div>
+
+</main>
+</body>
+</html>

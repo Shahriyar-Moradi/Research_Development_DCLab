@@ -56,6 +56,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--cap-eur", type=float, default=None, help="reason, curate-shadow: the most the model may spend in this run")
     parser.add_argument("--limit", type=int, default=100, help="reason, curate-shadow: at most this many records")
     parser.add_argument("--yes", action="store_true", help="reason, curate-shadow: send (without it, the plan only)")
+    parser.add_argument("--replay", action="store_true", help="backfill: ask the replayable calls again with thinking on (with --cap-eur; --yes sends)")
     parser.add_argument("--brief", action="store_true", help="status: counts only (how many workspaces, not their names), short enough for a chat")
     args = parser.parse_args(argv)
     layout = Layout(args.root)
@@ -81,6 +82,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.command == "backfill":  # the owner (2026-10-28): thinking and reasoning for the past; what can be re-asked, planned
         from . import backfill
 
+        if args.replay:  # paid: the plan without --yes; a cap is required either way
+            if not args.cap_eur or args.cap_eur <= 0:
+                print("refused: --replay needs --cap-eur above zero", file=sys.stderr)
+                return 2
+            print(json.dumps(backfill.replay(layout, cap_usd=args.cap_eur / 0.92, yes=args.yes), indent=1))
+            return 0
         print(json.dumps(backfill.plan(layout), indent=1))
         return 0
     if args.command == "curate-shadow":

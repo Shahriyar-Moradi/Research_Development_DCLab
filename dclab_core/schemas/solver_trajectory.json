@@ -185,7 +185,8 @@
                 "recorded",
                 "from_record",
                 "teacher",
-                "visible"
+                "visible",
+                "replayed"
               ],
               "type": "string"
             },
@@ -217,9 +218,9 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.solver_trajectory.v2.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.solver_trajectory.v3.json",
   "additionalProperties": false,
-  "description": "M5: a problem solved as an agent, every step, the submission and its score on the problem's own metric (v2: ``tools``,\nthe schemas the agent was offered, and the ``visible`` thought source; v1 reads, its tools unknown).",
+  "description": "M5: a problem solved as an agent, every step, the submission and its score on the problem's own metric (v2: ``tools``,\nthe schemas the agent was offered, and the ``visible`` thought source; v1 reads, its tools unknown; v3: the ``replayed``\nthought source; v1 and v2 read).",
   "properties": {
     "id": {
       "maxLength": 200,
@@ -274,8 +275,8 @@
       "$ref": "#/$defs/Provenance"
     },
     "schema_version": {
-      "const": "dclab_core.solver_trajectory.v2",
-      "default": "dclab_core.solver_trajectory.v2",
+      "const": "dclab_core.solver_trajectory.v3",
+      "default": "dclab_core.solver_trajectory.v3",
       "title": "Schema Version",
       "type": "string"
     },

@@ -1,0 +1,67 @@
+{
+ "package": "thinking-C4-replay",
+ "title": "Old calls asked again with thinking on; only a replay that gives the same answer explains the original",
+ "date": "2026-10-28",
+ "request": "The owner: 'make sure all previous data has thinking and reasoning parts, it's crucial'; a $45 budget for the backfill. 237 kept calls had their whole inputs but no thinking text.",
+ "spec": "Re-send each replayable call's original messages and tools (from the workspace's own files, never the shaped copies), thinking on, within one cap; keep each answer beside the original's id, split and consent; keep its thinking for the original only when the answer agrees (the same reply and tool calls); label it replayed, weight 0.5, never recorded; never re-ask sealed or exam calls; never keep the replay's own call as a second conversation.",
+ "plan": [
+  "backfill.replay and backfill.replays; the --replay command with a cap.",
+  "llm.from_exchange takes an agreeing replay as replayed (silver).",
+  "ReasoningSource gains 'replayed' (dclab-core 0.132.0).",
+  "Tests with a scripted model; then the paid run."
+ ],
+ "decisions": [
+  {
+   "decision": "Only an agreeing replay's thinking is kept for the original.",
+   "why": "Thinking that led to a different answer does not explain the original answer; keeping it would teach a reason for an answer it did not give."
+  },
+  {
+   "decision": "The replay's own call keeps its shape only.",
+   "why": "Otherwise the same inputs would enter training twice, once as recorded."
+  },
+  {
+   "decision": "Weight 0.5, apart, labelled replayed.",
+   "why": "It is the model's thinking, but made later, on a possibly different model version: never the original's own."
+  }
+ ],
+ "change": "dclab_rnd/store/backfill.py (originals, replay, replays); store/__main__.py (--replay); store/sets/llm.py (replayed); dclab_core/store.py (ReasoningSource 'replayed'); tests/test_store_backfill.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "own",
+   "severity": "behaviour",
+   "defect": "Agreement was judged by exact match, so almost no replay counted as the same answer.",
+   "scenario": "The first 5 replays: 0 agreed, though the replies had the same tool calls and nearly the same words.",
+   "cause": "Exact text equality between a reply and its replay; model replies vary in wording.",
+   "fix": "same_decision: same tool calls, close arguments, close reply; replays() judges agreement again on read.",
+   "test": "tests/test_store_backfill.py::SameDecisionTests"
+  },
+  {
+   "id": "F2",
+   "source": "own",
+   "severity": "behaviour",
+   "defect": "3 replays failed with RuntimeError and were skipped; the run went on.",
+   "scenario": "Three calls of 216 raised RuntimeError in the gateway; they have no replay row.",
+   "cause": "Not investigated.",
+   "fix": "None yet: they stay unreplayed and can be retried by the same command.",
+   "test": "none"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Paid replay of the kept calls without thinking",
+   "gate": "cap EUR 3.9; agreement by same_decision",
+   "result": "216 calls sent of 221 planned (9 already done, 6 without originals); 80 agreed (37%); spent $1.593 of the cap; 3 RuntimeErrors.",
+   "verdict": "measured"
+  }
+ ],
+ "outcome": "80 of 216 replayed calls gave the same decision and carry replayed thinking (weight 0.5); the other 136 disagreed and keep their shape only, so their thinking is not attached to the original answer.",
+ "lessons": [
+  "A reason is only a reason for the answer it led to: check the answer before keeping the reasoning."
+ ],
+ "risks": [
+  "The model asked today may differ from the one asked then; the label and the weight say so.",
+  "63% of replays disagreed: most old calls still lack thinking; the next source is a checked teacher (C5), capped."
+ ],
+ "commits": []
+}

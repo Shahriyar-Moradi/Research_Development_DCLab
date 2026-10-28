@@ -33,15 +33,34 @@ def _code(value: Any) -> str:
     return re.sub(r"[^a-z0-9_.\-]+", "_", str(value or "none").lower()).strip("_.-")[:80] or "none"
 
 
-def _episode(eid: str, process: str, steps: list[tuple[str, str, Optional[str]]], first: StoreRecord, others: list[StoreRecord], outcome: Optional[str],
+def _episode(eid: str, process: str, steps: list[tuple], first: StoreRecord, others: list[StoreRecord], outcome: Optional[str],
              key: str) -> Optional[Episode]:
+    """``steps``: (at, action, outcome) or (at, action, outcome, why); ``why`` is the step's reasoning written by code from its own
+    record (from_record), never a model's and never the outcome restated."""
     if not steps:
         return None
-    built = [EpisodeStep(n=i, state={"step": i, "move": _code(action.split(":")[0])}, action=action[:200], outcome=(out or None) and str(out)[:200], at=at)
-             for i, (at, action, out) in enumerate(steps)]
+    built = []
+    for i, step in enumerate(steps):
+        at, action, out = step[:3]
+        why = step[3] if len(step) > 3 and step[3] else None
+        built.append(EpisodeStep(n=i, state={"step": i, "move": _code(action.split(":")[0])}, action=action[:200],
+                                 outcome=(out or None) and str(out)[:200], at=at,
+                                 **({"reasoning": str(why)[:2000], "reasoning_source": "from_record"} if why else {})))
     more = list({r.provenance.entry: r.provenance for r in others if r.provenance.entry != first.provenance.entry}.values())
     return Episode(id=eid, model_type="m6_stepwise_decisions", split=first.split or split_of(key), provenance=first.provenance, more=more,
                    process=process, steps=built, outcome=(outcome or None) and str(outcome)[:200])
+
+
+def _move_why(previous: dict[str, Any]) -> Optional[str]:
+    """What the agent knew before a move: the previous move, the validator's verdict on it and the checks it failed (the
+    reason it moved on or tried again). Never the move's own verdict, which is its outcome."""
+    if not previous.get("move"):
+        return None
+    checks = ", ".join(map(str, previous.get("failed_checks") or []))
+    rules = ", ".join(map(str, previous.get("rules") or []))
+    return (f"Before this move: {previous.get('move')} from {previous.get('from')} to {previous.get('to')} was "
+            f"{previous.get('status')} by the workflow validator" + (f", failing {checks}" if checks else "")
+            + (f" (rules {rules})" if rules else "") + ".")
 
 
 def episodes(layout: Layout, choices: Optional[dict] = None) -> list[Episode]:
@@ -73,7 +92,10 @@ def episodes(layout: Layout, choices: Optional[dict] = None) -> list[Episode]:
             boards[(ws, str(r.body["walk"]))].append(r)
     for (ws, project), rs in sorted(moves.items()):
         rs.sort(key=lambda x: (str(x[1].get("at") or x[0].at), x[0].id))
-        steps = [(str(m.get("at") or r.at), f"{m.get('move')}:{m.get('from')}>{m.get('to')}", m.get("status")) for r, m in rs]
+        # each move's reasoning is what was known before it: the previous move's verdict and the checks it failed (why the
+        # agent moved on, or tried again), never this move's own verdict, which is its outcome (the review of C2)
+        steps = [(str(m.get("at") or r.at), f"{m.get('move')}:{m.get('from')}>{m.get('to')}", m.get("status"),
+                  _move_why(rs[i - 1][1]) if i else None) for i, (r, m) in enumerate(rs)]
         ep = _episode(f"m6:graph:{ws}:{project}", "graph", steps, rs[0][0], [r for r, _ in rs[1:]], rs[-1][1].get("to"), f"project:{project}")
         if ep:
             out.append(ep)
@@ -87,7 +109,9 @@ def episodes(layout: Layout, choices: Optional[dict] = None) -> list[Episode]:
         for at, stage in ran:
             b = p["stages"][stage]
             chosen = (b.get("evidence") or {}).get("selected_model") if stage == "models" else None
-            steps.append((at, f"{stage}:{_code(chosen)}" if chosen else stage, b.get("status")))
+            rule = (b.get("evidence") or {}).get("selection_rule")
+            steps.append((at, f"{stage}:{_code(chosen)}" if chosen else stage, b.get("status"),
+                          f"The stage {stage} chose by its rule: {str(rule)[:600]}" if rule else None))
         last = p["stages"][ran[-1][1]]
         ep = _episode(f"m6:stages:{ws}:{pid}", "stages", steps, records[ran[0][1]], [records[s] for _, s in ran[1:]],
                       "completed" if all(p["stages"][s].get("status") in DONE for _, s in ran) else last.get("status"), f"project:{pid}")
@@ -96,10 +120,16 @@ def episodes(layout: Layout, choices: Optional[dict] = None) -> list[Episode]:
     for (ws, walk), rs in sorted(boards.items()):  # a team's walk node by node
         rs.sort(key=lambda r: (r.at, r.id))
         steps = []
+        before = None  # the board as the previous node left it: what the team knew when it chose this node
         for r in rs:
             board = r.body.get("board") if isinstance(r.body.get("board"), dict) else {}
-            steps.append((r.at, f"{r.body.get('node')}:{r.body.get('what')}", f"{board.get('state')}; open {len(board.get('open_questions') or [])}; "
-                                                                            f"blockers {len(board.get('blockers') or [])}"))
+            open_q, blockers = len(board.get("open_questions") or []), len(board.get("blockers") or [])
+            why = None
+            if before is not None:
+                why = (f"The board before this step: {before.get('state')}, with {len(before.get('open_questions') or [])} questions open "
+                       f"and {len(before.get('blockers') or [])} blockers.")
+            steps.append((r.at, f"{r.body.get('node')}:{r.body.get('what')}", f"{board.get('state')}; open {open_q}; blockers {blockers}", why))
+            before = board
         thread = str(((rs[0].body.get("board") or {}).get("thread")) or walk)
         ep = _episode(f"m6:team:{ws}:{walk}", f"team/{_code(rs[0].body.get('team'))}", steps, rs[0], rs[1:],
                       str((rs[-1].body.get("board") or {}).get("state") or ""), thread)

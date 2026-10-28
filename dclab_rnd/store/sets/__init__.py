@@ -99,12 +99,16 @@ LOST_PREFIX = "lost before"
 def reasoning_counts(examples: Iterable[Any]) -> dict[str, int]:
     """How many answer turns (an assistant message, a trajectory's step, a pair's answer) carry reasoning, by its source:
     recorded, from_record, teacher, visible, replayed; ``lost`` (a note: lost before the rule), ``none`` (another stated
-    reason), and ``no_field`` for examples whose shape has no reasoning (decision rows today)."""
+    reason), ``missing`` (the field is there, with no reasoning and no note: a decision row or a step no source explains yet),
+    and ``no_field`` for examples whose shape has no reasoning."""
     out: Counter = Counter()
     for ex in examples:
         turns = [m for m in getattr(ex, "messages", None) or [] if getattr(m, "role", None) == "assistant"]
         turns += [s for s in getattr(ex, "steps", None) or []]
         turns += [x for x in (getattr(ex, "chosen", None), getattr(ex, "rejected", None)) if x is not None]
+        if not turns and hasattr(ex, "reasoning_source"):  # a decision row (v3): its own reasoning, or missing (never "none":
+            out[getattr(ex, "reasoning_source", None) or "missing"] += 1  # nothing was stated)
+            continue
         if not turns:
             out["no_field"] += 1
             continue
@@ -114,7 +118,7 @@ def reasoning_counts(examples: Iterable[Any]) -> dict[str, int]:
         for t in turns:
             source = getattr(t, "reasoning_source", None) or getattr(t, "thought_source", None)
             note = str(getattr(t, "no_reasoning", None) or getattr(t, "no_thought", None) or "")
-            out[source or ("lost" if note.startswith(LOST_PREFIX) else "none")] += 1
+            out[source or ("lost" if note.startswith(LOST_PREFIX) else "none" if note else "missing")] += 1  # missing: no reasoning, no note
     return dict(out)
 
 

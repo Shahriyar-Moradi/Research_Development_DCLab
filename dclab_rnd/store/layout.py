@@ -68,6 +68,10 @@ class Layout:
     def index(self, kind: str) -> Path:
         return self.raw(kind) / "index.jsonl"
 
+    def replays(self) -> Path:
+        """The backfill's replays: past calls asked again with thinking on, beside the original's id (not a raw kind)."""
+        return self.tier("raw") / "replays"
+
     def lock(self, kind: str) -> Path:
         return self.raw(kind) / ".lock"
 

@@ -53,7 +53,8 @@
                 "recorded",
                 "from_record",
                 "teacher",
-                "visible"
+                "visible",
+                "replayed"
               ],
               "type": "string"
             },
@@ -222,9 +223,9 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.chat_example.v2.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.chat_example.v3.json",
   "additionalProperties": false,
-  "description": "M4, M5: messages as the model is trained, every assistant turn with its labelled reasoning, and the tools the model\nwas offered (v2: ``tools``, ``Message.tool_call_id`` and the ``visible`` reasoning source; v1 reads, its tools unknown).",
+  "description": "M4, M5: messages as the model is trained, every assistant turn with its labelled reasoning, and the tools the model\nwas offered (v2: ``tools``, ``Message.tool_call_id`` and the ``visible`` reasoning source; v1 reads, its tools unknown;\nv3: the ``replayed`` reasoning source; v1 and v2 read).",
   "properties": {
     "check": {
       "additionalProperties": true,
@@ -269,8 +270,8 @@
       "$ref": "#/$defs/Provenance"
     },
     "schema_version": {
-      "const": "dclab_core.chat_example.v2",
-      "default": "dclab_core.chat_example.v2",
+      "const": "dclab_core.chat_example.v3",
+      "default": "dclab_core.chat_example.v3",
       "title": "Schema Version",
       "type": "string"
     },
