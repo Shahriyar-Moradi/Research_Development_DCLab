@@ -4,6 +4,14 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.140.0 (2026-10-29)
+
+- `variants` (31.3): a sealed variant of the groups family draws its domain from `SEALED_SKINS`, eight domains written by
+  an independent agent that read no file of the repository, pinned by `SEALED_SKINS_SHA256`; no column name is shared with
+  the practice skins, and the key's knobs say `skins: sealed_v1`. Learning and check variants are unchanged byte for byte
+  (80 seeds compared). `family_names` includes the sealed names, so no lesson may name one. The sealed set had never been
+  read.
+
 ## 0.139.0 (2026-10-29)
 
 - `lesson` (31.5): `Lesson` v1, a lesson drawn from a graded attempt with its gap type (knowledge, reasoning, decision,

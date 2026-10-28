@@ -1202,6 +1202,14 @@ door with kinds of help at the pinned commit, so it produces none (`KINDS_MISSIN
 names per conversation and record the outcome on each change. Only kept or changed confirms the route taken (a person's
 label on the exit and the reading); refused and asked again are outcomes, never a guessed right answer.
 
+## Lessons with their gap type (31.5, dclab-core 0.139.0)
+
+`dclab_core.lesson.Lesson` is a lesson drawn from a graded attempt, with the kind of gap it shows (knowledge, reasoning,
+decision, rule, capability, data), the route that gap takes and the evidence (pack, trace, grader, code); a rule or
+capability gap is acted on only once a person confirmed it. Where it goes there: nowhere yet; the main product runs no
+learning loop at the pinned commit. If it adopts one, store lessons beside its decision labels and let only a person
+confirm the gaps that lead to code.
+
 ## The learning loop's record (31.17, dclab-core 0.138.0)
 
 `dclab_core.loop_record.LoopRecord` is one turn of DCLab's learning loop on its invented challenge packs: the pack (its id

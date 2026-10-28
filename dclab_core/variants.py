@@ -8,7 +8,9 @@ The first family, ``groups`` (duplicate and group leakage): each entity (a custo
 has several rows, and a lasting risk of its own that the row's features explain only in part, so a random split lets
 validation score rows of the entities it trained on. The knobs, drawn from the seed:
 
-* the domain skin (retail returns, clinic visits, loans, support tickets) and the task (binary or regression);
+* the domain skin (retail returns, clinic visits, loans, support tickets) and the task (binary or regression); a sealed
+  variant draws from :data:`SEALED_SKINS` instead, eight domains written by an independent agent, so no column name a
+  learner practised on reaches the exam (LRN-008 found names memorised across skins);
 * how many entities and rows per entity, and a share of exact copies of an entity's rows;
 * whether the entity's key has a key-like name (``customer_id``) or a plain one (``household``): a rule that finds
   group keys by name sees only the first;
@@ -73,6 +75,18 @@ SKINS = (
 )
 
 
+SEALED_SKINS = (  # written by an independent agent that read no file of this repository (2026-10-29): sealed variants only
+    Skin("policyholder_id", "policyholder", "PH", "claim", "claim_number", "claim_denied", "days_to_payout", "settled_payout_amount", "adjuster_hours", "prior_denied_claims", "coverage_level", "claimed_amount", "filing_channel", "filed_at"),
+    Skin("flyer_number", "traveler", "FF", "reservation", "pnr_code", "no_show", "rebooking_fee", "refunded_fare_total", "voucher_value", "past_cancelled_trips", "loyalty_status", "ticket_fare", "booking_platform", "reserved_at"),
+    Skin("subscriber_no", "subscriber", "SB", "contract", "contract_id", "ported_out", "data_overage_gb", "final_bill_amount", "service_credit_eur", "previous_disconnections", "plan_tier", "monthly_charge", "activation_channel", "activated_at"),
+    Skin("shipper_code", "shipper", "SH", "shipment", "waybill_no", "delivered_late", "hours_delayed", "post_delivery_claim_value", "handling_surcharge", "past_lost_parcels", "account_grade", "declared_weight_kg", "pickup_mode", "dispatched_at"),
+    Skin("learner_id", "learner", "LN", "enrollment", "enrollment_no", "dropped_out", "modules_completed", "final_exam_grade", "tutor_minutes", "prior_withdrawn_courses", "subscription_level", "course_fee", "signup_source", "enrolled_at"),
+    Skin("patron_id", "patron", "PT", "session", "session_id", "session_missed", "minutes_attended", "penalty_after_absence", "trainer_rating", "past_missed_sessions", "membership_plan", "session_price", "booking_method", "requested_at"),
+    Skin("renter_code", "renter", "RN", "rental", "agreement_no", "returned_damaged", "extra_km_driven", "damage_charge_settled", "fuel_topup_litres", "prior_damage_reports", "driver_tier", "daily_rate", "reservation_source", "rental_started_at"),
+    Skin("debtor_code", "client_company", "AC", "invoice", "invoice_number", "paid_late", "days_past_due", "collected_post_due", "discount_taken", "past_written_off_invoices", "credit_band", "invoice_total", "billing_channel", "issued_at"),
+)
+SEALED_SKINS_SHA256 = "4b5bad0285e577f0d8c7867c66af1dfdf7a06516909af5e7208580673b20a31c"  # the sealed skins pinned: a change is a new sealed set
+
 def token() -> str:
     """An opaque pack id: never derived from the seed, so a solver cannot draw the key again from it."""
     return f"pk-{secrets.token_hex(6)}"
@@ -81,7 +95,9 @@ def token() -> str:
 def groups(seed: int, pack: str | None = None) -> Variant:
     """One variant of the duplicate and group leakage family; ``pack`` its id (a fresh token by default)."""
     rng = np.random.default_rng(seed)
-    skin = SKINS[int(rng.integers(len(SKINS)))]
+    sealed = partition_of("groups", seed) == "sealed"
+    pool = SEALED_SKINS if sealed else SKINS  # the exam's domains are its own: no name a learner practised on reaches it
+    skin = pool[int(rng.integers(len(pool)))]
     task = "binary" if rng.random() < 0.7 else "regression"
     key_name = "id" if rng.random() < 0.5 else "plain"
     leak_name = "worded" if rng.random() < 0.5 else "plain"
@@ -156,7 +172,7 @@ def groups(seed: int, pack: str | None = None) -> Variant:
                        group_column=key_column, row_key=skin.row_key, decoys=[skin.decoy] if with_decoy else [],
                        known_before=honest, time_column=skin.created if timed else None,
                        duplicate_rows=copies,
-                       knobs={"skin": skin.row, "task": task, "key_name": key_name, "leak_name": leak_name, "duplicates": duplicates,
+                       knobs={"skin": skin.row, **({"skins": "sealed_v1"} if sealed else {}), "task": task, "key_name": key_name, "leak_name": leak_name, "duplicates": duplicates,
                               "decoy": with_decoy, "timed": timed, "entities": entities, "rows": len(frame), "generator": VERSION})
     return Variant(frame, csv, pack_, key)
 
@@ -178,7 +194,7 @@ def family_names(family: str) -> list[str]:
     whole family must name none of them (a skin's names repeat across the learning, check and sealed variants)."""
     if family != "groups":
         raise KeyError(f"no names known for the family {family!r}")
-    return sorted({getattr(s, f) for s in SKINS for f in Skin.__dataclass_fields__} | set(SHARED))
+    return sorted({getattr(s, f) for s in (*SKINS, *SEALED_SKINS) for f in Skin.__dataclass_fields__} | set(SHARED))
 
 
 def seeds(family: str, partition: str, count: int, start: int = 0) -> list[int]:
@@ -202,4 +218,4 @@ def reference(key: ChallengeKey) -> dict[str, Any]:
     return statements
 
 
-__all__ = ["VERSION", "Variant", "Skin", "SKINS", "SHARED", "family_names", "token", "groups", "FAMILIES", "generate", "seeds", "reference"]
+__all__ = ["VERSION", "Variant", "Skin", "SKINS", "SEALED_SKINS", "SEALED_SKINS_SHA256", "SHARED", "family_names", "token", "groups", "FAMILIES", "generate", "seeds", "reference"]

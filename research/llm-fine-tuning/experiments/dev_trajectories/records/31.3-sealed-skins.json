@@ -1,0 +1,31 @@
+{
+ "package": "31.3 sealed skins",
+ "title": "The sealed variants get domains of their own, written by an independent agent",
+ "date": "2026-10-29",
+ "request": "The owner: do the rest of the plan non-stop; the survey of phase 9 found the sealed variants drawn from the same four skins as practice, and LRN-008 found column names memorised across skins.",
+ "spec": "PHASE9_LEARNING_LOOP_PLAN.md 31.3: three sets near 5:3:2, the sealed one generated independently; Part I: an independent agent that never read the rules or the lessons writes the sealed variants.",
+ "plan": ["Read how a skin is defined", "Brief an independent writer with the generator's interface only", "Check its names against the practice skins",
+          "Wire the skins into sealed variants only", "Prove practice and check unchanged", "Pin and test"],
+ "decisions": [
+  {"decision": "Only the sealed partition changes", "why": "practice and check variants and their stored baselines stay exactly as they were; the sealed set was never read, so changing it now spends nothing"},
+  {"decision": "The writer read no file", "why": "independence: it saw neither the rules, the lessons nor the existing skins, only the fields' roles"},
+  {"decision": "Clashing names sent back to the same writer", "why": "two names matched practice names; fixing them myself would have broken the independence"},
+  {"decision": "The sealed names join family_names", "why": "the lesson screen then refuses any lesson naming a sealed column"}
+ ],
+ "change": "dclab_core/variants.py (SEALED_SKINS, SEALED_SKINS_SHA256, the sealed pick, the knob, family_names; dclab-core 0.140.0); tests/test_sealed_skins.py; the plan's status.",
+ "findings": [
+  {"id": "F1", "source": "measurement", "severity": "leakage", "defect": "The writer's first draft reused two practice names",
+   "scenario": "Checking the eight skins against the practice skins' names.",
+   "cause": "The writer did not see the practice skins (by design), and two common names (a sales channel, an account number) matched.",
+   "fix": "The writer replaced them, given the list of names to avoid.",
+   "test": "tests/test_sealed_skins.py test_no_name_is_shared_between_practice_and_the_exam"}
+ ],
+ "measurements": [
+  {"name": "practice and check variants against the previous generator", "gate": "every table and key identical, byte for byte",
+   "result": "80 of 80 identical (40 learning, 40 check seeds)", "verdict": "pass"}
+ ],
+ "outcome": "Sealed variants now test DCLab on domains whose names it never practised on, while practice and check are unchanged.",
+ "lessons": ["An exam drawn from the practice generator tests memory of names as much as skill: change the surface, keep the trap."],
+ "risks": ["The generator's structure (the same columns' roles and signal) is shared by every partition; an independent structure is a later step."],
+ "commits": []
+}

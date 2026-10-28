@@ -399,8 +399,9 @@ its development record, the gate, capture in its "Done when", gates fixed before
 
 **Status by package (2026-10-29).** 31.1 partial (packs generated, not converted from the replicas; no hand-made packs
 or rubric files). 31.2 mostly done (grader_v1 with codes and the gaming traces; no outcome score scaled between baseline and
-target, no weighted rubric). 31.3 partial (the groups family, 4 skins; the sealed set comes from the same generator, not an
-independent writer; LRN-008 found names memorised across skins). 31.4 partial (the baseline LRN-001 check 7 of 20 and LRN-002
+target, no weighted rubric). 31.3 partial (the groups family, 4 practice skins; since 2026-10-29 the sealed variants draw from 8 skins of their own,
+written by an independent agent that read no file, pinned by hash, no name shared with practice (LRN-008 had found names
+memorised across skins); the generator's structure is still the same for every partition). 31.4 partial (the baseline LRN-001 check 7 of 20 and LRN-002
 learning 3 of 20, from before fix fa6be0a6; no `make curriculum`, no per-family row beside `capability.json`). 31.5 partial
 (first wrong step, rules drafter, capped reflector; since 2026-10-29 `dclab_core/lesson.py`: `Lesson` v1 with its gap
 type, route and evidence, the rules' proposal from a grader code (`rule:gaps_v1`), a rule or capability gap acted on only
