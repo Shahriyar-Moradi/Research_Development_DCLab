@@ -28,7 +28,7 @@
  "findings": [
   {
    "id": "F1",
-   "source": "own",
+   "source": "self",
    "severity": "behaviour",
    "defect": "Agreement was judged by exact match, so almost no replay counted as the same answer.",
    "scenario": "The first 5 replays: 0 agreed, though the replies had the same tool calls and nearly the same words.",
@@ -38,7 +38,7 @@
   },
   {
    "id": "F2",
-   "source": "own",
+   "source": "self",
    "severity": "behaviour",
    "defect": "3 replays failed with RuntimeError and were skipped; the run went on.",
    "scenario": "Three calls of 216 raised RuntimeError in the gateway; they have no replay row.",
@@ -52,7 +52,7 @@
    "name": "Paid replay of the kept calls without thinking",
    "gate": "cap EUR 3.9; agreement by same_decision",
    "result": "216 calls sent of 221 planned (9 already done, 6 without originals); 80 agreed (37%); spent $1.593 of the cap; 3 RuntimeErrors.",
-   "verdict": "measured"
+   "verdict": "not scored"
   }
  ],
  "outcome": "80 of 216 replayed calls gave the same decision and carry replayed thinking (weight 0.5); the other 136 disagreed and keep their shape only, so their thinking is not attached to the original answer.",
