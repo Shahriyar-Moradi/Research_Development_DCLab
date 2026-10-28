@@ -223,5 +223,126 @@ class FlowTests(AnswerTests):
         self.assertNotIn("Ignore all rules", said)
 
 
+class ControlsTests(AnswerTests):
+    """H7c: the person changes an answer by code, saves it, and takes the saved answers away as a notebook that
+    reproduces them."""
+
+    def test_an_edit_is_applied_by_code_and_a_value_not_offered_is_refused(self):
+        agent, d = self.ask("What was the average monthly spend per plan?", "customers")
+        offered = next(m for m in d["messages"] if m.get("kind") == "answer")["answer"]["edits"]
+        self.assertIn("median", offered["ops"])
+        self.assertIn("city", offered["splits"])
+        self.assertNotIn("customer_id", offered["splits"])  # never an identifier
+        agent.edit_answer(d["id"], 0, {"op": "median"})
+        agent.edit_answer(d["id"], 1, {"split": "city"})
+        d = self.store.get(d["id"])
+        self.assertEqual([a["by"] for a in d["answers"]], ["rules", "edit", "edit"])
+        self.assertEqual(d["answers"][2]["edited_from"], 1)
+        last = [m for m in d["messages"] if m.get("kind") == "answer"][-1]["text"]
+        self.assertTrue(last.startswith("Median of monthly_spend by city"))
+        t = tables.build("customers")
+        for city, value in t.groupby("city")["monthly_spend"].median().items():
+            if (t.city == city).sum() >= 5:
+                self.assertIn(f"{city} {value:,.2f}".rstrip("0").rstrip("."), last)
+        for change in ({"op": "drop table"}, {"split": "customer_id"}, {"grain": "minute"}):
+            with self.assertRaises(ValueError):
+                agent.edit_answer(d["id"], 0, change)
+        with self.assertRaises(ValueError):
+            agent.edit_answer(d["id"], 9, {"op": "sum"})
+
+    def test_saved_answers_leave_as_a_notebook_that_reproduces_them(self):
+        import io
+        import zipfile
+
+        from dclab_rnd import home_notebook
+        agent, d = self.ask("What was the average monthly spend per plan?", "customers")
+        with self.assertRaises(ValueError):
+            home_notebook.archive(self.store, self.store.get(d["id"]))  # nothing saved yet
+        agent.edit_answer(d["id"], 0, {"split": "city"})
+        agent.save_answer(d["id"], 0)
+        agent.save_answer(d["id"], 1)
+        z = zipfile.ZipFile(io.BytesIO(home_notebook.archive(self.store, self.store.get(d["id"]))))
+        out = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, out, True)
+        z.extractall(out)
+        nb = json.loads((out / "answers.ipynb").read_text())
+        self.assertEqual(home_notebook.check(nb, out), 2)
+        self.assertNotIn("C-0", json.dumps(nb))  # no customer, no row in the notebook
+
+    def test_the_model_answers_through_its_tool_and_never_sees_a_number(self):
+        from dclab_rnd.draft.chat import Turn, query_data, save_answer, make_chart
+        agent, d = self.ask("What was the average monthly spend per plan?", "customers")
+        turn = Turn(agent, d["id"])
+        out = query_data(turn, plan={"group_by": ["city"], "measures": [{"name": "spend", "op": "sum", "column": "monthly_spend"}]})
+        self.assertTrue(out["answered"])
+        self.assertEqual(set(out), {"answered", "answer"})  # nothing about the table reaches the model, not even hidden-group counts
+        self.assertIn("error", query_data(turn, plan={"group_by": ["customer_id"], "measures": [{"name": "n", "op": "count"}]}))
+        self.assertIn("error", query_data(turn, plan={"measures": "rows please"}))
+        self.assertEqual(make_chart(turn, answer=out["answer"])["kind"], "bar")
+        save_answer(turn, answer=out["answer"])
+        self.assertTrue(self.store.get(d["id"])["answers"][out["answer"]]["saved"])
+        self.assertEqual(self.store.get(d["id"])["answers"][out["answer"]]["by"], "model")
+
+    def test_the_guard_refuses_answers_off_track_before_the_table_and_for_a_missing_answer(self):
+        from dclab_rnd.agents import default_registry
+        from dclab_rnd.draft.chat import DraftGuard, Turn
+        query, save = default_registry().get("query_data"), default_registry().get("save_answer")
+        guard = DraftGuard()
+        agent, d = self.ask("What was the average monthly spend per plan?", "customers")
+        turn = Turn(agent, d["id"])
+        self.assertIsNone(guard.refusal(query, turn, {"plan": {}}))
+        self.assertIsNone(guard.refusal(save, turn, {"answer": 0}))
+        self.assertIn("error", guard.refusal(save, turn, {"answer": 7}))
+        self.store.update(d["id"], lambda x: x.update(messages=[m for m in x["messages"] if m.get("kind") != "analysis"]))
+        self.assertIn("error", guard.refusal(query, turn, {"plan": {}}))  # the table not described yet
+        p = self.store.create("Predict which customers will churn next month")
+        HomeAgent(self.store, None, on_request=lambda *a: None).start(p["id"])
+        self.assertIn("error", guard.refusal(query, Turn(agent, p["id"]), {"plan": {}}))  # a prediction: no answers from the table
+
+    def test_removing_the_grain_keeps_the_period_dates(self):
+        from dclab_rnd import home_query
+        cols = [{"name": "order_date", "kind": "datetime"}, {"name": "amount", "kind": "numeric"}]
+        plan = {"measures": [{"name": "t", "op": "sum", "column": "amount"}], "period": {"column": "order_date", "grain": "month", "end": "2025-06-30"}}
+        out = home_query.edit_plan(plan, {"grain": ""}, cols)
+        self.assertEqual((out.period.grain, out.period.end), ("year", "2025-06-30"))
+
+
+class ControlsApiTests(unittest.TestCase):
+    def setUp(self):
+        import os
+        from unittest import mock
+        try:
+            from fastapi.testclient import TestClient
+            from dclab_rnd.agentic.server import create_app
+        except ImportError as error:
+            self.skipTest(f"Studio dependencies not installed: {error}")
+        env = mock.patch.dict(os.environ, {"OPENAI_API_KEY": "", "ANTHROPIC_API_KEY": ""})
+        env.start()
+        self.addCleanup(env.stop)
+        self.client = TestClient(create_app(Path(tempfile.mkdtemp())))
+        self.client.__enter__()
+        self.addCleanup(self.client.__exit__, None, None, None)
+        self.h = {"X-DCLab-Token": self.client.get("/api/config").json()["csrf"]}
+
+    def test_save_edit_and_notebook_routes(self):
+        import time
+        c = self.client
+        d = c.post("/api/drafts", json={"problem": "What was the average monthly spend per plan?"}, headers=self.h).json()
+        body = tables.build("customers").to_csv(index=False).encode()
+        self.assertEqual(c.put(f"/api/drafts/{d['id']}/data?filename=customers.csv", content=body,
+                               headers={**self.h, "Content-Type": "application/octet-stream"}).status_code, 200)
+        for _ in range(300):
+            if c.get(f"/api/drafts/{d['id']}").json().get("answers"):
+                break
+            time.sleep(0.1)
+        self.assertEqual(c.get(f"/api/drafts/{d['id']}/answers/notebook").status_code, 422)  # nothing saved
+        self.assertEqual(c.post(f"/api/drafts/{d['id']}/answers/0/edit", json={"op": "max", "split": "city"}, headers=self.h).status_code, 422)
+        self.assertEqual(c.post(f"/api/drafts/{d['id']}/answers/0/edit", json={"split": "customer_id"}, headers=self.h).status_code, 422)
+        self.assertEqual(len(c.post(f"/api/drafts/{d['id']}/answers/0/edit", json={"op": "max"}, headers=self.h).json()["answers"]), 2)
+        self.assertTrue(c.post(f"/api/drafts/{d['id']}/answers/1/save", json={}, headers=self.h).json()["answers"][1]["saved"])
+        nb = c.get(f"/api/drafts/{d['id']}/answers/notebook")
+        self.assertEqual((nb.status_code, nb.headers["content-type"]), (200, "application/zip"))
+
+
 if __name__ == "__main__":
     unittest.main()

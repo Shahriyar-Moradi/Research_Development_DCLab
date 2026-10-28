@@ -557,6 +557,42 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(422, str(exc)) from None
         return drafts.get(draft_id)
 
+    @router.post("/api/drafts/{draft_id}/answers/{n}/save", response_model=Draft)
+    async def save_answer(draft_id: str, n: int, payload: AnyObject):
+        """H7c: the person keeps an answer for the notebook export (saved: false lets it go)."""
+        get(draft_id)
+        try:
+            await asyncio.to_thread(agent(draft_id).save_answer, draft_id, n, bool(dump(payload).get("saved", True)))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        return drafts.get(draft_id)
+
+    @router.post("/api/drafts/{draft_id}/answers/{n}/edit", response_model=Draft)
+    async def edit_answer(draft_id: str, n: int, payload: AnyObject):
+        """H7c: one control changes an answer (op, split or grain), applied by code; the new answer joins the chat."""
+        get(draft_id)
+        change = {k: v for k, v in dump(payload).items() if k in ("op", "split", "grain")}
+        if len(change) != 1:
+            raise HTTPException(422, "Change one thing at a time: op, split or grain")
+        try:
+            await asyncio.to_thread(agent(draft_id).edit_answer, draft_id, n, change)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        return drafts.get(draft_id)
+
+    @router.get("/api/drafts/{draft_id}/answers/notebook", response_class=Response, responses=download("application/zip"))
+    async def answers_notebook(draft_id: str):
+        """H7c: the saved answers as a notebook beside the cleaned table; running it computes each answer again and checks
+        it against the numbers the chat showed."""
+        from .. import home_notebook
+
+        draft = get(draft_id)
+        try:
+            body = await asyncio.to_thread(home_notebook.archive, drafts, draft)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        return Response(body, media_type="application/zip", headers={"Content-Disposition": 'attachment; filename="answers.zip"'})
+
     @router.put("/api/drafts/{draft_id}/data", response_model=Doc, openapi_extra=OCTET)
     async def upload(draft_id: str, request: Request, filename: str):
         get(draft_id)

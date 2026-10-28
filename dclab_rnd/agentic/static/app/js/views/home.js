@@ -309,7 +309,24 @@ DC.view('home', {
       if (S.draft && CHATS.includes(S.draft.status) && $('#home-task', el).value.trim() !== S.draft.problem) { S.draft = null; remember(null); }
       try { await ensureDraft(); $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { if (e.message !== 'no problem') toast(e.message, { ok: false }); }
     });
+    // H7c: an answer's controls, applied by code on the server (no model): one change makes a new answer below
+    el.addEventListener('change', async e => {
+      const sel = e.target.closest('[data-answer-edit]');
+      if (!sel || !S.draft) return;
+      sel.disabled = true;
+      try { await DC.client.editAnswer(S.draft.id, Number(sel.dataset.n), { body: { [sel.dataset.answerEdit]: sel.value } }); }
+      catch (err) { toast(err.message, { ok: false }); }
+      sel.value = sel.dataset.cur;  // this answer stays as it was: the change is a new answer below
+      sel.disabled = false;
+    });
     el.addEventListener('click', async e => {
+      const keep = e.target.closest('[data-answer-save]');
+      if (keep && S.draft) {
+        keep.disabled = true;
+        try { const d = await DC.client.saveAnswer(S.draft.id, Number(keep.dataset.answerSave), { body: { saved: true } }); S.draft.answers = d.answers; keep.textContent = 'Saved'; toast('Saved: it is in the notebook of saved answers.'); }
+        catch (err) { keep.disabled = false; toast(err.message, { ok: false }); }
+        return;
+      }
       const ex = e.target.closest('[data-example]');
       if (ex) { $('#home-task', el).value = ex.dataset.example; $('#home-task', el).focus(); }
       const mb = e.target.closest('[data-map-build]');
@@ -569,9 +586,18 @@ DC.view('home', {
           + (ys.length ? DC.charts.line(series, { width: 560, height: 220, xMin: 0, xMax: Math.max(1, c.x.length - 1), yMin: Math.min(0, ...ys), yMax: Math.max(...ys) || 1,
             xTicks: c.x.map((_, i) => i).filter(i => i % step === 0), xFmt: i => esc(c.x[i] || ''), yFmt: v => numText(v, 0), aria: c.title }) : '');
       }
+      const ed = a.edits || {}, n = a.n;
+      const OPN = { sum: 'total', mean: 'average', median: 'median', min: 'smallest', max: 'largest' };
+      const pick = (kind, label, cur, opts, none) => opts.length ? `<label class="row xs muted" data-style="gap:6px">${esc(label)}<select class="sm" data-answer-edit="${esc(kind)}" data-n="${esc(n)}" data-cur="${esc(cur || '')}">`
+        + (none ? [['', none]] : []).concat(opts.map(o => [o, kind === 'op' ? (OPN[o] || o) : o])).map(([v, t]) => `<option value="${esc(v)}"${v === (cur || '') ? ' selected' : ''}>${esc(t)}</option>`).join('')
+        + '</select></label>' : '';
+      const isSaved = S.draft && ((S.draft.answers || [])[n] || {}).saved;
+      const controls = n == null ? '' : `<div class="row small" data-style="gap:10px;flex-wrap:wrap">${pick('op', 'Measure', ed.op, ed.ops || [], '')}${pick('split', 'Split by', ed.split, ed.splits || [], 'nothing')}${pick('grain', 'Over time', ed.grain, ed.grains || [], 'no')}`
+        + `<button type="button" class="btn sm" data-answer-save="${esc(n)}"${isSaved ? ' disabled' : ''}>${isSaved ? 'Saved' : 'Save answer'}</button>`
+        + `<a class="btn sm ghost" href="${esc(DC.client.href.answersNotebook(S.draft ? S.draft.id : ''))}" download>Notebook of saved answers</a></div>`;
       const held = c.suppressed_groups ? `<div class="small muted">${c.suppressed_groups} group${c.suppressed_groups === 1 ? '' : 's'} with too few rows ${c.suppressed_groups === 1 ? 'is' : 'are'} not shown.</div>` : '';
       return `<div class="inset stack tight" data-answer-card="${esc(c.kind)}"><div class="eyebrow">${esc(c.title)}</div>${fig || grid}${held}`
-        + (fig ? `<details class="small"><summary>The numbers</summary>${grid}</details>` : '') + '</div>';
+        + (fig ? `<details class="small"><summary>The numbers</summary>${grid}</details>` : '') + controls + '</div>';
     }
 
     function renderMessage(m) {

@@ -235,6 +235,56 @@ def plan_from_brief(brief: dict[str, Any], columns: list[dict[str, Any]], questi
         return None, f"the plan could not be made ({type(error).__name__})"
 
 
+EDIT_OPS = ("sum", "mean", "median", "min", "max")
+EDIT_GRAINS = ("day", "week", "month", "quarter", "year")
+MAX_SPLITS = 12
+
+
+def _splits(columns: list[dict[str, Any]]) -> list[str]:
+    """Columns a person may split an answer by: a category or a yes/no, never personal, never an identifier."""
+    return [c["name"] for c in columns if c.get("kind") in ("categorical", "boolean") and not Q.ID_NAME.search(str(c["name"]))
+            and str(c.get("sensitivity") or "none") not in SENSITIVE][:MAX_SPLITS]
+
+
+def edits(plan: Q.QueryPlan, columns: list[dict[str, Any]]) -> dict[str, Any]:
+    """H7c: the controls an answer offers, all applied by code: another operation (on a numeric measure), another split
+    (or none), another time grain (or none) on the one date column."""
+    m = plan.measures[0]
+    when = [c["name"] for c in columns if c.get("kind") == "datetime"]
+    return {"op": m.op, "ops": list(EDIT_OPS) if m.op in EDIT_OPS and m.column else [],
+            "split": plan.group_by[0] if plan.group_by else "", "splits": _splits(columns),
+            "grain": plan.period.grain if plan.period else "", "grains": list(EDIT_GRAINS) if len(when) == 1 else []}
+
+
+def edit_plan(plan: dict[str, Any], change: dict[str, Any], columns: list[dict[str, Any]]) -> Q.QueryPlan:
+    """H7c: a plan changed by one control, by code (no model): the operation, the split, or the time grain. A value the
+    controls do not offer is refused (ValueError); the period's dates stay as they were."""
+    old = Q.QueryPlan.model_validate(plan)
+    offered = edits(old, columns)
+    data = old.model_dump(mode="json")
+    m = data["measures"][0]
+    if "op" in change:
+        if change["op"] not in offered["ops"]:
+            raise ValueError("That operation is not offered for this answer")
+        m["op"] = change["op"]
+    if "split" in change:
+        split = str(change["split"] or "")
+        if split and split not in offered["splits"]:
+            raise ValueError("That column cannot split an answer")
+        data["group_by"] = [split] if split else []
+    if "grain" in change:
+        grain = str(change["grain"] or "")
+        if grain and grain not in offered["grains"]:
+            raise ValueError("That time grain is not offered for this table")
+        when = [c["name"] for c in columns if c.get("kind") == "datetime"]
+        data["period"] = ({**(data.get("period") or {}), "column": when[0], "grain": grain} if grain else
+                          ({**data["period"], "grain": "year"} if data.get("period") and (data["period"].get("start") or data["period"].get("end"))
+                           else None))  # a period's dates stay: only the grain goes (the review of H7c)
+    m["name"] = {"count": "rows", "count_distinct": f"distinct {m.get('column')}"}.get(m["op"], f"{OP_WORDS.get(m['op'], m['op'])} {m.get('column')}")
+    data["sort"] = [{"by": data["period"]["column"], "desc": False}] if data.get("period") else [{"by": m["name"], "desc": True}]  # time in order
+    return Q.QueryPlan.model_validate(data)
+
+
 def sensitive_columns(plan: Q.QueryPlan, columns: list[dict[str, Any]]) -> list[str]:
     """The plan's columns the studio marks as personal (a model's plan is checked too)."""
     marked = {c["name"] for c in columns if str(c.get("sensitivity") or "none") in SENSITIVE}

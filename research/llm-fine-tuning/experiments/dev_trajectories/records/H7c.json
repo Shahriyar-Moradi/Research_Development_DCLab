@@ -1,0 +1,120 @@
+{
+ "package": "H7c",
+ "title": "A person changes an answer by code, keeps it, and takes the kept answers away as a notebook that reproduces them; Home's model answers through tools",
+ "date": "2026-10-28",
+ "request": "The owner's goal: Home serves people who want analysis and BI from their data; H7's plan text: tools query_data, make_chart, save_answer; edit controls change the plan without a model; saved answers export as a notebook that reproduces every saved answer.",
+ "spec": "Package H7, part c: one give_answer step for every answer (rules, model tool, edit); controls (operation, split, time grain) applied by code; Save; GET answers/notebook as a zip of the notebook and the checked cleaned table; the model's three tools in the draft scope behind the draft guard, query_data telling the model only that an answer was given.",
+ "plan": [
+  "One give_answer for every way an answer is given.",
+  "edits/edit_plan in home_query; save/edit/notebook routes; controls on the page.",
+  "home_notebook: the notebook runs each saved plan through dclab_core.query on clean.parquet and asserts the shown numbers.",
+  "The three tools, guarded; review adversarially."
+ ],
+ "decisions": [
+  {
+   "decision": "An edit is applied by code from a fixed list of controls; a value not offered is refused.",
+   "why": "The plan says edits change the plan without a model; a free-form edit would be a new question, which the brief and the model handle."
+  },
+  {
+   "decision": "The notebook re-runs each plan with the same engine and asserts the numbers the chat showed.",
+   "why": "'Reproduces every saved answer' must be checked, not claimed; a changed table fails loudly."
+  },
+  {
+   "decision": "query_data returns to the model whether it answered, the answer's number and how many groups, never a value.",
+   "why": "The person gets the numbers from code; no table value reaches the model."
+  },
+  {
+   "decision": "Only answers from the table in use go into the notebook; others are listed as left out.",
+   "why": "The zip holds one table; an answer from another cannot be computed again from it."
+  }
+ ],
+ "change": "dclab_rnd/draft/chat.py (give_answer, save_answer, edit_answer; query_data, make_chart, save_answer tools; guard); dclab_rnd/home_query.py (edits, edit_plan); dclab_rnd/home_notebook.py (new); dclab_rnd/draft/api.py (three routes); agentic/web/src/views/home.html (controls); tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "After an edit, the original answer's menu showed the new value.",
+   "scenario": "Split by city on the plan answer: the first card's menu read 'city' while it still showed plans.",
+   "cause": "The select kept the chosen value.",
+   "fix": "The menu returns to its own answer's value; the change is a new answer below.",
+   "test": "checked on the real server (built-in browser)"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Removing the time grain dropped an end date.",
+   "scenario": "A period ending 2025-06-30, edited to no grain, answered over all dates.",
+   "cause": "The period was kept only when it had a start.",
+   "fix": "Kept when it has a start or an end; only the grain goes.",
+   "test": "tests/test_home_answer.py::ControlsTests::test_removing_the_grain_keeps_the_period_dates"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The model's tool result told it how many small groups were hidden.",
+   "scenario": "Repeating a plan filtered on one hidden row and a moving threshold recovered that row's amount (12345.67) in forty calls.",
+   "cause": "query_data returned groups and suppressed_groups.",
+   "fix": "query_data returns only whether it answered and the answer's number.",
+   "test": "tests/test_home_answer.py::ControlsTests::test_the_model_answers_through_its_tool_and_never_sees_a_number"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Two answers at once could swap numbers.",
+   "scenario": "Two edits at the same time: the first message pointed at the second answer, so its Save changed the wrong one.",
+   "cause": "The number was re-read as the list's length after the update.",
+   "fix": "The number set inside the update is used.",
+   "test": "review: traced by hand; the update sets n atomically"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The guard's new checks had no test.",
+   "scenario": "Deleting the answer guard failed no test.",
+   "cause": "Tests called the tool functions directly.",
+   "fix": "A test runs the guard: off the analysis track, before the table is described, a missing answer.",
+   "test": "tests/test_home_answer.py::ControlsTests::test_the_guard_refuses_answers_off_track_before_the_table_and_for_a_missing_answer"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The page on the real server",
+   "gate": "an edit makes a new answer, Save marks it, the notebook downloads",
+   "fixed_before_run": true,
+   "result": "Split by city answered below the plan answer; Saved shown; answers.zip downloaded (200, application/zip)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "by hand in the built-in browser"
+   ]
+  },
+  {
+   "name": "The notebook reproduces saved answers",
+   "gate": "every saved answer reproduces; a changed table fails",
+   "fixed_before_run": true,
+   "result": "2 of 2 saved answers reproduced from the exported zip; a doubled amount column fails the check",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "tests on the replica tables"
+   ]
+  }
+ ],
+ "outcome": "A person can change an answer without typing, keep the answers that matter, and take them away as a notebook that computes them again and proves they match.",
+ "lessons": [
+  "A claim like 'reproduces' belongs in the artefact as an assertion, so the person can check it too.",
+  "A tool's result to a model is a channel too: even a count of hidden groups leaks what the floor hides."
+ ],
+ "risks": [
+  "Model-written sentences behind cited.py are not built; code templates answer.",
+  "Two answers on one table can be subtracted to show a hidden small group (a split, then no split); only the person sees it and could ask both questions anyway; a full fix is suppression across related answers (a change to H6's engine).",
+  "A median on a five-row group is one row's value: the engine's floor rule, which the controls make easier to reach.",
+  "The model's save_answer trusts the person asked (its description says so); the cost is an extra answer in the export."
+ ],
+ "commits": []
+}

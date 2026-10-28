@@ -700,7 +700,17 @@ class HomeAgent:
                 why = ""
         if plan is None:
             return self.say(draft_id, f"I can't answer from the table yet: {why}.", kind="text")
-        marked = home_query.sensitive_columns(plan, columns)
+        return self.give_answer(draft_id, plan, by, why if by == "rules" else "")
+
+    def give_answer(self, draft_id: str, plan: Any, by: str, note: str = "", edited_from: int | None = None) -> dict[str, Any]:
+        """H7: one plan answered from the draft's table, the one way every answer is given (the rules' plan, the model's tool,
+        a person's edit): never a personal column, the same plan on the same table once, run by the query engine, the words
+        and the chart written by code, the answer kept with what it showed and the floor it ran under."""
+        from .. import home_chart, home_query
+        from dclab_core import query as Q
+
+        draft = self.store.get(draft_id)
+        marked = home_query.sensitive_columns(plan, briefs.columns_of(draft))
         if marked:
             return self.say(draft_id, f"That question uses {', '.join(marked)}, which holds personal data; I don't answer with it. "
                                       "Ask about another column.", kind="text")
@@ -711,20 +721,45 @@ class HomeAgent:
             result = home_query.run(self.store, draft_id, plan)
         except Exception as error:  # noqa: BLE001 - a plan this table refuses is said, never a failed table
             return self.say(draft_id, f"That question could not be answered from this table: {str(error)[:300]}", kind="text")
-        text = home_query.answer_text(plan, result, why if by == "rules" else "")
+        text = home_query.answer_text(plan, result, note)
+        message_id = "m" + secrets.token_hex(5)
         answer = {"plan": plan.model_dump(mode="json"), "plan_hash": Q.plan_hash(plan), "asset": draft.get("active_asset"),
-                  "result": result.model_dump(mode="json"), "shown": home_query.shown_numbers(result), "by": by, "at": now()}
+                  "result": result.model_dump(mode="json"), "shown": home_query.shown_numbers(result), "by": by, "at": now(),
+                  "floor": home_query.floor(), "message": message_id, **({"edited_from": edited_from} if edited_from is not None else {})}
 
         def keep(d):
             d.setdefault("answers", []).append(answer)
+            answer["n"] = len(d["answers"]) - 1
             d["exit"] = {"kind": "analysis", "answers": len(d["answers"])}
         self.store.update(draft_id, keep)
-        self.moved(draft_id, "answer_analysis", {"plan_by": by}, {"rows": len(result.rows), "suppressed": result.suppressed_groups})
-        from .. import home_chart
+        n = answer["n"]  # set inside the update: two answers at once never swap numbers (the review of H7c)
+        self.moved(draft_id, "answer_analysis", {"plan_by": by, **({"edited_from": edited_from} if edited_from is not None else {})},
+                   {"rows": len(result.rows), "suppressed": result.suppressed_groups})
+        return self.say(draft_id, text, kind="answer", message_id=message_id,
+                        answer={"n": n, "columns": result.columns, "rows": result.rows[:50], "suppressed_groups": result.suppressed_groups,
+                                "chart": home_chart.spec(plan, result), "edits": home_query.edits(plan, briefs.columns_of(draft))})
 
-        return self.say(draft_id, text, kind="answer", answer={"columns": result.columns, "rows": result.rows[:50],
-                                                                "suppressed_groups": result.suppressed_groups,
-                                                                "chart": home_chart.spec(plan, result)})  # H7b: drawn by code
+    def save_answer(self, draft_id: str, n: int, saved: bool = True) -> dict[str, Any]:
+        """H7c: the person keeps an answer (it goes into the notebook export) or lets it go."""
+        def put(d):
+            answers = d.get("answers") or []
+            if not 0 <= n < len(answers):
+                raise ValueError("No such answer")
+            answers[n]["saved"] = bool(saved)
+        self.store.update(draft_id, put)
+        self.moved(draft_id, "save_answer", {"answer": n, "saved": bool(saved)}, {})
+        return self.store.get(draft_id)["answers"][n]
+
+    def edit_answer(self, draft_id: str, n: int, change: dict[str, Any]) -> dict[str, Any]:
+        """H7c: an answer changed by the person's control (the operation, the split, the time grain), by code and never a
+        model; the new plan is checked like any other and answered as a new answer that says which it changed."""
+        from .. import home_query
+
+        answers = self.store.get(draft_id).get("answers") or []
+        if not 0 <= n < len(answers):
+            raise ValueError("No such answer")
+        plan = home_query.edit_plan(answers[n]["plan"], change, briefs.columns_of(self.store.get(draft_id)))
+        return self.give_answer(draft_id, plan, "edit", edited_from=n)
 
     def ask_brief(self, draft_id: str) -> dict[str, Any] | None:
         """The next brief question of the current track: unknown, no safe default, not asked before, within its budget; with
@@ -1904,6 +1939,53 @@ def request_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
     return {"offered": True}
 
 
+def _int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return -1
+
+
+def query_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    """H7c: the model's query plan for the person's question, checked and answered by code. The person gets the numbers,
+    written by code; the model gets only that an answer was given (no table value reaches it)."""
+    from .. import home_query
+    from dclab_core import query as Q
+
+    agent, draft_id = turn.agent, turn.draft_id
+    try:
+        plan = Q.QueryPlan.model_validate(args.get("plan") or {})
+    except Exception as error:  # noqa: BLE001 - the model's malformed plan is its error to fix, never said to the person
+        return {"error": f"Not a query plan ({type(error).__name__}): give group_by, measures and optional filters and period."}
+    draft = agent.store.get(draft_id)
+    try:
+        problems = Q.validate(plan, home_query.table(agent.store, draft))
+    except ValueError as error:
+        return {"error": str(error)[:300]}
+    marked = home_query.sensitive_columns(plan, briefs.columns_of(draft))
+    if problems or marked:
+        return {"error": "; ".join([*problems, *(f"{c} holds personal data" for c in marked)])[:600]}
+    said = agent.give_answer(draft_id, plan, "model")
+    # whether it was answered and its number only: a count of groups or of hidden small groups would let repeated plans
+    # recover a hidden row's value (the review of H7c recovered one in forty calls)
+    return {"answered": said.get("kind") == "answer" or "plan_hash" in said, "answer": (said.get("answer") or {}).get("n", said.get("n"))}
+
+
+def make_chart(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    """H7c: the chart code chose for an answer (its kind and title; the numbers are the person's to see)."""
+    for m in reversed(turn.agent.store.get(turn.draft_id).get("messages") or []):
+        a = m.get("answer") or {}
+        if m.get("kind") == "answer" and a.get("n") == _int(args.get("answer")):
+            return {"kind": (a.get("chart") or {}).get("kind"), "title": (a.get("chart") or {}).get("title")}
+    return {"error": "No such answer."}
+
+
+def save_answer(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    """H7c: keep an answer for the notebook export, only when the person asked to keep it."""
+    turn.agent.save_answer(turn.draft_id, _int(args.get("answer")))
+    return {"saved": True}
+
+
 def get_profile(turn: Turn, /, **args: Any) -> dict[str, Any]:
     analysis = turn.agent.store.get(turn.draft_id).get("analysis") or {}
     columns = analysis.get("columns") or []
@@ -2022,7 +2104,8 @@ def simulate_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
 # What each Home write does to a draft. The draft guard checks set_pack, propose_workflow and simulate; the others
 # only add to the conversation or the understanding, which the user can always correct.
 DRAFT_MOVES = {"ask_user": "ask", "record": "record", "set_pack": "set_pack", "propose_workflow": "propose_workflow",
-               "request_data": "request_data", "simulate_data": "simulate", "build_solution": "build", "set_intent": "set_intent"}
+               "request_data": "request_data", "simulate_data": "simulate", "build_solution": "build", "set_intent": "set_intent",
+               "query_data": "answer", "save_answer": "save_answer"}
 ML_MOVES = ("set_pack", "propose_workflow", "build")  # H2: the prediction track's moves, refused on the others
 PREPARING = ("queued", "structuring", "cleaning", "analysing")
 
@@ -2030,7 +2113,8 @@ PREPARING = ("queued", "structuring", "cleaning", "analysing")
 REFUSED = {"record": "The answer was not backed by the user's own words", "ask": "Not the question the plan asks now",
            "set_pack": "Not a known pack, or the user chose the pack", "simulate": "Data was already being prepared",
            "propose_workflow": "The workflow did not pass the workflow checks", "build": "The user had not asked to build",
-           "set_intent": "Not backed by the user's words, or the user chose the type of help"}
+           "set_intent": "Not backed by the user's words, or the user chose the type of help",
+           "answer": "Not an analysis question, or the table is not ready", "save_answer": "No such answer"}
 
 
 class DraftGuard:
@@ -2055,6 +2139,15 @@ class DraftGuard:
                              "set the type of help with set_intent (their words) first."}
         if tool.move == "ask" and arguments.get("field") in FIELDS and agent.track(agent.store.get(draft_id)) != "prediction":
             return {"error": "This request is not a prediction: ask without a field (the answer goes to the notes)."}
+        if tool.move in ("answer", "save_answer"):  # H7c: answers come from a described table, on the analysis track
+            draft = agent.store.get(draft_id)
+            if agent.track(draft) != "analysis":
+                return {"error": "Answers from the table are for analysis questions; this request is another kind of help."}
+            if tool.move == "answer" and not any(m.get("kind") == "analysis" and m.get("asset") == draft.get("active_asset")
+                                                 for m in draft.get("messages") or []):
+                return {"error": "The table is not prepared yet: wait for it, or offer the person ways to bring data."}
+            if tool.move == "save_answer" and not 0 <= _int(arguments.get("answer")) < len(draft.get("answers") or []):
+                return {"error": "No such answer."}
         if tool.move == "set_intent":
             draft = agent.store.get(draft_id)
             if not draft.get("intent"):  # a draft from before H2 is a prediction and stays one (the review: old drafts behave as before)
@@ -2149,6 +2242,15 @@ def register(registry: Registry) -> None:
         "question) or advice (an explanation). Give quote: their exact words that say it.",
         {"track": {**S, "enum": list(intents.TRACKS)}, "quote": S, "why": S}, ["track", "quote"], "write")
     add("request_data", "Offer the user ways to bring data.", {"text": S}, [], "write")  # no text: a standard offer
+    I = {"type": "integer"}  # noqa: E741
+    add("query_data", "Answer an analysis question from the prepared table with a query plan: group_by (at most 3 columns), "
+        "measures [{name, op: count|count_distinct|sum|mean|median|min|max|rate|percentile, column, where, q}], optional filters "
+        "[{column, op, value}] and period {column, grain, start, end}. Numbers per group only; identifiers and personal columns are "
+        "refused. The person sees the answer and its chart, written by code; you get only whether it was answered.",
+        {"plan": {"type": "object"}}, ["plan"], "write")
+    add("make_chart", "The chart DCLab drew for an answer: its kind and title.", {"answer": I}, ["answer"], "read")
+    add("save_answer", "Keep an answer for the person's notebook export. Only after they asked to keep or save it.",
+        {"answer": I}, ["answer"], "write")
     add("get_profile", "Column summaries of the prepared table: name, kind, missing rate, unique count, and which columns look like outcomes, timestamps, identifiers or text. Aggregates only, never values. Name columns, or page through a wide table with offset.",
         {"columns": {"type": "array", "items": S}, "offset": {"type": "integer"}}, [], "read")
     add("get_analysis", "The descriptive analysis of the prepared table: size, column kinds, missing share, duplicate rows, findings worth a question, and the strongest feature-to-feature correlations. Says nothing about the outcome.",

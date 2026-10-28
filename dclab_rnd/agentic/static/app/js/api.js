@@ -265,6 +265,9 @@
     deleteDraft: ["DELETE", "/drafts/{draft_id}", ["draft_id"], []],
     readDraft: ["GET", "/drafts/{draft_id}", ["draft_id"], []],
     editDraft: ["PATCH", "/drafts/{draft_id}", ["draft_id"], []],
+    answersNotebook: ["GET", "/drafts/{draft_id}/answers/notebook", ["draft_id"], []],
+    editAnswer: ["POST", "/drafts/{draft_id}/answers/{n}/edit", ["draft_id", "n"], []],
+    saveAnswer: ["POST", "/drafts/{draft_id}/answers/{n}/save", ["draft_id", "n"], []],
     downloadAsset: ["GET", "/drafts/{draft_id}/assets/{asset_id}/download", ["draft_id", "asset_id"], []],
     assetRows: ["GET", "/drafts/{draft_id}/assets/{asset_id}/rows", ["draft_id", "asset_id"], ["offset", "limit"]],
     setBrief: ["POST", "/drafts/{draft_id}/brief", ["draft_id"], []],
@@ -594,6 +597,27 @@
    *  @returns {Promise<Draft>} */
   client.editDraft = (...args) => call('editDraft', args);
   client.path.editDraft = (...args) => build('editDraft', args).path;
+  /** GET /api/drafts/{draft_id}/answers/notebook: Answers Notebook
+   *  @param {string} draft_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<*>} */
+  client.answersNotebook = (...args) => call('answersNotebook', args);
+  client.path.answersNotebook = (...args) => build('answersNotebook', args).path;
+  client.href.answersNotebook = (...args) => '/api' + build('answersNotebook', args).path;
+  /** POST /api/drafts/{draft_id}/answers/{n}/edit: Edit Answer
+   *  @param {string} draft_id
+   *  @param {string} n
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Draft>} */
+  client.editAnswer = (...args) => call('editAnswer', args);
+  client.path.editAnswer = (...args) => build('editAnswer', args).path;
+  /** POST /api/drafts/{draft_id}/answers/{n}/save: Save Answer
+   *  @param {string} draft_id
+   *  @param {string} n
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Draft>} */
+  client.saveAnswer = (...args) => call('saveAnswer', args);
+  client.path.saveAnswer = (...args) => build('saveAnswer', args).path;
   /** GET /api/drafts/{draft_id}/assets/{asset_id}/download: Download Asset
    *  @param {string} draft_id
    *  @param {string} asset_id
