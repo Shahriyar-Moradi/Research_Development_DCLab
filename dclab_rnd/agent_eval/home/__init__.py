@@ -272,8 +272,16 @@ def observe(case: Mapping[str, Any], client_for: Optional[Callable[[str], Any]] 
     from dclab_rnd.draft.chat import HomeAgent
     from dclab_rnd.draft.store import DraftStore
 
-    with _isolated(), tempfile.TemporaryDirectory(prefix="dclab-home-eval-") as tmp:
+    import contextlib
+
+    from dclab_rnd import ledger as _ledger
+
+    with _isolated(), tempfile.TemporaryDirectory(prefix="dclab-home-eval-") as tmp, contextlib.ExitStack() as restore:
         store = DraftStore(Path(tmp) / "drafts")
+        if keep is not None:  # a kept live run keeps its decisions too, beside its drafts (the owner: every test's data, all six models)
+            Path(keep).mkdir(parents=True, exist_ok=True)
+            restore.callback(_ledger.install, _ledger.current_ledger())  # put back whatever happens
+            _ledger.install(_ledger.FileLedger(Path(keep) / "ledger", Path(keep).name))
         draft = store.create(case["text"])
         client = client_for(draft["id"]) if client_for else None
         agent = HomeAgent(store, client, on_request=lambda draft_id, what, args: None)
@@ -296,7 +304,7 @@ def observe(case: Mapping[str, Any], client_for: Optional[Callable[[str], Any]] 
         # now stands (the person's sheet shows it lost), and listed, because a "not sure" should never erase what was known
         obs["lost"] = sorted(f for f in before if f not in obs["fields"])
         if keep is not None:
-            shutil.copytree(Path(tmp) / "drafts", keep, dirs_exist_ok=True)
+            shutil.copytree(Path(tmp) / "drafts", keep / "drafts", dirs_exist_ok=True)  # a workspace's layout: the store keeps it as conversations
         return obs
 
 

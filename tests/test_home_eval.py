@@ -230,7 +230,10 @@ class RunTests(unittest.TestCase):
         keep = Path(tempfile.mkdtemp()) / "run"
         result = home.measure([case], client_for=lambda draft_id: client, plain_for=lambda case_id: client, keep=keep)
         self.assertFalse(result["failures"])
-        drafts = list((keep / "model" / "d-a1").rglob("draft.json"))
+        drafts = list((keep / "model" / "d-a1" / "drafts").glob("*/draft.json"))  # a workspace's layout: kept as conversations
+        from dclab_rnd.store.keepers import workspaces
+        self.assertTrue(any(m == "drafts" for m in workspaces.MARKS))
+        self.assertTrue(list((keep / "model" / "d-a1" / "ledger").rglob("*.jsonl")))  # its decisions, for the decision models
         self.assertEqual(len(drafts), 1)
         self.assertEqual(json.loads(drafts[0].read_text(encoding="utf-8"))["problem"], case["text"])  # the conversation, whole
         kept = json.loads((keep / "plain" / "d-a1.json").read_text(encoding="utf-8"))

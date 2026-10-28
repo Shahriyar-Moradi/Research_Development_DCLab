@@ -1,0 +1,56 @@
+{
+ "package": "home-live-tools-and-collection",
+ "title": "Home's model tools run live, and every live and eval run is collected for the six models",
+ "date": "2026-10-28",
+ "request": "The owner: 'make sure collect all data of these test and live tests for training data all 6 model'; English first. The new model tools (query_data, propose_step, compare_periods) had never run live: Home's rules had answered first.",
+ "spec": "A capped live probe of English requests worded so the rules cannot read them; every kept run in a layout the store collects as conversations, with a ledger beside it for the decision models.",
+ "plan": [
+  "A probe of six dev requests, every Home model client capped together, drafts and a ledger kept.",
+  "Find why kept eval runs were not collected as conversations; fix the layout; move the existing runs.",
+  "Run the store and check the sets."
+ ],
+ "decisions": [
+  {
+   "decision": "The kept runs are moved into a drafts/ folder, never copied or deleted.",
+   "why": "The store reads a workspace by its layout; moving keeps one copy of each conversation and loses nothing."
+  },
+  {
+   "decision": "The probe installs its own ledger in the kept folder.",
+   "why": "A bare draft store records no decision; the decision models (m1 to m3) need Home's decisions with their labels."
+  }
+ ],
+ "change": "The Home tools probe (new); the Home eval keeps each live case's drafts in a drafts folder with a ledger beside it; its test; the existing kept eval runs moved into that layout (the store's files, not committed).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Live and eval conversations never reached the conversation sets.",
+   "scenario": "HOME-008 and HOME-010 kept 53 drafts of Home with Claude, with thinking; none was a conversation example.",
+   "cause": "They were kept one folder per case with each draft directly inside, with no drafts folder, so the store filed them as test files, which the conversation builder never reads.",
+   "fix": "Each case's drafts are kept in a drafts folder (a workspace's layout), with a ledger of its decisions beside it; the existing runs moved.",
+   "test": "tests/test_home_eval.py::RunTests::test_a_live_run_keeps_its_drafts_and_replies_whole"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The model tools, live (English, Claude)",
+   "gate": "each tool reached and its result given to the person",
+   "fixed_before_run": true,
+   "result": "Two analysis questions answered from the model's query plans; two preparation requests prepared through propose_step (two steps each); two business questions briefed through compare_periods (the rewording kept the template: it did not pass the checks); 8 of 20 model calls carried thinking text",
+   "verdict": "pass",
+   "cost_eur": 0.0877,
+   "limits": [
+    "six requests; a check that the paths work live, not a score"
+   ]
+  }
+ ],
+ "outcome": "Every Home model tool now works live with Claude, and every live and eval run's conversations, decisions and thinking reach the store for the six models.",
+ "lessons": [
+  "Capture is only real if the collector reads it: check where a kept file lands, not only that it was written."
+ ],
+ "risks": [
+  "Eval runs' persons are scripted ('I'm not sure'): marked as scripted, never a human's answer."
+ ],
+ "commits": []
+}
