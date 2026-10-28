@@ -30,6 +30,7 @@ from dclab_rnd.agents.registry import Registry, Tool
 from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer
 
+from . import brief as briefs
 from . import intent as intents
 from . import lang
 from . import pack as packs
@@ -131,12 +132,15 @@ class HomeAgent:
         self.store.emit(draft_id, "chat", msg)
         return msg
 
-    def ask(self, draft_id: str, field: str, question: str, options: list[str] | None = None, why: str = "") -> dict[str, Any] | None:
+    def ask(self, draft_id: str, field: str, question: str, options: list[str] | None = None, why: str = "",
+            track: str | None = None) -> dict[str, Any] | None:
         draft = self.store.get(draft_id)
-        asked = [q for q in draft["questions"] if not q.get("superseded") and q.get("field") != "intent"]  # the kind of help is not an ML question
+        asked = [q for q in draft["questions"] if not q.get("superseded") and q.get("field") != "intent" and not q.get("track")]  # the kind of help and a track's brief are not ML questions
         if len(asked) >= MAX_QUESTIONS or any(q.get("field") == field and not q.get("answered") for q in draft["questions"]):
             return None
         q = {"id": f"q{len(draft['questions']) + 1}", "field": field, "text": question, "options": (options or [])[:4], "why": why, "answered": None}
+        if track:
+            q["track"] = track  # a field of that track's brief (H4), answered by code
 
         def add(d):
             d["questions"].append(q)
@@ -240,6 +244,8 @@ class HomeAgent:
                     if reading["track"] != was:
                         return  # the new track was opened (a prediction is read, planned and asked from the start)
             if self.track(self.store.get(draft_id)) != "prediction":
+                if self.track(self.store.get(draft_id)) in briefs.TRACK_FIELDS:
+                    self.refresh_brief(draft_id)
                 return
             self.read_problem(draft_id)
         finally:
@@ -311,6 +317,41 @@ class HomeAgent:
         offer = [] if track == "advice" or has_data else ["upload", "connect"]
         self.say(draft_id, f"I read this as {intents.LABELS[track].lower()}: “{draft['problem']}”. {intents.NEXT[track]}", kind="text",
                  actions=offer, track=track)
+        self.refresh_brief(draft_id)
+        self.ask_brief(draft_id)
+
+    # ------------------------------------------------------------------ the other tracks' briefs (H4)
+    def refresh_brief(self, draft_id: str) -> dict[str, Any]:
+        """Read the brief of the draft's tracks again (the sentence, the answers, the defaults, the table's columns),
+        keep it on the draft and show it. A field that names a column the table does not have is not taken."""
+        draft = self.store.get(draft_id)
+        found = briefs.refresh(draft)
+        told = {tuple(m) for m in draft.get("brief_missing_told") or []}
+        # a dropped column on a field with a default is said once (a field with no default says it in its question)
+        tell = [m for m in found["missing"] if tuple(m) not in told and (briefs.field(self.track(draft), m[0]) or briefs.Field("", "", "")).default is not None]
+        self.store.update(draft_id, lambda d: d.update(track_brief=found["briefs"], brief_missing=[list(m) for m in found["missing"]],
+                                                       brief_missing_told=[list(m) for m in told | {tuple(m) for m in tell}]))
+        self.store.emit(draft_id, "status", {"track_brief": found["briefs"]})
+        for field_name, column in tell:
+            entry = ((found["briefs"].get(self.track(draft)) or {}).get(field_name) or {})
+            self.say(draft_id, f"I can't find a column named “{column}” in the table, so for the {field_name.replace('_', ' ')} I'll use "
+                               f"{entry.get('value') or 'the default'} for now; tell me which column you meant.")
+        return found
+
+    def ask_brief(self, draft_id: str) -> None:
+        """The one question the track's brief still needs, if any: a field with no safe default, within its budget."""
+        draft = self.store.get(draft_id)
+        track = self.track(draft)
+        if track not in briefs.TRACK_FIELDS or self.pending(draft):
+            return
+        asked = sum(1 for q in draft["questions"] if q.get("track") == track and not q.get("superseded"))
+        nxt = briefs.next_field(draft, track, asked)
+        if nxt is None:
+            return
+        f, options = nxt
+        column = next((m[1] for m in draft.get("brief_missing") or [] if isinstance(m, (list, tuple)) and m[0] == f.name), None)
+        question = f"I can't find a column named “{column}” in the table. {f.question}" if column else f.question
+        self.ask(draft_id, f.name, question, options, f.why, track=track)
 
     def choose_intent(self, draft_id: str, track: str) -> dict[str, Any]:
         """The person chose the kind of help (the card's Change control, the question's button, or a pack): it wins over
@@ -341,7 +382,8 @@ class HomeAgent:
 
         def settle(d):
             for q in d["questions"]:
-                if not q.get("answered") and (q.get("field") == "intent" or (track != was and track != "prediction")):
+                if not q.get("answered") and (q.get("field") == "intent" or (track != was and track != "prediction")
+                                              or (q.get("track") and q.get("track") != track)):
                     q.update(answered="(the type of help changed)", superseded=True)
             if track != "prediction":
                 d["workflow"] = None
@@ -415,7 +457,10 @@ class HomeAgent:
                     + (f"; refused keys: {', '.join('+'.join(r['key']) for r in marked.get('refused', [])[:2])}" if marked.get("refused") else "")
                     + ". The marked rows are the cases the model learns from.")
         self.say(draft_id, text, kind="analysis", asset=asset.get("id"))
-        if not prediction:  # another track: the description is what Home offers for it now; no pack, workflow or outcome question
+        if not prediction:  # another track: the description, then the brief against the table's columns; no pack or workflow
+            if self.track(self.store.get(draft_id)) in briefs.TRACK_FIELDS:
+                self.refresh_brief(draft_id)
+                self.ask_brief(draft_id)
             return
         if (draft.get("pack") or {}).get("source") != "user":
             det = packs.detect(draft["problem"], analysis)
@@ -433,6 +478,13 @@ class HomeAgent:
             # The outcome was asked before the data arrived; ask again with the columns to choose from.
             self.store.update(draft_id, lambda d: [q.update(answered="(asked again with the columns)", superseded=True) for q in d["questions"] if q["id"] == pending["id"]])
             pending = None
+        if candidates and not (draft.get("understanding") or {}).get("target"):
+            # an outcome answered "not sure" before the data: the table's columns are a new chance to name it (H4)
+            def again(d):
+                for q in d["questions"]:
+                    if q["field"] == "target" and not q.get("options") and q.get("answered") and lang.not_sure(q["answered"]):
+                        q.update(superseded=True)
+            self.store.update(draft_id, again)
         if not pending:
             self.next_turn(draft_id)
 
@@ -452,7 +504,8 @@ class HomeAgent:
         self.store.update(draft_id, add)
         self.store.emit(draft_id, "chat", msg)
         open_question = self.pending(self.store.get(draft_id))
-        if open_question is not None and open_question["field"] == "intent":  # the kind of help: code reads the answer
+        if open_question is not None and (open_question["field"] == "intent" or open_question.get("track")
+                                          or lang.not_sure(text)):  # code reads these answers; a "not sure" never reaches a field
             self.take_answer(draft_id, open_question, text)
             return
         if self.client is not None:
@@ -484,7 +537,33 @@ class HomeAgent:
             decisions.label_intent(self.store, draft_id, track)
             self.move_to(draft_id, intents.chosen(track, before), "undecided", sample=False)
             return
-        if q["field"] in plans.ALL_FIELDS:
+        if q.get("track"):  # a field of a track's brief: code records it (a "not sure" takes the default)
+            other = intents.read(value)
+            if other["status"] == "stated" and other["track"] != q["track"] and other["track"] != "prediction" or \
+                    (other["status"] == "stated" and other["track"] == "prediction" and intents.STRONG <= other["scores"]["prediction"]):
+                # "Actually I'd rather predict…": not this field's value but another kind of help, in their words
+                self.store.update(draft_id, lambda d: [x.update(answered="(the type of help changed)", superseded=True) for x in d["questions"] if x["id"] == q["id"]])
+                self.move_to(draft_id, other, q["track"])
+                return
+            self.store.update(draft_id, lambda d: [x.update(answered=value) for x in d["questions"] if x["id"] == q["id"]])
+            found = self.refresh_brief(draft_id)
+            entry = (found["briefs"].get(q["track"]) or {}).get(q["field"]) or {}
+            f = briefs.field(q["track"], q["field"])
+            label = q["field"].replace("_", " ")
+            if lang.not_sure(value):
+                self.say(draft_id, f"No problem: I'll use {entry['value']} for the {label}; you can change it any time." if entry.get("value")
+                         else f"No problem: the {label} stays open for now.")
+            elif entry.get("source") == "answer":
+                self.say(draft_id, f"Got it: {label}, “{entry['value']}”.")
+            elif f is not None and any(m[0] == q["field"] for m in found["missing"]):
+                column = next(m[1] for m in found["missing"] if m[0] == q["field"])
+                self.say(draft_id, f"I can't find a column named “{column}” in the table, so the {label} stays open.")
+            self.ask_brief(draft_id)
+            return
+        unsure = lang.not_sure(value) or (q["field"] == "target" and value.strip() == "Something else")
+        if unsure:
+            pass  # not an answer: what Home understood stays, the field stays as it was, and it is not asked again
+        elif q["field"] in plans.ALL_FIELDS:
             self.note(draft_id, q["field"], value, "stated", "answer", value)
         else:
             self.record(draft_id, q["field"], value)
@@ -495,7 +574,7 @@ class HomeAgent:
                     item["answered"] = value
         self.store.update(draft_id, answered)
         u = self.store.get(draft_id).get("understanding") or {}
-        for field, quote in plans.extract(value).items():  # "…within 30 days, scored every Monday" also gives the moment
+        for field, quote in ({} if unsure else plans.extract(value)).items():  # "…within 30 days, scored every Monday" also gives the moment
             if field != q["field"] and not u.get(field):
                 self.note(draft_id, field, quote, "stated", "answer", quote)
         self.update_plan(draft_id)
@@ -631,9 +710,10 @@ class HomeAgent:
             "problem": draft["problem"], "pack": draft.get("pack"), "understanding": draft.get("understanding") or {},
             "intent": {k: (draft.get("intent") or {}).get(k) for k in ("track", "tracks", "status", "source")},
             "next_step": intents.NEXT.get(self.track(draft)),
+            "track_brief": {k: {f: (e or {}).get("value") for f, e in v.items()} for k, v in (draft.get("track_brief") or {}).items()},
             "plan": {**{f: ((draft.get("plan") or {}).get(f) or {}).get("status", "unknown") for f in plans.fields_for(draft)}, "next": (draft.get("plan") or {}).get("next")},
             "questions_asked": [{k: q.get(k) for k in ("field", "text", "answered")} for q in draft["questions"]],
-            "questions_left": MAX_QUESTIONS - len([q for q in draft["questions"] if q.get("field") != "intent"]),
+            "questions_left": MAX_QUESTIONS - len([q for q in draft["questions"] if q.get("field") != "intent" and not q.get("track")]),
             "data": {"summary": a.get("summary"), "columns": cols, "highlights": [h.get("title") for h in (a.get("highlights") or [])][:8],
                      "target_candidates": (a.get("profile") or {}).get("target_candidates")} if a else None,
             "assets": [{k: x.get(k) for k in ("name", "kind", "status", "synthetic")} for x in draft["assets"]],

@@ -162,3 +162,15 @@ BUILD = re.compile(r"\b(?:let'?s build|build (?:it|the solution)|go ahead|start 
                    r"|(?:راه\s?حل|پروژه|مدل)\s+(?:را\s+)?بساز|^\s*(?:بیا\s+|خب\s+|پس\s+)?شروع\s+کنیم\s*[.!]?\s*$|بریم\s+(?:سراغ\s+)?ساخت|بسازیمش", re.I)
 SIMULATE = re.compile(r"\b(?:simulat\w*|synthetic|fake data|generate (?:some )?data)\b"
                       r"|شبیه\s?سازی|داده\s+(?:ی\s+)?(?:مصنوعی|ساختگی|فرضی)|داده\s+بساز", re.I)
+
+
+# "I'm not sure" in both languages (package H4): an answer that is not a value. Home keeps what it understood and,
+# where the field has a safe default, records the default (shown as one, editable), never the words as the answer.
+NOT_SURE_BUTTON = "Not sure"
+# 3: only a whole short reply: "Not sure, but probably whether they cancel within 30 days" is an answer
+NOT_SURE = re.compile(r"^\s*(?:(?:i'?m\s+|i\s+am\s+|i\s+(?:really\s+)?)?(?:not\s+sure|unsure|no\s+idea|don'?t\s+know|do\s+not\s+know|skip(?:\s+it)?|no\s+clue)"
+                      r"(?:\s+(?:yet|really|sorry))?|مطمئن\s+نیستم|نمی\s?دانم|نمی\s?دونم|ایده\s+ای\s+ندارم|نظری\s+ندارم|رد\s+شو|فعلا\s+نه)\s*[.!،]*\s*$", re.I)
+
+
+def not_sure(text: str) -> bool:
+    return has(NOT_SURE, text or "")

@@ -350,7 +350,7 @@ class AgentTests(unittest.TestCase):
         d = self.store.get(d["id"])
         self.assertEqual((d["intent"]["track"], d["intent"]["source"], d["intent"]["rule_track"]), ("analysis", "user", "prediction"))
         self.assertIsNone(d["workflow"])
-        self.assertTrue(all(q.get("answered") for q in d["questions"]))
+        self.assertTrue(all(q.get("answered") for q in d["questions"] if not q.get("track")))  # the prediction's questions are closed
         target = decisions.open_samples(self.home)
         labels = [lab for lab in target.labels() if lab.get("move") == "set_intent"]
         self.assertEqual(len(labels), 1)

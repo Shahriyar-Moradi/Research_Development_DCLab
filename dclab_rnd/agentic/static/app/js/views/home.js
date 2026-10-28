@@ -111,6 +111,7 @@ DC.view('home', {
       S.close = stream(DC.client.path.events(draft.id), onEvent);
       drawPacks();
       drawIntent(draft.intent);
+      drawBrief(draft.track_brief);
       updateDataPill();
     }
     /* The kind of help Home read (package H2): its label, the person's words behind it, and a Change control. Only a
@@ -131,6 +132,19 @@ DC.view('home', {
       const prediction = !asked && intent.track === 'prediction';
       $('#home-solution', el).hidden = !prediction;
       $('#home-build', el).hidden = !prediction;
+    }
+    /* The track's brief (package H4): each field with the person's words, or the default Home took (marked), or open. */
+    const BRIEF_NAMES = { measure: 'Measure', breakdown: 'Split by', period: 'Period', filters: 'Only', inputs: 'From', rules: 'Steps',
+      output_grain: 'One row per', destination: 'Result', kpis: 'Numbers', audience: 'For', refresh: 'Refreshed', decisions_supported: 'Used to decide',
+      decision: 'Decision', success_measure: 'Measured by', options: 'Options', period_compared: 'Compared', constraints: 'Must respect', topic: 'About' };
+    function drawBrief(briefs) {
+      const box = $('#home-brief', el), list = $('#home-brief-list', el), intent = (S.draft || {}).intent || {};
+      const entries = (briefs || {})[intent.track];
+      if (S.draft) S.draft.track_brief = briefs;
+      if (!entries || intent.track === 'prediction') { box.hidden = true; return; }
+      list.innerHTML = Object.entries(entries).map(([k, e]) => `<dt>${esc(BRIEF_NAMES[k] || k)}</dt><dd>${e.value
+        ? esc(e.value) + (e.source === 'default' ? ' <span class="muted">(default)</span>' : '') : '<span class="muted">not known yet</span>'}</dd>`).join('');
+      box.hidden = false;
     }
     $('#home-intent-change', el).addEventListener('change', async e => {
       const track = e.target.value; if (!track || !S.draft) return;
@@ -167,7 +181,8 @@ DC.view('home', {
     }
     function onStatus(d) {
       if (d.pack) { if (S.draft) S.draft.pack = d.pack; drawPacks(); $('#home-sol-pack', el).textContent = (S.packs.find(p => p.key === d.pack.key) || {}).name || d.pack.key; }
-      if (d.intent) drawIntent(d.intent);
+      if (d.intent) { drawIntent(d.intent); drawBrief((S.draft || {}).track_brief); }
+      if (d.track_brief) drawBrief(d.track_brief);
       if ('thinking' in d) setThinking(d.thinking);
       if (d.note) addSystem(d.note);
       if (d.built) { S.draft.status = 'built'; }
@@ -212,7 +227,7 @@ DC.view('home', {
       let body = '';
       if (m.kind === 'question') {
         const q = m.question || {};
-        body = `<div class="ask-card"><div class="q">${esc(m.text)}</div>${q.why ? `<div class="small muted">${esc(q.why)}</div>` : ''}${(q.options || []).length ? `<div class="ask-options">${q.options.map(o => `<button type="button" class="ask-option" data-answer="${esc(o)}">${esc(o)}</button>`).join('')}</div>` : '<div class="small muted">Answer below in your own words.</div>'}</div>`;
+        body = `<div class="ask-card"><div class="q">${esc(m.text)}</div>${q.why ? `<div class="small muted">${esc(q.why)}</div>` : ''}<div class="ask-options">${(q.options || []).map(o => `<button type="button" class="ask-option" data-answer="${esc(o)}">${esc(o)}</button>`).join('')}${(q.options || []).some(o => /^not sure$/i.test(o)) ? '' : '<button type="button" class="ask-option" data-answer="Not sure">Not sure</button>'}</div>${(q.options || []).length ? '' : '<div class="small muted">Or answer below in your own words.</div>'}</div>`;
       } else if (m.kind === 'analysis') {
         body = `<p>${esc(m.text)}</p>${analysisCard(S.analysis[m.asset], m.asset)}`;
       } else if (m.kind === 'summary') {

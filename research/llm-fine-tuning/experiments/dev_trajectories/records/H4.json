@@ -1,0 +1,149 @@
+{
+  "package": "H4",
+  "title": "A brief per track, and questions that matter: what Home understood for each kind of help, and a Not sure that keeps it",
+  "date": "2026-10-28",
+  "request": "Complete the Home plan package by package; H4 gives the analysis, preparation, reporting, business and advice tracks a brief of their own, asks only what matters, and fixes the defect H1 found: an I'm not sure that erased an outcome Home had understood.",
+  "spec": "Package H4 of Phase H: each track has its brief with status, source and quote; a field is asked only when it is unknown and has no safe default, within a per-track budget (prediction 4 as today, analysis 2, preparation 3, reporting 4, business 3, advice 1); every question has a Not sure button that records the default; options come from the table's columns. Done when: on H1 dev, median questions per request at most 3 and no brief field is wrong that the rules left unknown; the prediction track keeps today's fields, order and budget.",
+  "plan": [
+    "Write each track's fields with why, a default where one is safe, and where its options come from.",
+    "Write keyword rules per field in English and Persian that claim a field only when its words are there, each value with the person's words that say it as the quote.",
+    "Drop a field that names a snake_case column the table does not have, and say so when asking.",
+    "Ask the one field with no safe default, within the track's budget; answers to brief questions are recorded by code.",
+    "Make a Not sure keep what Home understood, on every track, the prediction's outcome included; give every question a Not sure button.",
+    "Show the brief on Home; measure on H1 dev and compare every prediction case with HOME-003."
+  ],
+  "decisions": [
+    {
+      "decision": "A field's value and its quote are kept apart.",
+      "why": "The value can be one word ('region'); the quote is the person's words around it ('per region'), which pass the product's quote rule."
+    },
+    {
+      "decision": "Only a field with no safe default is asked.",
+      "why": "A default is shown and editable; asking for it adds a question that changes nothing about the route or the answer."
+    },
+    {
+      "decision": "A Not sure is never recorded as the answer.",
+      "why": "H1 measured that it replaced an outcome Home had understood; a non-answer must leave what is known and take only the default."
+    },
+    {
+      "decision": "A missing column is checked only for snake_case names, and only against a table that is there.",
+      "why": "A column name is the one kind of word that can be checked; ordinary words are not columns."
+    }
+  ],
+  "change": "New dclab_rnd/draft/brief.py (TRACK_FIELDS, BUDGET, RULES, extract, refresh, options, next_field). lang.py: NOT_SURE and not_sure in both languages. chat.py: ask() with a track, open_track refreshes the brief and asks its one question, brief answers taken by code, a Not sure keeps the plan's fields, move_to closes other tracks' questions, data_ready and replan refresh the brief, the model's context holds it. Home: the What I understood list and a Not sure button on every question. tests/test_home_brief.py (13 tests); test_home_eval and test_home_intent updated. HOME-004_dev.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "An I'm not sure replaced the outcome Home had understood (found by H1).",
+      "scenario": "On H1 dev, three requests lost a field Home had read from them when the runner answered the column question I'm not sure.",
+      "cause": "take_answer recorded any reply as the field's value.",
+      "fix": "A not-sure reply is never a value: what was understood stays, the field is not asked again, and a track field with a default takes it.",
+      "test": "test_not_sure_never_erases_an_understood_outcome"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "After a Not sure to the outcome question, Home never asked for the outcome again.",
+      "scenario": "A vague request, Not sure to the outcome, then a table with a churned column: no outcome question, the summary said the outcome was still open.",
+      "cause": "The field counted as asked, and the column question needs a known outcome.",
+      "fix": "When a table offers outcome columns and no outcome is known, a not-sure outcome question is set aside so the outcome is asked again with the columns.",
+      "test": "test_after_not_sure_the_outcome_is_asked_again_with_the_columns"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "With a model, a Not sure still replaced the outcome.",
+      "scenario": "The model answered the pending question by recording target = 'Not sure'.",
+      "cause": "Only the no-model path knew about not-sure replies.",
+      "fix": "A not-sure reply to any open question is taken by code before the model sees it.",
+      "test": "test_with_a_model_not_sure_is_still_taken_by_code"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Real answers that began unsure were thrown away.",
+      "scenario": "'Not sure, but probably whether they cancel within 30 days' recorded nothing.",
+      "cause": "The not-sure rule matched the start of a reply.",
+      "fix": "Only a whole short reply is a not-sure.",
+      "test": "test_an_answer_that_starts_unsure_is_still_an_answer"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Any reply to a brief question became the field's value, and Home then said nothing.",
+      "scenario": "'Actually I'd rather predict which customers will ask for a refund' was stored as the measure, with no reply.",
+      "cause": "Code took every reply as the answer and only asked the next question.",
+      "fix": "A reply that reads strongly as another kind of help moves there; a recorded answer, a not-sure and a missing column are each said back.",
+      "test": "test_an_answer_that_is_another_kind_of_help_moves_there, test_a_recorded_answer_is_said_back"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The missing-column rule erased preparation steps and defaults.",
+      "scenario": "'Join orders_2024 and customers on id and remove duplicate rows' with a table lost its inputs and steps, and Home asked for steps the person had given.",
+      "cause": "Every field was checked against column names, and a missing column gave unknown instead of the default.",
+      "fix": "Only fields whose values are columns are checked; a missing column falls back to the default.",
+      "test": "test_the_missing_column_rule_reads_only_column_fields_and_keeps_defaults"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The missing column was named against the wrong field, or not at all.",
+      "scenario": "'…by sales_channel' asked the measure question with 'I can't find sales_channel'; a dropped breakdown with a default was never mentioned.",
+      "cause": "Missing columns were kept as one list for the whole brief.",
+      "fix": "Missing columns are kept per field: a field with no default names it in its question, a field with a default says it once.",
+      "test": "test_a_dropped_column_is_named_against_its_own_field"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Field rules claimed fields from words that do not say them.",
+      "scenario": "'Show the breakdown by sales region' gave the measure 'breakdown'; 'by the end of the year' gave the breakdown 'end'; 'track how our app is doing' filled the numbers; 'Combine orders.csv…' cut the step at '.csv'.",
+      "cause": "The rules were written from the dev requests.",
+      "fix": "Each of these words is excluded or the rule is reordered; file names keep their dots.",
+      "test": "test_words_that_do_not_say_a_field_are_not_taken"
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "An answer naming a missing column was accepted.",
+      "scenario": "Typing 'lifetime_spend' as the report's numbers, with no such column, was stored.",
+      "cause": "Only the sentence was checked against the table.",
+      "fix": "Answers to column fields are checked too, and the person is told.",
+      "test": "test_an_answer_naming_a_missing_column_is_not_taken"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Home on the H1 dev requests, rules alone, after H4 (HOME-004)",
+      "gate": "home_gate_v1: track accuracy with the model at least 0.85 and with the rules alone at least 0.70; no new wrong field, bad quote, uncited number, identifier shown or unconfirmed row drop; median questions at most 3; every trap passes",
+      "fixed_before_run": true,
+      "result": "Fields right 64, wrong 0, missed 14, abstained 17 (HOME-003: right 3). Fields lost to I'm not sure 0 (HOME-003: 3). Median questions 0. Traps 5 of 6 (missing_column now passes; silent_drop needs the data-preparation package). Track 1.0; quotes, uncited numbers and rows shown 0. Every dev prediction case asks the same number of questions as in HOME-003 and now keeps its outcome.",
+      "verdict": "not scored",
+      "against_gate": "rules_track_accuracy 1.0 against at least 0.70: met; no new wrong field (0 wrong): met; quote_invalid 0 and uncited 0 against 0: met; median questions 0 against at most 3: met; traps 5 of 6 against all: not met; the gate is read with the model, which has not run.",
+      "limits": [
+        "The field rules were written from the dev requests, so 64 right on dev is an upper bound; the single sealed run at the end of Phase H is the honest test.",
+        "The H1 runner answers every question Not sure, so the measurement shows what Home reads from the request, not how it uses answers."
+      ]
+    }
+  ],
+  "outcome": "Home now holds and shows what a person said for every kind of help, takes and marks a default where one is safe, asks only what it cannot assume, and a Not sure never erases what it understood.",
+  "lessons": [
+    "Measure the non-answer: the runner's I'm not sure found the worst defect in Home's question loop, and the fix is in every track, not only the one where it was seen.",
+    "A new button is a new path: the Not sure button on every question made an old corner (an outcome answered not sure before the data) easy to reach, and the review found it."
+  ],
+  "risks": [
+    "Keyword rules for free-form fields can take a nearby word for the field; every rule claims a field only with its own words, and the review's sentences are the check."
+  ],
+  "commits": []
+}

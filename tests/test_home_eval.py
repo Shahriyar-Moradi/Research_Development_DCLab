@@ -141,8 +141,8 @@ class RunTests(unittest.TestCase):
         self.assertEqual(rows["d-p1"]["scores"]["rules"]["track"], "right")
         self.assertEqual(rows["d-a1"]["scores"]["rules"]["track"], "right")  # H2: Home reads the kind of help (HOME-001 kept the baseline)
         self.assertEqual(rows["d-v1"]["scores"]["rules"]["track"], "right")
-        # today Home understands the outcome of d-p1, then an "I'm not sure" to the column question replaces it
-        self.assertEqual(rows["d-p1"]["observed"]["rules"]["lost"], ["target"])
+        # H1 found that an "I'm not sure" to the column question replaced the outcome Home understood; H4 keeps it
+        self.assertEqual(rows["d-p1"]["observed"]["rules"]["lost"], [])
         self.assertEqual(result["requests"], 0)
         s = result["summary"]["rules"]
         self.assertEqual(s["cases"], 3)
