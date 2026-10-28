@@ -246,6 +246,13 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
 - **Done when:** on a planted store the duplicates merge, the stale item retires, a conflict is listed and not settled
   by code, and the store still holds every original.
 
+- **Status (2026-10-28): built and reviewed.** `dclab_rnd/memory/upkeep.py`, `make memory-upkeep` (`ARGS=--apply`
+  writes). Only a line said again in the same words (filler aside, numbers as numbers) is merged; any other near pair
+  (a negation, swapped words, another name or number, a correction beside an agent's line) is a conflict listed for a
+  person. A person's line is never merged into an agent's or retired for not being cited; writing words already
+  remembered keeps the line as it was. Counts come from every memory event, on the log the agents write to. Not wired
+  yet: nothing marks a line harmful, so that rule fires only when a later package counts it.
+
 ### 35.7 The memory page
 
 - **Delivers:** a Memory tab in the workspace (web app, `DC.client`, `DC.states`): what is remembered by scope and kind,

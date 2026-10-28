@@ -146,6 +146,8 @@ def remember(store: MemoryStore, item: MemoryItem, protected: Iterable[str] = ()
     held = next((v for v in latest(store.log()) if v.id == item.id), None)
     if held is not None and held.status == "retired":  # the same words again would be stored and never seen: say so
         raise Refused("these words were retired: write a correction of what replaced them, in other words")
+    if held is not None and held.status == "active":  # already remembered: kept as it is (its author, its time), never rewritten
+        return held
     return store.write(item)
 
 

@@ -1,0 +1,100 @@
+{
+ "package": "35.6",
+ "title": "Memory upkeep: one fact once, unused agent lines retired, disagreements left to a person",
+ "date": "2026-10-28",
+ "request": "The owner: continue the memory plan to the end; 35.6 keeps memory short and true without deleting anything.",
+ "spec": "MEMORY_PLAN.md 35.6: merge near-duplicates, retire the never-cited and the twice-harmful, list conflicts for a person; every change an event; nothing deleted.",
+ "plan": [
+  "Write the tests.",
+  "Build plan and apply over the store and the memory events.",
+  "Review, fix, record, commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Merge only lines with the same words in the same order once filler words are set aside",
+   "why": "a word overlap rule merged a negated line, swapped words and another column name into one, settling a disagreement by code"
+  },
+  {
+   "decision": "A person's lines are never retired for not being cited",
+   "why": "a preference such as 'answer simply' is followed without being named by id"
+  },
+  {
+   "decision": "Writing words already remembered keeps the line as it was",
+   "why": "an agent writing a person's words took over the line's authorship"
+  }
+ ],
+ "change": "dclab_rnd/memory/upkeep.py and __main__.py (new), memory/__init__.py (remember keeps an active line as it is), Makefile (memory-upkeep), tests.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "defect": "Lines that disagree were merged, settling a conflict by code",
+   "scenario": "'Use the time split…' and 'Never use the time split…' merged; so did swapped words, another column name, another unit and a Persian negation",
+   "cause": "a word-set overlap of 0.8 ignored order and treated one changed word as noise",
+   "fix": "merge only the same words in the same order, filler aside, never a negation; any other near pair is a conflict",
+   "test": "test_lines_that_disagree_are_conflicts_never_merged",
+   "severity": "behaviour",
+   "impact": "the opposite of a rule kept, and its restatement refused as retired words"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "defect": "On PostgreSQL upkeep read and wrote the wrong event log",
+   "scenario": "shown counts were zero and retirements went to a file the Admin page never reads",
+   "cause": "the log was opened without the workspace's id",
+   "fix": "the database log when the workspace has one",
+   "test": "test_the_command_runs",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "defect": "Usage read only the newest 5,000 events",
+   "scenario": "a line cited once, then 5,000 other events, then shown 30 times: retired as never cited",
+   "cause": "the log's default limit",
+   "fix": "only the memory events, all of them",
+   "test": "test_usage_reads_every_memory_event",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "defect": "A person's confirmed preference could retire as never cited",
+   "scenario": "after 30 sessions following 'answer in simple words' without naming it, the line retired and could never be proposed again",
+   "cause": "only corrections were exempt",
+   "fix": "a person's lines are exempt from that rule",
+   "test": "test_a_persons_lines_and_corrections_are_never_retired_or_merged_away",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "defect": "Numbers were compared as text, and corrections were left out of conflicts",
+   "scenario": "'30' and Persian '۳۰', '1,000' and '1000' listed as conflicts; an agent's 200 beside a person's corrected 150 never listed",
+   "cause": "raw strings; corrections excluded from the grouping",
+   "fix": "numbers normalised; corrections compared for conflicts only",
+   "test": "test_numbers_are_compared_as_numbers",
+   "severity": "behaviour"
+  },
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "An agent writing a person's words took over the person's line",
+   "scenario": "the same words in the same scope have one id; the agent's write became the latest version",
+   "cause": "remember wrote a new version of an active item",
+   "fix": "an active item with the same id is kept as it is",
+   "test": "test_a_persons_lines_and_corrections_are_never_retired_or_merged_away",
+   "severity": "behaviour"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Memory upkeep is built and reviewed: only a fact said twice in the same words merges, disagreements go to a person, an agent's unused lines retire, a person's lines stay, and nothing is deleted.",
+ "lessons": [
+  "A similarity score is not sameness: for facts, merge only what says the same thing word for word, and hand the rest to a person.",
+  "Read every event a rule depends on, never a default page of the newest."
+ ],
+ "risks": [
+  "Nothing yet marks a line harmful."
+ ],
+ "commits": []
+}
