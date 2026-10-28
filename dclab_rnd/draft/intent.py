@@ -27,6 +27,8 @@ from typing import Any, Optional
 
 from dclab_rnd import prompts
 
+from . import lang
+
 TRACKS = ("prediction", "analysis", "preparation", "reporting", "business", "advice")
 LABELS = {
     "prediction": "A prediction (a model)",
@@ -113,7 +115,8 @@ SIGNALS: list[tuple[str, str, int, str]] = [
     ("advice", "how_much_data", 4, r"\bhow\s+(?:many\s+rows|much\s+data|many\s+examples)\s+do\s+i\s+need\b"),
     ("advice", "not_sure_need", 3, r"\b(?:not\s+sure|unsure)\s+(?:if|whether)\s+(?:i|we)\s+need\b"),
 ]
-_COMPILED = [(t, i, w, re.compile(p, re.I)) for t, i, w, p in SIGNALS]
+# The English table and the Persian one (lang.INTENT_FA), both matched on the normalised text (package H3)
+_COMPILED = [(t, i, w, re.compile(p, re.I)) for t, i, w, p in SIGNALS + lang.INTENT_FA]
 
 # Home's next step on each track until the packages that serve it are built (the card says what DCLab can do now)
 NEXT = {
@@ -130,9 +133,9 @@ NEXT = {
 
 def _quote(text: str, start: int, end: int) -> str:
     """The person's words around a match, grown to whole words until they make a quote (two words or eight characters)."""
-    while start > 0 and text[start - 1].isalnum():
+    while start > 0 and lang._word(text[start - 1]):
         start -= 1
-    while end < len(text) and text[end].isalnum():
+    while end < len(text) and lang._word(text[end]):
         end += 1
     quote = text[start:end]
     while (len(quote.split()) < 2 and len(quote) < 8) and end < len(text):
@@ -141,22 +144,27 @@ def _quote(text: str, start: int, end: int) -> str:
             break
         end += nxt.end()
         quote = text[start:end]
-    return quote.strip(" ,.;:?!\"'“”")
+    return quote.strip(" ,.;:?!\"'“”،؟«»\u200c")
 
 
 def rules(text: str) -> dict[str, Any]:
-    """Each track's score, the signals that matched (their ids, never the words) and the best quote per track."""
+    """Each track's score, the signals that matched (their ids, never the words) and the best quote per track. The rules
+    read the normalised text (lang.normalize: Persian letters and digits, ZWNJ, diacritics); every quote is cut from the
+    person's original words."""
+    text = text or ""
+    norm, index = lang.normalize(text)
     scores = {t: 0 for t in TRACKS}
     signals: list[str] = []
     quotes: dict[str, tuple[int, str]] = {}
     for track, sid, weight, pattern in _COMPILED:
-        match = pattern.search(text or "")
-        if not match:
+        match = pattern.search(norm)
+        if not match or match.start() == match.end():
             continue
         scores[track] += weight
         signals.append(sid)
         if weight > quotes.get(track, (0, ""))[0]:
-            quotes[track] = (weight, _quote(text, match.start(), match.end()))
+            a, b = lang.span(text, index, match.start(), match.end())
+            quotes[track] = (weight, _quote(text, a, b))
     return {"scores": scores, "signals": signals, "quotes": {t: q for t, (_, q) in quotes.items()}}
 
 

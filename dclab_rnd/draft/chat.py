@@ -31,6 +31,7 @@ from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer
 
 from . import intent as intents
+from . import lang
 from . import pack as packs
 from . import plan as plans
 from . import workflow as wflow
@@ -44,8 +45,18 @@ TOKEN_CHUNK = 48  # characters per streamed ``token`` event
 PROFILE_PAGE = 40  # columns the model sees at a time, in its state and from get_profile
 PROFILE_FIELDS = ("name", "kind", "missing_rate", "unique")  # what the model may know about a column: no values
 FIELDS = ("target", "prediction_moment", "action", "costs", "data_plan", "entity", "labels", "budget")  # the last three: a pack's (15.6)
-BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
-SIMULATE_WORDS = re.compile(r"\b(simulat\w*|synthetic|fake data|generate (some )?data)\b", re.I)
+class _Words:
+    """A word check in English and Persian (lang.BUILD, lang.SIMULATE), read on the normalised text (package H3)."""
+
+    def __init__(self, pattern):
+        self.pattern = pattern
+
+    def search(self, text):
+        return lang.has(self.pattern, text or "")
+
+
+BUILD_WORDS = _Words(lang.BUILD)
+SIMULATE_WORDS = _Words(lang.SIMULATE)
 
 POLICY = prompts.text("home_agent")  # dclab_rnd/prompts/home_agent.md (A4.3: prompts are versioned files)
 

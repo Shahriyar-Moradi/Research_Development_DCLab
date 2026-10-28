@@ -21,6 +21,8 @@ from typing import Any
 
 from dclab_rnd import kinds, prompts
 
+from . import lang
+
 FIELDS = ("target", "prediction_moment", "action", "data_plan")  # in the order they are asked
 # 15.6: a pack's own questions, in the place of the generic ones (Home still asks at most MAX_QUESTIONS); they belong
 # to the pack's problem kind (16.1)
@@ -66,6 +68,8 @@ _MOMENTS = [re.compile(_SET_APART + "(" + p + ")", re.I) for p in (
 
 
 def _norm(text: str) -> str:
+    """Case and runs of space only: a quote is the person's exact words, their ZWNJ, letters and digits included
+    (package H3 reads Persian through lang, and still quotes the original text)."""
     return re.sub(r"\s+", " ", str(text)).strip().lower()
 
 
@@ -86,12 +90,14 @@ def quoted(quote: Any, texts: list[str]) -> bool:
 
 def supports(quote: Any, value: Any) -> bool:
     """True when the value says something the quote says: they share a content word (compared as 5-letter stems)."""
-    stems = lambda text: {w[:5] for w in re.findall(r"[a-z0-9]{3,}", _norm(text))} - {"the", "and", "each", "every", "with", "that", "this", "which", "whether"}  # noqa: E731
+    stems = lambda text: {w[:5] for w in re.findall(r"[^\W_]{3,}", lang.fold(text))} - {"the", "and", "each", "every", "with", "that", "this", "which", "whether"}  # noqa: E731
     return bool(stems(quote) & stems(value))
 
 
 def extract(text: str) -> dict[str, str]:
-    """The keyword rules: the outcome (with its window) and the prediction moment, quoted from ``text``."""
+    """The keyword rules: the outcome (with its window) and the prediction moment, quoted from ``text``. English first,
+    as always; a sentence the English rules find nothing in is read by the Persian ones (lang, package H3), whose
+    quotes are cut from the person's original text."""
     found: dict[str, str] = {}
     match = _TARGET.search(text) or _QUESTION_TARGET.search(text)
     if match:
@@ -101,6 +107,23 @@ def extract(text: str) -> dict[str, str]:
         for moment in pattern.finditer(text):
             if moment.start(1) >= taken[1] or moment.end(1) <= taken[0]:  # never the outcome's own window again
                 found["prediction_moment"] = re.split(r"\s+(?:and|so|to)\s+", moment.group(1).strip(), maxsplit=1)[0]  # "every Monday and the team calls…"
+                return found
+    if found:
+        return found
+    return _extract_fa(text)
+
+
+def _extract_fa(text: str) -> dict[str, str]:
+    found: dict[str, str] = {}
+    target = lang.search(lang.TARGET_FA, text, 1)
+    if target:
+        found["target"] = text[target[0]:target[1]].strip()
+    taken = target or (0, 0)
+    for pattern in lang.MOMENTS_FA:
+        for a, b in lang.finditer(pattern, text, 1):
+            if a >= taken[1] or b <= taken[0]:
+                moment = re.split(r"\s+(?:و|تا|که)\s+", text[a:b].strip(), maxsplit=1)[0]
+                found["prediction_moment"] = moment
                 return found
     return found
 

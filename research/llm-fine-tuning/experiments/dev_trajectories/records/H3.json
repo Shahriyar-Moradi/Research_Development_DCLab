@@ -1,0 +1,160 @@
+{
+  "package": "H3",
+  "title": "Persian and English without a model: one normalisation, Persian tables, quotes in the person's script",
+  "date": "2026-10-28",
+  "request": "Complete the Home plan package by package; H3 makes Home's no-model path read Persian as well as English, since the owner works in Persian and the rules were English regular expressions.",
+  "spec": "Package H3 of Phase H in docs/guides/AGENTIC_FOUNDATION_PLAN.md: draft/lang.py with normalisation (Arabic yeh and kaf, digits for matching only, ZWNJ, diacritics) and pattern tables per language for intent, outcome windows, prediction moments, build and simulate words; plan.extract, the intent rules and the chat's word checks use it; quotes keep the person's original text; Arabic later. Done when: on H1 dev with no model, Persian requests reach at least the same track accuracy as English ones.",
+  "plan": [
+    "Write a normalisation that returns an index back into the original text, so a match on the folded text is quoted from what the person wrote.",
+    "Write the Persian intent table at the same weights as the English one, from the H1 dev requests and ordinary Persian, never the sealed set.",
+    "Run both tables on the normalised text in the intent rules; grow quotes through a ZWNJ, which is inside a Persian word.",
+    "Add Persian outcome-with-window and set-apart moment rules to plan.extract, after the English ones, so English is unchanged.",
+    "Make the quote rule fold both sides, and the chat's build and simulate checks read both languages.",
+    "Test each pattern in several spellings, quotes in the original script, English unchanged; measure H1 dev and compare every English case with HOME-002."
+  ],
+  "decisions": [
+    {
+      "decision": "Normalise with an index map instead of matching the raw text.",
+      "why": "Persian is written with a ZWNJ or a space, Arabic or Persian yeh and kaf, and Persian or Western digits; one folded form lets one pattern match them all, and the map keeps the quote in the person's own spelling."
+    },
+    {
+      "decision": "Persian plan rules run only when the English rules find nothing.",
+      "why": "English extraction must stay exactly as it was; a mixed sentence with an English outcome keeps it."
+    },
+    {
+      "decision": "\"بساز\" alone is not a build word.",
+      "why": "It is also \"make me a pivot\"; the build words name the solution, the project or the model."
+    },
+    {
+      "decision": "Home still answers in English.",
+      "why": "H3 is about understanding; replying in Persian needs every message of Home in Persian, which is a package of its own."
+    }
+  ],
+  "change": "New dclab_rnd/draft/lang.py (normalize, fold, span, finditer, search, has, script; INTENT_FA, TARGET_FA, MOMENTS_FA, BUILD, SIMULATE). intent.py: both tables on the normalised text, quotes mapped back, ZWNJ inside words. plan.py: _norm folds with lang, extract falls back to the Persian rules. chat.py: BUILD_WORDS and SIMULATE_WORDS read both languages. tests/test_home_lang.py (15 tests). HOME-003_dev.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "\"They leave\" read as a trend.",
+      "scenario": "In 'چرا مشتری‌ها می‌روند' the folded text holds 'می روند', and the analysis signal for a trend ('روند') matched inside the verb.",
+      "cause": "The ZWNJ becomes a space, so the verb's stem stands as a word of its own.",
+      "fix": "The trend signal never matches after 'می' or 'نمی'.",
+      "test": "test_they_leave_is_not_a_trend"
+    },
+    {
+      "id": "F2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The Persian difference signal matched inside ordinary words.",
+      "scenario": "'…با پلن‌های متفاوت لغو می‌کنند' (customers on different plans will cancel) and 'فرقی نمی‌کند چه الگوریتمی…' (it doesn't matter which algorithm) were read as advice.",
+      "cause": "'فرق|تفاوت' at weight 4 with no word boundary.",
+      "fix": "Weight 3, and only 'فرق/تفاوت بین…', '… X با/و Y' or 'چه فرقی دارد'.",
+      "test": "test_ordinary_persian_predictions_stay_predictions"
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Persian signals had no word boundaries.",
+      "scenario": "'مجموع' matched 'مجموعه' (dataset) and 'رصد' matched 'درصد' (percent), so 'بر اساس این مجموعه داده، کدام مشتری‌ها لغو می‌کنند؟' left the prediction path.",
+      "cause": "Patterns were bare substrings.",
+      "fix": "Every Persian pattern is wrapped in Persian-letter boundaries (letters only: '،' and '؟' sit in the same Unicode block); 'چند درصد' is an analysis share signal; 'ماه بعد از' is not a future period.",
+      "test": "test_ordinary_persian_predictions_stay_predictions, test_a_past_share_is_an_analysis"
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "'مناسب است' and 'چیست' fired on statements.",
+      "scenario": "'کدام مشتری‌ها برای پیشنهاد تخفیف مناسب است؟' (which customers suit a discount?) was read as advice.",
+      "cause": "The advice signals did not require a question about the method.",
+      "fix": "'آیا … مناسب است' or 'مناسب است که'; 'چیست' only at the end of a question; 'چه معیاری/روشی' only with 'بهتر/مناسب/استفاده'.",
+      "test": "test_ordinary_persian_predictions_stay_predictions"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Persian predictions in the future tense or with 'مدلی' were missed.",
+      "scenario": "'مشتری جدید چقدر خرید خواهد کرد؟' was read as analysis; 'مدلی بساز که هر هفته پیش‌بینی کند…' was asked.",
+      "cause": "No future-tense signal; the model signal needed 'مدل' followed by a space.",
+      "fix": "fa_future (چقدر/چند … خواهد) at weight 3; 'مدل(ی)'.",
+      "test": "test_ordinary_persian_predictions_stay_predictions"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "The quote rule became looser.",
+      "scenario": "A model's '۳۰ روز آینده' passed against the person's 'ظرف 30 روز آینده', and one word with a ZWNJ counted as two, so a quote that was not the person's text could be stored.",
+      "cause": "plan._norm was switched to the full fold.",
+      "fix": "The quote rule is back to the person's exact words (case and spaces only); the rules still read through the fold and quote the original.",
+      "test": "test_the_quote_rule_wants_the_persons_exact_words"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "'شروع کنیم' anywhere read as 'build it'.",
+      "scenario": "'قبل از اینکه شروع کنیم، ستون مبلغ نهایی بعد از رزرو پر می‌شود' (a leakage note) showed the summary instead of being recorded.",
+      "cause": "The build word was unanchored.",
+      "fix": "Only a message that is itself 'let's start' (بیا/خب/پس شروع کنیم).",
+      "test": "test_build_and_simulate_words_in_both_languages"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "Normalising turned a line break into a space and changed an English reading.",
+      "scenario": "'How many orders did we have last month?\\nDo we need a model for that?' lost its how_much signal.",
+      "cause": "The how_much lookahead stops at a line end, which the fold removed.",
+      "fix": "A line break stays a line break in the normalised text.",
+      "test": "test_a_newline_still_ends_an_english_rule"
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "The index map shifted after a character that lowers to two.",
+      "scenario": "Text with 'İ' moved every later quote by one character.",
+      "cause": "One index entry was kept for two output characters.",
+      "fix": "One index entry per output character.",
+      "test": "test_one_index_entry_per_character"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Persian plan rules missed common forms.",
+      "scenario": "'تخمین بزن چند سفارش در هفته آینده ثبت می‌شود' gave no outcome; '…، دو روز قبل از ورود' gave no moment; a Persian quote could never support a model's value.",
+      "cause": "No 'بزن' verb, no number words, and supports() read only Latin letters.",
+      "fix": "Added both forms; supports() compares Unicode word stems.",
+      "test": "test_estimate_and_number_word_moments, test_persian_words_can_support_a_value"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Home on the H1 dev requests, rules alone, after H3 (HOME-003)",
+      "gate": "home_gate_v1: track accuracy with the model at least 0.85 and with the rules alone at least 0.70; no new wrong field, bad quote, uncited number, identifier shown or unconfirmed row drop; median questions at most 3; every trap passes",
+      "fixed_before_run": true,
+      "result": "Track accuracy 1.0 (36/36): English 1.0, Persian 1.0, mixed 1.0 (Persian was 0.125 in HOME-002). Every English case unchanged against HOME-002. Traps 4/6 (persian_no_model now passes). Quotes, uncited numbers and rows shown 0. Fields lost to I'm not sure: 3 (a Persian outcome is now understood, then lost the same way as the English ones; H4 fixes it). The dev split holds 8 Persian and 4 mixed requests; the reviewer's own ordinary Persian sentences were 12, 6 of them misread before the fixes and none after.",
+      "verdict": "not scored",
+      "against_gate": "rules_track_accuracy 1.0 against at least 0.70: met; quote_invalid 0 and uncited 0 against 0: met; median questions 0 against at most 3: met; traps 4 of 6 against all: not met; the gate is read with the model, which has not run.",
+      "limits": [
+        "The Persian and English tables were written by the author of the sealed set, from the dev requests; the sealed run (H12) is the honest test.",
+        "Eight Persian and four mixed dev requests are few; ordinary Persian sentences in tests/test_home_lang.py add twelve more.",
+        "The first review found six of twelve ordinary Persian sentences of its own misread; after the fixes all of them, and the dev requests, read right, which shows how far twelve dev requests are from coverage."
+      ]
+    }
+  ],
+  "outcome": "With no model, a Persian request now gets its kind of help, its outcome and window, and its moment when it is set apart, quoted in the person's own spelling; English reads exactly as before.",
+  "lessons": [
+    "Fold once, quote from the original: an index map from the normalised text back to the person's text keeps every rule simple and every quote honest.",
+    "A reviewer's own ordinary sentences are the honest test of hand-written rules: the dev set had been met while half of ordinary Persian was still misread."
+  ],
+  "risks": [
+    "Persian verbs and stems become separate words after folding a ZWNJ, so a short signal can match inside a verb; every short Persian signal needs a test against ordinary verbs."
+  ],
+  "commits": []
+}
