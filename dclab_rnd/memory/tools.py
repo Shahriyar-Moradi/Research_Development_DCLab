@@ -15,9 +15,11 @@ DESCRIPTION = ("Ask the memory: the remembered facts, know-how and corrections o
 
 
 def workspace_home(projects: Any) -> Path:
-    """The workspace folder behind a project store: the database store's files folder, or the file store's parent."""
-    files = getattr(projects, "files_home", None)
-    return Path(files) if files is not None else Path(projects.home).parent
+    """The workspace folder behind a project store, as the storage layer finds it (the database store's files folder, or
+    the file store's parent), never read from the store's own folders here."""
+    from ..storage.files import files_for
+
+    return Path(files_for(projects).root)
 
 
 def chain(projects: Any, project_id: str | None) -> list[tuple[str, str]]:

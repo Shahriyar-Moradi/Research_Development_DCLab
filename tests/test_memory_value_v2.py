@@ -136,7 +136,7 @@ class FlowTest(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         self.m = small()
-        for p in (mock.patch.object(v2, "manifest", lambda: self.m), mock.patch.object(v2, "FROZEN", self.tmp / "frozen.json"),
+        for p in (mock.patch.object(v2, "manifest", lambda: self.m), mock.patch.object(v2, "FROZEN", self.tmp / "frozen.json"), mock.patch.object(v2, "RUNS", self.tmp / "runs"),  # never the real pilots
                   mock.patch.dict(os.environ, KEYED)):
             p.start()
             self.addCleanup(p.stop)

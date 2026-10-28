@@ -22,8 +22,9 @@ remains".
 **Phase 11, one memory for the agents (planned 2026-10-27; built 2026-10-28):** 35.0 to 35.8 in `MEMORY_PLAN.md`: five kinds
 and five scopes in one `MemoryItem` contract, a brief and a `recall` tool, forgetting without deleting; embeddings are
 measured first (35.0) and enter only if they win. 35.0 to 35.7 built. 35.8: MV-001 removed every repeated correction on
-dev (8 of 24 sessions to 0 of 24) but its pre-fixed gate could not be met; v2's plan is frozen from a memory-off pilot
-(`evidence/campaigns/memory_value_v2/frozen.json`) and its main run has not happened yet.
+dev (8 of 24 sessions to 0 of 24) but its pre-fixed gate could not be met; v2 chose its cases from the intern's own
+mistakes in a memory-off pilot and passed its gate (MV2-001: 29 of 30 sessions repeated a corrected mistake without memory,
+0 of 30 with it); memory stays on. Left: the sealed read (the owner's go, fresh cases), the brief for Home and the team.
 
 **Phase H, Home as a front door (2026-10-27 and 28):** H1 to H12 built on main (the kind of help read first, Persian,
 the briefs per kind, the conversation's memory, the query engine (`dclab_core.query`), answers and charts, exits and
@@ -37,8 +38,9 @@ small filters that together remove many rows ask first. The exposure log (H8) is
 **Phase 12, training data that teaches why and never forgets (planned 2026-10-28):** 36.0 to 36.7 in
 `PHASE12_TRAINING_DATA_PLAN.md`: every agent's thinking and reasoning collected, coverage per agent and per kind of help,
 outcomes for non-prediction help, frozen exams, replay sets and verified code against forgetting. Part A (the backfill of
-past data's reasoning, and thinking for every purpose) is built by the session working on Home. 36.0, 36.1 and 36.4 built; 36.2,
-36.3 (paid), 36.5, 36.6 and 36.7 open.
+past data's reasoning, and thinking for every purpose) is built by the session working on Home (the reasoning backfill
+cancelled by the owner). 36.0, 36.1, 36.2, 36.4, 36.5, 36.6 and 36.7 built (2026-10-28); 36.3 (paid written journeys) with
+the Home session. What waits: training (the M1 Max), then the first replay round and version; the exams drawn after the backfill.
 
 ## The two goals it serves
 
@@ -117,9 +119,10 @@ passes variants it never saw. The plan, its stages and the owner's decisions: `P
 28.10 built, 28.4, 28.6 and 28.8 complete (28.6: the second opinion kept, ORC-001; the debate off, ORC-005); 28.7's sealed
 verdict failed once (the team 25 of 30 against the single agent's 26), a fresh sixth sealed set frozen and run once: passed (the team 21 of 30, the single agent 16, the rules 10; the intervals overlap);
 28.11 approved by the owner for after every phase is finished, skipped until then. Phase 7,
-the students (`PHASE7_STUDENTS_PLAN.md`): 29.1, 29.2, 29.4, 29.5, 29.13, 29.14 and 29.17 built or run, 29.6 for the teams;
-29.3, 29.7 to 29.12, 29.15, 29.16 and 29.18 open. Phase 8, the knowledge cards and recipes
-(`PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md`): 30.7 to 30.11 built; 30.12 to 30.20 and Part G open. Phase 9, the learning
+the students (`PHASE7_STUDENTS_PLAN.md`): every package built or run; what each left open is in its status line (the
+new students failed their sealed exams, 29.9 waits for a GPU, 29.15 for the Kaggle key). Phase 8, the knowledge cards and
+recipes (`PHASE8_KNOWLEDGE_CARDS_RECIPES_PLAN.md`): built; open per its status lines (30.6's fresh sealed set failed, no
+part certified in 30.12, 30.18's switch off, live runs of 30.20 and 30.21). Phase 9, the learning
 loop (`PHASE9_LEARNING_LOOP_PLAN.md`): planned only, built after phases 6 to 8.
 
 **Lessons from MLE-bench (planned 2026-10-21, nothing built yet).** The leading agents on OpenAI's MLE-bench win by

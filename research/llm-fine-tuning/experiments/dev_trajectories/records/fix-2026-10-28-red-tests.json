@@ -1,0 +1,36 @@
+{
+ "package": "fix 2026-10-28 red tests",
+ "title": "Four tests red on main after the day's packages, fixed; the roadmap brought up to date",
+ "date": "2026-10-28",
+ "request": "The owner: review the whole repository, then go on with the recommendation: fix the failing tests first and update the roadmap; the full gate waits for 11:50 pm.",
+ "spec": "A whole-repo review found three test files failing on main and a roadmap whose status lines were days old.",
+ "plan": ["Rerun the test files the last full run left failing", "Find each cause", "Fix with the smallest change", "Update the roadmap"],
+ "decisions": [
+  {"decision": "Never change a frozen campaign's manifest to fix a page", "why": "the memory v2 plan and the v1 result record the manifest's hash"},
+  {"decision": "Never hand-write a campaign report", "why": "campaign reports are generated files"}
+ ],
+ "change": ".env.example, dclab_rnd/agentic/pages/lab.py, dclab_rnd/memory/tools.py, tests/test_memory_value_v2.py, docs/guides/ROADMAP.md.",
+ "findings": [
+  {"id": "T1", "source": "test", "severity": "gap", "defect": "Two settings the code reads were not documented",
+   "scenario": "DCLAB_BROWSER_CHANNEL and DCLAB_CODE_RUNS were added without a line in the example settings",
+   "cause": "the settings were added in two packages of the day without the example file",
+   "fix": "both documented with their safe default", "test": "test_every_setting_the_code_reads_is_documented"},
+  {"id": "T2", "source": "test", "severity": "behaviour", "defect": "The Lab page showed the memory campaigns with no objective",
+   "scenario": "a campaign with a question in its manifest but no objective and no report",
+   "cause": "the page read only an objective or a report",
+   "fix": "the page falls back to the campaign's question", "test": "test_campaigns_come_from_the_campaign_folders"},
+  {"id": "T3", "source": "test", "severity": "behaviour", "defect": "Memory found its workspace folder by reading a store's own folder",
+   "scenario": "the storage rule refuses code outside the stores that reaches into their folders",
+   "cause": "the workspace folder was taken from the project store's home",
+   "fix": "the storage layer's files_for finds it", "test": "test_no_code_outside_the_stores_reaches_into_their_folders"},
+  {"id": "T4", "source": "test", "severity": "flaky", "defect": "A memory test read the real pilot folder",
+   "scenario": "once the real pilot ran, the test's freeze was refused as a second pilot",
+   "cause": "the test did not point the runs folder at its own temporary folder",
+   "fix": "the test patches the runs folder", "test": "test_pilot_freeze_run_and_judge_with_thinking_kept"}
+ ],
+ "measurements": [],
+ "outcome": "The four red tests pass again and the roadmap says what is built and what waits; the full gate runs at 11:50 pm.",
+ "lessons": ["A new setting gets its documentation line in the same change.", "A test must never read the real run folders, even when none exists yet."],
+ "risks": ["Other files may fail in the full gate; only the files that failed last were rerun."],
+ "commits": []
+}

@@ -234,7 +234,8 @@ def _campaigns() -> list[dict[str, Any]]:
                 status = "done"
             dates = sorted(r.get("completed_at") for r in results if r.get("completed_at"))
             subtitle = title.split(":", 1)[1].strip() if ":" in title else ""
-            objective = manifest.get("objective") or (f"{subtitle[:1].upper()}{subtitle[1:]}. {para}" if subtitle else para)
+            objective = (manifest.get("objective") or (f"{subtitle[:1].upper()}{subtitle[1:]}. {para}" if subtitle else para)
+                         or manifest.get("question") or "")  # a campaign that states its question (35.8's) has it as its objective
             out.append({
                 "id": folder.name, "title": title, "objective": _shorten(objective),
                 "experiments": len(results), "planned": planned, "completed": completed, "failed": failed,
