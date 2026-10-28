@@ -283,6 +283,25 @@ class ControlsTests(AnswerTests):
         self.assertTrue(self.store.get(d["id"])["answers"][out["answer"]]["saved"])
         self.assertEqual(self.store.get(d["id"])["answers"][out["answer"]]["by"], "model")
 
+    def test_the_models_history_holds_what_was_computed_never_a_value(self):
+        """The review of H7a..H12: query_data's return was clean, but the answer's message reached home_agent's next
+        history whole (every city and total, and the hidden-group count the H7c review withheld)."""
+        from dclab_rnd.draft import memory
+        from dclab_rnd.draft.chat import Turn, query_data
+        agent, d = self.ask("What was the average monthly spend per plan?", "customers")
+        query_data(Turn(agent, d["id"]), plan={"group_by": ["city"], "measures": [{"name": "spend", "op": "sum", "column": "monthly_spend"}]})
+        d = self.store.get(d["id"])
+        seen = json.dumps(memory.recent(d), ensure_ascii=False)
+        frame = tables.build("customers")
+        for value in set(frame["city"]) | set(frame["plan"]):
+            self.assertNotIn(str(value), seen)
+        for m in d["messages"]:
+            if m.get("kind") == "answer":
+                self.assertIn("Answered from the table", m["model_text"])
+                self.assertNotIn("hidden", m["model_text"])
+                for row in m["answer"]["rows"]:
+                    self.assertNotIn(str(row[-1]), m["model_text"])
+
     def test_the_guard_refuses_answers_off_track_before_the_table_and_for_a_missing_answer(self):
         from dclab_rnd.agents import default_registry
         from dclab_rnd.draft.chat import DraftGuard, Turn

@@ -107,6 +107,24 @@ class DataLimitTests(unittest.TestCase):
         HomeAgent(store, gw.client("home_agent", draft_id=d["id"])).reply(d["id"], "Customers who churn within 30 days")
         self.assertEqual(self.assertWithinLimit("home_agent"), set())
 
+    def test_home_agent_sees_no_value_of_an_answer_it_asked_for(self):  # the review of H7a..H12
+        from dclab_rnd.draft import pipeline
+        from dclab_rnd.draft.chat import HomeAgent, Turn, query_data
+        from dclab_rnd.draft.store import DraftStore
+        store = DraftStore(Path(tempfile.mkdtemp()))
+        d = store.create("What was the total spend per city?")
+        agent = HomeAgent(store, None, on_request=lambda *a: None)
+        agent.start(d["id"])
+        marked_table().to_csv(store.data_dir(d["id"]) / "marked.csv", index=False)
+        asset = pipeline.new_asset(store, d["id"], "upload", "marked.csv", "marked.csv")
+        pipeline.run(store, d["id"], asset["id"], agent, None)
+        query_data(Turn(agent, d["id"]), plan={"group_by": ["segment"], "measures": [{"name": "spend", "op": "sum", "column": "spend"}]})
+        shown = [m for m in store.get(d["id"])["messages"] if m.get("kind") == "answer"]
+        self.assertTrue(shown and any("Q7Kxseg" in m["text"] for m in shown))  # the person sees the segments
+        gw = gateway({"home_agent": [{"content": "Here it is.", "tool_calls": [], "usage": {}}]})
+        HomeAgent(store, gw.client("home_agent", draft_id=d["id"]), on_request=lambda *a: None).reply(d["id"], "Thanks, and what next?")
+        self.assertEqual(self.assertWithinLimit("home_agent"), set())  # the model's history: what was computed, never a value
+
     def test_home_intent_sees_the_request_never_values(self):  # H2
         from dclab_rnd.draft import analyze
         from dclab_rnd.draft.chat import HomeAgent

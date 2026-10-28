@@ -779,7 +779,7 @@ class HomeAgent:
             capture.exit_reached(record, kind)
         self.moved(draft_id, "answer_analysis", {"plan_by": by, **({"edited_from": edited_from} if edited_from is not None else {})},
                    {"rows": len(result.rows), "suppressed": result.suppressed_groups})
-        return self.say(draft_id, text, kind="answer", message_id=message_id,
+        return self.say(draft_id, text, kind="answer", message_id=message_id, model_text=home_query.model_text(plan),
                         answer={"n": n, "columns": result.columns, "rows": result.rows[:50], "suppressed_groups": result.suppressed_groups,
                                 "chart": home_chart.spec(plan, result), "edits": home_query.edits(plan, briefs.columns_of(draft))})
 
@@ -932,7 +932,11 @@ class HomeAgent:
                                                   "narrowed_by": sorted(spec["narrow"]), "splits": spec["splits"], "planned_by": by,
                                                   "scores": {k: round(v, 4) for k, v in spec.get("scores", {}).items()}},
                    {"segments": len(result.segments), "worded_by": worded.get("by")})
-        return self.say(draft_id, text, kind="decision_brief")
+        # the model's history reads what was compared, never the totals, the segments or the narrowing values
+        return self.say(draft_id, text, kind="decision_brief",
+                        model_text=f"(A decision brief is shown to the person: where {result.measure or 'the number of rows'} changed between "
+                                   f"{result.a.label} and {result.b.label}, by {result.by}. Its numbers are shown to the person, not here; "
+                                   "do not state or guess them.)")
 
     def _other_tables(self, draft: dict[str, Any]) -> dict[str, Any]:
         """H9: the draft's other prepared tables by name (a join's second table), each checked against its recorded hash."""
@@ -2512,6 +2516,7 @@ def export_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
     rec = turn.agent.store.get(turn.draft_id).get("recipe") or {}
     turn.agent.store.update(turn.draft_id, lambda d: d.setdefault("recipe", {}).update(format=fmt))
     turn.agent.say(turn.draft_id, f"Your prepared table ({rec.get('rows', 0):,} rows) is ready to download.", kind="prepared",
+                   model_text=f"(The prepared table is offered to download as {fmt}.)",  # no row count: a filter the model chose never tells it a row's value
                    prepared={"format": fmt, "rows": rec.get("rows"), "columns": rec.get("columns")})
     return {"format": fmt}
 
@@ -2524,6 +2529,7 @@ def compare_periods(turn: Turn, /, **args: Any) -> dict[str, Any]:
 
     from dclab_core import change as C
     from dclab_core import query as Q
+    from dclab_core.times import is_text
 
     from .. import home_query
     from . import business
@@ -2551,7 +2557,7 @@ def compare_periods(turn: Turn, /, **args: Any) -> dict[str, Any]:
     date = str(args.get("date_column") or (dates[0] if len(dates) == 1 else ""))
     if date not in dates:
         return {"error": f"date_column: one of {', '.join(dates) or 'none'}"}
-    allowed = [str(c) for c in frame.columns if frame[c].dtype == object and usable(str(c)) and str(c) != date
+    allowed = [str(c) for c in frame.columns if is_text(frame[c]) and usable(str(c)) and str(c) != date
                and 1 < frame[c].nunique() <= business.MAX_SPLIT]  # the same columns the rules may split by (the review of H11b)
     splits = [str(args["by"])] if args.get("by") else allowed
     if not splits or not all(c in allowed for c in splits):

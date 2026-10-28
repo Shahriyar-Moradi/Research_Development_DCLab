@@ -338,6 +338,22 @@ def describe(plan: Q.QueryPlan) -> str:
     return what[0].upper() + what[1:]
 
 
+def model_text(plan: Q.QueryPlan) -> str:
+    """The answer as the Home agent's model reads it in the conversation: what was computed, by column and operation
+    only, never a value (no group name, number, filter value or count of hidden groups). The person sees the answer
+    itself; home_agent is shown no cell values (its limit is 0), and its prompts are kept whole for training."""
+    m = plan.measures[0]
+    what = {"count": "number of rows", "count_distinct": f"number of distinct {m.column}",
+            "rate": f"share of rows by a condition on {m.where.column if m.where else ''}"}.get(m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}")
+    if plan.group_by:
+        what += " by " + ", ".join(plan.group_by)
+    if plan.filters:
+        what += ", filtered on " + ", ".join(sorted({f.column for f in plan.filters}))
+    if plan.period:
+        what += f", per {plan.period.grain} of {plan.period.column}"
+    return f"(Answered from the table: {what}. The numbers are shown to the person, not here; do not state or guess them.)"
+
+
 def answer_text(plan: Q.QueryPlan, result: Q.QueryResult, note: str = "") -> str:
     """The answer in words, written by code from the plan and the result alone: what was computed (operation, column,
     filters, period), then the numbers; ``note`` (whole sentences) says what was assumed and what was not applied."""
