@@ -271,9 +271,10 @@ def draft_table(store: Any, draft: dict[str, Any]) -> Any:
 class HomeAgent:
     def __init__(self, store: DraftStore, client=None, on_request: Callable[[str, str, dict[str, Any]], None] | None = None,
                  registry: Registry | None = None, traces: Any = None, reader: Callable[..., Any] | None = None,
-                 second_opinion: bool = False, intent_client: Any = None):
+                 second_opinion: bool = False, intent_client: Any = None, query_client: Any = None):
         self.store, self.client, self.traces = store, client, traces
         self.intent_client = intent_client  # H2: the model reading the kind of help, only where the rules find no clear winner
+        self.query_client = query_client  # H7: the model writing a query plan from column summaries, where the rules cannot
         self.second_opinion = second_opinion  # 28.6: the reader's family and the rules' judged before the card is concluded
         # 20.10 v4: the conversation reader (dclab_core.conversation.READER through a model), reading the problem sentence
         # and the card's answers; (field, text, columns) -> what the model read, each value quoting the person's words
@@ -667,7 +668,58 @@ class HomeAgent:
         for field, absent in missing.items():
             self.say(draft_id, f"Your data has no column named {', '.join(f'`{a}`' for a in absent)}, so I did not use it for the "
                                f"{field.replace('_', ' ')}. Which column did you mean?", kind="text")
-        self.ask_brief(draft_id)
+        if self.ask_brief(draft_id) is None:
+            self.answer_analysis(draft_id)
+
+    def answer_analysis(self, draft_id: str) -> dict[str, Any] | None:
+        """H7: on the analysis track, with the table ready and nothing important left to ask, the question is answered from
+        the person's own table: the rules' plan from the brief (or, where they cannot map the words to columns, the
+        home_query model's plan from column summaries), run by the query engine, said in words code writes from the plan
+        and the result (what was computed, then the numbers). Never a row, never a personal column; a refusal is said with
+        its reason and ends the turn. The same question on the same table is answered once."""
+        from .. import home_query
+        from dclab_core import query as Q
+
+        draft = self.store.get(draft_id)
+        if self.track(draft) != "analysis" or self.pending(draft) is not None:
+            return None
+        if not any(a.get("status") == "ready" for a in draft.get("assets") or []):
+            return None
+        brief = (draft.get("track_brief") or {}).get("analysis") or {}
+        columns = briefs.columns_of(draft)
+        plan, why = home_query.plan_from_brief(brief, columns)
+        by = "rules"
+        if plan is None and self.query_client is not None:
+            plan, model_why = home_query.write_plan(self.query_client, draft.get("problem") or "", draft, brief)
+            by = "model"
+            if plan is None:  # a model's refusal is never shown as its own words: the rules' reason stands
+                why = why or "the question could not be mapped to the table's columns"
+            else:
+                why = ""
+        if plan is None:
+            return self.say(draft_id, f"I can't answer from the table yet: {why}.", kind="text")
+        marked = home_query.sensitive_columns(plan, columns)
+        if marked:
+            return self.say(draft_id, f"That question uses {', '.join(marked)}, which holds personal data; I don't answer with it. "
+                                      "Ask about another column.", kind="text")
+        last = (draft.get("answers") or [None])[-1]
+        if last and last.get("plan_hash") == Q.plan_hash(plan) and last.get("asset") == draft.get("active_asset"):
+            return last  # the same question on the same table: answered already (the review of H7a: no duplicate answers)
+        try:
+            result = home_query.run(self.store, draft_id, plan)
+        except Exception as error:  # noqa: BLE001 - a plan this table refuses is said, never a failed table
+            return self.say(draft_id, f"That question could not be answered from this table: {str(error)[:300]}", kind="text")
+        text = home_query.answer_text(plan, result, why if by == "rules" else "")
+        answer = {"plan": plan.model_dump(mode="json"), "plan_hash": Q.plan_hash(plan), "asset": draft.get("active_asset"),
+                  "result": result.model_dump(mode="json"), "shown": home_query.shown_numbers(result), "by": by, "at": now()}
+
+        def keep(d):
+            d.setdefault("answers", []).append(answer)
+            d["exit"] = {"kind": "analysis", "answers": len(d["answers"])}
+        self.store.update(draft_id, keep)
+        self.moved(draft_id, "answer_analysis", {"plan_by": by}, {"rows": len(result.rows), "suppressed": result.suppressed_groups})
+        return self.say(draft_id, text, kind="answer", answer={"columns": result.columns, "rows": result.rows[:50],
+                                                                "suppressed_groups": result.suppressed_groups})
 
     def ask_brief(self, draft_id: str) -> dict[str, Any] | None:
         """The next brief question of the current track: unknown, no safe default, not asked before, within its budget; with
@@ -714,7 +766,7 @@ class HomeAgent:
         self.store.update(draft_id, put)
         self.store.emit(draft_id, "status", {"track_brief": self.store.get(draft_id).get("track_brief")})
         self.moved(draft_id, "brief_answer", {"track": track, "field": field})
-        if self.ask_brief(draft_id) is None:
+        if self.ask_brief(draft_id) is None and self.answer_analysis(draft_id) is None:
             self.say(draft_id, "Noted. " + intents.NEXT.get(track, ""), kind="text")
 
     @turn

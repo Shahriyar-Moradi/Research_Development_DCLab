@@ -178,7 +178,7 @@ class AgentTests(unittest.TestCase):
             self.assertEqual([q for q in d["questions"] if not q.get("brief")], [], track)  # H4: only the track's brief asks
             said = " ".join(m.get("text") or "" for m in d["messages"] if m.get("role") == "agent")  # H4: a brief question may follow
             self.assertIn(intent.NEXT[track], said)
-            if track in ("analysis", "preparation", "reporting", "business"):
+            if track in ("preparation", "reporting", "business"):  # H7: analysis is answered from the table now
                 self.assertIn("not built yet", said)  # never a promise of what does not exist
 
     def test_a_chosen_pack_means_a_prediction(self):
@@ -358,7 +358,7 @@ class AgentTests(unittest.TestCase):
         self.store.update(d["id"], lambda x: x.update(analysis=analyze.analyze(frame), assets=[{"id": "a1", "status": "ready", "name": "t.csv"}], active_asset="a1"))
         HomeAgent(self.store, None).data_ready(d["id"], self.store.get(d["id"])["assets"][0])
         d = self.store.get(d["id"])
-        self.assertEqual(d["messages"][-1]["kind"], "analysis")
+        self.assertIn("analysis", [m.get("kind") for m in d["messages"]])  # the data described (H7: an answer may follow it)
         self.assertEqual([q for q in d["questions"] if not q.get("brief")], [])  # H4: only the track's brief asks
         self.assertFalse(d.get("workflow"))
 

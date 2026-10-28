@@ -128,8 +128,8 @@ _COMPILED = [(t, i, w, re.compile(p, re.I)) for t, i, w, p in SIGNALS + lang.SIG
 
 # Home's next step on each track until the packages that serve it are built (the card says what DCLab can do now)
 NEXT = {
-    "analysis": "Answering questions from your data in this chat is not built yet. Upload or connect the table and I'll prepare it "
-                "and show what it holds; if you need a prediction instead, change the type of help above.",
+    "analysis": "Upload or connect the table and I'll answer from it: numbers per group, never single rows. If you need a "
+                "prediction instead, change the type of help above.",
     "preparation": "Preparing data on request is not built yet. When you upload the table, DCLab cleans it (names, numbers, dates, "
                    "empty rows, exact duplicates) and lists every step it took.",
     "reporting": "Reports and dashboards are not built yet. Upload or connect the data and I'll prepare it and show what it holds.",

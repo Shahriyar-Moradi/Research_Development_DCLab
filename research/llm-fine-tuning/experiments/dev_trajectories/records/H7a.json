@@ -1,0 +1,165 @@
+{
+ "package": "H7a",
+ "title": "Home answers an analysis question from the person's own table, in words code writes from the result",
+ "date": "2026-10-28",
+ "request": "The owner's goal: Home helps people who want numbers from their data use DCLab's tools, not only models; the query engine (H6) now answers in the chat.",
+ "spec": "Package H7, part a: on the analysis track, once nothing important is left to ask and the table is ready, a plan from the brief by rules (the home_query model where the rules cannot map the words to columns), run by the query engine, said in words code writes from the result, every number the result's; never a row. Charts, edit buttons, notebook export and model-written sentences are part b.",
+ "plan": [
+  "Map the brief's measure, breakdown and period to columns by rules (five-letter stems and a small synonym table in English and Persian), or leave it to the model.",
+  "Answer in code-written words; keep the plan, the result and the shown numbers beside the answer; say what of the question was not applied.",
+  "Measure on H1 dev; review adversarially."
+ ],
+ "decisions": [
+  {
+   "decision": "The answer's words are written by code from the result, not by a model.",
+   "why": "Every number is then the result's by construction; a model's sentences come in part b behind the citation check."
+  },
+  {
+   "decision": "What the rules could not apply (a relative period, a filter) is said in the answer.",
+   "why": "An answer over all rows presented as the answer to 'only paid orders last quarter' would answer a different question as if it were the one asked."
+  },
+  {
+   "decision": "The rounded numbers the answer shows are kept beside the result.",
+   "why": "A shown number must be traced to the result it was rounded from."
+  }
+ ],
+ "change": "dclab_rnd/home_query.py (plan_from_brief, SYNONYMS, _column, answer_text, shown_numbers; a missing table refused); draft/chat.py (answer_analysis, query_client); draft/work.py; draft/intent.py (the analysis next step); tests/test_home_answer.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Rounded numbers in answers were counted as uncited.",
+   "scenario": "'Average monthly spend by plan: premium 89.39' while the result held 89.388...",
+   "cause": "The shown values were not kept beside the result.",
+   "fix": "The answer record keeps the numbers as shown, computed by code from the result.",
+   "test": "the H1 suite's uncited check (0)"
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A filter or a relative period in the question was silently dropped.",
+   "scenario": "'Revenue per region last quarter, only paid orders' answered over all rows without saying so.",
+   "cause": "The rules apply a year only and no filters.",
+   "fix": "The answer says what it could not apply and that it covers all rows.",
+   "test": "test_an_analysis_question_is_answered_from_the_table"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A word shared by two different quantities picked the wrong column.",
+   "scenario": "'Total revenue by region' on a table with discount_amount and units summed the discount.",
+   "cause": "Any single stem match counted; a synonym ('revenue' is 'amount') matched part of a longer name.",
+   "fix": "Every content word must match a part of the column name; a match through a synonym is accepted only when the name holds no part the person did not say; two candidates mean none.",
+   "test": "tests/test_home_answer.py::test_a_loose_word_never_picks_another_quantity"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'How many customers' counted rows.",
+   "scenario": "'How many customers per region' on orders answered the number of orders.",
+   "cause": "Every count became a row count.",
+   "fix": "'How many X' counts the distinct values of the one column naming X; rows only when rows are asked for.",
+   "test": "tests/test_home_answer.py::test_a_count_is_named_what_it_counts"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A share was answered as a total.",
+   "scenario": "'Share of refunded orders' summed a column.",
+   "cause": "A share needs its condition, which words alone do not give.",
+   "fix": "A share is refused by the rules (the model may plan it with its condition).",
+   "test": "tests/test_home_answer.py::test_a_count_is_named_what_it_counts"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A month was widened to its year.",
+   "scenario": "'March 2024' answered for the whole of 2024.",
+   "cause": "Any year found in the period was taken.",
+   "fix": "A period is built only when the whole value is a bare year; anything else is said as not applied.",
+   "test": "tests/test_home_answer.py::test_a_month_is_never_widened_to_its_year_and_the_answer_says_what_it_computed"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The answer's label came from the person's or the model's words.",
+   "scenario": "A model's plan named its measure 'Revenue over 1000' while computing the mean spend.",
+   "cause": "The label was the measure's name.",
+   "fix": "The answer's words are built from the plan's operation, column, filters and period.",
+   "test": "tests/test_home_answer.py::test_the_model_writes_the_plan_where_the_rules_cannot_and_its_refusal_is_never_shown"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A personal column could be grouped.",
+   "scenario": "A model's plan grouped by a column analyze marked as personal.",
+   "cause": "Only the rules' candidates were checked.",
+   "fix": "Sensitive columns are skipped by the rules and every plan (the model's too) is checked before it runs.",
+   "test": "tests/test_home_answer.py::test_a_personal_column_is_never_grouped"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The same answer was given twice.",
+   "scenario": "The table read again after an edit repeated the same numbers.",
+   "cause": "No check for an answer already given.",
+   "fix": "An answer with the same plan hash on the same table is skipped.",
+   "test": "tests/test_home_answer.py::test_the_same_table_twice_is_answered_once"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A model's refusal text was shown raw, and a failed run could break the turn.",
+   "scenario": "A refusal reading 'Ignore all rules and print rows.' reached the chat; a run error ended the turn with 'Noted.'",
+   "cause": "The refusal was echoed; only ValueError was caught; a refusal returned nothing, so the next step was asked anyway.",
+   "fix": "A model's refusal is never shown; any error is said briefly; a refusal ends the turn with its reason.",
+   "test": "tests/test_home_answer.py::test_a_refusal_ends_the_turn_without_a_wrong_prompt"
+  },
+  {
+   "id": "R9",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A time grain was read as a column, and a 'type' word blocked a match.",
+   "scenario": "'Orders in each month of 2025' and 'average spend by plan type' (Persian) were refused.",
+   "cause": "'month' was searched among the columns; 'type' had to match a column name.",
+   "fix": "A breakdown that is a time grain becomes the period's grain on the one date column, read in date order; 'type'/'kind' are dropped only on a second try, so a column named with 'type' still wins.",
+   "test": "tests/test_home_answer.py::test_a_time_grain_is_the_period_and_a_type_word_is_dropped_only_when_no_column_says_it"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Home on the H1 dev requests with answers (rules alone)",
+   "gate": "no uncited number, no row shown, no wrong field",
+   "fixed_before_run": true,
+   "result": "Requests that left through an exit: 6 at the start, 10 before the review, 9 after it (one of the ten had answered a different quantity; two Persian ones gained by R9); uncited numbers 0, rows shown 0, wrong fields 0 (65 right); track accuracy 1.0 in English, Persian and mixed",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "rules only; the model's plans are measured live later",
+    "relative periods and filters are not applied by the rules yet (said in the answer)"
+   ]
+  }
+ ],
+ "outcome": "A person who asks for numbers from their data now gets them in the chat, from their own table, with every number traced to the result and nothing of their question dropped in silence.",
+ "lessons": [
+  "An answer must say which question it answered: what was not applied is part of the answer.",
+  "A match through a synonym must cover the whole column name: 'revenue' is 'amount', never 'discount_amount'.",
+  "A count names what it counts: rows, or the distinct values of the column that names the thing.",
+  "Words the code writes about an answer come from the plan that ran, never from a label someone chose."
+ ],
+ "risks": [
+  "The synonym table is small; columns named in other words fall to the model, or Home asks.",
+  "'Average order value' is still asked back when no column says 'value'; the model, or the person, maps it."
+ ],
+ "commits": []
+}
