@@ -67,6 +67,16 @@ class RoutingStore(Protocol):
     def save(self, doc: dict[str, Any]) -> dict[str, Any]: ...
 
 
+def atomic(store: Any, fn: Any) -> dict[str, Any]:
+    """Read, change and write the routing document as one step, locked across processes where the store can (22.6): ``fn``
+    returns the new document, or None to keep it as it is. A store without ``change`` is read and written in turn."""
+    if hasattr(store, "change"):
+        return store.change(fn)
+    doc = store.get()
+    new = fn(doc)
+    return doc if new is None else store.save(new)
+
+
 def empty() -> dict[str, Any]:
     return {"purposes": {}, "history": []}
 
@@ -77,7 +87,7 @@ class FileRouting:
     def __init__(self, path: Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # change() holds it and calls save(), which takes it again
 
     def get(self) -> dict[str, Any]:
         try:
@@ -91,6 +101,20 @@ class FileRouting:
             temporary.write_text(json.dumps(doc, indent=1, ensure_ascii=False), encoding="utf-8")
             os.replace(temporary, self.path)
         return doc
+
+    def change(self, fn: Any) -> dict[str, Any]:
+        """22.6: the whole read-change-write under an exclusive lock on ``<file>.lock``, so two processes (the app and a
+        worker) never write over each other's change."""
+        import fcntl
+
+        with self._lock, open(self.path.with_suffix(".lock"), "a+") as held:
+            fcntl.flock(held, fcntl.LOCK_EX)
+            try:
+                doc = self.get()
+                new = fn(doc)
+                return doc if new is None else self.save(new)
+            finally:
+                fcntl.flock(held, fcntl.LOCK_UN)
 
 
 class PgRouting:
@@ -118,6 +142,24 @@ class PgRouting:
             c.execute(insert(t).values(workspace_id=self.workspace_id, doc=doc).on_conflict_do_update(
                 index_elements=[t.c.workspace_id], set_={"doc": doc, "updated": sa.func.now()}))
         return doc
+
+    def change(self, fn: Any) -> dict[str, Any]:
+        """22.6: read, change and write in one transaction holding the workspace's advisory lock, so two processes never
+        write over each other's change."""
+        import sqlalchemy as sa
+        from sqlalchemy.dialects.postgresql import insert
+
+        from ..storage.models import model_routing as t
+
+        with self.engine.begin() as c:
+            c.execute(sa.text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": f"model_routing:{self.workspace_id}"})
+            doc = {**empty(), **(c.execute(sa.select(t.c.doc).where(t.c.workspace_id == self.workspace_id)).scalar() or {})}
+            new = fn(doc)
+            if new is None:
+                return doc
+            c.execute(insert(t).values(workspace_id=self.workspace_id, doc=new).on_conflict_do_update(
+                index_elements=[t.c.workspace_id], set_={"doc": new, "updated": sa.func.now()}))
+        return new
 
 
 def open_routing(home: Path) -> RoutingStore:
@@ -177,40 +219,42 @@ def change(store: RoutingStore, purpose: str, setting: str, tier: str | None, ro
         if not public["model"] or not public["key_configured"]:
             raise RoutingError(f"the {tier} tier has no model configured: there is nothing to approve")
         model, endpoint = public["model"], public["endpoint"]  # the approval is for this model at this endpoint
-    doc = store.get()
-    current = route(doc, purpose)
-    if current[setting] == tier and (setting == "shadow" or current.get("serve_model") == model):
-        return doc  # the same setting again changes nothing
-    evidence = None
-    if setting == "serve" and tier is not None and purpose in UNDERSTANDING and not (tier in RANK and RANK[tier] < RANK.get(own, -1)):
-        # every move but one to a weaker tier than its own (a tuned or unranked tier included) needs the new model to have
-        # measured better than its own tier's model and than the model a reviewer approved for it, on the same conversations
-        bars = {str(settings.public(own)["model"])}
-        if current["serve"] and approved(current):
-            bars.add(str(current.get("serve_model")))
-        bars.discard(str(model))
-        scores = {str(k): float(v) for k, v in (measured or {}).items() if v is not None}
-        better = model in scores and all(b in scores and scores[model] > scores[b] for b in bars)
-        if not better and not (override and role == "owner"):
-            raise RoutingError(f"{purpose} reads what the person means: a model serves it only when it measured better on the same "
-                               f"conversations than {', '.join(sorted(bars)) or 'its own tier'} ({model}: {scores.get(model, 'not measured')}; "
-                               + "; ".join(f"{b}: {scores.get(b, 'not measured')}" for b in sorted(bars)) + "), or the owner overrides with a reason")
-        evidence = {"measured": {k: scores[k] for k in sorted({str(model), *bars}) if k in scores}, "override": not better}
-    if setting == "serve" and tier is not None:  # 21.5: no model serves a purpose before the harness suite passed with it here
-        from ..extensions import optional
+    def apply(doc: dict[str, Any]) -> dict[str, Any] | None:  # 22.6: read, checked, changed and written as one locked step
+        current = route(doc, purpose)
+        if current[setting] == tier and (setting == "shadow" or current.get("serve_model") == model):
+            return None  # the same setting again changes nothing
+        evidence = None
+        if setting == "serve" and tier is not None and purpose in UNDERSTANDING and not (tier in RANK and RANK[tier] < RANK.get(own, -1)):
+            # every move but one to a weaker tier than its own (a tuned or unranked tier included) needs the new model to have
+            # measured better than its own tier's model and than the model a reviewer approved for it, on the same conversations
+            bars = {str(settings.public(own)["model"])}
+            if current["serve"] and approved(current):
+                bars.add(str(current.get("serve_model")))
+            bars.discard(str(model))
+            scores = {str(k): float(v) for k, v in (measured or {}).items() if v is not None}
+            better = model in scores and all(b in scores and scores[model] > scores[b] for b in bars)
+            if not better and not (override and role == "owner"):
+                raise RoutingError(f"{purpose} reads what the person means: a model serves it only when it measured better on the same "
+                                   f"conversations than {', '.join(sorted(bars)) or 'its own tier'} ({model}: {scores.get(model, 'not measured')}; "
+                                   + "; ".join(f"{b}: {scores.get(b, 'not measured')}" for b in sorted(bars)) + "), or the owner overrides with a reason")
+            evidence = {"measured": {k: scores[k] for k in sorted({str(model), *bars}) if k in scores}, "override": not better}
+        if setting == "serve" and tier is not None:  # 21.5: no model serves a purpose before the harness suite passed with it here
+            from ..extensions import optional
 
-        regression = optional("agent_eval.regression")  # the open edition: no suite, so only the owner's override with a reason
-        suite = regression.passed_with(purpose, str(model)) if regression is not None else None
-        if suite is None and not (override and role == "owner"):
-            raise RoutingError(f"{model} has not passed the harness suite serving {purpose} on these prompts and gates: run "
-                               "make harness-eval ARGS='--live --cap-eur N' with it, or the owner overrides with a reason")
-        evidence = {**(evidence or {}), "suite": suite["id"] if suite else None, **({"override": True} if suite is None else {})}
-    purposes = dict(doc.get("purposes") or {})
-    purposes[purpose] = {**current, setting: tier, **({"serve_model": model, "serve_endpoint": endpoint} if setting == "serve" else {})}
-    entry = {"at": _now(), "purpose": purpose, "setting": setting, "from": current[setting], "to": tier, "by": role or "human", "reason": reason or None,
-             "prompt": prompt_of(purpose), **({"model": model, "endpoint": endpoint} if setting == "serve" and tier else {}),
-             **({"evidence": evidence} if evidence else {})}
-    return store.save({**doc, "purposes": purposes, "history": [*(doc.get("history") or []), entry]})
+            regression = optional("agent_eval.regression")  # the open edition: no suite, so only the owner's override with a reason
+            suite = regression.passed_with(purpose, str(model)) if regression is not None else None
+            if suite is None and not (override and role == "owner"):
+                raise RoutingError(f"{model} has not passed the harness suite serving {purpose} on these prompts and gates: run "
+                                   "make harness-eval ARGS='--live --cap-eur N' with it, or the owner overrides with a reason")
+            evidence = {**(evidence or {}), "suite": suite["id"] if suite else None, **({"override": True} if suite is None else {})}
+        purposes = dict(doc.get("purposes") or {})
+        purposes[purpose] = {**current, setting: tier, **({"serve_model": model, "serve_endpoint": endpoint} if setting == "serve" else {})}
+        entry = {"at": _now(), "purpose": purpose, "setting": setting, "from": current[setting], "to": tier, "by": role or "human", "reason": reason or None,
+                 "prompt": prompt_of(purpose), **({"model": model, "endpoint": endpoint} if setting == "serve" and tier else {}),
+                 **({"evidence": evidence} if evidence else {})}
+        return {**doc, "purposes": purposes, "history": [*(doc.get("history") or []), entry]}
+
+    return atomic(store, apply)
 
 
 def set_cap(store: RoutingStore, purpose: str, eur_month: float | None, role: str | None, reason: str = "") -> dict[str, Any]:
@@ -224,14 +268,16 @@ def set_cap(store: RoutingStore, purpose: str, eur_month: float | None, role: st
         raise RoutingError("Say why: the reason is kept in the audit trail")
     if eur_month is not None and (not isinstance(eur_month, (int, float)) or not math.isfinite(eur_month) or eur_month < 0):
         raise RoutingError("a cap is a number of euros, zero or more")
-    doc = store.get()
-    entry = dict((doc.get("purposes") or {}).get(purpose) or {})
-    before = entry.get("cap_eur_month")
-    if before == eur_month:
-        return doc
-    entry["cap_eur_month"] = None if eur_month is None else round(float(eur_month), 4)
-    history = {"at": _now(), "purpose": purpose, "setting": "cap", "from": before, "to": entry["cap_eur_month"], "by": role, "reason": reason}
-    return store.save({**doc, "purposes": {**(doc.get("purposes") or {}), purpose: entry}, "history": [*(doc.get("history") or []), history]})
+    def apply(doc: dict[str, Any]) -> dict[str, Any] | None:
+        entry = dict((doc.get("purposes") or {}).get(purpose) or {})
+        before = entry.get("cap_eur_month")
+        if before == eur_month:
+            return None
+        entry["cap_eur_month"] = None if eur_month is None else round(float(eur_month), 4)
+        history = {"at": _now(), "purpose": purpose, "setting": "cap", "from": before, "to": entry["cap_eur_month"], "by": role, "reason": reason}
+        return {**doc, "purposes": {**(doc.get("purposes") or {}), purpose: entry}, "history": [*(doc.get("history") or []), history]}
+
+    return atomic(store, apply)
 
 
 def cap(doc: dict[str, Any], purpose: str) -> float | None:

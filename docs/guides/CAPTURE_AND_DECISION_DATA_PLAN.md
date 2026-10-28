@@ -443,8 +443,9 @@ by the same gates; the ledger feeds all of them, each in its own training format
   answerers that passed by sealed accuracy, then weighted shadow accuracy (speed is not measured). `GET`/`POST
   /api/ledger/routing` (review permission). None is routed today: the leakage classifier, the one that could, was right
   on 2 of 11 labelled disagreements in shadow (22.4). Left open: nothing in the studio asks `answer` yet (22.9); a
-  model answerer (22.5) cannot be routed above shadow without a sealed verdict; the routing document's read-change-write
-  is locked within one process, not across processes.
+  model answerer (22.5) cannot be routed above shadow without a sealed verdict. The routing document's read-change-write
+  is one step across processes since 2026-10-28 (`models.routing.atomic`: a file lock on files, an advisory lock on
+  PostgreSQL; `tests/test_routing_lock.py`).
 
 ### 22.8 Decision models for data scientists (the first use)
 - **Delivers:** the technical decision points as something a data scientist asks while they work: in the notebook

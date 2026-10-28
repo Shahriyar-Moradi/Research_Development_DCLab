@@ -1,0 +1,29 @@
+{
+ "package": "22.6 routing lock",
+ "title": "The routing document's read-change-write is one step across processes",
+ "date": "2026-10-28",
+ "request": "The owner: keep going by priority until tonight's full gate; 22.6 left the routing lock within one process only.",
+ "spec": "CAPTURE_AND_DECISION_DATA_PLAN.md 22.6: the routing document's read-change-write was locked within one process, not across processes.",
+ "plan": ["Read the routing stores and every read-change-write", "An atomic change on both stores", "Move the writers into it", "A cross-process test, and the tests on PostgreSQL"],
+ "decisions": [
+  {"decision": "A file lock beside the routing file; an advisory lock in one transaction on PostgreSQL", "why": "each store's own way to hold one writer at a time across processes"},
+  {"decision": "The writer's checks run inside the lock", "why": "a check on a document another process changes meanwhile decides on stale facts"}
+ ],
+ "change": "dclab_rnd/models/routing.py (atomic, FileRouting.change, PgRouting.change; the serve or shadow switch and the cap through it), dclab_rnd/ledger/routing.py (the decision switch through it), tests/test_routing_lock.py, the 22.6 plan status.",
+ "findings": [
+  {"id": "T1", "source": "test", "severity": "behaviour", "defect": "The first atomic change deadlocked",
+   "scenario": "change took the store's lock and called save, which took the same lock again",
+   "cause": "the store's lock was not re-entrant", "fix": "a re-entrant lock", "test": "test_no_change_is_lost_across_processes"},
+  {"id": "T2", "source": "test", "severity": "behaviour", "defect": "The helper's name hid an existing function",
+   "scenario": "the module already had a change function further down", "cause": "a name clash",
+   "fix": "the helper is called atomic", "test": "test_a_store_without_change_is_read_and_written_in_turn"},
+  {"id": "T3", "source": "test", "severity": "flaky", "defect": "The first cross-process test hung",
+   "scenario": "spawned children under unittest re-ran the test module", "cause": "the test's design, not the lock",
+   "fix": "plain subprocesses run the writer", "test": "test_no_change_is_lost_across_processes"}
+ ],
+ "measurements": [],
+ "outcome": "Four processes adding to the routing document at once lose no change; the serve, shadow, cap and decision switches all go through one locked step on files and on PostgreSQL.",
+ "lessons": ["A lock taken in a method that calls another locked method must be re-entrant.", "Run checks inside the lock that guards the write."],
+ "risks": ["The lock file is advisory: a writer that bypasses atomic is not held."],
+ "commits": []
+}

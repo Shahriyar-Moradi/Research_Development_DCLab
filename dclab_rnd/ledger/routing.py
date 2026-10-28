@@ -145,21 +145,30 @@ def switch(store: Any, audit_log: Any, point: str, answerer: Optional[str], leve
             why = ready_to_act(answerer, measured)
             if why:
                 raise DecisionRoutingError(why)
-    with _LOCK:
-        doc = store.get()
+    from ..models.routing import atomic
+
+    changed: dict[str, Any] = {}
+
+    def apply(doc: dict[str, Any]) -> Optional[dict[str, Any]]:  # 22.6: read, changed and written as one step, locked across processes
         current = entry(doc, point)
         new = {"answerer": answerer, "level": level, "bar": float(bar), "since": _now()} if answerer else {}
         keys = ("answerer", "level", "bar")
         if {k: current.get(k) for k in keys} == {k: new.get(k) for k in keys}:
-            return doc  # the same setting again changes nothing
+            return None  # the same setting again changes nothing
         decisions = dict(doc.get("decisions") or {})
         if new:
             decisions[point] = new
         else:
             decisions.pop(point, None)
-        made = {"at": _now(), "decision_point": point, "from": {k: current.get(k) for k in keys} if current else None,
-                "to": {k: new.get(k) for k in keys} if new else None, "by": SYSTEM if by_system else role, "reason": reason}
-        saved = store.save({**doc, "decisions": decisions, "history": [*(doc.get("history") or []), made]})
+        changed["made"] = {"at": _now(), "decision_point": point, "from": {k: current.get(k) for k in keys} if current else None,
+                           "to": {k: new.get(k) for k in keys} if new else None, "by": SYSTEM if by_system else role, "reason": reason}
+        return {**doc, "decisions": decisions, "history": [*(doc.get("history") or []), changed["made"]]}
+
+    with _LOCK:
+        saved = atomic(store, apply)
+    if "made" not in changed:
+        return saved
+    made = changed["made"]
     if audit_log is not None:
         from .. import audit
 
