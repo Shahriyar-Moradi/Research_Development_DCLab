@@ -1,0 +1,2625 @@
+{
+ "id": "LRN-009",
+ "experiment_id": "LRN-009",
+ "campaign_id": "learning_v1",
+ "kind": "learning_baseline",
+ "status": "completed",
+ "at": "2026-10-28T23:40:11+00:00",
+ "family": "groups",
+ "split": "check",
+ "seeds": [
+  0,
+  1,
+  2,
+  4,
+  6,
+  9,
+  10,
+  12,
+  15,
+  16,
+  17,
+  23,
+  29,
+  30,
+  31,
+  33,
+  35,
+  41,
+  45,
+  47
+ ],
+ "arms": {
+  "rules": "today's DCLab: the proposal accepted, nothing stated",
+  "reference": "the key's statements (solvability)"
+ },
+ "gate": {
+  "version": "learning_gate_v1",
+  "fixed": "2026-10-23, before the first baseline",
+  "grader": "grader_v1",
+  "generator": "variants_v1",
+  "partition_salt": "dclab-challenges-v1",
+  "partition_bounds": "learning < 0.5 <= check < 0.8 <= sealed",
+  "codes": [
+   "FALSE_ALARM:known_before",
+   "GAP_OPTIMISTIC:validation_over_holdout",
+   "IDENTIFIER_USED:row_key",
+   "LEAK_KEPT:after_outcome",
+   "LEAK_LEANED:after_outcome",
+   "NO_SIGNAL:not_above_baseline",
+   "SPLIT_WRONG:repeated_entity"
+  ],
+  "honest_estimate": "validation beats the holdout by at most 3.5 times both estimates' noise together (the holdout's from its bootstrap interval, validation's from the folds' spread over the root of their count; without an interval: within 5% of the validation score; without a validation score: failed)",
+  "beats_baseline": "the holdout better than the best simple baseline; without a holdout or a baseline: failed",
+  "known_before": "no honest column known before the moment kept out (one check), and each decoy kept in (a check each)",
+  "solvable": "a variant counts only when its reference statements pass every check; one that does not, or whose attempt broke, is dropped and listed",
+  "sealed": "a sealed partition is read once per promotion of the whole loop: its marker is written before the first solve",
+  "pass": "a baseline is a measurement, not a promotion: it passes when every scored variant was solvable"
+ },
+ "fingerprints": {
+  "generator": "1a071b50378588e6",
+  "grader": "4cd43e4a025b1079"
+ },
+ "spent_eur": 0.0,
+ "rows": [
+  {
+   "pack": "pk-c78da013f157",
+   "seed": 0,
+   "partition": "check",
+   "knobs": {
+    "skin": "ticket",
+    "task": "binary",
+    "key_name": "id",
+    "leak_name": "worded",
+    "duplicates": 0.02,
+    "decoy": false,
+    "timed": false,
+    "entities": 225,
+    "rows": 1447,
+    "generator": "variants_v1"
+   },
+   "run": "learning-d5cd8f432122",
+   "arms": {
+    "rules": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7270856783369988,
+     "holdout": 0.7136196446148266,
+     "interval": [
+      0.6635247817998192,
+      0.7686712126851163
+     ],
+     "baseline": 0.5,
+     "split": "group"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7270856783369988,
+     "holdout": 0.7136196446148266,
+     "interval": [
+      0.6635247817998192,
+      0.7686712126851163
+     ],
+     "baseline": 0.5,
+     "split": "group"
+    }
+   },
+   "solvable": true,
+   "seconds": 7.61
+  },
+  {
+   "pack": "pk-aefa9b9e4e37",
+   "seed": 1,
+   "partition": "check",
+   "knobs": {
+    "skin": "visit",
+    "task": "regression",
+    "key_name": "id",
+    "leak_name": "plain",
+    "duplicates": 0.02,
+    "decoy": true,
+    "timed": false,
+    "entities": 190,
+    "rows": 1193,
+    "generator": "variants_v1"
+   },
+   "run": "learning-2639296be21c",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "FALSE_ALARM:known_before"
+     ],
+     "decision_score": 0.8571,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": false,
+       "code": "FALSE_ALARM:known_before"
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "mae",
+     "validation": 11.30246252366865,
+     "holdout": 12.371657633761483,
+     "interval": [
+      9.357041655579067,
+      15.372267032899122
+     ],
+     "baseline": 15.909351464435149,
+     "split": "group"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "mae",
+     "validation": 11.306742753565537,
+     "holdout": 12.344633029953705,
+     "interval": [
+      9.31862717369784,
+      15.306608724221949
+     ],
+     "baseline": 15.909351464435149,
+     "split": "group"
+    }
+   },
+   "solvable": true,
+   "seconds": 3.47
+  },
+  {
+   "pack": "pk-dd34dd00b2a6",
+   "seed": 2,
+   "partition": "check",
+   "knobs": {
+    "skin": "ticket",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.0,
+    "decoy": false,
+    "timed": false,
+    "entities": 298,
+    "rows": 1805,
+    "generator": "variants_v1"
+   },
+   "run": "learning-42097bbed0f5",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "SPLIT_WRONG:repeated_entity"
+     ],
+     "decision_score": 0.8333,
+     "traps_caught": 2,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": false,
+       "code": "SPLIT_WRONG:repeated_entity"
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7131784427467373,
+     "holdout": 0.7135732719536861,
+     "interval": [
+      0.6710826563884079,
+      0.7603132746692749
+     ],
+     "baseline": 0.5,
+     "split": "stratified"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7133449354724212,
+     "holdout": 0.729090223243373,
+     "interval": [
+      0.6891116188466268,
+      0.7906464733369565
+     ],
+     "baseline": 0.5,
+     "split": "group"
+    }
+   },
+   "solvable": true,
+   "seconds": 3.91
+  },
+  {
+   "pack": "pk-a14aba8d18fe",
+   "seed": 4,
+   "partition": "check",
+   "knobs": {
+    "skin": "loan",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.05,
+    "decoy": false,
+    "timed": true,
+    "entities": 244,
+    "rows": 1558,
+    "generator": "variants_v1"
+   },
+   "run": "learning-bcb5cd214447",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "SPLIT_WRONG:repeated_entity"
+     ],
+     "decision_score": 0.8333,
+     "traps_caught": 2,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": false,
+       "code": "SPLIT_WRONG:repeated_entity"
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.6846733194328322,
+     "holdout": 0.717188306508376,
+     "interval": [
+      0.6700593082842343,
+      0.7694271866929085
+     ],
+     "baseline": 0.5,
+     "split": "time"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.6720906146646975,
+     "holdout": 0.7355144855144855,
+     "interval": [
+      0.6531273717678038,
+      0.7855697434556496
+     ],
+     "baseline": 0.5,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 4.37
+  },
+  {
+   "pack": "pk-b3d5ea4fbad8",
+   "seed": 6,
+   "partition": "check",
+   "knobs": {
+    "skin": "visit",
+    "task": "binary",
+    "key_name": "id",
+    "leak_name": "worded",
+    "duplicates": 0.02,
+    "decoy": false,
+    "timed": false,
+    "entities": 214,
+    "rows": 1347,
+    "generator": "variants_v1"
+   },
+   "run": "learning-bd236b188986",
+   "arms": {
+    "rules": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7585065808225405,
+     "holdout": 0.7025641025641025,
+     "interval": [
+      0.6342424563533168,
+      0.7642848141872579
+     ],
+     "baseline": 0.5,
+     "split": "group"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7585065808225405,
+     "holdout": 0.7025641025641025,
+     "interval": [
+      0.6342424563533168,
+      0.7642848141872579
+     ],
+     "baseline": 0.5,
+     "split": "group"
+    }
+   },
+   "solvable": true,
+   "seconds": 2.78
+  },
+  {
+   "pack": "pk-d67f31e8002a",
+   "seed": 9,
+   "partition": "check",
+   "knobs": {
+    "skin": "visit",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "plain",
+    "duplicates": 0.05,
+    "decoy": false,
+    "timed": false,
+    "entities": 288,
+    "rows": 1858,
+    "generator": "variants_v1"
+   },
+   "run": "learning-597767e4767c",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "SPLIT_WRONG:repeated_entity"
+     ],
+     "decision_score": 0.8333,
+     "traps_caught": 2,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": false,
+       "code": "SPLIT_WRONG:repeated_entity"
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7155390759210126,
+     "holdout": 0.7737127371273713,
+     "interval": [
+      0.7277873398355326,
+      0.8186368879419335
+     ],
+     "baseline": 0.5,
+     "split": "stratified"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7275950631446801,
+     "holdout": 0.7188662862813197,
+     "interval": [
+      0.6681663323917344,
+      0.769975448017427
+     ],
+     "baseline": 0.5,
+     "split": "group"
+    }
+   },
+   "solvable": true,
+   "seconds": 2.94
+  },
+  {
+   "pack": "pk-ec374d2f26a8",
+   "seed": 10,
+   "partition": "check",
+   "knobs": {
+    "skin": "ticket",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.05,
+    "decoy": true,
+    "timed": true,
+    "entities": 211,
+    "rows": 1337,
+    "generator": "variants_v1"
+   },
+   "run": "learning-2c13b4f09bab",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "SPLIT_WRONG:repeated_entity",
+      "FALSE_ALARM:known_before"
+     ],
+     "decision_score": 0.7143,
+     "traps_caught": 2,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": false,
+       "code": "SPLIT_WRONG:repeated_entity"
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": false,
+       "code": "FALSE_ALARM:known_before"
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7195803662379886,
+     "holdout": 0.7078472222222222,
+     "interval": [
+      0.6469354509450236,
+      0.756047696004423
+     ],
+     "baseline": 0.5,
+     "split": "time"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.70691853897617,
+     "holdout": 0.7238587424633937,
+     "interval": [
+      0.6150437316738827,
+      0.8406668093750698
+     ],
+     "baseline": 0.5,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 3.24
+  },
+  {
+   "pack": "pk-c7b8cbbae06b",
+   "seed": 12,
+   "partition": "check",
+   "knobs": {
+    "skin": "loan",
+    "task": "regression",
+    "key_name": "id",
+    "leak_name": "worded",
+    "duplicates": 0.0,
+    "decoy": true,
+    "timed": true,
+    "entities": 292,
+    "rows": 1816,
+    "generator": "variants_v1"
+   },
+   "run": "learning-5bb7fe29d8fd",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "FALSE_ALARM:known_before"
+     ],
+     "decision_score": 0.8571,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": false,
+       "code": "FALSE_ALARM:known_before"
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "mae",
+     "validation": 12.976445467024192,
+     "holdout": 9.907263864390943,
+     "interval": [
+      8.787497059038406,
+      11.350346959180484
+     ],
+     "baseline": 14.376202090592335,
+     "split": "time_group"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "mae",
+     "validation": 12.988106267090167,
+     "holdout": 9.918884344333556,
+     "interval": [
+      8.792383836208744,
+      11.341530597220656
+     ],
+     "baseline": 14.376202090592335,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 3.43
+  },
+  {
+   "pack": "pk-a9943614abf3",
+   "seed": 15,
+   "partition": "check",
+   "knobs": {
+    "skin": "ticket",
+    "task": "regression",
+    "key_name": "id",
+    "leak_name": "worded",
+    "duplicates": 0.05,
+    "decoy": true,
+    "timed": true,
+    "entities": 297,
+    "rows": 1938,
+    "generator": "variants_v1"
+   },
+   "run": "learning-fe281a264372",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "FALSE_ALARM:known_before"
+     ],
+     "decision_score": 0.8571,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": false,
+       "code": "FALSE_ALARM:known_before"
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "mae",
+     "validation": 12.092210940872624,
+     "holdout": 11.128781490265379,
+     "interval": [
+      9.26176697318199,
+      13.150235971984369
+     ],
+     "baseline": 14.251654603174604,
+     "split": "time_group"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "mae",
+     "validation": 12.150659191021921,
+     "holdout": 11.145715201483833,
+     "interval": [
+      9.271088857518253,
+      13.176283529352954
+     ],
+     "baseline": 14.251654603174604,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 3.4
+  },
+  {
+   "pack": "pk-e52e86e859d2",
+   "seed": 16,
+   "partition": "check",
+   "knobs": {
+    "skin": "loan",
+    "task": "binary",
+    "key_name": "id",
+    "leak_name": "worded",
+    "duplicates": 0.02,
+    "decoy": false,
+    "timed": true,
+    "entities": 194,
+    "rows": 1170,
+    "generator": "variants_v1"
+   },
+   "run": "learning-eff91633096b",
+   "arms": {
+    "rules": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.6668711122822363,
+     "holdout": 0.6747448979591837,
+     "interval": [
+      0.6132287924841116,
+      0.7446254106758481
+     ],
+     "baseline": 0.5,
+     "split": "time_group"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.6668711122822363,
+     "holdout": 0.6747448979591837,
+     "interval": [
+      0.6132287924841116,
+      0.7446254106758481
+     ],
+     "baseline": 0.5,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 3.16
+  },
+  {
+   "pack": "pk-875e135061d6",
+   "seed": 17,
+   "partition": "check",
+   "knobs": {
+    "skin": "loan",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.05,
+    "decoy": true,
+    "timed": true,
+    "entities": 287,
+    "rows": 1754,
+    "generator": "variants_v1"
+   },
+   "run": "learning-d118731ff693",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "SPLIT_WRONG:repeated_entity",
+      "FALSE_ALARM:known_before"
+     ],
+     "decision_score": 0.7143,
+     "traps_caught": 2,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": false,
+       "code": "SPLIT_WRONG:repeated_entity"
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": false,
+       "code": "FALSE_ALARM:known_before"
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7214447739086385,
+     "holdout": 0.6998254164544992,
+     "interval": [
+      0.6503096713058143,
+      0.7380595611442933
+     ],
+     "baseline": 0.5,
+     "split": "time"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7055011453628369,
+     "holdout": 0.713011031797534,
+     "interval": [
+      0.6516146166805026,
+      0.7673145503014391
+     ],
+     "baseline": 0.5,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 3.55
+  },
+  {
+   "pack": "pk-0a74fa8c476c",
+   "seed": 23,
+   "partition": "check",
+   "knobs": {
+    "skin": "order",
+    "task": "binary",
+    "key_name": "id",
+    "leak_name": "worded",
+    "duplicates": 0.05,
+    "decoy": false,
+    "timed": false,
+    "entities": 215,
+    "rows": 1316,
+    "generator": "variants_v1"
+   },
+   "run": "learning-5e002f4a3378",
+   "arms": {
+    "rules": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.6961347015833371,
+     "holdout": 0.6484087637933791,
+     "interval": [
+      0.582286976740843,
+      0.6924560803644288
+     ],
+     "baseline": 0.5,
+     "split": "group"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.6961347015833371,
+     "holdout": 0.6484087637933791,
+     "interval": [
+      0.582286976740843,
+      0.6924560803644288
+     ],
+     "baseline": 0.5,
+     "split": "group"
+    }
+   },
+   "solvable": true,
+   "seconds": 3.55
+  },
+  {
+   "pack": "pk-1e250e8db7f2",
+   "seed": 29,
+   "partition": "check",
+   "knobs": {
+    "skin": "ticket",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.0,
+    "decoy": true,
+    "timed": true,
+    "entities": 212,
+    "rows": 1268,
+    "generator": "variants_v1"
+   },
+   "run": "learning-ca08cc08e77c",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "SPLIT_WRONG:repeated_entity",
+      "FALSE_ALARM:known_before"
+     ],
+     "decision_score": 0.7143,
+     "traps_caught": 2,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": false,
+       "code": "SPLIT_WRONG:repeated_entity"
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": false,
+       "code": "FALSE_ALARM:known_before"
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.6696093888610918,
+     "holdout": 0.7438399778516057,
+     "interval": [
+      0.6682532285486613,
+      0.7999957635621752
+     ],
+     "baseline": 0.5,
+     "split": "time"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.6775477013044324,
+     "holdout": 0.7150667160859895,
+     "interval": [
+      0.6464487563448207,
+      0.7736039549218897
+     ],
+     "baseline": 0.5,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 3.83
+  },
+  {
+   "pack": "pk-ac940c7a8c90",
+   "seed": 30,
+   "partition": "check",
+   "knobs": {
+    "skin": "order",
+    "task": "binary",
+    "key_name": "id",
+    "leak_name": "plain",
+    "duplicates": 0.0,
+    "decoy": false,
+    "timed": false,
+    "entities": 151,
+    "rows": 884,
+    "generator": "variants_v1"
+   },
+   "run": "learning-40c7e29a0c90",
+   "arms": {
+    "rules": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7106547436361219,
+     "holdout": 0.6982196368764321,
+     "interval": [
+      0.6366352801770571,
+      0.7914874932851895
+     ],
+     "baseline": 0.5,
+     "split": "group"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7106547436361219,
+     "holdout": 0.6982196368764321,
+     "interval": [
+      0.6366352801770571,
+      0.7914874932851895
+     ],
+     "baseline": 0.5,
+     "split": "group"
+    }
+   },
+   "solvable": true,
+   "seconds": 2.53
+  },
+  {
+   "pack": "pk-16c5b6e39546",
+   "seed": 31,
+   "partition": "check",
+   "knobs": {
+    "skin": "loan",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.05,
+    "decoy": false,
+    "timed": true,
+    "entities": 177,
+    "rows": 1151,
+    "generator": "variants_v1"
+   },
+   "run": "learning-6ab09c41bf38",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "SPLIT_WRONG:repeated_entity"
+     ],
+     "decision_score": 0.8333,
+     "traps_caught": 2,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": false,
+       "code": "SPLIT_WRONG:repeated_entity"
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7071421677813747,
+     "holdout": 0.7656806694838014,
+     "interval": [
+      0.7078314924371971,
+      0.8325925226098191
+     ],
+     "baseline": 0.5,
+     "split": "time"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7094597130163057,
+     "holdout": 0.7701149425287356,
+     "interval": [
+      0.6980417729344852,
+      0.83050250670988
+     ],
+     "baseline": 0.5,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 2.95
+  },
+  {
+   "pack": "pk-f8874579755c",
+   "seed": 33,
+   "partition": "check",
+   "knobs": {
+    "skin": "ticket",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "worded",
+    "duplicates": 0.02,
+    "decoy": true,
+    "timed": true,
+    "entities": 289,
+    "rows": 1727,
+    "generator": "variants_v1"
+   },
+   "run": "learning-deb6b67ebb9f",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "SPLIT_WRONG:repeated_entity",
+      "FALSE_ALARM:known_before"
+     ],
+     "decision_score": 0.7143,
+     "traps_caught": 2,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": false,
+       "code": "SPLIT_WRONG:repeated_entity"
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": false,
+       "code": "FALSE_ALARM:known_before"
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7113257556739719,
+     "holdout": 0.6740701701550971,
+     "interval": [
+      0.6285033287981217,
+      0.7370401764790787
+     ],
+     "baseline": 0.5,
+     "split": "time"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7042765685125493,
+     "holdout": 0.6261602475194709,
+     "interval": [
+      0.5710613531439925,
+      0.6805268471351444
+     ],
+     "baseline": 0.5,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 3.6
+  },
+  {
+   "pack": "pk-20790e80cdb1",
+   "seed": 35,
+   "partition": "check",
+   "knobs": {
+    "skin": "order",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "plain",
+    "duplicates": 0.02,
+    "decoy": true,
+    "timed": true,
+    "entities": 201,
+    "rows": 1194,
+    "generator": "variants_v1"
+   },
+   "run": "learning-fdf165948623",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "SPLIT_WRONG:repeated_entity",
+      "FALSE_ALARM:known_before"
+     ],
+     "decision_score": 0.7143,
+     "traps_caught": 2,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": false,
+       "code": "SPLIT_WRONG:repeated_entity"
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": false,
+       "code": "FALSE_ALARM:known_before"
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.6612057851823934,
+     "holdout": 0.7360571694888922,
+     "interval": [
+      0.6776822865427432,
+      0.803217699683285
+     ],
+     "baseline": 0.5,
+     "split": "time"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.6568497042256585,
+     "holdout": 0.737797825584085,
+     "interval": [
+      0.6544548098344048,
+      0.7870949727256802
+     ],
+     "baseline": 0.5,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 3.2
+  },
+  {
+   "pack": "pk-d6f237462b9f",
+   "seed": 41,
+   "partition": "check",
+   "knobs": {
+    "skin": "loan",
+    "task": "regression",
+    "key_name": "id",
+    "leak_name": "plain",
+    "duplicates": 0.05,
+    "decoy": false,
+    "timed": true,
+    "entities": 296,
+    "rows": 1917,
+    "generator": "variants_v1"
+   },
+   "run": "learning-50030115e9b4",
+   "arms": {
+    "rules": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "mae",
+     "validation": 11.432558310388778,
+     "holdout": 11.204878823277287,
+     "interval": [
+      9.235774804715605,
+      13.049652458465399
+     ],
+     "baseline": 16.080932994822362,
+     "split": "time_group"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "mae",
+     "validation": 11.432558310388778,
+     "holdout": 11.204878823277287,
+     "interval": [
+      9.235774804715605,
+      13.049652458465399
+     ],
+     "baseline": 16.080932994822362,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 2.91
+  },
+  {
+   "pack": "pk-405a5019f6b9",
+   "seed": 45,
+   "partition": "check",
+   "knobs": {
+    "skin": "ticket",
+    "task": "binary",
+    "key_name": "plain",
+    "leak_name": "plain",
+    "duplicates": 0.02,
+    "decoy": true,
+    "timed": false,
+    "entities": 234,
+    "rows": 1414,
+    "generator": "variants_v1"
+   },
+   "run": "learning-0c5f82ff1ce2",
+   "arms": {
+    "rules": {
+     "verdict": "fail",
+     "codes": [
+      "SPLIT_WRONG:repeated_entity",
+      "FALSE_ALARM:known_before"
+     ],
+     "decision_score": 0.7143,
+     "traps_caught": 2,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": false,
+       "code": "SPLIT_WRONG:repeated_entity"
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": false,
+       "code": "FALSE_ALARM:known_before"
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7191415853713231,
+     "holdout": 0.7199036918138042,
+     "interval": [
+      0.6522760789754336,
+      0.7821887541202363
+     ],
+     "baseline": 0.5,
+     "split": "stratified"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "decoy",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "roc_auc",
+     "validation": 0.7263362318148552,
+     "holdout": 0.673583221775993,
+     "interval": [
+      0.6277808498935,
+      0.7605259184308842
+     ],
+     "baseline": 0.5,
+     "split": "group"
+    }
+   },
+   "solvable": true,
+   "seconds": 2.87
+  },
+  {
+   "pack": "pk-df6a98cbf02a",
+   "seed": 47,
+   "partition": "check",
+   "knobs": {
+    "skin": "order",
+    "task": "regression",
+    "key_name": "id",
+    "leak_name": "worded",
+    "duplicates": 0.05,
+    "decoy": false,
+    "timed": true,
+    "entities": 276,
+    "rows": 1781,
+    "generator": "variants_v1"
+   },
+   "run": "learning-c631979f5a7c",
+   "arms": {
+    "rules": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "mae",
+     "validation": 11.335673310001631,
+     "holdout": 10.619879997225265,
+     "interval": [
+      8.942926724361996,
+      11.976327123578072
+     ],
+     "baseline": 14.729815498154982,
+     "split": "time_group"
+    },
+    "reference": {
+     "verdict": "pass",
+     "codes": [],
+     "decision_score": 1.0,
+     "traps_caught": 3,
+     "traps": 3,
+     "checks": [
+      {
+       "trap": "after_outcome",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "repeated_entity",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "row_key",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "known_before",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "honest_estimate",
+       "ok": true,
+       "code": null
+      },
+      {
+       "trap": "beats_baseline",
+       "ok": true,
+       "code": null
+      }
+     ],
+     "metric": "mae",
+     "validation": 11.335673310001631,
+     "holdout": 10.619879997225265,
+     "interval": [
+      8.942926724361996,
+      11.976327123578072
+     ],
+     "baseline": 14.729815498154982,
+     "split": "time_group"
+    }
+   },
+   "solvable": true,
+   "seconds": 2.75
+  }
+ ],
+ "summary": {
+  "variants": 20,
+  "solvable": 20,
+  "unsolvable": [],
+  "broke": [],
+  "passed": 7,
+  "pass_rate": 0.35,
+  "pass_rate_interval": [
+   0.181,
+   0.567
+  ],
+  "decision_score": 0.8595,
+  "decision_score_interval": [
+   0.8071,
+   0.9083
+  ],
+  "traps_caught": 50,
+  "traps": 60,
+  "codes": {
+   "SPLIT_WRONG:repeated_entity": 10,
+   "FALSE_ALARM:known_before": 9
+  },
+  "by_knob": {
+   "task": {
+    "binary": {
+     "passed": 5,
+     "of": 15
+    },
+    "regression": {
+     "passed": 2,
+     "of": 5
+    }
+   },
+   "key_name": {
+    "id": {
+     "passed": 7,
+     "of": 10
+    },
+    "plain": {
+     "passed": 0,
+     "of": 10
+    }
+   },
+   "leak_name": {
+    "plain": {
+     "passed": 2,
+     "of": 6
+    },
+    "worded": {
+     "passed": 5,
+     "of": 14
+    }
+   },
+   "decoy": {
+    "False": {
+     "passed": 7,
+     "of": 11
+    },
+    "True": {
+     "passed": 0,
+     "of": 9
+    }
+   },
+   "timed": {
+    "False": {
+     "passed": 4,
+     "of": 8
+    },
+    "True": {
+     "passed": 3,
+     "of": 12
+    }
+   }
+  }
+ },
+ "verdict": "ok: baseline recorded, today's DCLab passes 7 of 20 check variants",
+ "rule": "every variant drawn from its seed, written apart from its key, solved from its public folder, graded by code"
+}

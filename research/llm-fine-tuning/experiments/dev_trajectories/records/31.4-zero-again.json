@@ -1,0 +1,24 @@
+{
+ "package": "31.4 zero again",
+ "title": "The learning curve's zero measured again after the proposal fix: unchanged",
+ "date": "2026-10-29",
+ "request": "The owner: do the rest of the plan non-stop; the scoreboard row showed the zero dated before fix fa6be0a6.",
+ "spec": "PHASE9_LEARNING_LOOP_PLAN.md 31.4: the baseline, today's DCLab on check and learning variants with nothing learned, stored with its intervals: the zero of every learning curve.",
+ "plan": ["Run the baseline on check and learning, stored", "Compare with LRN-001 and LRN-002", "Check the new capture kept the learning attempts and the records replay"],
+ "decisions": [
+  {"decision": "Run the rules arm only, no model", "why": "the zero is today's DCLab with nothing learned; it spends nothing"},
+  {"decision": "Never the sealed partition", "why": "it is read once, at a promotion of the whole loop"}
+ ],
+ "change": "evidence/campaigns/learning_v1/results/LRN-009_groups_check.json and LRN-010_groups_learning.json; the learning attempts kept in the workspace.",
+ "findings": [],
+ "measurements": [
+  {"name": "the zero on check variants (LRN-009)", "gate": "stored with its intervals, every variant solvable by the reference",
+   "result": "7 of 20 [0.181, 0.567], decision score 0.8595; split wrong 10, false alarm 9; identical to LRN-001", "verdict": "pass"},
+  {"name": "the zero on learning variants (LRN-010)", "gate": "stored with its intervals, every variant solvable by the reference",
+   "result": "3 of 20 [0.052, 0.36], decision score 0.8262; false alarm 15, split wrong 9; identical to LRN-002; 20 attempts kept", "verdict": "pass"}
+ ],
+ "outcome": "The zero is unchanged by fix fa6be0a6, which only offers an unclear group for a person to confirm; the rules arm confirms nothing, so its score could not move.",
+ "lessons": ["A fix that adds a question for a person does not move a rules-only baseline; measure it where someone answers."],
+ "risks": ["Two mistakes make every failure on the rules arm: the repeated entity not grouped and an honest count kept out; the curve can only rise where a learner changes those."],
+ "commits": []
+}
