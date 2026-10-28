@@ -1,0 +1,191 @@
+{
+  "$defs": {
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maxLength": 80,
+          "title": "Code",
+          "type": "string"
+        },
+        "grader": {
+          "maxLength": 40,
+          "title": "Grader",
+          "type": "string"
+        },
+        "pack": {
+          "pattern": "^pk-[0-9a-f]{6,40}$",
+          "title": "Pack",
+          "type": "string"
+        },
+        "trace": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the attempt's run or kept folder",
+          "title": "Trace"
+        }
+      },
+      "required": [
+        "pack",
+        "grader",
+        "code"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.lesson.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "at": {
+      "title": "At",
+      "type": "string"
+    },
+    "bullet": {
+      "anyOf": [
+        {
+          "pattern": "^B-[0-9a-f]{10}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the playbook bullet it became, if any",
+      "title": "Bullet"
+    },
+    "confidence": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "confirmed_by": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confirmed By"
+    },
+    "decision_point": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Decision Point"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/Evidence"
+      },
+      "minItems": 1,
+      "title": "Evidence",
+      "type": "array"
+    },
+    "expected": {
+      "maxLength": 600,
+      "minLength": 3,
+      "title": "Expected",
+      "type": "string"
+    },
+    "family": {
+      "maxLength": 40,
+      "title": "Family",
+      "type": "string"
+    },
+    "gap_type": {
+      "enum": [
+        "knowledge",
+        "reasoning",
+        "decision",
+        "rule",
+        "capability",
+        "data"
+      ],
+      "title": "Gap Type",
+      "type": "string"
+    },
+    "generalises_to": {
+      "default": "",
+      "maxLength": 300,
+      "title": "Generalises To",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^L-[0-9a-f]{10}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "lesson": {
+      "maxLength": 600,
+      "minLength": 3,
+      "title": "Lesson",
+      "type": "string"
+    },
+    "observed": {
+      "description": "in the grader's words: never a column's name",
+      "maxLength": 600,
+      "minLength": 3,
+      "title": "Observed",
+      "type": "string"
+    },
+    "proposed_by": {
+      "description": "rule:gaps_v1, model:<name>, person",
+      "maxLength": 120,
+      "title": "Proposed By",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.lesson.v1",
+      "default": "dclab_core.lesson.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "default": "proposed",
+      "enum": [
+        "proposed",
+        "confirmed",
+        "refused"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "family",
+    "gap_type",
+    "proposed_by",
+    "observed",
+    "expected",
+    "lesson",
+    "confidence",
+    "evidence",
+    "at"
+  ],
+  "title": "Lesson",
+  "type": "object"
+}

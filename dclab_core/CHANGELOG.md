@@ -4,6 +4,14 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.139.0 (2026-10-29)
+
+- `lesson` (31.5): `Lesson` v1, a lesson drawn from a graded attempt with its gap type (knowledge, reasoning, decision,
+  rule, capability, data), the decision point it concerns, what was observed and expected in the grader's words (never a
+  column's name), how far it reaches, the confidence and the evidence; `ROUTE` says where each gap goes, and a rule or
+  capability gap is acted on only once a person confirmed it. `propose(...)` is the rules' proposal from a grader code
+  (`rule:gaps_v1`). A lesson's evidence (pack, trace) names the attempt, so it joins that attempt's loop record.
+
 ## 0.138.0 (2026-10-29)
 
 - `loop_record` (31.17): `LoopRecord` v1, one turn of the learning loop for one attempt: the pack (its id, the table's and

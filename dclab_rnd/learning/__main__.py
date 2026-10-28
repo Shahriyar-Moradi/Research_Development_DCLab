@@ -62,6 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     dec.add_argument("--write", action="store_true", help="measure: store the result in evidence/campaigns/learning_v1/results/")
     loops = sub.add_parser("loop-records", help="31.17: the loop's own records joined from what each seat wrote; replayed from the records alone")
     loops.add_argument("--write", action="store_true", help="write them to lake/bronze/loop/<family>/ with a manifest")
+    loops.add_argument("--backfill-lessons", action="store_true", help="31.5: first write the structured lessons of drafts made before them (the rules' proposal)")
     args = parser.parse_args(argv)
     if args.command == "loop-records":
         return _loop_records(args)
@@ -346,6 +347,10 @@ def _loop_records(args: argparse.Namespace) -> int:
     from ..settings import Settings
     from .loop_records import build, write
 
+    if args.backfill_lessons:
+        from .drafting import backfill_lessons
+
+        print(f"{backfill_lessons(Path(Settings.load().agent_home))} lessons written (rule:gaps_v1)")
     records, changes = build(Path(Settings.load().agent_home))
     problems = replay(records, changes)
     kinds = Counter(r.attempt.kind for r in records)

@@ -150,3 +150,28 @@ def reflect(row: dict[str, Any], key: ChallengeKey, columns: list[str], book: Pl
 
 
 __all__ = ["STEPS", "CODE_STEP", "RULE_LESSONS", "ReflectorFailed", "steps_of", "first_wrong_step", "editor", "rule_drafts", "model_drafts", "reflect"]
+
+
+def lessons_for(family: str, pack: str, run: str | None, codes: list[str], bullets: dict[str, str], at: str,
+                producer: str = "rule:dclab", solvable: bool = True, grader: str | None = None) -> list[Any]:
+    """31.5: the structured lessons of one graded attempt, from the codes at its first wrong step (the first wrong step
+    decides the lesson), each with the rules' proposed gap type (``dclab_core.lesson.propose``) and the bullet that answers
+    its code when one was filed (``bullets``: code to bullet id). Never a column's name: the grader's words and the rules'
+    general text only."""
+    import hashlib
+
+    from dclab_core.challenge_pack import CODES, GRADER
+    from dclab_core.lesson import Evidence, propose
+
+    step = first_wrong_step({"codes": codes})
+    out = []
+    for code in codes:
+        if CODE_STEP.get(code) != step or code not in RULE_LESSONS:
+            continue
+        lesson_id = "L-" + hashlib.sha256(f"{family}:{pack}:{run}:{code}".encode()).hexdigest()[:10]
+        made = propose(family, code, CODES.get(code, code), RULE_LESSONS[code][1], Evidence(pack=pack, trace=run, grader=grader or GRADER, code=code),
+                       at, lesson_id, bullets.get(code), producer=producer, solvable=solvable)
+        if made is not None:
+            out.append(made)
+    return out
+

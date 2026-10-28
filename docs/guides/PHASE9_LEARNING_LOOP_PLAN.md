@@ -402,7 +402,10 @@ or rubric files). 31.2 mostly done (grader_v1 with codes and the gaming traces; 
 target, no weighted rubric). 31.3 partial (the groups family, 4 skins; the sealed set comes from the same generator, not an
 independent writer; LRN-008 found names memorised across skins). 31.4 partial (the baseline LRN-001 check 7 of 20 and LRN-002
 learning 3 of 20, from before fix fa6be0a6; no `make curriculum`, no per-family row beside `capability.json`). 31.5 partial
-(first wrong step, rules drafter, capped reflector; no `Lesson` v1 with a gap type). 31.6 partial (cases matched by code;
+(first wrong step, rules drafter, capped reflector; since 2026-10-29 `dclab_core/lesson.py`: `Lesson` v1 with its gap
+type, route and evidence, the rules' proposal from a grader code (`rule:gaps_v1`), a rule or capability gap acted on only
+after a person confirms it; the draft step writes `learning/lessons.jsonl`; past drafts' lessons wait for the owner's
+yes on `loop-records --backfill-lessons`; no model proposes a gap yet). 31.6 partial (cases matched by code;
 no memory on/off arm). 31.7 partial (append-only playbook with counters, quarantine, budget, lineages; probes of 3 pairs,
 too few to promote). 31.8 to 31.12, 31.15, 31.16 not built or blocked (a second family, accepted runs, the owner's runs and
 downloads). 31.13 and 31.14 partial (the store's solver trajectories and the M5 exports). **31.17 built (2026-10-29,

@@ -1,0 +1,98 @@
+{
+ "package": "31.5 lesson gaps",
+ "title": "A lesson says what kind of gap it shows, where it goes, and who must confirm it",
+ "date": "2026-10-29",
+ "request": "The owner: do the rest of the plan non-stop; the survey of phase 9 found 31.5 without its Lesson v1 and gap type.",
+ "spec": "PHASE9_LEARNING_LOOP_PLAN.md Part F: the reflector writes one structured lesson (Lesson v1) with a gap type (knowledge, reasoning, decision, rule, capability, data) that decides where it goes; a person confirms rule and capability gaps, because those lead to code.",
+ "plan": [
+  "Read the gap table and how the reflector maps codes to steps",
+  "Lesson v1 and the route in dclab_core",
+  "The rules' proposal from a grader code",
+  "The draft step writes lessons; a backfill for past drafts",
+  "Tests, the reviewer"
+ ],
+ "decisions": [
+  {
+   "decision": "The rules propose the gap from the grader's code, labelled rule:gaps_v1",
+   "why": "the codes already say which decision went wrong; a model or a person may propose otherwise, and the record says who"
+  },
+  {
+   "decision": "Observed, expected and the lesson in the grader's and the rules' fixed words",
+   "why": "a lesson never names a column, so it cannot carry a key's answer to another pack"
+  },
+  {
+   "decision": "The link to the loop record runs through the lesson's evidence, not a new field",
+   "why": "loop_record v1 was pushed tonight and may not change shape under its version; the evidence's pack and trace already find the attempt"
+  },
+  {
+   "decision": "The backfill is a flag, not run on the owner's records",
+   "why": "the owner cancelled code-written backfills on 2026-10-28; these are fixed rule texts, not reasoning, but the owner decides"
+  },
+  {
+   "decision": "An attempt DCLab's rules made shows rule gaps, not decision gaps",
+   "why": "nothing chose or reasoned in a rules solve; a missed trap is a check that did not stop it, which leads to code and so waits for a person"
+  }
+ ],
+ "change": "dclab_core/lesson.py (Lesson v1, ROUTE, RULES, propose; dclab-core 0.139.0, its schemas, the conformance entry); dclab_rnd/learning/reflect.py (lessons_for); drafting.py (keep_lessons, backfill_lessons, the draft step writes lessons); the loop-records command's --backfill-lessons; tests/test_lessons.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "A new optional field changed loop_record v1's shape",
+   "scenario": "Adding Reflection.lessons and regenerating the schemas.",
+   "cause": "The contracts test refuses any change of shape under the same version, an optional field included.",
+   "fix": "The field was dropped; a lesson's evidence names its attempt instead.",
+   "test": "tests/test_core_contracts.py test_no_contract_changes_shape_under_the_same_version; tests/test_lessons.py"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Lessons were written for attempts that delivered nothing",
+   "scenario": "A solve crashes, observe() sees nothing kept out and no group, and the grader fires every trap code.",
+   "cause": "The draft step wrote lessons from the codes even when the reflector had refused the attempt (no holdout).",
+   "fix": "No lesson when the reflector found no step; the backfill skips such notes too.",
+   "test": "tests/test_lessons.py test_an_attempt_that_delivered_nothing_writes_no_lesson"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The rules arm's misses were decision gaps that act with no one's yes",
+   "scenario": "Any draft attempt with a leak kept: the lesson went to a student's samples as a decision gap.",
+   "cause": "The mapping assumed a model made the attempt; the draft step's attempts are DCLab's rules.",
+   "fix": "propose takes the producer: a rules attempt's misses are rule gaps, confirmed by a person; the split's miss is split.strategy.",
+   "test": "tests/test_lessons.py test_who_made_the_attempt_and_whether_it_was_solvable_decide_the_gap"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Every lesson cited grader_v1 whatever graded it",
+   "scenario": "Once the grader moves to v2, new lessons would still cite v1.",
+   "cause": "The version was written as text in lessons_for.",
+   "fix": "The draft step passes challenge_pack.GRADER and keeps it in its note; old notes say grader_v1, which graded them all.",
+   "test": "tests/test_lessons.py test_who_made_the_attempt_and_whether_it_was_solvable_decide_the_gap"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An unsolvable variant got a capability lesson whose text was false",
+   "scenario": "The reference arm fails too, and the lesson says a reference solves the variant.",
+   "cause": "lessons_for never read whether the variant was solvable.",
+   "fix": "On an unsolvable variant the gap is the data's: nothing to act on.",
+   "test": "tests/test_lessons.py test_who_made_the_attempt_and_whether_it_was_solvable_decide_the_gap"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every grader code has the rules' proposed gap and decision point; a rules attempt's misses are rule gaps a person confirms; an attempt that delivered nothing teaches nothing; an unsolvable variant is a data gap.",
+ "lessons": [
+  "Decide a new contract's fields before pushing it: under a frozen version even an optional field is a new version."
+ ],
+ "risks": [
+  "The mapping is the rules' judgement and no model proposes a gap yet; a person's confirmations will show where it is wrong."
+ ],
+ "commits": []
+}

@@ -465,3 +465,4 @@ import dclab_core.track_outcome  # noqa: E402,F401  (what a person did with what
 import dclab_core.replay  # noqa: E402,F401  (replay rounds: a training round is its new rows and a share of every earlier round, 36.5)
 import dclab_core.model_version  # noqa: E402,F401  (trained versions with their round, exam and history, and their roll-back, 36.7)
 import dclab_core.loop_record  # noqa: E402,F401  (the learning loop's own record and its replay, 31.17)
+import dclab_core.lesson  # noqa: E402,F401  (a lesson with the kind of gap it shows, 31.5)
