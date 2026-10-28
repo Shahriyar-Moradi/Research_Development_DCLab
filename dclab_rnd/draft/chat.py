@@ -356,10 +356,9 @@ class HomeAgent:
             reading = self.set_intent(draft_id, intents.chosen("prediction"), sample=False)
         else:
             reading = self.set_intent(draft_id, intents.read(draft["problem"], self.intent_client, plans.user_text(draft)))
-        if reading["status"] == "asked":
-            options = [intents.LABELS[t] for t in reading["tracks"][:3]]
-            self.ask(draft_id, "intent", "Which kind of help do you need?", options + ["Something else"],
-                     "A prediction needs a model and a moment; an answer about what already happened needs neither.")
+        if reading["status"] == "asked":  # an either-or question in the person's words, never a menu of DCLab's tracks
+            ask = intents.contrast(reading)
+            self.ask(draft_id, "intent", ask["question"], [text for _, text in ask["options"]] + ["Something else"], ask["why"])
             return
         self.open_track(draft_id)
 
@@ -461,8 +460,8 @@ class HomeAgent:
         draft = self.store.get(draft_id)
         if q["field"] == "intent":
             before = draft.get("intent") or {}
-            labels = {t: intents.LABELS[t] for t in intents.TRACKS}
-            track = intents.from_answer(value, labels)
+            track = next((t for t, text in intents.contrast(before)["options"] if value.strip().casefold() == text.casefold()), None)
+            track = track or intents.from_answer(value, {t: intents.LABELS[t] for t in intents.TRACKS})
             self.store.update(draft_id, lambda d: [x.update(answered=value) for x in d["questions"] if x["id"] == q["id"]])
             if track is None:  # "Something else", "I'm not sure": not a choice; start with the reading, which the card can change
                 first = before.get("track") or "prediction"

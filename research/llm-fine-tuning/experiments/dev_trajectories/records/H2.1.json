@@ -1,0 +1,50 @@
+{
+  "package": "H2.1",
+  "title": "The either-or question: when two readings tie, Home asks about the person's request in their own words",
+  "date": "2026-10-28",
+  "request": "The owner rejected a menu of six track buttons as the fix for unclear requests and asked for a much better improvement; the chosen design replaces Home's question 'Which kind of help do you need?' with a concrete either-or question built from the person's words.",
+  "spec": "When the intent rules tie between a prediction and a report, Home asks what each reading would deliver, each beside the words the person wrote for it, plus 'Both: the prediction first' and 'Something else'; the answer maps back to a track through the options, the track labels or the rules; the person's words stay on the draft and never reach a decision sample.",
+  "plan": [
+    "Keep the rules' quote per track on the reading, only quotes that pass the product's quote rule.",
+    "Write what each track delivers in the person's terms (DELIVERS) and build the question and its options from the two tied readings (contrast).",
+    "Ask it in start() and map the answer back in take_answer: the option text first, then a track's label, then the rules; a non-answer stays a non-choice.",
+    "Test that the question quotes only the person's words, that each option answers it, and that the words never reach a sample; rerun the H1 dev measurement."
+  ],
+  "decisions": [
+    {
+      "decision": "Build the question from the person's words, not from a model.",
+      "why": "The rules already hold the words behind each reading, and a question built from them can quote nothing the person did not write."
+    },
+    {
+      "decision": "Offer 'Both: the prediction first' when a prediction and a report tie.",
+      "why": "A report of a model's scores starts with the model; most such requests want both."
+    },
+    {
+      "decision": "Keep the per-track quotes on the draft but out of the decision sample.",
+      "why": "The sample holds counts and signal names only; the words are needed only to ask."
+    }
+  ],
+  "change": "dclab_rnd/draft/intent.py: read() keeps the valid quotes per track; DELIVERS, BOTH and contrast(). dclab_rnd/draft/chat.py: start() asks the contrast question; take_answer maps the answer through its options. tests/test_home_intent.py: three tests and the tie test updated.",
+  "findings": [],
+  "measurements": [
+    {
+      "name": "Home on the H1 dev requests, rules alone, with the either-or question",
+      "gate": "home_gate_v1: track accuracy with the model at least 0.85 and with the rules alone at least 0.70; no new wrong field, bad quote, uncited number, identifier shown or unconfirmed row drop; median questions at most 3; every trap passes",
+      "fixed_before_run": true,
+      "result": "Unchanged from HOME-002: track accuracy 0.778, quotes, uncited numbers and rows shown 0; one dev request is asked (d-v5, a Persian advice question that the rules read as a prediction or report tie), now with an either-or question that quotes its words.",
+      "verdict": "not scored",
+      "against_gate": "rules_track_accuracy 0.778 against at least 0.70: met; quote_invalid 0 and uncited 0 against 0: met; the gate is read with the model, which has not run.",
+      "limits": [
+        "Only one dev request reaches the question, so the measurement shows the question is safe, not that it is better; the H1 model arm and real use will show that."
+      ]
+    }
+  ],
+  "outcome": "A tie no longer shows the person DCLab's track names: Home asks which of two concrete results they want, quoting their own words, and offers both when a report rides on a prediction.",
+  "lessons": [
+    "A clarifying question is better built from the evidence the reader already holds (the words behind each reading) than from the system's own categories."
+  ],
+  "risks": [
+    "The deliverable phrases are fixed English; Persian requests need H3 before the question reads naturally to them."
+  ],
+  "commits": []
+}

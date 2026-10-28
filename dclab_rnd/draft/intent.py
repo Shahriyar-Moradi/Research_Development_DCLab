@@ -212,7 +212,8 @@ def read(text: str, client: Any = None, texts: Optional[list[str]] = None) -> di
             ranked = [lead] + [t for t in ranked if t != lead]
     if ranked and not quoted(found["quotes"].get(ranked[0]) or "", [text]):
         ranked = []  # a request too short to quote ("Predict.") is read as if no rule matched: never a reading without words
-    base = {"scores": found["scores"], "signals": found["signals"], "rules_version": RULES_VERSION}
+    base = {"scores": found["scores"], "signals": found["signals"], "rules_version": RULES_VERSION,
+            "quotes": {k: v for k, v in found["quotes"].items() if quoted(v, [text])}}  # the person's words per track, for the question
     if ranked and ranked[0] != "prediction" and found["scores"][ranked[0]] < STRONG:
         ranked = [t for t in ranked if t == "prediction"]  # only weak signals away from a prediction: not a reading
     tie = (len(ranked) >= 2 and found["scores"][ranked[0]] == found["scores"][ranked[1]] >= STRONG
@@ -235,6 +236,34 @@ def read(text: str, client: Any = None, texts: Optional[list[str]] = None) -> di
                 "confidence": 0.5, "alternatives": ranked[1:]}
     return {**base, "track": "prediction", "tracks": ["prediction"], "status": "inferred", "source": "default", "quote": None,
             "confidence": 0.0, "alternatives": []}
+
+
+# What each track would deliver, as the person would say it: the either-or question is built from these and the person's
+# own words, never from the track names (package H2.1).
+DELIVERS = {
+    "prediction": "a model that predicts it ahead of time",
+    "analysis": "numbers about what already happened",
+    "preparation": "a cleaned or combined table",
+    "reporting": "a report or dashboard of what already happened",
+    "business": "an answer to the business question",
+    "advice": "an explanation",
+}
+BOTH = "Both: the prediction first, then a report of its results"
+
+
+def contrast(reading: dict[str, Any]) -> dict[str, Any]:
+    """The either-or question for a tie: what each reading would deliver, each beside the words the person wrote for it,
+    so the question is about their request and not about DCLab's tracks. Options map back to tracks (``options``)."""
+    quotes = reading.get("quotes") or {}
+    pair = [t for t in reading.get("tracks") or [] if t in DELIVERS][:2]
+    if len(pair) < 2:
+        pair = (pair + [t for t in ("prediction", "reporting") if t not in pair])[:2]
+    parts = [f"{DELIVERS[t]} (you wrote “{quotes[t]}”)" if quotes.get(t) else DELIVERS[t] for t in pair]
+    options = [(t, DELIVERS[t][0].upper() + DELIVERS[t][1:]) for t in pair]
+    if set(pair) == {"prediction", "reporting"}:
+        options.append(("prediction", BOTH))  # a report of a model's output starts with the model
+    return {"question": f"Do you want {parts[0]}, or {parts[1]}?", "options": options,
+            "why": "One of these needs a model and the moment it predicts; the other only needs the data you already have."}
 
 
 def from_answer(answer: str, options: dict[str, str]) -> Optional[str]:

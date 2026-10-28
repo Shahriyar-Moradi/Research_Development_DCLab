@@ -183,14 +183,39 @@ class AgentTests(unittest.TestCase):
         d = self.start(TIE)
         q = d["questions"][0]
         self.assertEqual(q["field"], "intent")
-        self.assertIn(intent.LABELS["reporting"], q["options"])
-        HomeAgent(self.store, None).reply(d["id"], intent.LABELS["reporting"])
+        self.assertIn(intent.DELIVERS["reporting"][0].upper() + intent.DELIVERS["reporting"][1:], q["options"])
+        HomeAgent(self.store, None).reply(d["id"], intent.LABELS["reporting"])  # a track's label still reads
         d = self.store.get(d["id"])
         self.assertEqual((d["intent"]["track"], d["intent"]["source"]), ("reporting", "user"))
         self.assertFalse(d.get("workflow"))
         rows = decisions.join(decisions.open_samples(self.home).samples(), decisions.open_samples(self.home).labels())
         row = next(r for r in rows if r["point"] == "request.intent")
         self.assertEqual(row["label"], "reporting")
+
+    def test_the_tie_question_is_an_either_or_in_the_persons_words(self):
+        d = self.start(TIE)
+        q = d["questions"][0]
+        self.assertNotIn("kind of help", q["text"])  # about their request, not DCLab's tracks
+        self.assertIn("“Predict churn”", q["text"])
+        self.assertIn("“dashboard”", q["text"])
+        for phrase in ("Predict churn", "dashboard"):
+            self.assertTrue(plan.quoted(phrase, [TIE]))
+        self.assertEqual(q["options"][-1], "Something else")
+        self.assertIn(intent.BOTH, q["options"])
+
+    def test_each_option_of_the_either_or_answers_it(self):
+        for answer, track in ((intent.BOTH, "prediction"), ("A report or dashboard of what already happened", "reporting"),
+                              ("A model that predicts it ahead of time", "prediction"), ("I need the dashboard", "reporting")):
+            d = self.start(TIE)
+            HomeAgent(self.store, None).reply(d["id"], answer)
+            d = self.store.get(d["id"])
+            self.assertEqual((d["intent"]["track"], d["intent"]["source"]), (track, "user"), answer)
+
+    def test_the_persons_words_never_reach_the_sample(self):
+        d = self.start(TIE)
+        self.assertIn("quotes", d["intent"])  # kept on the draft for the question
+        rows = [r for r in decisions.open_samples(self.home).samples() if r["point"] == "request.intent"]
+        self.assertNotIn("Predict churn", json.dumps(rows))
 
     def test_something_else_is_not_a_choice(self):
         d = self.start(TIE)
