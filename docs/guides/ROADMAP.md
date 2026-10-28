@@ -19,14 +19,26 @@ fixes, planted faults, its development record for the owner's SFT, a commit push
 their measurements). Everything it leaves open, with when and by whom, is in `PHASE10_ABILITIES_PLAN.md`, section "What
 remains".
 
-**Phase 11, one memory for the agents (planned 2026-10-27, not built):** 35.0 to 35.8 in `MEMORY_PLAN.md`: five kinds
+**Phase 11, one memory for the agents (planned 2026-10-27; built 2026-10-28):** 35.0 to 35.8 in `MEMORY_PLAN.md`: five kinds
 and five scopes in one `MemoryItem` contract, a brief and a `recall` tool, forgetting without deleting; embeddings are
-measured first (35.0) and enter only if they win.
+measured first (35.0) and enter only if they win. 35.0 to 35.7 built. 35.8: MV-001 removed every repeated correction on
+dev (8 of 24 sessions to 0 of 24) but its pre-fixed gate could not be met; v2's plan is frozen from a memory-off pilot
+(`evidence/campaigns/memory_value_v2/frozen.json`) and its main run has not happened yet.
+
+**Phase H, Home as a front door (2026-10-27 and 28):** H1 to H12 built on main (the kind of help read first, Persian,
+the briefs per kind, the conversation's memory, the query engine (`dclab_core.query`), answers and charts, exits and
+cross-route suggestions, preparing a table on request, dashboards, business questions). H12, the sealed set run once
+(HOME-011): the gate fails (two uncited numbers, one field misread; the rules 26 of 36 on the kind of help against 36 of
+36 on dev, so they overfit the dev wordings); nothing is tuned on it, and a fresh sealed set is the next measurement. The
+review of 2026-10-28 kept every answer's, brief's and export's values out of the Home model's history, and made the new
+Home code work on pandas 3. Open from it: the exposure log (H8) is written but no split reads it yet (rule 2); a chain of
+small filters can drop many rows without asking; the Team panel's build does not ask H3.1's column question in the chat.
 
 **Phase 12, training data that teaches why and never forgets (planned 2026-10-28):** 36.0 to 36.7 in
 `PHASE12_TRAINING_DATA_PLAN.md`: every agent's thinking and reasoning collected, coverage per agent and per kind of help,
 outcomes for non-prediction help, frozen exams, replay sets and verified code against forgetting. Part A (the backfill of
-past data's reasoning, and thinking for every purpose) is built by the session working on Home.
+past data's reasoning, and thinking for every purpose) is built by the session working on Home. 36.0, 36.1 and 36.4 built; 36.2,
+36.3 (paid), 36.5, 36.6 and 36.7 open.
 
 ## The two goals it serves
 
