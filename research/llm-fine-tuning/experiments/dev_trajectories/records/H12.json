@@ -1,0 +1,63 @@
+{
+ "package": "H12",
+ "title": "The Home layer judged once on its sealed set: the gate fails, and the rules overfit the dev wordings",
+ "date": "2026-10-28",
+ "request": "Plan H12: run the H1 suite once on the sealed set with H2-H11 in place, all three arms, against the H1 gate; never tune anything on it. The owner chose the whole set with Claude (the sealed set cannot be split by language).",
+ "spec": "One run, stored whatever it shows; a part that fails the gate stays behind a setting.",
+ "plan": [
+  "Run make home-eval SPLIT=sealed with the model arms, capped at €1.",
+  "Store HOME-011; report; tune nothing on it."
+ ],
+ "decisions": [
+  {
+   "decision": "Asked the owner before reading the sealed set, twice: the first question promised English only, which the suite refuses for a sealed run.",
+   "why": "A sealed set is read once; the owner's English-only rule had to give way, and that was theirs to decide."
+  }
+ ],
+ "change": "evidence/campaigns/home_v1/results/HOME-011_sealed.json (and HOME-010_dev.json, the live English dev run).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The rules overfit the dev wordings.",
+   "scenario": "Rules: kind of help 36/36 on dev, 26/36 on sealed (Persian 0.625); fields 27 right, 48 missed.",
+   "cause": "The rules were written and tuned on the dev requests.",
+   "fix": "None on the sealed set (never tuned on it); new wordings come from new dev requests or the model.",
+   "test": "evidence/campaigns/home_v1/results/HOME-011_sealed.json"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The gate failed on uncited numbers and a model reading.",
+   "scenario": "Model: 2 uncited numbers ('38' in s-a5; '2' in s-v3, also the rules'), and one field the model read wrong that the rules had left unknown (audience 'مدیر' in s-b2).",
+   "cause": "Not investigated on the sealed cases (they are not tuned on).",
+   "fix": "Open: look for the same failure kinds on new dev requests.",
+   "test": "evidence/campaigns/home_v1/results/HOME-011_sealed.json"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "H1 sealed, home_gate_v1",
+   "gate": "home_gate_v1, fixed before any model run",
+   "fixed_before_run": true,
+   "result": "FAIL (uncited, new_wrong). Kind of help: rules 26/36, Home with Claude 34/36, plain Claude 36/36. Fields right/wrong: rules 27/2, Home with Claude 44/3, plain 70/3. Traps: rules 5/6, Home with Claude 6/6, plain 4/6. Rows shown 0 in every arm.",
+   "verdict": "fail",
+   "cost_eur": 0.5644,
+   "limits": [
+    "one run of 36 cases; small numbers",
+    "plain Claude reads more fields but misses traps: it answers more and checks less"
+   ]
+  }
+ ],
+ "outcome": "The Home layer, judged once on unseen requests, keeps its safety (no row shown, every trap caught with Claude) but its rules read far fewer requests than on dev, and the gate fails on two uncited numbers and one wrong reading.",
+ "lessons": [
+  "Rules tuned on a dev set read the dev set: the sealed run is the only honest measure of how they generalise.",
+  "A safety layer and a reading layer are different: Home with Claude caught every trap that plain Claude missed, while plain Claude read more fields."
+ ],
+ "risks": [
+  "Per the plan, the parts that fail stay behind a setting: the owner decides which."
+ ],
+ "commits": []
+}
