@@ -111,6 +111,7 @@ class Finding:
     precedent_query: str = ""
     precedent_filters: dict[str, Any] = field(default_factory=dict)
     proof: list[dict[str, Any]] = field(default_factory=list)
+    decision: dict[str, Any] | None = None  # 22.8: DCLab's leakage decision on the column, beside a column warning
 
     def to_json(self) -> dict[str, Any]:
         return asdict(self)
@@ -471,6 +472,7 @@ def _notebook_level(state: _State, findings: list[Finding], known_leaks: dict[st
                 "It is not available at the moment a real prediction is made.",
                 f"Drop `{column}` (and anything derived from it) from the model's inputs before splitting.",
                 ["DCLAB-R04", "DCLAB-R01"], column, {"record_id": precedent["record_id"]},
+                decision=_decision(column),
             ))
         elif POST_OUTCOME_NAME.search(column) and len(column) <= 40:
             findings.append(Finding(
@@ -478,7 +480,19 @@ def _notebook_level(state: _State, findings: list[Finding], known_leaks: dict[st
                 f"The name `{column}` suggests a value that may only exist after the outcome. A name is not proof; check when it is written.",
                 f"Confirm that `{column}` exists at prediction time (data dictionary / source timestamp) before using it as a feature.",
                 ["DCLAB-R05", "DCLAB-R01"], f"{column} post outcome leakage precedent", {"type": "leakage_precedent"},
+                decision=_decision(column),
             ))
+
+
+def _decision(column: str) -> dict[str, Any] | None:
+    """22.8: the decision service's answer on a warned column, from its name alone; only beside the review's own
+    warnings, never a finding of its own here (this review reads every column a notebook touches, the target too)."""
+    try:
+        from dclab_rnd.notebook_assist import leakage_decision
+
+        return leakage_decision(column)
+    except Exception:  # noqa: BLE001 - the warning stands without the decision service
+        return None
 
 
 # --------------------------------------------------------------------------- public API

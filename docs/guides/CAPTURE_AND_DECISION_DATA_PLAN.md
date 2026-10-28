@@ -467,8 +467,12 @@ by the same gates; the ledger feeds all of them, each in its own training format
   records a person's answer with the answers they were shown, as a label when it differs from any of them, the
   person's later answer superseding their earlier label; the person's id stays in the label only. Measured: on 4
   columns of the binary replica, every technical point asked through the three surfaces gave the same answer, also
-  with a point routed to act. Left open: the copilot review and the companion's cell analysis do not ask it on their
-  own yet (the companion answers when asked).
+  with a point routed to act. 2026-10-28: the companion's cell review asks the leakage point for every feature it
+  finds (`notebook_assist.leakage_decision`, from the name alone), the answer beside its own warning or, when only
+  the decision flags a column, as its own finding `dclab_decision_leakage_suspect` (outside the frozen dev suite's
+  signals); the copilot review shows the same answer beside its column warnings, never as a finding of its own (it
+  reads the target too). Left open: from a name alone only the leakage point is meaningful (an identifier needs
+  values), and the name rule flags `contract_duration` ("duration"), likely a false alarm a person answers.
 
 ### 22.9 Decision models inside the workflow (the second use)
 - **Delivers:** the workflow's own choices made with decision models where they passed their gates: the coordinator

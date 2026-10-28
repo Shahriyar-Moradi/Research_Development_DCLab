@@ -162,7 +162,22 @@ def inferred_dataset(path: str) -> str | None:
     return None
 
 
-def review_document(document: dict, rules_path: Path = RULES, claims_path: Path = CLAIMS) -> dict:
+def leakage_decision(name: str) -> dict:
+    """22.8: DCLab's leakage decision on one feature, asked from its name alone (the review sees no values), so the
+    review and ``POST /api/decide`` give the same answer. Only the leakage point reads a name: whether a column is an
+    identifier needs its uniqueness, which a notebook's code does not show."""
+    from dclab_core.bands import name_tokens
+
+    from .decide import ask
+
+    got = ask("feature.leakage_suspect", {"column": name, "name_tokens": name_tokens(name)})
+    rule = got.get("rule") or {}
+    return {"point": got["point"], "column": name, "answer": got["answer"], "decided_by": got["decided_by"],
+            "rule": rule.get("answerer"), "rule_source": got.get("rule_source"), "models": len(got.get("models") or []),
+            "disagree": got.get("disagree") or [], "override": "POST /api/decide/choose records your own answer as a label"}
+
+
+def review_document(document: dict, rules_path: Path = RULES, claims_path: Path = CLAIMS, ask_decisions: bool = True) -> dict:
     rules_raw = rules_path.read_bytes()
     rules = {r["rule_id"]: r for r in load_jsonl(rules_path)}
     claims = {c["claim"]["claim_id"]: c for c in load_jsonl(claims_path)}
@@ -185,6 +200,20 @@ def review_document(document: dict, rules_path: Path = RULES, claims_path: Path 
                       "source_sha256": fingerprint(code.encode()), "code": code,
                       "facts": code_facts(code) if kind == "code" else None})
     types = {name for c in cells if c["facts"] for name in c["facts"]["model_types"]}
+    decisions: dict[str, dict | None] = {}
+    not_asked = []
+
+    def decision_of(name: str) -> dict | None:
+        if not ask_decisions:
+            return None
+        if name not in decisions:
+            try:
+                decisions[name] = leakage_decision(name)
+            except Exception as error:  # noqa: BLE001 - the review stands without the decision service, and says so
+                decisions[name] = None
+                not_asked.append(f"{name}: {type(error).__name__}")
+        return decisions[name]
+
     output = []
     code_index = 0
     for i, cell in enumerate(cells):
@@ -211,13 +240,25 @@ def review_document(document: dict, rules_path: Path = RULES, claims_path: Path 
                     ["DCLAB-R03", "DCLAB-R04"], rules))
         for name in facts["feature_names"]:
             lower = name.lower()
+            decided = decision_of(name)
             if lower in SUSPICIOUS_NAMES or lower.startswith(SUSPICIOUS_PREFIXES) or lower.endswith(SUSPICIOUS_SUFFIXES):
                 direct = claims.get("EXP-007-C2") if dataset == "bank_marketing" and lower == "duration" else None
-                findings.append(finding("prediction_time_availability", "review", "needs_product_contract",
+                warning = finding("prediction_time_availability", "review", "needs_product_contract",
                     f"Verify when `{name}` becomes available",
                     f"`{name}` is selected as an input and its name suggests it may be recorded after the prediction moment. A name alone does not prove leakage.",
                     "Record the decision time, source timestamp and lineage. Exclude it only if unavailable at prediction time; then run a safe-feature ablation.",
-                    ["DCLAB-R01", "DCLAB-R05"], rules, direct))
+                    ["DCLAB-R01", "DCLAB-R05"], rules, direct)
+                if decided is not None:  # shown beside the review's own warning, agreeing or not
+                    warning["decision"] = decided
+                findings.append(warning)
+            elif decided is not None and decided["answer"] is True:
+                flagged = finding("dclab_decision_leakage_suspect", "review", "decision_from_name_only",
+                    f"DCLab's leakage decision flags `{name}`",
+                    f"DCLab's decision service ({decided['decided_by']}) holds `{name}` back as a possible leak, judged from its name alone: no values were read. A name alone does not prove leakage.",
+                    "Check when this column is recorded against the prediction moment. If it is known in time, record your answer so DCLab learns it.",
+                    ["DCLAB-R01", "DCLAB-R05"], rules)
+                flagged["decision"] = decided
+                findings.append(flagged)
         if facts["unseeded_split"]:
             findings.append({"kind": "unseeded_split", "severity": "low", "confidence": "syntax_observed",
                 "title": "Make this split repeatable", "explanation": "train_test_split has no explicit random_state in this call.",
@@ -245,7 +286,10 @@ def review_document(document: dict, rules_path: Path = RULES, claims_path: Path 
             "limitations": ["Static review only; notebook execution order and runtime values are not observed.",
                             "No model-generated code or automatic notebook edits.",
                             "A DCLab rule is methodology, not proof that this notebook has a bug.",
-                            "Only an exact matching experiment claim is labeled analogous; otherwise no direct precedent is asserted."]}
+                            "Only an exact matching experiment claim is labeled analogous; otherwise no direct precedent is asserted.",
+                            *(["DCLab's leakage decision is asked from each feature's name alone, so its name rule answers (rule:bands-approx, an "
+                               "approximation): a routed model needs bands, which a notebook's code does not show; an identifier needs values and is not asked."] if ask_decisions else []),
+                            *([f"DCLab's decision was not asked for {len(not_asked)} feature(s): " + "; ".join(not_asked[:5])] if not_asked else [])]}
 
 
 def main():

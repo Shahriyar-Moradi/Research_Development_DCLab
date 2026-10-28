@@ -1,0 +1,64 @@
+{
+ "package": "22.8 review asks",
+ "title": "The notebook reviews ask DCLab's leakage decision on their own",
+ "date": "2026-10-28",
+ "request": "The owner: continue by priority until tonight's full gate; 22.8 left open that the copilot review and the companion's cell analysis do not ask the decision service on their own.",
+ "spec": "CAPTURE_AND_DECISION_DATA_PLAN.md 22.8: the technical decision points asked in the notebook companion and the copilot review, the same answer everywhere, a disagreement shown, a person's choice a label.",
+ "plan": [
+  "Read decide.ask and what a name-only state can answer",
+  "Tests first for both reviews and the failure path",
+  "Wire the companion's review and the copilot's column warnings",
+  "Review, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "Only the leakage point is asked, from the column's name",
+   "why": "a notebook's code shows names, not values; whether a column is an identifier needs its uniqueness, so a name-only answer there would always be no"
+  },
+  {
+   "decision": "A column only the decision flags gets its own finding kind in the companion",
+   "why": "the frozen development suite scores prediction_time_availability; a new kind keeps that suite unchanged while still showing the decision"
+  },
+  {
+   "decision": "The copilot shows the decision only beside its own column warnings",
+   "why": "the copilot records every column a notebook touches, the target too; new findings there would flag the target as a leak"
+  },
+  {
+   "decision": "The review stands when the decision service fails, and says so",
+   "why": "the review is useful without it; a silent gap would read as a clean answer"
+  }
+ ],
+ "change": "dclab_rnd/notebook_assist.py (leakage_decision, review_document asks it), dclab_rnd/copilot/analyzer.py (Finding.decision on column warnings), tests/test_notebook_assist.py, the 22.8 status in CAPTURE_AND_DECISION_DATA_PLAN.md.",
+ "findings": [
+  {
+   "id": "F1",
+   "defect": "The name rule flags contract_duration as a possible leak",
+   "source": "test",
+   "severity": "behaviour",
+   "scenario": "The churn demo notebook selects contract_duration as a feature.",
+   "cause": "The name rule's leak words include duration, so contract_duration is flagged although a contract's length is usually known in time.",
+   "fix": "Kept visible as its own finding, as 22.8 asks a disagreement to be shown; the test now expects it and the plan names it as likely a false alarm a person answers.",
+   "test": "tests/test_notebook_assist.py test_churn_warning_is_conditional_and_citation_is_relevant"
+  },
+  {
+   "id": "F2",
+   "defect": "The review's limitation line suggested a routed model could answer a name-only question",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "scenario": "The leakage point is routed to a classifier that may act, and a notebook is reviewed.",
+   "cause": "The limitation line said the rule answers unless a model is routed, but a name-only state has no bands, so no classifier ever reads it and the rule always answers.",
+   "fix": "The line now says the name rule answers because a routed model needs bands a notebook's code does not show.",
+   "test": "tests/test_notebook_assist.py test_review_asks_dclabs_leakage_decision_for_each_feature checks the rule answered"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Both notebook reviews now show DCLab's leakage decision on the columns they read, the same answer as the decision API, with its limits written in the review.",
+ "lessons": [
+  "A decision asked from less information than it was built for should say so in its answer, not only in its docs.",
+  "Before adding findings to a review, check which columns it reads: a review that sees the target cannot flag every leak-sounding name."
+ ],
+ "risks": [
+  "Leak words such as post, after and duration flag harmless names (days_after_signup, post_code, contract_duration): expect noise until a person's answers train a better answerer."
+ ],
+ "commits": []
+}

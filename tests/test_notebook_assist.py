@@ -35,7 +35,11 @@ class NotebookCompanionTests(unittest.TestCase):
         report = reviewed("research/agentic-ml-copilot/experiments/prototype_sept22/demo_churn_model.ipynb")
         self.assertIsNone(report["dataset_inferred"])  # Demo filename does not prove Telco source identity.
         first = {f["kind"]: f for f in report["code_cells"][0]["findings"]}
-        self.assertEqual(set(first), {"preprocessing_before_split", "prediction_time_availability", "unseeded_split"})
+        # 22.8: DCLab's decision service also flags contract_duration from its name ("duration"): shown as its own
+        # finding, likely a false alarm the person answers (the answer becomes a label), never folded into the review's
+        self.assertEqual(set(first), {"preprocessing_before_split", "prediction_time_availability", "unseeded_split",
+                                      "dclab_decision_leakage_suspect"})
+        self.assertEqual(first["dclab_decision_leakage_suspect"]["decision"]["column"], "contract_duration")
         warning = first["prediction_time_availability"]
         self.assertIn("does not prove leakage", warning["explanation"])
         self.assertIn("DCLAB-R05", [r["id"] for r in warning["proof"]["records"]])
@@ -57,6 +61,52 @@ class NotebookCompanionTests(unittest.TestCase):
         self.assertNotIn("split", facts["operations"])
         report = review_document({"notebook_path": "demo.ipynb", "cells": [{"cell_type": "code", "source": "%matplotlib inline"}]})
         self.assertEqual(report["code_cells"][0]["review_status"], "unsupported_syntax")
+
+    def test_review_asks_dclabs_leakage_decision_for_each_feature(self):
+        """22.8: the review asks the decision service, so it and /api/decide give the same answer on a name."""
+        from dclab_rnd.decide import ask
+        from dclab_core.bands import name_tokens
+
+        document = {"notebook_path": "orders.ipynb", "cells": [{"cell_type": "code",
+                    "source": "features = ['refund_amount', 'final_fare', 'basket_size']\nX = df[features]\n"}]}
+        report = review_document(document)
+        findings = report["code_cells"][0]["findings"]
+        by_column = {f["decision"]["column"]: f for f in findings if f.get("decision")}
+        # refund_amount: only DCLab's decision flags it (the review's own list does not): its own kind, not the frozen one
+        self.assertEqual(by_column["refund_amount"]["kind"], "dclab_decision_leakage_suspect")
+        self.assertIn("name alone", by_column["refund_amount"]["explanation"])
+        # final_fare: both flag it: one finding, the decision attached beside the review's own warning
+        self.assertEqual(by_column["final_fare"]["kind"], "prediction_time_availability")
+        self.assertNotIn("basket_size", by_column)
+        for column, f in by_column.items():
+            same = ask("feature.leakage_suspect", {"column": column, "name_tokens": name_tokens(column)})
+            self.assertEqual(f["decision"]["answer"], same["answer"])
+            self.assertEqual(f["decision"]["decided_by"], same["decided_by"])
+            self.assertEqual(f["decision"]["rule"], "rule:bands-approx")
+        self.assertTrue(any("name alone" in line for line in report["limitations"]))
+
+    def test_review_does_not_ask_when_turned_off_or_when_the_service_fails(self):
+        document = {"notebook_path": "orders.ipynb", "cells": [{"cell_type": "code",
+                    "source": "features = ['refund_amount']\nX = df[features]\n"}]}
+        self.assertEqual(review_document(document, ask_decisions=False)["code_cells"][0]["findings"], [])
+        from unittest import mock
+        with mock.patch("dclab_rnd.decide.ask", side_effect=RuntimeError("down")):
+            report = review_document(document)
+        self.assertEqual(report["code_cells"][0]["findings"], [])
+        self.assertTrue(any("not asked" in line for line in report["limitations"]))
+
+    def test_copilot_review_shows_the_decision_beside_its_column_warnings(self):
+        from dclab_rnd.copilot import review_source
+        from dclab_rnd.decide import ask
+        from dclab_core.bands import name_tokens
+
+        report = review_source("X = df[['refund_after_delivery', 'basket_size']]\ny = df['churned']\n")
+        warned = [f for f in report["findings"] if f["detector"] in ("known_leakage_column", "suspicious_column_name")]
+        self.assertTrue(warned)
+        for f in warned:
+            column = f["decision"]["column"]
+            self.assertEqual(f["decision"]["answer"], ask("feature.leakage_suspect", {"column": column, "name_tokens": name_tokens(column)})["answer"])
+        self.assertFalse(any(f.get("decision") for f in report["findings"] if f not in warned))  # never a finding of its own
 
 
 if __name__ == "__main__":
