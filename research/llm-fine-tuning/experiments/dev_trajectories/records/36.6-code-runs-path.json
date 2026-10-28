@@ -1,0 +1,24 @@
+{
+ "package": "36.6 code runs path",
+ "title": "A test store's code runs are asked of the layout, as every store path is",
+ "date": "2026-10-29",
+ "request": "The owner: run the full gate and fix what it finds.",
+ "spec": "The store's rule (32.1): nothing in dclab_rnd/store joins a store path itself; layout.py builds every one, and tests/test_store.py checks the code for it.",
+ "plan": ["Read the failing check", "Give the layout the path", "Use it", "Rerun the store tests"],
+ "decisions": [
+  {"decision": "A method on the layout, not an exception in the check", "why": "the check keeps every store path in one place, so a name that climbs out is refused in one place"}
+ ],
+ "change": "dclab_rnd/store/layout.py (code_runs), dclab_rnd/store/sets/code.py (runs_for asks it).",
+ "findings": [
+  {"id": "F1", "source": "test", "severity": "latent", "defect": "36.6 joined a test store's code-runs folder by hand",
+   "scenario": "The full gate's test_store.py walks every store module for a path built on a layout's root.",
+   "cause": "runs_for wrote layout.root / \"code_runs\" when 36.6 isolated test stores from the real runs; the package's quick gate did not run test_store.py, which no changed file pointed to.",
+   "fix": "Layout.code_runs() builds the path; runs_for asks it.",
+   "test": "tests/test_store.py test_the_layout_refuses_a_name_that_climbs_out_and_every_store_path_is_built_by_it"}
+ ],
+ "measurements": [],
+ "outcome": "Every store path is again built by the layout, and the full gate's store check passes.",
+ "lessons": ["A rule checked by reading the whole package's code is only run when that test is; a package gate that picks tests by changed files can miss it."],
+ "risks": [],
+ "commits": []
+}

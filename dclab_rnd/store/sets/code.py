@@ -128,7 +128,7 @@ def runs_for(layout: Layout) -> Path:
     folder inside the layout (a test's store reads no one's real runs)."""
     if os.environ.get("DCLAB_CODE_RUNS"):
         return Path(os.environ["DCLAB_CODE_RUNS"])
-    return RUNS if layout.root.resolve() == Layout().root.resolve() else layout.root / "code_runs"
+    return RUNS if layout.root.resolve() == Layout().root.resolve() else layout.code_runs()
 
 
 def build_latest(layout: Optional[Layout] = None, runs: Optional[Path] = None) -> dict[str, Any]:

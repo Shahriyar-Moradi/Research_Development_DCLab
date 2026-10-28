@@ -167,6 +167,10 @@ class Layout:
             out = out / _part(p)
         return out
 
+    def code_runs(self) -> Path:
+        """36.6: a test store's own kept code-check runs (the real store reads the workspace's ``agent_runs/code_runs``)."""
+        return self.root / "code_runs"
+
     def runs(self) -> Path:
         return self.root / "runs"
 
