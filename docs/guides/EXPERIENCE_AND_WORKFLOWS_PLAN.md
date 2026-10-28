@@ -289,7 +289,8 @@ code are not one connected object a data scientist can read, run and change.
   `POST /api/projects/{id}/review` with confirmed and rejected keys; the confirmed join the project's known cases across
   rounds and become its labels (partial, their selection by the detector said in their provenance), the problem then a
   rare-event one; a key the table does not hold refuses the round and nothing is written; each round's review list is
-  kept. Left open: no page shows the review list or takes the confirmations yet (the route is in the API client); the
+  kept. The project's Overview lists the alerts and takes the confirmations (2026-10-28, "Alerts to review"; `make
+  browser-test`'s `review` check confirms one on the page). Left open: the
   planted shapes are generic, not derived from the analysis' findings; rejected alerts are kept as reviewed, never as
   negatives; 16.15 C (projects of several tables).
 

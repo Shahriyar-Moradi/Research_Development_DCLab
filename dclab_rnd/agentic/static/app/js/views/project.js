@@ -292,6 +292,25 @@ DC.view('project', {
     /* ---------- 35.7: what this project's agents remember ---------- */
     const KIND = { fact: 'Fact', episode: 'Happened', know_how: 'Know-how', knowledge: 'Knowledge' };
     const memRole = () => (($('#proj-memory-role', el) || {}).checked ? { 'X-DCLab-Role': 'reviewer' } : {});
+    function drawReview() {  // 20.7: an anomaly project's ranked alerts, reviewed by a person on the page
+      const panel = $('#proj-review-panel', el);
+      const rows = isReal(proj) ? ((((REAL[proj].records || {}).final || {}).evidence || {}).review_list || []) : [];
+      const listed = rows.filter(r => r.key != null && r.key !== '');
+      panel.hidden = !listed.length;
+      $('#proj-review', el).innerHTML = listed.map(r => `<tr><td class="mono small">${esc(String(r.key))}</td><td class="small">${esc(r.entity == null ? '' : String(r.entity))}</td>`
+        + `<td class="mono small">${esc(String(r.score))}</td><td class="small">${esc((r.stands_out || []).join(', '))}</td>`
+        + `<td><select class="xs" data-review-key="${esc(String(r.key))}" aria-label="Your review of ${esc(String(r.key))}"><option value="">not checked</option><option value="confirmed">a real case</option><option value="rejected">not a case</option></select></td></tr>`).join('');
+      $('#proj-review-note', el).textContent = listed.length ? `${listed.length} alerts listed` : '';
+    }
+    $('#proj-review-send', el).addEventListener('click', async e => {
+      const picks = [...el.querySelectorAll('[data-review-key]')].map(x => [x.dataset.reviewKey, x.value]).filter(([, v]) => v);
+      const confirmed = picks.filter(([, v]) => v === 'confirmed').map(([k]) => k), rejected = picks.filter(([, v]) => v === 'rejected').map(([k]) => k);
+      if (!confirmed.length) { toast('Mark at least one alert as a real case: the confirmed ones become the labels.', { ok: false }); return; }
+      e.target.disabled = true;
+      try { await DC.client.confirmReview(REAL[proj].id, { body: { confirmed, rejected } }); toast(`Sent: ${confirmed.length} confirmed, ${rejected.length} not a case.`); }
+      catch (err) { toast(err.message || 'The review was refused.', { ok: false }); }
+      finally { e.target.disabled = false; openReal(proj, true); }
+    });
     async function loadPipeline() {  // 20.8: the stale steps of a real project, with a rerun for each
       const panel = $('#proj-pipeline-panel', el), body = $('#proj-pipeline', el), want = proj;
       if (!isReal(proj)) { panel.hidden = true; return; }
@@ -458,7 +477,7 @@ DC.view('project', {
       if (isReal(p)) { realValidator(); drawRealVerdict(); DC.setProjectLabel && DC.setProjectLabel(P[p].title); }
       else { $('#move-select', el).innerHTML = SAMPLE_MOVES; delete $('#move-select', el).dataset.real; drawValidator(); DC.setProjectLabel && DC.setProjectLabel(P[p].title + ' · sample'); }
       drawStats(); drawGraph(); drawLog(); drawNode(keepStep && selected ? selected : P[p].current); drawTeam(); DC.hydrate(el);
-      loadTwin(); loadMemory(); loadPipeline();
+      loadTwin(); loadMemory(); loadPipeline(); drawReview();
     }
     this.setProject = setProject; this.openReal = openReal; this.switcher = switcher;
     const SAMPLE_MOVES = $('#move-select', el).innerHTML;

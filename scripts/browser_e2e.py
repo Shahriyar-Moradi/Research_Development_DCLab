@@ -545,6 +545,53 @@ def check_memory(b: Browser) -> str:
     return "the Memory tab lists the line, a correction on the page replaces it, and it fits 375 px"
 
 
+WORKSPACE: Path | None = None  # the script's own server's workspace (None with --base): the review check builds a project there
+
+
+def check_review(b: Browser) -> str:
+    """20.7: an anomaly project's ranked alerts on its Overview; a person marks one a real case on the page and the API
+    keeps it as the project's first reviewed round."""
+    if WORKSPACE is None:
+        return "skipped: the review check builds its project in the script's own server's workspace (not with --base)"
+    from unittest import mock
+
+    from dclab_rnd import kinds
+    from dclab_rnd.expansion import runner
+    from dclab_rnd.kinds import acceptance
+    from dclab_rnd.models.gateway import private_scope
+    from dclab_rnd.studio import engine
+    from product_e2e import Api
+
+    store, pid = acceptance.build(kinds.get("anomaly").case(0), WORKSPACE / "projects")
+    name = f"Review check {int(time.time())}"
+    store.update(pid, name=name)
+    with runner.fast_profile(), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
+        engine.run_all(store, pid)
+    page = b.page
+    page.reload()
+    b.view("home", settle=2)
+    page.wait_for_selector("#view-home .proj-switch", state="visible", timeout=15_000)
+    page.click("#view-home .proj-switch")
+    page.wait_for_selector("#view-home .ps-opt", timeout=15_000)
+    page.locator("#view-home .ps-opt").filter(has_text=name).first.click()
+    page.wait_for_function("n => document.querySelector('#view-home .ps-name').textContent === n", arg=name, timeout=15_000)
+    b.view("project", settle=1)
+    first = page.locator("#proj-review [data-review-key]").first
+    first.wait_for(timeout=30_000)
+    key = first.get_attribute("data-review-key")
+    first.select_option("confirmed")
+    page.click("#proj-review-send")
+    api = Api(b.base)
+    for _ in range(30):
+        rounds = (api.call("GET", f"/projects/{pid}").get("review") or {}).get("rounds") or []
+        if rounds:
+            break
+        time.sleep(1)
+    check(bool(rounds) and key in rounds[-1].get("confirmed", []), f"the alert confirmed on the page ({key}) is not the project's reviewed round")
+    check(not b.problems(), f"the review panel: {b.problems()[:3]}")
+    return f"an anomaly project's alerts are listed on its Overview, and one confirmed on the page is kept as its first reviewed round"
+
+
 # the outermost element wider than the screen that is not inside a box that scrolls or clips it
 CULPRIT = """() => { const w = document.documentElement.clientWidth;
   const clipped = e => { for (let a = e.parentElement; a && a !== document.body; a = a.parentElement) { const o = getComputedStyle(a).overflowX; if (o !== 'visible') return true; } return false; };
@@ -552,7 +599,7 @@ CULPRIT = """() => { const w = document.documentElement.clientWidth;
   return el ? el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + ' "' + (el.textContent || '').trim().slice(0, 40) + '"' : '?'; }"""
 
 
-CHECKS = {"flow": (check_flow, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "memory": (check_memory, 1280), "mobile": (check_mobile, 375)}
+CHECKS = {"flow": (check_flow, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "memory": (check_memory, 1280), "review": (check_review, 1280), "mobile": (check_mobile, 375)}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -572,6 +619,8 @@ def main(argv: list[str] | None = None) -> int:
     base = args.base
     if not base:
         process, base, home = start_server()
+        global WORKSPACE
+        WORKSPACE = Path(getattr(home, "name", home))  # start_server gives its TemporaryDirectory
     failed = 0
     try:
         with sync_playwright() as playwright:

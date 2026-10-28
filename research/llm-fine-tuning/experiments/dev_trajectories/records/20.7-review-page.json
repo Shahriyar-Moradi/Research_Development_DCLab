@@ -1,0 +1,23 @@
+{
+ "package": "20.7 review page",
+ "title": "An anomaly project's alerts are reviewed on the project page",
+ "date": "2026-10-28",
+ "request": "The owner: continue by priority until tonight's full gate; 20.7 left the review list without a page.",
+ "spec": "EXPERIENCE_AND_WORKFLOWS_PLAN.md 20.7: the review loop takes confirmed and rejected alerts through the API; no page showed the list or took the confirmations.",
+ "plan": ["Find where the review list lives", "A panel on the project's Overview", "A browser check on a real anomaly project"],
+ "decisions": [
+  {"decision": "Read the list from the project data the page already loads", "why": "the final stage's record holds it; no new route"},
+  {"decision": "Unchecked alerts send nothing, and at least one confirmed case is required", "why": "the route makes the confirmed its labels; a review without one teaches nothing"}
+ ],
+ "change": "dclab_rnd/agentic/web/src/views/project.html (the panel and its send), web/src/features.js, the generated frontend, scripts/browser_e2e.py (the review check), tests/test_web_client.py, the 20.7 plan status.",
+ "findings": [
+  {"id": "B1", "source": "test", "severity": "behaviour", "defect": "The new check could not find the server's workspace",
+   "scenario": "the script's server keeps its workspace as a temporary folder object",
+   "cause": "the object was used as a path", "fix": "its folder name is used", "test": "make browser-test --only review"}
+ ],
+ "measurements": [],
+ "outcome": "A person reviews an anomaly project's ranked alerts on its Overview; the ones confirmed become its labels, checked end to end in the browser.",
+ "lessons": ["A page for an existing route is done only when a browser check drives it on a real project."],
+ "risks": ["Rejected alerts stay reviewed, never negatives, as the route decides."],
+ "commits": []
+}

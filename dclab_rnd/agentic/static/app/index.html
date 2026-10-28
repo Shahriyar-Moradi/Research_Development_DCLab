@@ -530,6 +530,12 @@
       </div>
     </div>
 
+    <div class="panel" data-f="proj.review" id="proj-review-panel" hidden>
+      <div class="panel-head"><div class="panel-title"><h2>Alerts to review</h2><span class="sub">The rows the detector ranked highest, as many as your review budget allows. Mark the ones you checked: confirmed cases become this project's labels; the others are kept as reviewed, never as negatives.</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Key</th><th>Who</th><th>Score</th><th>Stands out</th><th>Your review</th></tr></thead><tbody id="proj-review"></tbody></table></div>
+      <div class="panel-foot bar"><button type="button" class="btn primary" id="proj-review-send">Send my review</button><span class="small muted" id="proj-review-note"></span></div>
+    </div>
+
     <div class="panel" data-f="proj.pipeline" id="proj-pipeline-panel" hidden>
       <div class="panel-head"><div class="panel-title"><h2>What is out of date</h2><span class="sub">A step is stale when what it read has changed since it ran; every later step is stale with it.</span></div></div>
       <p class="small" id="proj-pipeline-sum"></p>
