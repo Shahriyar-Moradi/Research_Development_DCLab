@@ -63,7 +63,22 @@ def main(argv: list[str] | None = None) -> int:
     loops = sub.add_parser("loop-records", help="31.17: the loop's own records joined from what each seat wrote; replayed from the records alone")
     loops.add_argument("--write", action="store_true", help="write them to lake/bronze/loop/<family>/ with a manifest")
     loops.add_argument("--backfill-lessons", action="store_true", help="31.5: first write the structured lessons of drafts made before them (the rules' proposal)")
+    board = sub.add_parser("scoreboard", help="31.4: a family's scoreboard row, each number traced to its results and records")
+    board.add_argument("--family", default="groups")
+    board.add_argument("--write", action="store_true", help="write it to <workspace>/learning/scoreboard_<family>.json")
     args = parser.parse_args(argv)
+    if args.command == "scoreboard":
+        from ..settings import Settings
+        from .scoreboard import family_row
+
+        home = Path(Settings.load().agent_home)
+        row = family_row(args.family, home)
+        print(json.dumps(row, indent=1, ensure_ascii=False))
+        if args.write:
+            out = home / "learning" / f"scoreboard_{args.family}.json"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps(row, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+        return 1 if row["replay_problems"] else 0
     if args.command == "loop-records":
         return _loop_records(args)
     if args.command == "decisions":

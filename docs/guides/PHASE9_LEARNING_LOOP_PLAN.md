@@ -402,7 +402,10 @@ or rubric files). 31.2 mostly done (grader_v1 with codes and the gaming traces; 
 target, no weighted rubric). 31.3 partial (the groups family, 4 practice skins; since 2026-10-29 the sealed variants draw from 8 skins of their own,
 written by an independent agent that read no file, pinned by hash, no name shared with practice (LRN-008 had found names
 memorised across skins); the generator's structure is still the same for every partition). 31.4 partial (the baseline LRN-001 check 7 of 20 and LRN-002
-learning 3 of 20, from before fix fa6be0a6; no `make curriculum`, no per-family row beside `capability.json`). 31.5 partial
+learning 3 of 20, from before fix fa6be0a6; no `make curriculum`; since 2026-10-29 a family's scoreboard row, `python -m dclab_rnd.learning scoreboard [--write]`:
+the newest zero of each partition with its intervals, the sealed score empty until the exam is read, the playbook's size,
+the lessons by gap, the spend, the packs learned from and whether the loop records replay; written to the workspace,
+not yet beside `capability.json`). 31.5 partial
 (first wrong step, rules drafter, capped reflector; since 2026-10-29 `dclab_core/lesson.py`: `Lesson` v1 with its gap
 type, route and evidence, the rules' proposal from a grader code (`rule:gaps_v1`), a rule or capability gap acted on only
 after a person confirms it; the draft step writes `learning/lessons.jsonl`; past drafts' lessons wait for the owner's

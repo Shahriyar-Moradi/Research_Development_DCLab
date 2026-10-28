@@ -246,4 +246,61 @@ def baseline(family: str = "groups", split: str = "check", n: int = 20, write: b
     return result
 
 
-__all__ = ["GATE", "AGENT", "RESULTS", "attempt", "summarize", "baseline", "bootstrap_mean", "fingerprints", "SealedSpent"]
+def family_row(family: str, home: Path, results: Path | None = None) -> dict[str, Any]:
+    """31.4: a family's scoreboard row, every number traced to what it was computed from: the newest stored baseline of
+    each partition (the zero of the learning curve; the sealed one empty until the exam is read, once), the playbook's
+    size and its bullets by status, the lessons by gap type, the euros the family's runs spent, the packs lessons were
+    drawn from, and whether the loop's records replay."""
+    from collections import Counter
+
+    from dclab_core.loop_record import replay
+    from dclab_core.playbook import render, tokens
+
+    from .loop_records import build
+    from .playbooks import FilePlaybooks
+
+    folder = Path(results) if results is not None else RESULTS
+    docs = []
+    for path in sorted(folder.glob("LRN-*.json")) if folder.is_dir() else []:
+        m = RESULT.match(path.name)
+        if not m or m["family"] != family:
+            continue
+        try:
+            docs.append(json.loads(path.read_text(encoding="utf-8")))
+        except ValueError:
+            continue
+    zero = {}
+    for split in ("learning", "check", "sealed"):
+        mine = [d for d in docs if d.get("kind") == "learning_baseline" and d.get("split") == split]
+        if mine:
+            d = mine[-1]
+            s = d.get("summary") or {}
+            zero[split] = {"result": d.get("id"), "at": d.get("at"), "passed": s.get("passed"), "of": s.get("solvable"),
+                           "pass_rate_interval": s.get("pass_rate_interval"), "decision_score": s.get("decision_score"),
+                           "decision_score_interval": s.get("decision_score_interval")}
+        else:
+            zero[split] = None
+    book, _ = FilePlaybooks(home).book(family)
+    shown, _ids = render(book)
+    lessons = Counter()
+    path = Path(home) / "learning" / "lessons.jsonl"
+    for line in path.read_text(encoding="utf-8").splitlines() if path.is_file() else []:
+        try:
+            x = json.loads(line)
+        except ValueError:
+            continue
+        if x.get("family") == family:
+            lessons[x.get("gap_type")] += 1
+    records, changes = build(home, folder)
+    mine = [r for r in records if r.family == family]
+    drawn = sorted({e["pack"] for b in book.bullets for e in [x.model_dump() for x in b.evidence]})
+    return {"family": family, "zero": zero, "sealed_read": zero["sealed"] is not None,
+            "playbook": {"version": book.version, "bullets": len(book.bullets), "by_status": dict(Counter(b.status for b in book.bullets)),
+                         "tokens_shown": tokens(shown)},
+            "lessons_by_gap": dict(lessons), "packs_learned_from": len(drawn),
+            "spent_eur": round(sum(float(d.get("spent_eur") or 0.0) for d in docs), 4), "results": [d.get("id") for d in docs],
+            "loop_records": len(mine), "replay_problems": replay(mine, {k: v for k, v in changes.items() if k[0] == family}),
+            "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+
+
+__all__ = ["GATE", "AGENT", "RESULTS", "attempt", "summarize", "baseline", "bootstrap_mean", "fingerprints", "SealedSpent", "family_row"]

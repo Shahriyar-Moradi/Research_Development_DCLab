@@ -1,0 +1,23 @@
+{
+ "package": "31.4 scoreboard row",
+ "title": "A family's scoreboard row, each number traced to its results and records",
+ "date": "2026-10-29",
+ "request": "The owner: do the rest of the plan non-stop; the survey of phase 9 found no per-family scoreboard row.",
+ "spec": "PHASE9_LEARNING_LOOP_PLAN.md 31.4 and 'What to track from day one': for each family, the challenges learned from, the check score, the sealed score, the playbook's size and the spend.",
+ "plan": ["Read the stored results and the playbook", "Build the row from them and the loop records", "A command to print and keep it", "Test it"],
+ "decisions": [
+  {"decision": "The row is computed, never typed", "why": "every number names the result or record it came from, so the curve can be checked"},
+  {"decision": "It is written to the workspace, not committed", "why": "a generated file in the repository needs its own freshness gate; the workspace's row is what a person reads"},
+  {"decision": "The sealed score stays empty until the exam is read", "why": "the row reads stored results only; it never runs the sealed set"}
+ ],
+ "change": "dclab_rnd/learning/scoreboard.py (family_row), the scoreboard command, tests/test_scoreboard_row.py, the plan's status.",
+ "findings": [],
+ "measurements": [
+  {"name": "the groups family's row on the workspace", "gate": "computed from stored results only, and the loop records replay",
+   "result": "zero: check 7 of 20 (LRN-001), learning 3 of 20 (LRN-002), sealed unread; playbook version 6 with 3 draft bullets (none shown); EUR 0.45 spent; 2 packs learned from; no replay problem", "verdict": "pass"}
+ ],
+ "outcome": "A family's progress reads from one row, and every number in it traces back to a stored result or record.",
+ "lessons": ["A curve's zero should say when it was measured: LRN-001 and LRN-002 predate a later fix to the proposal, so the row shows their date."],
+ "risks": ["The zero is from 2026-10-23, before fix fa6be0a6; it should be measured again before any learning gain is claimed."],
+ "commits": []
+}
