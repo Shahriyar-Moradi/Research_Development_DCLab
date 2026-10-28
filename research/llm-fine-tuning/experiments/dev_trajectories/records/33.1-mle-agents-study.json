@@ -1,0 +1,59 @@
+{
+  "package": "33.1-mle-agents-study",
+  "title": "The open MLE-bench agents read at named commits: how they search, and where each would break DCLab's rules",
+  "date": "2026-10-28",
+  "request": "The owner chose 'MLE-bench lessons 33.1–33.5': the plan's ideas came from leaderboards and READMEs, so before building more search the open agents' code had to be read.",
+  "spec": "docs/guides/MLE_BENCH_AGENTS_STUDY.md: for MLEvolve, ML-Master v1, AIRA-dojo, R&D-Agent, AIDE and Kapso, their operators, search policy, memory, budget, validation and final choice, use of the test set, licence, and where each breaks a rule of Part C; MLExpert's recipe against the agentic model's plan; documentation only, no code copied or run.",
+  "plan": [
+    "Read each repository at a commit named in the note: README, configuration, and the search, memory, execution and selection files.",
+    "Mark every claim resting on an unread paper as unverified.",
+    "Map each idea to what DCLab already has and say whether to build it under the rules.",
+    "Update the plan's statuses: 33.1 done, 33.2, 33.3 and 33.5 as phase 10 left them."
+  ],
+  "decisions": [
+    {
+      "decision": "The study was written by a research agent and checked here before it was committed.",
+      "why": "A fresh reader of the code is less anchored on the plan's own summary of the agents."
+    },
+    {
+      "decision": "Agents without a licence or under a non-commercial one are ideas only.",
+      "why": "The open edition is Apache-2.0; ML-Master has no licence file and AIRA-dojo is non-commercial."
+    },
+    {
+      "decision": "The plan's line on MLExpert is corrected: weights and the task factory, not code and weights.",
+      "why": "Its repository at the commit read holds no harness and no training code."
+    }
+  ],
+  "change": "New docs/guides/MLE_BENCH_AGENTS_STUDY.md; MLE_BENCH_LESSONS_PLAN.md: the status paragraph, 33.1 done with its findings, 33.2 built as 34.6, 33.3's search built as 34.7a (opt-in), 33.5 not built (34.7b), Part A's MLExpert row, and the Persian summary's status.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "severity": "leakage",
+      "defect": "Two open agents keep a test-set signal inside the search.",
+      "scenario": "AIRA-dojo grades every valid submission on the test answers at each step, one flag away from steering the search; Kapso's handler stops the search when the test set awards a medal.",
+      "cause": "Their graders live in the search process for analysis or legacy stopping.",
+      "fix": "None to make in DCLab: the note records the rule that a grader sits outside any search and runs only on replicas or the sealed set.",
+      "test": "not applicable: documentation only"
+    },
+    {
+      "id": "F2",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The plan described MLExpert as releasing its code.",
+      "scenario": "A package planned on reusing MLExpert's harness would find nothing to reuse.",
+      "cause": "Part A was written from the announcement.",
+      "fix": "Part A's row now says weights and the task factory.",
+      "test": "not applicable: documentation only"
+    }
+  ],
+  "measurements": [],
+  "outcome": "Every later MLE-bench package can cite where its idea comes from and which rule it must keep; the plan's statuses match what phase 10 built.",
+  "lessons": [
+    "Read the code at a commit, not the README: the configuration that scored on a leaderboard is not always the one in the repository."
+  ],
+  "risks": [
+    "The agents' papers were not read (arXiv was blocked), so what rests on them is marked unverified."
+  ],
+  "commits": []
+}

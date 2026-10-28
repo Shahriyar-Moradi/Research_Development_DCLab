@@ -4,8 +4,9 @@ Written 2026-10-21 from the owner's question, *can we learn from their approache
 leaderboard (mlebench.com, which shows the table of github.com/openai/mle-bench) and the open-source agents on it. Read
 against the repository at `de406362`.
 
-**Status: a plan only.** Nothing here is built. Packages 33.1 to 33.9 wait for the owner to place them in the order
-(after the open-source edition, beside or before phase 9). The study note (33.1) is documentation only. Every other
+**Status (2026-10-28):** 33.1 is done (`MLE_BENCH_AGENTS_STUDY.md`). 33.2 was built as phase 10's 34.6, and 33.3's
+search as 34.7a, opt-in only after `search_v2` and `search_v3` failed; 33.5's stacking is not built (34.7b, the owner).
+33.4 and 33.6 to 33.9 are planned and wait for the owner to place them in the order. The study note (33.1) is documentation only. Every other
 package changes code and follows the house discipline: test first, the `dclab-reviewer`, its development-trajectory
 record, `make check-quick`, and capture in its "Done when".
 
@@ -45,7 +46,7 @@ saw test-set feedback: Disarray 77.8% and LoongFlow 62.7%.
 | Targeted refinement | MLE-STAR (Google) | Searches the web for suitable models, finds by ablation the code block that matters most, refines that block, then ensembles | closed |
 | Researcher and developer | R&D-Agent | One agent proposes hypotheses, another implements them, results feed the next hypothesis | R&D-Agent |
 | Ensembles | most leaders | The final submission blends the best solutions | — |
-| A trained agent model | MLExpert (MLEvolve's team, 2026-10-15) | A 35B mixture-of-experts model post-trained for long-horizon ML engineering with hierarchical agentic SFT, then windowed interaction RL. MLE-bench Lite from 37.9% to 72.7% | code and weights released |
+| A trained agent model | MLExpert (MLEvolve's team, 2026-10-15) | A 35B mixture-of-experts model post-trained for long-horizon ML engineering with hierarchical agentic SFT, then windowed interaction RL. MLE-bench Lite from 37.9% to 72.7% | weights and the task factory released; the harness and training code are not in its repository (33.1) |
 
 ## Part B. What DCLab has and what is missing
 
@@ -93,7 +94,12 @@ saw test-set feedback: Disarray 77.8% and LoongFlow 62.7%.
   against the agentic LLM's plan (31.13 to 31.16). No code copied.
 - **Done when:** the note covers the six agents and MLExpert with a link to each source at a named commit; every idea
   later built in 33.3 to 33.8 cites its section.
-- **Status:** planned.
+- **Status:** done (2026-10-28): `MLE_BENCH_AGENTS_STUDY.md`, each source at a named commit. Its main findings: AIRA-dojo
+  logs a test-set score beside every node and Kapso has a stop driven by a test-set medal (both off, or not called, at the
+  commits read); MLEvolve blends test predictions never scored on held-out rows; ML-Master has no licence and AIRA-dojo
+  is non-commercial (ideas only). Worth building: runnable catalogue entries (33.4), memory filtered by the data card's
+  shape (33.6), a staged budget for the 8 GB Mac, and R&D-Agent's deterministic guard on the files generated code opens
+  (33.7). Not worth it: a tree over hyperparameters, an LLM leakage check, a model owning the final choice.
 
 ### 33.2 Honest selection under many attempts
 - **Why:** with 2 rounds the optimism of the kept CV score is small and already said in the claim. With 50 or 500
@@ -108,7 +114,8 @@ saw test-set feedback: Disarray 77.8% and LoongFlow 62.7%.
 - **Done when:** on the replicas with planted noise, the gap between the chosen candidate's CV score and its holdout
   score grows with the number of attempts under plain CV, and stays inside its interval under the protocol (the gate
   fixed before the run). Capture: the attempts, both scores and the optimism in the stage record and the ledger.
-- **Status:** planned.
+- **Status:** built as phase 10's 34.6 (2026-10-25, dclab-core 0.110.0, `dclab_core.selection`): confirming only the
+  winner (K = 1) on the selection fold, measured optimism about 0.002 (`PHASE10_ABILITIES_PLAN.md`).
 
 ### 33.3 The search tree
 - **Why:** the leaders' main advantage. Two rounds on one leader leave most of the room unexplored.
@@ -121,7 +128,8 @@ saw test-set feedback: Disarray 77.8% and LoongFlow 62.7%.
 - **Done when:** on the replicas, the tree's selection-fold score beats the two rounds at a bounded cost, with the gate
   fixed before the run; the holdout read once; a run on the 8 GB profile stays within its minutes. Capture: the whole
   tree (every node, kept or not) in the stage record and the lake.
-- **Status:** planned; needs 33.2.
+- **Status:** a per-family Optuna search built as 34.7a (`studio/search.py`), opt-in only: `search_v2` and `search_v3`
+  failed (no gain on the bake-off at the set-aside's price). A tree over structural moves stays planned (study §8).
 
 ### 33.4 A wider catalogue of actions
 - **Why:** a tree is only as good as its moves. Today 4 of 7 catalogue experiments can run.
@@ -141,7 +149,7 @@ saw test-set feedback: Disarray 77.8% and LoongFlow 62.7%.
   ensemble's holdout number.
 - **Done when:** on the replicas an ensemble is chosen only when it beats the best single family on the selection fold;
   `make code-check` reproduces its holdout number in a clean Python 3.12.
-- **Status:** planned; needs 33.2.
+- **Status:** not built (34.7b, the owner, 2026-10-25, after `search_v2`): a stack pays the same selection-fold price.
 
 ### 33.6 Memory of what worked
 - **Why:** MLEvolve and ML-Master reuse their own history. DCLab already records every experiment and its outcome.
@@ -221,7 +229,10 @@ package has a zero to compare with.
 
 ## خلاصهٔ فارسی
 
-**وضعیت:** فقط برنامه است؛ هیچ کدی ساخته نشده. بسته‌های ۳۳٫۱ تا ۳۳٫۹ منتظرند تا مالک جایشان را در ترتیب کار مشخص کند.
+**وضعیت (۲۸ اکتبر ۲۰۲۶):** بستهٔ ۳۳٫۱ انجام شد و یادداشت مطالعه در `MLE_BENCH_AGENTS_STUDY.md` است. بستهٔ ۳۳٫۲ در فاز ۱۰
+با نام ۳۴٫۶ ساخته شد. جستجوی بستهٔ ۳۳٫۳ با نام ۳۴٫۷a ساخته شد، ولی فقط اختیاری است، چون آزمون‌های `search_v2` و `search_v3` رد شدند.
+ترکیب مدل‌ها (stacking) در بستهٔ ۳۳٫۵ به تصمیم مالک ساخته نشد. بستهٔ ۳۳٫۴ و بسته‌های ۳۳٫۶ تا ۳۳٫۹ هنوز در برنامه‌اند و منتظر
+تصمیم مالک دربارهٔ ترتیب کارند.
 
 **درس اصلی:** عامل‌های برتر MLE-bench با **جستجو** برنده می‌شوند. صدها راه‌حل امتحان می‌کنند، کد خودشان را می‌نویسند،
 آنچه جواب داده را به خاطر می‌سپارند و بهترین‌ها را با هم ترکیب می‌کنند. مرحلهٔ مدل در DCLab امروز فقط فهرست ثابتی از
