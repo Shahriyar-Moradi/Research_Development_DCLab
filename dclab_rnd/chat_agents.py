@@ -565,6 +565,8 @@ def _follow(template: str, path: str) -> str:
         return f"Follow it with GET {path}: the walk's board, and the pause waiting on the person when it stops."
     if template.startswith("/api/intern/sessions/"):
         return f"Follow it with GET {path.removesuffix('/message')}."
+    if template == "/api/intern/sessions":  # a new session: its id is not known yet, but the list holds it
+        return "Follow it with GET /api/intern/sessions: the session for this task is there, with its id and status."
     return "Follow it with GET /api/jobs (DCLab's running work) and the project's or draft's own reads."
 
 

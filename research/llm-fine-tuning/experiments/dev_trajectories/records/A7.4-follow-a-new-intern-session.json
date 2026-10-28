@@ -1,0 +1,30 @@
+{
+ "package": "A7.4 follow a new intern session",
+ "title": "A new intern session still working over MCP points the chat to where it can follow it",
+ "date": "2026-10-29",
+ "request": "The owner: run the full gate and fix what it finds.",
+ "spec": "A7.4: an intern job started over MCP finishes, and a write longer than the call's wait goes on while the chat is told how to follow it.",
+ "plan": ["Read the failing test and the reply it got", "Point the reply at the sessions list", "Make the test follow it", "Force the long path to prove it"],
+ "decisions": [
+  {"decision": "The reply for a new intern session names GET /api/intern/sessions", "why": "the session's id is not known while the request still runs, and the jobs list does not say which session is the chat's"},
+  {"decision": "The test follows the reply instead of waiting longer", "why": "a loaded machine makes the start outlast the wait; that is the product working, so the test does what a chat would"}
+ ],
+ "change": "dclab_rnd/chat_agents.py (_follow), tests/test_chat_agents.py (the intern test follows a still-working reply).",
+ "findings": [
+  {"id": "F1", "source": "test", "severity": "flaky", "defect": "The intern-over-MCP test failed when the session outlasted the 100 s wait",
+   "scenario": "The full gate ran while a second full gate ran beside it; the intern session took longer than the call's 100 s wait.",
+   "cause": "The test expected a finished session from the call itself; the call correctly answered 202, still working.",
+   "fix": "On a still-working reply the test follows the sessions list until the session ends.",
+   "test": "tests/test_chat_agents.py test_an_intern_job_started_over_mcp_finishes, also run with the wait cut to 2 s"},
+  {"id": "F2", "source": "test", "severity": "behaviour", "defect": "A still-working new intern session sent the chat to the jobs list",
+   "scenario": "A chat starts an intern session over MCP and it runs past the wait.",
+   "cause": "The follow hint had a case for an existing session's path but not for creating one, so it fell back to GET /api/jobs, which does not name the session.",
+   "fix": "The hint for POST /api/intern/sessions names GET /api/intern/sessions, where the session is listed with its id and status.",
+   "test": "tests/test_chat_agents.py test_an_intern_job_started_over_mcp_finishes checks the hint"}
+ ],
+ "measurements": [],
+ "outcome": "The intern test passes whether the session ends within the wait or after it, and a chat is told where its new session is.",
+ "lessons": ["A test of a call with a time limit should cover the answer given after the limit, not only the quick one."],
+ "risks": ["The test may now take several minutes on a loaded machine; it gives up after 15 minutes."],
+ "commits": []
+}

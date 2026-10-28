@@ -450,6 +450,15 @@ class LongAgentsOverMcpTests(McpChatCase):
         got = self.call("dclab_call", {"method": "POST", "path": "/api/intern/sessions", "query": {"wait": True},
                                        "body": {"task": "Propose a leakage-safe solution for this project", "project_id": pid}})
         session = got.get("body") or got.get("result") or got
+        if got.get("running"):  # still working after the call's wait (a loaded machine): follow it as the reply says
+            self.assertIn("GET /api/intern/sessions", got["says"])
+            for _ in range(180):
+                listed = self.call("dclab_call", {"method": "GET", "path": "/api/intern/sessions"})
+                mine = [x for x in (listed.get("body") or listed.get("result") or []) if x.get("project_id") == pid]
+                if mine and mine[0].get("status") not in ("queued", "running"):
+                    session = mine[0]
+                    break
+                time.sleep(5)
         self.assertIn(session.get("status"), ("finished", "completed", "done", "budget_exhausted"), str(got)[:300])
         again = self.call("dclab_call", {"method": "GET", "path": f"/api/intern/sessions/{session['id']}"})
         self.assertEqual((again.get("body") or again.get("result") or again).get("status"), session.get("status"))
