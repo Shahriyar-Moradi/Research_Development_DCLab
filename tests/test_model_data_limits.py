@@ -120,6 +120,21 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(self.assertWithinLimit("home_intent"), set())
         self.assertNotIn("segment", Capture.prompts["home_intent"][0])  # no column names either
 
+    def test_home_query_sees_column_summaries_never_values(self):  # H6
+        from dclab_rnd import home_query
+        from dclab_rnd.draft import analyze
+        from dclab_rnd.draft.store import DraftStore
+        store = DraftStore(Path(tempfile.mkdtemp()))
+        d = store.create("What is the average spend per segment?")
+        report = analyze.analyze(marked_table())
+        store.update(d["id"], lambda x: x.update(analysis=report))
+        plan = '{"group_by": ["segment"], "measures": [{"name": "avg_spend", "op": "mean", "column": "spend"}]}'
+        gw = gateway({"home_query": [{"content": plan, "tool_calls": [], "usage": {}}]})
+        got, why = home_query.write_plan(gw.client("home_query", draft_id=d["id"]), "What is the average spend per segment?", store.get(d["id"]))
+        self.assertEqual((got.group_by, why), (["segment"], ""))
+        self.assertEqual(self.assertWithinLimit("home_query"), set())
+        self.assertIn("segment", Capture.prompts["home_query"][0])  # the column names, never their values
+
     def test_parse_pattern_sees_at_most_twenty_lines(self):
         from dclab_rnd.draft import structure
         path = Path(tempfile.mkdtemp()) / "odd.log"
@@ -633,7 +648,7 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(self.assertWithinLimit("memory_embedding"), set())
 
     def test_every_purpose_has_a_limit_and_a_test(self):
-        tested = {"home_agent", "home_intent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
+        tested = {"home_agent", "home_intent", "home_query", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
                   "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell",

@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.127.0 (2026-10-28)
+
+- `query` (H6 of the Home plan): questions answered from a table, never by listing its rows. `QueryPlan` v1 (filters,
+  up to three groups, a period with its grain, the measures count, count_distinct, sum, mean, median, min, max, rate and
+  percentile, a sort and a limit of at most 500) and `QueryResult` v1 (aggregates only, the groups suppressed by the row
+  floor counted, the rows scanned, the plan's hash). `validate` refuses unknown columns, free-text or identifier-like
+  groups, a numeric measure on a non-numeric column and any plan without a measure; `execute` runs a valid plan with pandas
+  and removes every group under the floor (5 by default); `exposure` names the columns a plan related.
+
 ## 0.126.0 (2026-10-28)
 
 - `exam` (36.4): a frozen exam per model type. `Exam` v1 names each item's sealed row by its key, hashes and group, with its

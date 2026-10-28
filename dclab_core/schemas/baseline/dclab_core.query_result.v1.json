@@ -1,0 +1,41 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "columns": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "plan_hash": {
+      "type": "string"
+    },
+    "rows": {
+      "items": {
+        "items": {},
+        "type": "array"
+      },
+      "type": "array"
+    },
+    "rows_scanned": {
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.query_result.v1",
+      "default": "dclab_core.query_result.v1",
+      "type": "string"
+    },
+    "suppressed_groups": {
+      "default": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "columns",
+    "rows",
+    "rows_scanned",
+    "plan_hash"
+  ],
+  "type": "object"
+}

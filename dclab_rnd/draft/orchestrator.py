@@ -878,7 +878,7 @@ def build_new_version(t: Turn, /, **_: Any) -> dict[str, Any]:
     forbidden = [{"column": c, "reason": "forbidden in the version's plan"} for c in plan.get("forbidden") or []]
     suggestion = {"target": plan["outcome"], "forbidden": forbidden, **({"prediction_moment": plan["prediction_moment"]} if plan.get("prediction_moment") else {}),
                   **({"time_column": plan["time_column"]} if plan.get("time_column") else {})}
-    new_asset = {**{k: v for k, v in asset.items() if k not in ("suggestion", "raw_sha256", "spec_file", "spec_source")},
+    new_asset = {**{k: v for k, v in asset.items() if k not in ("suggestion", "raw_sha256", "spec_file", "spec_source", "clean_sha256")},  # H6: its table is rewritten
                  "id": "a" + secrets.token_hex(4), "kind": asset.get("kind") or "version", "status": "ready", "clean_file": "clean.parquet",
                  "name": asset.get("name") or str(project.get("name") or "table"), "suggestion": suggestion,
                  "version_of": {"project": t.project_id, "asset": asset.get("id")}}

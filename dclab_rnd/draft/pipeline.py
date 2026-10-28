@@ -205,13 +205,17 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
         out = store.data_dir(draft_id) / "clean.parquet"
         _to_parquet(frame, out)
         _record(store, out)
+        from ..audit import sha256_of
+
+        clean_sha = sha256_of(out)  # H6: a question is answered only from the table this hash names
         card = data_card(store, draft_id, asset.get("name") or "table", frame)  # 19.11: the table without its rows
         final: dict[str, Any] = {}
 
         def put(d):  # one write: a reader never sees the asset ready without its analysis
             for a in d["assets"]:
                 if a["id"] == asset_id:
-                    a.update(status="ready", rows=int(len(frame)), columns=int(frame.shape[1]), category_codes=codes, clean_file="clean.parquet")
+                    a.update(status="ready", rows=int(len(frame)), columns=int(frame.shape[1]), category_codes=codes, clean_file="clean.parquet",
+                             clean_sha256=clean_sha)
                     final.update(a)
             d["cleaning_log"], d["analysis"], d["structure"], d["active_asset"] = log, report, info, asset_id
             d["data_card"] = card

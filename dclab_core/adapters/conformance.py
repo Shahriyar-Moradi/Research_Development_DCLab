@@ -84,6 +84,8 @@ CONTRACT_ADAPTERS: dict[str, str] = {
                       "missing, where labels help, 34.14; the main product shows it beside its data requests)",
     "memory_item": LIBRARY + " (one remembered line, 35.1: the main product has no memory table at the pinned commit; "
                    "adapters/main_product_memory.py is the row it would add, as_row and from_row)",
+    "query_plan": LIBRARY + " (H6: a question asked of a table, aggregates only; the main product has no such front door at the pinned commit)",
+    "query_result": LIBRARY + " (H6: the aggregates a plan returned, small groups suppressed and counted; stored with an answer, never as rows)",
     "memory_brief": LIBRARY + " (35.1: what an agent reads at a session's start, built by memory.select; never stored as a row)",
     "exam": LIBRARY + " (a model type's frozen exam, 36.4: rows named by key and hash, never their content; the main product trains "
             "no model of its own at the pinned commit, so it has no exam table)",

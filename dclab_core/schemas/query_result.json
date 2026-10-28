@@ -1,0 +1,49 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.query_result.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "columns": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Columns",
+      "type": "array"
+    },
+    "plan_hash": {
+      "title": "Plan Hash",
+      "type": "string"
+    },
+    "rows": {
+      "items": {
+        "items": {},
+        "type": "array"
+      },
+      "title": "Rows",
+      "type": "array"
+    },
+    "rows_scanned": {
+      "title": "Rows Scanned",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.query_result.v1",
+      "default": "dclab_core.query_result.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "suppressed_groups": {
+      "default": 0,
+      "title": "Suppressed Groups",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "columns",
+    "rows",
+    "rows_scanned",
+    "plan_hash"
+  ],
+  "title": "QueryResult",
+  "type": "object"
+}

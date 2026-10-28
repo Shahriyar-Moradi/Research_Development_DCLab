@@ -1191,3 +1191,13 @@ section with few groups judged item by item). Where it goes in the main product:
 its own at the pinned commit. When it does, every version sits its type's exam before it serves, and the host keeps the
 results beside each version's card. DCLab's studio is the reference: `dclab_rnd/store/exams.py` (draw, sit, accept, retire)
 and `models/tuned.py`, which serves no tuned model whose exam result is refused, retired, missing or unreadable.
+
+## Questions answered from a table (H6, dclab-core 0.127.0)
+
+The library's: `dclab_core.query`. A host that lets a person ask for numbers from their own table (an analysis, a report, a
+business question) builds a `QueryPlan` v1, from its own form or from a model shown only column summaries, and calls
+`query.validate(plan, frame)`, then `query.execute(plan, frame, floor=5)`. The result is aggregates only: one row per kept
+group, every group under the floor removed and counted in `suppressed_groups`; no plan can list rows. `query.exposure(plan)`
+names the columns the plan related; keep it beside the conversation, so a later prediction on the same table knows what the
+person already looked at. The main product has no such front door at the pinned commit: `QueryPlan` and `QueryResult` are
+library output it would store with an answer (no row maps onto them).

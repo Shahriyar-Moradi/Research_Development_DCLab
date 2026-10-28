@@ -1,0 +1,142 @@
+{
+ "package": "H6",
+ "title": "The query engine: numbers from a person's own table, never their rows",
+ "date": "2026-10-28",
+ "request": "The owner's goal: Home helps people who want data analysis, reports and business answers use DCLab's tools; H6 is the engine every such answer runs on.",
+ "spec": "Package H6 of the Home plan: a versioned query plan, a validator, a pandas executor on the checked clean table, a row floor, an exposure log, a home_query purpose that sees column summaries only, with its data-limit test.",
+ "plan": [
+  "Put the contract and its rules in dclab_core (query.py), the wiring in dclab_rnd (home_query.py).",
+  "Refuse every plan that could list rows; remove small groups and count them.",
+  "Reproduce the H1 analysis requests' answers with hand-written plans on the replica tables; review adversarially."
+ ],
+ "decisions": [
+  {
+   "decision": "An identifier is refused in every role (group, filter, measured value), only counted.",
+   "why": "The review: filtering one id out of a total and subtracting revealed that person's value."
+  },
+  {
+   "decision": "A small group's minimum, maximum or extreme percentile is withheld.",
+   "why": "In a group of five, the maximum is one person's own value; the row floor counts rows, not people."
+  },
+  {
+   "decision": "The table is read only against the hash recorded when it was prepared; a table without one is hashed on its first read.",
+   "why": "An answer must come from the table the person prepared, never a file changed since."
+  }
+ ],
+ "change": "dclab_core/query.py (QueryPlan v1, QueryResult v1, validate, execute, exposure); dclab_rnd/home_query.py (table, summaries, write_plan, run); prompts/home_query.md; purpose home_query; draft/pipeline.py records the clean table's hash; draft/orchestrator.py drops a stale one; .env.example DCLAB_ROW_FLOOR.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Whole-number amounts were taken for an identifier.",
+   "scenario": "A column of unique whole amounts was refused as a measure.",
+   "cause": "Numeric uniqueness alone made an identifier.",
+   "fix": "A number is an identifier only when its name says so.",
+   "test": "test_a_run_answers_from_the_checked_table_and_logs_what_it_related"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "An answer with no plan read as an empty plan.",
+   "scenario": "'I cannot help' became a plan with no measure.",
+   "cause": "An empty object validated.",
+   "fix": "No measure, not a plan.",
+   "test": "test_an_answer_that_is_not_a_plan_or_a_refusal"
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A committed module was overwritten by a new file of the same name.",
+   "scenario": "dclab_rnd/analysis.py (the research registry's evidence) was replaced by the new wiring.",
+   "cause": "The file's existence was not checked before writing.",
+   "fix": "Restored from git at once; the wiring is dclab_rnd/home_query.py.",
+   "test": "git diff of analysis.py is empty"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Grouping by a customer id listed named customers' totals.",
+   "scenario": "1,200 ids over 2,020 orders read as categorical; the answer named 28 customers.",
+   "cause": "Identifiers by uniqueness above 0.95 only, and the name rule for numbers only.",
+   "fix": "An id by its name or by more than half unique, for every type.",
+   "test": "test_a_persons_id_is_never_a_group_a_filter_or_a_measured_value"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Subtracting two answers revealed one person's value.",
+   "scenario": "A total, and the same total filtered 'id ne E7', gave E7's exact salary.",
+   "cause": "Identifiers were refused only as groups.",
+   "fix": "Refused as filters, rate conditions and measured values too.",
+   "test": "test_a_persons_id_is_never_a_group_a_filter_or_a_measured_value"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An inclusive end date dropped most of its last day.",
+   "scenario": "Hourly orders, end 2026-03-31: only the midnight row of that day was kept.",
+   "cause": "The comparison was with the day's first instant.",
+   "fix": "Up to the next day's start.",
+   "test": "test_d_a1_revenue_per_region_last_quarter_only_paid"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Malformed plans crashed or answered wrongly.",
+   "scenario": "A period on a region, 'amount gt abc', a one-value between, 'last quarter' as a date, a time-zoned column.",
+   "cause": "The validator did not check types, dates or the period column.",
+   "fix": "Each refused with its reason; any failure the validator missed becomes a refusal, never a crash.",
+   "test": "test_malformed_plans_are_refused_never_crash"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A version draft carried a stale table hash and would be refused for ever.",
+   "scenario": "The version path copied the old hash, then rewrote the table.",
+   "cause": "The copied keys kept clean_sha256.",
+   "fix": "Dropped there; a table without a hash is hashed on its first read.",
+   "test": "test_a_table_without_a_hash_gets_one_on_first_read_and_is_checked_after"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A small group's maximum is one person's value.",
+   "scenario": "A group of five with max(salary).",
+   "cause": "The floor counts rows, not values.",
+   "fix": "Extremes withheld on groups under twice the floor.",
+   "test": "test_the_extremes_of_a_small_group_are_withheld"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The H1 analysis requests by hand-written plans on the replica tables",
+   "gate": "the plan's done-when: each expected answer reproduced; no plan lists rows",
+   "fixed_before_run": true,
+   "result": "Five requests reproduced exactly against pandas (revenue per region in a quarter, average order value by channel, orders per month, average spend by plan, share of customers above a ticket count per city); the missing-column request refused",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "hand-written plans: the model writing plans is measured with the answers package",
+    "a difference of two allowed answers on ordinary categories can still narrow a small group; the floor is the guard"
+   ]
+  }
+ ],
+ "outcome": "DCLab can answer a person's numeric question from their own checked table, refusing any plan that could list rows or single out a person.",
+ "lessons": [
+  "A row floor counts rows, not people: identifiers and extremes need their own rules.",
+  "Check a file name is free before writing a new module."
+ ],
+ "risks": [
+  "Differencing on ordinary categories can still narrow a group above the floor; H7 should log and limit repeated near-identical plans."
+ ],
+ "commits": []
+}

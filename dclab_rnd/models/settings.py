@@ -44,6 +44,10 @@ class Purpose:
 PURPOSES: dict[str, Purpose] = {
     "home_intent": Purpose("standard", 60, "H2: the person's request and their replies to Home's questions, to read which kind of help they need; "
                                            "never data, column names or cell values", cell_values=0),
+    "home_query": Purpose("standard", 60, "H6: the person's question, what Home understood (the brief) and each column's name, kind, "
+                                          "missing rate and number of distinct values; never a row or a cell value: it writes a query plan, "
+                                          "code checks it and runs it, and groups under the row floor (DCLAB_ROW_FLOOR, default 5) are never shown",
+                          cell_values=0, keeps_text=True),
     "home_agent": Purpose("standard", 90, "the problem sentence, the user's answers, column summaries (name, kind, missing rate, unique count) "
                                           "and descriptive findings; never rows or cell values", stream=True, cell_values=0, keeps_text=True),
     "memory_embedding": Purpose("cheap", 60, "35.5: the text of remembered lines (a project's notes, facts, accepted lessons, a person's "

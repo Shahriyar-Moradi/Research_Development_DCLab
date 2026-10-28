@@ -1,0 +1,282 @@
+{
+  "$defs": {
+    "Filter": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "maxLength": 200,
+          "title": "Column",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "eq",
+            "ne",
+            "in",
+            "not_in",
+            "gt",
+            "ge",
+            "lt",
+            "le",
+            "between",
+            "is_null",
+            "not_null"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "column",
+        "op"
+      ],
+      "title": "Filter",
+      "type": "object"
+    },
+    "Measure": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Column"
+        },
+        "name": {
+          "maxLength": 80,
+          "title": "Name",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "count",
+            "count_distinct",
+            "sum",
+            "mean",
+            "median",
+            "min",
+            "max",
+            "rate",
+            "percentile"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "q": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Q"
+        },
+        "where": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Filter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "op"
+      ],
+      "title": "Measure",
+      "type": "object"
+    },
+    "Period": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "maxLength": 200,
+          "title": "Column",
+          "type": "string"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "grain": {
+          "default": "month",
+          "enum": [
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year"
+          ],
+          "title": "Grain",
+          "type": "string"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        }
+      },
+      "required": [
+        "column"
+      ],
+      "title": "Period",
+      "type": "object"
+    },
+    "Sort": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "maxLength": 200,
+          "title": "By",
+          "type": "string"
+        },
+        "desc": {
+          "default": true,
+          "title": "Desc",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "by"
+      ],
+      "title": "Sort",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.query_plan.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "filters": {
+      "items": {
+        "$ref": "#/$defs/Filter"
+      },
+      "title": "Filters",
+      "type": "array"
+    },
+    "group_by": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Group By",
+      "type": "array"
+    },
+    "limit": {
+      "default": 50,
+      "minimum": 1,
+      "title": "Limit",
+      "type": "integer"
+    },
+    "measures": {
+      "items": {
+        "$ref": "#/$defs/Measure"
+      },
+      "title": "Measures",
+      "type": "array"
+    },
+    "period": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Period"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.query_plan.v1",
+      "default": "dclab_core.query_plan.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sort": {
+      "items": {
+        "$ref": "#/$defs/Sort"
+      },
+      "title": "Sort",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "QueryPlan",
+  "type": "object"
+}
