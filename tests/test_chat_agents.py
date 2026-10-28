@@ -419,6 +419,60 @@ class WorkspaceTablesOverMcpTests(McpChatCase):
         self.assertIn("error", self.call("compute", {"table": "nope", "op": "count"}))
 
 
+class LongAgentsOverMcpTests(McpChatCase):
+    """A7.4: an intern job started over MCP finishes; a team walk started over MCP pauses for the person, resumes on the
+    person's own answer (never the chat's), and is followed over MCP."""
+
+    def project(self):
+        self.need_sample("bank_marketing")
+        pid = self.call("create_project", {"name": "Long agents", "goal": "Predict which clients subscribe to the term deposit"})["project_id"]
+        self.call("use_sample", {"project_id": pid, "key": "bank_marketing"})
+        return pid
+
+    def person(self):
+        return {"x-dclab-token": self.services.csrf}  # the page's own request: the person, never the chat
+
+    def saved(self, pid):
+        """The person saves the proposed solution on the page (the team runs from a saved solution, the person's)."""
+        proposal = self.client.post(f"/api/projects/{pid}/solution/proposal", json={"target": "target"}, headers=self.person())
+        self.assertEqual(proposal.status_code, 200, proposal.text[:300])
+        p = proposal.json()
+        solution = {"target": "target", "task": p.get("task") or "binary", "positive_label": str(p.get("positive_label") or "1"),
+                    "prediction_moment": "Before the campaign call, from what the bank knows about the client",
+                    "forbidden": [{"column": f["column"], "reason": f.get("reason") or "known only after the call"} for f in p.get("forbidden") or []],
+                    "identifiers": p.get("identifiers") or [], "time_column": None, "group_column": None, "text_columns": [],
+                    "metric": p.get("metric"), "notes": ""}
+        saved = self.client.put(f"/api/projects/{pid}/solution", json=solution, headers=self.person())
+        self.assertEqual(saved.status_code, 200, saved.text[:300])
+
+    def test_an_intern_job_started_over_mcp_finishes(self):
+        pid = self.project()
+        got = self.call("dclab_call", {"method": "POST", "path": "/api/intern/sessions", "query": {"wait": True},
+                                       "body": {"task": "Propose a leakage-safe solution for this project", "project_id": pid}})
+        session = got.get("body") or got.get("result") or got
+        self.assertIn(session.get("status"), ("finished", "completed", "done", "budget_exhausted"), str(got)[:300])
+        again = self.call("dclab_call", {"method": "GET", "path": f"/api/intern/sessions/{session['id']}"})
+        self.assertEqual((again.get("body") or again.get("result") or again).get("status"), session.get("status"))
+
+    def test_a_team_walk_started_over_mcp_pauses_and_resumes_on_the_persons_answer(self):
+        pid = self.project()
+        self.saved(pid)
+        started = self.call("dclab_call", {"method": "POST", "path": f"/api/projects/{pid}/team", "body": {}})
+        first = started.get("body") or started.get("result") or started
+        waiting = first.get("asks") if first.get("status") == "paused" else None
+        self.assertTrue(waiting, f"the walk did not pause for the person: {str(first)[:300]}")
+        refused = self.call("dclab_call", {"method": "POST", "path": f"/api/projects/{pid}/team", "body": {"approve": True}})
+        self.assertIn("person", json.dumps(refused))  # the chat never answers or approves for the person
+        answer = {"approve": True} if waiting.get("kind") == "approval" else {"answer": "yes"}
+        resumed = self.client.post(f"/api/projects/{pid}/team", json=answer, headers=self.person())
+        self.assertEqual(resumed.status_code, 200, resumed.text[:300])
+        after = resumed.json()
+        self.assertNotEqual((after.get("asks") or {}).get("key"), waiting.get("key"))  # past that pause: done, or the next one
+        seen = self.call("dclab_call", {"method": "GET", "path": f"/api/projects/{pid}/team"})
+        view = seen.get("body") or seen.get("result") or seen
+        self.assertNotEqual(((view.get("waiting") or {}) if isinstance(view.get("waiting"), dict) else {}).get("key"), waiting.get("key"))
+
+
 class ChatConversationsKeptApartTests(unittest.TestCase):
     """A conversation an external chat started is not a Home conversation: its "person" turns are that chat model's."""
 

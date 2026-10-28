@@ -1,0 +1,25 @@
+{
+ "package": "A7.4 long agents over MCP",
+ "title": "An intern job and a team walk started over MCP, tested end to end",
+ "date": "2026-10-28",
+ "request": "The owner: keep going by priority until tonight's full gate; A7.4 left two tests open.",
+ "spec": "AGENTIC_FOUNDATION_PLAN.md A7.4: a test that an intern job started over MCP finishes and that a team walk pauses and resumes over MCP.",
+ "plan": ["Read the bridge tests and the intern and team routes", "Write both tests on a fresh workspace", "Fix what the runs show"],
+ "decisions": [
+  {"decision": "The person saves the solution and approves on the page's own route", "why": "the bridge refuses a chat answering or approving for the person; the test proves that refusal too"}
+ ],
+ "change": "tests/test_chat_agents.py (LongAgentsOverMcpTests), the A7.4 plan status.",
+ "findings": [
+  {"id": "T1", "source": "test", "severity": "behaviour", "defect": "A query string in the bridge's path is refused",
+   "scenario": "the test put wait=true in the path", "cause": "the bridge takes the query apart, by design",
+   "fix": "the test passes it as the call's query", "test": "test_an_intern_job_started_over_mcp_finishes"},
+  {"id": "T2", "source": "test", "severity": "behaviour", "defect": "The team does not start without a saved solution",
+   "scenario": "the walk stopped at once", "cause": "the team runs a project from its saved solution, the person's",
+   "fix": "the test saves the proposal on the page first", "test": "test_a_team_walk_started_over_mcp_pauses_and_resumes_on_the_persons_answer"}
+ ],
+ "measurements": [],
+ "outcome": "Two tests prove the long agents work through the chat bridge: an intern job finishes, and a team walk pauses for the person and resumes only on the person's answer.",
+ "lessons": ["Test the refusal beside the path that works: a chat must never approve for the person."],
+ "risks": ["Live runs of the teams and the twin through a chat are still open (A7.5)."],
+ "commits": []
+}
