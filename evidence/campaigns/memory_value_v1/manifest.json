@@ -1,0 +1,128 @@
+{
+  "campaign": "memory_value_v1",
+  "package": "35.8",
+  "written_at": "2026-10-28",
+  "question": "Does the intern's second session on a project judge fewer columns against what an earlier session settled when it reads memory?",
+  "repeats": 3,
+  "estimate_eur_per_session": 0.2,
+  "workspace_line": "In our customer tables, age, tenure_months, plan, support_calls and monthly_spend are recorded before the monthly snapshot: keep them as inputs.",
+  "workspace_columns": [
+    "age",
+    "tenure_months",
+    "plan",
+    "support_calls",
+    "monthly_spend"
+  ],
+  "preference_line": "Answer in short sentences.",
+  "know_how_line": "Check the row count after every join.",
+  "scenarios": [
+    {
+      "case": "AE-03",
+      "columns": [
+        "x_adj7"
+      ],
+      "expect": "out",
+      "agent_line": "x_adj7 looks like an ordinary input; it was kept.",
+      "correction": "x_adj7 is adjusted seven days after the outcome is known: keep it out of the model.",
+      "role": "treated"
+    },
+    {
+      "case": "AE-06",
+      "columns": [
+        "customer_id"
+      ],
+      "expect": "out",
+      "agent_line": "customer_id varies a lot and helped the score; it was kept.",
+      "correction": "customer_id is an identifier, one per customer: keep it out of the model.",
+      "role": "treated"
+    },
+    {
+      "case": "AE-09",
+      "columns": [
+        "exit_survey_score"
+      ],
+      "expect": "out",
+      "agent_line": "exit_survey_score is a survey answer; it was kept as an input.",
+      "correction": "exit_survey_score is written only after a customer leaves, so its gaps mark the stayers: keep it out.",
+      "role": "treated"
+    },
+    {
+      "case": "AE-13",
+      "role": "treated"
+    },
+    {
+      "case": "AE-14",
+      "columns": [
+        "country",
+        "schema_version"
+      ],
+      "expect": "keep",
+      "agent_line": "country and schema_version looked suspicious and were kept out.",
+      "correction": "country and schema_version are known at signup; little signal is no reason to forbid them: keep them.",
+      "role": "treated"
+    },
+    {
+      "case": "AE-15",
+      "columns": [
+        "declared_income"
+      ],
+      "expect": "keep",
+      "agent_line": "declared_income is often missing and was kept out as a leak suspect.",
+      "correction": "declared_income is asked at signup, before the snapshot; its gaps are people who declined: keep it.",
+      "role": "treated"
+    },
+    {
+      "case": "AE-16",
+      "columns": [
+        "post_signup_survey"
+      ],
+      "expect": "keep",
+      "agent_line": "post_signup_survey was kept out: its name says it comes after.",
+      "correction": "post_signup_survey is answered in the first week after signup, long before the snapshot: keep it.",
+      "role": "treated"
+    },
+    {
+      "case": "AE-17",
+      "columns": [
+        "contract_months_left"
+      ],
+      "expect": "keep",
+      "agent_line": "contract_months_left predicts too well and was kept out as a leak suspect.",
+      "correction": "contract_months_left is read from the contract at the snapshot; it is strong because it is honest: keep it.",
+      "role": "treated"
+    },
+    {
+      "case": "AE-01",
+      "role": "control"
+    },
+    {
+      "case": "AE-04",
+      "role": "control"
+    },
+    {
+      "case": "AE-11",
+      "role": "control"
+    },
+    {
+      "case": "AE-12",
+      "role": "control"
+    }
+  ],
+  "measure": "per session, against_memory: a column memory says to keep is lost (kept out, or made the time or group column), a column memory says to keep out is used, or no solution was saved (doing nothing never counts as obeying memory); plus the judgment suite's leak_caught and false_alarm, whether a solution was saved, tokens and euros",
+  "pairing": "the same case and repeat in both arms, the arms' order alternating; memory off reads no stored line, the project's own notes still count",
+  "gate": {
+    "id": "memory_value_gate_v2",
+    "max_attempts": 3,
+    "min_pair_share": 0.9,
+    "min_pairs_per_case": 2,
+    "against_mean_at_most": -0.15,
+    "sign_flip_p_below": 0.05,
+    "control_loss_at_most": 0.1,
+    "input_tokens_ratio_at_most": 1.25,
+    "draws": 2000,
+    "seed": 35,
+    "rule": "memory helps only if every planned session has run (a session not scored is run again, at most 3 attempts; a session not scored after 3 drops its pair, and a verdict needs at least 90% of the pairs of each role and 2 pairs of every treated case) and all hold: (1) on the treated cases, the mean paired difference on minus off in against_memory is at most -0.15 and the exact one-sided sign-flip test over the 8 case means gives p < 0.05 (at least 5 cases better, none worse, is needed); (2) on the control cases, leak_caught on is not more than 0.10 below off; (3) on the control cases, false_alarm on is not more than 0.10 above off; (4) over all cases, the share of sessions that saved a solution on is not more than 0.10 below off; (5) over all cases, mean input tokens on are at most 1.25 times off. The bootstrap interval over cases (2,000 draws, seed 35) and Wilson intervals of every share are reported, not judged. Otherwise memory does not help on dev: the result is reported as it is and the intern's brief is cut back to the project's notes. A sealed read waits for the owner and needs cases no run has seen.",
+    "limit": "8 treated and 4 control cases of the judgment suite, 3 repeats an arm; the earlier session is scripted, so this measures whether the intern uses what memory holds, not whether people's earlier sessions leave good lines; 12 control sessions an arm: 0.10 is about one session"
+  },
+  "roles": "treated: memory holds a person's correction or the workspace's columns about this case's trap, and the primary measure is read on them; control: memory holds only the workspace line and the distractors, nothing about the case's trap, and the guards are read on them"
+}

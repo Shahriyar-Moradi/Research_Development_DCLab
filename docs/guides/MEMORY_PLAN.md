@@ -274,6 +274,22 @@ store keeps everything (the owner's rule of 2026-10-20), and only the owner's au
 - **Done when:** the result is stored with its intervals. If memory does not help, the brief is cut back to project
   notes and the result is reported as such.
 
+- **Status (2026-10-28): dev run done, the gate not passed; the cut-back waits for the owner.**
+  `python -m dclab_rnd.agent_eval.memory_value` (gate `memory_value_gate_v2` in
+  `evidence/campaigns/memory_value_v1/manifest.json`, fixed before the first session), result `MV-001_dev.json`.
+  - The setup is narrower than the plan: the intern's second session on 8 treated and 4 control cases of the judgment
+    suite, with the first session scripted through the memory write paths. Questions asked again are not measured: the
+    intern asks none, and Home does not read memory yet.
+  - The run: Claude Sonnet 5.5, 72 sessions, €3.45, in chunks of €1 or less.
+  - Without memory, the intern repeated a decision the person had corrected in 8 of 24 treated sessions; with memory, in
+    0 of 24. Nothing was worse on the controls, and memory used 19% fewer input tokens.
+  - Verdict `memory_does_not_help`. The mistakes fell on only 3 of the 8 cases (AE-14, AE-16, AE-17). The exact sign-flip
+    test over 8 cases cannot go below p = 0.125 with 3 cases moving: the treated cases were chosen from another model's
+    mistakes, so the gate could not be met.
+  - The gate's rule would cut the intern's brief back to project notes. That would turn off a measured improvement on a
+    test that could not pass, so it is left to the owner. A v2 would draw its treated cases from this model's own mistakes
+    in a pilot, size the test before freezing it, and be a new pre-registered run.
+
 ## Decisions the owner makes
 
 | Decision | Proposal |

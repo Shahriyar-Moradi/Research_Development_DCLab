@@ -1,0 +1,170 @@
+{
+ "package": "35.8",
+ "title": "Does memory help? The intern's second session, memory on against off",
+ "date": "2026-10-28",
+ "request": "The owner: finish the memory plan; live Claude checks for the dev comparison with repeats, each run capped at €1, up to $25; the sealed read waits for the owner.",
+ "spec": "MEMORY_PLAN.md 35.8: paired sessions memory on against off, at least 3 repeats, measured repeats against a correction, tokens, cost; the gate fixed before the run; stored with intervals.",
+ "plan": [
+  "Script the first session through the memory write paths.",
+  "Run the intern live in both arms, paired and alternating.",
+  "Review the design before spending.",
+  "Run in €1 chunks, summarize once, report."
+ ],
+ "decisions": [
+  {
+   "decision": "Measure the intern, not Home",
+   "why": "only the intern reads the memory brief today"
+  },
+  {
+   "decision": "Script the first session through the product's write paths",
+   "why": "the question is whether the next session uses what memory holds; a live first session would add cost and noise without answering it"
+  },
+  {
+   "decision": "Review the design before any paid session and freeze the gate after the fixes",
+   "why": "a gate changed after the first run is no gate"
+  },
+  {
+   "decision": "Do not cut the brief back on my own after the gate failed",
+   "why": "the gate failed for lack of power (3 movable cases), not for harm; turning off a measured improvement, or overriding a pre-registered rule, is the owner's call"
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/memory_value.py, evidence/campaigns/memory_value_v1 (manifest, MV-001), tests/test_memory_value.py, MEMORY_PLAN.md status.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "defect": "One failed session blocked the verdict forever",
+   "scenario": "an overloaded reply saved as failed was never pending again; summarize stayed incomplete",
+   "cause": "only rows marked cut by a cap were rerun",
+   "fix": "every unscored session reruns, at most 3 attempts; a pair dropped after that; one pending rule everywhere",
+   "test": "test_a_failed_session_runs_again_and_its_first_attempt_is_kept",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "defect": "The guards re-measured the columns the brief spelled out",
+   "scenario": "memory naming exactly the scored columns made against_memory = false_alarm or a missed leak; harm elsewhere was invisible",
+   "cause": "no case where memory says nothing about the trap",
+   "fix": "4 control cases; the guards read only on them",
+   "test": "test_memory_that_breaks_a_control_is_refused",
+   "severity": "gap"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "defect": "Doing nothing counted as obeying memory",
+   "scenario": "a session that never saved a solution had no lost column on keep cases",
+   "cause": "against read an empty solution as keeping everything",
+   "fix": "no saved solution is against every line; solution_saved reported and guarded",
+   "test": "test_against_reads_lost_and_used_columns",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "defect": "A percentile bootstrap over 8 cases passed too easily",
+   "scenario": "3 cases better and 5 unchanged gave an interval below 0",
+   "cause": "few clusters",
+   "fix": "an exact sign-flip test over the case means, p < 0.05; the bootstrap reported only",
+   "test": "test_four_cases_better_is_not_enough",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "defect": "A rerun overwrote the first attempt, and a session dearer than the cap would rerun forever",
+   "scenario": "the whole first record, thinking included, lost; €1 spent per invocation for nothing",
+   "cause": "the same file name; no check of the cap given",
+   "fix": "earlier attempts kept as <id>.attemptN.json; a session cut with the whole cap stops the run with 'raise --cap-eur'",
+   "test": "test_a_failed_session_runs_again_and_its_first_attempt_is_kept",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "defect": "Resuming did not check the setup, and thinking could be off",
+   "scenario": "a model changed between chunks would mix two models in one verdict",
+   "cause": "run.json recorded the model only",
+   "fix": "the model, prompts, tool schemas, code hashes and the thinking setting kept and compared; thinking off refused",
+   "test": "test_a_changed_setup_or_thinking_off_is_refused",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "defect": "Shares had no intervals and summarizing twice stored two results",
+   "scenario": "a second summarize wrote MV-002 for the same run",
+   "cause": "no check by run",
+   "fix": "Wilson intervals on every share; one result per run",
+   "test": "test_a_run_is_stored_once",
+   "severity": "gap"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "defect": "The on-arm sessions show the suite's answers and could reach training",
+   "scenario": "the archive copies live tests into the training records",
+   "cause": "no mark on the sessions",
+   "fix": "every session and the run tagged eval_only",
+   "test": "test_both_arms_run_resume_and_keep_each_session_whole",
+   "severity": "leakage"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "defect": "The scripted model listed a column twice",
+   "scenario": "the proposal already forbade post_signup_survey",
+   "cause": "the test model appended it again",
+   "fix": "append only when missing",
+   "test": "test_both_arms_run_resume_and_keep_each_session_whole",
+   "severity": "latent"
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "defect": "The gate could not be met",
+   "scenario": "only 3 of 8 treated cases ever went wrong for Claude; the smallest sign-flip p with 3 moving cases is 0.125",
+   "cause": "treated cases were chosen from another model's (gpt-6-luna) mistakes",
+   "fix": "reported as it is; a v2 draws its cases from this model's own pilot mistakes and sizes the test before freezing",
+   "test": "MV-001_dev.json",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "against_memory on treated cases, on minus off",
+   "gate": "mean <= -0.15 and exact sign-flip p < 0.05 over 8 cases",
+   "result": "mean -0.333 (8 of 24 off sessions against a correction, 0 of 24 on); sign-flip p 0.125; bootstrap [-0.625, -0.083]",
+   "verdict": "fail",
+   "against_gate": "-0.333 <= -0.15 holds; p 0.125 is not below 0.05",
+   "cost_eur": 2.25,
+   "limits": [
+    "few cases moved at all, so the sign-flip test could not reach its bound",
+    "the first session is scripted"
+   ]
+  },
+  {
+   "name": "controls and cost guards",
+   "gate": "control leak_caught and false_alarm within 0.10; solutions saved within 0.10; input tokens on at most 1.25 times off",
+   "result": "controls 1.0 and 0.0 in both arms; solutions saved 1.0 in both; input tokens on 0.81 of off",
+   "verdict": "pass",
+   "against_gate": "0.0 within 0.10; 0.81 <= 1.25",
+   "cost_eur": 1.2,
+   "limits": [
+    "the control arm is small: one session moves a share by about a tenth"
+   ]
+  }
+ ],
+ "outcome": "Memory removed every repeated correction the intern made (8 of 24 sessions to 0 of 24), harmed nothing and cost less, but the pre-fixed gate was not met because only 3 cases could move; the brief's cut-back is left to the owner.",
+ "lessons": [
+  "Choose the treated cases from the measured model's own mistakes, or the effect has nowhere to show.",
+  "Before freezing a cluster test, work out the smallest p it can reach: with k movable cases a sign-flip test cannot go below 1/2^k.",
+  "Have the design reviewed before the first paid session: six of its flaws would each have spoiled the run."
+ ],
+ "risks": [
+  "The verdict is about 3 kinds of trap and a scripted first session.",
+  "Home does not read memory yet."
+ ],
+ "commits": []
+}

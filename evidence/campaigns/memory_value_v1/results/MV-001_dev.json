@@ -1,0 +1,345 @@
+{
+ "experiment_id": "MV-001",
+ "campaign_id": "memory_value_v1",
+ "kind": "memory_value_dev",
+ "status": "completed",
+ "completed_at": "2026-10-28T01:25:18+00:00",
+ "split": "dev",
+ "model": "claude-sonnet-5-5",
+ "run": "MV-20261028T004530",
+ "setup": {
+  "manifest_sha256": "36a9ca4d7ffedbc81c92dd75c45d6f299f28666cf663cbbef4f6d84db402232f",
+  "thinking": "adaptive",
+  "prompts": {
+   "prompt:intern": "940712db9ba17a4e",
+   "prompt:intern_memory": "0e8a3dba8fab5dbd",
+   "prompt:memory_brief": "8b47ae3bd71eea8b",
+   "tools:project": "69b20bb1c6023856",
+   "tools:session": "efe01ef63a00e175",
+   "validator:graph": "1c08971c7f828f3e"
+  },
+  "code": {
+   "dclab_rnd/intern/loop.py": "8bca1ede057909a8",
+   "dclab_rnd/memory/reading.py": "92578238765c0842",
+   "dclab_rnd/memory/writing.py": "aa7b9815fe04165d",
+   "dclab_rnd/agent_eval/run.py": "12360c628634db82"
+  }
+ },
+ "question": "Does the intern's second session on a project judge fewer columns against what an earlier session settled when it reads memory?",
+ "measurement": {
+  "planned_sessions": 72,
+  "scored_sessions": 72,
+  "pairs": {
+   "treated": 24,
+   "control": 12
+  },
+  "planned_pairs": {
+   "treated": 24,
+   "control": 12
+  },
+  "not_scored": [],
+  "left": 0,
+  "arms": {
+   "treated": {
+    "on": {
+     "sessions": 24,
+     "against_memory": {
+      "share": 0.0,
+      "ci95": [
+       0.0,
+       0.138
+      ],
+      "n": 24
+     },
+     "leak_caught": {
+      "share": 1.0,
+      "ci95": [
+       0.7008,
+       1.0
+      ],
+      "n": 9
+     },
+     "false_alarm": {
+      "share": 0.0,
+      "ci95": [
+       0.0,
+       0.138
+      ],
+      "n": 24
+     },
+     "solution_saved": {
+      "share": 1.0,
+      "ci95": [
+       0.862,
+       1.0
+      ],
+      "n": 24
+     },
+     "input_tokens": 68054,
+     "output_tokens": 1847,
+     "eur": 1.0676,
+     "memory_cited": 68
+    },
+    "off": {
+     "sessions": 24,
+     "against_memory": {
+      "share": 0.3333,
+      "ci95": [
+       0.1797,
+       0.5329
+      ],
+      "n": 24
+     },
+     "leak_caught": {
+      "share": 1.0,
+      "ci95": [
+       0.7008,
+       1.0
+      ],
+      "n": 9
+     },
+     "false_alarm": {
+      "share": 0.3333,
+      "ci95": [
+       0.1797,
+       0.5329
+      ],
+      "n": 24
+     },
+     "solution_saved": {
+      "share": 1.0,
+      "ci95": [
+       0.862,
+       1.0
+      ],
+      "n": 24
+     },
+     "input_tokens": 86466,
+     "output_tokens": 2194,
+     "eur": 1.1822,
+     "memory_cited": 0
+    }
+   },
+   "control": {
+    "on": {
+     "sessions": 12,
+     "against_memory": {
+      "share": 0.0,
+      "ci95": [
+       0.0,
+       0.2425
+      ],
+      "n": 12
+     },
+     "leak_caught": {
+      "share": 1.0,
+      "ci95": [
+       0.7575,
+       1.0
+      ],
+      "n": 12
+     },
+     "false_alarm": {
+      "share": 0.0,
+      "ci95": [
+       0.0,
+       0.2425
+      ],
+      "n": 12
+     },
+     "solution_saved": {
+      "share": 1.0,
+      "ci95": [
+       0.7575,
+       1.0
+      ],
+      "n": 12
+     },
+     "input_tokens": 76755,
+     "output_tokens": 1869,
+     "eur": 0.5501,
+     "memory_cited": 18
+    },
+    "off": {
+     "sessions": 12,
+     "against_memory": {
+      "share": 0.0,
+      "ci95": [
+       0.0,
+       0.2425
+      ],
+      "n": 12
+     },
+     "leak_caught": {
+      "share": 1.0,
+      "ci95": [
+       0.7575,
+       1.0
+      ],
+      "n": 12
+     },
+     "false_alarm": {
+      "share": 0.0,
+      "ci95": [
+       0.0,
+       0.2425
+      ],
+      "n": 12
+     },
+     "solution_saved": {
+      "share": 1.0,
+      "ci95": [
+       0.7575,
+       1.0
+      ],
+      "n": 12
+     },
+     "input_tokens": 90600,
+     "output_tokens": 2212,
+     "eur": 0.604,
+     "memory_cited": 0
+    }
+   },
+   "all": {
+    "on": {
+     "sessions": 36,
+     "against_memory": {
+      "share": 0.0,
+      "ci95": [
+       0.0,
+       0.0964
+      ],
+      "n": 36
+     },
+     "leak_caught": {
+      "share": 1.0,
+      "ci95": [
+       0.8454,
+       1.0
+      ],
+      "n": 21
+     },
+     "false_alarm": {
+      "share": 0.0,
+      "ci95": [
+       0.0,
+       0.0964
+      ],
+      "n": 36
+     },
+     "solution_saved": {
+      "share": 1.0,
+      "ci95": [
+       0.9036,
+       1.0
+      ],
+      "n": 36
+     },
+     "input_tokens": 70954,
+     "output_tokens": 1854,
+     "eur": 1.6178,
+     "memory_cited": 86
+    },
+    "off": {
+     "sessions": 36,
+     "against_memory": {
+      "share": 0.2222,
+      "ci95": [
+       0.1172,
+       0.3809
+      ],
+      "n": 36
+     },
+     "leak_caught": {
+      "share": 1.0,
+      "ci95": [
+       0.8454,
+       1.0
+      ],
+      "n": 21
+     },
+     "false_alarm": {
+      "share": 0.2222,
+      "ci95": [
+       0.1172,
+       0.3809
+      ],
+      "n": 36
+     },
+     "solution_saved": {
+      "share": 1.0,
+      "ci95": [
+       0.9036,
+       1.0
+      ],
+      "n": 36
+     },
+     "input_tokens": 87844,
+     "output_tokens": 2200,
+     "eur": 1.7862,
+     "memory_cited": 0
+    }
+   }
+  },
+  "by_case": {
+   "AE-03": {
+    "pairs": 3,
+    "against_on_minus_off": 0.0
+   },
+   "AE-06": {
+    "pairs": 3,
+    "against_on_minus_off": 0.0
+   },
+   "AE-09": {
+    "pairs": 3,
+    "against_on_minus_off": 0.0
+   },
+   "AE-13": {
+    "pairs": 3,
+    "against_on_minus_off": 0.0
+   },
+   "AE-14": {
+    "pairs": 3,
+    "against_on_minus_off": -0.667
+   },
+   "AE-15": {
+    "pairs": 3,
+    "against_on_minus_off": 0.0
+   },
+   "AE-16": {
+    "pairs": 3,
+    "against_on_minus_off": -1.0
+   },
+   "AE-17": {
+    "pairs": 3,
+    "against_on_minus_off": -1.0
+   }
+  },
+  "against_on_minus_off": {
+   "mean": -0.3333,
+   "sign_flip_p": 0.125,
+   "bootstrap_ci95": [
+    -0.625,
+    -0.0833
+   ],
+   "pairs": 24,
+   "cases": 8
+  },
+  "checks": {
+   "fewer_decisions_against_memory": false,
+   "controls_keep_their_traps": true,
+   "controls_no_new_false_alarms": true,
+   "solutions_still_saved": true,
+   "tokens_bounded": true
+  },
+  "verdict": "memory_does_not_help"
+ },
+ "sessions_kept": "agent_runs/live_tests/memory_value_v1/MV-20261028T004530/",
+ "training_use": "every session is kept whole (plan, steps with their thinking, messages, report); eval_only: the memory brief of the 'on' sessions shows the judgment suite's answers; never train a model that is judged on agent_eval cases with these sessions",
+ "limitations": [
+  "Evidence about this model and this brief on invented tables whose earlier session is scripted, not about memory in general or about any model's readiness for production.",
+  "the earlier session is scripted through the write paths; a real person's earlier session can say less, or say it worse",
+  "the dev cases are the judgment suite's; the sealed read waits for the owner and needs cases no run has seen",
+  "questions asked again are not measured: the intern asks none in this suite, and Home does not read memory yet"
+ ]
+}
