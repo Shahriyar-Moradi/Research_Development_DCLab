@@ -1219,3 +1219,12 @@ one column) on the person's own table, after leaving out identifiers and persona
 per segment the change and its volume, mix and rate parts, small segments pooled under the row floor. Say its `caveat`
 with any answer built on it: the data shows association, not cause. The main product has no such front door at the pinned
 commit: `ChangeResult` is library output it would store with a brief (no row maps onto it).
+
+## KPIs and dashboards (H10, dclab-core 0.131.0)
+
+The library's: `dclab_core.dashboard`. A host that offers dashboards on a person's own table keeps each tile as a `Kpi` (a
+`QueryPlan` with a version: a changed definition is a new version) and calls `dashboard.refresh(board, frame, data_version=
+the table's hash, at=now)` whenever the table changes or the person asks; every number comes from `query.execute` with its
+row floor, and each run is recorded on the board. Log what each tile related (`query.exposure`) beside the conversation, as
+an answer's, so a later prediction on the same table knows what was already looked at. The main product has no such front
+door at the pinned commit: `Dashboard` is library output it would store beside a dataset.

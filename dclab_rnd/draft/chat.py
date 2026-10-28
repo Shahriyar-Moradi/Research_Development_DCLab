@@ -637,7 +637,8 @@ class HomeAgent:
                 # a destination reached earlier stays reached when the person comes back to it (the review of H8)
                 reached = (door["kind"] == "analysis" and d.get("answers")) or (door["kind"] == "ml_project" and d.get("project_id")) \
                     or (door["kind"] == "dataset" and (d.get("recipe") or {}).get("done")) \
-                    or (door["kind"] == "decision_brief" and (d.get("business") or {}).get("result"))
+                    or (door["kind"] == "decision_brief" and (d.get("business") or {}).get("result")) \
+                    or (door["kind"] == "dashboard" and (d.get("dashboard") or {}).get("board"))
                 d["exit"] = {**door, "at": now(), **({"record": record} if record else {}),
                              **({"status": "reached"} if reached else {})}
             d["route_suggestion"] = idea
@@ -700,8 +701,9 @@ class HomeAgent:
         for field, absent in missing.items():
             self.say(draft_id, f"Your data has no column named {', '.join(f'`{a}`' for a in absent)}, so I did not use it for the "
                                f"{field.replace('_', ' ')}. Which column did you mean?", kind="text")
-        if self.ask_brief(draft_id) is None and self.answer_analysis(draft_id) is None and self.prepare_table(draft_id) is None:
-            self.answer_business(draft_id)  # H11
+        if self.ask_brief(draft_id) is None and self.answer_analysis(draft_id) is None and self.prepare_table(draft_id) is None \
+                and self.answer_business(draft_id) is None:
+            self.build_dashboard(draft_id)  # H10
 
     def answer_analysis(self, draft_id: str) -> dict[str, Any] | None:
         """H7: on the analysis track, with the table ready and nothing important left to ask, the question is answered from
@@ -779,6 +781,94 @@ class HomeAgent:
         return self.say(draft_id, text, kind="answer", message_id=message_id,
                         answer={"n": n, "columns": result.columns, "rows": result.rows[:50], "suppressed_groups": result.suppressed_groups,
                                 "chart": home_chart.spec(plan, result), "edits": home_query.edits(plan, briefs.columns_of(draft))})
+
+    def build_dashboard(self, draft_id: str, force: bool = False) -> dict[str, Any] | None:
+        """H10: on the reporting track, with the table described and nothing left to ask, the dashboard the person's words
+        ask for (dclab_core.dashboard): one tile per KPI, each a query plan run by the same engine as an answer (the row floor
+        holds), its chart chosen by code. A new data version (another table, a changed one) refreshes every tile and records
+        the run; ``force`` refreshes on request. What the rules cannot read is said once, never guessed."""
+        from .. import home_chart, home_query
+        from dclab_core import dashboard as D
+        from . import dashboard as boards
+
+        draft = self.store.get(draft_id)
+        if self.track(draft) != "reporting" or self.pending(draft) is not None:
+            return None
+        active = draft.get("active_asset")
+        if not any(m.get("kind") == "analysis" and m.get("asset") == active for m in draft.get("messages") or []):
+            return None
+        kept = draft.get("dashboard") or {}
+        told = (((draft.get("track_brief") or {}).get("reporting") or {}).get("kpis") or {})
+        said = str(told.get("value")) if told.get("source") == "user" and told.get("value") else None  # their answer to "Which numbers?"
+        if not kept.get("board") and kept.get("missing_for") == active and kept.get("said") == said:
+            return None  # what it needs was said for this table, and nothing new was answered
+        try:
+            frame = home_query.table(self.store, draft)
+        except ValueError as error:
+            return self.say(draft_id, f"I can't build the dashboard yet: {error}.", kind="text")
+        draft = self.store.get(draft_id)  # the table's hash, filled in by the read when it was missing (the review of H10a)
+        version = next((a.get("clean_sha256") for a in draft.get("assets") or [] if a.get("id") == active), None)
+        if kept.get("board") and kept.get("data_version") == version and not force:
+            return None  # this data version is on the dashboard already
+        if kept.get("board"):
+            board = D.Dashboard.model_validate(kept["board"])
+            unread = kept.get("unread") or []
+        else:
+            spec, unread = boards.read(str(draft.get("problem") or ""), frame, briefs.columns_of(draft), kpis_said=said)
+            if spec is None:
+                self.store.update(draft_id, lambda d: d.update(dashboard={"missing_for": active, "unread": unread, "said": said}))
+                self.moved(draft_id, "build_dashboard", {"refused": True}, {"unread": len(unread)})
+                return self.say(draft_id, "I can build a dashboard of numbers per group from your table. To do it here I need "
+                                          + "; ".join(unread) + ".", kind="text")
+            board = D.Dashboard(title=spec["title"], audience=spec["audience"], refresh=spec["refresh"], kpis=spec["kpis"],
+                                floor=home_query.floor())
+        refreshed = bool(kept.get("board"))
+        from dclab_core import query as Q
+
+        board, tiles = D.refresh(board, frame, data_version=version, at=now(), floor=home_query.floor(), chart=home_chart.spec)
+        computed = [t for t in tiles if t.get("result")]
+        record = {"board": board.model_dump(mode="json"), "tiles": tiles, "data_version": version, "unread": unread,
+                  "shown": [n for t in computed for n in home_query.shown_numbers(Q_result(t["result"]))]}
+
+        def keep(d):
+            d["dashboard"] = record
+            for k, t in zip(board.kpis, tiles):  # what each tile related, kept like an answer's (H8 carries it into a prediction)
+                if t.get("result"):
+                    d.setdefault("exposure", []).append({**Q.exposure(k.plan), "at": now(), "by": "dashboard",
+                                                         **({"period": {"column": k.plan.period.column, "start": k.plan.period.start,
+                                                                        "end": k.plan.period.end}} if k.plan.period else {})})
+            if computed:  # a board none of whose tiles ran has not taken the person anywhere
+                d["exit"] = {**(d.get("exit") or {}), "kind": "dashboard", "track": "reporting", "status": "reached", "at": now()}
+        self.store.update(draft_id, keep)
+        from ..ledger import capture
+
+        if computed and (draft.get("exit") or {}).get("status") != "reached":
+            capture.exit_reached((draft.get("exit") or {}).get("record"), "dashboard")
+        self.moved(draft_id, "refresh_dashboard" if refreshed else "build_dashboard",  # names and hashes only, never a value
+                   {"kpis": [{"op": k.plan.measures[0].op, "column": k.plan.measures[0].column, "groups": k.plan.group_by,
+                              "filtered_by": [f.column for f in k.plan.filters], "version": k.version, "plan_hash": r.plan_hash}
+                             for k, r in zip(board.kpis, board.runs[-1].tiles)], "refresh": board.refresh, "unread": len(unread)},
+                   {"tiles": len(tiles), "errors": len(tiles) - len(computed), "data_version": (version or "")[:12]})
+        if not computed:
+            return self.say(draft_id, "None of the dashboard's tiles could be computed on this table: "
+                            + "; ".join(sorted({t['error'] for t in tiles if t.get('error')})) + ". Upload the table it was built on, or "
+                            "describe the numbers again.", kind="text")
+        head = ("Your dashboard is refreshed on the new data" if refreshed else "Your dashboard is ready") + f": {board.title}."
+        cut = [t["kpi"] for t in computed if len(t["result"]["rows"]) >= Q.MAX_LIMIT]
+        if cut:
+            unread = [*unread, f"{', '.join(cut)}: only the first {Q.MAX_LIMIT} rows of the tile are shown"]
+        failed = [t["kpi"] for t in tiles if t.get("error")]
+        if failed:
+            unread = [*unread, f"not computed on this table: {', '.join(failed)}"]
+        cadence = {"daily": "every day", "weekly": "every week", "monthly": "every month"}.get(board.refresh)
+        if cadence:
+            head += f" You asked for it {cadence}: it is refreshed here whenever the table changes, or with the Refresh button."
+        if unread:
+            head += " Not read from your words: " + "; ".join(unread) + "."
+        return self.say(draft_id, head, kind="dashboard", dashboard={"title": board.title, "audience": board.audience, "refresh": board.refresh,
+                                                                     "data_version": (version or "")[:12], "refreshed_at": board.refreshed_at,
+                                                                     "tiles": [{"kpi": t["kpi"], "version": t["version"], "chart": t.get("chart"),
+                                                                                "error": t.get("error")} for t in tiles]})
 
     def answer_business(self, draft_id: str, said: str | None = None) -> dict[str, Any] | None:
         """H11: on the business track, with the table described and nothing left to ask, where the number the person asks
@@ -1127,7 +1217,7 @@ class HomeAgent:
         self.store.emit(draft_id, "status", {"track_brief": self.store.get(draft_id).get("track_brief")})
         self.moved(draft_id, "brief_answer", {"track": track, "field": field})
         if self.ask_brief(draft_id) is None and self.answer_analysis(draft_id) is None and self.prepare_table(draft_id) is None \
-                and self.answer_business(draft_id) is None:
+                and self.answer_business(draft_id) is None and self.build_dashboard(draft_id) is None:
             self.say(draft_id, "Noted. " + intents.NEXT.get(track, ""), kind="text")
 
     @turn
@@ -2283,6 +2373,12 @@ def request_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
     turn.agent.say(turn.draft_id, str(args.get("text", ""))[:400] or "You can upload a sample, connect a source, or ask me to simulate data.",
                    kind="text", actions=["upload", "connect", "simulate"])
     return {"offered": True}
+
+
+def Q_result(doc: dict[str, Any]) -> Any:
+    from dclab_core import query as Q
+
+    return Q.QueryResult.model_validate(doc)
 
 
 def _int(value: Any) -> int:

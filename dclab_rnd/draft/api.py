@@ -593,6 +593,17 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(422, str(exc)) from None
         return Response(body, media_type="application/zip", headers={"Content-Disposition": 'attachment; filename="answers.zip"'})
 
+    @router.post("/api/drafts/{draft_id}/dashboard/refresh", response_model=Draft)
+    async def refresh_dashboard(draft_id: str):
+        """H10: every tile of the draft's dashboard computed again on its table now, the run recorded."""
+        draft = get(draft_id)
+        if not (draft.get("dashboard") or {}).get("board"):
+            raise HTTPException(404, "No dashboard yet")
+        said = await asyncio.to_thread(agent(draft_id).build_dashboard, draft_id, True)
+        if said is None:  # nothing ran (another kind of help now, a question open): never claimed as refreshed
+            raise HTTPException(409, "Nothing was refreshed: the conversation is not on its dashboard now, or a question waits for your answer")
+        return drafts.get(draft_id)
+
     @router.get("/api/drafts/{draft_id}/prepared", response_class=Response, responses=download("application/octet-stream"))
     async def prepared_table(draft_id: str, format: str = "csv"):
         """H9: the prepared table (a new file beside the original) as CSV, Excel or Parquet."""

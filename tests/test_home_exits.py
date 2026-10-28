@@ -23,7 +23,7 @@ class RulesTests(unittest.TestCase):
     def test_one_exit_per_track_said_as_built_or_not(self):
         self.assertEqual({t: exits.exit_for(t)["kind"] for t in exits.EXITS}, exits.EXITS)
         self.assertEqual(exits.exit_for("analysis")["status"], "open")
-        self.assertEqual(exits.exit_for("reporting")["status"], "not_built")  # never promised
+        self.assertEqual(exits.exit_for("advice")["status"], "not_built")  # never promised (H10 built dashboards)
         self.assertIsNone(exits.exit_for("magic"))
 
     def test_the_traps_get_the_other_route_when_read_the_wrong_way(self):
@@ -89,7 +89,7 @@ class AgentTests(unittest.TestCase):
         self.assertEqual((d["exit"]["kind"], d["exit"]["status"]), ("ml_project", "open"))
         agent.choose_intent(draft_id, "reporting")  # the person picks the report the words seemed to ask for
         d = self.store.get(draft_id)
-        self.assertEqual((d["exit"]["kind"], d["exit"]["status"]), ("dashboard", "not_built"))
+        self.assertEqual((d["exit"]["kind"], d["exit"]["status"]), ("dashboard", "open"))  # built (H10), not yet reached
         said = [m for m in d["messages"] if m.get("kind") == "route_suggestion"]
         self.assertEqual([m["suggestion"]["track"] for m in said], ["prediction"])
         self.assertIn("model trained on the past", said[0]["text"])

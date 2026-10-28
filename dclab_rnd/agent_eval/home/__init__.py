@@ -205,6 +205,7 @@ def read_draft(draft: Mapping[str, Any], columns: set[str], id_values: set[str])
     from dclab_rnd.draft.chat import COSTS_QUESTION  # the product's own example amounts ("a call costs 5"), as the openings are
 
     for source in (draft.get("analysis"), draft.get("answers"), draft.get("assets"), draft.get("cleaning_log"), draft.get("recipe"), draft.get("business"),  # H9, H11: computed by code
+                   (draft.get("dashboard") or {}).get("shown"), [t.get("result") for t in (draft.get("dashboard") or {}).get("tiles") or []],  # H10
                    list(packs.OPENING.values()),
                    COSTS_QUESTION):
         allowed |= _source_numbers(source)

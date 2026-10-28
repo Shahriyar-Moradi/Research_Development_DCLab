@@ -1,0 +1,207 @@
+{
+ "package": "H10a",
+ "title": "Home builds the dashboard a person describes, every tile from the query engine, refreshed on new data",
+ "date": "2026-10-28",
+ "request": "The owner's goal: Home serves BI and reporting, not only models. Plan H10: versioned KPIs, tiles and dashboards (migration 0016_dashboards), a refresh_dashboard job, routes and a dashboard view that shows each tile's definition, data version, refresh time and hidden groups. Done when every H1 reporting request produces a dashboard with the expected tiles, and a refresh after a new data version updates every tile and records the run.",
+ "spec": "H10a: dclab_core.dashboard (Kpi with its version, Dashboard v1, RefreshRun, refresh); Home reads the KPIs, the split, the cadence and the audience from the person's words (English and Persian), builds the board, refreshes every tile when the table changes or on request (POST .../dashboard/refresh), and shows each tile's definition and version, the data version, the time and the groups the floor hid. Deviations, said: the board lives in the draft's own record (both storage backends hold it) instead of a migration; a scheduled refresh job by cadence is later work. A KPI's version is always 1 here: no edit of a KPI exists yet, so 'versioned KPIs' is the contract's field, not a workflow; editing a KPI as version n+1 is later work.",
+ "plan": [
+  "dclab_core/dashboard.py.",
+  "draft/dashboard.py: KPIs from words.",
+  "build_dashboard in the Home chain; the refresh route; the page."
+ ],
+ "decisions": [
+  {
+   "decision": "Every tile is a query plan run by the same engine as an answer.",
+   "why": "The row floor, the identifier refusals and the shown-number tracing hold on a dashboard exactly as in an answer."
+  },
+  {
+   "decision": "'A weekly dashboard' is how often it refreshes, never a split by week.",
+   "why": "A refresh word split customers by the month of signup_date: the rules cannot tell an event date from an attribute; a split over time needs 'per week', 'by month' or 'trend'."
+  },
+  {
+   "decision": "No migration: the board is kept in the draft's record.",
+   "why": "Both storage backends already hold the draft document; a table of its own is worth it when dashboards outlive drafts (a project's boards)."
+  },
+  {
+   "decision": "A list of rows is refused as a dashboard.",
+   "why": "A dashboard shows numbers per group; 'every churned customer with their ID' is a prepared table (H8 suggests it)."
+  }
+ ],
+ "change": "dclab_core/dashboard.py (new, dclab-core 0.131.0); dclab_rnd/draft/dashboard.py (new); draft/chat.py (build_dashboard in the chain; the exit); draft/api.py (refresh route); draft/exits.py; draft/intent.py; agent_eval/home (the board as a code source); views/home.html (tiles, refresh); tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A refresh word became a split over time.",
+   "scenario": "'track churn rate every month' split by the month of signup_date.",
+   "cause": "The cadence set the tiles' grain.",
+   "fix": "The cadence is the refresh; a split over time needs words that ask for one.",
+   "test": "tests/test_home_dashboard.py::ReadTests::test_each_h1_reporting_request_gets_its_tiles"
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "'cancellation rate' was refused as ambiguous.",
+   "scenario": "Bookings have cancelled and free_cancellation, both yes/no.",
+   "cause": "Two columns covered the word.",
+   "fix": "A column whose whole name is the word is the match.",
+   "test": "tests/test_home_dashboard.py::ReadTests::test_each_h1_reporting_request_gets_its_tiles"
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "'A model of last month's sales by region' was not read, and its period would have been dropped.",
+   "scenario": "H8 routes it to reporting; the reader had no 'model of'.",
+   "cause": "The KPI patterns named dashboards and reports only.",
+   "fix": "'model of' is read; a relative period is said as not applied.",
+   "test": "tests/test_home_dashboard.py::ReadTests::test_each_h1_reporting_request_gets_its_tiles"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'Revenue' summed the wrong column.",
+   "scenario": "'dashboard of revenue by region' with discount_amount and amount: total of discount_amount; 'sales' summed sales_tax.",
+   "cause": "The first number column with an 'amount' or 'sales' part was taken.",
+   "fix": "The answers' column match: every word covered, a synonym only with nothing else in the name, two candidates mean none.",
+   "test": "tests/test_home_dashboard.py::ReviewOfH10aTests::test_words_read_to_the_right_column_or_said"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Tiles never reached the exposure log.",
+   "scenario": "After 'churn rate and average monthly spend by city', a churn prediction was told nothing about churn already compared with city.",
+   "cause": "Tiles ran through the engine directly, not through the answers' path that logs exposure.",
+   "fix": "Every computed tile's exposure is logged, as an answer's is.",
+   "test": "tests/test_home_dashboard.py::ReviewOfH10aTests::test_tiles_join_the_exposure_log_and_the_log_holds_no_value"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Tiles over time with a group were cut at 50 rows in silence.",
+   "scenario": "'revenue trend by region': Sharjah gone.",
+   "cause": "The plan's default limit of 50.",
+   "fix": "The engine's maximum, and a cut at it said.",
+   "test": "tests/test_home_dashboard.py::ReviewOfH10aTests::test_words_read_to_the_right_column_or_said"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The answer to 'Which numbers?' was ignored, and the audience read as a KPI.",
+   "scenario": "'a weekly dashboard for the sales managers', answered 'revenue and orders by region': one tile 'total of amount', no split.",
+   "cause": "Only the first sentence was read; 'for' opened a KPI phrase.",
+   "fix": "The person's answer is read first with its own split; 'for' no longer opens a KPI phrase.",
+   "test": "tests/test_home_dashboard.py::ReviewOfH10aTests::test_the_answer_to_which_numbers_is_read_and_the_audience_is_never_a_kpi"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Conditions and extra splits vanished in silence.",
+   "scenario": "'revenue excluding refunds', 'net revenue', 'orders by region and channel' (channel dropped).",
+   "cause": "No word of a KPI phrase was checked against what built the tile; one split only.",
+   "fix": "A phrase with a condition or a word no part of the tile used is not built and is said; every split is read (up to two).",
+   "test": "tests/test_home_dashboard.py::ReviewOfH10aTests::test_words_read_to_the_right_column_or_said"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Five-letter stems matched unrelated values.",
+   "scenario": "'complaints' counted status = completed; 'returns' segment = returning.",
+   "cause": "Values matched by a shared stem.",
+   "fix": "A value matches the word, its singular, or the singular with 'ed' ('refunds': refunded).",
+   "test": "tests/test_home_dashboard.py::ReviewOfH10aTests::test_words_read_to_the_right_column_or_said"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A board whose tiles all failed was 'refreshed' and 'reached'.",
+   "scenario": "Customers uploaded after sales: every tile errored, the chat said refreshed, the exit was labelled.",
+   "cause": "No check that any tile ran.",
+   "fix": "Said plainly; the exit and its label only when a tile ran.",
+   "test": "tests/test_home_dashboard.py::ReviewOfH10aTests::test_a_board_none_of_whose_tiles_runs_is_said_and_never_reached"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The refresh route claimed a refresh that did not run.",
+   "scenario": "After switching to analysis: 200 and 'Refreshed'.",
+   "cause": "The route ignored the call's result.",
+   "fix": "409 with the reason when nothing ran.",
+   "test": "tests/test_home_dashboard.py::ReviewOfH10aTests::test_the_refresh_route_never_claims_a_refresh_that_did_not_run"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The step log held table values.",
+   "scenario": "KPI names such as 'rows where status = refunded' in the log.",
+   "cause": "Names were logged.",
+   "fix": "The log keeps operations, column names and plan hashes only.",
+   "test": "tests/test_home_dashboard.py::ReviewOfH10aTests::test_tiles_join_the_exposure_log_and_the_log_holds_no_value"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Persian 'هر روز' (a cadence) split by day.",
+   "scenario": "'… که هر روز ارسال شود' gave a day-by-region tile.",
+   "cause": "The cadence word was in the over-time list.",
+   "fix": "Removed: a split over time needs 'per day'.",
+   "test": "tests/test_home_dashboard.py::ReviewOfH10aTests::test_words_read_to_the_right_column_or_said"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'Customers' and 'orders' counted rows.",
+   "scenario": "An order-lines table counted lines as orders.",
+   "cause": "A count noun meant rows.",
+   "fix": "The distinct values of the noun's id column; rows only with the assumption said.",
+   "test": "tests/test_home_dashboard.py::ReviewOfH10aTests::test_words_read_to_the_right_column_or_said"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Home on the H1 dev requests (rules alone)",
+   "gate": "no wrong field, no uncited number, no row",
+   "fixed_before_run": true,
+   "result": "d-b1, d-b2, d-b3, d-b4 and d-b6 get their tiles; d-b5 (a list of rows) is refused and pointed to a prepared table; (make home-eval, rules) fields 65 right, 0 wrong; uncited 0; rows 0; traps 6 of 6",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "rules only"
+   ]
+  },
+  {
+   "name": "A new data version",
+   "gate": "every tile refreshed and the run recorded",
+   "fixed_before_run": true,
+   "result": "A second upload refreshed all 3 tiles and recorded the run with the new data version",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "no scheduled refresh by cadence yet"
+   ]
+  }
+ ],
+ "outcome": "A person who asks for a dashboard gets one, tile by tile, every number from the same engine as an answer, refreshed whenever their table changes.",
+ "lessons": [
+  "How often and over what are different questions: 'weekly' is the first, 'per week' the second."
+ ],
+ "risks": [
+  "No scheduled refresh by cadence; no table of its own for boards.",
+  "KPIs cannot be edited yet (their version stays 1).",
+  "The eval reads tiles only through the uncited and rows checks; only one request runs end to end in a test."
+ ],
+ "commits": []
+}

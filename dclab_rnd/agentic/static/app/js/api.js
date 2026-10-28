@@ -274,6 +274,7 @@
     build: ["POST", "/drafts/{draft_id}/build", ["draft_id"], []],
     buildAndRun: ["POST", "/drafts/{draft_id}/build/run", ["draft_id"], []],
     draftCard: ["GET", "/drafts/{draft_id}/card", ["draft_id"], []],
+    refreshDashboard: ["POST", "/drafts/{draft_id}/dashboard/refresh", ["draft_id"], []],
     upload: ["PUT", "/drafts/{draft_id}/data", ["draft_id"], ["filename"]],
     dataCloud: ["POST", "/drafts/{draft_id}/data/cloud", ["draft_id"], []],
     dataDatabase: ["POST", "/drafts/{draft_id}/data/database", ["draft_id"], []],
@@ -660,6 +661,12 @@
   client.draftCard = (...args) => call('draftCard', args);
   client.path.draftCard = (...args) => build('draftCard', args).path;
   client.href.draftCard = (...args) => '/api' + build('draftCard', args).path;
+  /** POST /api/drafts/{draft_id}/dashboard/refresh: Refresh Dashboard
+   *  @param {string} draft_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Draft>} */
+  client.refreshDashboard = (...args) => call('refreshDashboard', args);
+  client.path.refreshDashboard = (...args) => build('refreshDashboard', args).path;
   /** PUT /api/drafts/{draft_id}/data: Upload
    *  @param {string} draft_id
    *  @param {{query?: {filename?: *}, body: Blob, headers?: Object}} [opts]

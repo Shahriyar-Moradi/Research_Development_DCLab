@@ -1,0 +1,482 @@
+{
+  "$defs": {
+    "Filter": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "maxLength": 200,
+          "title": "Column",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "eq",
+            "ne",
+            "in",
+            "not_in",
+            "gt",
+            "ge",
+            "lt",
+            "le",
+            "between",
+            "is_null",
+            "not_null"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "column",
+        "op"
+      ],
+      "title": "Filter",
+      "type": "object"
+    },
+    "Kpi": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "what the tile shows, written by code from the plan",
+          "maxLength": 120,
+          "title": "Name",
+          "type": "string"
+        },
+        "plan": {
+          "$ref": "#/$defs/QueryPlan"
+        },
+        "said": {
+          "default": "",
+          "description": "the person's words this KPI was read from",
+          "maxLength": 200,
+          "title": "Said",
+          "type": "string"
+        },
+        "version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "plan"
+      ],
+      "title": "Kpi",
+      "type": "object"
+    },
+    "Measure": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Column"
+        },
+        "name": {
+          "maxLength": 80,
+          "title": "Name",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "count",
+            "count_distinct",
+            "sum",
+            "mean",
+            "median",
+            "min",
+            "max",
+            "rate",
+            "percentile"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "q": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Q"
+        },
+        "where": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Filter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "op"
+      ],
+      "title": "Measure",
+      "type": "object"
+    },
+    "Period": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "maxLength": 200,
+          "title": "Column",
+          "type": "string"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "grain": {
+          "default": "month",
+          "enum": [
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year"
+          ],
+          "title": "Grain",
+          "type": "string"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        }
+      },
+      "required": [
+        "column"
+      ],
+      "title": "Period",
+      "type": "object"
+    },
+    "QueryPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/Filter"
+          },
+          "title": "Filters",
+          "type": "array"
+        },
+        "group_by": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Group By",
+          "type": "array"
+        },
+        "limit": {
+          "default": 50,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "measures": {
+          "items": {
+            "$ref": "#/$defs/Measure"
+          },
+          "title": "Measures",
+          "type": "array"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Period"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "schema_version": {
+          "const": "dclab_core.query_plan.v1",
+          "default": "dclab_core.query_plan.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sort": {
+          "items": {
+            "$ref": "#/$defs/Sort"
+          },
+          "title": "Sort",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version"
+      ],
+      "title": "QueryPlan",
+      "type": "object"
+    },
+    "RefreshRun": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "maxLength": 40,
+          "title": "At",
+          "type": "string"
+        },
+        "data_version": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the table's hash the tiles were computed on",
+          "title": "Data Version"
+        },
+        "tiles": {
+          "items": {
+            "$ref": "#/$defs/TileRun"
+          },
+          "title": "Tiles",
+          "type": "array"
+        }
+      },
+      "required": [
+        "at"
+      ],
+      "title": "RefreshRun",
+      "type": "object"
+    },
+    "Sort": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "maxLength": 200,
+          "title": "By",
+          "type": "string"
+        },
+        "desc": {
+          "default": true,
+          "title": "Desc",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "by"
+      ],
+      "title": "Sort",
+      "type": "object"
+    },
+    "TileRun": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "kpi": {
+          "maxLength": 120,
+          "title": "Kpi",
+          "type": "string"
+        },
+        "plan_hash": {
+          "maxLength": 32,
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "suppressed_groups": {
+          "default": 0,
+          "title": "Suppressed Groups",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kpi",
+        "plan_hash"
+      ],
+      "title": "TileRun",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.dashboard.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "audience": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Audience"
+    },
+    "data_version": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Data Version"
+    },
+    "floor": {
+      "default": 5,
+      "title": "Floor",
+      "type": "integer"
+    },
+    "kpis": {
+      "items": {
+        "$ref": "#/$defs/Kpi"
+      },
+      "maxItems": 12,
+      "title": "Kpis",
+      "type": "array"
+    },
+    "refresh": {
+      "default": "on_new_data",
+      "enum": [
+        "daily",
+        "weekly",
+        "monthly",
+        "on_new_data"
+      ],
+      "title": "Refresh",
+      "type": "string"
+    },
+    "refreshed_at": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Refreshed At"
+    },
+    "runs": {
+      "items": {
+        "$ref": "#/$defs/RefreshRun"
+      },
+      "title": "Runs",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.dashboard.v1",
+      "default": "dclab_core.dashboard.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 200,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "title"
+  ],
+  "title": "Dashboard",
+  "type": "object"
+}

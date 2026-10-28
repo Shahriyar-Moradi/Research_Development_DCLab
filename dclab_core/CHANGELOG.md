@@ -4,6 +4,14 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.131.0 (2026-10-28)
+
+- `dashboard` (H10 of the Home plan): KPIs and dashboards on a person's table. A `Kpi` is a named
+  `query.QueryPlan` with its version, so every tile's number comes from the query engine with its row floor; a
+  `Dashboard` v1 holds the KPIs, who it is for, how often it is refreshed, the data version (the table's hash) the tiles
+  were computed on and each `RefreshRun` (when, on which data version, per tile its plan's hash, the hidden groups or the
+  error). `refresh` computes every tile and records the run; a tile that fails says why and never stops the others.
+
 ## 0.130.0 (2026-10-28)
 
 - `change` (H11 of the Home plan): why a number changed between two periods. `compare` splits the change of a total (a
