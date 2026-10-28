@@ -1,0 +1,145 @@
+{
+ "package": "36.5",
+ "title": "Replay rounds: each training round brings back a share of every earlier round",
+ "date": "2026-10-28",
+ "request": "The owner: do 36.5, so a model trained in rounds does not forget what earlier rounds taught it.",
+ "spec": "PHASE12_TRAINING_DATA_PLAN.md 36.5: each round's set is its new data plus a fixed share of every earlier round, stratified by model type, source, track and language; its manifest names every earlier version; nothing is deleted; a round rebuilt from its manifest is byte-identical and the share holds per stratum.",
+ "plan": [
+  "Read how the store writes its sets",
+  "Contract and the draw rule in dclab_core",
+  "Test first, then the store side",
+  "Plan on the real store; prove rebuilds on a copy",
+  "Review, fix, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "Build no real round now",
+   "why": "a round is one training run's data; no model is trained yet, so building one would mark data as trained"
+  },
+  {
+   "decision": "Round each stratum's share up",
+   "why": "a stratum of one row, such as a rare Persian conversation, still comes back"
+  },
+  {
+   "decision": "Keep each round's new rows frozen and draw replay from them",
+   "why": "a rebuild then reads only the rounds' own files, never the sets that move on"
+  },
+  {
+   "decision": "A row is its set and its id",
+   "why": "the same id sits in two real m4 sets with different content; keying by id alone lost 22 rows"
+  },
+  {
+   "decision": "Only rows still allowed in training come back",
+   "why": "a row withdrawn by consent, curation or an exam must not return through an old round"
+  }
+ ],
+ "change": "dclab_core/replay.py (ReplayRound v1, pick; dclab-core 0.136.0, schemas, adapter entry), dclab_rnd/store/replay.py, store/layout.py rounds(), CORE_INTEGRATION.md, PHASE12 status, data catalog, tests/test_store_replay.py.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A corrected row came back in its old form from round three on",
+   "scenario": "rows wrong in round one, fixed in round two; round three replayed the wrong copies",
+   "cause": "every earlier round's copy of a row stayed in the pool, and the first one drawn won",
+   "fix": "each row comes back only from the latest round holding it; every drawn row is written and counted",
+   "test": "test_a_corrected_row_never_comes_back_in_its_old_form"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A row no longer allowed in training could come back",
+   "scenario": "consent withdrawn, a curator's out, or a row that joined an exam, still replayed from an old round",
+   "cause": "replay read the earlier rounds without asking what is allowed now",
+   "fix": "only rows still in the current train split and outside every exam come back; the others are written as withheld",
+   "test": "test_a_row_no_longer_in_the_train_split_is_withheld"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The same id in two sets lost one of its rows",
+   "scenario": "real m4: 18 ids in two sets with different content; 22 lines never entered a round",
+   "cause": "rows were keyed by id alone",
+   "fix": "a row is its set and its id",
+   "test": "test_the_same_id_in_two_sets_is_two_rows"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A missing or swapped earlier round was read silently",
+   "scenario": "round one deleted: its rows counted as new again",
+   "cause": "rounds were not required to run without a gap, and a draw did not name the earlier round's hash",
+   "fix": "rounds must run without a gap; each draw records the earlier round's hash and a rebuild checks it",
+   "test": "test_a_missing_earlier_round_is_refused"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A rebuild depended on today's code",
+   "scenario": "a change to how language or track is read would move every old draw",
+   "cause": "strata were read again from each row at rebuild",
+   "fix": "each row's stratum is frozen in the round when it is first kept",
+   "test": "test_a_rebuild_never_reads_the_current_sets_and_sees_an_edited_train_file"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A build that stopped half way blocked every later build",
+   "scenario": "a round folder without its manifest made every plan fail",
+   "cause": "files were written straight into the round's folder",
+   "fix": "a build writes to a part folder and renames it when whole; a leftover part folder is named in the error",
+   "test": "test_a_half_written_build_blocks_with_a_clear_message_and_is_never_read"
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "One real row was cut in two",
+   "scenario": "an m5 row holds a Unicode line separator inside its text",
+   "cause": "splitting lines on every kind of line break",
+   "fix": "JSON lines split on newlines only",
+   "test": "test_a_row_holding_a_unicode_line_separator_stays_one_row"
+  },
+  {
+   "id": "S1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Kept rows carried an extra field",
+   "scenario": "a trainer checking rows against their contract would refuse them",
+   "cause": "the set name was written into each row",
+   "fix": "each row is kept exactly as its set wrote it, with its set beside it",
+   "test": "test_a_rounds_train_rows_are_the_sets_lines_byte_for_byte"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "replay rounds on a copy of the real store (m2, m4, m5)",
+   "gate": "a round rebuilt from its files is byte-identical; the replay share holds per stratum",
+   "result": "three rounds each for m2, m4 and m5 rebuilt byte-identical; the replayed share 30.1 to 30.6 percent; no stratum off by a whole row; a round's train equals its new plus its drawn rows",
+   "verdict": "pass",
+   "against_gate": "every rebuild identical and every stratum within one row of its share",
+   "cost_eur": 0.0,
+   "limits": [
+    "a copy of the sets of three model types, with no new data between rounds",
+    "no real round is built until a model is trained"
+   ]
+  }
+ ],
+ "outcome": "Each training round can now bring back a share of every earlier round, stratum by stratum, and be rebuilt exactly; a row corrected, withdrawn or moved into an exam never comes back in an old form.",
+ "lessons": [
+  "Key a row by where it lives and its id, not its id alone.",
+  "Anything replayed from the past must be checked against what is allowed now.",
+  "Freeze every input a rebuild needs inside the thing being rebuilt.",
+  "JSON lines split on newlines only."
+ ],
+ "risks": [
+  "Decision rows have no track or language, so their strata are only their sets.",
+  "The share and the strata are untested on a real second round with new data."
+ ],
+ "commits": []
+}

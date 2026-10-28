@@ -149,6 +149,15 @@ class Layout:
             out = out / _part(p)
         return out
 
+    def rounds(self, model_type: str, *parts: str) -> Path:
+        """36.5: a model type's replay rounds (``round_NNN/``: its new rows, its train set and its manifest), never rewritten."""
+        if model_type not in MODEL_TYPES:
+            raise ValueError(f"{model_type!r} is not a model type ({', '.join(MODEL_TYPES)})")
+        out = self.root / "rounds" / model_type
+        for p in parts:
+            out = out / _part(p)
+        return out
+
     def runs(self) -> Path:
         return self.root / "runs"
 

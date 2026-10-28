@@ -93,6 +93,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "exam": LIBRARY + " (a model type's frozen exam, 36.4: rows named by key and hash, never their content; the main product trains "
             "no model of its own at the pinned commit, so it has no exam table)",
     "exam_result": LIBRARY + " (one model version's score on its exam and the no-forgetting gate, 36.4; kept with the version beside its card)",
+    "replay_round": LIBRARY + " (36.5: a training round's set, new rows and a share of every earlier round; the main product trains no model of its own at the pinned commit)",
     "track_outcome": LIBRARY + " (36.2: what a person did with an answer, table, brief or dashboard Home produced; the main product has no such front door at the pinned commit)",
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",

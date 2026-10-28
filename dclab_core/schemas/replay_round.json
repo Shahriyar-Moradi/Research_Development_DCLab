@@ -1,0 +1,177 @@
+{
+  "$defs": {
+    "ReplayDraw": {
+      "additionalProperties": false,
+      "description": "What came back from one earlier round (named by its number and the hash of its new rows): the rows it could give\nback (only those whose latest version is its own, still allowed in training, and not new again) and the drawn ones,\nper stratum ``[rows, drawn]``; every drawn row is in the train set.",
+      "properties": {
+        "available": {
+          "minimum": 0,
+          "title": "Available",
+          "type": "integer"
+        },
+        "by_stratum": {
+          "additionalProperties": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "title": "By Stratum",
+          "type": "object"
+        },
+        "drawn": {
+          "minimum": 0,
+          "title": "Drawn",
+          "type": "integer"
+        },
+        "new_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "New Sha256",
+          "type": "string"
+        },
+        "round": {
+          "minimum": 1,
+          "title": "Round",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "round",
+        "new_sha256",
+        "available",
+        "drawn"
+      ],
+      "title": "ReplayDraw",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.replay_round.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "built_at": {
+      "title": "Built At",
+      "type": "string"
+    },
+    "exam_version": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the frozen exam the round's model will sit (36.4)",
+      "title": "Exam Version"
+    },
+    "model_type": {
+      "maxLength": 40,
+      "title": "Model Type",
+      "type": "string"
+    },
+    "new": {
+      "description": "rows in no earlier round (or changed since)",
+      "minimum": 0,
+      "title": "New",
+      "type": "integer"
+    },
+    "new_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "New Sha256",
+      "type": "string"
+    },
+    "replayed": {
+      "items": {
+        "$ref": "#/$defs/ReplayDraw"
+      },
+      "title": "Replayed",
+      "type": "array"
+    },
+    "round": {
+      "minimum": 1,
+      "title": "Round",
+      "type": "integer"
+    },
+    "rule": {
+      "maxLength": 600,
+      "title": "Rule",
+      "type": "string"
+    },
+    "salt": {
+      "maxLength": 80,
+      "title": "Salt",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.replay_round.v1",
+      "default": "dclab_core.replay_round.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sets": {
+      "description": "the sets read: folder, version, the manifest's sha256",
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "title": "Sets",
+      "type": "array"
+    },
+    "share": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Share",
+      "type": "number"
+    },
+    "strata": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "the round's train rows per stratum",
+      "title": "Strata",
+      "type": "object"
+    },
+    "train": {
+      "minimum": 0,
+      "title": "Train",
+      "type": "integer"
+    },
+    "train_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Train Sha256",
+      "type": "string"
+    },
+    "withheld": {
+      "default": 0,
+      "description": "earlier rows no longer allowed in training (consent, curation, an exam): never replayed",
+      "minimum": 0,
+      "title": "Withheld",
+      "type": "integer"
+    },
+    "withheld_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Withheld Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_type",
+    "round",
+    "share",
+    "salt",
+    "rule",
+    "new",
+    "new_sha256",
+    "withheld_sha256",
+    "train",
+    "train_sha256",
+    "built_at"
+  ],
+  "title": "ReplayRound",
+  "type": "object"
+}

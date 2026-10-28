@@ -1202,6 +1202,14 @@ door with kinds of help at the pinned commit, so it produces none (`KINDS_MISSIN
 names per conversation and record the outcome on each change. Only kept or changed confirms the route taken (a person's
 label on the exit and the reading); refused and asked again are outcomes, never a guessed right answer.
 
+## Replay rounds: a model must not forget (36.5, dclab-core 0.136.0)
+
+`dclab_core.replay.pick(rows, share, salt, round)` draws, stratum by stratum, the share of an earlier round's rows that
+comes back in a training round (ceil of the share, by a hash of the salt, the round and the row's id); `ReplayRound` is
+the round's record (what it read, every draw per stratum, the hashes of its new rows and of its train set). Where it
+goes there: the main product trains no model of its own at the pinned commit; when it does, keep each round's new rows
+frozen, draw the replay with `pick` and keep the `ReplayRound` beside the trained version and its exam result (36.4).
+
 ## Questions answered from a table (H6, dclab-core 0.127.0)
 
 The library's: `dclab_core.query`. A host that lets a person ask for numbers from their own table (an analysis, a report, a

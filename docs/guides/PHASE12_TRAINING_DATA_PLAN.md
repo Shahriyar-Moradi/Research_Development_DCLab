@@ -117,6 +117,16 @@ memory.
   model type, source, track and language; its manifest names every earlier version it draws from. Nothing is deleted
   (the store keeps everything); a round can be rebuilt exactly.
 - Reuse: the store's set versions and manifests (`store/sets/__init__.write_set`), the split by group hash.
+- **Status (2026-10-28): built** (`dclab_core/replay.py`, `dclab_rnd/store/replay.py`, `python -m dclab_rnd.store.replay
+  plan|build|rebuild`, dclab-core 0.136.0). A row is its set and its id. A round reads the train split of a model type's
+  latest sets; its new rows (content in no earlier round) are kept frozen with their set and stratum; its train set is
+  those plus ceil(30 %) per stratum (set, track, language) of each earlier round's rows whose latest version is that
+  round's, still in the current train split and outside every exam (the others are written as withheld). Earlier rounds
+  must run without a gap and match the hashes the round recorded; a build is written to a `.part` folder and renamed. On a
+  copy of the real store (m2, m4, m5): three rounds each rebuilt byte-identical, a round's train equal to its new plus its
+  drawn rows, no stratum off by a whole row. No real round is built: a round is one training run's data, so `build --yes`
+  waits for the first trained model. Left open: decision rows (m1, m2, m3, m6) have no track or language, so their strata
+  are their sets only.
 
 ### 36.6 Verified code with its reasoning (free)
 - The code examples that teach how: each engine kind's and each project's exported pipeline whose holdout number

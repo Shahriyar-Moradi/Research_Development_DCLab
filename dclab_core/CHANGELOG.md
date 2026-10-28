@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.136.0 (2026-10-28)
+
+- `replay` (36.5): `ReplayRound` v1 and `pick(rows, share, salt, round)`, a training round's set: its new rows plus a fixed
+  share (30 %) of every earlier round's new rows, drawn stratum by stratum (set, kind of help, language) by a hash of the
+  salt, the round and the row's id; ceil of the share, so a stratum of one row comes back too. The round's record keeps
+  what it read, every draw per stratum and the hash of what it wrote, so it can be rebuilt byte for byte.
+
 ## 0.135.0 (2026-10-28)
 
 - `track_outcome` (36.2): `TrackOutcome` v1 and `read(track, actions)`, what a person did with what a kind of help that is
