@@ -1,0 +1,101 @@
+{
+ "package": "H11b",
+ "title": "The home_business model rewords a decision brief only through the citation check, and answers business questions through guarded tools",
+ "date": "2026-10-28",
+ "request": "Plan H11: 'a decision brief written by a template, which a model may reword with every number cited'; the tools compare_periods and decision_brief; the home_business purpose with its data-limit test. The owner's standing rule: a new model purpose keeps its thinking for training, shown by a test.",
+ "spec": "home_business sees only the template brief (totals, the change per group, at most 8 group names); its sentences are kept only when every one passes cited.py against the template (all or nothing), the code's caveat always added; compare_periods lets the model name the periods, the number and the grouping when the rules cannot, checked like the rules' reading; decision_brief says the last brief again. The model gets whether it answered, never a number.",
+ "plan": [
+  "reword in business.py; the purpose, its data-limit and thinking tests.",
+  "give_brief shared by the rules and the tools; the two tools and their guard.",
+  "The Home prompt says when to use them."
+ ],
+ "decisions": [
+  {
+   "decision": "All or nothing: one dropped sentence keeps the template.",
+   "why": "A dropped sentence may be the one that carried the point; a half-reworded brief could read as a different answer."
+  },
+  {
+   "decision": "The caveat ('association, not cause') is appended by code, never left to the model.",
+   "why": "The one sentence that must always be there is not the model's to keep or drop."
+  },
+  {
+   "decision": "home_business may see at most 8 group names.",
+   "why": "Group names are cell values of the person's table; the brief needs them, and no more."
+  }
+ ],
+ "change": "dclab_rnd/draft/business.py (reword); draft/chat.py (give_brief; business_client; compare_periods, decision_brief and their guard); draft/work.py; models/settings.py (home_business); agents/harness.py; store/sets/llm.py (its stage); prompts/home_business.md (new), prompts/home_agent.md; tests.",
+ "findings": [
+  {
+   "id": "R0",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The model's period labels reached the person.",
+   "scenario": "compare_periods took a_label and b_label, shown in the brief: a way for the model to write its own text or numbers into it.",
+   "cause": "The labels were the model's arguments.",
+   "fix": "Labels are written by code from the dates; the arguments are gone.",
+   "test": "tests/test_home_business.py::H11bTests::test_the_model_compares_through_its_tool_and_never_sees_a_number"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Cause and advice passed the check above the 'not cause' caveat.",
+   "scenario": "'Revenue fell by 99.8 because beauty customers left [CHANGE]', 'home drove the fall', 'You should cut spending on home', Persian 'به دلیل … باید' were kept.",
+   "cause": "cited.py's overclaim words cover 'causes' only.",
+   "fix": "A reworded sentence with a cause, a reason or advice (English and Persian) keeps the template.",
+   "test": "tests/test_home_business.py::H11bTests::test_a_cause_a_moved_number_a_wrong_direction_or_a_dropped_group_keeps_the_template"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A number could be moved to another group or given the wrong direction.",
+   "scenario": "'Revenue rose by 99.8' for a fall; 'electronics fell by 2,910.46', beauty's number.",
+   "cause": "cited.py checks a number is somewhere in the source, unsigned.",
+   "fix": "Each sentence's numbers must sit on its own group's line (the total's when it names none), its direction word matching that group's sign; one group per sentence.",
+   "test": "tests/test_home_business.py::H11bTests::test_a_cause_a_moved_number_a_wrong_direction_or_a_dropped_group_keeps_the_template"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A one-sentence rewording replaced the whole brief and its warnings.",
+   "scenario": "'Revenue fell by 99.8 [CHANGE].' alone: the drivers, the scope, the rows left out and the coverage note were gone.",
+   "cause": "Any passing text replaced the template.",
+   "fix": "Every driver the template names must be in the rewording; the scope and the notes are the code's, always added; at most six sentences.",
+   "test": "tests/test_home_business.py::H11bTests::test_a_cause_a_moved_number_a_wrong_direction_or_a_dropped_group_keeps_the_template"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "compare_periods split by any column.",
+   "scenario": "by='amount' was answered, its values becoming group names.",
+   "cause": "A given 'by' skipped the rules' filter.",
+   "fix": "A given 'by' must be one of the columns the rules may split by.",
+   "test": "tests/test_home_business.py::H11bTests::test_the_model_compares_through_its_tool_and_never_sees_a_number"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The rewording and the tools, scripted",
+   "gate": "a cited rewording used; an invented number never; the model's tool answers without a number; its thinking stored",
+   "fixed_before_run": true,
+   "result": "A sentence with the change as the template writes it and [CHANGE] was used with the caveat added; an invented 12,345.67 kept the template; compare_periods answered with {answered, by} only; home_business's exchange kept its thinking text",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "scripted model; a live run is owed"
+   ]
+  }
+ ],
+ "outcome": "A business person can get the brief in plainer words from the model, with every number still the comparison's and the caveat always the code's; the model can answer a business question the rules could not read, without ever seeing a number.",
+ "lessons": [
+  "Let the model write the words, and let code own the sentence that must never be dropped.",
+  "A citation check proves a number exists in the source, not that it belongs to what the sentence says: check the subject and the direction too."
+ ],
+ "risks": [
+  "Not yet run live with Claude."
+ ],
+ "commits": []
+}

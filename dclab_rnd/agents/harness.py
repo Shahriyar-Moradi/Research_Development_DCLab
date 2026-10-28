@@ -86,6 +86,7 @@ MODEL_USES: dict[str, str] = {  # purpose -> why it is not an agent: one complet
     "solver_answer": "one solver question answered on the benchmark of verified invented problems (27.6), beside their planted truth",
     "metric_question": "a question about a number turned into a tested template and its parameters, validated, beside the rules' reading (30.20)",
     "home_query": "H6: a query plan for a question about the person's own table, from column summaries; code validates and runs it",
+    "home_business": "H11: a decision brief reworded in plain words, kept only through the citation check, the code's caveat always added",
     "home_intent": "H2: which kind of help a request needs (a prediction, an analysis, ...), read only where the rules find no clear winner",
     "journey_writer": "S8 B1: invented people for the understanding students' homework, on one replica kind (the truth is the code's, not the writer's)",
     "journey_checker": "S8 B1: whether each written person fits its kind's problem; one that does not is kept apart",

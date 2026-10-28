@@ -101,6 +101,18 @@ class GatewayKeeps(unittest.TestCase):
         self.assertEqual(len(docs), 1)
         self.assertEqual(docs[0]["thinking"], [{"text": "why 0"}])
 
+    def test_home_business_keeps_its_thinking(self):  # H11b: a new purpose's thinking is stored (rule 8), redacted: it sees group names
+        transport = Scripted([reply(7)])
+        with mock.patch.object(gw, "_transport", lambda tier, purpose: transport), \
+                mock.patch.dict(os.environ, {"DCLAB_AGENT_HOME": str(self.home)}), \
+                mock.patch.object(experience, "current_log", lambda: None):
+            gw.Gateway(transport=gw._transport).client("home_business").complete([{"role": "user", "content": "the brief"}], None)
+        docs = exchanges(self.home)
+        self.assertEqual(len(docs), 1)
+        kept = json.dumps({k: docs[0].get(k) for k in ("thinking", "thinking_redacted")})
+        self.assertIn("why 7", kept)  # the text, never only "thought: true"
+        self.assertEqual(docs[0]["purpose"], "home_business")
+
     def test_a_scripted_gateway_with_no_workspace_writes_nowhere(self):
         with mock.patch.dict(os.environ, {"DCLAB_AGENT_HOME": str(self.home)}), mock.patch.object(experience, "current_log", lambda: None):
             gw.Gateway(transport=lambda tier, purpose: Scripted([reply()])).client("stage_notes").complete([{"role": "user", "content": "go"}], None)

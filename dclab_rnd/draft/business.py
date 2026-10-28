@@ -183,13 +183,87 @@ def brief(result: C.ChangeResult, narrow: dict[str, str] | None = None, top: int
         if other is not None and other.change * sign < 0:
             lines.append(f"- {C.OTHER}: {'+' if other.change >= 0 else '−'}{_n(abs(other.change))}")
     lines.append("Volume is more or fewer rows, mix a shift between groups, rate the value per row "
-                 f"(split in the order {result.order}). {result.caveat}")
+                 f"(split in the order {result.order}).")
+    return "\n".join(lines + notes(result, narrow))
+
+
+def notes(result: C.ChangeResult, narrow: dict[str, str] | None = None) -> list[str]:
+    """The lines code always says itself, whoever words the rest: the caveat, the rows left out, what the rows cover."""
+    out = [result.caveat]
     if result.missing_measure:
-        lines.append(f"{result.missing_measure:,} rows with no {result.measure} are left out of the sums.")
+        out.append(f"{result.missing_measure:,} rows with no {result.measure} are left out of the sums.")
     if not narrow:  # a place or a product named in other words than the table's is never matched by guess: said instead
-        lines.append("This covers every row of the two periods; if you meant a part of them (a region, a channel), name it as "
-                     "it is written in the table.")
-    return "\n".join(lines)
+        out.append("This covers every row of the two periods; if you meant a part of them (a region, a channel), name it as "
+                   "it is written in the table.")
+    return out
 
 
-__all__ = ["windows", "read", "compare", "brief", "shown"]
+PROMPT = "home_business"
+MAX_GROUPS = 8  # the group names the model may see (cell values of the person's table: the purpose's budget)
+
+
+# a cause, a reason or a recommendation in a reworded sentence: the template stands (the review of H11b: cited.py's own
+# overclaim words caught "causes" only, not "because", "drove", "should" or Persian "به دلیل", "باید")
+CAUSAL = re.compile(r"\b(?:because|due\s+to|owing\s+to|driv(?:e|en|es|ing)|drove|led\s+to|leads?\s+to|result(?:s|ed)?\s+in|reason|"
+                    r"thanks\s+to|explain(?:s|ed)?\s+by|should|must|recommend\w*|suggest\w*|advis\w*|need\s+to|ought)\b|"
+                    r"به\s*دلیل|باعث|چون|زیرا|به\s*خاطر|باید|پیشنهاد|توصیه", re.I)
+UP = re.compile(r"\b(?:rose|rise|risen|rising|grew|grow|grown|increas\w*|up|higher|gain\w*|more)\b|افزایش|بیشتر|رشد", re.I)
+DOWN = re.compile(r"\b(?:fell|fall|fallen|falling|dropp?\w*|decreas\w*|declin\w*|down|lower|los[st]\w*|less|fewer|shrank)\b|کاهش|کمتر|افت", re.I)
+
+
+def _faithful(sentence: str, result: C.ChangeResult, lines: dict[str, str], head: str) -> bool:
+    """A reworded sentence says each number of the group it names, in the direction that group moved (the total's when it
+    names none): never a number moved to another group, never a fall called a rise."""
+    from .. import cited
+
+    low = sentence.lower()
+    groups = [g for g in lines if g.lower() in low]
+    if len(groups) > 1:
+        return False  # one group a sentence: its numbers are then that group's own
+    line = lines[groups[0]] if groups else head
+    if any(n not in cited.numbers(line, source=True) for n in cited.numbers(sentence)):
+        return False
+    change = next((x.change for x in result.segments if x.segment == groups[0]), 0.0) if groups else result.change
+    if (UP.search(sentence) and change < 0) or (DOWN.search(sentence) and change > 0):
+        return False
+    return True
+
+
+def reword(client: Any, result: C.ChangeResult, template: str, narrow: dict[str, str] | None = None) -> tuple[str, dict[str, Any]]:
+    """H11b: the brief in plainer words by the home_business model, kept only when every sentence passes cited.py against
+    the template, says each number of its own group in the direction it moved, claims no cause and gives no advice, and
+    the groups the template names as drivers are all there. The scope and the notes (the caveat, the rows left out, what
+    the rows cover) are always the code's. The template stands otherwise. Returns the text and what happened (never the
+    model's own words)."""
+    from .. import cited, prompts
+
+    if client is None:
+        return template, {"by": "template", "why": "no model serves home_business here"}
+    named = [s.segment for s in result.segments if s.segment != C.OTHER]
+    if len(named) + len(narrow or {}) > MAX_GROUPS:  # more names of the table's values than the purpose may see
+        return template, {"by": "template", "why": "more groups than the model may see"}
+    try:
+        reply = client.complete([{"role": "system", "content": prompts.text(PROMPT)},
+                                 {"role": "user", "content": template}], None)
+    except Exception as error:  # noqa: BLE001 - the template stands, said why
+        return template, {"by": "template", "why": f"the model did not answer ({type(error).__name__})"}
+    text = str((reply.get("content") if isinstance(reply, dict) else reply) or "")
+    checked = cited.check(text, {"CHANGE": template})
+    kept = [cited.CITE.sub("", k["text"]).replace(" .", ".").strip() for k in checked.get("kept") or []]
+    if not kept or checked.get("dropped") or len(kept) > 6:
+        return template, {"by": "template", "why": "the model's sentences did not pass the citation check", "dropped": len(checked.get("dropped") or [])}
+    if any(CAUSAL.search(k) for k in kept):
+        return template, {"by": "template", "why": "a reworded sentence claimed a cause or gave advice"}
+    rows = template.split("\n")
+    lines = {s.segment: next((r for r in rows if r.startswith(f"- {s.segment}:")), "") for s in result.segments}
+    lines = {g: line for g, line in lines.items() if line}
+    if not all(_faithful(k, result, lines, rows[0]) for k in kept):
+        return template, {"by": "template", "why": "a reworded sentence moved a number or a direction"}
+    drivers = [r[2:].split(":")[0] for r in rows if r.startswith("- ")]
+    if not all(d.lower() in " ".join(kept).lower() for d in drivers):
+        return template, {"by": "template", "why": "the rewording left out a group the brief names"}
+    scope = "".join(f"For {k} = {v}: " for k, v in (narrow or {}).items())
+    return "\n".join([scope + " ".join(kept), *notes(result, narrow)]), {"by": "model", "kept": len(kept)}
+
+
+__all__ = ["windows", "read", "compare", "brief", "notes", "shown", "reword", "PROMPT"]

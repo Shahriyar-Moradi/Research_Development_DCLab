@@ -26,7 +26,8 @@ class DraftWork:
         return HomeAgent(self.drafts, self.models.client("home_agent", draft_id=draft_id), on_request=self.requests, traces=self.traces,
                          reader=reader(self.models, draft_id=draft_id), second_opinion=self.pattern_on("second_opinion"),
                          intent_client=self.models.client("home_intent", draft_id=draft_id),
-                         query_client=self.models.client("home_query", draft_id=draft_id))
+                         query_client=self.models.client("home_query", draft_id=draft_id),
+                         business_client=self.models.client("home_business", draft_id=draft_id))
 
     def pattern_on(self, name: str) -> bool:
         """28.6: a team pattern's switch in this workspace's settings (on only where its gate passed)."""

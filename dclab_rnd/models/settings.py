@@ -48,6 +48,10 @@ PURPOSES: dict[str, Purpose] = {
                                           "missing rate and number of distinct values; never a row or a cell value: it writes a query plan, "
                                           "code checks it and runs it, and groups under the row floor (DCLAB_ROW_FLOOR, default 5) are never shown",
                           cell_values=0, keeps_text=True),
+    "home_business": Purpose("standard", 60, "H11: the decision brief DCLab's code wrote from a comparison of two periods (totals, "
+                                             "the change per group, at most 8 group names of the person's table); never a row: it "
+                                             "rewords the brief, and code keeps a sentence only when cited.py passes it",
+                             cell_values=8),
     "home_agent": Purpose("standard", 90, "the problem sentence, the user's answers, column summaries (name, kind, missing rate, unique count) "
                                           "and descriptive findings; never rows or cell values", stream=True, cell_values=0, keeps_text=True),
     "memory_embedding": Purpose("cheap", 60, "35.5: the text of remembered lines (a project's notes, facts, accepted lessons, a person's "

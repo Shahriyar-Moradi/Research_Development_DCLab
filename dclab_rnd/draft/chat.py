@@ -271,10 +271,11 @@ def draft_table(store: Any, draft: dict[str, Any]) -> Any:
 class HomeAgent:
     def __init__(self, store: DraftStore, client=None, on_request: Callable[[str, str, dict[str, Any]], None] | None = None,
                  registry: Registry | None = None, traces: Any = None, reader: Callable[..., Any] | None = None,
-                 second_opinion: bool = False, intent_client: Any = None, query_client: Any = None):
+                 second_opinion: bool = False, intent_client: Any = None, query_client: Any = None, business_client: Any = None):
         self.store, self.client, self.traces = store, client, traces
         self.intent_client = intent_client  # H2: the model reading the kind of help, only where the rules find no clear winner
         self.query_client = query_client  # H7: the model writing a query plan from column summaries, where the rules cannot
+        self.business_client = business_client  # H11b: the model rewording a decision brief, kept only through cited.py
         self.second_opinion = second_opinion  # 28.6: the reader's family and the rules' judged before the card is concluded
         # 20.10 v4: the conversation reader (dclab_core.conversation.READER through a model), reading the problem sentence
         # and the card's answers; (field, text, columns) -> what the model read, each value quoting the person's words
@@ -814,8 +815,19 @@ class HomeAgent:
                 return None  # the reply did not give it either: the normal path reads the message
             return self.say(draft_id, f"I can show where a number changed between two periods. To do it here I need {missing or 'two periods with rows in both'}.",
                             kind="text")
-        text = business.brief(result, spec["narrow"])
-        record = {"asset": active, "result": result.model_dump(mode="json"), "narrow": spec["narrow"], "shown": business.shown(result), "at": now()}
+        return self.give_brief(draft_id, spec, result)
+
+    def give_brief(self, draft_id: str, spec: dict[str, Any], result: Any, by: str = "rules") -> dict[str, Any]:
+        """H11: one comparison said as a decision brief: the template, or the home_business model's wording where every
+        sentence passed cited.py; kept with the numbers it can show and how it was worded."""
+        from . import business
+
+        draft = self.store.get(draft_id)
+        active = draft.get("active_asset")
+        template = business.brief(result, spec["narrow"])
+        text, worded = business.reword(self.business_client, result, template, spec["narrow"])
+        record = {"asset": active, "result": result.model_dump(mode="json"), "narrow": spec["narrow"], "shown": business.shown(result),
+                  "template": template, "worded": worded, "by": by, "at": now()}
 
         def keep(d):
             d["business"] = record
@@ -826,9 +838,9 @@ class HomeAgent:
         if (draft.get("exit") or {}).get("status") != "reached":
             capture.exit_reached((draft.get("exit") or {}).get("record"), "decision_brief")
         self.moved(draft_id, "answer_business", {"by": result.by, "measure": result.measure, "periods": [result.a.label, result.b.label],
-                                                  "narrowed_by": sorted(spec["narrow"]), "splits": spec["splits"],
+                                                  "narrowed_by": sorted(spec["narrow"]), "splits": spec["splits"], "planned_by": by,
                                                   "scores": {k: round(v, 4) for k, v in spec.get("scores", {}).items()}},
-                   {"segments": len(result.segments)})
+                   {"segments": len(result.segments), "worded_by": worded.get("by")})
         return self.say(draft_id, text, kind="decision_brief")
 
     def _other_tables(self, draft: dict[str, Any]) -> dict[str, Any]:
@@ -2372,6 +2384,69 @@ def export_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
     return {"format": fmt}
 
 
+def compare_periods(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    """H11b: the model's reading of a business question as two periods, a measure and (optionally) a grouping column, checked
+    like the rules' reading (no identifier, no personal column, the row floor) and said to the person as a decision brief.
+    The model gets only whether it was answered and the grouping used, never a number."""
+    import pandas as pd
+
+    from dclab_core import change as C
+    from dclab_core import query as Q
+
+    from .. import home_query
+    from . import business
+
+    agent, draft_id = turn.agent, turn.draft_id
+    draft = agent.store.get(draft_id)
+    try:
+        frame = home_query.table(agent.store, draft)
+        pd_check = [pd.Timestamp(str(args[k])) for k in ("a_start", "a_end", "b_start", "b_end")]
+        # the labels the person reads are written by code from the dates, never by the model
+        label = lambda s, e: f"{s:%B %Y}" if s.day == 1 and e == s + pd.offsets.MonthEnd(0) else f"{s:%Y-%m-%d} to {e:%Y-%m-%d}"  # noqa: E731
+        a = C.Window(start=f"{pd_check[0]:%Y-%m-%d}", end=f"{pd_check[1]:%Y-%m-%d}", label=label(pd_check[0], pd_check[1]))
+        b = C.Window(start=f"{pd_check[2]:%Y-%m-%d}", end=f"{pd_check[3]:%Y-%m-%d}", label=label(pd_check[2], pd_check[3]))
+    except Exception as error:  # noqa: BLE001 - the model's malformed reading is its error to fix
+        return {"error": f"Give a_start, a_end, b_start, b_end as dates ({type(error).__name__})"}
+    if pd_check[0] > pd_check[1] or pd_check[2] > pd_check[3]:
+        return {"error": "a period's start is after its end"}
+    columns = briefs.columns_of(draft)
+    personal = {str(c.get("name")) for c in columns if str(c.get("sensitivity") or "none") in home_query.SENSITIVE}
+    usable = lambda c: c in frame.columns and c not in personal and not Q.ID_NAME.search(c)  # noqa: E731
+    measure = args.get("measure") or None
+    if measure is not None and not (usable(str(measure)) and str(measure) in frame.select_dtypes("number").columns):
+        return {"error": "measure: a number column that is not an identifier or personal (or leave it out to count rows)"}
+    dates = [d for d in business._date_columns(frame) if d not in personal]
+    date = str(args.get("date_column") or (dates[0] if len(dates) == 1 else ""))
+    if date not in dates:
+        return {"error": f"date_column: one of {', '.join(dates) or 'none'}"}
+    allowed = [str(c) for c in frame.columns if frame[c].dtype == object and usable(str(c)) and str(c) != date
+               and 1 < frame[c].nunique() <= business.MAX_SPLIT]  # the same columns the rules may split by (the review of H11b)
+    splits = [str(args["by"])] if args.get("by") else allowed
+    if not splits or not all(c in allowed for c in splits):
+        return {"error": f"by: one of {', '.join(allowed) or 'none'} (a text column of a few values, not an identifier or personal)"}
+    spec = {"a": a, "b": b, "date_column": date, "measure": measure, "narrow": {}, "splits": splits}
+    try:
+        result = business.compare(spec, frame)
+    except ValueError as error:
+        return {"error": str(error)[:300]}
+    if result is None:
+        return {"error": "no grouping column gave a comparison"}
+    agent.give_brief(draft_id, spec, result, by="model")
+    return {"answered": True, "by": result.by}
+
+
+def decision_brief(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    """H11b: the last comparison's brief said again (its words checked again), when the person asks for it."""
+    from dclab_core import change as C
+
+    done = turn.agent.store.get(turn.draft_id).get("business") or {}
+    if not done.get("result"):
+        return {"error": "No comparison yet: compare_periods first."}
+    result = C.ChangeResult.model_validate(done["result"])
+    turn.agent.give_brief(turn.draft_id, {"narrow": done.get("narrow") or {}, "splits": [result.by]}, result, by=done.get("by") or "rules")
+    return {"said": True}
+
+
 def make_chart(turn: Turn, /, **args: Any) -> dict[str, Any]:
     """H7c: the chart code chose for an answer (its kind and title; the numbers are the person's to see)."""
     for m in reversed(turn.agent.store.get(turn.draft_id).get("messages") or []):
@@ -2507,7 +2582,7 @@ def simulate_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
 DRAFT_MOVES = {"ask_user": "ask", "record": "record", "set_pack": "set_pack", "propose_workflow": "propose_workflow",
                "request_data": "request_data", "simulate_data": "simulate", "build_solution": "build", "set_intent": "set_intent",
                "query_data": "answer", "save_answer": "save_answer", "propose_step": "prepare", "undo_step": "prepare",
-               "export_data": "export"}
+               "export_data": "export", "compare_periods": "brief", "decision_brief": "brief"}
 ML_MOVES = ("set_pack", "propose_workflow", "build")  # H2: the prediction track's moves, refused on the others
 PREPARING = ("queued", "structuring", "cleaning", "analysing")
 
@@ -2517,7 +2592,8 @@ REFUSED = {"record": "The answer was not backed by the user's own words", "ask":
            "propose_workflow": "The workflow did not pass the workflow checks", "build": "The user had not asked to build",
            "set_intent": "Not backed by the user's words, or the user chose the type of help",
            "answer": "Not an analysis question, or the table is not ready", "save_answer": "No such answer",
-           "prepare": "Not a preparation request, or the table is not ready", "export": "No prepared table yet"}
+           "prepare": "Not a preparation request, or the table is not ready", "export": "No prepared table yet",
+           "brief": "Not a business question, or the table is not ready"}
 
 
 class DraftGuard:
@@ -2551,6 +2627,14 @@ class DraftGuard:
                 return {"error": "The table is not prepared yet: wait for it, or offer the person ways to bring data."}
             if tool.move == "save_answer" and not 0 <= _int(arguments.get("answer")) < len(draft.get("answers") or []):
                 return {"error": "No such answer."}
+        if tool.move == "brief":  # H11b: a business question, on a described table, with no question open
+            draft = agent.store.get(draft_id)
+            if agent.track(draft) != "business":
+                return {"error": "A comparison of periods is for business questions; this request is another kind of help."}
+            if not any(m.get("kind") == "analysis" and m.get("asset") == draft.get("active_asset") for m in draft.get("messages") or []):
+                return {"error": "The table is not prepared yet: wait for it, or offer the person ways to bring data."}
+            if agent.pending(draft) is not None:
+                return {"error": "A question is open: wait for the person's answer first."}
         if tool.move in ("prepare", "export"):  # H9b, the recipe guard: preparation only, on a described table, one step at a time
             draft = agent.store.get(draft_id)
             if agent.track(draft) != "preparation":
@@ -2667,6 +2751,13 @@ def register(registry: Registry) -> None:
         "filters [{column, op, value}], keys, table, how, index, spread, values, agg, at, desc}; why: their words. A step that "
         "removes over 5% of the rows, or a join that changes the row count, is asked to the person before it applies. You learn "
         "whether it applied or was asked, never the rows.", {"step": {"type": "object"}, "why": S}, ["step"], "write")
+    add("compare_periods", "Answer a business question about a change between two periods: where the number changed, by group, "
+        "said to the person as a decision brief (the data shows association, not cause). a_start/a_end: the baseline period, b_start/"
+        "b_end: the period asked about (dates); measure: a number column to total (leave out to count rows); by: a grouping column "
+        "(leave out to choose the one that explains most); date_column when the table has several. You learn only whether it was "
+        "answered.", {"a_start": S, "a_end": S, "b_start": S, "b_end": S, "measure": S, "by": S,
+                      "date_column": S}, ["a_start", "a_end", "b_start", "b_end"], "write")
+    add("decision_brief", "Say the last comparison's decision brief again, when the person asks for it.", {}, [], "write")
     add("undo_step", "Take back the last preparation step (the table is made again from the original).", {}, [], "write")
     add("export_data", "Offer the prepared table for download in the format the person asked for.",
         {"format": {**S, "enum": ["csv", "excel", "parquet"]}}, ["format"], "write")

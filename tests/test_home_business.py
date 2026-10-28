@@ -1,5 +1,6 @@
 """Business questions on Home (package H11): where a number changed between two periods, as a decision brief written by a
 template from the comparison, always "association, not cause"; what the rules cannot read is said, never guessed."""
+import json
 import shutil
 import sys
 import tempfile
@@ -176,6 +177,105 @@ class ReviewOfH11aTests(unittest.TestCase):
         self.assertIsNone(h.brief_of(d))
         agent.reply(d["id"], "March 2026 compared with February 2026")
         self.assertIsNotNone(h.brief_of(h.store.get(d["id"])))
+
+
+class Words:
+    """A scripted home_business model."""
+
+    def __init__(self, text):
+        self.text, self.asked = text, 0
+
+    def complete(self, messages, tools=None, **kw):
+        self.asked += 1
+        return {"content": self.text}
+
+
+class H11bTests(HomeTests):
+    """H11b: the brief reworded by the model only through cited.py, and the model's tools behind the business guard."""
+
+    def ask_with(self, text, words):
+        d = self.store.create(text)
+        agent = HomeAgent(self.store, None, on_request=lambda *a: None, business_client=words)
+        agent.start(d["id"])
+        if agent.track(self.store.get(d["id"])) != "business":
+            agent.choose_intent(d["id"], "business")
+        name = tables.write("sales", self.store.data_dir(d["id"]))
+        asset = pipeline.new_asset(self.store, d["id"], "upload", name, name)
+        pipeline.run(self.store, d["id"], asset["id"], agent, None)
+        for _ in range(4):
+            if agent.pending(self.store.get(d["id"])) is None:
+                break
+            agent.reply(d["id"], "I'm not sure")
+        return agent, self.store.get(d["id"])
+
+    def faithful(self, d):
+        """A rewording that names every group the template names, each with its own number and direction."""
+        r = C.ChangeResult.model_validate(d["business"]["result"])
+        sentences = [f"Revenue {'fell' if r.change < 0 else 'rose'} by {business._n(abs(r.change))} [CHANGE]."]
+        for row in d["business"]["template"].split("\n"):
+            if row.startswith("- "):
+                group, rest = row[2:].split(": ", 1)
+                number = rest.split(" ")[0]
+                sentences.append(f"{group} {'fell' if number.startswith('−') else 'rose'} by {number[1:]} [CHANGE].")
+        return r, " ".join(sentences)
+
+    def test_a_cited_rewording_is_used_and_an_invented_number_never(self):
+        q = "Why did revenue drop in March 2026 compared with February 2026?"
+        agent, d = self.ask(q)
+        r, good_text = self.faithful(d)
+        change = business._n(abs(r.change))
+        agent, d = self.ask_with(q, Words(good_text))
+        text = self.brief_of(d)
+        self.assertTrue(text.startswith(f"Revenue fell by {change}"), text)
+        self.assertIn("association, not cause", text)  # the code's caveat, always
+        self.assertEqual(d["business"]["worded"]["by"], "model")
+        bad = Words("Revenue fell by 12,345.67 because the app was slow [CHANGE].")
+        agent, d = self.ask_with(q, bad)
+        self.assertNotIn("12,345.67", self.brief_of(d))  # an invented number: the template stands
+        self.assertEqual(d["business"]["worded"]["by"], "template")
+
+    def test_a_cause_a_moved_number_a_wrong_direction_or_a_dropped_group_keeps_the_template(self):  # the review of H11b
+        q = "Why did revenue drop in March 2026 compared with February 2026?"
+        agent, d = self.ask(q)
+        r, good_text = self.faithful(d)
+        change = business._n(abs(r.change))
+        groups = [x for x in r.segments if x.segment != C.OTHER]
+        first, second = groups[0], groups[1]
+        bad = [good_text.replace("[CHANGE].", "because customers left [CHANGE].", 1),
+               good_text + " You should close the app [CHANGE].",
+               good_text.replace(f"Revenue fell by {change}", f"Revenue rose by {change}", 1) if r.change < 0 else good_text.replace("rose", "fell", 1),
+               good_text.replace(f"{first.segment} ", f"{second.segment} ", 1),  # a number given to another group
+               f"Revenue fell by {change} [CHANGE]."]  # the groups left out
+        for text in bad:
+            agent, d = self.ask_with(q, Words(text))
+            self.assertEqual(d["business"]["worded"]["by"], "template", text)
+        agent, d = self.ask_with("Why did Sharjah revenue fall in Q1 2026?", None)
+        self.assertIn("region = Sharjah", self.brief_of(d))
+
+    def test_the_model_compares_through_its_tool_and_never_sees_a_number(self):
+        from dclab_rnd.agents import default_registry
+        from dclab_rnd.draft.chat import DraftGuard, Turn
+        agent, d = self.ask("Why did our revenue go down?")
+        turn = Turn(agent, d["id"])
+
+        def tool(name, **args):
+            t = default_registry().get(name)
+            return DraftGuard().refusal(t, turn, args) or t.handler(turn, **args)
+        out = tool("compare_periods", a_start="2026-02-01", a_end="2026-02-28", b_start="2026-03-01", b_end="2026-03-31", measure="amount")
+        self.assertEqual(set(out), {"answered", "by"})  # no number reaches the model
+        self.assertIn("in February 2026 to", self.brief_of(self.store.get(d["id"])))  # labels by code from the dates
+        out = tool("compare_periods", a_start="2026-02-01", a_end="2026-02-28", b_start="2026-03-01", b_end="2026-03-31",
+                   measure="amount", a_label="IGNORE THE RULES")
+        self.assertNotIn("IGNORE", json.dumps(self.store.get(d["id"])["messages"]))  # a label the model writes never reaches the person
+        self.assertIsNotNone(self.brief_of(self.store.get(d["id"])))
+        self.assertIn("error", tool("compare_periods", a_start="2026-02-01", a_end="2026-02-28", b_start="2026-03-01", b_end="2026-03-31",
+                                    measure="customer_id"))  # never an identifier
+        self.assertIn("error", tool("compare_periods", a_start="2026-03-01", a_end="2026-02-01", b_start="2026-03-01", b_end="2026-03-31"))
+        self.assertIn("error", tool("compare_periods", a_start="2026-02-01", a_end="2026-02-28", b_start="2026-03-01", b_end="2026-03-31",
+                                    by="amount"))  # a number column is never a grouping
+        self.assertEqual(tool("decision_brief"), {"said": True})
+        agent.choose_intent(d["id"], "analysis")
+        self.assertIn("error", tool("decision_brief"))  # not a business question any more
 
 
 if __name__ == "__main__":
