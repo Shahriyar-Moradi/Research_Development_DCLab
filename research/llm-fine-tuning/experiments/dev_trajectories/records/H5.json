@@ -1,0 +1,54 @@
+{
+ "package": "H5",
+ "title": "A memory of the whole Home conversation: what was settled early stays in view, and what the person stated becomes the project's memory",
+ "date": "2026-10-28",
+ "request": "Continue the Home plan after H4: Home must keep the whole conversation in mind, and hand what was settled to the project.",
+ "spec": "Package H5 of the Home plan: a code-built summary of the draft (intent, confirmed fields, answers, open questions); the model's state becomes state + summary + the last 8 messages; on exit the summary and the confirmed brief go to project memory; a fact stated early survives a 30-message conversation.",
+ "plan": [
+  "Build the summary from the draft's records alone, so it needs no model and claims nothing the records do not.",
+  "Show the model the summary and the last 8 messages instead of the last 12.",
+  "At a project's birth, write only what the person stated to the project's memory through the memory session's calls; agree the boundary with that session first."
+ ],
+ "decisions": [
+  {
+   "decision": "Only fields stated in the person's words become project memory; assumptions, defaults and guesses stay in the draft.",
+   "why": "A remembered line is read by later agents as true; an assumption remembered as a fact would mislead them."
+  },
+  {
+   "decision": "The memory session's calls are used, not a second writer.",
+   "why": "One writer keeps the memory's rules (one line, no secret, sourced) in one place; that session owns dclab_rnd/memory."
+  }
+ ],
+ "change": "draft/memory.py (summary, recent, facts, hand_off); draft/chat.py (context gains the conversation's summary, model_turn uses the last 8 messages, built() hands off to project memory).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "A test assertion that could never fail.",
+   "scenario": "The first version of the summary's number check ended in 'or True'.",
+   "cause": "Written to pass, not to test.",
+   "fix": "Every number in the summary must appear in the draft's records.",
+   "test": "test_the_summary_holds_only_what_the_records_say"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "An early fact fell out of the model's view.",
+   "scenario": "A refresh settled in the second message was gone after thirty more messages.",
+   "cause": "The model saw only the last twelve messages.",
+   "fix": "The state carries the code-built summary of the whole conversation.",
+   "test": "test_a_fact_from_the_second_message_is_in_view_at_the_thirtieth"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Home's model keeps everything the conversation settled in view however long it grows, and a project starts with what the person stated as its memory.",
+ "lessons": [
+  "A test that cannot fail is worse than none: it reads as evidence."
+ ],
+ "risks": [
+  "The memory session's brief is not yet read into Home's context: a follow-up package."
+ ],
+ "commits": []
+}

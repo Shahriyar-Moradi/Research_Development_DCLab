@@ -34,6 +34,7 @@ from dclab_rnd.agents.traces import Tracer
 from . import brief as briefs
 from . import intent as intents
 from . import lang
+from . import memory as memories
 from . import pack as packs
 from . import plan as plans
 from . import workflow as wflow
@@ -1004,6 +1005,10 @@ class HomeAgent:
                 ["upload", "connect", "simulate"] if "no table" in done["refused"] else []
             self.say(draft_id, done["refused"], actions=actions, rule=done.get("rule"))
             return
+        if done.get("project_id"):  # H5: what the person stated becomes the project's memory
+            from .. import experience
+
+            memories.hand_off(self.store, self.store.get(draft_id), str(done["project_id"]), log=experience.current_log())
         steps = [f"{i}. {line}" for i, line in enumerate(done.get("plan") or [], 1)]
         if done.get("started"):
             text = (f"Building now. The project “{done.get('name') or 'New project'}” is created, and DCLab's agent is carrying out the plan: "
@@ -1568,6 +1573,7 @@ class HomeAgent:
             "intent": {**{k: (draft.get("intent") or {}).get(k) for k in ("tracks", "status", "source")}, "track": self.track(draft)},  # H2
             "next_step": intents.NEXT.get(self.track(draft)),
             "brief": (draft.get("track_brief") or {}).get(self.track(draft)),  # H4: what is known for this kind of help, with its sources
+            "conversation": memories.summary(draft),  # H5: everything the conversation settled, however long it grew
             "plan": {**{f: ((draft.get("plan") or {}).get(f) or {}).get("status", "unknown") for f in plans.fields_for(draft)}, "next": (draft.get("plan") or {}).get("next")},
             "questions_asked": [{k: q.get(k) for k in ("field", "text", "answered")} for q in draft["questions"]],
             "questions_left": MAX_QUESTIONS - len(counted(draft)),
@@ -1591,7 +1597,7 @@ class HomeAgent:
     def model_turn(self, draft_id: str, max_replies: int = MODEL_REPLIES, text: str = "") -> None:
         draft = self.store.get(draft_id)
         open_question = self.pending(draft)
-        history = [{"role": "user" if m["role"] == "user" else "assistant", "content": m["text"]} for m in draft["messages"][-12:] if m.get("text")]
+        history = memories.recent(draft)  # H5: the last messages; the whole conversation's summary is in the state
         messages = [{"role": "system", "content": POLICY}, {"role": "system", "content": "Current state: " + self.context(draft)}, *history]
 
         def on_step(step: Step) -> None:

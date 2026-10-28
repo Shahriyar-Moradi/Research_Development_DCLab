@@ -355,7 +355,7 @@ agent-metrics:  ## the agents' metrics ledger: the evaluation results read in, t
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_metrics show $(ARGS)
 
 agent-eval:  ## the scripted judgment suite (A4.1): planted traps, the standard plan and two reference policies; writes a new AEV result
-	@n=$$(ls evidence/campaigns/agent_eval_v1/results/AEV-*.json 2>/dev/null | wc -l | tr -d ' '); \
+	@n=$$(ls evidence/campaigns/agent_eval_v1/results/AEV-*.json 2>/dev/null | sed 's/.*AEV-0*\([0-9]*\)_.*/\1/' | sort -n | tail -1); n=$${n:-0}; \
 	$(TEST_TMP) DCLAB_MEMORY=off DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval --output evidence/campaigns/agent_eval_v1/results/AEV-$$(printf '%03d' $$((n + 1)))_judgment_v1_scripted.json
 
 benchmark-v3:  ## benchmark v3 (15.9): v2 reseeded plus rare-event bases and traps; SPLIT=dev (default) or SPLIT=test (sealed: always recorded as a new BEN3 result)
