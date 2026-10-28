@@ -25,7 +25,18 @@
     }
   ],
   "change": "dclab_rnd/draft/intent.py: read() keeps the valid quotes per track; DELIVERS, BOTH and contrast(). dclab_rnd/draft/chat.py: start() asks the contrast question; take_answer maps the answer through its options. tests/test_home_intent.py: three tests and the tie test updated.",
-  "findings": [],
+  "findings": [
+    {
+      "id": "F1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A tie caused by a prediction phrase could leave the prediction out of the either-or question.",
+      "scenario": "'A dashboard of how many orders came in, and the customers likely to leave' read reporting, analysis, prediction; the question offered a report or numbers, with no button for the churn model, and its why line about a model was false.",
+      "cause": "contrast() took the first two tracks of the reading, while a report that rides on a prediction signal is asked even when another track ranks between them.",
+      "fix": "Every tie Home asks about is a prediction against a report, so contrast() pairs those two in the reading's order.",
+      "test": "test_the_either_or_always_offers_the_prediction"
+    }
+  ],
   "measurements": [
     {
       "name": "Home on the H1 dev requests, rules alone, with the either-or question",
@@ -46,5 +57,7 @@
   "risks": [
     "The deliverable phrases are fixed English; Persian requests need H3 before the question reads naturally to them."
   ],
-  "commits": []
+  "commits": [
+    "eecfc94"
+  ]
 }

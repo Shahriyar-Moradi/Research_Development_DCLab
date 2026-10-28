@@ -203,6 +203,18 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(q["options"][-1], "Something else")
         self.assertIn(intent.BOTH, q["options"])
 
+    def test_the_either_or_always_offers_the_prediction(self):
+        for sentence in ("A dashboard of how many orders came in, and the customers likely to leave",
+                         "Why did sales drop? Send me a weekly report of the customers likely to churn"):
+            reading = intent.read(sentence)
+            self.assertEqual(reading["status"], "asked", sentence)
+            options = [track for track, _ in intent.contrast(reading)["options"]]
+            self.assertEqual(set(options), {"prediction", "reporting"}, sentence)
+            self.assertIn(intent.BOTH, [text for _, text in intent.contrast(reading)["options"]])
+        bare = intent.contrast({})  # a draft from before the quotes were kept
+        self.assertNotIn("you wrote", bare["question"])
+        self.assertEqual({t for t, _ in bare["options"]}, {"prediction", "reporting"})
+
     def test_each_option_of_the_either_or_answers_it(self):
         for answer, track in ((intent.BOTH, "prediction"), ("A report or dashboard of what already happened", "reporting"),
                               ("A model that predicts it ahead of time", "prediction"), ("I need the dashboard", "reporting")):

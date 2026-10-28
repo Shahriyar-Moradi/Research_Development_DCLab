@@ -9,10 +9,10 @@ Code decides, a model advises (CLAUDE.md rule 5):
 1. **Rules first.** Phrases of each track score the request (``SIGNALS``: a strong phrase 3, a medium one 2, a weak one 1).
    The track with the highest score is the main one; every track that scored is kept, in score order. The quote is the
    person's own words that matched, checked with ``plan.quoted``.
-2. **A model second**, only when the rules found nothing or the two leading tracks are the classic confusion (a prediction
-   against an analysis or a report of what already happened, with equal scores): its reading is kept only with a known
-   track and a quote that is the person's words.
-3. **Ask when it is still unsure**: that confusion, with no model to settle it, becomes one question with the tracks as buttons.
+2. **A model second**, only when the rules found no strong reading or a prediction and a report are equally strong: its
+   reading is kept only with a known track and a quote that is the person's words.
+3. **Ask when it is still unsure**: a prediction against a report, with no model to settle it, becomes one either-or
+   question about the person's request, each choice beside the words they wrote for it (``contrast``, package H2.1).
 4. **Nothing found, nothing asked**: the request is read as a prediction, as Home always did (``source: default``), and the
    person can change it on the card. Persian and other languages are read by the rules in package H3.
 
@@ -255,9 +255,10 @@ def contrast(reading: dict[str, Any]) -> dict[str, Any]:
     """The either-or question for a tie: what each reading would deliver, each beside the words the person wrote for it,
     so the question is about their request and not about DCLab's tracks. Options map back to tracks (``options``)."""
     quotes = reading.get("quotes") or {}
-    pair = [t for t in reading.get("tracks") or [] if t in DELIVERS][:2]
-    if len(pair) < 2:
-        pair = (pair + [t for t in ("prediction", "reporting") if t not in pair])[:2]
+    tracks = list(reading.get("tracks") or [])
+    # every tie Home asks about is a prediction against a report (ASK_PAIRS, and a report that rides on a prediction
+    # signal), so those two are the pair, in the reading's order, whatever ranks between them
+    pair = sorted(("prediction", "reporting"), key=lambda t: tracks.index(t) if t in tracks else len(tracks))
     parts = [f"{DELIVERS[t]} (you wrote “{quotes[t]}”)" if quotes.get(t) else DELIVERS[t] for t in pair]
     options = [(t, DELIVERS[t][0].upper() + DELIVERS[t][1:]) for t in pair]
     if set(pair) == {"prediction", "reporting"}:
