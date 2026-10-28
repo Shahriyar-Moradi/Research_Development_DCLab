@@ -133,8 +133,8 @@ NEXT = {
     "preparation": "Upload or connect the table and I'll prepare it as you asked, step by step, into a new table you can download; "
                    "a step that removes many rows waits for your yes, and the original file is never changed.",
     "reporting": "Reports and dashboards are not built yet. Upload or connect the data and I'll prepare it and show what it holds.",
-    "business": "Answering business questions in this chat is not built yet. Upload the data and I'll prepare it and show what it holds; "
-                "if part of the question is a prediction, change the type of help above.",
+    "business": "Upload or connect the table and I'll show where a number changed between two periods you name, and what moved it "
+                "most; the data shows association, not cause. If part of the question is a prediction, change the type of help above.",
     "advice": "Ask it in the Evidence library: its answers cite DCLab's recorded experiments.",
 }
 

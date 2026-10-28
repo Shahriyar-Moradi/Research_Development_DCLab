@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.130.0 (2026-10-28)
+
+- `change` (H11 of the Home plan): why a number changed between two periods. `compare` splits the change of a total (a
+  sum of a column, or a count of rows) per segment of one grouping column into volume, mix and rate, which sum exactly to
+  each segment's change and the segments to the total (the order, volume then mix then rate, is said in the result).
+  Segments under the row floor are pooled into one "other" group, itself held to the floor; rows with no value for the
+  measure are left out and counted. `best_split` picks the grouping column whose largest segment moving with the total
+  carries the most of it; `split_scores` gives every column's score. `ChangeResult` v1 always says association, not cause.
+
 ## 0.129.0 (2026-10-28)
 
 - `recipe` (H9 of the Home plan): a table prepared step by step, the original never changed. `Recipe` v1 holds typed

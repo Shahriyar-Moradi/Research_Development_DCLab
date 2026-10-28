@@ -633,6 +633,8 @@ DC.view('home', {
         const fmt = m.prepared.format === 'xlsx' ? 'excel' : (m.prepared.format || 'csv');
         const link = f => `<a class="btn sm${f === fmt ? ' primary' : ''}" href="${esc(DC.client.href.preparedTable(S.draft.id, { query: { format: f } }))}" download>${esc({ csv: 'CSV', excel: 'Excel', parquet: 'Parquet' }[f])}</a>`;
         body = `<p data-style="white-space:pre-line">${esc(m.text)}</p><div class="row small" data-style="gap:8px;flex-wrap:wrap"><span class="muted">Download:</span>${['csv', 'excel', 'parquet'].map(link).join('')}</div>`;
+      } else if (m.kind === 'decision_brief') {  // H11: written by a template from the comparison; every number is its own
+        body = `<div class="inset stack tight"><div class="eyebrow">Decision brief</div><p data-style="white-space:pre-line">${esc(m.text)}</p></div>`;
       } else if (m.kind === 'route_suggestion' && m.suggestion) {  // H8: another route the person's words may mean; they choose
         const TRACK = { prediction: 'a prediction', analysis: 'numbers from my data', preparation: 'a prepared table', reporting: 'a report or dashboard', business: 'a business question', advice: 'advice' };
         body = `<p>${esc(m.text)}</p><div class="row"><button type="button" class="btn sm" data-switch-track="${esc(m.suggestion.track)}">Switch to ${esc(TRACK[m.suggestion.track] || m.suggestion.track)}</button></div>`;

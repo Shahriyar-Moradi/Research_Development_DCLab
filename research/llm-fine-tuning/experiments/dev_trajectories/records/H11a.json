@@ -1,0 +1,181 @@
+{
+ "package": "H11a",
+ "title": "Home answers 'why did this number change' with where it changed, as a brief that never claims a cause",
+ "date": "2026-10-28",
+ "request": "The owner's goal: Home helps people with business analysis and BI, not only models. Plan H11: analysis/change.py (a change between two periods split into volume, mix and rate per segment, summing to the total) and analysis/brief.py (a decision brief by a template, which a model may reword with every number cited, always saying the data shows association, not cause). Done when every H1 business request gets the right top contributors and its brief passes the citation check.",
+ "spec": "H11a: dclab_core.change (compare, best_split, ChangeResult v1; small groups pooled), Home's reading of two periods, the measure, named values and the splits by rules (English and Persian), and the template brief; the exit decision_brief reached. H11b: the home_business model purpose rewording the brief behind cited.py, with its thinking-capture and data-limit tests, and the tools compare_periods and decision_brief.",
+ "plan": [
+  "dclab_core/change.py with exact-sum tests.",
+  "draft/business.py: windows, read, compare, brief, shown.",
+  "answer_business in the Home chain; the page; the eval counts the comparison as a code source.",
+  "Review."
+ ],
+ "decisions": [
+  {
+   "decision": "The split order is volume, then mix, then rate, and it is said in the result.",
+   "why": "The three parts then sum exactly to each segment's change; any order is a convention, and a reader must know which."
+  },
+  {
+   "decision": "Segments under the row floor are pooled into one 'other' segment.",
+   "why": "No group of a few rows is shown, and the segments still sum to the total."
+  },
+  {
+   "decision": "The brief lists the segments moving with the total first, then the largest against it.",
+   "why": "'Why did revenue drop' first listed a segment that rose: true, but not the answer to the question."
+  },
+  {
+   "decision": "A value the person names in words the table does not use is never matched by guess; the brief says it covers every row.",
+   "why": "'شارجه' is 'Sharjah' in the table; a guess would answer a different question silently."
+  },
+  {
+   "decision": "No year is assumed for a period.",
+   "why": "'March compared with February' with no year could be any year in the table."
+  }
+ ],
+ "change": "dclab_core/change.py (new, dclab-core 0.130.0: compare, best_split, split_scores, ChangeResult v1 with missing_measure); dclab_rnd/draft/business.py (new); draft/chat.py (answer_business in the chain; the exit); draft/exits.py; draft/intent.py; agent_eval/home (the comparison is a code source); views/home.html (the brief); tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The first segment named for a drop was one that rose.",
+   "scenario": "'Why did revenue drop in March 2026 compared with February?': 'home +3,320' listed first.",
+   "cause": "Segments were ordered by the size of their change, either way; best_split scored by size too.",
+   "fix": "Drivers moving with the total first, then the largest against it; best_split scores the share the largest same-direction segment carries.",
+   "test": "tests/test_home_business.py::HomeTests::test_why_revenue_dropped_names_the_segments_that_carry_it"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The brief's numbers were counted as uncited.",
+   "scenario": "26 numbers like '−2,910.46' had no source.",
+   "cause": "The result holds full-precision floats; the brief shows two decimals with a sign.",
+   "fix": "The numbers as the brief writes them are kept beside the result, computed by code from it.",
+   "test": "make home-eval (uncited 0)"
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A Persian place name compared every region in silence.",
+   "scenario": "'چرا فروش منطقهٔ شارجه ...': all regions compared, the brief read as if about Sharjah.",
+   "cause": "The table spells the value in English; the rules cannot translate a name.",
+   "fix": "The brief says it covers every row and asks for the name as written in the table.",
+   "test": "tests/test_home_business.py::HomeTests::test_a_named_value_narrows_and_an_unmatched_one_is_said"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'Orders' summed the order id.",
+   "scenario": "'Why did orders drop…' gave 'The total of order_id rose by 40,000'.",
+   "cause": "Number columns included identifiers; the column match ran before the count words.",
+   "fix": "Identifiers are never a measure; count words with no other column named mean a count of rows.",
+   "test": "tests/test_home_business.py::ReviewOfH11aTests::test_orders_are_counted_never_their_id_summed"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Personal columns were summed and split by.",
+   "scenario": "'Why did salary rise…' summed salary 'By religion'.",
+   "cause": "The reader used the raw table, never the studio's sensitivity marks.",
+   "fix": "Columns marked personal are never a measure, a split or a narrowing value.",
+   "test": "tests/test_home_business.py::ReviewOfH11aTests::test_a_personal_column_is_never_summed_split_or_narrowed"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Common short words narrowed the rows.",
+   "scenario": "'in March' narrowed to country = IN; 'for us' to US; 'at home' to product_category = home.",
+   "cause": "Any word equal to one column's value narrowed it.",
+   "fix": "Only a name the person spelled as a name (capitalised, three letters or more, not a common word) narrows; two values of one column narrow neither.",
+   "test": "tests/test_home_business.py::ReviewOfH11aTests::test_short_or_common_words_never_narrow_the_rows"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'Told what is needed' was a dead end.",
+   "scenario": "'Why did revenue drop?' then 'March 2026 compared with February 2026' gave 'Noted.'",
+   "cause": "The question was read once, from the first sentence.",
+   "fix": "A reply after Home said what it needs is read with the question it answers.",
+   "test": "tests/test_home_business.py::ReviewOfH11aTests::test_a_reply_with_the_periods_is_read"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "One row's value showed under 'other'.",
+   "scenario": "A single order in a small country: 'other (small groups): −98,765.43'.",
+   "cause": "The pool itself was never held to the row floor.",
+   "fix": "The smallest named groups join the pool until it holds the floor in both periods.",
+   "test": "tests/test_home_business.py::ReviewOfH11aTests::test_one_rows_value_never_shows_under_other"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Year on year was answered against the previous quarter.",
+   "scenario": "'Q2 2026 compared with Q2 2025' compared Q1 2026 with Q2 2026.",
+   "cause": "A second quarter after 'compared with' was not read.",
+   "fix": "Two quarters are read; the second is the baseline.",
+   "test": "tests/test_home_business.py::ReviewOfH11aTests::test_quarter_against_quarter_ratios_and_wording"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An average was answered as a count.",
+   "scenario": "'Average order value' explained the number of rows.",
+   "cause": "'order' matched the count words.",
+   "fix": "A ratio (average, per, value, rate) is refused with its reason.",
+   "test": "tests/test_home_business.py::ReviewOfH11aTests::test_quarter_against_quarter_ratios_and_wording"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'Other' was filed under 'Against the change' whatever its sign; missing values read as a rate change.",
+   "scenario": "The pool carried most of a drop under the 'against' heading; missing amounts counted as rows worth 0.",
+   "cause": "The pool was added last; NaN filled with 0.",
+   "fix": "The pool goes under the heading its sign belongs to; rows with no value are left out and counted in the brief.",
+   "test": "tests/test_home_business.py::ReviewOfH11aTests::test_the_brief_places_other_by_its_sign_and_shows_only_its_own_numbers"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Capture gaps.",
+   "scenario": "A refusal recorded no step; the split options and their scores were nowhere; the exit labelled again per table.",
+   "cause": "Not written.",
+   "fix": "The refusal and every split's score are recorded; the exit is labelled once.",
+   "test": "tests/test_home_business.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Home on the H1 dev requests (rules alone)",
+   "gate": "no wrong field, no uncited number",
+   "fixed_before_run": true,
+   "result": "d-s1 gets a decision brief whose segments match the cleaned table; d-s5 gets one over every region, and says the place it names is not matched (the table spells it in English); d-s2, d-s3, d-s4 and d-s6 ask a 'what if', a comparison without periods or a budget choice: two-period comparison cannot answer them, and Home says what it needs. Fields 65 right, 0 wrong; uncited 0; traps 6 of 6.",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "rules only",
+    "'Done when' is met for the requests that name two periods only; the other business requests need another capability, not H11b's rewording"
+   ]
+  }
+ ],
+ "outcome": "A person who asks why a number changed gets where it changed, segment by segment, split into fewer rows, a shift between groups and a different value per row, and is told plainly that this is association, not cause.",
+ "lessons": [
+  "Answer the question asked: 'why did it drop' wants what dropped first, not what changed most."
+ ],
+ "risks": [
+  "Decision questions without two periods are not answered: a later package.",
+  "Persian names of values are not matched."
+ ],
+ "commits": []
+}

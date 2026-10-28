@@ -87,6 +87,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "query_plan": LIBRARY + " (H6: a question asked of a table, aggregates only; the main product has no such front door at the pinned commit)",
     "query_result": LIBRARY + " (H6: the aggregates a plan returned, small groups suppressed and counted; stored with an answer, never as rows)",
     "recipe": LIBRARY + " (H9: a table prepared step by step on request; the main product has no such front door at the pinned commit)",
+    "change_result": LIBRARY + " (H11: where a number changed between two periods, by segment; the main product has no such front door at the pinned commit)",
     "memory_brief": LIBRARY + " (35.1: what an agent reads at a session's start, built by memory.select; never stored as a row)",
     "exam": LIBRARY + " (a model type's frozen exam, 36.4: rows named by key and hash, never their content; the main product trains "
             "no model of its own at the pinned commit, so it has no exam table)",

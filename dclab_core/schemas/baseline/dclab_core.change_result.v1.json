@@ -1,0 +1,156 @@
+{
+  "$defs": {
+    "Segment": {
+      "additionalProperties": false,
+      "properties": {
+        "change": {
+          "type": "number"
+        },
+        "mix": {
+          "type": "number"
+        },
+        "rate": {
+          "type": "number"
+        },
+        "rows_a": {
+          "type": "integer"
+        },
+        "rows_b": {
+          "type": "integer"
+        },
+        "segment": {
+          "maxLength": 200,
+          "type": "string"
+        },
+        "value_a": {
+          "type": "number"
+        },
+        "value_b": {
+          "type": "number"
+        },
+        "volume": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "segment",
+        "rows_a",
+        "rows_b",
+        "value_a",
+        "value_b",
+        "change",
+        "volume",
+        "mix",
+        "rate"
+      ],
+      "type": "object"
+    },
+    "Window": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "maxLength": 40,
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "maxLength": 80,
+          "type": "string"
+        },
+        "start": {
+          "maxLength": 40,
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "a": {
+      "$ref": "#/$defs/Window"
+    },
+    "b": {
+      "$ref": "#/$defs/Window"
+    },
+    "by": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "caveat": {
+      "default": "This shows where the change happened, not why: the data shows association, not cause.",
+      "type": "string"
+    },
+    "change": {
+      "type": "number"
+    },
+    "date_column": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "floor": {
+      "default": 5,
+      "type": "integer"
+    },
+    "measure": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "missing_measure": {
+      "default": 0,
+      "type": "integer"
+    },
+    "op": {
+      "enum": [
+        "sum",
+        "count"
+      ],
+      "type": "string"
+    },
+    "order": {
+      "default": "volume, then mix, then rate",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.change_result.v1",
+      "default": "dclab_core.change_result.v1",
+      "type": "string"
+    },
+    "segments": {
+      "items": {
+        "$ref": "#/$defs/Segment"
+      },
+      "type": "array"
+    },
+    "total_a": {
+      "type": "number"
+    },
+    "total_b": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "op",
+    "date_column",
+    "by",
+    "a",
+    "b",
+    "total_a",
+    "total_b",
+    "change"
+  ],
+  "type": "object"
+}

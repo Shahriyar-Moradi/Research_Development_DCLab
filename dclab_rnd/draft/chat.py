@@ -635,7 +635,8 @@ class HomeAgent:
             if door and (d.get("exit") or {}).get("kind") != door["kind"]:
                 # a destination reached earlier stays reached when the person comes back to it (the review of H8)
                 reached = (door["kind"] == "analysis" and d.get("answers")) or (door["kind"] == "ml_project" and d.get("project_id")) \
-                    or (door["kind"] == "dataset" and (d.get("recipe") or {}).get("done"))
+                    or (door["kind"] == "dataset" and (d.get("recipe") or {}).get("done")) \
+                    or (door["kind"] == "decision_brief" and (d.get("business") or {}).get("result"))
                 d["exit"] = {**door, "at": now(), **({"record": record} if record else {}),
                              **({"status": "reached"} if reached else {})}
             d["route_suggestion"] = idea
@@ -698,8 +699,8 @@ class HomeAgent:
         for field, absent in missing.items():
             self.say(draft_id, f"Your data has no column named {', '.join(f'`{a}`' for a in absent)}, so I did not use it for the "
                                f"{field.replace('_', ' ')}. Which column did you mean?", kind="text")
-        if self.ask_brief(draft_id) is None and self.answer_analysis(draft_id) is None:
-            self.prepare_table(draft_id)  # H9
+        if self.ask_brief(draft_id) is None and self.answer_analysis(draft_id) is None and self.prepare_table(draft_id) is None:
+            self.answer_business(draft_id)  # H11
 
     def answer_analysis(self, draft_id: str) -> dict[str, Any] | None:
         """H7: on the analysis track, with the table ready and nothing important left to ask, the question is answered from
@@ -777,6 +778,58 @@ class HomeAgent:
         return self.say(draft_id, text, kind="answer", message_id=message_id,
                         answer={"n": n, "columns": result.columns, "rows": result.rows[:50], "suppressed_groups": result.suppressed_groups,
                                 "chart": home_chart.spec(plan, result), "edits": home_query.edits(plan, briefs.columns_of(draft))})
+
+    def answer_business(self, draft_id: str, said: str | None = None) -> dict[str, Any] | None:
+        """H11: on the business track, with the table described and nothing left to ask, where the number the person asks
+        about changed between the two periods they named (dclab_core.change), said as a decision brief written by a template
+        from the result alone, always with "association, not cause". What the rules cannot read is said once, never guessed."""
+        from .. import home_query
+        from . import business
+
+        draft = self.store.get(draft_id)
+        if self.track(draft) != "business" or self.pending(draft) is not None:
+            return None
+        active = draft.get("active_asset")
+        if not any(m.get("kind") == "analysis" and m.get("asset") == active for m in draft.get("messages") or []):
+            return None
+        done = draft.get("business") or {}
+        if done.get("asset") == active and not (said and done.get("missing")):
+            return None  # answered (or said what it needs) for this table already; a reply to what it needs is read below
+        try:
+            frame = home_query.table(self.store, draft)
+        except ValueError as error:
+            return self.say(draft_id, f"I can't compare from the table yet: {error}.", kind="text")
+        told = (draft.get("track_brief") or {}).get("business") or {}
+        measure_words = str((told.get("success_measure") or {}).get("value") or "")
+        text = f"{said}. {draft.get('problem') or ''}" if said else str(draft.get("problem") or "")  # the reply, with the question it answers
+        spec, missing = business.read(text, frame, measure_words, briefs.columns_of(draft))
+        try:
+            result = business.compare(spec, frame) if spec else None
+        except ValueError as error:
+            result, missing = None, str(error)
+        if result is None:
+            self.store.update(draft_id, lambda d: d.update(business={"asset": active, "missing": missing or "a comparison the table holds"}))
+            self.moved(draft_id, "answer_business", {"refused": True}, {"missing": (missing or "")[:200]})
+            if said and done.get("missing") == missing:
+                return None  # the reply did not give it either: the normal path reads the message
+            return self.say(draft_id, f"I can show where a number changed between two periods. To do it here I need {missing or 'two periods with rows in both'}.",
+                            kind="text")
+        text = business.brief(result, spec["narrow"])
+        record = {"asset": active, "result": result.model_dump(mode="json"), "narrow": spec["narrow"], "shown": business.shown(result), "at": now()}
+
+        def keep(d):
+            d["business"] = record
+            d["exit"] = {**(d.get("exit") or {}), "kind": "decision_brief", "track": "business", "status": "reached", "at": now()}
+        self.store.update(draft_id, keep)
+        from ..ledger import capture
+
+        if (draft.get("exit") or {}).get("status") != "reached":
+            capture.exit_reached((draft.get("exit") or {}).get("record"), "decision_brief")
+        self.moved(draft_id, "answer_business", {"by": result.by, "measure": result.measure, "periods": [result.a.label, result.b.label],
+                                                  "narrowed_by": sorted(spec["narrow"]), "splits": spec["splits"],
+                                                  "scores": {k: round(v, 4) for k, v in spec.get("scores", {}).items()}},
+                   {"segments": len(result.segments)})
+        return self.say(draft_id, text, kind="decision_brief")
 
     def _other_tables(self, draft: dict[str, Any]) -> dict[str, Any]:
         """H9: the draft's other prepared tables by name (a join's second table), each checked against its recorded hash."""
@@ -1061,7 +1114,8 @@ class HomeAgent:
         self.store.update(draft_id, put)
         self.store.emit(draft_id, "status", {"track_brief": self.store.get(draft_id).get("track_brief")})
         self.moved(draft_id, "brief_answer", {"track": track, "field": field})
-        if self.ask_brief(draft_id) is None and self.answer_analysis(draft_id) is None and self.prepare_table(draft_id) is None:
+        if self.ask_brief(draft_id) is None and self.answer_analysis(draft_id) is None and self.prepare_table(draft_id) is None \
+                and self.answer_business(draft_id) is None:
             self.say(draft_id, "Noted. " + intents.NEXT.get(track, ""), kind="text")
 
     @turn
@@ -1287,6 +1341,10 @@ class HomeAgent:
             # the person said something else (another kind of help, simulated data, a question): the normal path reads it
         if open_question is not None and open_question["field"] == "confirm_step":  # H9: a guarded step's yes or no, by code
             if self.confirm_step(draft_id, open_question, text):
+                return
+        biz = self.store.get(draft_id).get("business") or {}
+        if self.track(self.store.get(draft_id)) == "business" and biz.get("missing"):  # H11: Home said what it needs: this may be it
+            if self.answer_business(draft_id, said=text) is not None:
                 return
         rec = self.store.get(draft_id).get("recipe") or {}
         if self.track(self.store.get(draft_id)) == "preparation" and rec.get("unread_said") and not rec.get("done"):

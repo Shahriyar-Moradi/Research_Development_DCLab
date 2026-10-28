@@ -460,4 +460,5 @@ import dclab_core.collect  # noqa: E402,F401  (what to collect next: the groups 
 import dclab_core.memory  # noqa: E402,F401  (one memory for the agents: the item and the brief, 35.1)
 import dclab_core.query  # noqa: E402,F401  (questions answered from a table, never its rows, H6)
 import dclab_core.recipe  # noqa: E402,F401  (a table prepared step by step, the original never changed, H9)
+import dclab_core.change  # noqa: E402,F401  (why a number changed between two periods, H11)
 import dclab_core.exam  # noqa: E402,F401  (a frozen exam per model type and the no-forgetting gate, 36.4)

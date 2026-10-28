@@ -1210,3 +1210,12 @@ before applying it: when the preview says `needs_confirmation` (more than 5% of 
 count), the host asks the person and applies the step only on a yes. `recipe.apply` works on a copy, so the original table
 is never changed; keep the result as a new table. The main product has no such front door at the pinned commit: `Recipe` is
 library output it would store beside a dataset (no row maps onto it).
+
+## Why a number changed between two periods (H11, dclab-core 0.130.0)
+
+The library's: `dclab_core.change`. A host answering "why did revenue drop in March compared with February?" calls
+`change.best_split(frame, grouping_columns, date_column=..., a=Window(...), b=Window(...), measure=...)` (or `compare` with
+one column) on the person's own table, after leaving out identifiers and personal columns. The result is aggregates only:
+per segment the change and its volume, mix and rate parts, small segments pooled under the row floor. Say its `caveat`
+with any answer built on it: the data shows association, not cause. The main product has no such front door at the pinned
+commit: `ChangeResult` is library output it would store with a brief (no row maps onto it).

@@ -1,0 +1,190 @@
+{
+  "$defs": {
+    "Segment": {
+      "additionalProperties": false,
+      "properties": {
+        "change": {
+          "title": "Change",
+          "type": "number"
+        },
+        "mix": {
+          "title": "Mix",
+          "type": "number"
+        },
+        "rate": {
+          "title": "Rate",
+          "type": "number"
+        },
+        "rows_a": {
+          "title": "Rows A",
+          "type": "integer"
+        },
+        "rows_b": {
+          "title": "Rows B",
+          "type": "integer"
+        },
+        "segment": {
+          "maxLength": 200,
+          "title": "Segment",
+          "type": "string"
+        },
+        "value_a": {
+          "title": "Value A",
+          "type": "number"
+        },
+        "value_b": {
+          "title": "Value B",
+          "type": "number"
+        },
+        "volume": {
+          "title": "Volume",
+          "type": "number"
+        }
+      },
+      "required": [
+        "segment",
+        "rows_a",
+        "rows_b",
+        "value_a",
+        "value_b",
+        "change",
+        "volume",
+        "mix",
+        "rate"
+      ],
+      "title": "Segment",
+      "type": "object"
+    },
+    "Window": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "description": "ISO date, inclusive (the whole day)",
+          "maxLength": 40,
+          "title": "End",
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "maxLength": 80,
+          "title": "Label",
+          "type": "string"
+        },
+        "start": {
+          "description": "ISO date, inclusive",
+          "maxLength": 40,
+          "title": "Start",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "Window",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.change_result.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "a": {
+      "$ref": "#/$defs/Window"
+    },
+    "b": {
+      "$ref": "#/$defs/Window"
+    },
+    "by": {
+      "maxLength": 200,
+      "title": "By",
+      "type": "string"
+    },
+    "caveat": {
+      "default": "This shows where the change happened, not why: the data shows association, not cause.",
+      "title": "Caveat",
+      "type": "string"
+    },
+    "change": {
+      "title": "Change",
+      "type": "number"
+    },
+    "date_column": {
+      "maxLength": 200,
+      "title": "Date Column",
+      "type": "string"
+    },
+    "floor": {
+      "default": 5,
+      "title": "Floor",
+      "type": "integer"
+    },
+    "measure": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the summed column; None for a count of rows",
+      "title": "Measure"
+    },
+    "missing_measure": {
+      "default": 0,
+      "description": "rows of the two periods with no value for the measure, left out of the sums",
+      "title": "Missing Measure",
+      "type": "integer"
+    },
+    "op": {
+      "enum": [
+        "sum",
+        "count"
+      ],
+      "title": "Op",
+      "type": "string"
+    },
+    "order": {
+      "default": "volume, then mix, then rate",
+      "title": "Order",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.change_result.v1",
+      "default": "dclab_core.change_result.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "segments": {
+      "description": "largest change first; the small groups pooled last",
+      "items": {
+        "$ref": "#/$defs/Segment"
+      },
+      "title": "Segments",
+      "type": "array"
+    },
+    "total_a": {
+      "title": "Total A",
+      "type": "number"
+    },
+    "total_b": {
+      "title": "Total B",
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "op",
+    "date_column",
+    "by",
+    "a",
+    "b",
+    "total_a",
+    "total_b",
+    "change"
+  ],
+  "title": "ChangeResult",
+  "type": "object"
+}
