@@ -1,0 +1,120 @@
+{
+ "package": "36.4",
+ "title": "A frozen exam per model type and the gate against forgetting",
+ "date": "2026-10-28",
+ "request": "The owner: models trained again must not forget old skills; a frozen exam, replay, versions kept.",
+ "spec": "Phase 12 plan 36.4: an exam per model type drawn once from sealed rows plus general skills, pinned, never trained on; every version sits it; a version is promoted only if no section dropped beyond its interval.",
+ "plan": [
+  "Take over the helper session's contract and store module.",
+  "Write the contract and store tests.",
+  "Dry-run the draw on the real store.",
+  "Review, fix, record, commit."
+ ],
+ "decisions": [
+  {
+   "decision": "A section with fewer than 10 groups is judged item by item and named weakly protected",
+   "why": "a bootstrap over two groups cannot bound a drop: a version that lost half a section passed"
+  },
+  {
+   "decision": "A version is also compared with the first version accepted and still standing",
+   "why": "small losses each inside the interval could add up across versions"
+  },
+  {
+   "decision": "No exam is drawn tonight",
+   "why": "a drawn exam is pinned for good; the first draw is the owner's decision"
+  },
+  {
+   "decision": "A tuned model with no exam result is not served once the store holds exams; an unreadable record blocks it",
+   "why": "the plan says every version sits its exam; a failure to read must not let a model through"
+  }
+ ],
+ "change": "dclab_core/exam.py (Exam, ExamResult, no_forgetting), contracts and conformance entries, schemas; dclab_rnd/store/exams.py, store/layout.py, store/sets/__init__.py (exam rows held out of train and dev), models/tuned.py; tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "defect": "No exam could be written or read",
+   "scenario": "the exam's file name was upper-case and the store's layout refuses such names",
+   "cause": "file names passed through the folder-name check",
+   "fix": "lower-case exam.json and versions.json",
+   "test": "tests/test_store_exams.py",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "defect": "On the real store no exam could be drawn for three model types",
+   "scenario": "exam rows repeated in train and dev splits (one content 979 times) and rows of one entry shared a key",
+   "cause": "the draw never skipped rows already in training, kept copies of one content, and keyed rows without a place by their entry",
+   "fix": "skip rows whose key or content is in train or dev, one item per content, the whole id as the key",
+   "test": "test_a_row_also_in_train_is_never_drawn_and_the_exam_is_clean, test_a_trajectory_row_key_is_its_whole_id",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "defect": "The gate passed a version that forgot half a section",
+   "scenario": "100 items in 2 groups, one group lost: pass, interval [-1, 0]",
+   "cause": "weak protection judged by items while the bootstrap drew groups",
+   "fix": "below 10 groups the bootstrap draws items and the section is named weakly protected",
+   "test": "test_a_section_of_two_groups_cannot_hide_a_lost_half",
+   "severity": "behaviour",
+   "impact": "ten real sections had 20 or more items in two groups"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "defect": "A tuned model that never sat its exam, or whose record could not be read, could be promoted",
+   "scenario": "no standing returned None and nothing was missing; any error was swallowed",
+   "cause": "the check failed open",
+   "fix": "missing exam and unreadable record each block promotion once the store holds exams; the lookup reads only exams' own records",
+   "test": "",
+   "severity": "behaviour",
+   "open": "a served model is not stopped by a later refusal, and models are matched by served name"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "defect": "Small losses could add up across versions",
+   "scenario": "five versions each losing two of forty items, each passing",
+   "cause": "only the last accepted version was the comparison",
+   "fix": "also against the first accepted version still standing",
+   "test": "",
+   "severity": "behaviour"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "defect": "Model version names the store refuses could not sit",
+   "scenario": "an Ollama-style name with a colon raised a path error",
+   "cause": "the version used as a file name",
+   "fix": "a slug and a short hash name the file; the name stays inside; exam versions without a colon",
+   "test": "test_a_model_version_with_any_name_can_sit",
+   "severity": "gap"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "dry draw of every model type's exam on the real store",
+   "gate": "every type with sealed rows that have an answer gets an exam that verify finds in no train or dev split",
+   "fixed_before_run": false,
+   "result": "seven of eight types clean (m1 1,097 items, m2 299, m3 2,409, m4 309, m5 439, m6 483, m7 16); m8 has no sealed row with an answer",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "seven clean of the seven types with answerable sealed rows",
+   "limits": [
+    "nothing drawn or pinned: a dry run",
+    "m7's exam rests on 16 distinct rows"
+   ]
+  }
+ ],
+ "outcome": "The frozen exam and its gate are built and reviewed: rows already in training are never drawn, a version that forgot a section is refused even when the section has few groups, small losses cannot add up, and a tuned model without a readable passing result is not promoted once exams exist. Seven of eight model types can be drawn cleanly; the first draw waits for the owner.",
+ "lessons": [
+  "A bootstrap over groups needs enough groups; with few, draw items and say the section is weakly protected.",
+  "Draw an exam only from rows that are nowhere in training, by key and by content."
+ ],
+ "risks": [
+  "A drawn exam is permanent: a bad first draw is costly."
+ ],
+ "commits": []
+}

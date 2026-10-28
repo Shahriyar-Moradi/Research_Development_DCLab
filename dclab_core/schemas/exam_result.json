@@ -1,0 +1,146 @@
+{
+  "$defs": {
+    "SectionScore": {
+      "additionalProperties": false,
+      "properties": {
+        "answered": {
+          "minimum": 0,
+          "title": "Answered",
+          "type": "integer"
+        },
+        "items": {
+          "minimum": 0,
+          "title": "Items",
+          "type": "integer"
+        },
+        "lower": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lower"
+        },
+        "name": {
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "upper": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Upper"
+        }
+      },
+      "required": [
+        "name",
+        "items",
+        "answered"
+      ],
+      "title": "SectionScore",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.exam_result.v1.json",
+  "additionalProperties": false,
+  "description": "One model version's score on one exam (v1), kept with the version.",
+  "properties": {
+    "exam_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Exam Hash",
+      "type": "string"
+    },
+    "exam_version": {
+      "pattern": "^[a-z0-9][a-z0-9_.\\-]{0,119}$",
+      "title": "Exam Version",
+      "type": "string"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    },
+    "model_type": {
+      "pattern": "^[a-z0-9][a-z0-9_.\\-]{0,119}$",
+      "title": "Model Type",
+      "type": "string"
+    },
+    "model_version": {
+      "maxLength": 200,
+      "title": "Model Version",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.exam_result.v1",
+      "default": "dclab_core.exam_result.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scored_at": {
+      "title": "Scored At",
+      "type": "string"
+    },
+    "scores": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Scores",
+      "type": "object"
+    },
+    "sections": {
+      "items": {
+        "$ref": "#/$defs/SectionScore"
+      },
+      "title": "Sections",
+      "type": "array"
+    },
+    "unanswered": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unanswered",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_type",
+    "exam_version",
+    "exam_hash",
+    "model_version",
+    "scored_at"
+  ],
+  "title": "ExamResult",
+  "type": "object"
+}

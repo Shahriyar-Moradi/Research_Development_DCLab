@@ -1181,3 +1181,13 @@ kept in the host's own index (pgvector or a file) and named by `vector_model`, n
 `MemoryItem.read`, so a row breaking a rule is refused. The brief belongs in the first user message of an agent's
 session, never its system prompt (a host's prompt hashes stay meaningful). DCLab's studio is the reference from 35.2 on;
 whether vectors are used at all is decided by the measurement 35.0 (`memory_retrieval_v1`).
+
+## A frozen exam per model type (36.4)
+
+The library's: `dclab_core.exam`. An `Exam` v1 is drawn once per model type from rows sealed in its sets, pinned by its
+hash, and never in a training set; an `ExamResult` v1 is one model version's score on it; `no_forgetting(exam, previous,
+new)` is the gate that refuses a version which lost a skill (a section's paired difference, upper bound below -0.01; a
+section with few groups judged item by item). Where it goes in the main product: nowhere yet, since it trains no model of
+its own at the pinned commit. When it does, every version sits its type's exam before it serves, and the host keeps the
+results beside each version's card. DCLab's studio is the reference: `dclab_rnd/store/exams.py` (draw, sit, accept, retire)
+and `models/tuned.py`, which serves no tuned model whose exam result is refused, retired, missing or unreadable.

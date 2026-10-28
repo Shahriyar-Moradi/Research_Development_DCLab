@@ -65,9 +65,36 @@ def plan(purpose: str, home: Path) -> dict[str, Any]:
     suite = passed_with(purpose, model) if model else None
     if suite is None:
         missing.append("the harness suite has not passed with it serving this role (make harness-eval with the tuned tier serving it)")
+    exam = _exam_standing(model) if model else None  # 36.4: a version that forgot an old skill is not served
+    if exam is not None and exam.get("error"):
+        missing.append(f"its frozen exam's record cannot be read ({exam['error']}): fix it before serving")
+    elif exam is not None and exam.get("status") is None:
+        missing.append("it has not sat a frozen exam, while the store holds exams: sit it first (python -m dclab_rnd.store.exams)")
+    elif exam is not None and exam.get("status") != "accepted":
+        missing.append(f"its frozen exam ({exam['model_type']} {exam['exam']}) says {exam['status']}: "
+                       f"{', '.join(exam.get('forgotten') or []) or 'not accepted'}")
     return {"purpose": purpose, "tuned_model": model or None, "endpoint": tier.get("endpoint"), "routing": current,
-            "shadow_agreement": seen, "harness_suite": suite["id"] if suite else None, "missing": missing,
+            "shadow_agreement": seen, "harness_suite": suite["id"] if suite else None, "exam": exam, "missing": missing,
             "needs_measurement": purpose in UNDERSTANDING, "ready": not missing, "serving": False}
+
+
+def _exam_standing(model: str) -> Optional[dict[str, Any]]:
+    """The model's last decision on its frozen exam (36.4): None when the store holds no exam at all (nothing to sit yet);
+    ``{"status": None}`` when exams exist and it sat none; ``{"error": ...}`` when the records cannot be read (never served
+    on an unreadable record)."""
+    try:
+        from ..store import exams
+        from ..store.layout import Layout
+    except ImportError:  # the open edition has no store
+        return None
+    try:
+        layout = Layout()
+        if not exams.all_exams(layout):
+            return None
+        found = exams.standing(layout, model)
+        return found if found is not None else {"status": None}
+    except Exception as exc:  # noqa: BLE001
+        return {"error": type(exc).__name__}
 
 
 def shadow(purpose: str, home: Path, audit_log: Any = None, role: str = "owner", on: bool = True) -> dict[str, Any]:

@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "SectionScore": {
+      "additionalProperties": false,
+      "properties": {
+        "answered": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "items": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "lower": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "maxLength": 200,
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "upper": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "items",
+        "answered"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "exam_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "exam_version": {
+      "pattern": "^[a-z0-9][a-z0-9_.\\-]{0,119}$",
+      "type": "string"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "model_type": {
+      "pattern": "^[a-z0-9][a-z0-9_.\\-]{0,119}$",
+      "type": "string"
+    },
+    "model_version": {
+      "maxLength": 200,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.exam_result.v1",
+      "default": "dclab_core.exam_result.v1",
+      "type": "string"
+    },
+    "scored_at": {
+      "type": "string"
+    },
+    "scores": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "sections": {
+      "items": {
+        "$ref": "#/$defs/SectionScore"
+      },
+      "type": "array"
+    },
+    "unanswered": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_type",
+    "exam_version",
+    "exam_hash",
+    "model_version",
+    "scored_at"
+  ],
+  "type": "object"
+}

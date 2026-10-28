@@ -55,11 +55,19 @@ def write_set(layout: Layout, model_type: str, folder: str, examples: Iterable[A
     sealed_lines = sealed.read_text(encoding="utf-8").splitlines() if sealed.exists() else []
     sealed_ids = {json.loads(line)["id"] for line in sealed_lines if line.strip()}
     by_split: dict[str, list[str]] = {"train": [], "dev": [], "sealed": []}
+    from ..exams import guard  # 36.4: a frozen exam's row is never a training row
+
+    exams, held_out = guard(layout), 0
     for ex in sorted(examples, key=lambda e: e.id):
         if ex.model_type != model_type:
             raise ValueError(f"{ex.id} is an example of {ex.model_type}, not {model_type}")
         split = "sealed" if ex.id in sealed_ids else ex.split  # once sealed, always sealed: never in train or dev again
+        if split != "sealed" and exams and exams.why(ex):
+            held_out += 1  # kept in its exam, out of train and dev
+            continue
         by_split[split].append(ex.model_dump_json() + "\n")
+    if exams:
+        decontaminated = [*decontaminated, "the frozen exams (36.4)"]
     for split in ("train", "dev"):
         (base / f"{split}.jsonl").write_text("".join(by_split[split]), encoding="utf-8")
     later = [line for line in by_split["sealed"] if json.loads(line)["id"] not in sealed_ids]
@@ -76,7 +84,7 @@ def write_set(layout: Layout, model_type: str, folder: str, examples: Iterable[A
         weights.setdefault(key, ex.weight)
     manifest = SetManifest(model_type=model_type, name=folder, version=version, shape=shape, sources=sorted(sources, key=lambda s: str(s.get("entry"))),
                            split_rule=SPLIT_RULE, counts={"train": len(by_split["train"]), "dev": len(by_split["dev"]), "sealed": sealed_count,
-                                                          "sealed_pending": waiting},
+                                                          "sealed_pending": waiting, **({"exam_held_out": held_out} if held_out else {})},
                            label_sources=dict(labels), weights=weights, consent=consent, decontaminated=list(decontaminated), commit=commit,
                            built_at=now())
     write_json(base / "MANIFEST.json", json.loads(manifest.model_dump_json()))

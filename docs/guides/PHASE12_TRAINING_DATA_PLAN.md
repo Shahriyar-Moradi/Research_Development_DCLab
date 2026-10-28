@@ -95,6 +95,12 @@ memory.
   by more than its interval, beside the gate it already passes. Reuse `own_models` (cards, results per version),
   `dclab_core/decision_gate.py`, `models/tuned.py` (shadow, promote, retire in one change).
 
+- **Status (2026-10-28): built and reviewed** (`dclab_core/exam.py`, `dclab_rnd/store/exams.py`, the guard in the set
+  writer, the check in `models/tuned.py`). A dry draw on the real store: m1 1,097 items, m2 299, m3 2,409, m4 309, m5
+  439, m6 483, m7 16 (only 16 distinct rows: weak), m8 none (no sealed row with an answer). No exam is drawn yet: drawing
+  pins it for good, so it waits for the owner's word. Left open: a served model's later refusal does not stop it serving
+  (only promotion is checked), a tuned model is matched by its served name, a new exam version starts its own line.
+
 ### 36.5 Replay sets (free)
 - Each training round's set is the new data plus a fixed share of every earlier round (proposal: 30 %), stratified by
   model type, source, track and language; its manifest names every earlier version it draws from. Nothing is deleted

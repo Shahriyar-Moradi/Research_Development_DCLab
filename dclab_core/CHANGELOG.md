@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.126.0 (2026-10-28)
+
+- `exam` (36.4): a frozen exam per model type. `Exam` v1 names each item's sealed row by its key, hashes and group, with its
+  check and expected answer (an expected answer can quote the row's reply; it stays in the store), in sections (one per
+  set, and general skills for the language models); its `hash` pins it. `ExamResult` v1 is one model version's item and
+  section scores with 95% intervals by whole groups. `no_forgetting` (`no_forgetting_v1`, fixed before any run) refuses a
+  version when any section's paired difference against an accepted version has its upper bound below -0.01; a section
+  with fewer than 10 groups is judged item by item and named weakly protected. The main product trains no model of its
+  own at the pinned commit (conformance says why).
+
 ## 0.125.0 (2026-10-28)
 
 - `experience` (35.3): `ExperienceEvent` v15 adds the memory kinds: `memory.written`, `memory.proposed`, `memory.retired`,

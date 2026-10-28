@@ -458,3 +458,4 @@ import dclab_core.live  # noqa: E402,F401  (monitoring that runs: batch profiles
 import dclab_core.retrain  # noqa: E402,F401  (retrain and champion/challenger: the policy and the comparison, 34.11)
 import dclab_core.collect  # noqa: E402,F401  (what to collect next: the groups that carry the score and the kinds missing, 34.14)
 import dclab_core.memory  # noqa: E402,F401  (one memory for the agents: the item and the brief, 35.1)
+import dclab_core.exam  # noqa: E402,F401  (a frozen exam per model type and the no-forgetting gate, 36.4)

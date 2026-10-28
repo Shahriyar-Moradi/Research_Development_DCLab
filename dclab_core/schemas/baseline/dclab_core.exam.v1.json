@@ -1,0 +1,160 @@
+{
+  "$defs": {
+    "ExamItem": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "enum": [
+            "label",
+            "tool_name",
+            "code",
+            "text_f1",
+            "choice",
+            "score_close",
+            "set_f1",
+            "persian_reply",
+            "refusal"
+          ],
+          "type": "string"
+        },
+        "content": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "example": {
+          "maxLength": 300,
+          "type": "string"
+        },
+        "expect": {
+          "default": null
+        },
+        "expect_source": {
+          "maxLength": 80,
+          "type": "string"
+        },
+        "group": {
+          "maxLength": 300,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 300,
+          "type": "string"
+        },
+        "set": {
+          "maxLength": 300,
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "step": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "swap": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "example",
+        "set",
+        "sha256",
+        "content",
+        "group",
+        "check",
+        "expect_source"
+      ],
+      "type": "object"
+    },
+    "ExamSection": {
+      "additionalProperties": false,
+      "properties": {
+        "general": {
+          "default": false,
+          "type": "boolean"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/ExamItem"
+          },
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 200,
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "drawn_at": {
+      "type": "string"
+    },
+    "hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "model_type": {
+      "pattern": "^[a-z0-9][a-z0-9_.\\-]{0,119}$",
+      "type": "string"
+    },
+    "rule": {
+      "maxLength": 1200,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.exam.v1",
+      "default": "dclab_core.exam.v1",
+      "type": "string"
+    },
+    "sections": {
+      "items": {
+        "$ref": "#/$defs/ExamSection"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "version": {
+      "pattern": "^[a-z0-9][a-z0-9_.\\-]{0,119}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_type",
+    "version",
+    "drawn_at",
+    "rule",
+    "sections",
+    "hash"
+  ],
+  "type": "object"
+}

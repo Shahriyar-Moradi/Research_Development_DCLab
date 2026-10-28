@@ -133,6 +133,18 @@ class Layout:
         return out
 
     # beside the tiers
+    def exams_root(self) -> Path:
+        return self.root / "exams"
+
+    def exams(self, model_type: str, *parts: str) -> Path:
+        """36.4: a model type's frozen exams (``<version>/exam.json``), their results per model version and the versions accepted."""
+        if model_type not in MODEL_TYPES:
+            raise ValueError(f"{model_type!r} is not a model type ({', '.join(MODEL_TYPES)})")
+        out = self.exams_root() / model_type
+        for p in parts:
+            out = out / _part(p)
+        return out
+
     def runs(self) -> Path:
         return self.root / "runs"
 

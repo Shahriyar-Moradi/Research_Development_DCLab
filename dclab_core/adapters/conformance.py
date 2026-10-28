@@ -85,6 +85,9 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "memory_item": LIBRARY + " (one remembered line, 35.1: the main product has no memory table at the pinned commit; "
                    "adapters/main_product_memory.py is the row it would add, as_row and from_row)",
     "memory_brief": LIBRARY + " (35.1: what an agent reads at a session's start, built by memory.select; never stored as a row)",
+    "exam": LIBRARY + " (a model type's frozen exam, 36.4: rows named by key and hash, never their content; the main product trains "
+            "no model of its own at the pinned commit, so it has no exam table)",
+    "exam_result": LIBRARY + " (one model version's score on its exam and the no-forgetting gate, 36.4; kept with the version beside its card)",
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
     "portfolio": LIBRARY + " (the projects chosen of the requested and what they reuse, 30.24)",

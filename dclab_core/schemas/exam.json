@@ -1,0 +1,188 @@
+{
+  "$defs": {
+    "ExamItem": {
+      "additionalProperties": false,
+      "description": "One question: a sealed row, how its answer is checked and what is expected (never the row's content).",
+      "properties": {
+        "check": {
+          "enum": [
+            "label",
+            "tool_name",
+            "code",
+            "text_f1",
+            "choice",
+            "score_close",
+            "set_f1",
+            "persian_reply",
+            "refusal"
+          ],
+          "title": "Check",
+          "type": "string"
+        },
+        "content": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content",
+          "type": "string"
+        },
+        "example": {
+          "maxLength": 300,
+          "title": "Example",
+          "type": "string"
+        },
+        "expect": {
+          "default": null,
+          "title": "Expect"
+        },
+        "expect_source": {
+          "maxLength": 80,
+          "title": "Expect Source",
+          "type": "string"
+        },
+        "group": {
+          "maxLength": 300,
+          "title": "Group",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 300,
+          "title": "Id",
+          "type": "string"
+        },
+        "set": {
+          "maxLength": 300,
+          "title": "Set",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "step": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Step"
+        },
+        "swap": {
+          "default": false,
+          "title": "Swap",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "example",
+        "set",
+        "sha256",
+        "content",
+        "group",
+        "check",
+        "expect_source"
+      ],
+      "title": "ExamItem",
+      "type": "object"
+    },
+    "ExamSection": {
+      "additionalProperties": false,
+      "properties": {
+        "general": {
+          "default": false,
+          "title": "General",
+          "type": "boolean"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/ExamItem"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ExamSection",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.exam.v1.json",
+  "additionalProperties": false,
+  "description": "A model type's frozen exam (v1): drawn once, pinned by its hash, never in a training set.",
+  "properties": {
+    "drawn_at": {
+      "title": "Drawn At",
+      "type": "string"
+    },
+    "hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Hash",
+      "type": "string"
+    },
+    "model_type": {
+      "pattern": "^[a-z0-9][a-z0-9_.\\-]{0,119}$",
+      "title": "Model Type",
+      "type": "string"
+    },
+    "rule": {
+      "maxLength": 1200,
+      "title": "Rule",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.exam.v1",
+      "default": "dclab_core.exam.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sections": {
+      "items": {
+        "$ref": "#/$defs/ExamSection"
+      },
+      "minItems": 1,
+      "title": "Sections",
+      "type": "array"
+    },
+    "version": {
+      "pattern": "^[a-z0-9][a-z0-9_.\\-]{0,119}$",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_type",
+    "version",
+    "drawn_at",
+    "rule",
+    "sections",
+    "hash"
+  ],
+  "title": "Exam",
+  "type": "object"
+}
