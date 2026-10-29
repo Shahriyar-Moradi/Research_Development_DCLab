@@ -46,6 +46,13 @@ numbers are checked; the page shows the ML panels only for a prediction that was
 `~/.claude/plans/magical-waddling-honey.md` (P0 to P8). In flight in their own sessions: about 600 written, labelled
 requests and an intent classifier in shadow (P6), and a collector of every routing decision for the 7th model, a routing
 model to be trained (P8). Next: measure on dev, then a fresh sealed set once.
+Done the same day: P6 (900 written requests, a shadow classifier tying the rules on Home's own requests) and P8 (the
+m7_routing set, Home's routing record with every answerer) committed; the eval's model arm now builds Home with its intent
+reader (HOME-015 had measured without it); sealed v4 (HOME-017): the kind of help 35 of 36, as Claude alone, the fields 17
+right against 64; the model now reads each kind's fields first too (0f2ab704); every call thinks at effort xhigh and keeps
+its summary. Running: sealed v5 (the fields), a dev run at effort max (thinking captured and reply speed), Claude's blind
+labels on the 117 drawn decisions. A browser check of the owner's two sentences is in scripts/browser_e2e.py (needs
+Playwright's Chromium on the machine).
 
 **Phase 12, training data that teaches why and never forgets (planned 2026-10-28):** 36.0 to 36.7 in
 `PHASE12_TRAINING_DATA_PLAN.md`: every agent's thinking and reasoning collected, coverage per agent and per kind of help,

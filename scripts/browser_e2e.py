@@ -630,7 +630,40 @@ CULPRIT = """() => { const w = document.documentElement.clientWidth;
   return el ? el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).join('.') : '') + ' "' + (el.textContent || '').trim().slice(0, 40) + '"' : '?'; }"""
 
 
-CHECKS = {"flow": (check_flow, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "memory": (check_memory, 1280), "review": (check_review, 1280), "failures": (check_failures, 1280), "mobile": (check_mobile, 375)}
+def check_understand(b: Browser) -> str:
+    """2026-10-29 (the owner's two tests): a vague request gets an open question with every kind of help and no ML panel; a
+    button routes it, still with no ML panel; a request about customer segments is offered its two ways."""
+    page = b.page
+
+    def new_chat(text: str) -> None:
+        b.view("home", settle=1)
+        if page.locator("[data-new-chat]").is_visible():
+            page.click("[data-new-chat]")
+        page.fill("#home-task", text)
+        page.click("#home-start")
+        page.wait_for_selector("#home-chat:not([hidden])")
+        page.wait_for_selector(".ask-card:not([data-done]) .ask-option", timeout=60_000)
+
+    def ml_panels() -> list[str]:
+        return [s for s in ("#home-solution", "#home-understand", "#home-create", '[data-f="home.pack"]') if page.locator(s).is_visible()]
+
+    new_chat("I have data analysis problems")
+    check((page.text_content("#home-intent-label") or "").strip() == "not decided yet", "a vague request was given a kind of help")
+    check(page.locator(".ask-card:not([data-done]) .ask-option").count() == 6, "the open question does not offer the six kinds of help")
+    check("What exactly should the model predict" not in (page.text_content("#home-thread") or ""), "a vague request was asked the prediction question")
+    check(not ml_panels(), f"ML panels shown for a vague request: {ml_panels()}")
+    page.click(".ask-card:not([data-done]) .ask-option:has-text('Numbers from my data')")
+    page.wait_for_function("() => (document.querySelector('#home-intent-label') || {}).textContent === 'Numbers from my data'", timeout=60_000)
+    check(not ml_panels(), f"ML panels shown for an analysis: {ml_panels()}")
+
+    new_chat("I want analyze my customer and segment of the my customer")
+    options = [t.strip() for t in page.locator(".ask-card:not([data-done]) .ask-option").all_inner_texts()]
+    check("Find new groups in the data" in options and "Describe groups I already have" in options, f"segments were not offered their two ways: {options}")
+    check(not ml_panels(), f"ML panels shown for segments: {ml_panels()}")
+    return "a vague request is asked openly with six kinds of help and no ML panel; segments get their two ways"
+
+
+CHECKS = {"flow": (check_flow, 1280), "understand": (check_understand, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "memory": (check_memory, 1280), "review": (check_review, 1280), "failures": (check_failures, 1280), "mobile": (check_mobile, 375)}
 
 
 def main(argv: list[str] | None = None) -> int:
