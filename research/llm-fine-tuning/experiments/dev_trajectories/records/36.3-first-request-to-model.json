@@ -1,0 +1,27 @@
+{
+ "package": "36.3 first request to model",
+ "title": "A first request the rules cannot read goes to Home's model, and written people fill the tracks with no runs",
+ "date": "2026-10-29",
+ "request": "36.3: give the kinds of help with no runs yet (analysis, preparation, reporting, business) whole conversations with the model's thinking kept; then the owner: push all changes.",
+ "spec": "The coverage report of 2026-10-28 counted 0 runs and 0 examples for those tracks. Home must not answer a first request it cannot read with 'say it again' when a model is configured; written people (dev only, English, scripted, silver) play those tracks.",
+ "plan": ["Read the written people's own ways of naming two periods", "Give an unread first request to the model with its tools", "Never start a model turn inside one", "Fall back to the rules' words when the model says nothing", "Write the people and their runner", "Test each path"],
+ "decisions": [
+  {"decision": "'compare A with B' takes B as the baseline, 'from A to B' takes A", "why": "it matches how 'compared with' was already read and how the written people meant their periods"},
+  {"decision": "A period without a year is never assumed", "why": "a guessed year would compare the wrong months without saying so"},
+  {"decision": "A context flag stops a model turn inside a model turn", "why": "the model's own tools reach the same unread path; without the flag a tool call would start another model turn"},
+  {"decision": "A silent or failing model turn falls back to the rules' words", "why": "the person must never be left without a reply (the review of 36.3)"}
+ ],
+ "change": "dclab_rnd/draft/business.py (windows reads 'compare A with B' and 'from A to B'), dclab_rnd/draft/chat.py (_to_model, _MODEL_TURN), dclab_rnd.agent_eval.home.sparse (the written people and their runner), tests/test_home_business.py, tests/test_home_sparse.py.",
+ "findings": [
+  {"id": "F1", "source": "test", "severity": "behaviour", "defect": "Two first-request tests failed after the review's fallback was added",
+   "scenario": "A scripted model turn that writes nothing, on an unread preparation request and on a business question with no periods.",
+   "cause": "The review made _to_model return None when the model's turn said nothing, so the rules' words follow; the tests' mocked model_turn always said nothing, so they saw the fallback and expected none.",
+   "fix": "The mocked turn now answers by default; a silent turn is its own case, which expects the rules' words.",
+   "test": "tests/test_home_sparse.py test_unread_preparation_steps_go_to_the_model_not_back_to_the_person, test_unread_periods_go_to_the_model"}
+ ],
+ "measurements": [],
+ "outcome": "Unread first requests reach the model when one is configured and the rules' words otherwise; the written people's runner is ready (dev only, nothing sent without --yes and a cap). No live run is part of this commit.",
+ "lessons": ["When a review changes what a function returns in an edge case, the tests' mocks must be rechecked: a mock that always takes the edge path hides the main one."],
+ "risks": ["The written people were written by the session that wrote Home's rules: their conversations are training data, silver and apart, never a measurement."],
+ "commits": []
+}

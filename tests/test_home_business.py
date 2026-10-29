@@ -35,6 +35,18 @@ class WindowsTests(unittest.TestCase):
         a, b = business.windows("June compared with May 2025")
         self.assertEqual((a.label, b.label), ("May 2025", "June 2025"))
 
+    def test_from_to_and_compare_with_are_read(self):  # 36.3: written people said their periods these ways
+        a, b = business.windows("Revenue dropped from January to February 2026. Which regions explain the drop?")
+        self.assertEqual((a.label, b.label), ("January 2026", "February 2026"))  # from the baseline to the period asked about
+        a, b = business.windows("Orders fell from December to January 2026")
+        self.assertEqual((a.label, b.label), ("December 2025", "January 2026"))  # the year names the second: the first is before it
+        a, b = business.windows("Should we move budget to the app? Compare March 2026 with March 2025.")
+        self.assertEqual((a.label, b.label), ("March 2025", "March 2026"))  # like "compared with": the second is the baseline
+        a, b = business.windows("compare jan 2026 to feb 2026")
+        self.assertEqual((a.label, b.label), ("February 2026", "January 2026"))
+        self.assertIsNone(business.windows("Sales went from March to April"))  # no year: never assumed
+        self.assertIsNone(business.windows("We moved from the store to the app in March 2026"))  # one month is no comparison
+
 
 class HomeTests(unittest.TestCase):
     def setUp(self):

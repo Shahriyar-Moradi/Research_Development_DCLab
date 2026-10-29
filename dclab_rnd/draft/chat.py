@@ -167,6 +167,7 @@ CONFIRMED = _Both(CONFIRMED, lang.CONFIRMED)  # H3
 POLICY = prompts.text("home_agent")  # dclab_rnd/prompts/home_agent.md (A4.3: prompts are versioned files)
 
 _SCRIPT: contextvars.ContextVar = contextvars.ContextVar("home_script", default=None)  # (draft id, harness run) of a scripted turn
+_MODEL_TURN: contextvars.ContextVar = contextvars.ContextVar("home_model_turn", default=False)  # 36.3: a model turn is running (never one inside another)
 
 
 def turn(method):
@@ -916,6 +917,9 @@ class HomeAgent:
             self.moved(draft_id, "answer_business", {"refused": True}, {"missing": (missing or "")[:200]})
             if said and done.get("missing") == missing:
                 return None  # the reply did not give it either: the normal path reads the message
+            answered = None if said else self._to_model(draft_id)
+            if answered is not None:
+                return answered  # 36.3: periods the rules could not read are the model's to read, never "say it again"
             return self.say(draft_id, f"I can show where a number changed between two periods. To do it here I need {missing or 'two periods with rows in both'}.",
                             kind="text")
         return self.give_brief(draft_id, spec, result)
@@ -1022,6 +1026,8 @@ class HomeAgent:
             self.store.update(draft_id, lambda d: d.update(recipe=rec))
             if follow_up and self.client is not None:
                 return None  # H9b: words the rules cannot read are the model's to read, through propose_step (the review of H9b)
+            if not follow_up and self._to_model(draft_id):
+                return None  # 36.3: a first request the rules cannot read is the model's too, never "say it again"
             words = "; ".join(f"“{w}”" for w in rec.get("unread") or [])
             return self.say(draft_id, "I could not read the steps from your words yet" + (f" ({words})" if words else "")
                             + ". Say them one at a time, for example: remove duplicate orders; keep only the paid orders.", kind="text")
@@ -2251,6 +2257,20 @@ class HomeAgent:
         # without a trace store the steps still reach the session's record (19.3): the tracer writes no row, only its event
         return Tracer.resume(self.traces, draft_id, "home", lambda: understood(self.store.get(draft_id)))
 
+    def _to_model(self, draft_id: str) -> dict[str, Any] | None:
+        """36.3: the person's first request, which the rules could not read, given to the model with its tools. Returns the
+        model's newest message when its turn said something; None with no model, inside a model turn already, when the
+        model fails, or when the turn said nothing, so the rules then say what they need (the review of 36.3)."""
+        if self.client is None or _MODEL_TURN.get():
+            return None
+        before = len(self.store.get(draft_id).get("messages") or [])
+        try:
+            self.model_turn(draft_id)
+        except Exception:  # noqa: BLE001 - the model unavailable: the rules' own words follow
+            return None
+        new = [m for m in (self.store.get(draft_id).get("messages") or [])[before:] if m.get("role") == "agent"]
+        return new[-1] if new else None
+
     def model_turn(self, draft_id: str, max_replies: int = MODEL_REPLIES, text: str = "") -> None:
         draft = self.store.get(draft_id)
         open_question = self.pending(draft)
@@ -2265,10 +2285,12 @@ class HomeAgent:
 
         model = _Model(self, draft_id)
         self.store.emit(draft_id, "status", {"thinking": True})
+        running = _MODEL_TURN.set(True)  # 36.3: the model's tools run here; none of them starts another model turn
         try:
             out = run_policy(self.policy(max_replies), model, self.registry, messages, context=Turn(self, draft_id), on_step=on_step,
                              trace=self.tracer(draft_id))
         finally:
+            _MODEL_TURN.reset(running)
             self.store.emit(draft_id, "status", {"thinking": False})
         if out.stopped == "answered" and out.final:
             final = self.checked_reply(self.store.get(draft_id), out.final)

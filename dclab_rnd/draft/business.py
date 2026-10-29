@@ -45,8 +45,15 @@ def windows(text: str) -> Optional[tuple[C.Window, C.Window]]:
     low = lang.normalize(text).lower()
     vs = r"(?:compared\s+(?:with|to)|vs\.?|versus|against|than)\s+(?:in\s+|with\s+)?"
     m = re.search(rf"\b{_MONTH}\s*(20\d\d)?\b[^.?!]{{0,40}}?\b{vs}{_MONTH}\s*(20\d\d)?\b", low)
-    if m:
-        b_name, b_year, a_name, a_year = m.groups()
+    # 36.3: "compare March 2026 with March 2025" (the second is the baseline, as with "compared with") and "from January to
+    # February 2026" (the first is the baseline): the written people's own ways of naming two periods
+    m = m or re.search(rf"\bcompare\s+(?:the\s+)?{_MONTH}\s*(20\d\d)?\s+(?:with|to|against|and)\s+(?:the\s+)?{_MONTH}\s*(20\d\d)?\b", low)
+    span = None if m else re.search(rf"\bfrom\s+{_MONTH}\s*(20\d\d)?\s+(?:to|until|till|through)\s+{_MONTH}\s*(20\d\d)?\b", low)
+    if m or span:
+        if m:
+            b_name, b_year, a_name, a_year = m.groups()
+        else:
+            a_name, a_year, b_name, b_year = span.groups()
         year_b = int(b_year or a_year or 0)
         year_a = int(a_year or b_year or 0)
         if not year_b:
