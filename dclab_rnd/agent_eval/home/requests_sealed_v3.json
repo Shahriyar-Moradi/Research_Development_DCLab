@@ -1,0 +1,1213 @@
+[
+ {
+  "id": "s3-p1",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "Using the customers table, I want to know which customers will churn next month, so the retention team can call them at the start of each month.",
+  "gold": {
+   "tracks": [
+    "prediction"
+   ],
+   "exit": "ml_project",
+   "fields": {
+    "target": {
+     "any": [
+      "churn next month",
+      "churn",
+      "which customers will churn"
+     ]
+    },
+    "prediction_moment": {
+     "any": [
+      "start of each month",
+      "each month"
+     ]
+    },
+    "action": {
+     "any": [
+      "retention team can call them",
+      "call them"
+     ]
+    },
+    "data_plan": {
+     "any": [
+      "customers table",
+      "customers"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-p2",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "Go through the bookings table and show me which of the new bookings coming in this week will end up cancelled, so we can overbook a little.",
+  "gold": {
+   "tracks": [
+    "prediction"
+   ],
+   "exit": "ml_project",
+   "fields": {
+    "target": {
+     "any": [
+      "end up cancelled",
+      "cancelled"
+     ]
+    },
+    "action": {
+     "any": [
+      "overbook a little",
+      "overbook"
+     ]
+    },
+    "data_plan": {
+     "any": [
+      "bookings table",
+      "bookings"
+     ]
+    }
+   }
+  },
+  "trap": "real_prediction"
+ },
+ {
+  "id": "s3-p3",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "From our sales history, estimate next month's total amount for each region, so we can set stock levels before the month starts.",
+  "gold": {
+   "tracks": [
+    "prediction"
+   ],
+   "exit": "ml_project",
+   "fields": {
+    "target": {
+     "any": [
+      "next month's total amount",
+      "total amount",
+      "amount"
+     ]
+    },
+    "output_grain": {
+     "any": [
+      "each region",
+      "for each region"
+     ]
+    },
+    "prediction_moment": {
+     "any": [
+      "before the month starts"
+     ]
+    },
+    "action": {
+     "any": [
+      "set stock levels",
+      "stock levels"
+     ]
+    },
+    "data_plan": {
+     "any": [
+      "sales history",
+      "sales"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-p4",
+  "lang": "en",
+  "data": [],
+  "text": "We're a courier firm. When a parcel is picked up, I'd like an estimate of how many hours it will take to arrive, so customers get an honest delivery time.",
+  "gold": {
+   "tracks": [
+    "prediction"
+   ],
+   "exit": "ml_project",
+   "fields": {
+    "target": {
+     "any": [
+      "how many hours it will take to arrive",
+      "hours it will take",
+      "delivery time"
+     ]
+    },
+    "prediction_moment": {
+     "any": [
+      "when a parcel is picked up",
+      "picked up"
+     ]
+    },
+    "action": {
+     "any": [
+      "customers get an honest delivery time",
+      "honest delivery time"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-p5",
+  "lang": "fa",
+  "data": [
+   "customers"
+  ],
+  "text": "از جدول مشتری‌ها می‌خواهم بدانم کدام مشتری ماه بعد اشتراکش را لغو می‌کند تا قبل از آن به او تخفیف بدهیم.",
+  "gold": {
+   "tracks": [
+    "prediction"
+   ],
+   "exit": "ml_project",
+   "fields": {
+    "target": {
+     "any": [
+      "اشتراکش را لغو می‌کند",
+      "لغو می‌کند",
+      "لغو"
+     ]
+    },
+    "action": {
+     "any": [
+      "تخفیف بدهیم",
+      "تخفیف"
+     ]
+    },
+    "data_plan": {
+     "any": [
+      "جدول مشتری‌ها",
+      "مشتری‌ها"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-p6",
+  "lang": "mixed",
+  "data": [
+   "bookings"
+  ],
+  "text": "برای bookings یک model می‌خواهم که موقع رزرو بگوید کدام رزرو cancel می‌شود؛ و همچنین نرخ cancel را به تفکیک channel در سال گذشته نشان بده.",
+  "gold": {
+   "tracks": [
+    "prediction",
+    "analysis"
+   ],
+   "exit": [
+    "ml_project",
+    "analysis"
+   ],
+   "fields": {
+    "target": {
+     "any": [
+      "cancel می‌شود",
+      "cancel"
+     ]
+    },
+    "prediction_moment": {
+     "any": [
+      "موقع رزرو"
+     ]
+    },
+    "measure": {
+     "any": [
+      "نرخ cancel"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "به تفکیک channel",
+      "channel"
+     ]
+    },
+    "period": {
+     "any": [
+      "سال گذشته"
+     ]
+    }
+   },
+   "both": true
+  },
+  "both": true
+ },
+ {
+  "id": "s3-a1",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "What was the total amount per product_category in each region last quarter, counting only completed orders?",
+  "gold": {
+   "tracks": [
+    "analysis"
+   ],
+   "exit": "analysis",
+   "fields": {
+    "measure": {
+     "any": [
+      "total amount",
+      "amount"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "product_category",
+      "region",
+      "per product_category in each region"
+     ]
+    },
+    "period": {
+     "any": [
+      "last quarter"
+     ]
+    },
+    "filters": {
+     "any": [
+      "only completed orders",
+      "completed orders",
+      "completed"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-a2",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "Describe the groups of customers we have by plan and city, and how their average monthly_spend differs between those groups.",
+  "gold": {
+   "tracks": [
+    "analysis"
+   ],
+   "exit": "analysis",
+   "fields": {
+    "measure": {
+     "any": [
+      "average monthly_spend",
+      "monthly_spend"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "plan and city",
+      "plan",
+      "city"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-a3",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "Show me the average discount given per channel over the last six months.",
+  "gold": {
+   "tracks": [
+    "analysis"
+   ],
+   "exit": "analysis",
+   "fields": {
+    "measure": null,
+    "breakdown": {
+     "any": [
+      "per channel",
+      "channel"
+     ]
+    },
+    "period": {
+     "any": [
+      "last six months",
+      "six months"
+     ]
+    }
+   }
+  },
+  "trap": "missing_column",
+  "missing_column": "discount"
+ },
+ {
+  "id": "s3-a4",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "How did the average lead_time_days change month by month this year, for bookings with free cancellation versus without?",
+  "gold": {
+   "tracks": [
+    "analysis"
+   ],
+   "exit": "analysis",
+   "fields": {
+    "measure": {
+     "any": [
+      "average lead_time_days",
+      "lead_time_days"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "month by month",
+      "free cancellation",
+      "with free cancellation versus without"
+     ]
+    },
+    "period": {
+     "any": [
+      "this year"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-a5",
+  "lang": "fa",
+  "data": [
+   "customers"
+  ],
+  "text": "میانگین تعداد تیکت‌های پشتیبانی در ۹۰ روز گذشته را برای هر شهر حساب کن.",
+  "gold": {
+   "tracks": [
+    "analysis"
+   ],
+   "exit": "analysis",
+   "fields": {
+    "measure": {
+     "any": [
+      "میانگین تعداد تیکت‌های پشتیبانی",
+      "تیکت‌های پشتیبانی",
+      "تیکت"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "هر شهر",
+      "شهر"
+     ]
+    },
+    "period": {
+     "any": [
+      "۹۰ روز گذشته",
+      "90 روز گذشته"
+     ]
+    },
+    "target": null
+   }
+  },
+  "trap": "persian_no_model"
+ },
+ {
+  "id": "s3-a6",
+  "lang": "fa",
+  "data": [
+   "sales"
+  ],
+  "text": "فروش هر کانال را در شش ماه اخیر با شش ماه قبل از آن مقایسه کن؛ شاید بعداً بخواهیم هر ماه هم همین را ببینیم.",
+  "gold": {
+   "tracks": [
+    "analysis",
+    "reporting"
+   ],
+   "exit": [
+    "analysis",
+    "dashboard"
+   ],
+   "fields": {
+    "measure": {
+     "any": [
+      "فروش"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "هر کانال",
+      "کانال"
+     ]
+    },
+    "period": {
+     "any": [
+      "شش ماه اخیر",
+      "شش ماه قبل"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "هر ماه"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s3-r1",
+  "lang": "en",
+  "data": [
+   "sales",
+   "customers"
+  ],
+  "text": "Join the sales table to customers on customer_id and give me one row per customer with their total amount and number of orders.",
+  "gold": {
+   "tracks": [
+    "preparation"
+   ],
+   "exit": "dataset",
+   "fields": {
+    "inputs": {
+     "any": [
+      "sales table",
+      "customers",
+      "sales"
+     ]
+    },
+    "rules": {
+     "any": [
+      "join",
+      "on customer_id",
+      "total amount and number of orders"
+     ]
+    },
+    "output_grain": {
+     "any": [
+      "one row per customer",
+      "per customer"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-r2",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "Clean the sales file for me: keep only orders from the online channel and drop anything with a missing region.",
+  "gold": {
+   "tracks": [
+    "preparation"
+   ],
+   "exit": "dataset",
+   "fields": {
+    "rules": {
+     "any": [
+      "keep only orders from the online channel",
+      "drop anything with a missing region",
+      "online channel"
+     ]
+    },
+    "inputs": {
+     "any": [
+      "sales file",
+      "sales"
+     ]
+    }
+   }
+  },
+  "trap": "silent_drop"
+ },
+ {
+  "id": "s3-r3",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "Our bookings export has booking_date and travel_date in mixed formats. Please convert both to year-month-day and save the result as a new CSV for the finance team.",
+  "gold": {
+   "tracks": [
+    "preparation"
+   ],
+   "exit": "dataset",
+   "fields": {
+    "rules": {
+     "any": [
+      "convert both to year-month-day",
+      "year-month-day",
+      "mixed formats"
+     ]
+    },
+    "inputs": {
+     "any": [
+      "bookings export",
+      "bookings"
+     ]
+    },
+    "destination": {
+     "any": [
+      "new CSV",
+      "CSV for the finance team",
+      "finance team"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-r4",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "Remove duplicate customers where the same customer_id appears more than once, and mark missing city values clearly instead of guessing them.",
+  "gold": {
+   "tracks": [
+    "preparation"
+   ],
+   "exit": "dataset",
+   "fields": {
+    "rules": {
+     "any": [
+      "remove duplicate customers",
+      "same customer_id",
+      "mark missing city values",
+      "instead of guessing"
+     ]
+    },
+    "inputs": {
+     "any": [
+      "customers"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-r5",
+  "lang": "fa",
+  "data": [
+   "bookings"
+  ],
+  "text": "جدول رزروها را طوری مرتب کن که برای هر مشتری یک ردیف باشد، با تعداد رزروها و میانگین قیمت.",
+  "gold": {
+   "tracks": [
+    "preparation"
+   ],
+   "exit": "dataset",
+   "fields": {
+    "output_grain": {
+     "any": [
+      "برای هر مشتری یک ردیف",
+      "هر مشتری یک ردیف"
+     ]
+    },
+    "inputs": {
+     "any": [
+      "جدول رزروها",
+      "رزروها"
+     ]
+    },
+    "rules": {
+     "any": [
+      "تعداد رزروها",
+      "میانگین قیمت"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-r6",
+  "lang": "mixed",
+  "data": [
+   "sales"
+  ],
+  "text": "ستون order_date را به فرمت استاندارد تبدیل کن و duplicate ها را حذف کن، بعد یک dashboard هفتگی از فروش به تفکیک region بساز.",
+  "gold": {
+   "tracks": [
+    "preparation",
+    "reporting"
+   ],
+   "exit": [
+    "dataset",
+    "dashboard"
+   ],
+   "fields": {
+    "rules": {
+     "any": [
+      "فرمت استاندارد",
+      "duplicate ها را حذف کن",
+      "order_date"
+     ]
+    },
+    "kpis": {
+     "any": [
+      "فروش"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "هفتگی"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "region",
+      "به تفکیک region"
+     ]
+    }
+   },
+   "both": true
+  },
+  "both": true
+ },
+ {
+  "id": "s3-b1",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "Set up a dashboard for the sales managers showing weekly revenue and order count by channel, refreshed every Monday morning.",
+  "gold": {
+   "tracks": [
+    "reporting"
+   ],
+   "exit": "dashboard",
+   "fields": {
+    "kpis": {
+     "any": [
+      "weekly revenue",
+      "order count",
+      "revenue"
+     ]
+    },
+    "audience": {
+     "any": [
+      "sales managers"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "every Monday morning",
+      "every Monday",
+      "weekly"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "by channel",
+      "channel"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-b2",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "Build me a model of last month's sales by region so I can show the board where the money came from.",
+  "gold": {
+   "tracks": [
+    "reporting",
+    "analysis"
+   ],
+   "exit": [
+    "dashboard",
+    "analysis"
+   ],
+   "fields": {
+    "kpis": {
+     "any": [
+      "sales",
+      "last month's sales"
+     ]
+    },
+    "audience": {
+     "any": [
+      "the board",
+      "board"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "by region",
+      "region"
+     ]
+    },
+    "period": {
+     "any": [
+      "last month"
+     ]
+    },
+    "target": null
+   },
+   "both": false
+  },
+  "trap": "report_not_model"
+ },
+ {
+  "id": "s3-b3",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "Every Friday, send the support lead a report listing each customer who had more than five support tickets in the last 90 days, with their city and plan.",
+  "gold": {
+   "tracks": [
+    "reporting"
+   ],
+   "exit": "dashboard",
+   "fields": {
+    "audience": {
+     "any": [
+      "support lead",
+      "the support lead"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "every Friday",
+      "Friday"
+     ]
+    },
+    "kpis": {
+     "any": [
+      "support tickets",
+      "more than five support tickets"
+     ]
+    }
+   }
+  },
+  "trap": "rows_request"
+ },
+ {
+  "id": "s3-b4",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "I want a monthly report for our partners showing bookings, cancellations and average price by destination, so they can decide where to put marketing money.",
+  "gold": {
+   "tracks": [
+    "reporting"
+   ],
+   "exit": "dashboard",
+   "fields": {
+    "kpis": {
+     "any": [
+      "bookings",
+      "cancellations",
+      "average price"
+     ]
+    },
+    "audience": {
+     "any": [
+      "partners",
+      "our partners"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "monthly"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "by destination",
+      "destination"
+     ]
+    },
+    "decisions_supported": {
+     "any": [
+      "where to put marketing money",
+      "marketing money"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-b5",
+  "lang": "fa",
+  "data": [
+   "customers"
+  ],
+  "text": "یک گزارش ماهانه برای مدیر بازاریابی می‌خواهم که تعداد مشتری‌های جدید و میانگین هزینه ماهانه را برای هر شهر نشان دهد.",
+  "gold": {
+   "tracks": [
+    "reporting"
+   ],
+   "exit": "dashboard",
+   "fields": {
+    "kpis": {
+     "any": [
+      "تعداد مشتری‌های جدید",
+      "میانگین هزینه ماهانه"
+     ]
+    },
+    "audience": {
+     "any": [
+      "مدیر بازاریابی"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "ماهانه",
+      "گزارش ماهانه"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "هر شهر",
+      "شهر"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-b6",
+  "lang": "mixed",
+  "data": [],
+  "text": "یک KPI dashboard برای فروشگاه‌ها لازم دارم که هر روز صبح update شود.",
+  "gold": {
+   "tracks": [
+    "reporting"
+   ],
+   "exit": "dashboard",
+   "fields": {
+    "refresh": {
+     "any": [
+      "هر روز صبح",
+      "هر روز",
+      "update شود"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-s1",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "Sales through our online channel dropped last quarter compared with the one before. Why, and should we put more into online ads or into the shop itself?",
+  "gold": {
+   "tracks": [
+    "business"
+   ],
+   "exit": "decision_brief",
+   "fields": {
+    "decision": {
+     "any": [
+      "should we put more into online ads or into the shop",
+      "online ads or into the shop"
+     ]
+    },
+    "options": {
+     "any": [
+      "online ads",
+      "the shop"
+     ]
+    },
+    "period_compared": {
+     "any": [
+      "last quarter compared with the one before",
+      "last quarter"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-s2",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "Should we stop offering free cancellation? We worry it makes people book and then cancel, but it may also bring in more bookings.",
+  "gold": {
+   "tracks": [
+    "business"
+   ],
+   "exit": "decision_brief",
+   "fields": {
+    "decision": {
+     "any": [
+      "stop offering free cancellation",
+      "free cancellation"
+     ]
+    },
+    "success_measure": {
+     "any": [
+      "more bookings",
+      "book and then cancel"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-s3",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "Which plan should we push in our next campaign? Our customer table has plans, spend and who churned.",
+  "gold": {
+   "tracks": [
+    "business",
+    "analysis"
+   ],
+   "exit": [
+    "decision_brief",
+    "analysis"
+   ],
+   "fields": {
+    "decision": {
+     "any": [
+      "which plan should we push",
+      "push in our next campaign",
+      "next campaign"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s3-s4",
+  "lang": "en",
+  "data": [],
+  "text": "We have budget for one hire this year: a data analyst or a second salesperson. Which gives us more, given we can't raise prices?",
+  "gold": {
+   "tracks": [
+    "business"
+   ],
+   "exit": "decision_brief",
+   "fields": {
+    "decision": {
+     "any": [
+      "one hire",
+      "a data analyst or a second salesperson"
+     ]
+    },
+    "options": {
+     "any": [
+      "data analyst",
+      "second salesperson"
+     ]
+    },
+    "constraints": {
+     "any": [
+      "can't raise prices",
+      "budget for one hire"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-s5",
+  "lang": "fa",
+  "data": [
+   "sales"
+  ],
+  "text": "فروش در بعضی منطقه‌ها در این فصل نسبت به فصل قبل کم شده؛ بهتر است تخفیف بدهیم یا نماینده فروش جدید بگیریم؟",
+  "gold": {
+   "tracks": [
+    "business"
+   ],
+   "exit": "decision_brief",
+   "fields": {
+    "decision": {
+     "any": [
+      "تخفیف بدهیم یا نماینده فروش جدید بگیریم"
+     ]
+    },
+    "options": {
+     "any": [
+      "تخفیف",
+      "نماینده فروش جدید"
+     ]
+    },
+    "period_compared": {
+     "any": [
+      "این فصل نسبت به فصل قبل",
+      "فصل قبل"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-s6",
+  "lang": "fa",
+  "data": [
+   "customers"
+  ],
+  "text": "می‌خواهیم تصمیم بگیریم پشتیبانی تلفنی را برای پلن ارزان حذف کنیم یا نه؛ اول بگو مشتری‌های این پلن در ۹۰ روز گذشته چند تیکت داشته‌اند.",
+  "gold": {
+   "tracks": [
+    "business",
+    "analysis"
+   ],
+   "exit": [
+    "decision_brief",
+    "analysis"
+   ],
+   "fields": {
+    "decision": {
+     "any": [
+      "پشتیبانی تلفنی را برای پلن ارزان حذف کنیم",
+      "حذف کنیم یا نه"
+     ]
+    },
+    "measure": {
+     "any": [
+      "چند تیکت",
+      "تیکت"
+     ]
+    },
+    "period": {
+     "any": [
+      "۹۰ روز گذشته",
+      "90 روز گذشته"
+     ]
+    }
+   },
+   "both": true
+  },
+  "both": true
+ },
+ {
+  "id": "s3-v1",
+  "lang": "en",
+  "data": [],
+  "text": "What's the difference between accuracy and AUC, and which one should I care about when churn is rare?",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "accuracy and AUC",
+      "AUC",
+      "accuracy"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-v2",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "Is it fine to use support_tickets_90d to predict churned_next_month, or is that leakage?",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "leakage",
+      "support_tickets_90d"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-v3",
+  "lang": "en",
+  "data": [],
+  "text": "How much data do I need before a demand forecast can be trusted?",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "how much data",
+      "demand forecast"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-v4",
+  "lang": "en",
+  "data": [],
+  "text": "Can you explain what a holdout set is and why it should only be used once?",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "holdout set",
+      "holdout"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-v5",
+  "lang": "fa",
+  "data": [],
+  "text": "برای شروع کار با داده در یک فروشگاه کوچک چه ابزاری پیشنهاد می‌کنید؟",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "ابزار",
+      "شروع کار با داده"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "s3-v6",
+  "lang": "mixed",
+  "data": [],
+  "text": "فرق classification با regression چیه؟ برای تخمین قیمت کدومش مناسب‌تره؟",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "classification",
+      "regression"
+     ]
+    }
+   }
+  }
+ }
+]

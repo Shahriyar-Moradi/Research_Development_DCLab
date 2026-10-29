@@ -1,0 +1,160 @@
+{
+ "set": "intent_requests_v1",
+ "package": "P6 (plan 2026-10-29)",
+ "label_source": "written",
+ "truth": "each request's kind, need, language and style were drawn by code (intent_requests.slots, seed 20261029) before it was written; the writer only wrote the words",
+ "planned": 900,
+ "written": 900,
+ "kept": 871,
+ "flagged": 29,
+ "unchecked": 0,
+ "check": "the plain single-call reading (prompt home_eval_plain, purpose home_agent): a request whose main track differs from its assigned kind (a two-kind request: whose tracks miss it) is kept apart, never trained on",
+ "writers": {
+  "a": {
+   "prompt": "home_request_writer",
+   "prompt_hash": "d92cfd0ca794"
+  },
+  "b": {
+   "prompt": "home_request_writer_b",
+   "prompt_hash": "aa190f009739"
+  },
+  "c": {
+   "prompt": "home_request_writer_c",
+   "prompt_hash": "9dfa8458e951"
+  }
+ },
+ "models": {
+  "check:claude-sonnet-5-5": 900,
+  "writer:claude-sonnet-5-5": 900
+ },
+ "kept_by": {
+  "track": {
+   "advice": 143,
+   "analysis": 146,
+   "business": 148,
+   "prediction": 143,
+   "preparation": 142,
+   "reporting": 149
+  },
+  "lang": {
+   "en": 640,
+   "fa": 148,
+   "mixed": 83
+  },
+  "style": {
+   "long": 138,
+   "plain": 175,
+   "short": 175,
+   "two_kinds": 125,
+   "typos": 133,
+   "vague": 125
+  },
+  "writer": {
+   "a": 289,
+   "b": 290,
+   "c": 292
+  }
+ },
+ "flagged_by": {
+  "track": {
+   "advice": 7,
+   "analysis": 4,
+   "business": 2,
+   "prediction": 7,
+   "preparation": 8,
+   "reporting": 1
+  },
+  "lang": {
+   "en": 20,
+   "fa": 2,
+   "mixed": 7
+  },
+  "style": {
+   "plain": 5,
+   "short": 5,
+   "two_kinds": 1,
+   "typos": 5,
+   "vague": 13
+  },
+  "writer": {
+   "a": 11,
+   "b": 10,
+   "c": 8
+  }
+ },
+ "written_by": {
+  "track": {
+   "advice": 150,
+   "analysis": 150,
+   "business": 150,
+   "prediction": 150,
+   "preparation": 150,
+   "reporting": 150
+  },
+  "lang": {
+   "en": 660,
+   "fa": 150,
+   "mixed": 90
+  },
+  "style": {
+   "long": 138,
+   "plain": 180,
+   "short": 180,
+   "two_kinds": 126,
+   "typos": 138,
+   "vague": 138
+  },
+  "writer": {
+   "a": 300,
+   "b": 300,
+   "c": 300
+  }
+ },
+ "track_by_writer": {
+  "prediction": {
+   "a": 50,
+   "b": 50,
+   "c": 50
+  },
+  "analysis": {
+   "a": 50,
+   "b": 50,
+   "c": 50
+  },
+  "preparation": {
+   "a": 50,
+   "b": 50,
+   "c": 50
+  },
+  "reporting": {
+   "a": 50,
+   "b": 50,
+   "c": 50
+  },
+  "business": {
+   "a": 50,
+   "b": 50,
+   "c": 50
+  },
+  "advice": {
+   "a": 50,
+   "b": 50,
+   "c": 50
+  }
+ },
+ "segments": {
+  "written": 45,
+  "kept": 42
+ },
+ "spent_eur": 3.613701,
+ "caps": {
+  "per_run_eur": 1.0,
+  "total_eur": 4.0
+ },
+ "kept_whole_in": "agent_runs/live_tests/2026-10-29-intent-requests",
+ "limits": [
+  "Written by a model from code-assigned slots: these are not real people's requests, and a kind the writer found hard to express may be under-represented after the check.",
+  "The check is one model's reading: agreement with it is not correctness; the owner's blind sample (docs/guides/BLIND_LABELLING.md) measures the labels' noise.",
+  "Labels are 'written': kept apart from real labels, weighted lower, never enough to promote a model."
+ ]
+}

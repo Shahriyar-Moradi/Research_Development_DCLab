@@ -1,0 +1,81 @@
+{
+ "package": "P6 intent requests",
+ "title": "900 written, labelled first requests to Home and a first intent classifier, kept in shadow",
+ "date": "2026-10-29",
+ "request": "The owner: about 500 labelled requests are needed for an intent classifier and there are almost none; build them (plan P6, ~/.claude/plans/magical-waddling-honey.md).",
+ "spec": "Code assigns each request's truth (kind of help, need, language, style); writers only write words; a plain reading checks them; an independent agent writes the sealed sets; the classifier is measured across writers and gated before any sealed read.",
+ "plan": [
+  "Writer prompts A and B",
+  "Write 600 with code-assigned truth",
+  "Check with the plain reading",
+  "Blind sample for the owner",
+  "Independent sealed sets",
+  "Train and measure across writers",
+  "Write the gate",
+  "Stop before the sealed read"
+ ],
+ "decisions": [
+  {
+   "decision": "A third writer (C), English only, of direct requests that name tables and columns",
+   "why": "the first measurement missed plain requests (\"predict which bookings get cancelled\"); after the owner's \"skip Persian\" its early Persian batches were kept apart, unused"
+  },
+  {
+   "decision": "The gate judges English requests only; Persian and mixed are reported",
+   "why": "the owner, 2026-10-29: skip Persian"
+  },
+  {
+   "decision": "The classifier may answer alone only above confidence 0.86 and must be 95% right there and beat the rules by 10 points",
+   "why": "the stricter of the two dev measurements; numbers set after dev and before any sealed read, as the file says"
+  },
+  {
+   "decision": "The sealed sets stay unread",
+   "why": "on Home's own requests the classifier ties the rules (0.72 against 0.70): a read now would spend the set on a likely fail"
+  }
+ ],
+ "change": "dclab_rnd.agent_eval.home.intent_requests and its data (intent_requests_v1, flagged, blind sample and key, manifest), intent_sealed_v1 and requests_sealed_v3 pinned, intent_gate_v1.json, the intent_model_v1 card and measurements (the fitted model is not committed), dclab_rnd.intent_classifier, prompts home_request_writer (b, c), the blind labelling guide, tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The classifier missed plain, direct requests from another writer",
+   "scenario": "Home's 108 requests read by the classifier trained on writers A and B.",
+   "cause": "The two writers favoured indirect, story-like requests.",
+   "fix": "Writer C wrote 300 direct requests; the classifier now holds 0.84 to 0.87 with one writer held out, and 0.72 on Home's own requests, still level with the rules.",
+   "test": "tests/test_intent_classifier.py"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The writing calls returned no thinking summary",
+   "scenario": "journey_writer calls with thinking asked: 1 of 95 with a summary.",
+   "cause": "Adaptive thinking at the default effort chooses not to think on short writing tasks.",
+   "fix": "The workspace now asks for effort xhigh (measured 3 of 3 with a summary); a test shows a returned summary is saved.",
+   "test": "tests/test_intent_requests.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Intent classifier across writers (dev)",
+   "gate": "intent_gate_v1, fixed before any sealed read",
+   "result": "train A test B 0.78, train B test A 0.79, one writer held out 0.84-0.87; the rules 0.31-0.42 on the written sets; on Home's 108 requests 0.72 against the rules' 0.70; English 0.88, Persian 0.82, mixed 0.70",
+   "verdict": "not scored"
+  },
+  {
+   "name": "The written set's check",
+   "gate": "the plain reading agrees with the assigned kind",
+   "result": "871 kept, 29 flagged (never trained on)",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "900 labelled requests and a shadow classifier; the sealed sets are pinned and unread; EUR 3.61 of a EUR 4 cap.",
+ "lessons": [
+  "Written requests from two writers of one style teach a classifier that style: a third writer of another kind is what showed the gap.",
+  "A classifier that beats the rules on written sets can still only tie them on requests written elsewhere; real requests are the next data."
+ ],
+ "risks": [
+  "Labels are written by design, kept apart and weighted lower than real labels; promotion needs the sealed set and real requests."
+ ],
+ "commits": []
+}

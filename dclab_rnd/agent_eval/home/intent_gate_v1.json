@@ -1,0 +1,70 @@
+{
+ "version": "intent_gate_v1",
+ "set": "intent_sealed_v1: 180 first requests, 30 per kind of help (main track), written by an independent agent told only the format and the six kinds; read once",
+ "right": "the classifier's track equals the request's main track (tracks[0]); a two-kind request is right only on its main one",
+ "scope": "en",
+ "accuracy_min": 0.75,
+ "accuracy_ci_low_min": 0.66,
+ "per_track_recall_min": 0.6,
+ "margin_over_rules_min": 0.1,
+ "calibration_error_max": 0.15,
+ "alone": {
+  "precision_min": 0.95,
+  "precision_ci_low_min": 0.8,
+  "coverage_min": 0.15,
+  "threshold": 0.86,
+  "dev_held_out_writers_english": {
+   "threshold": 0.57,
+   "coverage": 0.7875,
+   "precision": 0.9504,
+   "n_above": 504
+  },
+  "dev_home_english": {
+   "threshold": 0.86,
+   "coverage": 0.1944,
+   "precision": 1.0,
+   "n_above": 14
+  }
+ },
+ "reported_not_gating": [
+  "Persian and mixed requests (the owner skipped Persian for now)",
+  "segments (about 8 requests: too few to gate)",
+  "each style",
+  "the rules' default share"
+ ],
+ "pass_means": "it may answer a first request alone above the threshold, with Claude as the fallback, once P1 wires the answerer order; written labels alone never promote it (plan decision 3): only this independent set does",
+ "sealed_sha256": "488760f700b3a5db5e94f8e023174114b01f54ed5cd0ebf3499f3ba633d05751",
+ "model_version": "916ad87351ec",
+ "seen_before": {
+  "train_a_test_b": {
+   "accuracy": 0.7759,
+   "rules": 0.331,
+   "calibration_error": 0.1943
+  },
+  "train_b_test_a": {
+   "accuracy": 0.7889,
+   "rules": 0.3114,
+   "calibration_error": 0.2166
+  },
+  "train_bc_test_a": {
+   "accuracy": 0.8374,
+   "rules": 0.3114,
+   "calibration_error": 0.1759
+  },
+  "train_ac_test_b": {
+   "accuracy": 0.8483,
+   "rules": 0.331,
+   "calibration_error": 0.1921
+  },
+  "train_ab_test_c": {
+   "accuracy": 0.8664,
+   "rules": 0.4247,
+   "calibration_error": 0.1642
+  },
+  "home_requests": {
+   "accuracy": 0.7222,
+   "rules": 0.7037
+  }
+ },
+ "written_at": "2026-10-29T08:46:31+00:00"
+}

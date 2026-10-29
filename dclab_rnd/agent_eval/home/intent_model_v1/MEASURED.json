@@ -1,0 +1,1291 @@
+{
+ "point": "request.intent",
+ "name": "request.intent.text_v2",
+ "version": "916ad87351ec",
+ "trained_on": 871,
+ "by_writer": {
+  "a": 289,
+  "b": 290,
+  "c": 292
+ },
+ "cross_writer": {
+  "train_a_test_b": {
+   "n": 290,
+   "accuracy": 0.7759,
+   "accuracy_ci": [
+    0.7244,
+    0.8201
+   ],
+   "macro_precision": 0.7727,
+   "macro_recall": 0.7755,
+   "per_track": {
+    "prediction": {
+     "n": 47,
+     "recall": 0.8298,
+     "recall_ci": [
+      0.6986,
+      0.9111
+     ],
+     "precision": 0.7647
+    },
+    "analysis": {
+     "n": 48,
+     "recall": 0.5833,
+     "recall_ci": [
+      0.4428,
+      0.7115
+     ],
+     "precision": 0.7179
+    },
+    "preparation": {
+     "n": 48,
+     "recall": 0.8333,
+     "recall_ci": [
+      0.7042,
+      0.913
+     ],
+     "precision": 0.8511
+    },
+    "reporting": {
+     "n": 49,
+     "recall": 0.9592,
+     "recall_ci": [
+      0.8629,
+      0.9887
+     ],
+     "precision": 0.8545
+    },
+    "business": {
+     "n": 50,
+     "recall": 0.76,
+     "recall_ci": [
+      0.6259,
+      0.857
+     ],
+     "precision": 0.7308
+    },
+    "advice": {
+     "n": 48,
+     "recall": 0.6875,
+     "recall_ci": [
+      0.5467,
+      0.8005
+     ],
+     "precision": 0.7174
+    }
+   },
+   "by_lang": {
+    "en": {
+     "n": 175,
+     "accuracy": 0.8,
+     "ci": [
+      0.7346,
+      0.8525
+     ]
+    },
+    "fa": {
+     "n": 71,
+     "accuracy": 0.8028,
+     "ci": [
+      0.6958,
+      0.8787
+     ]
+    },
+    "mixed": {
+     "n": 44,
+     "accuracy": 0.6364,
+     "ci": [
+      0.4887,
+      0.7622
+     ]
+    }
+   },
+   "by_style": {
+    "long": {
+     "n": 43,
+     "accuracy": 0.8605,
+     "ci": [
+      0.7274,
+      0.9344
+     ]
+    },
+    "plain": {
+     "n": 59,
+     "accuracy": 0.8644,
+     "ci": [
+      0.7546,
+      0.9297
+     ]
+    },
+    "short": {
+     "n": 59,
+     "accuracy": 0.661,
+     "ci": [
+      0.5337,
+      0.7686
+     ]
+    },
+    "two_kinds": {
+     "n": 45,
+     "accuracy": 0.7556,
+     "ci": [
+      0.6133,
+      0.8576
+     ]
+    },
+    "typos": {
+     "n": 43,
+     "accuracy": 0.7907,
+     "ci": [
+      0.6479,
+      0.8858
+     ]
+    },
+    "vague": {
+     "n": 41,
+     "accuracy": 0.7317,
+     "ci": [
+      0.5807,
+      0.8431
+     ]
+    }
+   },
+   "segments": {
+    "n": 13,
+    "accuracy": 0.8462,
+    "ci": [
+     0.5776,
+     0.9567
+    ]
+   },
+   "two_kinds_any_track": {
+    "n": 45,
+    "accuracy": 0.9333,
+    "ci": [
+     0.8214,
+     0.9771
+    ]
+   },
+   "calibration_error": 0.1943,
+   "confusions": {
+    "analysis->business": 7,
+    "analysis->advice": 6,
+    "advice->business": 5,
+    "advice->prediction": 4,
+    "advice->analysis": 4,
+    "analysis->prediction": 3,
+    "analysis->preparation": 3,
+    "business->prediction": 3,
+    "business->advice": 3,
+    "business->analysis": 3,
+    "business->reporting": 3,
+    "prediction->advice": 3
+   },
+   "rules": {
+    "version": "intent_rules_v2",
+    "accuracy": 0.331,
+    "accuracy_ci": [
+     0.2794,
+     0.3871
+    ],
+    "per_track_recall": {
+     "prediction": 0.8085,
+     "analysis": 0.1458,
+     "preparation": 0.3125,
+     "reporting": 0.4694,
+     "business": 0.18,
+     "advice": 0.0833
+    },
+    "by_lang": {
+     "en": {
+      "n": 175,
+      "accuracy": 0.3714,
+      "ci": [
+       0.3033,
+       0.4451
+      ]
+     },
+     "fa": {
+      "n": 71,
+      "accuracy": 0.2535,
+      "ci": [
+       0.1668,
+       0.3655
+      ]
+     },
+     "mixed": {
+      "n": 44,
+      "accuracy": 0.2955,
+      "ci": [
+       0.1816,
+       0.4422
+      ]
+     }
+    },
+    "default_share": 0.0,
+    "paired": {
+     "model_only_right": 139,
+     "rules_only_right": 10
+    }
+   }
+  },
+  "train_b_test_a": {
+   "n": 289,
+   "accuracy": 0.7889,
+   "accuracy_ci": [
+    0.7382,
+    0.832
+   ],
+   "macro_precision": 0.7917,
+   "macro_recall": 0.7884,
+   "per_track": {
+    "prediction": {
+     "n": 48,
+     "recall": 0.6875,
+     "recall_ci": [
+      0.5467,
+      0.8005
+     ],
+     "precision": 0.8462
+    },
+    "analysis": {
+     "n": 49,
+     "recall": 0.8163,
+     "recall_ci": [
+      0.6864,
+      0.9002
+     ],
+     "precision": 0.7843
+    },
+    "preparation": {
+     "n": 47,
+     "recall": 0.9362,
+     "recall_ci": [
+      0.8284,
+      0.9781
+     ],
+     "precision": 0.8148
+    },
+    "reporting": {
+     "n": 50,
+     "recall": 0.8,
+     "recall_ci": [
+      0.6696,
+      0.8876
+     ],
+     "precision": 0.8889
+    },
+    "business": {
+     "n": 49,
+     "recall": 0.8163,
+     "recall_ci": [
+      0.6864,
+      0.9002
+     ],
+     "precision": 0.7273
+    },
+    "advice": {
+     "n": 46,
+     "recall": 0.6739,
+     "recall_ci": [
+      0.5297,
+      0.7913
+     ],
+     "precision": 0.6889
+    }
+   },
+   "by_lang": {
+    "en": {
+     "n": 173,
+     "accuracy": 0.815,
+     "ci": [
+      0.7506,
+      0.8658
+     ]
+    },
+    "fa": {
+     "n": 77,
+     "accuracy": 0.8312,
+     "ci": [
+      0.7323,
+      0.8986
+     ]
+    },
+    "mixed": {
+     "n": 39,
+     "accuracy": 0.5897,
+     "ci": [
+      0.4342,
+      0.7292
+     ]
+    }
+   },
+   "by_style": {
+    "long": {
+     "n": 47,
+     "accuracy": 0.8511,
+     "ci": [
+      0.7231,
+      0.9259
+     ]
+    },
+    "plain": {
+     "n": 56,
+     "accuracy": 0.8571,
+     "ci": [
+      0.7426,
+      0.9258
+     ]
+    },
+    "short": {
+     "n": 57,
+     "accuracy": 0.8596,
+     "ci": [
+      0.7468,
+      0.9271
+     ]
+    },
+    "two_kinds": {
+     "n": 44,
+     "accuracy": 0.6364,
+     "ci": [
+      0.4887,
+      0.7622
+     ]
+    },
+    "typos": {
+     "n": 44,
+     "accuracy": 0.7727,
+     "ci": [
+      0.6301,
+      0.8716
+     ]
+    },
+    "vague": {
+     "n": 41,
+     "accuracy": 0.7073,
+     "ci": [
+      0.5552,
+      0.8239
+     ]
+    }
+   },
+   "segments": {
+    "n": 15,
+    "accuracy": 0.8667,
+    "ci": [
+     0.6212,
+     0.9626
+    ]
+   },
+   "two_kinds_any_track": {
+    "n": 44,
+    "accuracy": 0.8409,
+    "ci": [
+     0.7063,
+     0.9207
+    ]
+   },
+   "calibration_error": 0.2166,
+   "confusions": {
+    "advice->business": 6,
+    "advice->prediction": 4,
+    "analysis->preparation": 4,
+    "business->advice": 4,
+    "prediction->business": 4,
+    "prediction->analysis": 4,
+    "prediction->advice": 4,
+    "reporting->advice": 4,
+    "advice->analysis": 3,
+    "analysis->business": 3,
+    "reporting->preparation": 3,
+    "advice->preparation": 2
+   },
+   "rules": {
+    "version": "intent_rules_v2",
+    "accuracy": 0.3114,
+    "accuracy_ci": [
+     0.2608,
+     0.367
+    ],
+    "per_track_recall": {
+     "prediction": 0.625,
+     "analysis": 0.3469,
+     "preparation": 0.2553,
+     "reporting": 0.3,
+     "business": 0.2041,
+     "advice": 0.1304
+    },
+    "by_lang": {
+     "en": {
+      "n": 173,
+      "accuracy": 0.3353,
+      "ci": [
+       0.2692,
+       0.4085
+      ]
+     },
+     "fa": {
+      "n": 77,
+      "accuracy": 0.2857,
+      "ci": [
+       0.1969,
+       0.3949
+      ]
+     },
+     "mixed": {
+      "n": 39,
+      "accuracy": 0.2564,
+      "ci": [
+       0.1457,
+       0.4108
+      ]
+     }
+    },
+    "default_share": 0.0,
+    "paired": {
+     "model_only_right": 152,
+     "rules_only_right": 14
+    }
+   }
+  },
+  "train_bc_test_a": {
+   "n": 289,
+   "accuracy": 0.8374,
+   "accuracy_ci": [
+    0.7904,
+    0.8754
+   ],
+   "macro_precision": 0.8376,
+   "macro_recall": 0.8369,
+   "per_track": {
+    "prediction": {
+     "n": 48,
+     "recall": 0.7708,
+     "recall_ci": [
+      0.6346,
+      0.8669
+     ],
+     "precision": 0.881
+    },
+    "analysis": {
+     "n": 49,
+     "recall": 0.8163,
+     "recall_ci": [
+      0.6864,
+      0.9002
+     ],
+     "precision": 0.8511
+    },
+    "preparation": {
+     "n": 47,
+     "recall": 0.9787,
+     "recall_ci": [
+      0.8889,
+      0.9962
+     ],
+     "precision": 0.8519
+    },
+    "reporting": {
+     "n": 50,
+     "recall": 0.9,
+     "recall_ci": [
+      0.7864,
+      0.9565
+     ],
+     "precision": 0.9
+    },
+    "business": {
+     "n": 49,
+     "recall": 0.8163,
+     "recall_ci": [
+      0.6864,
+      0.9002
+     ],
+     "precision": 0.7692
+    },
+    "advice": {
+     "n": 46,
+     "recall": 0.7391,
+     "recall_ci": [
+      0.5974,
+      0.844
+     ],
+     "precision": 0.7727
+    }
+   },
+   "by_lang": {
+    "en": {
+     "n": 173,
+     "accuracy": 0.8786,
+     "ci": [
+      0.8216,
+      0.9192
+     ]
+    },
+    "fa": {
+     "n": 77,
+     "accuracy": 0.8312,
+     "ci": [
+      0.7323,
+      0.8986
+     ]
+    },
+    "mixed": {
+     "n": 39,
+     "accuracy": 0.6667,
+     "ci": [
+      0.5098,
+      0.7937
+     ]
+    }
+   },
+   "by_style": {
+    "long": {
+     "n": 47,
+     "accuracy": 0.8723,
+     "ci": [
+      0.7483,
+      0.9402
+     ]
+    },
+    "plain": {
+     "n": 56,
+     "accuracy": 0.9107,
+     "ci": [
+      0.8074,
+      0.9613
+     ]
+    },
+    "short": {
+     "n": 57,
+     "accuracy": 0.8947,
+     "ci": [
+      0.7888,
+      0.9509
+     ]
+    },
+    "two_kinds": {
+     "n": 44,
+     "accuracy": 0.7045,
+     "ci": [
+      0.5578,
+      0.8184
+     ]
+    },
+    "typos": {
+     "n": 44,
+     "accuracy": 0.8409,
+     "ci": [
+      0.7063,
+      0.9207
+     ]
+    },
+    "vague": {
+     "n": 41,
+     "accuracy": 0.7561,
+     "ci": [
+      0.6066,
+      0.8618
+     ]
+    }
+   },
+   "segments": {
+    "n": 15,
+    "accuracy": 0.9333,
+    "ci": [
+     0.7018,
+     0.9881
+    ]
+   },
+   "two_kinds_any_track": {
+    "n": 44,
+    "accuracy": 0.9091,
+    "ci": [
+     0.7884,
+     0.9641
+    ]
+   },
+   "calibration_error": 0.1759,
+   "confusions": {
+    "advice->business": 5,
+    "advice->prediction": 4,
+    "analysis->business": 4,
+    "business->analysis": 4,
+    "prediction->advice": 4,
+    "analysis->preparation": 3,
+    "business->advice": 3,
+    "prediction->business": 3,
+    "reporting->advice": 3,
+    "advice->preparation": 2,
+    "analysis->reporting": 2,
+    "prediction->reporting": 2
+   },
+   "rules": {
+    "version": "intent_rules_v2",
+    "accuracy": 0.3114,
+    "accuracy_ci": [
+     0.2608,
+     0.367
+    ],
+    "per_track_recall": {
+     "prediction": 0.625,
+     "analysis": 0.3469,
+     "preparation": 0.2553,
+     "reporting": 0.3,
+     "business": 0.2041,
+     "advice": 0.1304
+    },
+    "by_lang": {
+     "en": {
+      "n": 173,
+      "accuracy": 0.3353,
+      "ci": [
+       0.2692,
+       0.4085
+      ]
+     },
+     "fa": {
+      "n": 77,
+      "accuracy": 0.2857,
+      "ci": [
+       0.1969,
+       0.3949
+      ]
+     },
+     "mixed": {
+      "n": 39,
+      "accuracy": 0.2564,
+      "ci": [
+       0.1457,
+       0.4108
+      ]
+     }
+    },
+    "default_share": 0.0,
+    "paired": {
+     "model_only_right": 162,
+     "rules_only_right": 10
+    }
+   }
+  },
+  "train_ac_test_b": {
+   "n": 290,
+   "accuracy": 0.8483,
+   "accuracy_ci": [
+    0.8025,
+    0.885
+   ],
+   "macro_precision": 0.8472,
+   "macro_recall": 0.8476,
+   "per_track": {
+    "prediction": {
+     "n": 47,
+     "recall": 0.8936,
+     "recall_ci": [
+      0.7741,
+      0.9537
+     ],
+     "precision": 0.875
+    },
+    "analysis": {
+     "n": 48,
+     "recall": 0.6667,
+     "recall_ci": [
+      0.5254,
+      0.7832
+     ],
+     "precision": 0.7805
+    },
+    "preparation": {
+     "n": 48,
+     "recall": 0.875,
+     "recall_ci": [
+      0.753,
+      0.9414
+     ],
+     "precision": 0.913
+    },
+    "reporting": {
+     "n": 49,
+     "recall": 0.9796,
+     "recall_ci": [
+      0.8931,
+      0.9964
+     ],
+     "precision": 0.9412
+    },
+    "business": {
+     "n": 50,
+     "recall": 0.9,
+     "recall_ci": [
+      0.7864,
+      0.9565
+     ],
+     "precision": 0.8333
+    },
+    "advice": {
+     "n": 48,
+     "recall": 0.7708,
+     "recall_ci": [
+      0.6346,
+      0.8669
+     ],
+     "precision": 0.74
+    }
+   },
+   "by_lang": {
+    "en": {
+     "n": 175,
+     "accuracy": 0.8914,
+     "ci": [
+      0.8367,
+      0.9294
+     ]
+    },
+    "fa": {
+     "n": 71,
+     "accuracy": 0.8169,
+     "ci": [
+      0.7115,
+      0.8898
+     ]
+    },
+    "mixed": {
+     "n": 44,
+     "accuracy": 0.7273,
+     "ci": [
+      0.5815,
+      0.8365
+     ]
+    }
+   },
+   "by_style": {
+    "long": {
+     "n": 43,
+     "accuracy": 0.907,
+     "ci": [
+      0.784,
+      0.9632
+     ]
+    },
+    "plain": {
+     "n": 59,
+     "accuracy": 0.9153,
+     "ci": [
+      0.8165,
+      0.9633
+     ]
+    },
+    "short": {
+     "n": 59,
+     "accuracy": 0.7797,
+     "ci": [
+      0.6587,
+      0.8665
+     ]
+    },
+    "two_kinds": {
+     "n": 45,
+     "accuracy": 0.8222,
+     "ci": [
+      0.6867,
+      0.9071
+     ]
+    },
+    "typos": {
+     "n": 43,
+     "accuracy": 0.8837,
+     "ci": [
+      0.7552,
+      0.9493
+     ]
+    },
+    "vague": {
+     "n": 41,
+     "accuracy": 0.7805,
+     "ci": [
+      0.6329,
+      0.88
+     ]
+    }
+   },
+   "segments": {
+    "n": 13,
+    "accuracy": 0.8462,
+    "ci": [
+     0.5776,
+     0.9567
+    ]
+   },
+   "two_kinds_any_track": {
+    "n": 45,
+    "accuracy": 0.9778,
+    "ci": [
+     0.8843,
+     0.9961
+    ]
+   },
+   "calibration_error": 0.1921,
+   "confusions": {
+    "analysis->advice": 8,
+    "advice->analysis": 5,
+    "advice->business": 4,
+    "analysis->business": 4,
+    "preparation->analysis": 3,
+    "advice->prediction": 2,
+    "analysis->prediction": 2,
+    "business->prediction": 2,
+    "business->advice": 2,
+    "prediction->advice": 2,
+    "prediction->preparation": 2,
+    "preparation->reporting": 2
+   },
+   "rules": {
+    "version": "intent_rules_v2",
+    "accuracy": 0.331,
+    "accuracy_ci": [
+     0.2794,
+     0.3871
+    ],
+    "per_track_recall": {
+     "prediction": 0.8085,
+     "analysis": 0.1458,
+     "preparation": 0.3125,
+     "reporting": 0.4694,
+     "business": 0.18,
+     "advice": 0.0833
+    },
+    "by_lang": {
+     "en": {
+      "n": 175,
+      "accuracy": 0.3714,
+      "ci": [
+       0.3033,
+       0.4451
+      ]
+     },
+     "fa": {
+      "n": 71,
+      "accuracy": 0.2535,
+      "ci": [
+       0.1668,
+       0.3655
+      ]
+     },
+     "mixed": {
+      "n": 44,
+      "accuracy": 0.2955,
+      "ci": [
+       0.1816,
+       0.4422
+      ]
+     }
+    },
+    "default_share": 0.0,
+    "paired": {
+     "model_only_right": 157,
+     "rules_only_right": 7
+    }
+   }
+  },
+  "train_ab_test_c": {
+   "n": 292,
+   "accuracy": 0.8664,
+   "accuracy_ci": [
+    0.8226,
+    0.9007
+   ],
+   "macro_precision": 0.8658,
+   "macro_recall": 0.8668,
+   "per_track": {
+    "prediction": {
+     "n": 48,
+     "recall": 0.8542,
+     "recall_ci": [
+      0.7283,
+      0.9275
+     ],
+     "precision": 0.8367
+    },
+    "analysis": {
+     "n": 49,
+     "recall": 0.7347,
+     "recall_ci": [
+      0.5974,
+      0.8379
+     ],
+     "precision": 0.7826
+    },
+    "preparation": {
+     "n": 47,
+     "recall": 0.9787,
+     "recall_ci": [
+      0.8889,
+      0.9962
+     ],
+     "precision": 0.8519
+    },
+    "reporting": {
+     "n": 50,
+     "recall": 0.96,
+     "recall_ci": [
+      0.8654,
+      0.989
+     ],
+     "precision": 0.9412
+    },
+    "business": {
+     "n": 49,
+     "recall": 0.8571,
+     "recall_ci": [
+      0.7333,
+      0.929
+     ],
+     "precision": 0.913
+    },
+    "advice": {
+     "n": 49,
+     "recall": 0.8163,
+     "recall_ci": [
+      0.6864,
+      0.9002
+     ],
+     "precision": 0.8696
+    }
+   },
+   "by_lang": {
+    "en": {
+     "n": 292,
+     "accuracy": 0.8664,
+     "ci": [
+      0.8226,
+      0.9007
+     ]
+    }
+   },
+   "by_style": {
+    "long": {
+     "n": 48,
+     "accuracy": 0.9167,
+     "ci": [
+      0.8045,
+      0.9671
+     ]
+    },
+    "plain": {
+     "n": 60,
+     "accuracy": 0.9167,
+     "ci": [
+      0.8193,
+      0.9639
+     ]
+    },
+    "short": {
+     "n": 59,
+     "accuracy": 0.9322,
+     "ci": [
+      0.8382,
+      0.9733
+     ]
+    },
+    "two_kinds": {
+     "n": 36,
+     "accuracy": 0.6944,
+     "ci": [
+      0.5314,
+      0.82
+     ]
+    },
+    "typos": {
+     "n": 46,
+     "accuracy": 0.8043,
+     "ci": [
+      0.6683,
+      0.8935
+     ]
+    },
+    "vague": {
+     "n": 43,
+     "accuracy": 0.8605,
+     "ci": [
+      0.7274,
+      0.9344
+     ]
+    }
+   },
+   "segments": {
+    "n": 14,
+    "accuracy": 0.9286,
+    "ci": [
+     0.6853,
+     0.9873
+    ]
+   },
+   "two_kinds_any_track": {
+    "n": 36,
+    "accuracy": 0.8611,
+    "ci": [
+     0.7134,
+     0.9392
+    ]
+   },
+   "calibration_error": 0.1642,
+   "confusions": {
+    "advice->prediction": 5,
+    "analysis->preparation": 5,
+    "business->analysis": 5,
+    "analysis->advice": 3,
+    "analysis->prediction": 2,
+    "analysis->business": 2,
+    "prediction->analysis": 2,
+    "prediction->advice": 2,
+    "advice->preparation": 1,
+    "advice->reporting": 1,
+    "advice->business": 1,
+    "advice->analysis": 1
+   },
+   "rules": {
+    "version": "intent_rules_v2",
+    "accuracy": 0.4247,
+    "accuracy_ci": [
+     0.3693,
+     0.482
+    ],
+    "per_track_recall": {
+     "prediction": 0.8958,
+     "analysis": 0.1633,
+     "preparation": 0.4255,
+     "reporting": 0.66,
+     "business": 0.2245,
+     "advice": 0.1837
+    },
+    "by_lang": {
+     "en": {
+      "n": 292,
+      "accuracy": 0.4247,
+      "ci": [
+       0.3693,
+       0.482
+      ]
+     }
+    },
+    "default_share": 0.0,
+    "paired": {
+     "model_only_right": 140,
+     "rules_only_right": 11
+    }
+   }
+  }
+ },
+ "held_out": [
+  "train_bc_test_a",
+  "train_ac_test_b",
+  "train_ab_test_c"
+ ],
+ "alone_on_dev": {
+  "threshold": 0.6,
+  "coverage": 0.6728,
+  "precision": 0.9505,
+  "n_above": 586
+ },
+ "alone_on_dev_english": {
+  "threshold": 0.57,
+  "coverage": 0.7875,
+  "precision": 0.9504,
+  "n_above": 504
+ },
+ "alone_on_home_english": {
+  "threshold": 0.86,
+  "coverage": 0.1944,
+  "precision": 1.0,
+  "n_above": 14
+ },
+ "held_out_by_lang": {
+  "en": {
+   "n": 640,
+   "accuracy": 0.8766
+  },
+  "fa": {
+   "n": 148,
+   "accuracy": 0.8243
+  },
+  "mixed": {
+   "n": 83,
+   "accuracy": 0.6988
+  }
+ },
+ "home_requests": {
+  "n": 108,
+  "accuracy": 0.7222,
+  "accuracy_ci": [
+   0.6312,
+   0.798
+  ],
+  "macro_precision": 0.7369,
+  "macro_recall": 0.7222,
+  "per_track": {
+   "prediction": {
+    "n": 18,
+    "recall": 0.7778,
+    "recall_ci": [
+     0.5478,
+     0.91
+    ],
+    "precision": 0.7778
+   },
+   "analysis": {
+    "n": 18,
+    "recall": 0.5556,
+    "recall_ci": [
+     0.3372,
+     0.7544
+    ],
+    "precision": 0.625
+   },
+   "preparation": {
+    "n": 18,
+    "recall": 0.6667,
+    "recall_ci": [
+     0.4375,
+     0.8372
+    ],
+    "precision": 0.9231
+   },
+   "reporting": {
+    "n": 18,
+    "recall": 0.8333,
+    "recall_ci": [
+     0.6078,
+     0.9416
+    ],
+    "precision": 0.7895
+   },
+   "business": {
+    "n": 18,
+    "recall": 0.8333,
+    "recall_ci": [
+     0.6078,
+     0.9416
+    ],
+    "precision": 0.6
+   },
+   "advice": {
+    "n": 18,
+    "recall": 0.6667,
+    "recall_ci": [
+     0.4375,
+     0.8372
+    ],
+    "precision": 0.7059
+   }
+  },
+  "by_lang": {
+   "en": {
+    "n": 72,
+    "accuracy": 0.6944,
+    "ci": [
+     0.5805,
+     0.7887
+    ]
+   },
+   "fa": {
+    "n": 24,
+    "accuracy": 0.7083,
+    "ci": [
+     0.5083,
+     0.8509
+    ]
+   },
+   "mixed": {
+    "n": 12,
+    "accuracy": 0.9167,
+    "ci": [
+     0.6461,
+     0.9851
+    ]
+   }
+  },
+  "by_style": {},
+  "segments": {
+   "n": 0,
+   "accuracy": null,
+   "ci": [
+    null,
+    null
+   ]
+  },
+  "two_kinds_any_track": {
+   "n": 21,
+   "accuracy": 0.9048,
+   "ci": [
+    0.7109,
+    0.9735
+   ]
+  },
+  "calibration_error": 0.0638,
+  "confusions": {
+   "advice->business": 5,
+   "preparation->analysis": 4,
+   "analysis->reporting": 3,
+   "prediction->advice": 2,
+   "analysis->business": 2,
+   "business->advice": 2,
+   "analysis->prediction": 2,
+   "preparation->business": 2,
+   "prediction->preparation": 1,
+   "reporting->analysis": 1,
+   "analysis->advice": 1,
+   "reporting->prediction": 1
+  },
+  "rules": {
+   "version": "intent_rules_v2",
+   "accuracy": 0.7037,
+   "accuracy_ci": [
+    0.6118,
+    0.7816
+   ],
+   "per_track_recall": {
+    "prediction": 0.8889,
+    "analysis": 0.7222,
+    "preparation": 0.6667,
+    "reporting": 0.7222,
+    "business": 0.6111,
+    "advice": 0.6111
+   },
+   "by_lang": {
+    "en": {
+     "n": 72,
+     "accuracy": 0.6944,
+     "ci": [
+      0.5805,
+      0.7887
+     ]
+    },
+    "fa": {
+     "n": 24,
+     "accuracy": 0.6667,
+     "ci": [
+      0.4671,
+      0.8203
+     ]
+    },
+    "mixed": {
+     "n": 12,
+     "accuracy": 0.8333,
+     "ci": [
+      0.552,
+      0.953
+     ]
+    }
+   },
+   "default_share": 0.0,
+   "paired": {
+    "model_only_right": 21,
+    "rules_only_right": 19
+   }
+  }
+ },
+ "rules_version": "intent_rules_v2",
+ "measured_at": "2026-10-29T08:46:30+00:00"
+}

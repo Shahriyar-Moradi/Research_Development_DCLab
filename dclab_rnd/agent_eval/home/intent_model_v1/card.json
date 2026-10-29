@@ -1,0 +1,637 @@
+{
+ "schema_version": "dclab_core.decision_model_card.v1",
+ "point": "request.intent",
+ "name": "request.intent.text_v2",
+ "version": "916ad87351ec",
+ "family": "logistic",
+ "strength": 4.0,
+ "features": 22882,
+ "fields": [
+  "words"
+ ],
+ "excluded": [],
+ "trained_on": 871,
+ "trained_set": "3f2065795af489a61fa9dd381b86cb2a35c24ea18acba5200523372807d69926",
+ "groups": 15,
+ "label_sources": {
+  "written": 871
+ },
+ "chosen_by": "fixed before any measurement: understand_students.text_model_v2 (character 2-5-gram tf-idf, balanced logistic regression, C=4); no selection",
+ "oof_accuracy": {
+  "train_a_test_b": 0.7759,
+  "train_b_test_a": 0.7889,
+  "train_bc_test_a": 0.8374,
+  "train_ac_test_b": 0.8483,
+  "train_ab_test_c": 0.8664
+ },
+ "calibration": "Platt scaling (sigmoid, one class against the rest) on 5 folds grouped by writer batch number (each fold holds every kind)",
+ "dev": {
+  "n": 871,
+  "accuracy": 0.8507,
+  "accuracy_ci": [
+   0.8255,
+   0.8729
+  ],
+  "precision": 0.8492,
+  "precision_ci": [
+   0.832,
+   0.8688
+  ],
+  "recall": 0.8505,
+  "recall_ci": [
+   0.8333,
+   0.8689
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 871,
+  "per_class": {
+   "advice": {
+    "n": 143,
+    "precision": 0.7929,
+    "precision_ci": [
+     0.7183,
+     0.8517
+    ],
+    "recall": 0.7762,
+    "recall_ci": [
+     0.7012,
+     0.8368
+    ]
+   },
+   "analysis": {
+    "n": 146,
+    "precision": 0.806,
+    "precision_ci": [
+     0.7309,
+     0.864
+    ],
+    "recall": 0.7397,
+    "recall_ci": [
+     0.6631,
+     0.8041
+    ]
+   },
+   "business": {
+    "n": 148,
+    "precision": 0.8355,
+    "precision_ci": [
+     0.7685,
+     0.886
+    ],
+    "recall": 0.8581,
+    "recall_ci": [
+     0.7928,
+     0.9053
+    ]
+   },
+   "prediction": {
+    "n": 143,
+    "precision": 0.8633,
+    "precision_ci": [
+     0.7964,
+     0.9107
+    ],
+    "recall": 0.8392,
+    "recall_ci": [
+     0.7702,
+     0.8904
+    ]
+   },
+   "preparation": {
+    "n": 142,
+    "precision": 0.8701,
+    "precision_ci": [
+     0.8079,
+     0.9143
+    ],
+    "recall": 0.9437,
+    "recall_ci": [
+     0.8928,
+     0.9712
+    ]
+   },
+   "reporting": {
+    "n": 149,
+    "precision": 0.9276,
+    "precision_ci": [
+     0.8751,
+     0.9591
+    ],
+    "recall": 0.9463,
+    "recall_ci": [
+     0.8976,
+     0.9725
+    ]
+   }
+  }
+ },
+ "rule_dev": {
+  "n": 871,
+  "accuracy": 0.3559,
+  "accuracy_ci": [
+   0.3248,
+   0.3883
+  ],
+  "precision": 0.6611,
+  "precision_ci": [
+   0.6118,
+   0.7067
+  ],
+  "recall": 0.3564,
+  "recall_ci": [
+   0.3274,
+   0.3896
+  ],
+  "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+  "answered": 551,
+  "per_class": {
+   "advice": {
+    "n": 143,
+    "precision": 0.76,
+    "precision_ci": [
+     0.5657,
+     0.885
+    ],
+    "recall": 0.1329,
+    "recall_ci": [
+     0.0867,
+     0.1982
+    ]
+   },
+   "analysis": {
+    "n": 146,
+    "precision": 0.3636,
+    "precision_ci": [
+     0.2708,
+     0.4679
+    ],
+    "recall": 0.2192,
+    "recall_ci": [
+     0.1597,
+     0.293
+    ]
+   },
+   "business": {
+    "n": 148,
+    "precision": 0.8824,
+    "precision_ci": [
+     0.7338,
+     0.9533
+    ],
+    "recall": 0.2027,
+    "recall_ci": [
+     0.1458,
+     0.2746
+    ]
+   },
+   "prediction": {
+    "n": 143,
+    "precision": 0.4458,
+    "precision_ci": [
+     0.3853,
+     0.5079
+    ],
+    "recall": 0.7762,
+    "recall_ci": [
+     0.7012,
+     0.8368
+    ]
+   },
+   "preparation": {
+    "n": 142,
+    "precision": 0.7344,
+    "precision_ci": [
+     0.6152,
+     0.827
+    ],
+    "recall": 0.331,
+    "recall_ci": [
+     0.2589,
+     0.4119
+    ]
+   },
+   "reporting": {
+    "n": 149,
+    "precision": 0.7802,
+    "precision_ci": [
+     0.6848,
+     0.853
+    ],
+    "recall": 0.4765,
+    "recall_ci": [
+     0.3979,
+     0.5563
+    ]
+   }
+  }
+ },
+ "dev_by_source": {
+  "written:en": {
+   "n": 640,
+   "accuracy": 0.8766,
+   "accuracy_ci": [
+    0.8488,
+    0.8998
+   ],
+   "precision": 0.876,
+   "precision_ci": [
+    0.8574,
+    0.8975
+   ],
+   "recall": 0.8765,
+   "recall_ci": [
+    0.8579,
+    0.8962
+   ],
+   "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+   "answered": 640,
+   "per_class": {
+    "advice": {
+     "n": 106,
+     "precision": 0.8426,
+     "precision_ci": [
+      0.7623,
+      0.8993
+     ],
+     "recall": 0.8585,
+     "recall_ci": [
+      0.7796,
+      0.9123
+     ]
+    },
+    "analysis": {
+     "n": 107,
+     "precision": 0.8367,
+     "precision_ci": [
+      0.7511,
+      0.8969
+     ],
+     "recall": 0.7664,
+     "recall_ci": [
+      0.6778,
+      0.8364
+     ]
+    },
+    "business": {
+     "n": 108,
+     "precision": 0.8942,
+     "precision_ci": [
+      0.8205,
+      0.9399
+     ],
+     "recall": 0.8611,
+     "recall_ci": [
+      0.7834,
+      0.914
+     ]
+    },
+    "prediction": {
+     "n": 105,
+     "precision": 0.8725,
+     "precision_ci": [
+      0.7941,
+      0.924
+     ],
+     "recall": 0.8476,
+     "recall_ci": [
+      0.7667,
+      0.904
+     ]
+    },
+    "preparation": {
+     "n": 105,
+     "precision": 0.8644,
+     "precision_ci": [
+      0.7911,
+      0.9148
+     ],
+     "recall": 0.9714,
+     "recall_ci": [
+      0.9193,
+      0.9902
+     ]
+    },
+    "reporting": {
+     "n": 109,
+     "precision": 0.9455,
+     "precision_ci": [
+      0.8861,
+      0.9748
+     ],
+     "recall": 0.9541,
+     "recall_ci": [
+      0.8971,
+      0.9802
+     ]
+    }
+   }
+  },
+  "written:fa": {
+   "n": 148,
+   "accuracy": 0.8243,
+   "accuracy_ci": [
+    0.755,
+    0.8772
+   ],
+   "precision": 0.8307,
+   "precision_ci": [
+    0.7941,
+    0.8652
+   ],
+   "recall": 0.8225,
+   "recall_ci": [
+    0.7872,
+    0.8448
+   ],
+   "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+   "answered": 148,
+   "per_class": {
+    "advice": {
+     "n": 24,
+     "precision": 0.8,
+     "precision_ci": [
+      0.5481,
+      0.9295
+     ],
+     "recall": 0.5,
+     "recall_ci": [
+      0.3143,
+      0.6857
+     ]
+    },
+    "analysis": {
+     "n": 25,
+     "precision": 0.75,
+     "precision_ci": [
+      0.551,
+      0.88
+     ],
+     "recall": 0.72,
+     "recall_ci": [
+      0.5242,
+      0.8572
+     ]
+    },
+    "business": {
+     "n": 25,
+     "precision": 0.6667,
+     "precision_ci": [
+      0.4961,
+      0.8025
+     ],
+     "recall": 0.88,
+     "recall_ci": [
+      0.7004,
+      0.9583
+     ]
+    },
+    "prediction": {
+     "n": 24,
+     "precision": 0.8077,
+     "precision_ci": [
+      0.6212,
+      0.9149
+     ],
+     "recall": 0.875,
+     "recall_ci": [
+      0.69,
+      0.9566
+     ]
+    },
+    "preparation": {
+     "n": 25,
+     "precision": 0.96,
+     "precision_ci": [
+      0.8046,
+      0.9929
+     ],
+     "recall": 0.96,
+     "recall_ci": [
+      0.8046,
+      0.9929
+     ]
+    },
+    "reporting": {
+     "n": 25,
+     "precision": 1.0,
+     "precision_ci": [
+      0.8668,
+      1.0
+     ],
+     "recall": 1.0,
+     "recall_ci": [
+      0.8668,
+      1.0
+     ]
+    }
+   }
+  },
+  "written:mixed": {
+   "n": 83,
+   "accuracy": 0.6988,
+   "accuracy_ci": [
+    0.5931,
+    0.7869
+   ],
+   "precision": 0.7133,
+   "precision_ci": [
+    0.6331,
+    0.7877
+   ],
+   "recall": 0.6946,
+   "recall_ci": [
+    0.626,
+    0.7647
+   ],
+   "intervals": "bootstrap of 1000 draws, clustered by table group, 95%",
+   "answered": 83,
+   "per_class": {
+    "advice": {
+     "n": 13,
+     "precision": 0.4706,
+     "precision_ci": [
+      0.2616,
+      0.6904
+     ],
+     "recall": 0.6154,
+     "recall_ci": [
+      0.3552,
+      0.8229
+     ]
+    },
+    "analysis": {
+     "n": 14,
+     "precision": 0.6667,
+     "precision_ci": [
+      0.3906,
+      0.8619
+     ],
+     "recall": 0.5714,
+     "recall_ci": [
+      0.3259,
+      0.7862
+     ]
+    },
+    "business": {
+     "n": 15,
+     "precision": 0.8,
+     "precision_ci": [
+      0.5481,
+      0.9295
+     ],
+     "recall": 0.8,
+     "recall_ci": [
+      0.5481,
+      0.9295
+     ]
+    },
+    "prediction": {
+     "n": 14,
+     "precision": 0.9091,
+     "precision_ci": [
+      0.6226,
+      0.9838
+     ],
+     "recall": 0.7143,
+     "recall_ci": [
+      0.4535,
+      0.8828
+     ]
+    },
+    "preparation": {
+     "n": 12,
+     "precision": 0.7273,
+     "precision_ci": [
+      0.4343,
+      0.9025
+     ],
+     "recall": 0.6667,
+     "recall_ci": [
+      0.3906,
+      0.8619
+     ]
+    },
+    "reporting": {
+     "n": 15,
+     "precision": 0.7059,
+     "precision_ci": [
+      0.4687,
+      0.8672
+     ],
+     "recall": 0.8,
+     "recall_ci": [
+      0.5481,
+      0.9295
+     ]
+    }
+   }
+  },
+  "home_dev_and_spent_sealed": {
+   "n": 108,
+   "accuracy": 0.7222,
+   "accuracy_ci": [
+    0.6312,
+    0.798
+   ],
+   "precision": 0.7369,
+   "precision_ci": [
+    0.6442,
+    0.8199
+   ],
+   "recall": 0.7222,
+   "recall_ci": [
+    0.6311,
+    0.8044
+   ],
+   "intervals": "bootstrap of 1000 draws, clustered by row, 95%",
+   "answered": 108,
+   "per_class": {
+    "advice": {
+     "n": 18,
+     "precision": 0.7059,
+     "precision_ci": [
+      0.4687,
+      0.8672
+     ],
+     "recall": 0.6667,
+     "recall_ci": [
+      0.4375,
+      0.8372
+     ]
+    },
+    "analysis": {
+     "n": 18,
+     "precision": 0.625,
+     "precision_ci": [
+      0.3864,
+      0.8152
+     ],
+     "recall": 0.5556,
+     "recall_ci": [
+      0.3372,
+      0.7544
+     ]
+    },
+    "business": {
+     "n": 18,
+     "precision": 0.6,
+     "precision_ci": [
+      0.4074,
+      0.766
+     ],
+     "recall": 0.8333,
+     "recall_ci": [
+      0.6078,
+      0.9416
+     ]
+    },
+    "prediction": {
+     "n": 18,
+     "precision": 0.7778,
+     "precision_ci": [
+      0.5478,
+      0.91
+     ],
+     "recall": 0.7778,
+     "recall_ci": [
+      0.5478,
+      0.91
+     ]
+    },
+    "preparation": {
+     "n": 18,
+     "precision": 0.9231,
+     "precision_ci": [
+      0.6669,
+      0.9863
+     ],
+     "recall": 0.6667,
+     "recall_ci": [
+      0.4375,
+      0.8372
+     ]
+    },
+    "reporting": {
+     "n": 18,
+     "precision": 0.7895,
+     "precision_ci": [
+      0.5667,
+      0.9149
+     ],
+     "recall": 0.8333,
+     "recall_ci": [
+      0.6078,
+      0.9416
+     ]
+    }
+   }
+  }
+ },
+ "dev_calibration_error": 0.1771,
+ "limits": [
+  "Trained and measured on written requests (a model wrote them from code-assigned kinds): not real people.",
+  "Dev is the other writer's requests (cross-writer) and Home's 108 written requests; the independent sealed set is read once, under intent_gate_v1.",
+  "Requests a plain model reading disagreed with were left out, so the hardest requests are under-represented.",
+  "Shadow only: it answers nothing in the product until it passes its gate and P1 wires the answerer order."
+ ]
+}
