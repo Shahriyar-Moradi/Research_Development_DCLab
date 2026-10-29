@@ -48,7 +48,7 @@ class SplitTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     home.load(split)
         with self.assertRaises(ValueError):
-            home.load("sealed_v3")  # a split that does not exist is named, not a KeyError
+            home.load("sealed_v9")  # a split that does not exist is named, not a KeyError
 
     def test_each_sealed_set_has_its_gate_and_its_own_one_run(self):
         self.assertEqual(home.gate_for("sealed")["version"], "home_gate_v1")
@@ -62,6 +62,10 @@ class SplitTests(unittest.TestCase):
         v2 = {p.name for p in home.sealed_runs("sealed_v2")}
         self.assertEqual(v2, {"HOME-013_sealed_v2.json"})  # spent once on 2026-10-29; HOME-012 was unscored and spent nothing
         self.assertFalse(names & v2)  # each set's run is its own
+        self.assertEqual(home.gate_for("sealed_v3")["version"], "home_gate_v3")
+        for k in home.GATE:
+            if k not in ("version", "split"):
+                self.assertEqual(home.GATE_V3[k], home.GATE[k], k)  # the third set is read under the same written gate
 
 
 class ScoringTests(unittest.TestCase):
