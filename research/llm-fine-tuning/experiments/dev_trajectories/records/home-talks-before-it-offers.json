@@ -188,6 +188,36 @@
    "cause": "request.options had no options list.",
    "fix": "The options are each track:tool; a pick is one of them.",
    "test": "tests/test_home_conversation.py ReviewTests.test_free_words_after_an_offer_reach_the_model_with_what_it_offered"
+  },
+  {
+   "id": "F16",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Follow-up quotes that are not the person's words",
+   "scenario": "HOMECONV-002: six brief fields (preparation steps, KPIs, refresh, decision) after an option pick quoted text spanning two messages.",
+   "cause": "open_brief read the rules over all the person's messages joined into one string.",
+   "fix": "brief.read_each reads each message apart, a later message's field over an earlier one's.",
+   "test": "tests/test_home_brief.py (suite) and the live rerun's quote_invalid"
+  },
+  {
+   "id": "F17",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "New groups never offered to a person asking for types of travellers",
+   "scenario": "HOMECONV-002 p-06: code decided to offer while the model gave no options; the generic fallback had no segmentation and was shown again after Something else.",
+   "cause": "no second ask for options; the fallback ignored the person's words; a decline re-offered the same options.",
+   "fix": "code asks the model once more for options; the fallback puts new groups first when the words ask for groups or types; Something else gets a new question.",
+   "test": "tests/test_home_conversation.py ReviewTests.test_code_asks_for_options_once_more_and_groups_are_never_left_out"
+  },
+  {
+   "id": "F18",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The gate counted a right route taken without options as not offered",
+   "scenario": "HOMECONV-002: p-15, p-16, p-23 routed right from a clear first message, scored as the right option not offered.",
+   "cause": "right_route_offered had no case for a person who needed no options.",
+   "fix": "home_conversation_gate_v2 (written before the next run; v1's fail kept): the right route reached, among the options or taken without them.",
+   "test": "tests/test_home_conversation.py RunnerTests"
   }
  ],
  "measurements": [
@@ -202,6 +232,12 @@
    "gate": "the three missed traps caught",
    "result": "silent_drop, rows_request, missing_column caught; s6-16's steps field right",
    "verdict": "pass"
+  },
+  {
+   "name": "Conversation eval, live, fixed code (HOMECONV-002, gate v1)",
+   "gate": "home_conversation_gate_v1",
+   "result": "23/25 right, median 2 turns before options, 0 silent, 0 uncited; fails right_route_offered 20/25, repeated 1, quote_invalid 6; EUR 0.88",
+   "verdict": "fail"
   }
  ],
  "outcome": "Home holds a short understanding conversation led by Claude before offering options built from the context, never goes silent, asks only what the table can answer, offers sensible measures, and offers a switch when a later message names another need. Live measurement with written people follows.",

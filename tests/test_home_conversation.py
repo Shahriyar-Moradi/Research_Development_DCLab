@@ -192,15 +192,37 @@ class ReviewTests(ConversationTests):  # the review of C2-C4 (2026-10-29)
         offer = turn("Here is how I can help.", enough=True, options=[COMPARE, CHURN], tracks=["analysis", "prediction", "reporting"],
                      goal={"value": "know more about our customers", "quote": "know more about our customers"},
                      data_said={"value": "a table of our customers", "quote": "a table of our customers"})
-        model = Script(turn("What do you want?", tracks=["analysis"]), turn("What data?", tracks=["analysis"]), offer, offer, offer)
+        again = turn("Fair enough. What would make this useful for you?", tracks=["analysis", "prediction", "reporting"])
+        model = Script(turn("What do you want?", tracks=["analysis"]), turn("What data?", tracks=["analysis"]), offer,
+                       again, offer, again, offer)
         d = self.store.create(FIRST)
         agent = self.agent(model)
         agent.start(d["id"])
         agent.reply(d["id"], "I want to know more about our customers")
         agent.reply(d["id"], "I have a table of our customers")
         agent.reply(d["id"], U.SOMETHING_ELSE)
+        self.assertTrue(self.questions(d["id"])[-1]["question"].get("understand"))  # a new question, never the same options again
+        agent.reply(d["id"], "something that helps the team every week")
+        self.assertTrue(self.questions(d["id"])[-1]["question"].get("offer"))
         agent.reply(d["id"], U.SOMETHING_ELSE)
+        agent.reply(d["id"], "I really don't know")
         self.assertEqual(HomeAgent.track(self.store.get(d["id"])), "reporting")  # the likeliest one not passed over
+
+    def test_code_asks_for_options_once_more_and_groups_are_never_left_out(self):
+        model = Script(turn("What would you like to find out?", tracks=["analysis"]), turn("What do you record?", tracks=["analysis"]),
+                       turn("I see.", tracks=["analysis"], goal={"value": "x", "quote": "discover what types of travellers we have"},
+                            data_said={"value": "y", "quote": "bookings with dates and prices"}),
+                       turn("Here is what I can do.", enough=True, options=[SEGMENTS, COMPARE], tracks=["prediction"]))
+        d = self.store.create("I have lots of travel data and dont know what to do with it")
+        agent = self.agent(model)
+        agent.start(d["id"])
+        agent.reply(d["id"], "discover what types of travellers we have")
+        agent.reply(d["id"], "bookings with dates and prices")
+        offer = self.questions(d["id"])[-1]["question"]
+        self.assertEqual(offer["options"][0], SEGMENTS["title"])  # asked once more for options, not the generic ones
+        self.assertIn("now understand enough", json.dumps(model.seen[-1]))
+        groups = U.fallback_options({}, None, ["we want types of travellers"])
+        self.assertEqual(groups[0]["tool"], "segmentation_project")
 
     def test_a_reply_that_is_not_json_falls_back_to_the_buttons(self):
         d = self.store.create(FIRST)

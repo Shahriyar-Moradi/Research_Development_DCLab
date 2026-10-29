@@ -233,6 +233,22 @@ def read(track: str, text: str, columns: Optional[list[str]] = None) -> dict[str
     return {"fields": found, "missing": missing}
 
 
+def read_each(track: str, texts: list[str], columns: Optional[list[str]] = None) -> dict[str, Any]:
+    """``read`` on each of the person's messages apart, a later message's field over an earlier one's (the conversation's
+    answers refine the first sentence): a quote never spans two messages (HOMECONV-002: six quotes joined across them)."""
+    fields: dict[str, dict[str, Any]] = {}
+    missing: dict[str, list[str]] = {}
+    for text in texts:
+        if not str(text or "").strip():
+            continue
+        one = read(track, text, columns)
+        fields.update(one["fields"])
+        for name, absent in one["missing"].items():
+            missing[name] = sorted(set(missing.get(name, [])) | set(absent))
+            fields.pop(name, None) if name not in one["fields"] else None
+    return {"fields": fields, "missing": {k: v for k, v in missing.items() if k not in fields}}
+
+
 def fill(track: str, read_fields: dict[str, dict[str, Any]], before: Optional[dict[str, dict[str, Any]]] = None) -> dict[str, dict[str, Any]]:
     """The track's brief: what was known before (never replaced by a default or a rule), then what the words gave, then
     each remaining field's default (source "default"), or unknown when it has none."""

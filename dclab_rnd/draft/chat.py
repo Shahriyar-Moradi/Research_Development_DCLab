@@ -850,7 +850,7 @@ class HomeAgent:
             return
         columns = briefs.columns_of(draft)
         names = [c["name"] for c in columns] or None
-        texts = " ".join(plans.user_text(draft))
+        texts = [t for t in plans.user_text(draft) if str(t or "").strip()]
         missing: dict[str, list[str]] = {}
 
         model_fields = (draft.get("intent") or {}).get("fields") or {}  # the model's reading of each kind's fields, quote-checked
@@ -858,7 +858,7 @@ class HomeAgent:
         def put(d):
             kept = d.setdefault("track_brief", {})
             for t in dict.fromkeys(tracks):
-                read = briefs.read(t, texts, names)
+                read = briefs.read_each(t, texts, names)  # each message apart: a quote never spans two (HOMECONV-002)
                 missing.update(read["missing"])
                 before = dict(kept.get(t) or {})
                 for field in read["missing"]:  # the table has no such column: a reading of the rules is withdrawn, never a person's
@@ -1632,7 +1632,7 @@ class HomeAgent:
 
     UNDERSTAND_TURNS = 2  # open questions before Home routes by the buttons alone
 
-    def understand(self, draft_id: str, asked_for_options: bool = False) -> None:
+    def understand(self, draft_id: str, asked_for_options: bool = False, declined: bool = False) -> None:
         """One turn of the understanding conversation (draft/understand.py): the model says back what it understood and asks
         one open question, or, once the code's rule says enough, Home offers the options it wrote, each checked. A failed
         call falls back to the open question with every kind of help as a button."""
@@ -1643,13 +1643,18 @@ class HomeAgent:
         reading = draft.get("intent") or {}
         turns = sum(1 for q in draft["questions"] if q.get("understand") and q.get("answered"))
         offers = sum(1 for q in draft["questions"] if q.get("offer"))
-        r = U.ask(self.understand_client, draft)
+        r = U.ask(self.understand_client, draft, declined=declined)
         if r.get("failed"):
             self.store.update(draft_id, lambda d: d.update(understand={**(d.get("understand") or {}), "failed": r["failed"]}))
             self.ask_intent(draft_id, reading if reading.get("status") == "asked" else {**reading, "ask": "open"})
             return
         card = r["card"]
-        offer = U.enough(card, draft, turns, asked_for_options)
+        offer = U.enough(card, draft, turns, asked_for_options) and not (declined and turns < U.TURNS + 1)
+        if offer and len(r["options"]) < 2:  # HOMECONV-002 (p-06): code says it is time, the model wrote none: asked once for them
+            again = U.ask(self.understand_client, draft, want_options=True)
+            if not again.get("failed") and len(again["options"]) >= 2:
+                r = {**again, "card": card if not again["card"].get("goal") else again["card"], "model_enough": True}
+                card = r["card"]
         self.store.update(draft_id, lambda d: d.update(understand={"card": card, "turns": turns, "model_enough": r["model_enough"],
                                                                     "refused": r["refused"][:6], "request": r.get("request")}))
         capture.understand_turn(draft_id, "offer" if offer else "ask", r["model_enough"], turns=turns, has_data=bool(draft.get("assets")),
@@ -1680,8 +1685,10 @@ class HomeAgent:
             else:
                 self.say(draft_id, "Whenever you are ready, pick the kind of help above, or tell me what you would like to end up with.")
             return
-        options = r["options"] if len(r["options"]) >= 2 else U.fallback_options(card, reading)
+        options = r["options"] if len(r["options"]) >= 2 else U.fallback_options(card, reading, plans.user_text(draft))
         lead = r["say"] if r["say"] and r["model_enough"] else "Here is how I can help with this:"
+        if lead in [q.get("text") for q in draft["questions"] if q.get("offer")]:  # never the same words twice (HOMECONV-002)
+            lead = "Here are the ways I can help, with what you told me since:"
         record = capture.options_offered(draft_id, options, by="model_role" if len(r["options"]) >= 2 else "rule",
                                          request=r.get("request"))
         self.ask(draft_id, "intent", lead, [o["title"] for o in options] + [U.SOMETHING_ELSE],
@@ -2014,7 +2021,7 @@ class HomeAgent:
                         self.move_to(draft_id, intents.chosen(picked["track"], before), "undecided", sample=False)
                         return
                     if value.strip().casefold() == U.SOMETHING_ELSE.casefold():
-                        self.understand(draft_id)
+                        self.understand(draft_id, declined=True)  # a new question, never the same options again
                         return
                 elif value.strip().casefold() == U.SHOW_OPTIONS.casefold():
                     capture.understand_skipped(draft_id)

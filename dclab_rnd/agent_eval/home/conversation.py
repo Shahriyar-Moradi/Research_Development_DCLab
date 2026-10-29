@@ -42,8 +42,13 @@ OWNER = {"id": "owner-telco", "opening": "how can I analyze my customer", "uploa
                                                    "decision": "I want to treat each group of customers differently",
                                                    "situation": "we are a telecom company and customers leave us"}}
 # the gate, written 2026-10-29 before any run of the conversation with the fixed code (dev; a sealed set of people is read once)
-GATE = {"version": "home_conversation_gate_v1", "route_accuracy": 0.80, "right_route_offered": 0.90, "silent_turns": 0,
-        "repeated_questions": 0, "uncited": 0, "quote_invalid": 0, "median_turns_before_options": (2, 3)}
+GATE_V1 = {"version": "home_conversation_gate_v1", "route_accuracy": 0.80, "right_route_offered": 0.90, "silent_turns": 0,
+           "repeated_questions": 0, "uncited": 0, "quote_invalid": 0, "median_turns_before_options": (2, 3)}
+# v2, written 2026-10-30 before the next run (HOMECONV-002 failed v1, kept as it is): v1 counted a person routed right from
+# a clear first message, with no options to offer, as "the right route not offered"; v2 counts the right route reached: among
+# the options, or taken without them. Every other check and number is v1's.
+GATE = {**GATE_V1, "version": "home_conversation_gate_v2", "right_route_reached": 0.90}
+GATE.pop("right_route_offered")
 
 
 def verdict(summary: Mapping[str, Any]) -> dict[str, Any]:
@@ -51,7 +56,7 @@ def verdict(summary: Mapping[str, Any]) -> dict[str, Any]:
     people = max(int(summary.get("people") or 0), 1)
     low, high = GATE["median_turns_before_options"]
     checks = {"route_accuracy": summary["route_accuracy"] >= GATE["route_accuracy"],
-              "right_route_offered": summary["right_route_offered"] / people >= GATE["right_route_offered"],
+              "right_route_reached": summary["right_route_reached"] / people >= GATE["right_route_reached"],
               **{k: summary[k] <= GATE[k] for k in ("silent_turns", "repeated_questions", "uncited", "quote_invalid")},
               "median_turns_before_options": summary["median_turns_before_options"] is not None
                                              and low <= summary["median_turns_before_options"] <= high}
@@ -147,6 +152,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     n = max(len(rows), 1)
     return {"people": len(rows), "route_right": sum(r["right"] for r in rows), "route_accuracy": round(sum(r["right"] for r in rows) / n, 3),
             "right_route_offered": sum(r["right_offered"] for r in rows),
+            "right_route_reached": sum(r["right_offered"] or (r["offers"] == 0 and r["right"]) for r in rows),
             "median_turns_before_options": statistics.median([r["turns_before_options"] for r in rows]) if rows else None,
             "max_turns_before_options": max((r["turns_before_options"] for r in rows), default=None),
             "silent_turns": sum(r["silent"] for r in rows), "repeated_questions": sum(r["repeated"] for r in rows),

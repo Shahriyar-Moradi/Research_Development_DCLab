@@ -152,12 +152,21 @@ def validate(options: Any, draft: dict[str, Any]) -> tuple[list[dict[str, Any]],
     return kept[:4], refused
 
 
-def ask(client: Any, draft: dict[str, Any]) -> dict[str, Any]:
-    """One turn of the model: ``{"say", "card", "model_enough", "options", "refused", "request"}``, or ``{"failed": why}``."""
+WANT_OPTIONS = ("You now understand enough to help: answer with enough true and 2 to 4 concrete options built from what they said "
+                "(and their table, if any), with a one-sentence lead-in as say.")
+DECLINED = ("The person passed over the options you offered. Do not offer them again: say back what you understood and ask one "
+            "open question about what they need instead (enough false).")
+
+
+def ask(client: Any, draft: dict[str, Any], want_options: bool = False, declined: bool = False) -> dict[str, Any]:
+    """One turn of the model: ``{"say", "card", "model_enough", "options", "refused", "request"}``, or ``{"failed": why}``.
+    ``want_options``: code decided it is time for options and the model gave none (HOMECONV-002, p-06): asked once more for
+    them; ``declined``: the person said "Something else": a new question, never the same options again."""
     view = columns_view(draft)
     state = ("The person's table, as DCLab described it (no values): " + json.dumps(view, ensure_ascii=False)) if view else \
         "No table has been shared yet."
-    messages = [{"role": "system", "content": prompts.text(PROMPT)}, {"role": "system", "content": state}, *conversation(draft)]
+    steer = [{"role": "system", "content": WANT_OPTIONS}] if want_options else [{"role": "system", "content": DECLINED}] if declined else []
+    messages = [{"role": "system", "content": prompts.text(PROMPT)}, {"role": "system", "content": state}, *steer, *conversation(draft)]
     try:
         reply = client.complete(messages, None)
     except Exception as error:  # noqa: BLE001 - Home falls back to its open question and buttons
@@ -186,10 +195,17 @@ def enough(card: dict[str, Any], draft: dict[str, Any], turns: int, asked_for_op
     return bool(card.get("goal")) and has_data and bool(card.get("tracks"))
 
 
-def fallback_options(card: dict[str, Any], reading: Optional[dict[str, Any]] = None) -> list[dict[str, Any]]:
-    """The rules' options when the model gave fewer than two valid ones: the likely kinds of help first, then the rest."""
+GROUPS = re.compile(r"\b(?:segment\w*|cluster\w*|groups?|types? of|kinds? of|personas?)\b", re.I)
+
+
+def fallback_options(card: dict[str, Any], reading: Optional[dict[str, Any]] = None, texts: Optional[list[str]] = None) -> list[dict[str, Any]]:
+    """The rules' options when the model gave fewer than two valid ones: new groups first when the person's words ask for
+    groups or types (HOMECONV-002, p-06: "types of travellers" got no segmentation), then the likely kinds of help."""
     from . import intent as intents
 
     first = [t for t in [*(card.get("tracks") or []), *((reading or {}).get("tracks") or [])] if t in TRACKS]
     order = list(dict.fromkeys(first + list(TRACKS)))[:4]
-    return [{"title": intents.LABELS[t], "what": "", "track": t, "tool": TOOL_OF_TRACK[t], "columns": []} for t in order]
+    out = [{"title": intents.LABELS[t], "what": "", "track": t, "tool": TOOL_OF_TRACK[t], "columns": []} for t in order]
+    if any(GROUPS.search(str(t or "")) for t in texts or []):
+        out = [{"title": "Find groups in your data", "what": "", "track": "prediction", "tool": "segmentation_project", "columns": []}, *out][:4]
+    return out
