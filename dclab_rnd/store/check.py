@@ -134,8 +134,10 @@ def run(log: Any = print) -> dict[str, Any]:
         try:
             ids = _day(home, runs)
             code_home = _dclab_code(scratch / "dclab-code")
-            record = conductor.conduct({"agent_runs": base, "test_runs": runs, "claude_projects": None, "dclab_code_home": code_home},
-                                       layout, standard.install({}))
+            routing_home = scratch / "home_requests"  # P8: the routing keeper reads the scratch day's, never the repository's
+            routing_home.mkdir(exist_ok=True)
+            record = conductor.conduct({"agent_runs": base, "test_runs": runs, "claude_projects": None, "dclab_code_home": code_home,
+                                        "home_requests": routing_home, "home_results": routing_home}, layout, standard.install({}))
         finally:
             experience.install(None)
         store = Store(layout)

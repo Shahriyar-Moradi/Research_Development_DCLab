@@ -1,7 +1,7 @@
 {
-  "$id": "https://dclab.dev/schemas/dclab_core.set_manifest.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.set_manifest.v2.json",
   "additionalProperties": false,
-  "description": "One training set (v1): its model type, shape, sources with their hashes, split rule, counts, labels, consent and checks.",
+  "description": "One training set (v2): its model type, shape, sources with their hashes, split rule, counts, labels, consent and checks\n(v2, 2026-10-29: the model type is any of :data:`MODEL_TYPES`, ``m7_routing`` included; v1 reads).",
   "properties": {
     "built_at": {
       "title": "Built At",
@@ -52,16 +52,7 @@
       "type": "object"
     },
     "model_type": {
-      "enum": [
-        "m1_students",
-        "m2_workflow_decisions",
-        "m3_ml_decisions",
-        "m4_workflow_llm",
-        "m5_solver_llm",
-        "m6_stepwise_decisions",
-        "m7_judges",
-        "m8_retrieval"
-      ],
+      "maxLength": 40,
       "title": "Model Type",
       "type": "string"
     },
@@ -76,8 +67,8 @@
       "type": "integer"
     },
     "schema_version": {
-      "const": "dclab_core.set_manifest.v1",
-      "default": "dclab_core.set_manifest.v1",
+      "const": "dclab_core.set_manifest.v2",
+      "default": "dclab_core.set_manifest.v2",
       "title": "Schema Version",
       "type": "string"
     },

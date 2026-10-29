@@ -1,0 +1,461 @@
+{
+  "$defs": {
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Where a record or an example came from (carried by every one).",
+      "properties": {
+        "at": {
+          "title": "At",
+          "type": "string"
+        },
+        "by": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "By"
+        },
+        "commit": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Commit"
+        },
+        "consent": {
+          "default": "operate",
+          "enum": [
+            "operate",
+            "improve",
+            "train"
+          ],
+          "title": "Consent",
+          "type": "string"
+        },
+        "deleted": {
+          "default": false,
+          "title": "Deleted",
+          "type": "boolean"
+        },
+        "draft": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Draft"
+        },
+        "entry": {
+          "maxLength": 200,
+          "title": "Entry",
+          "type": "string"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project"
+        },
+        "rule": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 4000,
+          "title": "Source",
+          "type": "string"
+        },
+        "workspace": {
+          "maxLength": 120,
+          "title": "Workspace",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entry",
+        "sha256",
+        "source",
+        "workspace",
+        "at"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "RoutingReading": {
+      "additionalProperties": false,
+      "description": "One answerer's reading of the request.",
+      "properties": {
+        "answerer": {
+          "maxLength": 120,
+          "title": "Answerer",
+          "type": "string"
+        },
+        "by": {
+          "enum": [
+            "rule",
+            "model",
+            "own_model",
+            "person"
+          ],
+          "title": "By",
+          "type": "string"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "no_thinking": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "No Thinking"
+        },
+        "request": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request"
+        },
+        "shadow": {
+          "default": false,
+          "title": "Shadow",
+          "type": "boolean"
+        },
+        "thinking": {
+          "anyOf": [
+            {
+              "maxLength": 20000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thinking"
+        },
+        "thinking_source": {
+          "anyOf": [
+            {
+              "const": "recorded",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thinking Source"
+        },
+        "used": {
+          "default": false,
+          "title": "Used",
+          "type": "boolean"
+        },
+        "value": {
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "by",
+        "answerer"
+      ],
+      "title": "RoutingReading",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.routing_example.v1.json",
+  "additionalProperties": false,
+  "description": "One routing decision (v1), as the 7th model learns it.",
+  "properties": {
+    "exam": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Exam"
+    },
+    "id": {
+      "maxLength": 200,
+      "title": "Id",
+      "type": "string"
+    },
+    "label": {
+      "default": null,
+      "title": "Label"
+    },
+    "label_by": {
+      "anyOf": [
+        {
+          "maxLength": 160,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Label By"
+    },
+    "label_source": {
+      "anyOf": [
+        {
+          "enum": [
+            "real",
+            "written",
+            "silver"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Label Source"
+    },
+    "language": {
+      "anyOf": [
+        {
+          "enum": [
+            "en",
+            "fa",
+            "mixed"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Language"
+    },
+    "model_type": {
+      "const": "m7_routing",
+      "default": "m7_routing",
+      "title": "Model Type",
+      "type": "string"
+    },
+    "more": {
+      "items": {
+        "$ref": "#/$defs/Provenance"
+      },
+      "title": "More",
+      "type": "array"
+    },
+    "no_text": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "No Text"
+    },
+    "options": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Options",
+      "type": "array"
+    },
+    "origin": {
+      "enum": [
+        "real",
+        "scripted",
+        "written",
+        "eval"
+      ],
+      "title": "Origin",
+      "type": "string"
+    },
+    "outcome": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Outcome"
+    },
+    "point": {
+      "maxLength": 120,
+      "title": "Point",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "readings": {
+      "items": {
+        "$ref": "#/$defs/RoutingReading"
+      },
+      "title": "Readings",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.routing_example.v1",
+      "default": "dclab_core.routing_example.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "dev",
+        "sealed"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "split_group": {
+      "maxLength": 200,
+      "title": "Split Group",
+      "type": "string"
+    },
+    "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+    },
+    "text": {
+      "anyOf": [
+        {
+          "maxLength": 8000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Text"
+    },
+    "used_by": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Used By"
+    },
+    "value_used": {
+      "default": null,
+      "title": "Value Used"
+    },
+    "weight": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Weight",
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "split",
+    "provenance",
+    "point",
+    "origin",
+    "split_group"
+  ],
+  "title": "RoutingExample",
+  "type": "object"
+}

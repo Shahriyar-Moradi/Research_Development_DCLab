@@ -12,7 +12,11 @@ The tests, each a **source** of its own (``SOURCES``), each decision with its tr
 - ``journeys``: every written person's first sentence, in every journey set: which family of problem it is (a programme
   journey's several families at once);
 - ``selfplay``: the verified invented problems (27.3): the problem's type, its time column, and for every column whether
-  it is the planted leak or an identifier, labelled by what the replica planted, never by DCLab's answer.
+  it is the planted leak or an identifier, labelled by what the replica planted, never by DCLab's answer;
+- ``routing`` (P8, 2026-10-29): the routing model's data (the store's ``m7_routing`` sets): every routing decision Home made
+  whose words may be trained on, with its label by class: ``real`` (a person's), ``written`` (a writer's, an eval's or a
+  script's truth) and ``silver`` (Claude's reading of an unconfirmed real request). The export keeps each class in its own
+  folder (``routing/<point>/<class>/<split>.jsonl``): silver is a model's answer, never mixed with the others.
 
 Files (all under the lake's bronze layer, which no rebuild removes, and kept permanently by ``make archive``):
 
@@ -52,7 +56,8 @@ from . import LAKE, ROOT, VERSION
 
 RENDER = "render_v1"
 SPLITS = ("train", "dev", "sealed")
-SOURCES = ("lake", "workflow", "journeys", "selfplay", "committee")  # committee (29.16): the fresh invented set the committee is examined on
+SOURCES = ("lake", "workflow", "journeys", "selfplay", "committee", "routing")  # committee (29.16): the fresh invented set the committee is
+# examined on; routing (P8): the store's m7_routing sets
 MANIFEST = ROOT / "research" / "llm-fine-tuning" / "experiments" / "lake" / "answers" / "MANIFEST.json"
 EXPORT = ROOT / "training_records" / "datasets" / "gliner2"
 JOURNEYS = ROOT / "dclab_rnd" / "agent_eval" / "journeys"
@@ -314,7 +319,51 @@ def _selfplay(lake: Path) -> Iterator[dict[str, Any]]:
                            "rule_answer": "yes" if c["column"] in rule_set else "no"}
 
 
-PROVIDERS = {"lake": _lake, "workflow": _workflow, "journeys": _journeys, "selfplay": _selfplay, "committee": _committee}
+def _routing_text(ex: dict[str, Any]) -> str:
+    """What the routing model reads: the person's words; for a point after the first reading, the decision's state (bands) too."""
+    words = str(ex.get("text") or "")
+    if ex.get("point") == "request.intent":
+        return words
+    said = "; ".join(f"{k.replace('_', ' ')}: {v}" for k, v in sorted((ex.get("state") or {}).items()) if v is not None)
+    return f"{words}\n[{said}]" if said else words
+
+
+def _routing(_: Path, root: Optional[Path] = None) -> Iterator[dict[str, Any]]:
+    """P8: the store's m7_routing sets at their latest version, each labelled row with the person's words (rows without words or
+    without a label teach no classifier); the sealed rows in the sealed split, as the store has them."""
+    try:
+        from ..store.layout import Layout
+
+        base = Path(root) if root is not None else Layout().sets("m7_routing")
+    except Exception:  # noqa: BLE001 - an environment without the store's code: no routing rows
+        return
+    from dclab_core.routing_example import TRACK_MEANINGS
+
+    for point_dir in sorted(p for p in base.iterdir() if p.is_dir()) if base.is_dir() else []:
+        versions = sorted((p for p in point_dir.iterdir() if p.is_dir() and re.fullmatch(r"v\d+", p.name)), key=lambda p: int(p.name[1:]))
+        if not versions:
+            continue
+        for split in SPLITS:
+            path = versions[-1] / f"{split}.jsonl"
+            for line in path.read_text(encoding="utf-8").splitlines() if path.is_file() else []:
+                ex = json.loads(line)
+                if not ex.get("text") or ex.get("label") is None or ex.get("label_source") not in ("real", "written", "silver"):
+                    continue
+                if ex.get("exam"):  # an exam's request: its words never leave the store's sealed partition
+                    continue
+                options = [str(o) for o in ex.get("options") or []]
+                labels: Any = {k: v for k, v in TRACK_MEANINGS.items() if k in options} if ex.get("point") == "request.intent" else options
+                if not labels or str(ex["label"]) not in {str(k) for k in labels}:
+                    continue
+                rule = next((r.get("value") for r in ex.get("readings") or [] if r.get("by") == "rule"), None)
+                yield {"sample_id": ex["id"], "decision_point": ex["point"], "split": split, "group": ex.get("split_group"),
+                       "text": _routing_text(ex), "schema": {"answer": {"labels": labels, "prompt": "Which kind of help does this request need?"
+                                                                        if ex.get("point") == "request.intent" else "Where does Home route it next?"}},
+                       "options": options, "label": ex["label"], "accepted": None, "rule_answer": rule, "label_origin": ex["label_source"],
+                       "apart": ex["label_source"], "origin": ex.get("origin"), "language": ex.get("language")}
+
+
+PROVIDERS = {"lake": _lake, "workflow": _workflow, "journeys": _journeys, "selfplay": _selfplay, "committee": _committee, "routing": _routing}
 
 
 def tests(source: str, lake: Path = LAKE) -> Iterator[dict[str, Any]]:
@@ -608,7 +657,8 @@ def export_gliner2(sources: tuple[str, ...] = SOURCES, lake: Path = LAKE, out: P
                     and not isinstance(d["label"], (list, bool)):
                 counts.setdefault("refused", Counter())[f"{source}: a label outside its options"] += 1
                 continue
-            files[root / source / d["decision_point"] / f"{d['split']}.jsonl"].append(json.dumps(gliner2_row(d), ensure_ascii=False))
+            folder = root / source / d["decision_point"] / (d["apart"] if d.get("apart") else "")  # routing: each label class apart
+            files[folder / f"{d['split']}.jsonl"].append(json.dumps(gliner2_row(d), ensure_ascii=False))
     for path, lines in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("".join(x + "\n" for x in lines), encoding="utf-8")
@@ -618,7 +668,9 @@ def export_gliner2(sources: tuple[str, ...] = SOURCES, lake: Path = LAKE, out: P
                 "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "counts": {k: (dict(v) if isinstance(v, Counter) else v) for k, v in counts.items()},
                 "rule": "train.jsonl may train; dev.jsonl validates; sealed.jsonl is evaluation only, never training or tuning. Labels come from "
                         "each test's own truth (construction, public datasets' marks, journeys' truth, replicas' planted facts), never from "
-                        "a model's answer."}
+                        "a model's answer, except routing/<point>/silver/: Claude's reading of a real request no person confirmed, kept apart "
+                        "and weighted lower (routing/<point>/real/ is a person's label, routing/<point>/written/ a writer's, an eval's or a "
+                        "script's truth)."}
     root.mkdir(parents=True, exist_ok=True)
     (root / "MANIFEST.json").write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
     return manifest

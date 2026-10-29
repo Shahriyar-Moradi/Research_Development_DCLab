@@ -7,7 +7,9 @@ learns from. ``docs/guides/STORING_PHASE_PLAN.md`` is the plan.
   :class:`JudgedExample`, :class:`RetrievalExample`), each set with its :class:`SetManifest`.
 * **Every record and example carries its** :class:`Provenance`: the raw entry and its hash, the source, the commit, the
   workspace, the project or draft (deleted or not), who made it, the consent, and when.
-* **Eight model types** (:data:`MODEL_TYPES`), each with its folder. **Raw kinds** (:data:`KINDS`), each with its folder.
+* **Nine model types** (:data:`MODEL_TYPES`), each with its folder: the eight of :data:`ModelType`, whose examples share
+  the contracts below, and ``m7_routing`` (2026-10-29), the routing model's data, whose examples are their own contract
+  (:class:`dclab_core.routing_example.RoutingExample`). **Raw kinds** (:data:`KINDS`), each with its folder.
 * **Curation is a decision** (:class:`CurationDecision`): a curator's choice for one record, kept with its reason.
 * **Reasoning is labelled** (:data:`REASONING_SOURCES`): recorded where it was made, drawn from the record by code,
   written by a teacher afterwards, or visible: the agent's own words before its tool call, kept when the model's
@@ -37,6 +39,9 @@ MODEL_TYPES: dict[str, str] = {  # folder -> what it is (the plan's table)
     "m6_stepwise_decisions": "A step-by-step decision model",
     "m7_judges": "A judge or reward model: scores a plan, a solution, a report, a step or code",
     "m8_retrieval": "A retriever and reranker: finds the evidence, the example, the pitfall or the case that fits",
+    # 2026-10-29 (the owner, P8): the 7th model, routing; not in ModelType (adding it there would move every example contract's
+    # version); its examples are dclab_core.routing_example.RoutingExample
+    "m7_routing": "A routing model: which kind of help a request needs and where Home sends it, from the person's words",
 }
 Kind = Literal["sessions", "actions", "decisions", "conversations", "tasks", "workflows", "fixes", "tests", "model_requests",
                "agents", "teachers", "students", "audit", "deletions", "curation", "other"]
@@ -411,10 +416,13 @@ class CurationDecision(Versioned):
 
 
 class SetManifest(Versioned):
-    """One training set (v1): its model type, shape, sources with their hashes, split rule, counts, labels, consent and checks."""
+    """One training set (v2): its model type, shape, sources with their hashes, split rule, counts, labels, consent and checks
+    (v2, 2026-10-29: the model type is any of :data:`MODEL_TYPES`, ``m7_routing`` included; v1 reads)."""
 
-    schema_version: Literal["dclab_core.set_manifest.v1"] = _version("set_manifest")
-    model_type: ModelType
+    schema_version: Literal["dclab_core.set_manifest.v2"] = _version("set_manifest", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.set_manifest.v1"})
+    _read_v1 = _reads("dclab_core.set_manifest.v1", "dclab_core.set_manifest.v2")
+    model_type: str = Field(max_length=40)
     name: str = Field(max_length=200)            # the folder below the model type (point, system/point, stage, kind ...)
     version: str = Field(max_length=40)
     shape: str = Field(max_length=80)            # the example contract and its schema version
@@ -428,6 +436,13 @@ class SetManifest(Versioned):
     quarantined: int = 0
     commit: Optional[str] = Field(default=None, max_length=64)
     built_at: str
+
+    @field_validator("model_type")
+    @classmethod
+    def _model_type(cls, value: str) -> str:
+        if value not in MODEL_TYPES:
+            raise ValueError(f"{value!r} is not a model type ({', '.join(MODEL_TYPES)})")
+        return value
 
 
 class WalkStep(Contract):
@@ -472,6 +487,7 @@ EXAMPLE_SHAPES: dict[str, tuple[str, ...]] = {  # model type -> the example cont
     "m1_students": ("decision_example",), "m2_workflow_decisions": ("decision_example",), "m3_ml_decisions": ("decision_example", "experiment_record"),
     "m4_workflow_llm": ("chat_example", "preference_pair"), "m5_solver_llm": ("solver_trajectory", "chat_example", "preference_pair", "experiment_record"),
     "m6_stepwise_decisions": ("episode",), "m7_judges": ("judged_example", "preference_pair"), "m8_retrieval": ("retrieval_example",),
+    "m7_routing": ("routing_example",),
 }
 
 __all__ = ["ModelType", "MODEL_TYPES", "Kind", "KINDS", "Split", "LabelSource", "ReasoningSource", "REASONING_SOURCES", "Quality",
@@ -480,3 +496,4 @@ __all__ = ["ModelType", "MODEL_TYPES", "Kind", "KINDS", "Split", "LabelSource", 
            "SetManifest", "EXAMPLE_SHAPES", "WalkStep", "WorkflowRecord", "ExperimentRecord"]
 
 import dclab_core.store_rules  # noqa: E402,F401  (the capture rules register their contract; imported here so every reader sees it)
+import dclab_core.routing_example  # noqa: E402,F401  (m7_routing's example contract, registered with the others)

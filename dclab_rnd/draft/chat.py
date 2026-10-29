@@ -175,6 +175,30 @@ _SCRIPT: contextvars.ContextVar = contextvars.ContextVar("home_script", default=
 _MODEL_TURN: contextvars.ContextVar = contextvars.ContextVar("home_model_turn", default=False)  # 36.3: a model turn is running (never one inside another)
 
 
+_SHADOW: dict[str, Any] = {}
+
+
+def _intent_shadow(words: str) -> dict[str, Any] | None:
+    """P6's intent classifier answering in shadow (P8): its track and confidence, recorded beside the rules and the model and
+    never used; None when the fitted model is not on this machine (it is not committed) or fails."""
+    try:
+        if "model" not in _SHADOW:
+            import joblib
+
+            from .. import intent_classifier as ic
+
+            path = ic.MODELS / "request.intent.text_v2.joblib"
+            _SHADOW["model"] = joblib.load(path) if path.exists() else None
+        if _SHADOW["model"] is None or not words.strip():
+            return None
+        from .. import intent_classifier as ic
+
+        track, confidence = ic.answer(_SHADOW["model"], [words])[0]
+        return {"answerer": "classifier:intent_text_v2", "value": track, "confidence": confidence}
+    except Exception:  # noqa: BLE001 - a shadow never stops Home
+        return None
+
+
 def _closed(history: list[dict[str, str]], request: str) -> tuple[list[dict[str, str]], str]:
     """The conversation as the model reads it, ending on the person's words, and what Home said after them.
 
@@ -633,7 +657,18 @@ class HomeAgent:
             from ..ledger import capture
 
             draft = self.store.get(draft_id)
-            rid = capture.intent_read(draft_id, value, has_data=bool(draft.get("assets")), words=len(str(draft.get("problem") or "").split()))
+            words = str(draft.get("problem") or "")
+            asked_model = value.get("source") == "model" or "model_failed" in value
+            # P8: one routing record with every answerer: the rules, the model (with its exchange, so its thinking summary joins),
+            # and P6's classifier in shadow (recorded, never used); the person's choice on the card labels it
+            rid = capture.routing_read(
+                draft_id, "request.intent", value.get("track"), "model_role" if value.get("source") == "model" else "rule",
+                options=intents.TRACKS,
+                state={"has_data": bool(draft.get("assets")), "words": len(words.split()), "signals": len(value.get("signals") or [])},
+                rule={"answerer": f"rule:{intents.RULES_VERSION}", "value": value.get("rule_track")},
+                model={"answerer": "home_intent", "value": value.get("model_track"), "confidence": value.get("confidence"),
+                       "request": value.get("model_request"), "failed": value.get("model_failed")} if asked_model else None,
+                own=_intent_shadow(words))
             if rid:
                 value = {**value, "record": rid}
         self.store.update(draft_id, lambda d: d.update(intent=value))

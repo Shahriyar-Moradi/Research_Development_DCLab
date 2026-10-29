@@ -89,7 +89,8 @@ def place(model_type: str, record: StoreRecord) -> Optional[dict[str, Any]]:
     if model_type == "m6_stepwise_decisions" and kind in ("workflows", "tasks") and t in ("walk", "graph_move", "job_state"):
         process = {"walk": "walk", "graph_move": "graph", "job_state": "job"}[t]
         return {**out, "folder": process, "reason": f"a step of the {process}"}
-    if model_type == "m7_judges" and (kind in ("fixes", "tests") or (kind == "decisions" and t == "correction") or
+    routing_source = str(record.provenance.source).startswith(("home_requests/", "home_eval/"))  # P8: the routing keeper's, not a test of code
+    if model_type == "m7_judges" and not routing_source and (kind in ("fixes", "tests") or (kind == "decisions" and t == "correction") or
                                       (kind == "decisions" and _decision_point(record) == "workflow.g4")):
         judged = "code" if kind in ("fixes", "tests") else "correction" if t == "correction" else "result"
         evidence = "test" if kind in ("fixes", "tests") else "person" if t == "correction" else "measured"

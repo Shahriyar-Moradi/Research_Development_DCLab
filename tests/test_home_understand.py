@@ -270,6 +270,38 @@ class ReviewTests(unittest.TestCase):
         self.assertIsNone(self.store.get(d["id"]).get("pack"))
 
 
+class RoutingRecordTests(unittest.TestCase):
+    """P8: each intent reading is one routing record with every answerer, the model's joined to its exchange (and so to
+    its thinking summary), and the person's choice labels it."""
+
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.store = DraftStore(self.home / "drafts")
+        self.book = ledger.FileLedger(self.home / "ledger", "wtest")
+        ledger.install(self.book)
+        self.addCleanup(ledger.install, None)
+
+    def test_the_models_reading_carries_its_exchange_and_the_rules_answer_beside_it(self):
+        client = Scripted(reading(tracks=["analysis"], quote="segment of the my customer", confidence=0.9))
+        client.last_request = "mr0123456789abcdef"
+        d = self.store.create(SEGMENTS)
+        HomeAgent(self.store, None, intent_client=client, on_request=lambda *a: None).start(d["id"])
+        rec = self.book.records(point="request.intent")[0]
+        answers = {a.by: a for a in rec.answers}
+        self.assertEqual((answers["model_role"].value, answers["model_role"].source), ("analysis", "mr0123456789abcdef"))
+        self.assertEqual(answers["rule"].value, "analysis")
+        self.assertEqual(self.store.get(d["id"])["intent"]["model_request"], "mr0123456789abcdef")
+
+    def test_a_failed_model_call_is_in_the_record_with_its_reason(self):
+        d = self.store.create(VAGUE)
+        HomeAgent(self.store, None, intent_client=Scripted(RuntimeError("refused: the workspace has used its monthly budget")),
+                  on_request=lambda *a: None).start(d["id"])
+        rec = self.book.records(point="request.intent")[0]
+        model = next(a for a in rec.answers if a.by == "model_role")
+        self.assertIsNone(model.value)
+        self.assertIn("monthly budget", model.reason)
+
+
 class NumbersTests(unittest.TestCase):
     """P5: every track's model reply keeps only numbers someone gave (HOME-013's three uncited numbers, now spent dev
     material: two prediction requests and one advice question read as business)."""

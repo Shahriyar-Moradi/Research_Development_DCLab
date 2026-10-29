@@ -1,0 +1,164 @@
+{
+ "package": "P8 routing collector",
+ "title": "A routing-data collector in the store: one m7_routing example per routing decision Home makes, for the 7th model",
+ "date": "2026-10-29",
+ "request": "The owner (2026-10-29): AI first, rules as the fallback; later our own trained routing model first. Capture every routing decision as training data for a 7th model (later a fine-tuned GLiNER or a small classifier): the person's words with train consent, every answerer's reading with only the API thinking summary, the route and its label by source.",
+ "spec": "Plan magical-waddling-honey.md P8: a collector in the store's agent system; one record per routing decision with the words joined from the draft (the ledger's request.intent state holds none), the state as bands, the rules', the model's (with its thinking summary) and our own model's shadow readings, the route and the label (the person's card choice, a kept or changed result, a measured label); a decision set m7_routing exported as chat JSONL, a table and GLiNER2's format, labels apart by source (real, written, Claude silver); P6's written requests and the Home eval runs (sealed as shape only); make capture runs it and coverage counts it per point and label source.",
+ "plan": [
+  "Read the plan, the store's tiers (keepers, shapers, curators, sets), the ledger capture of request.intent, the GLiNER2 export",
+  "Find where words, thinking and labels live and how they join (draft snapshots, model exchanges, ledger labels, track.outcome)",
+  "A core contract for the example, a keeper for the repository's routing sources, a collector as a set builder",
+  "Coverage, the store CLI, the lake export, make capture",
+  "Tests, a dry run on the real store, the reviewer, fixes, the real build"
+ ],
+ "decisions": [
+  {
+   "decision": "A new contract RoutingExample (dclab_core.routing_example.py) and m7_routing added to MODEL_TYPES only, not to the ModelType Literal",
+   "why": "ModelType sits in the schema of every example contract: adding a value there moves nine contracts' versions; SetManifest moved to v2 (model_type any of MODEL_TYPES) instead"
+  },
+  {
+   "decision": "The collector reads the store's shaped records, not the workspaces",
+   "why": "the store never forgets: a deleted draft's words and decisions stay, and databases and every workspace are covered at once"
+  },
+  {
+   "decision": "Exchanges joined by draft id across workspaces",
+   "why": "a live test's exchanges are kept in the home workspace while its ledger is the test's own (models/gateway._exchange_home); the dry run joined none until this"
+  },
+  {
+   "decision": "Label classes real, written, silver; a scripted workspace's person label is written",
+   "why": "the owner's rules: a script's click is no human's (S8); silver only on real requests, apart and weighted 0.5"
+  },
+  {
+   "decision": "A separate capture.routing_read hook, intent_read left alone",
+   "why": "the main session changes intent reading at the same time; the hook records the model's request id, its reading when unused, and our own model's shadow answer"
+  },
+  {
+   "decision": "Not run: the whole make capture",
+   "why": "a whole store run takes about 3 hours and its final snapshot about 1.8 GB while the disk had 2.1 to 3.6 GB free (the owner's 2 GB floor); the collector step ran on the real store instead"
+  }
+ ],
+ "change": "dclab_core.routing_example (new contract RoutingExample v1), dclab_core.store (MODEL_TYPES and EXAMPLE_SHAPES gain m7_routing, SetManifest v2), the dclab_core changelog, version 0.141.0 and schemas; dclab_rnd.store.keepers.routing (new) registered in dclab_rnd.store.keepers.standard; dclab_rnd.store.sets.routing (new, the collector and its exports); dclab_rnd.store.conductor, coverage, __main__ (the coverage command), check and curators; dclab_rnd.lake.answers and dclab_rnd.lake.__main__ (the routing source); dclab_rnd.ledger.capture (routing_read); the Makefile's capture target; tests test_store_routing (new, 13) and test_store.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "No model reading was joined to its thinking summary",
+   "scenario": "The live tests' request.intent decisions with Claude's reading: 15 model readings, none with thinking.",
+   "cause": "Exchanges were keyed by workspace; a live test keeps them in the home workspace (dev) and its ledger in its own.",
+   "fix": "Join by draft id and purpose across workspaces, the decision's own workspace preferred.",
+   "test": "test_each_routing_decision_with_its_words_readings_thinking_and_label_class (the exchange kept in another workspace)"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Words said after the reading joined its text",
+   "scenario": "A scripted person answered 'Yes.' and 'Parquet please.' in the same second the intent was read.",
+   "cause": "Message times are whole seconds; the join took messages up to the decision's moment plus a tolerance.",
+   "fix": "A message counts only when its second ended before the decision.",
+   "test": "test_each_routing_decision_with_its_words_readings_thinking_and_label_class"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A model's thinking summary was kept on rows whose words may not be trained on",
+   "scenario": "A draft with training off, or missing from the store, whose exchange's thinking quotes the words; with an unrun exam's words the row landed in train with a silver label.",
+   "cause": "Words were refused, thinking was not; the exam check read only the draft's words.",
+   "fix": "No thinking on a row without words; the exam check also reads the words the model read.",
+   "test": "test_no_thinking_without_the_words_no_exchange_without_train_consent_and_an_exam_seen_only_by_the_model"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Exchanges from a workspace without train consent were joined, by a substring of their words",
+   "scenario": "An improve-only workspace's reading of a longer text containing a written request's words was attached to that written row.",
+   "cause": "exchanges() ignored provenance consent; by_text matched 'in'.",
+   "fix": "Only train-consent exchanges; the same words only.",
+   "test": "test_no_thinking_without_the_words_no_exchange_without_train_consent_and_an_exam_seen_only_by_the_model"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "An exam's request typed live reached the lake and GLiNER sealed files",
+   "scenario": "A ledger row whose words are a Home exam's, in the set's sealed split, read by the lake's routing source.",
+   "cause": "_routing read every split and every row.",
+   "fix": "Rows with an exam are never exported (GLiNER2, chat, table).",
+   "test": "test_the_gliner2_export_keeps_each_label_class_apart_and_coverage_counts_them, test_the_chat_and_table_exports_keep_each_class_apart_and_never_an_exam"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "One exam request could sit in sealed and dev",
+   "scenario": "Sealed while its exam was unrun (written once), dev after the run.",
+   "cause": "Spent exams went to dev, and the sealed partition never moves.",
+   "fix": "An exam's request is sealed everywhere, run or not.",
+   "test": "test_written_requests_and_eval_runs_flagged_never_sealed_as_shape_only"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The keeper's sources were placed in m7_judges as code judged by a test",
+   "scenario": "home_eval and home_requests entries are kind tests.",
+   "cause": "The m7_judges curator takes every tests record.",
+   "fix": "place() skips the routing keeper's sources.",
+   "test": "test_the_keepers_sources_are_not_placed_as_code_judged_by_a_test"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The chat JSONL and the table were missing",
+   "scenario": "The plan asks three exports; only GLiNER2's existed.",
+   "cause": "Not built.",
+   "fix": "routing.export: chat/<point>/<class>/<split>.jsonl and table.csv, in make capture.",
+   "test": "test_the_chat_and_table_exports_keep_each_class_apart_and_never_an_exam"
+  },
+  {
+   "id": "F9",
+   "source": "self",
+   "severity": "gap",
+   "defect": "make capture would not ask GLiNER the routing rows",
+   "scenario": "make capture runs `lake answers` without --sources.",
+   "cause": "The command's default source list was written out by hand, without routing.",
+   "fix": "routing added to the default.",
+   "test": "run: lake answers --sources routing answered 736 rows"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "m7_routing built on the real store (collector step only)",
+   "gate": "no gate: data collection, nothing promoted",
+   "result": "6368 rows; request.intent 811 (481 train, 132 dev, 198 sealed), labels written 758, none 53, real 0; model readings 490 in train and dev, 9 with a thinking summary; own-model shadow answers 0 on intent, 141 on next_question; 4711 decisions kept out (an improve-only workspace)",
+   "verdict": "not scored"
+  },
+  {
+   "name": "Tests",
+   "gate": "every test in the related files passes",
+   "result": "110 tests in the 11 related files; test_phase2_capture fails on the main session's in-progress Home change (a draft 'not a prediction (undecided)'), not on this one",
+   "verdict": "pass"
+  },
+  {
+   "name": "GLiNER2.5-Decide zero-shot on the routing rows (the owner: use it if available; fastino/GLiNER2.5-Decide, cached, offline)",
+   "gate": "no gate: data collection, nothing promoted",
+   "result": "736 rows answered; request.intent dev: agrees with the label 0.44, with the rules 0.41; the rules agree with the label 0.68 where they answer; mean confidence 0.43",
+   "verdict": "not scored"
+  }
+ ],
+ "outcome": "The routing data is collected and exported, with its classes apart. It is not yet enough to train on: no real person label on request.intent, and the model's reading is joined to its thinking only 9 times, until Home calls routing_read with the model's request id.",
+ "lessons": [
+  "A thinking summary carries the words it read: whatever rule guards the words must guard the thinking too.",
+  "A join by time and workspace fails silently when one process writes to two workspaces: count the joins on real data before trusting them.",
+  "A write-once sealed split makes a split rule permanent: decide exam requests' split once, the same everywhere."
+ ],
+ "risks": [
+  "Rows from Home eval runs reuse today's requests_dev.json words for old runs.",
+  "m7_routing sits beside m7_judges: two names start with m7."
+ ],
+ "commits": []
+}

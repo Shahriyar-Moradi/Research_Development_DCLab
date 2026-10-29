@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.141.0 (2026-10-29)
+
+- `routing_example` (P8 of the Home plan): `RoutingExample` v1, one routing decision as the 7th model (a routing model)
+  learns it: the person's words (or why not: no consent, an exam's shape only), the ledger's state (bands only), every
+  answerer's reading (`RoutingReading`: the rules', a model's with its API thinking summary or why none, our own model's in
+  shadow, the person's), the route taken, the outcome, and the label with its class (`real`, `written`, `silver`; written
+  and silver weigh at most 0.5). `label_class` maps a ledger label's source to its class (a scripted person's is written).
+- `store`: `MODEL_TYPES` gains `m7_routing` (nine model types) with `EXAMPLE_SHAPES["m7_routing"] = ("routing_example",)`.
+  `ModelType` keeps its eight: naming the ninth there would move every example contract's version. `SetManifest` v2: its
+  model type is any of `MODEL_TYPES` (v1 reads).
+
 ## 0.140.0 (2026-10-29)
 
 - `variants` (31.3): a sealed variant of the groups family draws its domain from `SEALED_SKINS`, eight domains written by

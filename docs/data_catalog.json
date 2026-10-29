@@ -490,6 +490,11 @@
    "version": "dclab_core.route.v1"
   },
   {
+   "contract": "routing_example",
+   "reads": [],
+   "version": "dclab_core.routing_example.v1"
+  },
+  {
    "contract": "run_record",
    "reads": [
     "dclab_core.run_record.v1"
@@ -518,8 +523,10 @@
   },
   {
    "contract": "set_manifest",
-   "reads": [],
-   "version": "dclab_core.set_manifest.v1"
+   "reads": [
+    "dclab_core.set_manifest.v1"
+   ],
+   "version": "dclab_core.set_manifest.v2"
   },
   {
    "contract": "solution_brief",
@@ -687,7 +694,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.140.0",
+ "dclab_core": "0.141.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",

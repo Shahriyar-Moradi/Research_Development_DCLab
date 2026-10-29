@@ -287,16 +287,18 @@ def _example_agent(row: dict[str, Any], points: dict[str, str]) -> str:
         return "(solver)"
     if shape == "retrieval_example":
         return "(evidence search)"
+    if shape == "routing_example":  # P8: Home's routing decisions (and its written and eval requests)
+        return "home"
     return "(studio code)"
 
 
 def _reasoning(obj: Any, found: set[str], notes: list[str]) -> None:
     """Every labelled reasoning source and every note saying why there is none, anywhere in an example."""
     if isinstance(obj, dict):
-        for key in ("reasoning_source", "thought_source"):
+        for key in ("reasoning_source", "thought_source", "thinking_source"):  # thinking_source: a routing reading's (P8)
             if obj.get(key):
                 found.add(str(obj[key]))
-        for key in ("no_reasoning", "no_thought"):
+        for key in ("no_reasoning", "no_thought", "no_thinking"):
             if obj.get(key):
                 notes.append(str(obj[key]))
         for value in obj.values():
@@ -509,9 +511,11 @@ def measure(layout: Optional[Layout] = None, home: Optional[Path] = None) -> dic
             total["exchanges"] += 1
         model_types[model_type] = {**total, "sealed_not_read": sealed, "sets": len(sets), "by_agent": a_table, "by_track": t_table}
 
+    from .sets import routing as routing_sets
+
     doc = {"schema_version": 1, "built_at": now(), "sources": {"by_agent": by_agent, "by_track": by_track,
                                                                  "by_purpose": dict(sorted(by_purpose.items()))},
-           "model_types": model_types}
+           "model_types": model_types, "routing": routing_sets.counts(layout)}
     doc["gaps"] = gaps(doc)
     return doc
 
@@ -540,6 +544,16 @@ def gaps(doc: dict[str, Any]) -> list[str]:
             out.append(f"track {track}: nothing in Persian")
         if TRACK_CAPTURE.get(track) and TRACK_CAPTURE[track].missing:
             out.append(f"track {track}: {TRACK_CAPTURE[track].missing}")
+    routing = doc.get("routing") or {}
+    for point in ("request.intent",):  # P8: what the routing model still lacks, by name
+        row = routing.get(point) or {}
+        if not (row.get("label") or {}).get("real"):
+            out.append(f"m7_routing {point}: no real label yet (a person's confirm or change on the card, on a real request)")
+        if not row.get("own_model"):
+            out.append(f"m7_routing {point}: no own model's shadow answer yet")
+        if row.get("model_readings") and row.get("thinking", 0) < row["model_readings"]:
+            out.append(f"m7_routing {point}: {row['model_readings'] - row.get('thinking', 0)} of {row['model_readings']} model readings "
+                       "without their thinking summary")
     for model_type, m in doc["model_types"].items():
         if not m["examples"]:
             out.append(f"{model_type}: no example")
@@ -581,11 +595,37 @@ def render(doc: dict[str, Any]) -> str:
             continue
         out += _table("agent", m["by_agent"], EXAMPLE_COLUMNS) + [""]
         out += _table("kind of help", m["by_track"], EXAMPLE_COLUMNS) + [""]
+    out += render_routing(doc.get("routing") or {})
     out += ["Columns: ex = examples, rec..replay = examples with written reasoning from that source (rec = recorded thinking), "
             "lost/note = no reasoning but a note why (lost: the note says it was lost), none = no reasoning and no note, "
             "outc = with an outcome or label.", "", f"## Gaps ({len(doc['gaps'])})", ""]
     out += [f"- {g}" for g in doc["gaps"]] or ["- none"]
     return "\n".join(out)
+
+
+ROUTING_COLUMNS = ("rows", "real", "written", "silver", "none", "text", "thinking", "model_readings", "own_model", "fa", "en", "mixed",
+                   "sealed_not_read")
+
+
+def render_routing(routing: dict[str, Any]) -> list[str]:
+    """P8: the routing model's data (m7_routing) per routing point: rows by label class (real, written, silver, none), with
+    words, model readings and their thinking summaries, our own model's shadow answers, by language; and rows by origin."""
+    out = ["## m7_routing: the routing model's data, per routing point (train and dev read; sealed counted, not read)", ""]
+    if not routing:
+        return out + ["- no set yet (python -m dclab_rnd.store run, or python -m dclab_rnd.store.sets.routing)", ""]
+    table = {p: {**{c: int(v.get(c, 0) or 0) for c in ROUTING_COLUMNS if c not in LABELS}, **{c: int((v.get("label") or {}).get(c, 0)) for c in LABELS}}
+             for p, v in sorted(routing.items())}
+    origins = sorted({o for v in routing.values() for o in (v.get("origin") or {})})
+    out += _table("routing point", table, ROUTING_COLUMNS) + [""]
+    out += _table("origin", {p: {o: int((v.get("origin") or {}).get(o, 0)) for o in origins} for p, v in sorted(routing.items())},
+                  tuple(origins)) + [""]
+    out += ["Columns: real = a person's label on a real request, written = a writer's, an eval's or a script's truth, silver = Claude's "
+            "reading of an unconfirmed real request (apart, weighted lower), text = with the person's words (train consent), thinking = "
+            "model readings with their API thinking summary, own_model = with our own model's shadow answer.", ""]
+    return out
+
+
+LABELS = ("real", "written", "silver", "none")
 
 
 def summary(doc: dict[str, Any]) -> dict[str, Any]:
@@ -598,7 +638,7 @@ def summary(doc: dict[str, Any]) -> dict[str, Any]:
             "model_types": {m: {**{k: v for k, v in t.items() if k not in ("by_agent", "by_track")},
                                 "by_agent": nonzero(t["by_agent"]), "by_track": nonzero(t["by_track"])}
                             for m, t in doc["model_types"].items()},
-            "gaps": doc["gaps"]}
+            "routing": doc.get("routing") or {}, "gaps": doc["gaps"]}
 
 
 def write(layout: Optional[Layout] = None, doc: Optional[dict[str, Any]] = None, copy: Optional[Path] = None) -> dict[str, Any]:

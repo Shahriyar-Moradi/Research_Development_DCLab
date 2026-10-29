@@ -234,7 +234,8 @@ def _model_reading(text: str, client: Any, texts: list[str]) -> dict[str, Any]:
     try:
         reply = client.complete([{"role": "system", "content": prompts.text(PROMPT)}, {"role": "user", "content": text}], None)
     except Exception as error:  # noqa: BLE001 - said on the reading; the rules read alone
-        return {"failed": (str(error) or type(error).__name__)[:200]}
+        return {"failed": (str(error) or type(error).__name__)[:200], "request": getattr(client, "last_request", None)}
+    request = getattr(client, "last_request", None)  # P8: the exchange (and its thinking summary) this reading came from
     answer = _first_json(reply.get("content") if isinstance(reply, dict) else str(reply)) or {}
     said = {k: str(answer.get(k) or "").strip()[:400] for k in _TEXT_FIELDS}
     said = {k: v for k, v in said.items() if v and _own_numbers(v, texts)}
@@ -246,18 +247,19 @@ def _model_reading(text: str, client: Any, texts: list[str]) -> dict[str, Any]:
         named = [t for t in answer.get("tracks") or [] if t]
         if report is not None:  # an empty list is the model's honest "it does not say"; tracks it invented are not
             report(bool(answer) and not named, "" if answer and not named else ("the reading named no known track" if named else "the reading was not JSON"))
-        return {"unclear": True, **said, "unknowns": unknowns} if answer else {"failed": "the reading was not JSON"}
+        return ({"unclear": True, **said, "unknowns": unknowns, "request": request} if answer
+                else {"failed": "the reading was not JSON", "request": request})
     ok = quoted(quote, texts)
     if report is not None:
         report(ok, "" if ok else "the reading's quote is not the person's words")
     if not ok:
-        return {"failed": "the reading's quote is not the person's words"}
+        return {"failed": "the reading's quote is not the person's words", "request": request}
     try:
         confidence = max(0.0, min(1.0, float(answer.get("confidence", 0.7))))
     except (TypeError, ValueError):
         confidence = 0.7
     return {"ok": True, "track": tracks[0], "tracks": tracks, "quote": quote, "confidence": round(confidence, 2), **said,
-            "unknowns": unknowns}
+            "unknowns": unknowns, "request": request}
 
 
 def _open(base: dict[str, Any], source: str, tracks: list[str], said: dict[str, Any], quote: Optional[str] = None,
@@ -302,7 +304,7 @@ def read(text: str, client: Any = None, texts: Optional[list[str]] = None) -> di
         reading = _model_reading(text, client, texts)
         if reading.get("ok"):
             said = {k: reading[k] for k in (*_TEXT_FIELDS, "unknowns") if reading.get(k)}
-            model = {**base, **said, "rule_track": rule_track}
+            model = {**base, **said, "rule_track": rule_track, "model_track": reading["track"], "model_request": reading.get("request")}
             # the rules check the model: a strong reading of another track that the model did not name is asked
             strong = rule_track is not None and found["scores"][rule_track] >= STRONG and not tie
             if strong and rule_track not in reading["tracks"]:
@@ -316,9 +318,9 @@ def read(text: str, client: Any = None, texts: Optional[list[str]] = None) -> di
                     "quote": reading["quote"], "confidence": reading["confidence"], "alternatives": reading["tracks"][1:] + rest}
         if reading.get("unclear"):
             said = {k: reading[k] for k in (*_TEXT_FIELDS, "unknowns") if reading.get(k)}
-            return _open({**base, "rule_track": rule_track}, "model", ranked, said)
+            return _open({**base, "rule_track": rule_track, "model_track": None, "model_request": reading.get("request")}, "model", ranked, said)
         failed = reading.get("failed")
-    note = {"model_failed": failed} if failed else {}
+    note = {"model_failed": failed, "model_track": None, "model_request": reading.get("request")} if failed else {}
     if ranked and not tie:
         main = ranked[0]
         total = sum(found["scores"].values())

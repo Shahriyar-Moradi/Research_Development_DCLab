@@ -589,6 +589,7 @@ class Bound:
 
         usage = (out or {}).get("usage") or {}
         request_id = experience.new_model_request()
+        self.last_request = request_id  # P8: the caller can join its decision to this exchange and its thinking summary
         self._keep_exchange(request_id, messages, out, outcome, tools)
         hooks.from_model_request({"id": request_id, "purpose": self.purpose, "tier": self.tier.get("name"), "model": self.model,
                                   "project_id": self.project_id,

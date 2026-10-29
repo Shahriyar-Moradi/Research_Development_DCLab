@@ -456,6 +456,43 @@ def intent_read(draft_id: str, value: dict[str, Any], *, has_data: bool, words: 
     return getattr(record, "id", None)
 
 
+@_quiet
+def routing_read(draft_id: str, point: str, value_used: Any, used_by: str, *, options: Any = (), state: dict[str, Any] | None = None,
+                 rule: dict[str, Any] | None = None, model: dict[str, Any] | None = None, own: dict[str, Any] | None = None) -> Optional[str]:
+    """P8 (2026-10-29): one routing decision Home makes on a draft (``request.intent`` and its other routing points), with every
+    answerer's reading, for the routing model's data (m7_routing). For the model-first order (P1): the model reads, the rules
+    check, and the rules answer alone only when no model does.
+
+    - ``rule``: ``{"answerer": "rule:intent_rules_v2", "value": ...}``, the rules' reading (kept whether or not it was used);
+    - ``model``: ``{"answerer": "home_intent", "value": ..., "confidence": 0.8, "request": <model request id>}``, the model's
+      reading; ``request`` joins it to its kept exchange and API thinking summary exactly (else the collector joins by draft
+      and time); a failed or refused call is ``{"answerer": ..., "value": None, "failed": "why"}``;
+    - ``own``: ``{"answerer": "classifier:intent_tfidf_v1", "value": ..., "confidence": ...}``, our own model's answer in
+      shadow, recorded and never used (``used_by`` may not name it);
+    - ``used_by``: ``model_role``, ``rule`` or ``person`` (whose route was taken).
+
+    The state holds bands and codes only (has_data, words, signals: never the words). Returns the record's id, which the
+    person's choice on the card then labels (``intent_chosen``)."""
+    if used_by not in ("model_role", "rule", "person"):
+        return None
+    answers = []
+    if rule is not None:
+        answers.append(answer("rule", str(rule.get("answerer") or "rule"), rule.get("value")))
+    if model is not None:
+        conf = model.get("confidence")
+        answers.append(answer("model_role", str(model.get("answerer") or "model"), model.get("value"),
+                              confidence=float(conf) if isinstance(conf, (int, float)) and 0 <= conf <= 1 else None,
+                              source=str(model["request"])[:120] if model.get("request") else None,
+                              reason=("failed: " + str(model["failed"]))[:600] if model.get("failed") else None))
+    if own is not None:
+        conf = own.get("confidence")
+        answers.append(answer("classifier", str(own.get("answerer") or "classifier"), own.get("value"),
+                              confidence=float(conf) if isinstance(conf, (int, float)) and 0 <= conf <= 1 else None))
+    record = _put(point, ("draft", draft_id), answers, value_used, used_by, options=options, level=2 if used_by == "model_role" else 0,
+                  state=state or {}, draft=draft_id, conversation=draft_id)
+    return getattr(record, "id", None)
+
+
 EXITS = ("ml_project", "analysis", "dataset", "dashboard", "decision_brief", "answer")  # draft/exits.py (H8)
 
 

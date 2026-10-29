@@ -39,7 +39,7 @@ def main(argv: list[str] | None = None) -> int:
     pr.add_argument("--lake", type=Path, default=LAKE)
     a = sub.add_parser("answers", help="26.9: another answerer (GLiNER2.5-Decide) on every DCLab test, every detail kept (run in the ai12 env)")
     a.add_argument("--answerer", default="gliner2.5-decide")
-    a.add_argument("--sources", default="lake,workflow,journeys,selfplay,committee")
+    a.add_argument("--sources", default="lake,workflow,journeys,selfplay,committee,routing")  # routing: P8, the m7_routing sets
     a.add_argument("--points", default="")
     a.add_argument("--splits", default="train,dev,sealed")
     a.add_argument("--limit", type=int, default=None, help="at most this many new decisions per point and split")

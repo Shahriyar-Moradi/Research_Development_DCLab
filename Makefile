@@ -112,8 +112,10 @@ replay:  ## rerun a stage from its run record in a scratch copy and compare its 
 db-reset:  ## a clean development database (drops and recreates dclab_dev; needs CONFIRM=yes)
 	$(PYTHON) scripts/dev.py db-reset $(if $(filter yes,$(CONFIRM)),--yes,)
 
-capture:  ## 26.9: capture and keep everything for training: the store's whole run first (32.18), every workspace's decisions (rules, Claude, classifiers, people), the rules on every test, GLiNER2.5-Decide on every test (in the ai12 env: GLINER_PY), the summary, the GLiNER2-format datasets, then a permanent snapshot
+capture:  ## 26.9: capture and keep everything for training: the store's whole run first (32.18; with P8's routing collector: the m7_routing sets, counted per routing point and label class), every workspace's decisions (rules, Claude, classifiers, people), the rules on every test, GLiNER2.5-Decide on every test (in the ai12 env: GLINER_PY), the summary, the GLiNER2-format datasets (routing's label classes apart), then a permanent snapshot
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.store run
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.store.sets.routing --counts
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.store.sets.routing --export
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.lake harvest
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.lake rules
 	DCLAB_NO_LIVE_MODELS=1 PYTHONPATH=. $(or $(GLINER_PY),/opt/miniconda3/envs/ai12/bin/python) -m dclab_rnd.lake answers

@@ -106,7 +106,7 @@ class StoreTest(unittest.TestCase):
         for name in catalog.SCHEMAS:
             self.assertIn(name, CONTRACTS)
             self.assertIn("schema_version", CONTRACTS[name].model_json_schema()["properties"])
-        self.assertEqual(len(store.MODEL_TYPES), 8)
+        self.assertEqual(len(store.MODEL_TYPES), 9)  # the eight of ModelType and m7_routing (P8, 2026-10-29)
         self.assertEqual(set(store.EXAMPLE_SHAPES), set(store.MODEL_TYPES))
         ruled = {r.kind for r in store_rules.RULES.values()}
         self.assertEqual(ruled, set(store.KINDS), "every raw kind has a capture rule")
@@ -175,7 +175,7 @@ class StoreTest(unittest.TestCase):
         self.assertNotIn("built_at", json.loads(copy.read_text(encoding="utf-8")))
         self.assertEqual(doc["kinds"]["tests"]["entries"], 1)
         self.assertEqual(set(doc["model_types"]), {"m1_students", "m2_workflow_decisions", "m3_ml_decisions", "m4_workflow_llm",
-                                                    "m5_solver_llm", "m6_stepwise_decisions", "m7_judges", "m8_retrieval"})
+                                                    "m5_solver_llm", "m6_stepwise_decisions", "m7_judges", "m8_retrieval", "m7_routing"})
         self.assertIn("m8_retrieval", self.layout.readme.read_text(encoding="utf-8"))
         for name in catalog.SCHEMAS:
             self.assertTrue((self.layout.schemas / f"{name}.json").exists())

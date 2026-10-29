@@ -10,7 +10,8 @@
 - ``service``: the builds with their verdicts, the curves, the catalog, the engagements and the playbook (32.24 to 32.31);
 - ``knowledge``: the proposed knowledge items and who accepted each; ``know-accept ITEM --by NAME`` a person's yes to one;
 - ``guides``: a guide per problem kind from the accepted items and the judged builds, printed;
-- ``curate-shadow --cap-eur X [--yes]``: the model curator in shadow over a sample the rules already placed, compared with them.
+- ``curate-shadow --cap-eur X [--yes]``: the model curator in shadow over a sample the rules already placed, compared with them;
+- ``coverage [--no-write] [--json]``: the coverage report (``store/coverage.py``), m7_routing's counts per routing point and label source.
 """
 
 from __future__ import annotations
@@ -45,6 +46,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     from . import catalog, conductor, fixes
     from .layout import Layout
     from .store import Store
+
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["coverage"]:  # P8: the coverage report (36.1), with the routing model's data per point and label source
+        from . import coverage
+
+        return coverage.main(argv[1:])
 
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.store", description=__doc__.split("\n")[0])
     parser.add_argument("command", choices=["run", "shape", "curate", "build", "reason", "status", "catalog", "fixes", "accept", "service", "knowledge", "know-accept", "guides", "curate-shadow", "backfill"])
