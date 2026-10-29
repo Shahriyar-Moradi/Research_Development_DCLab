@@ -238,9 +238,21 @@
    "gate": "home_conversation_gate_v1",
    "result": "23/25 right, median 2 turns before options, 0 silent, 0 uncited; fails right_route_offered 20/25, repeated 1, quote_invalid 6; EUR 0.88",
    "verdict": "fail"
+  },
+  {
+   "name": "Conversation eval, live, after F16-F18 (HOMECONV-003, dev)",
+   "gate": "home_conversation_gate_v2",
+   "result": "24/25 right, right route reached 24, median 2 turns before options, 0 silent, 0 repeated, 0 uncited, 0 invalid quotes; EUR 0.88",
+   "verdict": "pass"
+  },
+  {
+   "name": "Conversation eval, sealed persona set v1 read once (HOMECONV-004)",
+   "gate": "home_conversation_gate_v2, fixed before the run",
+   "result": "23/24 right, right route reached 23, median 2 turns before options, 0 silent, 0 repeated, 0 uncited, 0 invalid quotes; the miss a prediction worded as a report, read as one at once; EUR 0.91",
+   "verdict": "pass"
   }
  ],
- "outcome": "Home holds a short understanding conversation led by Claude before offering options built from the context, never goes silent, asks only what the table can answer, offers sensible measures, and offers a switch when a later message names another need. Live measurement with written people follows.",
+ "outcome": "Home holds a short understanding conversation led by Claude before offering options built from the context, never goes silent, asks only what the table can answer, offers sensible measures and offers a switch when a later message names another need. Measured on written people answering from hidden facts: dev 24/25 and the sealed set 23/24 routes right, both passing home_conversation_gate_v2.",
  "lessons": [
   "A refusal reported as success silences an agent: a tool that did nothing must say so as an error",
   "Never let a system move be recorded as the person's choice, and never let options come before understanding"
