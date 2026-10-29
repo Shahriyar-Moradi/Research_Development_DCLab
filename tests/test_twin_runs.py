@@ -351,9 +351,10 @@ class ThinkingAndCapsTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     gw.client("intern").complete([{"role": "user", "content": "go"}], None, 1800)
 
-    def test_a_measured_role_answers_without_thinking_inside_its_call_cap(self):
+    def test_a_measured_role_thinks_inside_its_call_cap(self):
         """Live (2026-10-16): the problem analyst's €0.05 call was refused before it was sent, its estimate counting
-        8,000 tokens of thinking room; a measured role answers as it was measured, without thinking."""
+        8,000 tokens of thinking room. 2026-10-29 (the owner: every call keeps its thinking summary): the role thinks too, and
+        its call cap has room for the thinking."""
         from dclab_rnd import roles
 
         class Thinks:
@@ -379,7 +380,7 @@ class ThinkingAndCapsTests(unittest.TestCase):
                 role.run_limit_eur = roles.CALL_CAP_EUR
                 self.assertEqual(role.complete([{"role": "user", "content": "go"}], None, 1800)["content"], "ok")
                 gw.client("intern").complete([{"role": "user", "content": "go"}], None, 1800)
-                self.assertEqual(t.sent, ["off", None])  # the role without thinking; the agent still thinks
+                self.assertEqual(t.sent, [None, None])  # the role thinks as the agent does (the client's own setting), never "off"
 
     def test_a_design_request_has_room_for_a_whole_design(self):
         """Live (2026-10-16): a design of ~6,000 tokens was cut at 3,200."""

@@ -1,0 +1,33 @@
+{
+ "package": "thinking every call",
+ "title": "Every model call thinks at effort xhigh and keeps its summary, the measured roles' calls too",
+ "date": "2026-10-29",
+ "request": "The owner: store the thinking summary of every call; the extra cost of effort xhigh is no problem.",
+ "spec": "CLAUDE.md rule 8 and the owner's rule of 2026-10-28: every model call keeps its API thinking summary (thinking on, display summarized), never reasoning asked for in the reply.",
+ "plan": ["Measure which effort returns summaries", "Set the workspace's effort", "Find every call that does not think", "Make the roles think within their cap", "Test"],
+ "decisions": [
+  {"decision": "DCLAB_THINKING_EFFORT=xhigh for the workspace", "why": "adaptive thinking returned a summary on 0 of 3 short calls at the default, medium and high effort, and on 3 of 3 at xhigh, at about 2.5 times a call's cost"},
+  {"decision": "The twin's measured roles think too", "why": "they answered without thinking to match how they were measured; the owner now wants every call's thinking, so their next runs may score differently"},
+  {"decision": "The roles' per-call cap rises from EUR 0.05 to EUR 0.20", "why": "the estimate counts the thinking's room, so a thinking role call was refused before it was sent under EUR 0.05"}
+ ],
+ "change": "dclab_rnd/roles.py (CALL_CAP_EUR), dclab_rnd/twin/claude.py (the roles' thinking), .env.example (the measured effort levels), tests/test_twin_runs.py.",
+ "findings": [
+  {"id": "F1", "source": "measurement", "severity": "gap", "defect": "Most calls kept no thinking summary although thinking was asked",
+   "scenario": "2026-10-29: 1 of 8 home_intent calls, 137 of 1191 home_agent turns and 1 of 95 writer calls returned a summary.",
+   "cause": "Adaptive thinking chooses not to think on short tasks below effort xhigh; asking for display summarized is not enough.",
+   "fix": "The workspace asks for effort xhigh; a probe returned a summary on 3 of 3 calls.",
+   "test": "tests/test_thinking_everywhere.py"},
+  {"id": "F2", "source": "test", "severity": "latent", "defect": "A thinking role call would be refused by its own call cap",
+   "scenario": "A measured role with thinking on and a EUR 0.05 cap.",
+   "cause": "The cost estimate includes the thinking's room; EUR 0.05 cannot hold it.",
+   "fix": "The cap is EUR 0.20 and the roles think.",
+   "test": "tests/test_twin_runs.py ThinkingAndCapsTests.test_a_measured_role_thinks_inside_its_call_cap"}
+ ],
+ "measurements": [
+  {"name": "Thinking summaries by effort, three short home_intent calls", "gate": "a summary on every call", "result": "0 of 3 at default, medium and high; 3 of 3 at xhigh (EUR 0.016) and max (EUR 0.065)", "verdict": "pass"}
+ ],
+ "outcome": "Every call asks for thinking at xhigh; the roles think within a cap that holds it.",
+ "lessons": ["Asking a model for its thinking's summary does not make it think: the effort level decides whether there is anything to summarise."],
+ "risks": ["Calls cost about 2.5 times more; the roles' scores were measured without thinking."],
+ "commits": []
+}

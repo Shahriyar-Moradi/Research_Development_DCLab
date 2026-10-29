@@ -16,7 +16,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 JUDGED = Path(__file__).resolve().parent / "roles_judged.json"
-CALL_CAP_EUR = 0.05  # each product call of a role (one understanding, one plan adoption, one report) has its own small cap
+CALL_CAP_EUR = 0.20  # each product call of a role (one understanding, one plan adoption, one report) has its own small cap;
+# 2026-10-29: EUR 0.05 left no room for thinking at effort xhigh (the owner: every call keeps its thinking summary, cost no concern)
 # the roles the product's flows ask (18.9); the critic and the brief checker failed their gates and are not wired
 WIRED = ("problem_analyst", "data_investigator", "solution_planner", "feature_engineer", "reporter")
 
