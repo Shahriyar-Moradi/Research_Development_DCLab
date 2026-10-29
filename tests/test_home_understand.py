@@ -457,6 +457,18 @@ class FieldsTests(unittest.TestCase):
         facts = memory.facts(self.store.get(d["id"]))
         self.assertTrue(any("total revenue" in f for f in facts), facts)
 
+    def test_a_predictions_reworded_value_says_the_persons_words(self):  # HOME-021: the plan model's own sentences
+        text = "I want to predict how much each customer will spend, when customer put it in cart, so warehouse can prepare stock."
+
+        class Planner:
+            def complete(self, messages, tools=None, max_tokens=1800):
+                return {"content": json.dumps({"prediction_moment": {"status": "stated", "value": "At the moment the customer puts the order in the cart.",
+                                                                     "quote": "when customer put it in cart"}})}
+        d = self.store.create(text)
+        self.store.update(d["id"], lambda x: x.update(intent=intent.chosen("prediction")))
+        HomeAgent(self.store, Planner(), on_request=lambda *a: None).start(d["id"])
+        self.assertEqual(self.store.get(d["id"])["understanding"]["prediction_moment"], "when customer put it in cart")
+
     def test_a_predictions_value_with_an_invented_number_says_the_persons_words(self):  # HOME-017's "10%"
         text = "Score everyone at month start; the top decile goes to the save-desk, and we predict who will churn."
 

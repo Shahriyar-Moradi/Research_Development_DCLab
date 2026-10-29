@@ -505,7 +505,11 @@ class HomeAgent:
                 if not u.get(field):
                     # HOME-017: the model wrote "top 10%" for "the top decile", and the opening says the value back: a value
                     # with a number the person did not write is replaced by their own words (its quote)
-                    value = item["quote"] if cited.numbers(str(item["value"])) - said else item["value"]
+                    # HOME-021: the model also wrote its own long sentences ("At the moment the customer puts the order in the
+                    # cart" for "when customer put it in cart"); a value not in the person's words is said in their words too
+                    # (only a value marked stated: an inferred one is the model's reading by name, shown as inferred)
+                    reworded = item.get("status") == "stated" and not plans.quoted(str(item["value"]), plans.user_text(draft))
+                    value = item["quote"] if reworded or cited.numbers(str(item["value"])) - said else item["value"]
                     self.note(draft_id, field, value, item["status"], "model", item["quote"])
                     filled.append(field)
         for field, quote in plans.extract(draft["problem"]).items():

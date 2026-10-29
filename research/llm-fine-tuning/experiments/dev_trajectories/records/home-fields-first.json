@@ -101,6 +101,16 @@
    "cause": "The prompt asked for \"what they said, in a few words\"; only the quote was checked against the person's words.",
    "fix": "A value not found in the person's words is replaced by its quote.",
    "test": "FieldsTests.test_a_reworded_value_is_kept_in_the_persons_words"
+  },
+  {
+   "id": "F8",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The plan model's stated prediction fields were its own long sentences",
+   "scenario": "HOME-021 (spent): 7 of the model arm's 14 wrong fields were prediction fields reworded (\"At the moment the customer puts the order in the cart\" for \"when customer put it in cart\").",
+   "cause": "read_problem kept the home_plan model's value; only its quote was checked against the person's words.",
+   "fix": "A value marked stated that is not in the person's words is said as its quote; a value marked inferred stays the model's reading, shown as inferred.",
+   "test": "FieldsTests.test_a_predictions_reworded_value_says_the_persons_words"
   }
  ],
  "measurements": [
