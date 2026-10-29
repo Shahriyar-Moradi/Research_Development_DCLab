@@ -50,9 +50,11 @@ ROOT = HERE.parents[2]
 RESULTS = ROOT / "evidence" / "campaigns" / "home_v1" / "results"
 SPLITS = {"dev": HERE / "requests_dev.json", "sealed": HERE / "requests_sealed.json", "sealed_v2": HERE / "requests_sealed_v2.json",
           "sealed_v3": HERE / "requests_sealed_v3.json",  # v3 (2026-10-29): written by an independent agent for P6/P7, pinned unread
-          "sealed_v4": HERE / "requests_sealed_v4.json"}  # v4 (2026-10-29): English only, by an agent shown the format alone
+          "sealed_v4": HERE / "requests_sealed_v4.json",  # v4 (2026-10-29): English only, by an agent shown the format alone
+          "sealed_v5": HERE / "requests_sealed_v5.json"}  # v5 (2026-10-29): the same way, for the fields read by the model
 SEALED = {"sealed": HERE / "sealed.sha256", "sealed_v2": HERE / "sealed_v2.sha256", "sealed_v3": HERE / "sealed_v3.sha256",
-          "sealed_v4": HERE / "sealed_v4.sha256"}  # each sealed set's committed fingerprint
+          "sealed_v4": HERE / "sealed_v4.sha256",
+          "sealed_v5": HERE / "sealed_v5.sha256"}  # each sealed set's committed fingerprint
 TRACKS = ("prediction", "analysis", "preparation", "reporting", "business", "advice")
 EXITS = ("ml_project", "analysis", "dataset", "dashboard", "decision_brief", "answer")
 TRAPS = ("real_prediction", "report_not_model", "silent_drop", "rows_request", "persian_no_model", "missing_column")
@@ -80,8 +82,9 @@ THRESHOLDS = {"model_track_accuracy": 0.85, "rules_track_accuracy": 0.70, "media
 GATE_V2 = {**GATE, "version": "home_gate_v2", "split": "sealed_v2"}
 GATE_V3 = {**GATE, "version": "home_gate_v3", "split": "sealed_v3"}  # written 2026-10-29 before any run: the same checks and numbers
 GATE_V4 = {**GATE, "version": "home_gate_v4", "split": "sealed_v4"}  # written 2026-10-29 before any run: the same checks and numbers
-GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3, "sealed_v4": GATE_V4}
-LATEST_SEALED = "sealed_v4"
+GATE_V5 = {**GATE, "version": "home_gate_v5", "split": "sealed_v5"}  # written 2026-10-29 before any run: the same checks and numbers
+GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3, "sealed_v4": GATE_V4, "sealed_v5": GATE_V5}
+LATEST_SEALED = "sealed_v5"
 
 
 def gate_for(split: str) -> dict[str, Any]:

@@ -67,8 +67,11 @@ class SplitTests(unittest.TestCase):
             if k not in ("version", "split"):
                 self.assertEqual(home.GATE_V3[k], home.GATE[k], k)  # the third set is read under the same written gate
                 self.assertEqual(home.GATE_V4[k], home.GATE[k], k)  # and the fourth
+                self.assertEqual(home.GATE_V5[k], home.GATE[k], k)  # and the fifth
         self.assertEqual(home.gate_for("sealed_v4")["version"], "home_gate_v4")
         self.assertEqual({p.name for p in home.sealed_runs("sealed_v3")}, {"HOME-015_sealed_v3.json"})  # spent once
+        self.assertEqual({p.name for p in home.sealed_runs("sealed_v4")}, {"HOME-017_sealed_v4.json"})
+        self.assertEqual(home.gate_for("sealed_v5")["version"], "home_gate_v5")
 
 
 class ScoringTests(unittest.TestCase):

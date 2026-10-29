@@ -1,0 +1,1143 @@
+[
+ {
+  "id": "s5-01",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "Can you build something that flags which customers are likely to churn next month, so our retention team can call them before their renewal? Use the customers table.",
+  "gold": {
+   "tracks": [
+    "prediction"
+   ],
+   "exit": "ml_project",
+   "fields": {
+    "target": {
+     "any": [
+      "which customers are likely to churn next month",
+      "churn next month"
+     ]
+    },
+    "action": {
+     "any": [
+      "so our retention team can call them before their renewal",
+      "retention team can call them"
+     ]
+    },
+    "prediction_moment": null
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-02",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "What were total sales by region last month? Only count orders with status completed.",
+  "gold": {
+   "tracks": [
+    "analysis"
+   ],
+   "exit": "analysis",
+   "fields": {
+    "measure": {
+     "any": [
+      "total sales"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "by region",
+      "region"
+     ]
+    },
+    "period": {
+     "any": [
+      "last month"
+     ]
+    },
+    "filters": {
+     "any": [
+      "Only count orders with status completed",
+      "status completed"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-03",
+  "lang": "en",
+  "data": [
+   "sales",
+   "customers"
+  ],
+  "text": "Join sales to customers on customer_id and give me one row per order with the customer's segment and plan added.",
+  "gold": {
+   "tracks": [
+    "preparation"
+   ],
+   "exit": "dataset",
+   "fields": {
+    "inputs": {
+     "any": [
+      "Join sales to customers on customer_id",
+      "sales to customers"
+     ]
+    },
+    "output_grain": {
+     "any": [
+      "one row per order"
+     ]
+    },
+    "rules": {
+     "any": [
+      "with the customer's segment and plan added",
+      "segment and plan added"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-04",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "Set up a weekly sales dashboard for the regional managers showing revenue and order count by region, refreshed every Monday.",
+  "gold": {
+   "tracks": [
+    "reporting"
+   ],
+   "exit": "dashboard",
+   "fields": {
+    "kpis": {
+     "any": [
+      "revenue and order count by region",
+      "revenue and order count"
+     ]
+    },
+    "audience": {
+     "any": [
+      "for the regional managers",
+      "regional managers"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "refreshed every Monday",
+      "weekly"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-05",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "Revenue in the North region dropped about 20% in September versus August. Why, and what should we do about it?",
+  "gold": {
+   "tracks": [
+    "business"
+   ],
+   "exit": "decision_brief",
+   "fields": {
+    "decision": {
+     "any": [
+      "what should we do about it"
+     ]
+    },
+    "period_compared": {
+     "any": [
+      "in September versus August",
+      "September versus August"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-06",
+  "lang": "en",
+  "data": [],
+  "text": "What's the difference between precision and recall, and when should I care more about recall?",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "the difference between precision and recall",
+      "precision and recall"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-07",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "Can you give me the average discount_rate per channel for 2025?",
+  "gold": {
+   "tracks": [
+    "analysis"
+   ],
+   "exit": "analysis",
+   "fields": {
+    "measure": {
+     "any": [
+      "the average discount_rate",
+      "discount_rate"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "per channel",
+      "channel"
+     ]
+    },
+    "period": {
+     "any": [
+      "for 2025",
+      "2025"
+     ]
+    }
+   },
+   "both": false
+  },
+  "trap": "missing_column",
+  "missing_column": "discount_rate"
+ },
+ {
+  "id": "s5-08",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "Clean the bookings table: drop any row with a missing value in any column, and remove all bookings where free_cancellation is true. Save the result as a new table.",
+  "gold": {
+   "tracks": [
+    "preparation"
+   ],
+   "exit": "dataset",
+   "fields": {
+    "rules": {
+     "any": [
+      "remove all bookings where free_cancellation is true",
+      "drop any row with a missing value in any column"
+     ]
+    },
+    "destination": {
+     "any": [
+      "Save the result as a new table",
+      "new table"
+     ]
+    }
+   },
+   "both": false
+  },
+  "trap": "silent_drop"
+ },
+ {
+  "id": "s5-09",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "Every Friday I want a report for the support lead that lists each customer with more than 5 support_tickets_90d, with their customer_id, city and plan.",
+  "gold": {
+   "tracks": [
+    "reporting"
+   ],
+   "exit": "dashboard",
+   "fields": {
+    "audience": {
+     "any": [
+      "for the support lead",
+      "support lead"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "Every Friday"
+     ]
+    },
+    "kpis": null
+   },
+   "both": false
+  },
+  "trap": "rows_request"
+ },
+ {
+  "id": "s5-10",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "Should we keep offering free_cancellation on all bookings, or only on bookings made more than 30 days ahead? We can't afford cancellations above 15%.",
+  "gold": {
+   "tracks": [
+    "business"
+   ],
+   "exit": "decision_brief",
+   "fields": {
+    "decision": {
+     "any": [
+      "Should we keep offering free_cancellation on all bookings",
+      "keep offering free_cancellation"
+     ]
+    },
+    "options": {
+     "any": [
+      "or only on bookings made more than 30 days ahead",
+      "only on bookings made more than 30 days ahead"
+     ]
+    },
+    "constraints": {
+     "any": [
+      "We can't afford cancellations above 15%",
+      "cancellations above 15%"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-11",
+  "lang": "en",
+  "data": [],
+  "text": "How do I avoid data leakage in time-series cross-validation?",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "avoid data leakage in time-series cross-validation",
+      "data leakage"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-12",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "I'd like to see which of next month's bookings are going to be cancelled, broken down by destination.",
+  "gold": {
+   "tracks": [
+    "prediction"
+   ],
+   "exit": "ml_project",
+   "fields": {
+    "target": {
+     "any": [
+      "which of next month's bookings are going to be cancelled",
+      "going to be cancelled"
+     ]
+    }
+   },
+   "both": false
+  },
+  "trap": "real_prediction"
+ },
+ {
+  "id": "s5-13",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "i need the sales table but only status = 'completed' and remove the duplicate order_id, and make the order_date as normal date format plz, then i download as csv",
+  "gold": {
+   "tracks": [
+    "preparation"
+   ],
+   "exit": "dataset",
+   "fields": {
+    "rules": {
+     "any": [
+      "make the order_date as normal date format",
+      "remove the duplicate order_id",
+      "only status = 'completed'"
+     ]
+    },
+    "destination": {
+     "any": [
+      "download as csv",
+      "csv"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-14",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "My team needs a daily view of bookings, cancellations and average price per destination so we can decide where to push promotions. Keep it current.",
+  "gold": {
+   "tracks": [
+    "reporting"
+   ],
+   "exit": "dashboard",
+   "fields": {
+    "kpis": {
+     "any": [
+      "bookings, cancellations and average price per destination",
+      "average price per destination"
+     ]
+    },
+    "audience": {
+     "any": [
+      "My team"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "a daily view",
+      "daily"
+     ]
+    },
+    "decisions_supported": {
+     "any": [
+      "so we can decide where to push promotions",
+      "where to push promotions"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-15",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "Our basic plan customers they leave more than premium I think. We should raise the price of basic or give discount for stay? Want to keep monthly_spend not go down.",
+  "gold": {
+   "tracks": [
+    "business"
+   ],
+   "exit": "decision_brief",
+   "fields": {
+    "decision": {
+     "any": [
+      "raise the price of basic or give discount for stay"
+     ]
+    },
+    "options": {
+     "any": [
+      "raise the price of basic",
+      "give discount for stay"
+     ]
+    },
+    "success_measure": {
+     "any": [
+      "keep monthly_spend not go down"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-16",
+  "lang": "en",
+  "data": [],
+  "text": "My data has only 3% positive, what is better, oversampling or class weight? I am confuse.",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "oversampling or class weight"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-17",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "hello, we want predict the amount of each new order when customer put it in cart, so warehouse can prepare stock. we have sales table with order_date, region, channel. is possible?",
+  "gold": {
+   "tracks": [
+    "prediction"
+   ],
+   "exit": "ml_project",
+   "fields": {
+    "target": {
+     "any": [
+      "predict the amount of each new order",
+      "amount of each new order"
+     ]
+    },
+    "prediction_moment": {
+     "any": [
+      "when customer put it in cart",
+      "put it in cart"
+     ]
+    },
+    "action": {
+     "any": [
+      "so warehouse can prepare stock",
+      "warehouse can prepare stock"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-18",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "Our board wants a model of churn by plan. Really they just want to know what percentage of customers on each plan churned, and how that compares across cities.",
+  "gold": {
+   "tracks": [
+    "analysis"
+   ],
+   "exit": "analysis",
+   "fields": {
+    "measure": {
+     "any": [
+      "what percentage of customers on each plan churned",
+      "percentage of customers"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "across cities",
+      "on each plan"
+     ]
+    },
+    "period": null
+   },
+   "both": false
+  },
+  "trap": "report_not_model"
+ },
+ {
+  "id": "s5-19",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "We want a dashbord for the CEO, every month update, with churn rate, average monthly_spend and the tenure_months by segment. pls make it simple to read.",
+  "gold": {
+   "tracks": [
+    "reporting"
+   ],
+   "exit": "dashboard",
+   "fields": {
+    "kpis": {
+     "any": [
+      "churn rate, average monthly_spend and the tenure_months by segment",
+      "churn rate"
+     ]
+    },
+    "audience": {
+     "any": [
+      "for the CEO",
+      "CEO"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "every month update"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-20",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "We're deciding whether to hire two more support agents or invest in a self-help portal. Look at how support_tickets_90d relates to churn. Later we might want a churn model, but not now.",
+  "gold": {
+   "tracks": [
+    "business",
+    "prediction"
+   ],
+   "exit": [
+    "decision_brief",
+    "ml_project"
+   ],
+   "fields": {
+    "decision": {
+     "any": [
+      "whether to hire two more support agents or invest in a self-help portal"
+     ]
+    },
+    "options": {
+     "any": [
+      "hire two more support agents",
+      "invest in a self-help portal"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-21",
+  "lang": "en",
+  "data": [],
+  "text": "Before we hire anyone: how many months of history does a team typically need before a demand forecast is worth trusting?",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "how many months of history",
+      "demand forecast"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-22",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "Target is cancelled. Features from booking_date, lead_time_days, price, free_cancellation, channel, nationality; score each booking at the moment it's made. Hold out the last three months by booking_date.",
+  "gold": {
+   "tracks": [
+    "prediction"
+   ],
+   "exit": "ml_project",
+   "fields": {
+    "target": {
+     "any": [
+      "Target is cancelled",
+      "cancelled"
+     ]
+    },
+    "prediction_moment": {
+     "any": [
+      "score each booking at the moment it's made",
+      "the moment it's made"
+     ]
+    },
+    "data_plan": {
+     "any": [
+      "Hold out the last three months by booking_date",
+      "Hold out the last three months"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-23",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "Median lead_time_days and mean price by destination and nationality, booking_date in Q3 2026, excluding rows where cancelled = 1.",
+  "gold": {
+   "tracks": [
+    "analysis"
+   ],
+   "exit": "analysis",
+   "fields": {
+    "measure": {
+     "any": [
+      "Median lead_time_days and mean price",
+      "Median lead_time_days",
+      "mean price"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "by destination and nationality",
+      "destination and nationality"
+     ]
+    },
+    "period": {
+     "any": [
+      "booking_date in Q3 2026",
+      "Q3 2026"
+     ]
+    },
+    "filters": {
+     "any": [
+      "excluding rows where cancelled = 1",
+      "excluding rows where cancelled"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-24",
+  "lang": "en",
+  "data": [
+   "customers",
+   "sales"
+  ],
+  "text": "Build a customer-month table: customer_id × month from order_date, sum(amount) and count(order_id) per cell, left-joined onto customers so zero-order months appear. Write it out as a new table.",
+  "gold": {
+   "tracks": [
+    "preparation"
+   ],
+   "exit": "dataset",
+   "fields": {
+    "output_grain": {
+     "any": [
+      "customer-month table",
+      "customer_id × month"
+     ]
+    },
+    "rules": {
+     "any": [
+      "left-joined onto customers so zero-order months appear",
+      "sum(amount) and count(order_id) per cell"
+     ]
+    },
+    "destination": {
+     "any": [
+      "Write it out as a new table",
+      "new table"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-25",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "AOV by channel fell from Q1 to Q2 2026 while order count held. Is it mix (product_category shift) or price? Need to decide whether to reinstate the free-shipping threshold.",
+  "gold": {
+   "tracks": [
+    "business"
+   ],
+   "exit": "decision_brief",
+   "fields": {
+    "decision": {
+     "any": [
+      "whether to reinstate the free-shipping threshold",
+      "reinstate the free-shipping threshold"
+     ]
+    },
+    "period_compared": {
+     "any": [
+      "from Q1 to Q2 2026",
+      "Q1 to Q2 2026"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-26",
+  "lang": "en",
+  "data": [],
+  "text": "Is target encoding safe inside a GroupKFold, or does it still leak when the same customer appears in several folds?",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "target encoding",
+      "GroupKFold"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-27",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "I need a model that scores every customer's chance of churning next month, and then a weekly dashboard for my account managers showing the riskiest segments. Both, please.",
+  "gold": {
+   "tracks": [
+    "prediction",
+    "reporting"
+   ],
+   "exit": [
+    "ml_project",
+    "dashboard"
+   ],
+   "fields": {
+    "target": {
+     "any": [
+      "every customer's chance of churning next month",
+      "chance of churning next month",
+      "churning"
+     ]
+    }
+   },
+   "both": true
+  }
+ },
+ {
+  "id": "s5-28",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "Hi, please how many bookings we got from each channel every month this year, and cancel rate also. If the online channel is look bad, after that we maybe decide to stop paying the agency, but first only the numbers pls.",
+  "gold": {
+   "tracks": [
+    "analysis",
+    "business"
+   ],
+   "exit": [
+    "analysis",
+    "decision_brief"
+   ],
+   "fields": {
+    "measure": {
+     "any": [
+      "how many bookings we got",
+      "cancel rate"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "from each channel every month",
+      "each channel",
+      "every month"
+     ]
+    },
+    "period": {
+     "any": [
+      "this year"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-29",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "Please reshape the bookings into one row per destination per week with total price and number of bookings, and then tell me which destination grew fastest over the summer.",
+  "gold": {
+   "tracks": [
+    "preparation",
+    "analysis"
+   ],
+   "exit": [
+    "dataset",
+    "analysis"
+   ],
+   "fields": {
+    "output_grain": {
+     "any": [
+      "one row per destination per week",
+      "per destination per week"
+     ]
+    },
+    "rules": {
+     "any": [
+      "with total price and number of bookings",
+      "total price and number of bookings"
+     ]
+    }
+   },
+   "both": true
+  }
+ },
+ {
+  "id": "s5-30",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "Build me a monthly channel performance report for the marketing director, and also give me a recommendation: should we cut the budget for the marketplace channel or not?",
+  "gold": {
+   "tracks": [
+    "reporting",
+    "business"
+   ],
+   "exit": [
+    "dashboard",
+    "decision_brief"
+   ],
+   "fields": {
+    "kpis": {
+     "any": [
+      "channel performance"
+     ]
+    },
+    "audience": {
+     "any": [
+      "for the marketing director",
+      "marketing director"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "monthly"
+     ]
+    }
+   },
+   "both": true
+  }
+ },
+ {
+  "id": "s5-31",
+  "lang": "en",
+  "data": [],
+  "text": "I run a small bakery chain and keep hearing about A/B tests. If I change the window displays in half my shops, how long should I run it and how do I know if the difference is real and not luck?",
+  "gold": {
+   "tracks": [
+    "advice"
+   ],
+   "exit": "answer",
+   "fields": {
+    "topic": {
+     "any": [
+      "how do I know if the difference is real and not luck",
+      "how long should I run it",
+      "A/B tests"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-32",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "Predict support_tickets_90d for new signups.",
+  "gold": {
+   "tracks": [
+    "prediction"
+   ],
+   "exit": "ml_project",
+   "fields": {
+    "target": {
+     "any": [
+      "Predict support_tickets_90d",
+      "support_tickets_90d"
+     ]
+    },
+    "prediction_moment": {
+     "any": [
+      "for new signups",
+      "new signups"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-33",
+  "lang": "en",
+  "data": [
+   "sales"
+  ],
+  "text": "Quick one for my Monday meeting: how did average order amount move week by week since July, split by product_category? And should I use mean or median for this kind of number?",
+  "gold": {
+   "tracks": [
+    "analysis",
+    "advice"
+   ],
+   "exit": [
+    "analysis",
+    "answer"
+   ],
+   "fields": {
+    "measure": {
+     "any": [
+      "average order amount"
+     ]
+    },
+    "breakdown": {
+     "any": [
+      "split by product_category",
+      "product_category",
+      "week by week"
+     ]
+    },
+    "period": {
+     "any": [
+      "since July"
+     ]
+    }
+   },
+   "both": true
+  }
+ },
+ {
+  "id": "s5-34",
+  "lang": "en",
+  "data": [
+   "customers"
+  ],
+  "text": "We're moving our CRM next month and the vendor needs a tidy customer file. From the customers table, trim stray spaces in segment, standardise city names so 'NYC' and 'New York' are the same, and output one row per customer_id. They want it as a CSV.",
+  "gold": {
+   "tracks": [
+    "preparation"
+   ],
+   "exit": "dataset",
+   "fields": {
+    "rules": {
+     "any": [
+      "standardise city names so 'NYC' and 'New York' are the same",
+      "trim stray spaces in segment",
+      "standardise city names"
+     ]
+    },
+    "output_grain": {
+     "any": [
+      "one row per customer_id"
+     ]
+    },
+    "destination": {
+     "any": [
+      "They want it as a CSV",
+      "as a CSV"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-35",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "Our hotel group's revenue team meets every Tuesday. I want a page they open before the meeting that shows last week's bookings by nationality, lead_time_days distribution and the cancellation share, compared with the same week last year. It should update itself each week.",
+  "gold": {
+   "tracks": [
+    "reporting"
+   ],
+   "exit": "dashboard",
+   "fields": {
+    "kpis": {
+     "any": [
+      "last week's bookings by nationality",
+      "lead_time_days distribution",
+      "the cancellation share"
+     ]
+    },
+    "audience": {
+     "any": [
+      "Our hotel group's revenue team",
+      "revenue team"
+     ]
+    },
+    "refresh": {
+     "any": [
+      "It should update itself each week",
+      "update itself each week"
+     ]
+    },
+    "period": {
+     "any": [
+      "compared with the same week last year",
+      "same week last year"
+     ]
+    }
+   },
+   "both": false
+  }
+ },
+ {
+  "id": "s5-36",
+  "lang": "en",
+  "data": [
+   "bookings"
+  ],
+  "text": "We're a small travel agency. The online channel now brings most bookings but its cancellation rate is higher. We have budget to grow one channel next year: online ads or our partner agents. Which one gives us more trips that actually happen? Success is fewer cancelled bookings per euro spent.",
+  "gold": {
+   "tracks": [
+    "business"
+   ],
+   "exit": "decision_brief",
+   "fields": {
+    "decision": {
+     "any": [
+      "We have budget to grow one channel next year",
+      "grow one channel next year"
+     ]
+    },
+    "options": {
+     "any": [
+      "online ads or our partner agents"
+     ]
+    },
+    "success_measure": {
+     "any": [
+      "fewer cancelled bookings per euro spent"
+     ]
+    },
+    "constraints": null
+   },
+   "both": false
+  }
+ }
+]
