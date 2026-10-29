@@ -70,9 +70,15 @@
    "gate": "the same scores; thinking kept; seconds; cost",
    "result": "the same quality on these 10: the kind of help 9 of 10, fields 19 right / 1 wrong / 1 missed, traps 3 of 3, no uncited number, for both. Opus: home_intent 11 of 11 with a summary, median 7.3 s (Sonnet 11.0 s), EUR 0.013 a call (0.012); home_agent 21 of 23 (91%; Sonnet 87%), median 4.4 s (5.2 s), EUR 0.011 a call (0.007). The run cost EUR 0.40. Ten cases, and Sonnet's run came before two wording fixes: small and not quite level.",
    "verdict": "not scored"
+  },
+  {
+   "name": "Opus 5.5 at high (HOME-023) against Sonnet 5.5 at xhigh (HOME-024): all 36 Home dev cases, same code, run side by side",
+   "gate": "the same scores; thinking kept; seconds; cost",
+   "result": "quality level: the kind of help Opus 32 of 36 (English 21 of 24), Sonnet 33 (23 of 24); fields 72 right for both (2 against 3 wrong); traps Opus 5 of 6, Sonnet 6 of 6; no uncited number either way. Thinking kept: Opus 37 of 37 intent and 78 of 85 conversation calls (92%), Sonnet 38 of 38 and 70 of 82 (85%). Seconds: intent median 9.4 against 10.3 (slowest tenth 11.7 against 29.8), conversation 4.8 against 4.9. Cost: EUR 1.55 against 0.99 for the run (about 1.6 times).",
+   "verdict": "not scored"
   }
  ],
- "outcome": "Every call asks for thinking at xhigh; the roles think within a cap that holds it.",
+ "outcome": "Every call thinks at xhigh and keeps its summary. Opus 5.5 at high matches Sonnet 5.5 at xhigh on Home's dev set, keeps a little more thinking (92% against 85%) at about 1.6 times the cost; Sonnet stays the product's model.",
  "lessons": [
   "Asking a model for its thinking's summary does not make it think: the effort level decides whether there is anything to summarise."
  ],
