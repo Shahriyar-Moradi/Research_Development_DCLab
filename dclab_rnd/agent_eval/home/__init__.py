@@ -49,8 +49,10 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RESULTS = ROOT / "evidence" / "campaigns" / "home_v1" / "results"
 SPLITS = {"dev": HERE / "requests_dev.json", "sealed": HERE / "requests_sealed.json", "sealed_v2": HERE / "requests_sealed_v2.json",
-          "sealed_v3": HERE / "requests_sealed_v3.json"}  # v3 (2026-10-29): written by an independent agent for P6/P7, pinned unread
-SEALED = {"sealed": HERE / "sealed.sha256", "sealed_v2": HERE / "sealed_v2.sha256", "sealed_v3": HERE / "sealed_v3.sha256"}  # each sealed set's committed fingerprint
+          "sealed_v3": HERE / "requests_sealed_v3.json",  # v3 (2026-10-29): written by an independent agent for P6/P7, pinned unread
+          "sealed_v4": HERE / "requests_sealed_v4.json"}  # v4 (2026-10-29): English only, by an agent shown the format alone
+SEALED = {"sealed": HERE / "sealed.sha256", "sealed_v2": HERE / "sealed_v2.sha256", "sealed_v3": HERE / "sealed_v3.sha256",
+          "sealed_v4": HERE / "sealed_v4.sha256"}  # each sealed set's committed fingerprint
 TRACKS = ("prediction", "analysis", "preparation", "reporting", "business", "advice")
 EXITS = ("ml_project", "analysis", "dataset", "dashboard", "decision_brief", "answer")
 TRAPS = ("real_prediction", "report_not_model", "silent_drop", "rows_request", "persian_no_model", "missing_column")
@@ -77,8 +79,9 @@ THRESHOLDS = {"model_track_accuracy": 0.85, "rules_track_accuracy": 0.70, "media
 # traps, is read under the same thresholds, fixed here before its one run.
 GATE_V2 = {**GATE, "version": "home_gate_v2", "split": "sealed_v2"}
 GATE_V3 = {**GATE, "version": "home_gate_v3", "split": "sealed_v3"}  # written 2026-10-29 before any run: the same checks and numbers
-GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3}
-LATEST_SEALED = "sealed_v3"
+GATE_V4 = {**GATE, "version": "home_gate_v4", "split": "sealed_v4"}  # written 2026-10-29 before any run: the same checks and numbers
+GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3, "sealed_v4": GATE_V4}
+LATEST_SEALED = "sealed_v4"
 
 
 def gate_for(split: str) -> dict[str, Any]:
