@@ -93,6 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--split", choices=tuple(SPLITS), default="dev")
     parser.add_argument("--lang", choices=("en", "fa", "mixed"), default=None,
                         help="dev only: run the requests of one language (the owner, 2026-10-28: live runs in English only)")
+    parser.add_argument("--cases", default=None, help="dev only: a comma list of request ids (a few cases, e.g. to compare a model)")
     parser.add_argument("--yes", action="store_true", help="send the requests (the plan is printed either way)")
     parser.add_argument("--cap-eur", type=float, default=None, help="required with --yes for a priced model")
     parser.add_argument("--save", action="store_true", help="dev only: store the rules-alone run as evidence (nothing is sent)")
@@ -108,6 +109,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.split in SEALED:
             parser.error("--lang is for dev: the sealed set is run once, whole")
         cases = [c for c in cases if c.get("lang") == args.lang]
+    if args.cases:
+        if args.split in SEALED:
+            parser.error("--cases is for dev: the sealed set is run once, whole")
+        wanted = {x.strip() for x in args.cases.split(",") if x.strip()}
+        cases = [c for c in cases if c["id"] in wanted]
+        if len(cases) != len(wanted):
+            parser.error(f"unknown request ids: {', '.join(sorted(wanted - {c['id'] for c in cases}))}")
     from dclab_rnd.models.gateway import for_workspace
 
     gateway = for_workspace()

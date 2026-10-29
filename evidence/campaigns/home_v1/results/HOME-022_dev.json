@@ -1,0 +1,1399 @@
+{
+ "id": "HOME-022",
+ "campaign_id": "home_v1",
+ "kind": "home_agent_measured",
+ "split": "dev",
+ "at": "2026-10-29T14:54:46+00:00",
+ "gate": {
+  "version": "home_gate_v5",
+  "split": "sealed_v5",
+  "model_track_accuracy": "share of requests whose track Home took right, with the model >= 0.85",
+  "rules_track_accuracy": "the same with the rules alone >= 0.70",
+  "new_wrong": "fields wrong with the model that the rules had left unknown == 0",
+  "quote_invalid": "quotes that are not the person's words == 0",
+  "uncited": "numbers in Home's messages that neither the person nor the data gave == 0",
+  "rows_exposed": "identifier values shown == 0",
+  "destructive_unconfirmed": "data steps that removed rows without asking == 0",
+  "median_questions": "median questions per request <= 3",
+  "traps": "every trap passes with the model; the Persian trap with the rules alone"
+ },
+ "plan": {
+  "purpose": "home_agent",
+  "tier": "standard",
+  "model": "claude-opus-5-5",
+  "local": false,
+  "available": true,
+  "cases": 10,
+  "max_requests": 320,
+  "max_eur": 17.909
+ },
+ "spent_eur": 0.3959,
+ "arms": [
+  "rules",
+  "model",
+  "plain"
+ ],
+ "rows": [
+  {
+   "case": "d-p1",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "which customers will cancel within 30 days",
+      "prediction_moment": "on the first day of each month",
+      "action": "so the retention team can call the top 200"
+     },
+     "questions": 3,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "which customers will cancel within 30 days",
+      "prediction_moment": "The first day of each month",
+      "action": "so the retention team can call the top 200"
+     },
+     "questions": 2,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "which customers will cancel within 30 days",
+      "prediction_moment": "scored on the first day of each month",
+      "action": "so the retention team can call the top 200"
+     },
+     "questions": 0,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 3,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "d-p5",
+   "lang": "en",
+   "trap": "real_prediction",
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "which customers are going to buy again next month",
+      "prediction_moment": "Sometime before next month starts. The exact timing, such as the start or end of the current month, is not given."
+     },
+     "questions": 1,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "going to buy again next month",
+      "output_grain": "which customers"
+     },
+     "questions": 0,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "missed",
+      "prediction_moment": "abstained",
+      "action": "abstained"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "wrong",
+      "action": "abstained"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "abstained",
+      "action": "abstained"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "d-a1",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "revenue",
+      "breakdown": "region",
+      "period": "last quarter",
+      "filters": "paid orders"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "How much revenue did we make",
+      "breakdown": "per region",
+      "period": "last quarter",
+      "filters": "Only paid orders"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "revenue",
+      "breakdown": "per region",
+      "period": "last quarter",
+      "filters": "Only paid orders"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "period": "right",
+      "filters": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "period": "right",
+      "filters": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "period": "right",
+      "filters": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "d-a6",
+   "lang": "en",
+   "trap": "missing_column",
+   "observed": {
+    "rules": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "breakdown": "segment"
+     },
+     "questions": 1,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "breakdown": "by segment"
+     },
+     "questions": 1,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "analysis",
+     "tracks": [
+      "analysis",
+      "preparation"
+     ],
+     "fields": {
+      "measure": "average lifetime_spend",
+      "breakdown": "by segment"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "abstained",
+      "breakdown": "right"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "abstained",
+      "breakdown": "right"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "wrong",
+      "breakdown": "right"
+     },
+     "exit": "right",
+     "trap": false,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "d-r1",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "rules": "Remove duplicate orders",
+      "destination": "Excel file"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "inputs": "duplicate orders",
+      "rules": "remove duplicate orders",
+      "destination": "an Excel file"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "rules": "Remove duplicate orders",
+      "destination": "export the clean table as an Excel file"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "rules": "right",
+      "destination": "right",
+      "output_grain": "abstained"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "rules": "right",
+      "destination": "right",
+      "output_grain": "abstained"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "rules": "right",
+      "destination": "right",
+      "output_grain": "abstained"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "d-r5",
+   "lang": "en",
+   "trap": "silent_drop",
+   "observed": {
+    "rules": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "rules": "Keep only the paid orders from 2026"
+     },
+     "questions": 1,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": true,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "inputs": "the paid orders",
+      "rules": "Keep only the paid orders from 2026"
+     },
+     "questions": 1,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": true,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "filters": "Keep only the paid orders from 2026"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "rules": "right"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "rules": "right"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "rules": "missed"
+     },
+     "exit": "right",
+     "trap": false,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "d-b1",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "analysis"
+     ],
+     "fields": {
+      "kpis": "revenue",
+      "audience": "sales managers",
+      "refresh": "weekly",
+      "breakdown": "region"
+     },
+     "questions": 0,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "analysis"
+     ],
+     "fields": {
+      "kpis": "revenue, orders and refunds by region",
+      "audience": "sales managers",
+      "refresh": "weekly dashboard",
+      "breakdown": "region"
+     },
+     "questions": 0,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "reporting",
+     "tracks": [
+      "reporting"
+     ],
+     "fields": {
+      "kpis": "revenue, orders and refunds",
+      "breakdown": "by region",
+      "refresh": "weekly",
+      "audience": "the sales managers"
+     },
+     "questions": 0,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "right",
+      "audience": "right",
+      "refresh": "right",
+      "decisions_supported": "abstained"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "right",
+      "audience": "right",
+      "refresh": "right",
+      "decisions_supported": "abstained"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "right",
+      "audience": "right",
+      "refresh": "right",
+      "decisions_supported": "abstained"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "d-s1",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "business",
+     "tracks": [
+      "business"
+     ],
+     "fields": {
+      "success_measure": "revenue",
+      "period_compared": "March 2026 compared with February"
+     },
+     "questions": 0,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "analysis"
+     ],
+     "fields": {
+      "success_measure": "revenue",
+      "period_compared": "March 2026 compared with February",
+      "period": "March 2026 compared with February"
+     },
+     "questions": 0,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "analysis"
+     ],
+     "fields": {
+      "measure": "revenue",
+      "period_compared": "March 2026 compared with February",
+      "topic": "Why did revenue drop"
+     },
+     "questions": 0,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "abstained",
+      "period_compared": "right",
+      "success_measure": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "abstained",
+      "period_compared": "right",
+      "success_measure": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "abstained",
+      "period_compared": "right",
+      "success_measure": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "d-v1",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "advice",
+     "tracks": [
+      "advice"
+     ],
+     "fields": {
+      "topic": "What's the difference between precision and recall, and which should I use for fraud?"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "advice",
+     "tracks": [
+      "advice"
+     ],
+     "fields": {
+      "topic": "What's the difference between precision and recall, and which should I use for fraud?"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "advice",
+     "tracks": [
+      "advice"
+     ],
+     "fields": {
+      "topic": "the difference between precision and recall, and which should I use for fraud"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "d-v6",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "advice",
+     "tracks": [
+      "advice",
+      "business"
+     ],
+     "fields": {
+      "topic": "I'm not sure if I need machine learning."
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "advice"
+     ],
+     "fields": {
+      "decision": "I'm not sure if I need machine learning",
+      "success_measure": "We want fewer customers to leave",
+      "topic": "I'm not sure if I need machine learning."
+     },
+     "questions": 1,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "prediction"
+     ],
+     "fields": {
+      "decision": "I'm not sure if I need machine learning",
+      "success_measure": "fewer customers to leave",
+      "options": "build it if it's needed"
+     },
+     "questions": 0,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": false,
+     "fields": {
+      "topic": "right",
+      "target": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "wrong",
+     "tracks_complete": false,
+     "fields": {
+      "topic": "right",
+      "target": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "wrong",
+     "tracks_complete": false,
+     "fields": {
+      "topic": "missed",
+      "target": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  }
+ ],
+ "summary": {
+  "rules": {
+   "cases": 10,
+   "track": {
+    "right": 10,
+    "wrong": 0,
+    "asked": 0
+   },
+   "track_accuracy": 1.0,
+   "track_accuracy_by_lang": {
+    "en": 1.0
+   },
+   "tracks_complete": "0 of 1",
+   "fields": {
+    "right": 18,
+    "wrong": 0,
+    "missed": 2,
+    "abstained": 6
+   },
+   "exit_right": 10,
+   "median_questions": 0.0,
+   "quote_invalid": 0,
+   "uncited": 0,
+   "rows_exposed": 0,
+   "phantom": 0,
+   "destructive_unconfirmed": 0,
+   "lost": 0,
+   "traps": {
+    "real_prediction": true,
+    "missing_column": true,
+    "silent_drop": true
+   }
+  },
+  "model": {
+   "cases": 10,
+   "track": {
+    "right": 9,
+    "wrong": 1,
+    "asked": 0
+   },
+   "track_accuracy": 0.9,
+   "track_accuracy_by_lang": {
+    "en": 0.9
+   },
+   "tracks_complete": "0 of 1",
+   "fields": {
+    "right": 19,
+    "wrong": 1,
+    "missed": 1,
+    "abstained": 5
+   },
+   "exit_right": 9,
+   "median_questions": 0.5,
+   "quote_invalid": 0,
+   "uncited": 0,
+   "rows_exposed": 0,
+   "phantom": 0,
+   "destructive_unconfirmed": 0,
+   "lost": 0,
+   "traps": {
+    "real_prediction": true,
+    "missing_column": true,
+    "silent_drop": true
+   },
+   "new_wrong": [
+    "d-p5.prediction_moment"
+   ]
+  },
+  "plain": {
+   "cases": 10,
+   "track": {
+    "right": 9,
+    "wrong": 1,
+    "asked": 0
+   },
+   "track_accuracy": 0.9,
+   "track_accuracy_by_lang": {
+    "en": 0.9
+   },
+   "tracks_complete": "0 of 1",
+   "fields": {
+    "right": 16,
+    "wrong": 1,
+    "missed": 4,
+    "abstained": 5
+   },
+   "exit_right": 9,
+   "median_questions": 0.0,
+   "quote_invalid": 0,
+   "uncited": 0,
+   "rows_exposed": 0,
+   "phantom": 0,
+   "destructive_unconfirmed": 0,
+   "lost": 0,
+   "traps": {
+    "real_prediction": true,
+    "missing_column": false,
+    "silent_drop": false
+   },
+   "new_wrong": [
+    "d-a6.measure"
+   ]
+  }
+ },
+ "requests": 34,
+ "failures": [],
+ "kept": "agent_runs/live_tests/2026-10-29-home-eval/dev-145009",
+ "verdict": {
+  "gate": "home_gate_v5",
+  "status": "fail (dev: the gate is read on the sealed set)",
+  "checks": {
+   "rules_track_accuracy": true,
+   "quote_invalid": true,
+   "uncited": true,
+   "rows_exposed": true,
+   "destructive_unconfirmed": true,
+   "median_questions": true,
+   "traps": true,
+   "model_track_accuracy": true,
+   "new_wrong": false
+  }
+ },
+ "rule": "Scores on 36 written requests say how Home handles these requests; they are not a claim about any other text or about production readiness.",
+ "experiment_id": "HOME-022",
+ "status": "completed",
+ "completed_at": "2026-10-29T14:54:46+00:00"
+}
