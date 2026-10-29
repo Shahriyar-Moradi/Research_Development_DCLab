@@ -1780,6 +1780,14 @@ class HomeAgent:
                 self.say(draft_id, f"I'll start with {intents.LABELS[first].lower()}. If that is not it, change the type of help above.")
                 self.move_to(draft_id, {**before, "status": "inferred"}, "undecided", sample=False)
                 return
+            if turns > self.UNDERSTAND_TURNS:  # HOME-015: "not sure" to every question was asked seven times; Home stops asking
+                best = next((t for t in [*(reading.get("tracks") or []), *(before.get("tracks") or [])] if t in intents.TRACKS), None)
+                if best:
+                    self.say(draft_id, f"I'll start with {intents.LABELS[best].lower()}. If that is not it, change the type of help above.")
+                    self.move_to(draft_id, {**reading, "track": best, "tracks": [best], "status": "inferred", "ask": None}, "undecided")
+                else:
+                    self.say(draft_id, "Whenever you are ready, pick the kind of help above, or tell me what you would like to end up with.")
+                return
             if reading.get("question") == intents.OPEN_QUESTION:  # the same words twice read as not listening
                 reading = {**reading, "question": intents.OPEN_AGAIN}
             self.set_intent(draft_id, reading)

@@ -261,6 +261,34 @@ class ReviewTests(unittest.TestCase):
         questions = [m["text"] for m in self.store.get(d["id"])["messages"] if m.get("kind") == "question"]
         self.assertEqual(len(set(questions)), len(questions))
 
+    def test_not_sure_forever_is_not_asked_forever(self):  # HOME-015: seven questions and no route
+        d = self.store.create(VAGUE)
+        agent = self.agent()
+        agent.start(d["id"])
+        for _ in range(6):
+            if agent.pending(self.store.get(d["id"])) is None:
+                break
+            agent.reply(d["id"], "I'm not sure")
+        asked = [q for q in self.store.get(d["id"])["questions"] if q.get("field") == "intent"]
+        self.assertLessEqual(len(asked), HomeAgent.UNDERSTAND_TURNS + 1)
+        self.assertIsNone(agent.pending(self.store.get(d["id"])))
+        client = Scripted(reading(tracks=["analysis", "reporting"], quote="data analysis problems", confidence=0.4),
+                          *[reading(tracks=["analysis"], quote="data analysis problems", confidence=0.4)] * 4)
+        d = self.store.create(VAGUE)
+        agent = self.agent(client)
+        agent.start(d["id"])
+        for _ in range(6):
+            if agent.pending(self.store.get(d["id"])) is None:
+                break
+            agent.reply(d["id"], "I'm not sure")
+        self.assertEqual(HomeAgent.track(self.store.get(d["id"])), "analysis")  # its best reading, said and changeable
+
+    def test_the_eval_runs_home_with_its_intent_reader(self):  # HOME-015: the model arm had no home_intent client
+        import inspect
+        from dclab_rnd.agent_eval import home as H
+        self.assertIn("intent_for", inspect.signature(H.observe).parameters)
+        self.assertIn("intent_for", inspect.signature(H.measure).parameters)
+
     def test_a_pack_set_on_a_prediction_is_cleared_when_the_track_changes(self):  # P4
         d = self.store.create("Predict which customers will cancel next month")
         agent = self.agent()

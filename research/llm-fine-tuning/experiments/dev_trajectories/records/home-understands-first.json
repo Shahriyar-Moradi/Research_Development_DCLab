@@ -187,6 +187,26 @@
    "cause": "cited.numbers reads number words; the grader does not take Home's next-step texts as a source.",
    "fix": "The next step says \"the periods you name\"; a test holds that Home's fixed texts carry no number.",
    "test": "NumbersTests.test_homes_own_words_hold_no_number"
+  },
+  {
+   "id": "F15",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The eval's Home-with-Claude arm never gave Home its intent reader",
+   "scenario": "HOME-015 (sealed v3): the rules and the model arm read the kind of help identically, 27 of 36 each; replayed afterwards with the reader, every failed request was read correctly.",
+   "cause": "agent_eval.home.observe built HomeAgent with the conversation's model only; the product (draft.work) also passes the home_intent client.",
+   "fix": "observe and measure take intent_for, and the runner's budget gives a home_intent client per draft; the counting wrapper passes the exchange id through.",
+   "test": "tests/test_home_understand.py ReviewTests.test_the_eval_runs_home_with_its_intent_reader"
+  },
+  {
+   "id": "F16",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A person who answered not sure to everything was asked seven times and never routed",
+   "scenario": "HOME-015: six requests with seven questions each.",
+   "cause": "After the buttons-only question an unclear answer asked the same question again.",
+   "fix": "After it, Home starts with its best reading (said, changeable) or stops asking and waits for the person.",
+   "test": "ReviewTests.test_not_sure_forever_is_not_asked_forever"
   }
  ],
  "measurements": [
@@ -207,13 +227,20 @@
    "gate": "a summary on every call (the owner's rule)",
    "result": "0 of 3 at the default, medium and high; 3 of 3 at xhigh (about 2.5 times a call's cost) and max; DCLAB_THINKING_EFFORT=xhigh set",
    "verdict": "pass"
+  },
+  {
+   "name": "Home sealed v3 (HOME-015), home_gate_v3",
+   "gate": "home_gate_v3, written before the run",
+   "result": "FAIL: the kind of help 27 of 36 in both the rules and the model arm (the model arm lacked the intent reader), English 0.92, Persian 0.38; one uncited number; the missing-column trap missed by every arm; Claude alone 36 of 36",
+   "verdict": "fail"
   }
  ],
  "outcome": "Home asks before it routes and its model reads first; dev and a fresh sealed set are still to be measured.",
  "lessons": [
   "A default that guesses hides itself in every suite that grew up beside it: changing it shows how many tests encoded the guess.",
   "Rules tuned on dev sentences read the dev sentences; the reading belongs to the model, the checking to code.",
-  "Adaptive thinking decides for itself whether to think: asking for a summary is not enough to get one on short requests; the effort level is what makes it think."
+  "Adaptive thinking decides for itself whether to think: asking for a summary is not enough to get one on short requests; the effort level is what makes it think.",
+  "An eval arm must build the agent the way the product does: a missing client measures a different system, and the numbers look plausible."
  ],
  "risks": [
   "The no-model fallback still reads some vague requests as predictions when they say a pack's word (a review, a ticket).",
