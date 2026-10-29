@@ -109,9 +109,15 @@
    "gate": "dev: no gate, compared with HOME-016",
    "result": "fields 71 right, 4 wrong, 5 missed (HOME-016: 71, 1, 7); the kind of help 33 of 36 (35); every trap; no uncited number; EUR 1.14. Two of the new wrong fields were reworded values, fixed after the run; the rest are single cases. Dev is where the rules were tuned, so the fresh sealed set is the real measure.",
    "verdict": "not scored"
+  },
+  {
+   "name": "Home sealed v5 (HOME-021), home_gate_v5, English, the model reading the fields",
+   "gate": "home_gate_v5, committed before the run",
+   "result": "FAIL (rules alone 21 of 36 below 0.70; new wrong fields). Home with Claude: the kind of help 35 of 36, fields 68 right / 14 wrong (sealed v4: 17 / 28), every trap 5 of 5 (Claude alone 3 of 5), no uncited number, no row shown. Claude alone: fields 81 / 4. A first attempt (HOME-019) was unscored: the workspace's monthly cap stopped 29 requests. EUR 1.33.",
+   "verdict": "fail"
   }
  ],
- "outcome": "The model reads each kind's fields first, in the person's own words, the rules filling and checking. On dev it reads as many fields as before with fewer missed; dev favours the rules, so a fresh sealed set is the measure.",
+ "outcome": "On a fresh sealed set Home with Claude now reads the fields 68 right (from 17), catches every trap and invents no number; its 14 wrong fields against Claude alone's 4, and the rules' fallback reading, are what is left.",
  "lessons": [
   "A rule that guards one path (the intent's current fields) misses the state the person's choices leave behind: check what is stored, not what produced it."
  ],
