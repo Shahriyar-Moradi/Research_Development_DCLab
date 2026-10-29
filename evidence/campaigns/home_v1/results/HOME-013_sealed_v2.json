@@ -1,0 +1,4759 @@
+{
+ "id": "HOME-013",
+ "campaign_id": "home_v1",
+ "kind": "home_agent_measured",
+ "split": "sealed_v2",
+ "at": "2026-10-29T06:55:49+00:00",
+ "gate": {
+  "version": "home_gate_v2",
+  "split": "sealed_v2",
+  "model_track_accuracy": "share of requests whose track Home took right, with the model >= 0.85",
+  "rules_track_accuracy": "the same with the rules alone >= 0.70",
+  "new_wrong": "fields wrong with the model that the rules had left unknown == 0",
+  "quote_invalid": "quotes that are not the person's words == 0",
+  "uncited": "numbers in Home's messages that neither the person nor the data gave == 0",
+  "rows_exposed": "identifier values shown == 0",
+  "destructive_unconfirmed": "data steps that removed rows without asking == 0",
+  "median_questions": "median questions per request <= 3",
+  "traps": "every trap passes with the model; the Persian trap with the rules alone"
+ },
+ "plan": {
+  "purpose": "home_agent",
+  "tier": "standard",
+  "model": "claude-sonnet-5-5",
+  "local": false,
+  "available": true,
+  "cases": 36,
+  "max_requests": 1152,
+  "max_eur": 31.938
+ },
+ "spent_eur": 0.8639,
+ "arms": [
+  "rules",
+  "model",
+  "plain"
+ ],
+ "rows": [
+  {
+   "case": "s2-p1",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "Whether the booking will be cancelled before its travel date (a likelihood score of cancellation), with the window running from booking creation until the travel date",
+      "prediction_moment": "At the time each new booking comes in (booking creation)",
+      "action": "Ops uses the score to decide how much to overbook, overbooking slightly on bookings with high cancellation risk. The sentence does not state what a wrong prediction costs; implicitly, underestimating risk could leave rooms/seats empty and overestimating could cause oversold inventory, but no costs are given."
+     },
+     "questions": 2,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "prediction",
+     "tracks": [
+      "prediction",
+      "business"
+     ],
+     "fields": {
+      "target": "how likely it is to be cancelled before the travel date",
+      "prediction_moment": "Every time a booking comes in",
+      "action": "ops can overbook a little on the risky ones",
+      "inputs": "Use the bookings table"
+     },
+     "questions": 0,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "missed",
+      "prediction_moment": "missed",
+      "action": "missed",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "right",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "right",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-p2",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction",
+      "reporting",
+      "analysis"
+     ],
+     "fields": {
+      "target": "who is going to churn next month"
+     },
+     "questions": 3,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "prediction",
+     "tracks": [
+      "prediction",
+      "reporting",
+      "analysis"
+     ],
+     "fields": {
+      "target": "Whether each customer will churn in the next month (churn risk per customer)",
+      "prediction_moment": "The 1st of each month, scoring every customer using the customers table",
+      "action": "Scores are put into a dashboard that the retention team opens every Monday, showing churn risk by plan, presumably so the team can prioritize retention efforts. The sentence does not say what the team does with the scores or what a wrong prediction costs (false positives vs. missed churners)."
+     },
+     "questions": 2,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "prediction",
+     "tracks": [
+      "prediction",
+      "reporting"
+     ],
+     "fields": {
+      "target": "who is going to churn next month",
+      "prediction_moment": "Score every customer on the 1st of each month",
+      "inputs": "using the customers table",
+      "destination": "put the scores into a dashboard",
+      "audience": "the retention team",
+      "refresh": "opens every Monday",
+      "breakdown": "broken down by plan",
+      "kpis": "churn risk"
+     },
+     "questions": 0,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": true,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "missed",
+      "data_plan": "missed",
+      "kpis": "missed",
+      "audience": "missed",
+      "refresh": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 3,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": true,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "data_plan": "missed",
+      "kpis": "missed",
+      "audience": "missed",
+      "refresh": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": true,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "data_plan": "missed",
+      "kpis": "right",
+      "audience": "right",
+      "refresh": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-p3",
+   "lang": "en",
+   "trap": "real_prediction",
+   "observed": {
+    "rules": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "prediction"
+     ],
+     "fields": {
+      "kpis": "which business customers are likely",
+      "refresh": "weekly"
+     },
+     "questions": 1,
+     "exit": "dashboard",
+     "suggestion": "prediction",
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "prediction"
+     ],
+     "fields": {
+      "kpis": "which business customers are likely",
+      "refresh": "weekly"
+     },
+     "questions": 1,
+     "exit": "dashboard",
+     "suggestion": "prediction",
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "prediction",
+     "tracks": [
+      "prediction",
+      "reporting"
+     ],
+     "fields": {
+      "target": "likely to bump up their monthly spend next quarter",
+      "prediction_moment": "each week",
+      "action": "so the sales team knows who to call",
+      "filters": "business customers",
+      "output_grain": "top 20 each week",
+      "refresh": "weekly",
+      "audience": "the sales team",
+      "destination": "weekly report"
+     },
+     "questions": 0,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "target": "missed",
+      "prediction_moment": "missed",
+      "action": "missed"
+     },
+     "exit": "wrong",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "target": "missed",
+      "prediction_moment": "missed",
+      "action": "missed"
+     },
+     "exit": "wrong",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "right"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-p4",
+   "lang": "fa",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "احتمال اینکه سفارش بعداً مرجوع شود",
+      "prediction_moment": "همان لحظه‌ای که سفارش ثبت می‌شود",
+      "action": "سفارش‌های پرریسک پیش از ارسال یک بار دیگر بررسی شوند"
+     },
+     "questions": 1,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "چقدر احتمال دارد بعداً مرجوع شود",
+      "prediction_moment": "همان لحظه‌ای که سفارش ثبت می‌شود",
+      "action": "سفارش‌های پرریسک پیش از ارسال یک بار دیگر بررسی شوند",
+      "inputs": "داده‌ها در جدول فروش است"
+     },
+     "questions": 0,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "missed",
+      "prediction_moment": "missed",
+      "action": "missed",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "right",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "right",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-p5",
+   "lang": "mixed",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "free_cancellation",
+      "action": "The pricing team uses each prediction to adjust the price at that moment. The sentence does not say what a wrong prediction costs.",
+      "prediction_moment": "At the start of the booking, before the passenger sees the options. Known then: lead_time_days, nationality, destination (price, cancelled and the free_cancellation choice itself are not known yet)."
+     },
+     "questions": 3,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "free_cancellation رو انتخاب می‌کنه یا نه",
+      "prediction_moment": "اول رزرو، قبل از اینکه مسافر گزینه‌ها رو ببینه",
+      "inputs": "lead_time_days و nationality و destination",
+      "action": "همون لحظه قیمت رو تنظیم کنه",
+      "audience": "تیم pricing"
+     },
+     "questions": 0,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "missed",
+      "prediction_moment": "missed",
+      "action": "missed",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "right",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 3,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "right",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-p6",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction",
+      "analysis"
+     ],
+     "fields": {},
+     "questions": 5,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "prediction",
+     "tracks": [
+      "prediction",
+      "analysis"
+     ],
+     "fields": {
+      "target": "Each customer's total spend in the next month (spend amount per customer, next calendar month)",
+      "prediction_moment": "At month end, using all information available at that point",
+      "action": "Finance uses the forecasts for budgeting. The sentence does not say how individual predictions are used or what an over- or under-forecast costs.",
+      "costs": "Not known. Finance has not said whether over- or under-forecasting hurts more, so treat both errors as equal for now."
+     },
+     "questions": 5,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [
+      "1000"
+     ],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "prediction",
+     "tracks": [
+      "prediction",
+      "preparation"
+     ],
+     "fields": {
+      "target": "how much each customer will spend next month",
+      "prediction_moment": "based on whatever we know at month end",
+      "inputs": "2 yrs of history across customers and sales",
+      "audience": "finance",
+      "decisions_supported": "budgeting"
+     },
+     "questions": 0,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "missed",
+      "prediction_moment": "missed",
+      "action": "missed",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 5,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "right",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 5,
+     "quote_invalid": 0,
+     "uncited": 1,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "target": "right",
+      "prediction_moment": "right",
+      "action": "missed",
+      "data_plan": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-a1",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "breakdown": "region",
+      "filters": "count web"
+     },
+     "questions": 1,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "breakdown": "region",
+      "filters": "count web"
+     },
+     "questions": 1,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "refund rate",
+      "breakdown": "by region",
+      "period": "Q1 2026",
+      "filters": "Only count web and app orders"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "missed",
+      "breakdown": "right",
+      "period": "missed",
+      "filters": "wrong"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "missed",
+      "breakdown": "right",
+      "period": "missed",
+      "filters": "wrong"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "period": "right",
+      "filters": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-a2",
+   "lang": "en",
+   "trap": "report_not_model",
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis",
+      "prediction"
+     ],
+     "fields": {
+      "target": "The product_category with the highest revenue over last year, reported as the top three categories. The window is the past calendar year, so this is a retrospective ranking rather than a forecast.",
+      "action": "The top three categories go into a planning deck. The sentence does not say what a wrong ranking would cost, or what decisions the deck feeds.",
+      "period": "last year"
+     },
+     "questions": 2,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "revenue",
+      "breakdown": "product_category",
+      "period": "last year",
+      "rules": "the top three"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "missed",
+      "breakdown": "missed",
+      "period": "missed",
+      "filters": "abstained"
+     },
+     "exit": "wrong",
+     "trap": false,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "missed",
+      "breakdown": "missed",
+      "period": "right",
+      "filters": "abstained"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "period": "right",
+      "filters": "abstained"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-a3",
+   "lang": "en",
+   "trap": "missing_column",
+   "observed": {
+    "rules": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "breakdown": "channel"
+     },
+     "questions": 1,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "breakdown": "channel"
+     },
+     "questions": 1,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "Average discount_pct",
+      "breakdown": "per channel",
+      "period": "across all 2025 orders"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "missed",
+      "breakdown": "right",
+      "period": "missed"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "missed",
+      "breakdown": "right",
+      "period": "missed"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "period": "right"
+     },
+     "exit": "right",
+     "trap": false,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-a4",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "average price",
+      "breakdown": "destination",
+      "period": "since January"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "average price",
+      "breakdown": "destination",
+      "period": "since January"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "booking count and average price",
+      "breakdown": "Monthly ... per destination",
+      "period": "since January",
+      "destination": "something I can drop into the team update"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "period": "right",
+      "kpis": "missed",
+      "audience": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "period": "right",
+      "kpis": "missed",
+      "audience": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "period": "right",
+      "kpis": "missed",
+      "audience": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-a5",
+   "lang": "fa",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis",
+      "prediction"
+     ],
+     "fields": {
+      "target": "Whether a booking is cancelled (cancellation rate), counted only for free-cancellation bookings made in 2025 and broken down by passenger nationality. The sentence reads as a descriptive question about past data, so it does not say how long after booking a cancellation counts.",
+      "breakdown": "ملیت مسافر",
+      "period": "سال ۲۰۲۵"
+     },
+     "questions": 2,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "نرخ لغو رزروها",
+      "breakdown": "به تفکیک ملیت مسافر",
+      "period": "در سال ۲۰۲۵",
+      "filters": "فقط رزروهایی را حساب کن که امکان لغو رایگان داشتند"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "missed",
+      "breakdown": "missed",
+      "period": "missed",
+      "filters": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "missed",
+      "breakdown": "right",
+      "period": "right",
+      "filters": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "period": "right",
+      "filters": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-a6",
+   "lang": "mixed",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "تعداد customer هایی",
+      "breakdown": "plan و"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "تعداد customer هایی",
+      "breakdown": "plan و"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "تعداد customer هایی",
+      "filters": "support_tickets_90d شون بیشتر از ۳ تاست",
+      "breakdown": "به تفکیک plan و segment"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "filters": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "filters": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "measure": "right",
+      "breakdown": "right",
+      "filters": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-r1",
+   "lang": "en",
+   "trap": "silent_drop",
+   "observed": {
+    "rules": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "rules": "keep only the paid orders from 2026, drop the status column",
+      "destination": "CSV"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "rules": "keep only the paid orders from 2026, drop the status column",
+      "destination": "CSV"
+     },
+     "questions": 1,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": true,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "inputs": "the sales table",
+      "filters": "keep only the paid orders from 2026",
+      "rules": "drop the status column",
+      "destination": "send it back to me as a CSV"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "missed",
+      "rules": "right",
+      "destination": "right"
+     },
+     "exit": "right",
+     "trap": false,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "missed",
+      "rules": "right",
+      "destination": "right"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "right",
+      "rules": "right",
+      "destination": "right"
+     },
+     "exit": "right",
+     "trap": false,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-r2",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "preparation",
+     "tracks": [
+      "preparation",
+      "analysis"
+     ],
+     "fields": {
+      "output_grain": "customer",
+      "rules": "merge customers onto bookings by customer_id",
+      "destination": "Excel file",
+      "measure": "number of bookings",
+      "breakdown": "customer_id"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "preparation",
+     "tracks": [
+      "preparation",
+      "analysis"
+     ],
+     "fields": {
+      "output_grain": "customer",
+      "rules": "merge customers onto bookings by customer_id",
+      "destination": "Excel file",
+      "measure": "number of bookings",
+      "breakdown": "customer_id"
+     },
+     "questions": 1,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": true,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "inputs": "merge customers onto bookings by customer_id",
+      "output_grain": "one row per customer",
+      "rules": "their number of bookings and total spent on trips",
+      "destination": "Save it to the shared drive as an Excel file"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "missed",
+      "output_grain": "wrong",
+      "rules": "right",
+      "destination": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "missed",
+      "output_grain": "wrong",
+      "rules": "right",
+      "destination": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "right",
+      "output_grain": "right",
+      "rules": "right",
+      "destination": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-r3",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "preparation",
+     "tracks": [
+      "preparation",
+      "analysis"
+     ],
+     "fields": {
+      "rules": "Join sales with customers, throw out the pending orders, and then tell me the average order amount for consumer versus business customers",
+      "measure": "average order amount"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "preparation",
+     "tracks": [
+      "preparation",
+      "analysis"
+     ],
+     "fields": {
+      "rules": "Join sales with customers, throw out the pending orders, and then tell me the average order amount for consumer versus business customers",
+      "measure": "average order amount"
+     },
+     "questions": 1,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": true,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "analysis",
+     "tracks": [
+      "analysis",
+      "preparation"
+     ],
+     "fields": {
+      "measure": "average order amount",
+      "breakdown": "consumer versus business customers",
+      "filters": "throw out the pending orders",
+      "inputs": "Join sales with customers"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": true,
+     "fields": {
+      "inputs": "missed",
+      "rules": "right",
+      "measure": "right",
+      "breakdown": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": true,
+     "fields": {
+      "inputs": "missed",
+      "rules": "right",
+      "measure": "right",
+      "breakdown": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": true,
+     "fields": {
+      "inputs": "right",
+      "rules": "missed",
+      "measure": "right",
+      "breakdown": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-r4",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "preparation",
+     "tracks": [
+      "preparation",
+      "prediction"
+     ],
+     "fields": {
+      "output_grain": "booking",
+      "rules": "dedupe it, blank out the negative prices, lowercase the channel values"
+     },
+     "questions": 1,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "inputs": "the bookings table",
+      "rules": "dedupe it, blank out the negative prices, lowercase the channel values",
+      "output_grain": "one row per booking"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "missed",
+      "output_grain": "missed",
+      "rules": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "missed",
+      "output_grain": "wrong",
+      "rules": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "right",
+      "output_grain": "right",
+      "rules": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-r5",
+   "lang": "fa",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "تعداد مشتری و",
+      "breakdown": "سطر"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis"
+     ],
+     "fields": {
+      "measure": "تعداد مشتری و",
+      "breakdown": "سطر"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "inputs": "جدول مشتریان",
+      "output_grain": "هر سطر یک ماه و یک شهر باشد",
+      "measure": "تعداد مشتری و میانگین هزینهٔ ماهانه",
+      "breakdown": "بر اساس ماه ثبت‌نام و شهر",
+      "destination": "به‌صورت یک جدول جدید در پایگاه‌داده ذخیره کن"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "missed",
+      "output_grain": "missed",
+      "rules": "missed",
+      "destination": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "missed",
+      "output_grain": "missed",
+      "rules": "missed",
+      "destination": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "right",
+      "output_grain": "right",
+      "rules": "missed",
+      "destination": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-r6",
+   "lang": "mixed",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "output_grain": "customer_id",
+      "rules": "pivot شده از sales می‌خوام"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "output_grain": "customer_id",
+      "rules": "pivot شده از sales می‌خوام"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "preparation",
+     "tracks": [
+      "preparation"
+     ],
+     "fields": {
+      "inputs": "sales",
+      "output_grain": "هر customer_id یک ردیف",
+      "rules": "برای هر channel یک ستون با جمع amount",
+      "destination": "Google Sheets"
+     },
+     "questions": 0,
+     "exit": "dataset",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "missed",
+      "output_grain": "wrong",
+      "rules": "right",
+      "destination": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "missed",
+      "output_grain": "wrong",
+      "rules": "right",
+      "destination": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "inputs": "right",
+      "output_grain": "right",
+      "rules": "right",
+      "destination": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-b1",
+   "lang": "en",
+   "trap": "rows_request",
+   "observed": {
+    "rules": {
+     "track": "reporting",
+     "tracks": [
+      "reporting"
+     ],
+     "fields": {},
+     "questions": 2,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "reporting",
+     "tracks": [
+      "reporting"
+     ],
+     "fields": {},
+     "questions": 2,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "reporting",
+     "tracks": [
+      "reporting"
+     ],
+     "fields": {
+      "audience": "our support lead",
+      "output_grain": "every premium customer by customer_id",
+      "kpis": "support_tickets_90d and monthly_spend",
+      "filters": "premium customer",
+      "refresh": "Refresh it daily"
+     },
+     "questions": 0,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "missed",
+      "audience": "missed",
+      "refresh": "missed"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "missed",
+      "audience": "missed",
+      "refresh": "missed"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "right",
+      "audience": "right",
+      "refresh": "right"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-b2",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "business",
+      "analysis"
+     ],
+     "fields": {
+      "audience": "regional managers",
+      "refresh": "weekly",
+      "breakdown": "region"
+     },
+     "questions": 1,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "business",
+      "analysis"
+     ],
+     "fields": {
+      "audience": "regional managers",
+      "refresh": "weekly",
+      "breakdown": "region"
+     },
+     "questions": 1,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "business"
+     ],
+     "fields": {
+      "kpis": "revenue, order count and refund share per region",
+      "audience": "the regional managers",
+      "refresh": "weekly",
+      "decisions_supported": "decide where to push promotions next",
+      "breakdown": "per region"
+     },
+     "questions": 0,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "missed",
+      "audience": "right",
+      "refresh": "right",
+      "decisions_supported": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "missed",
+      "audience": "right",
+      "refresh": "right",
+      "decisions_supported": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "right",
+      "audience": "right",
+      "refresh": "right",
+      "decisions_supported": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-b3",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "analysis",
+      "preparation"
+     ],
+     "fields": {
+      "audience": "exec team",
+      "refresh": "every morning",
+      "measure": "average lead time",
+      "breakdown": "destination",
+      "rules": "clean-up"
+     },
+     "questions": 1,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "analysis",
+      "preparation"
+     ],
+     "fields": {
+      "audience": "exec team",
+      "refresh": "every morning",
+      "measure": "average lead time",
+      "breakdown": "destination",
+      "rules": "clean-up"
+     },
+     "questions": 1,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "preparation"
+     ],
+     "fields": {
+      "rules": "drop the test bookings with a price of 0 and fix travel dates that fall before the booking date",
+      "kpis": "cancellations and average lead time",
+      "breakdown": "by destination",
+      "audience": "the exec team",
+      "refresh": "updated every morning"
+     },
+     "questions": 0,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": true,
+     "fields": {
+      "kpis": "missed",
+      "audience": "right",
+      "refresh": "right",
+      "inputs": "missed",
+      "rules": "wrong"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": true,
+     "fields": {
+      "kpis": "missed",
+      "audience": "right",
+      "refresh": "right",
+      "inputs": "missed",
+      "rules": "wrong"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": true,
+     "fields": {
+      "kpis": "right",
+      "audience": "right",
+      "refresh": "right",
+      "inputs": "missed",
+      "rules": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-b4",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 3,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "prediction"
+     ],
+     "fields": {
+      "refresh": "every month"
+     },
+     "questions": 2,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "analysis"
+     ],
+     "fields": {
+      "kpis": "active customers, avg monthly spend and churn",
+      "breakdown": "split by plan",
+      "audience": "boss wants a one-pager she can open",
+      "refresh": "at the end of every month"
+     },
+     "questions": 0,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "missed",
+      "audience": "missed",
+      "refresh": "missed",
+      "decisions_supported": "abstained"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 3,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "missed",
+      "audience": "missed",
+      "refresh": "right",
+      "decisions_supported": "abstained"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "right",
+      "audience": "right",
+      "refresh": "right",
+      "decisions_supported": "abstained"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-b5",
+   "lang": "fa",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "analysis"
+     ],
+     "fields": {
+      "audience": "مدیر بازاریابی",
+      "refresh": "ماهانه",
+      "breakdown": "کانال"
+     },
+     "questions": 1,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "analysis"
+     ],
+     "fields": {
+      "audience": "مدیر بازاریابی",
+      "refresh": "ماهانه",
+      "breakdown": "کانال"
+     },
+     "questions": 1,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "analysis",
+      "business"
+     ],
+     "fields": {
+      "kpis": "سهم هر کانال فروش (وب، اپلیکیشن، فروشگاه) از درآمد و روند آن",
+      "breakdown": "هر کانال فروش (وب، اپلیکیشن، فروشگاه)",
+      "audience": "مدیر بازاریابی",
+      "refresh": "ماهانه",
+      "decisions_supported": "بودجهٔ تبلیغات بین کانال‌ها تقسیم شود"
+     },
+     "questions": 0,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "missed",
+      "audience": "right",
+      "refresh": "right",
+      "decisions_supported": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "missed",
+      "audience": "right",
+      "refresh": "right",
+      "decisions_supported": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "right",
+      "audience": "right",
+      "refresh": "right",
+      "decisions_supported": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-b6",
+   "lang": "fa",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "analysis",
+     "tracks": [
+      "analysis",
+      "reporting"
+     ],
+     "fields": {
+      "measure": "تعداد رزروها",
+      "breakdown": "دوشنبه"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis",
+      "reporting"
+     ],
+     "fields": {
+      "measure": "تعداد رزروها",
+      "breakdown": "دوشنبه"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "reporting",
+     "tracks": [
+      "reporting",
+      "analysis"
+     ],
+     "fields": {
+      "kpis": "تعداد رزروها، نرخ لغو و میانگین قیمت",
+      "breakdown": "برای هر مقصد",
+      "refresh": "هر دوشنبه به‌روز شود",
+      "audience": "تیم عملیات"
+     },
+     "questions": 0,
+     "exit": "dashboard",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "missed",
+      "audience": "missed",
+      "refresh": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "missed",
+      "audience": "missed",
+      "refresh": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "kpis": "right",
+      "audience": "right",
+      "refresh": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-s1",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "prediction"
+     ],
+     "fields": {
+      "decision": "be worried about",
+      "period_compared": "March compared with February 2026"
+     },
+     "questions": 2,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "analysis"
+     ],
+     "fields": {
+      "measure": "Revenue",
+      "filters": "in Sharjah",
+      "period": "March",
+      "period_compared": "compared with February 2026",
+      "topic": "What happened, and is it something we should be worried about?"
+     },
+     "questions": 0,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "success_measure": "missed",
+      "period_compared": "missed",
+      "constraints": "abstained"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "success_measure": "missed",
+      "period_compared": "right",
+      "constraints": "abstained"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "success_measure": "missed",
+      "period_compared": "wrong",
+      "constraints": "abstained"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-s2",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 3,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis",
+      "prediction"
+     ],
+     "fields": {
+      "target": "Share of total revenue that would be lost if the basic plan were dropped (compared against a 5% limit). The sentence gives 'last 12 months' only as the data window for churn and spend by plan, not as a prediction horizon, so the forecast window is not specified.",
+      "action": "A one-time business decision on whether to discontinue the basic plan. A wrong call is costly if it loses more than 5% of revenue. No per-customer action is described.",
+      "breakdown": "plan",
+      "period": "last 12 months"
+     },
+     "questions": 2,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "analysis"
+     ],
+     "fields": {
+      "decision": "killing the basic plan",
+      "options": "dropping basic",
+      "measure": "churn and spend",
+      "breakdown": "by plan",
+      "period": "the last 12 months",
+      "constraints": "we can't afford to lose more than 5 percent of revenue",
+      "success_measure": "lose more than 5 percent of revenue"
+     },
+     "questions": 0,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": false,
+     "fields": {
+      "decision": "missed",
+      "constraints": "missed",
+      "measure": "missed",
+      "breakdown": "missed",
+      "period": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 3,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": false,
+     "fields": {
+      "decision": "missed",
+      "constraints": "missed",
+      "measure": "missed",
+      "breakdown": "right",
+      "period": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": true,
+     "fields": {
+      "decision": "right",
+      "constraints": "right",
+      "measure": "right",
+      "breakdown": "right",
+      "period": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-s3",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "prediction"
+     ],
+     "fields": {
+      "target": "Whether the promo budget shift to the app channel in Ajman produced a payoff since January. The sentence does not say which metric counts as a payoff (revenue, orders, ROI, etc.), and the time window is only implied (January onward). It is also a retrospective effect-of-a-change question, not clearly a forecast.",
+      "period_compared": "in January"
+     },
+     "questions": 2,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "analysis"
+     ],
+     "fields": {
+      "decision": "Did shifting our promo budget to the app channel in Ajman actually pay off?",
+      "period_compared": "We made the switch in January",
+      "filters": "Ajman",
+      "topic": "promo budget shift to the app channel"
+     },
+     "questions": 0,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "missed",
+      "period_compared": "missed",
+      "filters": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "missed",
+      "period_compared": "wrong",
+      "filters": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "right",
+      "period_compared": "right",
+      "filters": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-s4",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "prediction"
+     ],
+     "fields": {
+      "target": "Net revenue and cancellation rate under each option (free cancellation for all vs. paid extra). The sentence gives no time window, no unit (per booking, per month, etc.), and no definition of 'net revenue'.",
+      "action": "Choose one cancellation policy (A or B) for all bookings. A wrong choice costs lower net revenue or a cancellation rate above 20%. No cost figures are given."
+     },
+     "questions": 4,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "analysis"
+     ],
+     "fields": {
+      "decision": "Which one gets us more net revenue without the cancellation rate going above twenty percent",
+      "options": "Option A: make free cancellation standard on every booking. Option B: keep charging extra for it.",
+      "success_measure": "more net revenue",
+      "constraints": "without the cancellation rate going above twenty percent"
+     },
+     "questions": 0,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "missed",
+      "options": "missed",
+      "success_measure": "missed",
+      "constraints": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "missed",
+      "options": "missed",
+      "success_measure": "missed",
+      "constraints": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "wrong",
+      "options": "right",
+      "success_measure": "right",
+      "constraints": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-s5",
+   "lang": "fa",
+   "trap": "persian_no_model",
+   "observed": {
+    "rules": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "analysis"
+     ],
+     "fields": {
+      "period_compared": "ماه گذشته",
+      "measure": "تعداد مشتریان تجاری",
+      "period": "ماه گذشته"
+     },
+     "questions": 1,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "analysis"
+     ],
+     "fields": {
+      "period_compared": "ماه گذشته",
+      "measure": "تعداد مشتریان تجاری",
+      "period": "ماه گذشته"
+     },
+     "questions": 1,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "business",
+     "tracks": [
+      "business",
+      "analysis"
+     ],
+     "fields": {
+      "decision": "باید تصمیم بگیریم تیم پشتیبانی را برای این گروه تقویت کنیم یا نه",
+      "options": "تیم پشتیبانی را برای این گروه تقویت کنیم یا نه",
+      "measure": "تعداد مشتریان تجاری‌ای که ماه گذشته از دست دادیم",
+      "period_compared": "ماه گذشته بیشتر از ماه‌های قبل بوده",
+      "audience": "مدیرعامل",
+      "filters": "مشتریان تجاری"
+     },
+     "questions": 0,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "missed",
+      "success_measure": "missed",
+      "period_compared": "right"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "missed",
+      "success_measure": "missed",
+      "period_compared": "right"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "right",
+      "success_measure": "missed",
+      "period_compared": "right"
+     },
+     "exit": "right",
+     "trap": true,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-s6",
+   "lang": "fa",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "رشد فروش در سال اول (پس از تصمیم)، احتمالاً برای هر یک از دو گزینه: فروشگاه حضوری در راس‌الخیمه یا فقط آنلاین. معیار دقیق رشد (نسبت به چه مبنایی و با چه واحدی) مشخص نشده است.",
+      "action": "انتخاب بین باز کردن فروشگاه حضوری در راس‌الخیمه و ادامه فروش فقط آنلاین، با سقف بودجه دو میلیون درهم. هزینه تصمیم اشتباه به‌جز سقف بودجه بیان نشده است."
+     },
+     "questions": 1,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "business",
+     "tracks": [
+      "business"
+     ],
+     "fields": {
+      "decision": "در راس‌الخیمه یک فروشگاه حضوری باز کنیم یا همچنان فقط روی فروش آنلاین تمرکز کنیم",
+      "options": "باز کردن فروشگاه حضوری در راس‌الخیمه یا تمرکز فقط روی فروش آنلاین",
+      "constraints": "سقف بودجه دو میلیون درهم",
+      "success_measure": "رشد فروش در سال اول"
+     },
+     "questions": 0,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "missed",
+      "options": "missed",
+      "constraints": "missed",
+      "success_measure": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "missed",
+      "options": "missed",
+      "constraints": "missed",
+      "success_measure": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "decision": "right",
+      "options": "right",
+      "constraints": "right",
+      "success_measure": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-v1",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "advice",
+     "tracks": [
+      "advice"
+     ],
+     "fields": {
+      "topic": "In plain words, what's the difference between precision and recall?"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "advice",
+     "tracks": [
+      "advice"
+     ],
+     "fields": {
+      "topic": "In plain words, what's the difference between precision and recall?"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "advice",
+     "tracks": [
+      "advice"
+     ],
+     "fields": {
+      "topic": "the difference between precision and recall, and which one matters more if we're flagging fraud"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-v2",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {
+      "target": "Customer churn (whether a customer churns). The sentence does not define churn or give a time window, such as churn within 30 days."
+     },
+     "questions": 2,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [
+      "30"
+     ],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "advice",
+     "tracks": [
+      "advice",
+      "prediction"
+     ],
+     "fields": {
+      "topic": "set up a time based train/test split for a churn model so i dont leak future info into training",
+      "target": "churn"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 1,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-v3",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "advice",
+     "tracks": [
+      "advice",
+      "prediction"
+     ],
+     "fields": {
+      "topic": "Quick one: is the median better than the mean for reporting order values when a handful of orders are huge?"
+     },
+     "questions": 1,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "advice",
+     "tracks": [
+      "advice"
+     ],
+     "fields": {
+      "topic": "is the median better than the mean for reporting order values when a handful of orders are huge"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-v4",
+   "lang": "en",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "business",
+     "tracks": [
+      "business"
+     ],
+     "fields": {
+      "decision": "think about that"
+     },
+     "questions": 1,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [
+      "2"
+     ],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "business",
+     "tracks": [
+      "business"
+     ],
+     "fields": {
+      "decision": "think about that"
+     },
+     "questions": 1,
+     "exit": "decision_brief",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [
+      "2"
+     ],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "advice",
+     "tracks": [
+      "advice",
+      "business"
+     ],
+     "fields": {
+      "decision": "whether to send discount codes to people who look like they're about to cancel their plan",
+      "topic": "how to think about sending discount codes to likely cancelers"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "missed",
+      "decision": "wrong"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 1,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "missed",
+      "decision": "wrong"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 1,
+     "quote_invalid": 0,
+     "uncited": 1,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "wrong",
+      "decision": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-v5",
+   "lang": "fa",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "advice",
+     "tracks": [
+      "advice"
+     ],
+     "fields": {
+      "topic": "تفاوت اعتبارسنجی متقاطع معمولی با اعتبارسنجی مبتنی بر زمان چیست و چه وقت باید از هر کدام استفاده کرد؟"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "advice",
+     "tracks": [
+      "advice"
+     ],
+     "fields": {
+      "topic": "تفاوت اعتبارسنجی متقاطع معمولی با اعتبارسنجی مبتنی بر زمان چیست و چه وقت باید از هر کدام استفاده کرد؟"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "advice",
+     "tracks": [
+      "advice"
+     ],
+     "fields": {
+      "topic": "تفاوت اعتبارسنجی متقاطع معمولی با اعتبارسنجی مبتنی بر زمان و اینکه چه وقت باید از هر کدام استفاده کرد"
+     },
+     "questions": 0,
+     "exit": "answer",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": null,
+     "fields": {
+      "topic": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  },
+  {
+   "case": "s2-v6",
+   "lang": "mixed",
+   "trap": null,
+   "observed": {
+    "rules": {
+     "track": "prediction",
+     "tracks": [
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 4,
+     "exit": "ml_project",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "model": {
+     "track": "analysis",
+     "tracks": [
+      "analysis",
+      "prediction"
+     ],
+     "fields": {},
+     "questions": 2,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    },
+    "plain": {
+     "track": "analysis",
+     "tracks": [
+      "analysis",
+      "advice"
+     ],
+     "fields": {
+      "measure": "cohort retention",
+      "breakdown": "بر اساس ماهِ signup_date",
+      "inputs": "جدول customers",
+      "topic": "cohort retention یعنی چی"
+     },
+     "questions": 0,
+     "exit": "analysis",
+     "suggestion": null,
+     "confirmation_asked": false,
+     "quote_invalid": [],
+     "uncited": [],
+     "rows_exposed": [],
+     "phantom": [],
+     "destructive_unconfirmed": 0,
+     "lost": []
+    }
+   },
+   "scores": {
+    "rules": {
+     "track": "wrong",
+     "tracks_complete": false,
+     "fields": {
+      "topic": "missed",
+      "measure": "missed",
+      "breakdown": "missed"
+     },
+     "exit": "wrong",
+     "trap": null,
+     "questions": 4,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "model": {
+     "track": "right",
+     "tracks_complete": false,
+     "fields": {
+      "topic": "missed",
+      "measure": "missed",
+      "breakdown": "missed"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 2,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    },
+    "plain": {
+     "track": "right",
+     "tracks_complete": true,
+     "fields": {
+      "topic": "right",
+      "measure": "right",
+      "breakdown": "right"
+     },
+     "exit": "right",
+     "trap": null,
+     "questions": 0,
+     "quote_invalid": 0,
+     "uncited": 0,
+     "rows_exposed": 0,
+     "phantom": 0,
+     "destructive_unconfirmed": 0,
+     "lost": 0
+    }
+   }
+  }
+ ],
+ "summary": {
+  "rules": {
+   "cases": 36,
+   "track": {
+    "right": 21,
+    "wrong": 15,
+    "asked": 0
+   },
+   "track_accuracy": 0.583,
+   "track_accuracy_by_lang": {
+    "en": 0.583,
+    "fa": 0.5,
+    "mixed": 0.75
+   },
+   "tracks_complete": "3 of 5",
+   "fields": {
+    "right": 24,
+    "wrong": 5,
+    "missed": 92,
+    "abstained": 3
+   },
+   "exit_right": 21,
+   "median_questions": 1.5,
+   "quote_invalid": 0,
+   "uncited": 1,
+   "rows_exposed": 0,
+   "phantom": 0,
+   "destructive_unconfirmed": 0,
+   "lost": 0,
+   "traps": {
+    "real_prediction": true,
+    "report_not_model": false,
+    "missing_column": true,
+    "silent_drop": false,
+    "rows_request": true,
+    "persian_no_model": true
+   }
+  },
+  "model": {
+   "cases": 36,
+   "track": {
+    "right": 31,
+    "wrong": 5,
+    "asked": 0
+   },
+   "track_accuracy": 0.861,
+   "track_accuracy_by_lang": {
+    "en": 0.917,
+    "fa": 0.625,
+    "mixed": 1.0
+   },
+   "tracks_complete": "3 of 5",
+   "fields": {
+    "right": 46,
+    "wrong": 7,
+    "missed": 68,
+    "abstained": 3
+   },
+   "exit_right": 31,
+   "median_questions": 1.0,
+   "quote_invalid": 0,
+   "uncited": 3,
+   "rows_exposed": 0,
+   "phantom": 0,
+   "destructive_unconfirmed": 0,
+   "lost": 0,
+   "traps": {
+    "real_prediction": true,
+    "report_not_model": true,
+    "missing_column": true,
+    "silent_drop": true,
+    "rows_request": true,
+    "persian_no_model": true
+   },
+   "new_wrong": [
+    "s2-r4.output_grain",
+    "s2-s3.period_compared"
+   ]
+  },
+  "plain": {
+   "cases": 36,
+   "track": {
+    "right": 36,
+    "wrong": 0,
+    "asked": 0
+   },
+   "track_accuracy": 1.0,
+   "track_accuracy_by_lang": {
+    "en": 1.0,
+    "fa": 1.0,
+    "mixed": 1.0
+   },
+   "tracks_complete": "5 of 5",
+   "fields": {
+    "right": 105,
+    "wrong": 3,
+    "missed": 13,
+    "abstained": 3
+   },
+   "exit_right": 36,
+   "median_questions": 0.0,
+   "quote_invalid": 0,
+   "uncited": 0,
+   "rows_exposed": 0,
+   "phantom": 0,
+   "destructive_unconfirmed": 0,
+   "lost": 0,
+   "traps": {
+    "real_prediction": true,
+    "report_not_model": true,
+    "missing_column": false,
+    "silent_drop": false,
+    "rows_request": true,
+    "persian_no_model": true
+   },
+   "new_wrong": [
+    "s2-s1.period_compared",
+    "s2-s4.decision",
+    "s2-v4.topic"
+   ]
+  }
+ },
+ "requests": 147,
+ "failures": [],
+ "kept": null,
+ "verdict": {
+  "gate": "home_gate_v2",
+  "status": "fail",
+  "checks": {
+   "rules_track_accuracy": false,
+   "quote_invalid": true,
+   "uncited": false,
+   "rows_exposed": true,
+   "destructive_unconfirmed": true,
+   "median_questions": true,
+   "traps": true,
+   "model_track_accuracy": true,
+   "new_wrong": false
+  }
+ },
+ "rule": "Scores on 36 written requests say how Home handles these requests; they are not a claim about any other text or about production readiness.",
+ "experiment_id": "HOME-013",
+ "status": "completed",
+ "completed_at": "2026-10-29T06:55:49+00:00"
+}

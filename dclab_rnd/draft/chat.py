@@ -170,6 +170,21 @@ _SCRIPT: contextvars.ContextVar = contextvars.ContextVar("home_script", default=
 _MODEL_TURN: contextvars.ContextVar = contextvars.ContextVar("home_model_turn", default=False)  # 36.3: a model turn is running (never one inside another)
 
 
+def _closed(history: list[dict[str, str]], request: str) -> tuple[list[dict[str, str]], str]:
+    """The conversation as the model reads it, ending on the person's words, and what Home said after them.
+
+    36.3, live (HOME-012): a first request handed to the model in the middle of Home's turn had only Home's own messages
+    (the request is the draft's problem, not a message), so the request ended on the assistant's words and the API refused
+    it (a 400 with thinking on). The person's request opens the conversation when none of their messages is in the window;
+    Home's messages after the person's last one go to the state, so nothing is said twice. An empty list: nothing to answer."""
+    if not any(m["role"] == "user" for m in history):
+        if not request.strip():
+            return [], ""
+        history = [{"role": "user", "content": request.strip()}, *history]
+    cut = max(i for i, m in enumerate(history) if m["role"] == "user") + 1
+    return history[:cut], " ".join(m["content"] for m in history[cut:])
+
+
 def turn(method):
     """One agent turn at a time per draft. The data pipeline ("your data is ready") and the user's messages run in
     different threads; without this a message that lands between two steps of the other turn is read against a
@@ -2274,8 +2289,12 @@ class HomeAgent:
     def model_turn(self, draft_id: str, max_replies: int = MODEL_REPLIES, text: str = "") -> None:
         draft = self.store.get(draft_id)
         open_question = self.pending(draft)
-        history = memories.recent(draft)  # H5: the last messages; the whole conversation's summary is in the state
+        history, since = _closed(memories.recent(draft), draft.get("problem") or "")  # H5: the last messages; the summary is in the state
+        if not history:
+            return  # nothing the person said to answer: the rules speak
         messages = [{"role": "system", "content": POLICY}, {"role": "system", "content": "Current state: " + self.context(draft)}, *history]
+        if since:
+            messages.insert(2, {"role": "system", "content": "What Home has said since the person's last message: " + since})
 
         def on_step(step: Step) -> None:
             # A proposal the guard or the workflow check saw reports its own verdict; one the schema refused does not.

@@ -1,0 +1,30 @@
+{
+ "package": "36.3 model turn ends on the person",
+ "title": "Home's model is sent a conversation that ends on the person's words; the fresh sealed Home set read once",
+ "date": "2026-10-29",
+ "request": "The owner: run the fresh sealed Home set (sealed_v2) once, capped at EUR 1, to measure the fixes made after H12.",
+ "spec": "The H1 suite on sealed_v2 under home_gate_v2, fixed before any run; a request that fails leaves the run unscored and the sealed set unspent.",
+ "plan": ["Show the plan and its price", "Run once with a EUR 1 cap", "Read why it was not scored", "Find the cause without reading the exam's text", "Fix and test it", "Check the path live on two written requests", "Run the sealed set once, scored"],
+ "decisions": [
+  {"decision": "Diagnose from shapes only: roles, message counts, tool names and outcomes, never the requests' text", "why": "the sealed set is an exam: its text is kept as shape only and must not shape a fix"},
+  {"decision": "Rerun the sealed set after the fix", "why": "the first attempt was unscored by the runner's own rule (4 requests failed), no score was read, and the fix changes how a request is sent, not what Home reads"},
+  {"decision": "Home's messages after the person's last one go into the state, not repeated as turns", "why": "the API takes no conversation ending on the assistant's words, and nothing is said twice"},
+  {"decision": "With no words of the person in the window, the person's request opens the conversation; with none at all, the model is not asked", "why": "the model answers the person, never Home's own messages"}
+ ],
+ "change": "dclab_rnd/draft/chat.py (_closed; model_turn sends a conversation ending on the person's words, and what Home said since as state), tests/test_home_sparse.py.",
+ "findings": [
+  {"id": "F1", "source": "measurement", "severity": "behaviour", "defect": "Every first request handed to Home's model by 36.3 was refused by the API",
+   "scenario": "A preparation or business first request the rules cannot read, with Claude configured: Home hands it to the model in the middle of its own turn; the sealed run's 4 such requests failed with a bad request and no input tokens.",
+   "cause": "The person's first request is the draft's problem, not a message, so the window held only Home's own messages: the request had no user turn and ended on the assistant's words, which the Messages API refuses with thinking on. The unit tests mocked the model turn, so no request was ever built.",
+   "fix": "_closed puts the person's request first when no message of theirs is in the window, ends the conversation on their words, and moves Home's later messages into the state; with nothing the person said, the model is not asked.",
+   "test": "tests/test_home_sparse.py test_what_the_model_is_sent_ends_on_the_persons_words, test_with_nothing_the_person_said_the_model_is_not_asked"}
+ ],
+ "measurements": [
+  {"name": "Live check of the fixed path (two written dev-style requests, not the sealed set)", "gate": "no failed model request", "result": "3 model requests, all answered; EUR 0.05", "verdict": "pass"},
+  {"name": "H1 sealed_v2, home_gate_v2 (HOME-013)", "gate": "home_gate_v2, fixed before any run", "result": "FAIL (rules track accuracy, uncited, new wrong fields). Kind of help: rules 21/36 (0.58, bar 0.70), Home with Claude 31/36 (0.86, bar 0.85), plain Claude 36/36. Fields right/wrong: rules 24/5, Home with Claude 46/7, plain 105/3. Traps: rules 4/6, Home with Claude 6/6, plain 4/6. Uncited numbers: rules 1, Home with Claude 3, plain 0. Rows shown 0 in every arm. Persian: rules 0.50, Home with Claude 0.63, plain 1.00.", "verdict": "fail"}
+ ],
+ "outcome": "The sealed set was read once (HOME-013): the gate fails, and by more than on the first sealed set (HOME-011: rules 26/36, Home with Claude 34/36). Home keeps its safety (every trap with Claude, no row shown) but reads far less than plain Claude.",
+ "lessons": ["A mocked model turn never builds a request, so a test with it cannot catch a request the provider refuses: one live call on the path is the check.", "Rules tuned on a dev set lose ground on each fresh set (dev about 0.78, first sealed 0.72, second 0.58): the reading belongs to the model, the checking to code."],
+ "risks": ["One run of 36 requests per arm: small numbers.", "Plain Claude only reads; Home also acts and checks, so the arms do not do the same work."],
+ "commits": []
+}

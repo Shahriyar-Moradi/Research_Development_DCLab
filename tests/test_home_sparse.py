@@ -114,6 +114,44 @@ class FirstRequestTests(unittest.TestCase):
         self.assertEqual(turn.call_count, 1)  # compare_periods is the model's
         self.assertNotIn("To do it here I need", said)
 
+    def test_what_the_model_is_sent_ends_on_the_persons_words(self):  # 36.3, live: the API refused a request ending on Home's words
+        from unittest import mock
+
+        from dclab_rnd.draft import chat, pipeline
+        from dclab_rnd.draft.chat import HomeAgent
+
+        sent = []
+
+        def run_policy(policy, model, registry, messages, **kwargs):
+            sent.append(messages)
+            raise RuntimeError("the model is not called here")
+
+        text = "Give me only the bookings with a price above 500 and drop the nationality column."
+        d = self.store.create(text)
+        agent = HomeAgent(self.store, object(), on_request=lambda *a: None)
+        with mock.patch.object(chat, "run_policy", run_policy):
+            agent.start(d["id"])
+            if agent.track(self.store.get(d["id"])) != "preparation":
+                agent.choose_intent(d["id"], "preparation")
+            name = tables.write("bookings", self.store.data_dir(d["id"]))
+            pipeline.run(self.store, d["id"], pipeline.new_asset(self.store, d["id"], "upload", name, name)["id"], agent, None)
+        self.assertTrue(sent)  # the unread first request reached the model
+        turns = [m for m in sent[-1] if m["role"] != "system"]
+        self.assertEqual((turns[0]["role"], turns[0]["content"]), ("user", text))  # the person's own request opens it
+        self.assertEqual(turns[-1]["role"], "user")  # never the assistant's words last
+        state = " ".join(m["content"] for m in sent[-1] if m["role"] == "system")
+        self.assertIn("Your data is ready", state)  # what Home said since is in the state, not said twice
+        said = " ".join(m.get("text") or "" for m in self.store.get(d["id"])["messages"])
+        self.assertIn("Say them one at a time", said)  # the model failed: the rules' own words follow
+
+    def test_with_nothing_the_person_said_the_model_is_not_asked(self):
+        from dclab_rnd.draft.chat import _closed
+
+        self.assertEqual(_closed([{"role": "assistant", "content": "Your data is ready."}], " "), ([], ""))
+        self.assertEqual(_closed([{"role": "user", "content": "hi"}], ""), ([{"role": "user", "content": "hi"}], ""))
+        history, since = _closed([{"role": "user", "content": "a"}, {"role": "assistant", "content": "b"}], "q")
+        self.assertEqual((history, since), ([{"role": "user", "content": "a"}], "b"))
+
     def test_never_a_model_turn_inside_a_model_turn(self):
         from dclab_rnd.draft import chat
 
