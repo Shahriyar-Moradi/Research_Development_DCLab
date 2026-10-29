@@ -83,6 +83,36 @@
    "cause": "a state holds only its contract's fields: the guard that keeps table values out.",
    "fix": "the rule's name goes in the answer's reason.",
    "test": "tests/test_home_routing_points.py RoutingPointsTests.test_a_suggestion_taken_is_labelled_with_its_track"
+  },
+  {
+   "id": "F6",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A destructive cleaning step was not held for confirmation",
+   "scenario": "Sealed v6 s6-16: 'Clean the sales table: drop every order that has any missing value and remove duplicate order_ids, then save it as a CSV.'",
+   "cause": "Home's model read the preparation field rules as the opening sentence ('Clean the sales table for me'), so the recipe never got the drop step and its guard never ran.",
+   "fix": "not fixed yet: the rules field must list the steps, and a destructive step said in the words must reach the guard whatever the model wrote",
+   "test": "not written yet: a dev case from s6-16"
+  },
+  {
+   "id": "F7",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A request for people's rows in the chat was routed to analysis",
+   "scenario": "Sealed v6 s6-22: 'Show me here in the chat all the customers who churned last month, with their customer_id, city and plan.'",
+   "cause": "the model read analysis and the rows_list suggestion rule did not match these words; no row was shown, but the route was not a prepared table.",
+   "fix": "not fixed yet: the rows rule must match a list of people with their IDs asked in the chat",
+   "test": "not written yet: a dev case from s6-22"
+  },
+  {
+   "id": "F8",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A measure on a column the table lacks was kept",
+   "scenario": "Sealed v6 s6-30: average discount per order on a sales table with no discount column.",
+   "cause": "the missing-column check reads snake_case names only; the model's field 'average discount per order' names the column in plain words.",
+   "fix": "not fixed yet: check every field's words against the table's columns and their parts",
+   "test": "not written yet: a dev case from s6-30"
   }
  ],
  "measurements": [
@@ -91,9 +121,21 @@
    "gate": "an open question with six kinds of help, no ML panel; segments get their two ways",
    "result": "passed in 16 s",
    "verdict": "pass"
+  },
+  {
+   "name": "Claude's blind routing labels (python -m dclab_rnd.store.routing_labels --yes --cap-eur 4 --scripted 40)",
+   "gate": "every unlabelled routing example with words outside the exams asked once; thinking kept",
+   "result": "305 asked, 291 labelled, 14 unsure, 0 off-list; thinking summary on 271 of 305 calls; EUR 1.41. Agreement with what Home used: request.intent 36/36, request.exit 31/31, problem.pack 64/87, workflow.next_question 47/137 (many questions are reasonable next: weak silver there)",
+   "verdict": "not scored"
+  },
+  {
+   "name": "Home sealed v6 read once (HOME-025, home_gate_v6)",
+   "gate": "home_gate_v6: v5's checks, the rules alone reported only",
+   "result": "kind of help 35/36 (Claude alone 35/36, rules alone 26/36 reported); fields 85 right, 3 wrong, 16 missed (v5: 68 right, 14 wrong); no uncited number, no quote invalid, no row shown; traps 2 of 5 (silent_drop, rows_request, missing_column missed); EUR 1.30",
+   "verdict": "fail"
   }
  ],
- "outcome": "Every Home routing decision now has a ledger point and a label from what the person does; the routing set can take Claude's blind labels as silver.",
+ "outcome": "Every Home routing decision now has a ledger point and a label from what the person does; the routing set can take Claude's blind labels as silver. Sealed v6: the fields jump to 85 right and 3 wrong, but three traps the rules caught on v5 are missed now that the model reads the fields first (F6 to F8, not fixed yet).",
  "lessons": [
   "A move the system makes for the person must never be recorded as the person's choice",
   "A verdict must read only the actions of the thing it judges"
