@@ -36,6 +36,9 @@ class Budget:
     def intent(self, draft_id: str) -> Any:
         return self.client(draft_id, "home_intent")
 
+    def understand(self, draft_id: str) -> Any:  # 2026-10-29: Home's understanding conversation, as the product builds it
+        return self.client(draft_id, "home_understand")
+
     def client(self, draft_id: str, purpose: str = "home_agent") -> Any:
         client = self.gateway.client(purpose, draft_id=draft_id)
         if client is not None and self.cap_eur is not None:
@@ -144,7 +147,8 @@ def main(argv: list[str] | None = None) -> int:
     budget = Budget(gateway, args.cap_eur)
     keep = None if args.split in SEALED else \
         KEEP_ROOT / f"{datetime.now(timezone.utc):%Y-%m-%d}-home-eval" / f"{args.split}-{datetime.now(timezone.utc):%H%M%S}"  # a sealed run is an exam: never kept
-    result = measure(cases, budget.client, lambda case_id: budget.client("home-eval-plain"), keep=keep, intent_for=budget.intent)
+    result = measure(cases, budget.client, lambda case_id: budget.client("home-eval-plain"), keep=keep, intent_for=budget.intent,
+                     understand_for=budget.understand)
     result["kept"] = _shown(keep) if keep else None  # the run's drafts and replies, whole (agent_runs is the store's, never committed)
     scored = not result["failures"]
     if not scored:  # a failed request: kept as a record of what it cost, without values or scores, and never a sealed run

@@ -1,0 +1,216 @@
+{
+ "package": "home-talks-before-it-offers",
+ "title": "Home talks before it offers: the owner's Telco session fixed, an understanding conversation led by the model, options from the context",
+ "date": "2026-10-29",
+ "request": "The owner tested Home with 'how can I analyze my customer' and the Telco table: six buttons first, SeniorCitizen offered as the measure of success, invented dates on a table with no dates, and no reply to 'show my customer segments' typed twice. Make Home open to every kind of problem, understand first in about three natural turns like Claude, then offer options built from the context; as intelligent as possible.",
+ "spec": "Plan ~/.claude/plans/magical-waddling-honey.md: C1 the session's four bugs, C2 an understanding conversation led by the model (code decides when it is enough), C3 options written from the context and checked by code, C4 a conversational eval person, C5 the three traps sealed v6 missed.",
+ "plan": [
+  "C1: never silent, ask only what the table can answer, options from the profile's flags, re-route on a later message",
+  "C5: the destructive step held, rows with ids in the chat, a missing column in plain words",
+  "C2: home_understand purpose, prompt and draft/understand.py; Home's start and intent answers led by it",
+  "C3: options validated (tool decides the route, real columns, capabilities, numbers)",
+  "C4: personas_dev.json by an independent agent, a runner answering from hidden facts, the owner's session as a case, a gate in code"
+ ],
+ "decisions": [
+  {
+   "decision": "Up to three understanding turns only when the first reading is unclear; a clear request routes at once with its 'I understood' line",
+   "why": "three questions on 'predict churn next month from this table' would be slow; the owner's complaint was about vague requests"
+  },
+  {
+   "decision": "No options before two answered questions unless the person asks",
+   "why": "the review found options could appear on the first turn with a file attached; the owner asked for about three turns of talk"
+  },
+  {
+   "decision": "The model writes the questions and options; code decides when understanding is enough and checks every option",
+   "why": "the owner's rule: AI first, rules check and fall back"
+  },
+  {
+   "decision": "The person's pick among the options is the routing label (request.options, request.understand_turn)",
+   "why": "real routing labels for the 7th model come from people's choices"
+  },
+  {
+   "decision": "A blanket drop of every row with any empty cell always asks first",
+   "why": "on a real table it can remove most rows, however few it removes on the eval's table"
+  },
+  {
+   "decision": "Intent rules v4 adds one signal (rows with their ids in the chat), measured on dev: unchanged 36/36",
+   "why": "the rules are the fallback and the checker; a change needs its own measurement"
+  }
+ ],
+ "change": "draft/chat.py (understand, offer_switch, fallback_reply, has_dates, instead_of_periods, ask_user refusal, checked_reply drops sentences, run_recipe guard, steps field), draft/understand.py (new), draft/business.py (NO_DATES, example from the table), draft/brief.py (options from flags, absent_columns), draft/prepare.py (any missing value, duplicate ids), draft/intent.py (v4 rows_list), draft/exits.py, draft/work.py; prompts/home_understand.md; models/settings.py home_understand; dclab_core 0.143.0 points request.understand_turn and request.options; agent_eval.home.conversation and personas_dev.json; tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Home went silent after a typed message",
+   "scenario": "Telco, business track, 'show my customer segments' typed twice.",
+   "cause": "ask() refuses every question off a prediction while ask_user reported success; the run stopped on it and the fallback next_turn returns at once off a prediction.",
+   "fix": "ask_user returns an error off a prediction; reply() ends with fallback_reply when the person's message is still last.",
+   "test": "tests/test_home_owner_telco.py TelcoTests.test_a_typed_message_always_gets_a_reply"
+  },
+  {
+   "id": "F2",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Periods asked of a table with no dates, with invented dates",
+   "scenario": "Telco table, business track: 'for example: March 2026 compared with February 2026'.",
+   "cause": "business.read asked for periods before checking for a date column; the example was a fixed sentence.",
+   "fix": "NO_DATES first; the example from the table's latest months; with no dates Home says what the table can do instead.",
+   "test": "tests/test_home_owner_telco.py TelcoTests.test_no_periods_are_asked_of_a_table_without_dates_and_no_date_is_invented"
+  },
+  {
+   "id": "F3",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "A 0/1 flag offered as the measure of success, the outcome not",
+   "scenario": "Telco: SeniorCitizen, tenure, MonthlyCharges offered; Churn not.",
+   "cause": "brief.options took the first numeric columns in table order and never read the profile's flags.",
+   "fix": "Keys and small codes left out, an outcome-like yes/no column first, the person's words first of all.",
+   "test": "tests/test_home_owner_telco.py TelcoTests.test_a_measure_of_success_offers_the_outcome_and_never_a_flag_or_a_key"
+  },
+  {
+   "id": "F4",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "A later message naming another need was ignored",
+   "scenario": "'show my customer segments' on the business track.",
+   "cause": "a chosen track is locked against the model and no code read later messages for a new need.",
+   "fix": "offer_switch says it back with a Switch button, once per track, never on a prediction or while steps are awaited.",
+   "test": "tests/test_home_owner_telco.py TelcoTests.test_a_later_message_naming_another_need_is_offered_as_a_switch"
+  },
+  {
+   "id": "F5",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Six buttons on the first turn, no conversation",
+   "scenario": "'how can I analyze my customer' read unclear by the model.",
+   "cause": "the understanding phase was templates only: the intent answer went to code, never to a model conversation.",
+   "fix": "An understanding conversation led by home_understand; options only once code says enough.",
+   "test": "tests/test_home_conversation.py ConversationTests.test_three_natural_turns_then_options_from_the_context_and_the_pick_routes"
+  },
+  {
+   "id": "F6",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Three traps missed on sealed v6",
+   "scenario": "s6-16 blanket drop not held, s6-22 rows with customer_id read as analysis, s6-30 average discount kept on a table with no discount column.",
+   "cause": "no step read 'drop every order that has any missing value'; the rows rule matched only 'their id'; the missing-column check read snake_case only.",
+   "fix": "drop_missing on every column always asks; rows_list with row nouns; absent_columns reads a measure's head word.",
+   "test": "tests/test_home_v6_traps.py SpentSealedCasesTests.test_the_three_missed_traps_pass_with_the_rules"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The switch offer swallowed real answers",
+   "scenario": "A prediction reply 'a monthly report to the retention team'; 'explain why churn went up' on business; the segments message twice.",
+   "cause": "offer_switch replaced the normal path on every track and target, repeatedly.",
+   "fix": "Never on a prediction or while steps are awaited, never for advice, once per track.",
+   "test": "tests/test_home_owner_telco.py TelcoTests.test_the_switch_is_offered_once_and_never_for_an_explanation_or_on_a_prediction"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Function words after an aggregate read as missing columns",
+   "scenario": "'total by region', 'count of distinct customers' said no column named by/distinct.",
+   "cause": "absent_columns took any word after total/average/count of.",
+   "fix": "Stop words and a four-letter minimum.",
+   "test": "tests/test_home_v6_traps.py ReviewTests.test_function_words_after_an_aggregate_are_never_a_missing_column"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Missing values in a named column dropped on every column",
+   "scenario": "'drop rows with missing values in amount'.",
+   "cause": "the new rule ignored the column after 'in'.",
+   "fix": "The named column only; an unknown one is said unread.",
+   "test": "tests/test_home_v6_traps.py ReviewTests.test_missing_values_in_a_named_column_stay_that_column"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Group summaries read as a rows request",
+   "scenario": "'display every region with its manager name and its total sales'.",
+   "cause": "rows_list accepted any noun and aggregates.",
+   "fix": "A row noun before 'with', no aggregate word.",
+   "test": "tests/test_home_v6_traps.py ReviewTests.test_numbers_per_group_are_never_a_rows_request"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Options could appear on the first turn",
+   "scenario": "A file attached with the first words and a two-word quote as the goal.",
+   "cause": "enough() had no minimum turns and a card value was not the quote.",
+   "fix": "Two answered questions first; a card field is the person's quote of at least three words.",
+   "test": "tests/test_home_conversation.py ReviewTests.test_a_file_attached_with_the_first_words_still_gets_a_question_first"
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A segmentation option landed on the query path",
+   "scenario": "{track: analysis, tool: segmentation_project} picked.",
+   "cause": "validate checked track and tool apart.",
+   "fix": "The tool decides the route.",
+   "test": "tests/test_home_conversation.py ReviewTests.test_the_tool_decides_the_route_of_an_option"
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The model never saw its own options",
+   "scenario": "'the first one please' after an offer.",
+   "cause": "conversation() dropped offer questions.",
+   "fix": "Offers are assistant turns with their titles; the auto-start skips routes passed over.",
+   "test": "tests/test_home_conversation.py ReviewTests.test_free_words_after_an_offer_reach_the_model_with_what_it_offered"
+  },
+  {
+   "id": "F14",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A lead-in to options asked as a question, a question repeated",
+   "scenario": "'Sure.' shown as the question; the same fallback question each turn.",
+   "cause": "the model's say was asked when code said not yet.",
+   "fix": "Only a sentence ending in a question mark, else what the card still lacks; never the same words twice.",
+   "test": "tests/test_home_conversation.py ReviewTests.test_a_repeated_question_is_never_asked_twice"
+  },
+  {
+   "id": "F15",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Options labels in two shapes",
+   "scenario": "The model's list against the person's single pick.",
+   "cause": "request.options had no options list.",
+   "fix": "The options are each track:tool; a pick is one of them.",
+   "test": "tests/test_home_conversation.py ReviewTests.test_free_words_after_an_offer_reach_the_model_with_what_it_offered"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Home dev, rules only, after intent rules v4",
+   "gate": "no change on dev",
+   "result": "kind 36/36, fields 65/0/13, traps 6/6, quotes 0, uncited 0",
+   "verdict": "pass"
+  },
+  {
+   "name": "Spent sealed v6, rules only, after C5",
+   "gate": "the three missed traps caught",
+   "result": "silent_drop, rows_request, missing_column caught; s6-16's steps field right",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "Home holds a short understanding conversation led by Claude before offering options built from the context, never goes silent, asks only what the table can answer, offers sensible measures, and offers a switch when a later message names another need. Live measurement with written people follows.",
+ "lessons": [
+  "A refusal reported as success silences an agent: a tool that did nothing must say so as an error",
+  "Never let a system move be recorded as the person's choice, and never let options come before understanding"
+ ],
+ "risks": [
+  "Clear requests still route at once (a deviation from the plan's one confirming turn); Claude does not play the person yet: the person is a script answering from facts"
+ ],
+ "commits": []
+}

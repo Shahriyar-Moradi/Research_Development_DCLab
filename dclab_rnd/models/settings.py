@@ -139,6 +139,10 @@ PURPOSES: dict[str, Purpose] = {
                                              "its bands (storage type, share of distinct and missing values, the shape of its written values), "
                                              "the outcome's name, the prediction moment, measures computed on training rows only (a column's "
                                              "signal against the outcome, the holdout's metrics once read); never rows or cell values (27.6)"),
+    "home_understand": Purpose("standard", 90, "the owner's Telco test (2026-10-29): Home's understanding conversation: the person's words, "
+                                               "Home's own earlier understanding questions, and the table's column names and kinds with what "
+                                               "DCLab noticed about each (an identifier, an outcome-like name, a date, a small code); never a row "
+                                               "or a cell value", cell_values=0, keeps_text=True),
     "routing_labeler": Purpose("standard", 90, "P8 (2026-10-29): one routing decision Home made, as a blind labeller sees it: the person's "
                                                "request words, the decision's question, its options with their meanings and the state's bands; "
                                                "never the answer Home or any answerer took, never data, column names or cell values", cell_values=0),

@@ -121,7 +121,9 @@ def read_steps(text: str, frame: pd.DataFrame, tables: Optional[dict[str, pd.Dat
     # duplicates: on the id column of the thing named ("duplicate orders": order_id), else every column
     for m in re.finditer(rf"\b(?:remove|drop|delete)\s+(?:the\s+)?(?:duplicate|duplicated)\s+({_W})|\bdedupe?\w*\s+(?:the\s+)?({_W})?|(?:ردیف|سطر)\S*\s+تکراری\S*", low):
         thing = m.group(1) or m.group(2) or ""
-        key = [str(c) for c in frame.columns if thing and re.fullmatch(rf"{re.escape(thing.rstrip('s'))}s?_(?:id|key|no|number)", str(c).lower())]
+        one = thing[:-1] if thing.endswith("s") else thing
+        key = [str(c) for c in frame.columns if thing and (str(c).lower() in (thing, one)  # "duplicate order_ids" (sealed v6, s6-16)
+                                                          or re.fullmatch(rf"{re.escape(one)}s?_(?:id|key|no|number)", str(c).lower()))]
         add(m.start(), m.group(0), kind="dedupe", keys=key[:1])
     # dates: "convert <column> to a date", "the date column ... right format", Persian "ستون تاریخ ... تبدیل"
     for m in re.finditer(rf"\b(?:convert|parse|turn|fix)\s+(?:the\s+)?({_W}(?:\s+column)?)\s+(?:to|into|as)\s+(?:a\s+|the\s+)?(?:proper\s+|right\s+|correct\s+)?(?:date|datetime)s?\b|ستون\s+تاریخ\S*[^.؟!،]*?(?:تبدیل|درست)", low):
@@ -137,6 +139,19 @@ def read_steps(text: str, frame: pd.DataFrame, tables: Optional[dict[str, pd.Dat
             add(m.start(), m.group(0), kind="drop_missing", columns=[col])
         else:
             unread.append(m.group(0))
+    # rows with any empty cell (sealed v6, s6-16: "drop every order that has any missing value"): every column; a step that
+    # drops on every column always asks first (chat.run_recipe), however few rows it removes here
+    for m in re.finditer(r"\b(?:remove|drop|delete|exclude)\s+(?:every|all|any|the)?\s*(?:rows?|records?|entries|lines|[a-z]+?s?)\s+"
+                         r"(?:that\s+(?:have|has|contain|contains)|with|containing)\s+(?:any\s+|an?\s+)?(?:missing|empty|null|blank)\s+"
+                         rf"(?:values?|cells?|data|fields?|entries)\b(?:\s+(?:in|for|of|from|on)\s+(?:the\s+)?({_W})(?:\s+column)?)?", low):
+        if m.group(1):  # the review: "missing values in amount" is that one column, never every column
+            col = _column(m.group(1), frame)
+            if col:
+                add(m.start(), m.group(0), kind="drop_missing", columns=[col])
+            else:
+                unread.append(m.group(0))
+            continue
+        add(m.start(), m.group(0), kind="drop_missing", columns=[str(c) for c in frame.columns])
     # pivot: each column by its role words, never by the order they are said (the review of H9a): "per/each A" or "هر A یک ردیف"
     # the rows, "by B" or "هر B یک ستون" the columns, "sum/average/count of C" or "جمع C" the values; a sum or mean of a number only
     m = re.search(r"pivot", low)

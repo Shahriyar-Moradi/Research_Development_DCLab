@@ -94,17 +94,37 @@ _COMMON = re.compile(r"^(?:the|and|for|our|why|did|does|was|were|what|how|this|t
                      r"new|old|other|more|less|last|next|data|table|lower|higher|down|up)$", re.I)
 
 
+NO_DATES = "a date column to place each row in a period: this table has none"  # the owner's Telco test (2026-10-29)
+
+
+def _example(frame: pd.DataFrame, date: str) -> str:
+    """Two periods the table really holds (its latest month and the one before), as an example; none when they cannot be read."""
+    try:
+        days = pd.to_datetime(frame[date], errors="coerce").dropna()
+    except (TypeError, ValueError):
+        return ""
+    if days.empty:
+        return ""
+    last = days.max().to_period("M")
+    before = last - 1
+    if not (days.dt.to_period("M") == before).any():
+        return ""
+    return f" (for example: {last.strftime('%B %Y')} compared with {before.strftime('%B %Y')})"
+
+
 def read(text: str, frame: pd.DataFrame, measure_words: str = "", columns: Optional[list[dict[str, Any]]] = None
          ) -> tuple[Optional[dict[str, Any]], str]:
     """What the comparison needs, or None with what is missing (said to the person). ``columns``: the studio's column
     summaries; a column it marks personal is never summed, split or used to narrow (the review of H11a)."""
     from .. import home_query
 
-    pair = windows(text)
-    if pair is None:
-        return None, "which two periods to compare (for example: March 2026 compared with February 2026)"
     personal = {str(c.get("name")) for c in columns or [] if str(c.get("sensitivity") or "none") in home_query.SENSITIVE}
     dates = [d for d in _date_columns(frame) if d not in personal]
+    if not dates:  # the owner's Telco test: periods were asked of a table that has no dates, with an invented example
+        return None, NO_DATES
+    pair = windows(text)
+    if pair is None:
+        return None, "which two periods to compare" + _example(frame, dates[0])
     said_dates = [d for d in dates if re.search(rf"(?<![\w]){re.escape(d.lower())}(?![\w])", lang.normalize(text).lower())]
     date = dates[0] if len(dates) == 1 else (said_dates[0] if len(said_dates) == 1 else None)
     if date is None:

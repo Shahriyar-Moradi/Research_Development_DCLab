@@ -48,7 +48,8 @@ from ..store import Store
 from . import write_set
 
 MODEL_TYPE = "m7_routing"
-POINTS = ("request.intent", "request.exit", "request.suggestion", "request.tool", "workflow.next_question", "problem.pack")  # Home's routing decisions on a draft
+POINTS = ("request.intent", "request.exit", "request.suggestion", "request.tool", "request.understand_turn", "request.options",
+          "workflow.next_question", "problem.pack")  # Home's routing decisions on a draft
 READING_PURPOSES = ("home_intent", "home_agent")  # the model purposes whose exchanges read a request (plus any answerer named)
 BEFORE, AFTER = 600.0, 30.0  # an exchange joined by time: at most this many seconds before (after) its decision
 OUTCOME_BY = "person:outcome"  # ledger.capture.OUTCOME_BY

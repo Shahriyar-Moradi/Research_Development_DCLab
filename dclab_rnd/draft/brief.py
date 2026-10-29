@@ -150,6 +150,40 @@ PATTERNS: list[tuple[str, str, str, int]] = [
 ]
 _COMPILED = [(t, f, re.compile(p, re.I), g) for t, f, p, g in PATTERNS]
 _SNAKE = re.compile(r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b")
+# sealed v6 (s6-30, 2026-10-29): "average discount per order" on a table with no discount column was kept as the measure; a
+# measure's plain head word (after average, total, number of ...) that is no part of any column's name is a missing column too
+_AGG = re.compile(r"\b(?:average|avg|mean|median|total|sum\s+of|sum|count\s+of|number\s+of|share\s+of|rate\s+of|maximum|minimum|max|min)"
+                  r"\s+(?:the\s+)?([a-z][a-z]+)\b")
+_GENERIC = {"order", "orders", "value", "values", "revenue", "sales", "sale", "spend", "spending", "count", "number", "rows", "row",
+            "customers", "customer", "transactions", "transaction", "size", "amount", "time", "rate", "basket", "ticket", "money",
+            "income", "growth", "change", "people", "users", "user", "items", "item", "records", "record", "daily", "weekly",
+            "monthly", "yearly", "annual", "per", "each", "of", "all",
+            # the review: function words and modifiers after "total", "average", "count of" are never a column
+            "by", "for", "in", "on", "across", "and", "or", "this", "that", "last", "next", "how", "distinct", "unique", "different",
+            "over", "from", "to", "at", "with", "without", "their", "our", "my", "your", "its", "the", "a", "an", "between", "among",
+            "number", "amount", "quantity", "level", "score", "share", "percentage", "percent"}
+MEASURE_FIELDS = ("measure", "kpis", "success_measure")
+
+
+def absent_columns(value: Any, names: Optional[list[str]], field: str = "") -> list[str]:
+    """The column names a field's words rely on that the table does not have: snake_case names, and, in a measure, the plain
+    word after average, total, number of ... when it is no part of any column's name. Empty when there is no table."""
+    if not names:
+        return []
+    text = str(value or "").lower()
+    known = {str(n).lower() for n in names}
+    out = [w for w in _SNAKE.findall(text) if w not in known]
+    if field in MEASURE_FIELDS:
+        parts = {p for n in names for p in re.split(r"[^a-z0-9]+", re.sub(r"(?<=[a-z])(?=[A-Z])", " ", str(n)).lower()) if p}
+        for m in _AGG.finditer(text):
+            w = m.group(1)
+            one = w[:-1] if w.endswith("s") else w
+            if len(w) < 4 or w in _GENERIC or one in _GENERIC or w in parts or one in parts:
+                continue
+            if len(one) >= 4 and any(p.startswith(one) or one.startswith(p) and len(p) >= 4 for p in parts):
+                continue
+            out.append(w)
+    return list(dict.fromkeys(out))
 _FIRST = re.compile(r"[^.?!؟]+[.?!؟]?")
 
 
@@ -187,7 +221,7 @@ def read(track: str, text: str, columns: Optional[list[str]] = None) -> dict[str
         value = text[start:end].strip(" ,.;:!?\"'،؛؟")
         if not value:
             continue
-        absent = [w for w in _SNAKE.findall(value.lower()) if known is not None and w not in known]
+        absent = absent_columns(value, columns, name) if columns else []
         if absent:  # never a field built on a column that is not there (the H1 trap): Home says so instead
             missing[name] = absent
             continue
@@ -234,12 +268,32 @@ def asks(track: str, brief: dict[str, dict[str, Any]], asked: int, has_columns: 
     return None
 
 
-def options(f: Field, columns: list[dict[str, Any]]) -> list[str]:
-    """The question's buttons: the table's columns of the right kind (names only), the field's fixed ones, then Not sure."""
+def options(f: Field, columns: list[dict[str, Any]], profile: Optional[dict[str, Any]] = None, words: str = "") -> list[str]:
+    """The question's buttons: the table's columns of the right kind (names only), the field's fixed ones, then Not sure.
+
+    The owner's Telco test (2026-10-29): "Which number tells you it worked?" offered SeniorCitizen (a 0/1 flag) and not Churn.
+    With the profile's flags a number is a measure only when it is no key and no small code (a 0/1 flag, a 1-5 rating), and an
+    outcome-like yes/no column (its rate) is a measure too, offered first; the columns the person's words name come first of all."""
     kinds = {"numeric": ("numeric",), "categorical": ("categorical", "boolean"), "time": ("datetime",)}.get(f.options_from)
-    named = [c["name"] for c in columns if kinds and c.get("kind") in kinds]
-    if f.options_from == "categorical":
-        named = [c["name"] for c in columns if c.get("kind") in kinds and 1 < int(c.get("unique") or 0) <= 30]
+    flags = {str(c.get("name")): c for c in ((profile or {}).get("columns") or [])}
+    if f.options_from == "numeric":
+        def measure(c: dict[str, Any]) -> bool:
+            p = flags.get(str(c["name"]), {})
+            if p.get("id_like") or p.get("name_id_like"):
+                return False
+            if c.get("kind") == "numeric":
+                return int(c.get("unique") or 0) > 10 or bool(p.get("target_name_like"))
+            return c.get("kind") == "boolean" and bool(p.get("target_name_like"))
+        chosen = [c for c in columns if measure(c)]
+    elif f.options_from == "categorical":
+        chosen = [c for c in columns if c.get("kind") in kinds and 1 < int(c.get("unique") or 0) <= 30
+                  and not flags.get(str(c["name"]), {}).get("id_like")]
+    else:
+        chosen = [c for c in columns if kinds and c.get("kind") in kinds]
+    said = re.sub(r"[^a-z0-9]+", " ", str(words or "").lower())
+    spoken = lambda c: re.sub(r"[^a-z0-9]+", " ", re.sub(r"(?<=[a-z])(?=[A-Z])", " ", str(c["name"])).lower()).strip()  # noqa: E731
+    chosen.sort(key=lambda c: (not (spoken(c) and f" {spoken(c)} " in f" {said} "), not flags.get(str(c["name"]), {}).get("target_name_like")))
+    named = [c["name"] for c in chosen]
     return list(dict.fromkeys([*named[:5], *f.options, NOT_SURE]))
 
 

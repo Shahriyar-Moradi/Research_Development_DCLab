@@ -36,7 +36,7 @@ STAGES = {"home_agent": "understand_problem", "conversation_reader": "understand
           "notebook_review": "code", "solver_answer": "code", "debate_judge": "report",
           # the owner (2026-10-28): every agent's data has a home in a set; none falls silently into "plan"
           "home_intent": "understand_problem", "home_query": "understand_data", "home_business": "report", "home_orchestrator": "plan", "project_answer": "report", "journey_writer": "understand_problem",
-          "journey_checker": "report", "decision_answer": "design_solution", "decision_labeler": "report", "routing_labeler": "report", "lesson_proposal": "report",
+          "journey_checker": "report", "decision_answer": "design_solution", "decision_labeler": "report", "routing_labeler": "report", "home_understand": "understand_problem", "lesson_proposal": "report",
           "reflector": "report", "notebook_cell": "code", "parse_pattern": "understand_data", "synthetic_schema": "understand_data",
           "store_curator": "report", "reasoning_teacher": "report", "campaign": "plan", "campaign_review": "report"}
 BENCHMARKS = Path(__file__).resolve().parent / "benchmarks.txt"

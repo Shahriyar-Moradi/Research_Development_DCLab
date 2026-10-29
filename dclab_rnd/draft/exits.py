@@ -37,7 +37,7 @@ SUGGESTIONS: list[tuple[str, str, re.Pattern[str], str]] = [
      re.compile(r"\bmodel\s+of\s+(?:(?:the|our|my)\s+)?(?:last|this|previous|past)\s+(?:day|week|month|quarter|year)(?:'s|s)?\s+\w+", re.I),
      "A summary of what already happened, split by group, is a report: nothing has to be predicted."),
     ("rows_list", "preparation",
-     re.compile(rf"\b(?:list(?:ing)?|every|each|all)\b[^.?!]{{0,60}}\bwith\s+(?:their|its|his|her)\s+(?:ids?|emails?|names?|phones?|addresses?)\b|"
+     re.compile(rf"^(?![^.?!]*\b(?:total|average|avg|mean|sum|count|per|median)\b)[^.?!]*?\b(?:list(?:ing)?|every|each|all)\b[^.?!]{{0,30}}\b(?:customers?|clients?|users?|orders?|accounts?|employees?|members?|people|persons?|patients?|subscribers?|students?|buyers?|guests?|bookings?|transactions?|leads?|contacts?|suppliers?|drivers?|riders?)\b[^.?!]{{0,60}}\bwith\s+(?:their|its|his|her)\s+(?:\w+[_ ])?(?:ids?|emails?|names?|phones?|addresses?)\b|"
                 rf"(?:فهرست|لیست)(?!{_FA})[^.؟!]{{0,60}}(?:شناسه|ایمیل|شماره\s+(?:تماس|تلفن|موبایل))(?!{_FA})", re.I),
      "Home never lists single rows in the chat: a prepared table you download holds them, and stays with you."),
 ]

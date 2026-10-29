@@ -136,6 +136,8 @@ POINTS_NOT_MAPPED: dict[str, str] = {
     "request.intent": "H2: the studio's Home reads the kind of help (prediction, analysis, ...) before anything else; the main product has no such front door yet",
     "request.exit": "H8: where a request leaves the studio's Home (an ML project, answers, a prepared table, a dashboard, a decision brief, a cited answer); the main product has no such front door yet",
     "request.suggestion": "the studio's Home offers another kind of help when the person's words point to it; the main product has no such front door yet",
+    "request.understand_turn": "the studio's Home holds a short understanding conversation before offering options; the main product has no such front door yet",
+    "request.options": "the options the studio's Home offers from a request's context, labelled by the one picked; the main product has no such front door yet",
     "request.tool": "the tool that serves a kind of help on the studio's Home (the query engine, a segmentation project, ...); the main product has no such front door yet",
     "recipe.step": "H9: a guarded preparation step on the studio's Home, labelled by the person's yes or no; the main product has no such front door yet",
     "query.plan": "S4: how the studio's Home computed a question about the person's table, labelled by the answer they kept; the main product has no such front door yet",

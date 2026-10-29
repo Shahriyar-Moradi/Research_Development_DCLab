@@ -55,7 +55,8 @@ LEAD_MIN = 2
 STRONG = 3
 PROMPT = "home_intent"
 SEGMENT_SIGNALS = ("segments", "fa_segments")  # a request about groups: Home offers the two ways to find them
-RULES_VERSION = "intent_rules_v3"  # v3 (2026-10-29): segments (English, Persian) and the no-model kind words; v2 (H4): plain
+RULES_VERSION = "intent_rules_v4"  # v4 (2026-10-29 night): rows with their identifiers asked in the chat (sealed v6's spent s6-22)
+_V3 = "intent_rules_v3"  # v3 (2026-10-29): segments (English, Persian) and the no-model kind words; v2 (H4): plain
 # asks for an analysis, stats, insights; Persian "analyse"
 
 _N = r"(?:\w+(?:\s+\w+)?)"  # one or two words ("customers", "the bookings")
@@ -109,6 +110,10 @@ SIGNALS: list[tuple[str, str, int, str]] = [
     ("preparation", "clean_up", 3, r"\bclean\s+up\b|\bclean\s+(?:the|my|our|this)\s+(?:data|table|file|sheet|dataset|columns?)\b|\b(?:fill|impute)\s+(?:in\s+)?(?:the\s+)?missing\b"),
     ("preparation", "edit_table", 3, r"\brename\s+(?:the\s+)?columns?\b|\bdrop\s+(?:the\s+)?rows\b|\bappend\s+the\b|\bsplit\s+(?:the\s+)?\w+\s+column\b"),
     ("preparation", "clean", 2, r"\bclean\w*\b"),
+    # sealed v6 (s6-22): single rows with their identifiers asked for in the chat are a prepared table to download (v4)
+    ("preparation", "rows_list", 3, r"^(?![^.?!]*\b(?:total|average|avg|mean|sum|count|per|median)\b)[^.?!]*?\b(?:show|list|give|send|display)\b"
+                                    r"[^.?!]{0,40}\b(?:all|every|each)\b[^.?!]{0,30}\b(?:customers?|clients?|users?|orders?|accounts?|employees?|members?|people|persons?|patients?|subscribers?|students?|buyers?|guests?|bookings?|transactions?|leads?|contacts?|suppliers?|drivers?|riders?)\b[^.?!]{0,60}\bwith\s+"
+                                    r"(?:their|its|his|her)\s+(?:\w+[_ ])?(?:ids?|emails?|names?|phones?|addresses?)\b"),
     ("preparation", "export", 2, r"\bexport\b|\bas\s+(?:an?\s+)?(?:csv|excel|xlsx|parquet)(?:\s+file)?\b"),
     ("reporting", "dashboard", 3, r"\bdashboards?\b"),
     ("reporting", "periodic_report", 3, r"\b(?:daily|weekly|monthly|quarterly)\s+(?:kpi\s+)?(?:report|dashboard|summary)\b"),

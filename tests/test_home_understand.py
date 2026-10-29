@@ -225,7 +225,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.book.labels(point="request.intent"), [])
 
     def test_the_rules_have_a_new_version(self):  # finding 6
-        self.assertEqual(intent.RULES_VERSION, "intent_rules_v3")
+        self.assertEqual(intent.RULES_VERSION, "intent_rules_v4")  # v4 (2026-10-29 night): rows with their ids in the chat
 
     def test_an_open_reading_is_recorded_and_the_choice_labels_it(self):  # finding 7
         d = self.store.create(VAGUE)

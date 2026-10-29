@@ -62,7 +62,7 @@ EXITS = ("ml_project", "analysis", "dataset", "dashboard", "decision_brief", "an
 TRAPS = ("real_prediction", "report_not_model", "silent_drop", "rows_request", "persian_no_model", "missing_column")
 ARMS = ("rules", "model", "plain")
 NOT_SURE = "I'm not sure"  # the runner's reply to every question Home asks
-MAX_TURNS = 6
+MAX_TURNS = 8  # 2026-10-29: the understanding conversation takes up to three questions and two offers before it routes
 PLAIN_PROMPT = "home_eval_plain"
 
 GATE = {
@@ -301,7 +301,8 @@ def mark_scripted(folder: Path, why: str = WHY) -> None:
 
 
 def observe(case: Mapping[str, Any], client_for: Optional[Callable[[str], Any]] = None,
-            keep: Optional[Path] = None, intent_for: Optional[Callable[[str], Any]] = None) -> dict[str, Any]:
+            keep: Optional[Path] = None, intent_for: Optional[Callable[[str], Any]] = None,
+            understand_for: Optional[Callable[[str], Any]] = None) -> dict[str, Any]:
     """Run the real Home agent on one request in a throwaway draft store, answer its questions "I'm not sure", read the
     draft. ``client_for(draft_id)`` gives the model client (None: the rules alone). Nothing is written outside the
     temporary folder: a bare draft store has no audit trail and no decision-sample store, and ``_isolated`` switches off
@@ -328,7 +329,9 @@ def observe(case: Mapping[str, Any], client_for: Optional[Callable[[str], Any]] 
         # Home as the product runs it (draft/work.py): the intent reader too (2026-10-29: HOME-015's model arm had the
         # conversation's model only, so the kind of help was still read by the rules alone)
         intent_client = intent_for(draft["id"]) if intent_for else None
-        agent = HomeAgent(store, client, intent_client=intent_client, on_request=lambda draft_id, what, args: None)
+        understand_client = understand_for(draft["id"]) if understand_for else None  # 2026-10-29: the understanding conversation
+        agent = HomeAgent(store, client, intent_client=intent_client, understand_client=understand_client,
+                          on_request=lambda draft_id, what, args: None)
         agent.start(draft["id"])
         columns: set[str] = set()
         ids: set[str] = set()
@@ -460,7 +463,7 @@ def score_case(case: Mapping[str, Any], obs: Mapping[str, Any]) -> dict[str, Any
 
 def measure(cases: list[dict[str, Any]], client_for: Optional[Callable[[str], Any]] = None,
             plain_for: Optional[Callable[[str], Any]] = None, keep: Optional[Path] = None,
-            intent_for: Optional[Callable[[str], Any]] = None) -> dict[str, Any]:
+            intent_for: Optional[Callable[[str], Any]] = None, understand_for: Optional[Callable[[str], Any]] = None) -> dict[str, Any]:
     """Every case read by every arm asked for (the rules alone when no model client is given), scored. A client that is
     not there when asked for (no model serves the purpose any more, a cap) is a failure: the run is reported, not scored.
     ``keep``: the folder the model arms' drafts and replies are kept whole in (``model/<case>/``, ``plain/<case>.json``)."""
@@ -479,7 +482,8 @@ def measure(cases: list[dict[str, Any]], client_for: Optional[Callable[[str], An
         observed = {"rules": observe(case)}
         if client_for is not None:
             observed["model"] = observe(case, model_client, keep=keep / "model" / case["id"] if keep else None,
-                                        intent_for=(lambda draft_id: counter.wrap(intent_for(draft_id))) if intent_for else None)
+                                        intent_for=(lambda draft_id: counter.wrap(intent_for(draft_id))) if intent_for else None,
+                                        understand_for=(lambda draft_id: counter.wrap(understand_for(draft_id))) if understand_for else None)
         if plain_for is not None:
             client = plain_for(case["id"])
             if client is None:

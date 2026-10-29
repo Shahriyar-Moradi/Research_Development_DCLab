@@ -514,14 +514,14 @@ TOOL_OF_TRACK = {"prediction": "ml_project", "analysis": "query", "preparation":
 
 
 @_quiet
-def suggestion_read(draft_id: str, track: str, suggested: Optional[str], rule: str = "") -> Optional[str]:
+def suggestion_read(draft_id: str, track: str, suggested: Optional[str], rule: str = "", answerer: str = "rule:exits_suggest_v1") -> Optional[str]:
     """2026-10-29 (P8's gap): the cross-route suggestion as its own decision: whether the person's words point to another kind
     of help than the one Home is on (a track, or ``none``), by rule. Labelled by what the person does: they switch to the
     suggested track (that track), or keep their own to a confirmed result (``none``). The state holds codes only."""
     if track not in TRACKS:
         return None
     value = suggested if suggested in TRACKS and suggested != track else "none"
-    record = _put("request.suggestion", ("draft", draft_id), [answer("rule", "rule:exits_suggest_v1", value, reason=_code(rule))], value,
+    record = _put("request.suggestion", ("draft", draft_id), [answer("rule", answerer[:120], value, reason=_code(rule))], value,
                   "rule", options=SUGGESTIONS, state={"track": track}, draft=draft_id, conversation=draft_id)
     return getattr(record, "id", None)
 
@@ -551,6 +551,63 @@ def tool_chosen(draft_id: str, track: str, tool: str, used_by: str, *, rule_tool
     if record is not None and used_by == "person":
         label(record, tool, "user_decision_exposed", "person")
     return getattr(record, "id", None)
+
+
+@_quiet
+def understand_turn(draft_id: str, value: str, model_enough: bool, *, turns: int, has_data: bool, card: dict[str, Any],
+                    request: Optional[str] = None, asked_for_options: bool = False) -> Optional[str]:
+    """One turn of Home's understanding conversation (draft/understand.py): ask one more question or offer options now. The
+    code's rule decides (used); the model's own "enough" is its answer beside it, joined to its exchange. The state holds
+    counts and which card fields are known, never their words."""
+    if value not in ("ask", "offer"):
+        return None
+    known = sorted(k for k in ("goal", "decision", "subject", "data_said") if card.get(k))
+    state = {"turns": min(int(turns), 9), "has_data": bool(has_data), "known_fields": len(known),
+             "tracks_in_view": len(card.get("tracks") or []), "asked_for_options": bool(asked_for_options)}
+    record = _put("request.understand_turn", ("draft", draft_id),
+                  [answer("rule", "rule:understand_enough_v1", value),
+                   answer("model_role", "home_understand", "offer" if model_enough else "ask", source=str(request)[:120] if request else None)],
+                  value, "rule", options=("ask", "offer"), state=state, draft=draft_id, conversation=draft_id)
+    return getattr(record, "id", None)
+
+
+@_quiet
+def understand_skipped(draft_id: str) -> int:
+    """The person asked for the options before Home offered them: the latest ask turn's label is offer."""
+    from . import current_ledger
+
+    ledger_ = current_ledger()
+    if ledger_ is None:
+        return 0
+    last = next((r for r in reversed(list(ledger_.records(point="request.understand_turn"))) if getattr(r, "draft", None) == draft_id
+                 or (getattr(r, "subject", None) and getattr(r.subject, "key", None) == draft_id)), None)
+    if last is None or last.value_used != "ask":
+        return 0
+    return int(bool(label(last, "offer", "user_decision_exposed", "person")))
+
+
+@_quiet
+def options_offered(draft_id: str, options: list[dict[str, Any]], *, by: str, request: Optional[str] = None) -> Optional[str]:
+    """The options Home offered (their kinds of help and tools, in order; titles stay in the conversation, never here)."""
+    value = "|".join(f"{o.get('track')}:{o.get('tool')}" for o in options)[:300]
+    answers = [answer("model_role", "home_understand", value, source=str(request)[:120] if request else None)] if by == "model_role" \
+        else [answer("rule", "rule:understand_fallback_v1", value)]
+    record = _put("request.options", ("draft", draft_id), answers, value, by, level=2 if by == "model_role" else 0,
+                  options=[f"{o.get('track')}:{o.get('tool')}" for o in options],  # the review: a pick is one of these
+                  state={"offered": len(options), "with_columns": sum(1 for o in options if o.get("columns"))},
+                  draft=draft_id, conversation=draft_id)
+    return getattr(record, "id", None)
+
+
+@_quiet
+def options_chosen(record_id: Optional[str], picked: dict[str, Any]) -> int:
+    """The option the person picked is the label of the offer."""
+    if not record_id:
+        return 0
+    from types import SimpleNamespace
+
+    return int(bool(label(SimpleNamespace(id=record_id, point="request.options"), f"{picked.get('track')}:{picked.get('tool')}",
+                          "user_decision_exposed", "person")))
 
 
 @_quiet

@@ -60,6 +60,9 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "rows": (BAND, SIZE_BANDS), "columns": (COUNT, ()), "classes": (COUNT, ()), "positive_rate": (BAND, RATIO_BANDS),
     "has_time": (FLAG, ()), "has_groups": (FLAG, ()), "has_text": (FLAG, ()), "tables": (COUNT, ()),
     "has_data": (FLAG, ()), "words": (COUNT, ()), "signals": (COUNT, ()),  # H2: a request's kind of help, read from its words
+    # the understanding conversation (2026-10-29): counts and a flag, never the person's words
+    "turns": (COUNT, ()), "known_fields": (COUNT, ()), "tracks_in_view": (COUNT, ()), "asked_for_options": (FLAG, ()),
+    "offered": (COUNT, ()), "with_columns": (COUNT, ()),
     "track": (CODE, ()), "suggested": (CODE, ()),  # H8: the kind of help a request is on, and the other route its words suggest
     "step_kind": (CODE, ()),  # H9: a preparation step's kind (filter, dedupe, join, ...)
     "brief_fields": (COUNT, ()),  # S4: the analysis brief's fields an answer's plan was read from
@@ -257,6 +260,10 @@ POINTS: dict[str, Point] = {p.key: p for p in (
        choices=("prediction", "analysis", "preparation", "reporting", "business", "advice", "none")),
     _p("request.tool", W, "draft", "choice", "Which tool serves the request's kind of help?",
        choices=("ml_project", "query", "segmentation_project", "recipe", "dashboard", "business_brief", "cited_answer")),
+    # the owner's Telco test (2026-10-29): Home's understanding conversation, a turn at a time (ask more, or offer options now),
+    # and the options it offered from the context (labelled by the one the person picks)
+    _p("request.understand_turn", W, "draft", "choice", "Does Home ask one more question, or offer options now?", choices=("ask", "offer")),
+    _p("request.options", W, "draft", "value", "Which options does Home offer for the request, built from its context?"),
     # H9 (2026-10-28): a preparation step the guard holds (it removes many rows, or a join changes the row count): applied?
     _p("recipe.step", W, "draft", "noul", "Is this guarded preparation step applied?"),
     # S4 (2026-10-28): two of Home's own choices that no point recorded. How an analysis question is computed (the rules'

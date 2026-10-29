@@ -4,6 +4,14 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.143.0 (2026-10-29)
+
+- `ledger` (the owner's Telco test): two workflow points for Home's understanding conversation. `request.understand_turn`
+  (ask one more question, or offer options now: the code's rule used, the model's own "enough" beside it; labelled offer
+  when the person asks for the options early) and `request.options` (the kinds of help and tools offered from the request's
+  context, labelled by the option picked). New state fields, counts and a flag only: `turns`, `known_fields`,
+  `tracks_in_view`, `asked_for_options`, `offered`, `with_columns`.
+
 ## 0.142.0 (2026-10-29)
 
 - `ledger` (P8's gaps on the Home plan): two routing points. `request.suggestion`, whether a request's words point to
