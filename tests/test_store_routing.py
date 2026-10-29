@@ -284,6 +284,22 @@ class RoutingCollectorTest(unittest.TestCase):
         self.assertEqual((r["label"], r["label_source"], r["label_by"], r["weight"]), ("preparation", "silver", "model:home_intent", 0.5))
         self.assertTrue(next(x for x in r["readings"] if x["by"] == "model")["no_thinking"])  # no exchange: says why
 
+    def test_claudes_blind_routing_label_fills_an_unlabelled_decision_as_silver_and_never_beats_a_persons(self):
+        """2026-10-29 (the owner: "you can use Claude labels"): dclab_rnd.store.routing_labels writes the store's own file."""
+        labels = Path(self.layout.root) / "labels"
+        labels.mkdir(parents=True, exist_ok=True)
+        (labels / "m7_routing_claude.jsonl").write_text(
+            json.dumps({"example": "m7_routing:dev:dra000000002", "value": "analysis", "model": "claude-sonnet-5-5"}) + "\n"
+            + json.dumps({"example": "m7_routing:dev:dra000000001", "value": "prediction", "model": "claude-sonnet-5-5"}) + "\n"
+            + json.dumps({"example": "m7_routing:dev:dra000000003", "value": "not an option", "model": "claude-sonnet-5-5"}) + "\n")
+        self.build()
+        rows = self.rows()
+        r2 = rows["m7_routing:dev:dra000000002"]
+        self.assertEqual((r2["label"], r2["label_source"], r2["label_by"], r2["weight"]),
+                         ("analysis", "silver", "model:claude-sonnet-5-5:routing_labeler", 0.5))
+        self.assertEqual((rows["m7_routing:dev:dra000000001"]["label"], rows["m7_routing:dev:dra000000001"]["label_source"]), ("analysis", "real"))
+        self.assertEqual(rows["m7_routing:dev:dra000000003"]["label_source"], "written")  # its written gold stands; an off-list answer is nothing
+
     def test_the_gliner2_export_keeps_each_label_class_apart_and_coverage_counts_them(self):
         from dclab_rnd.lake import answers
         from dclab_rnd.store import coverage

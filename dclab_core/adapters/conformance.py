@@ -97,6 +97,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "loop_record": LIBRARY + " (31.17: one turn of DCLab's learning loop on its invented challenge packs; the main product runs no such loop at the pinned commit)",
     "lesson": LIBRARY + " (31.5: a lesson from DCLab's learning loop with its gap type and route; the main product runs no such loop at the pinned commit)",
     "replay_round": LIBRARY + " (36.5: a training round's set, new rows and a share of every earlier round; the main product trains no model of its own at the pinned commit)",
+    "routing_example": LIBRARY + " (P8: one Home routing decision as the 7th model learns it; the main product has no such front door at the pinned commit)",
     "track_outcome": LIBRARY + " (36.2: what a person did with an answer, table, brief or dashboard Home produced; the main product has no such front door at the pinned commit)",
     "table_entry": LIBRARY + " (a table's catalog entry with its owner and checks, 30.23; the main product's data catalog keeps its own entries)",
     "project_request": LIBRARY + " (a requested project scored, 30.24; the main product's intake keeps its own requests and scores them through it)",
@@ -134,6 +135,8 @@ _NO_NAME = "the main product has no governed decision point of this name: it is 
 POINTS_NOT_MAPPED: dict[str, str] = {
     "request.intent": "H2: the studio's Home reads the kind of help (prediction, analysis, ...) before anything else; the main product has no such front door yet",
     "request.exit": "H8: where a request leaves the studio's Home (an ML project, answers, a prepared table, a dashboard, a decision brief, a cited answer); the main product has no such front door yet",
+    "request.suggestion": "the studio's Home offers another kind of help when the person's words point to it; the main product has no such front door yet",
+    "request.tool": "the tool that serves a kind of help on the studio's Home (the query engine, a segmentation project, ...); the main product has no such front door yet",
     "recipe.step": "H9: a guarded preparation step on the studio's Home, labelled by the person's yes or no; the main product has no such front door yet",
     "query.plan": "S4: how the studio's Home computed a question about the person's table, labelled by the answer they kept; the main product has no such front door yet",
     "column.statistics_only": "S4: the studio's Home asks the person about a column its audit kept out on statistics alone (H3.1); the main product's leakage review is feature.leakage_suspect",

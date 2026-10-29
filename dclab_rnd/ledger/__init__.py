@@ -76,6 +76,8 @@ CAPTURED = {
     "problem.pack": "draft/chat.py: the pack detected or chosen",
     "request.intent": "draft/chat.py: the kind of help read from the request (rules, or the model where they find no winner), labelled by the person's choice on the card (H2)",
     "request.exit": "draft/chat.py route: where the request leads, by rule from its kind of help, with the cross-route suggestion its words gave; labelled when an answer is given or a project is built (H8)",
+    "request.suggestion": "draft/chat.py route: whether the person's words point to another kind of help, by rule (none, or a track); labelled when the person switches to it or keeps their own track to a confirmed result",
+    "request.tool": "draft/chat.py open_track and the segments answer: the tool serving the kind of help, by rule, or the person's choice between groups they have and new groups (labelled by it)",
     "recipe.step": "draft/chat.py confirm_step: a preparation step the guard holds, not applied unasked; labelled by the person's yes or no (H9)",
     "query.plan": "draft/chat.py give_answer: how an analysis question was computed (the rules' plan from the brief, or a model's: home_query's, or the Home agent's query_data); labelled by the plan of the first answer the person keeps for it (S4)",
     "column.statistics_only": "draft/chat.py column_answer: a column kept out on statistics alone (H3.1), on the column with its bands, the rule's recommendation against the person's answer (S4)",

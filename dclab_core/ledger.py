@@ -252,6 +252,11 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     # H8 (2026-10-28): where the request leads (one exit per kind of help), by rule, with the cross-route suggestion beside it
     _p("request.exit", W, "draft", "choice", "Where does the request leave Home?",
        choices=("ml_project", "analysis", "dataset", "dashboard", "decision_brief", "answer")),
+    # 2026-10-29 (P8's gaps): the cross-route suggestion as its own decision, and the tool that serves the kind of help
+    _p("request.suggestion", W, "draft", "choice", "Do the request's words point to another kind of help than the one Home is on?",
+       choices=("prediction", "analysis", "preparation", "reporting", "business", "advice", "none")),
+    _p("request.tool", W, "draft", "choice", "Which tool serves the request's kind of help?",
+       choices=("ml_project", "query", "segmentation_project", "recipe", "dashboard", "business_brief", "cited_answer")),
     # H9 (2026-10-28): a preparation step the guard holds (it removes many rows, or a join changes the row count): applied?
     _p("recipe.step", W, "draft", "noul", "Is this guarded preparation step applied?"),
     # S4 (2026-10-28): two of Home's own choices that no point recorded. How an analysis question is computed (the rules'

@@ -694,7 +694,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.141.0",
+ "dclab_core": "0.142.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1333,6 +1333,28 @@
    "kind": "workflow",
    "main_product": null,
    "point": "request.intent",
+   "subjects": [
+    "draft"
+   ]
+  },
+  {
+   "about": "Do the request's words point to another kind of help than the one Home is on?",
+   "answer": "choice",
+   "decided_in": "draft/chat.py route: whether the person's words point to another kind of help, by rule (none, or a track); labelled when the person switches to it or keeps their own track to a confirmed result",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "request.suggestion",
+   "subjects": [
+    "draft"
+   ]
+  },
+  {
+   "about": "Which tool serves the request's kind of help?",
+   "answer": "choice",
+   "decided_in": "draft/chat.py open_track and the segments answer: the tool serving the kind of help, by rule, or the person's choice between groups they have and new groups (labelled by it)",
+   "kind": "workflow",
+   "main_product": null,
+   "point": "request.tool",
    "subjects": [
     "draft"
    ]

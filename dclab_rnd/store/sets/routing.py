@@ -48,7 +48,7 @@ from ..store import Store
 from . import write_set
 
 MODEL_TYPE = "m7_routing"
-POINTS = ("request.intent", "request.exit", "workflow.next_question", "problem.pack")  # Home's routing decisions on a draft
+POINTS = ("request.intent", "request.exit", "request.suggestion", "request.tool", "workflow.next_question", "problem.pack")  # Home's routing decisions on a draft
 READING_PURPOSES = ("home_intent", "home_agent")  # the model purposes whose exchanges read a request (plus any answerer named)
 BEFORE, AFTER = 600.0, 30.0  # an exchange joined by time: at most this many seconds before (after) its decision
 OUTCOME_BY = "person:outcome"  # ledger.capture.OUTCOME_BY
@@ -247,6 +247,16 @@ class Joiner:
         self.exams = exams(self.home, self.results)
         self.truth: dict[str, dict[str, Any]] = {}   # a written or eval request's truth by its words' hash
         self.flagged: set[str] = set()
+        # 2026-10-29: Claude's routing labels (dclab_rnd.store.routing_labels), by example id: silver, apart, weighted lower
+        self.claude: dict[str, dict[str, Any]] = {}
+        claude_labels = Path(layout.root) / "labels" / "m7_routing_claude.jsonl"
+        for line in claude_labels.read_text(encoding="utf-8").splitlines() if claude_labels.exists() else []:
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if row.get("example") and row.get("value") is not None:
+                self.claude[str(row["example"])] = row
         self.out: Counter = Counter()
 
     def exchange(self, ws: str, draft: str, purpose: str, at: Optional[float], request: Optional[str]) -> Optional[dict[str, Any]]:
@@ -380,6 +390,10 @@ def _ledger_row(j: Joiner, ws: str, r: dict[str, Any]) -> Optional[RoutingExampl
     origin = "scripted" if ws in j.scripted else (truth["origin"] if truth else "real")
     if value is None and truth is not None and point == "request.intent" and key not in j.flagged:
         value, cls, label_by = truth["label"], "written", truth["by"]
+    claude = j.claude.get(f"{MODEL_TYPE}:{ws}:{b.get('id')}")
+    if value is None and claude is not None and str(claude["value"]) in ([str(o) for o in b.get("options") or []] or [str(claude["value"])]):
+        # the owner (2026-10-29): with no person's label, Claude's blind reading of the words is the label: silver, apart, half weight
+        value, cls, label_by = claude["value"], "silver", f"model:{claude.get('model') or 'claude'}:routing_labeler"
     if value is None and origin == "real":  # the owner's rule: silver only on real requests, apart, weighted lower
         model = next((x for x in readings if x.by == "model" and x.value is not None and x.value in (b.get("options") or [x.value])), None)
         if model is not None:

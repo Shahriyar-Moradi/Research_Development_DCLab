@@ -699,6 +699,8 @@ class HomeAgent:
         idea = exits.suggest(str(draft.get("problem") or ""), track)
         changed = door is not None and (draft.get("exit") or {}).get("kind") != door["kind"]
         record = capture.request_exit(draft_id, track, door["kind"], (idea or {}).get("track")) if changed else None
+        # P8's gap (2026-10-29): the suggestion is its own decision (a track, or none), labelled by what the person does with it
+        hint = capture.suggestion_read(draft_id, track, (idea or {}).get("track"), (idea or {}).get("rule") or "") if changed else None
 
         def put(d):
             if door and (d.get("exit") or {}).get("kind") != door["kind"]:
@@ -710,8 +712,10 @@ class HomeAgent:
                 d["exit"] = {**door, "at": now(), **({"record": record} if record else {}),
                              **({"status": "reached"} if reached else {})}
             d["route_suggestion"] = idea
+            if hint:  # its record apart: route_suggestion is read as "a suggestion was offered"
+                d["suggestion_record"] = {"record": hint, "on": track, "track": (idea or {}).get("track")}
         self.store.update(draft_id, put)
-        offered = {m.get("suggestion", {}).get("track") for m in draft.get("messages") or [] if m.get("kind") == "route_suggestion"}
+        offered = {(m.get("suggestion") or {}).get("track") for m in draft.get("messages") or [] if m.get("kind") == "route_suggestion"}
         if idea and idea["track"] not in offered:
             self.say(draft_id, f"Another way to read this: {intents.LABELS[idea['track']].lower()}. {idea['why']} "
                                f"(Your words: “{idea['quote']}”.)", kind="route_suggestion", suggestion=idea)
@@ -722,7 +726,12 @@ class HomeAgent:
         self.route(draft_id)  # H8: the exit and a cross-route suggestion, before the track's own words
         draft = self.store.get(draft_id)
         track = self.track(draft)
+        from ..ledger import capture
+
         if track == "prediction":
+            # new groups chosen on the segments question come here as a prediction path of the segmentation kind
+            self._tool(draft_id, track, "segmentation_project" if (draft.get("understanding") or {}).get("family") == "segmentation"
+                       else capture.TOOL_OF_TRACK[track], "rule")
             self.open_prediction(draft_id)
             return
         if track not in intents.NEXT:
@@ -747,7 +756,18 @@ class HomeAgent:
                      "Groups you already have are counted from a column; new groups are found by a segmentation project.")
             return
         self.say(draft_id, f"{opening} {intents.NEXT[track]}", kind="text", actions=offer, track=track)
+        self._tool(draft_id, track, capture.TOOL_OF_TRACK[track], "rule")
         self.open_brief(draft_id)
+
+    def _tool(self, draft_id: str, track: str, tool: str, used_by: str) -> None:
+        """P8's gap (2026-10-29): the tool serving the kind of help, recorded once per track and tool (request.tool)."""
+        from ..ledger import capture
+
+        kept = self.store.get(draft_id).get("tool") or {}
+        if kept.get("tool") == tool and (kept.get("track") == track or kept.get("by") == "person"):
+            return  # recorded already (the person's choice of new groups stays theirs when the draft moves to its project path)
+        rid = capture.tool_chosen(draft_id, track, tool, used_by, rule_tool=tool if used_by == "rule" else None)
+        self.store.update(draft_id, lambda d: d.update(tool={"track": track, "tool": tool, "by": used_by, **({"record": rid} if rid else {})}))
 
     # ------------------------------------------------------------------ H4: a brief per kind of help
     def open_brief(self, draft_id: str) -> None:
@@ -1410,9 +1430,10 @@ class HomeAgent:
         self.store.emit(draft_id, "status", {"track_brief": self.store.get(draft_id).get("track_brief")})
         return self.store.get(draft_id)["track_brief"][track]
 
-    def choose_intent(self, draft_id: str, track: str) -> dict[str, Any]:
+    def choose_intent(self, draft_id: str, track: str, *, by_person: bool = True) -> dict[str, Any]:
         """The person chose the kind of help (the card's Change control, the question's button, or a pack): it wins over
-        any reading, labels this draft's own reading, and moves Home to that track."""
+        any reading, labels this draft's own reading, and moves Home to that track. ``by_person=False``: Home moves the draft
+        itself (new groups take the project path): the move labels nothing (the review, 2026-10-29)."""
         with self.store.turn(draft_id):
             draft = self.store.get(draft_id)
             before = draft.get("intent") or {}
@@ -1420,7 +1441,11 @@ class HomeAgent:
             value = intents.chosen(track, before)
             from ..ledger import capture
 
-            capture.intent_chosen(before.get("record"), track)
+            hint = draft.get("suggestion_record") or {}
+            if by_person:
+                capture.intent_chosen(before.get("record"), track)
+                if hint.get("track") == track and hint.get("on") == was:  # the person took the suggested route
+                    capture.suggestion_taken(hint.get("record"), track)
             self.move_to(draft_id, value, was, sample=False)
             return value
 
@@ -1442,6 +1467,8 @@ class HomeAgent:
                 if not q.get("answered") and (q.get("field") == "intent" or (track != was and track != "prediction")
                                               or (q.get("brief") and q.get("brief") != track)):
                     q.update(answered="(the type of help changed)", superseded=True)
+            if track != was:  # a result made on the earlier track never judges this one (track_outcome reads from here)
+                d["track_actions_from"] = int(d.get("actions_total", len(d.get("actions") or [])))
             if track != "prediction":
                 d["workflow"] = None
                 if (d.get("pack") or {}).get("source") != "user":
@@ -1840,10 +1867,11 @@ class HomeAgent:
             else:  # their words: "already have", "describe", "existing" keep the groups they have; finding new ones is said plainly
                 new = bool(re.search(r"\b(?:find|discover|create|build)\b[^.?!]{0,30}\b(?:new\s+)?(?:groups|segments|clusters)\b|^new\b", said)) \
                     and not re.search(r"\b(?:already|existing|describe|don'?t\s+need\s+new|no\s+new|not\s+new)\b", said)
+            self._tool(draft_id, "analysis", "segmentation_project" if new else "query", "person")
             if new:
                 self.record(draft_id, "family", "segmentation")
                 self.record(draft_id, "family_by", "answer")
-                self.choose_intent(draft_id, "prediction")  # the project path: a segmentation kind, which reads no outcome
+                self.choose_intent(draft_id, "prediction", by_person=False)  # the project path: a segmentation kind, which reads no outcome
             elif self.ask_brief(draft_id) is None:
                 self.say(draft_id, intents.NEXT["analysis"], kind="text", track="analysis")
             return
@@ -2233,11 +2261,16 @@ class HomeAgent:
 
         def put(d):
             before.update(outcome=d.get("outcome"))
+            d["actions_total"] = int(d.get("actions_total", len(d.get("actions") or []))) + 1
             d["actions"] = [*(d.get("actions") or []), name][-200:]
         self.store.update(draft_id, put)
         draft = self.store.get(draft_id)
         track = str((draft.get("intent") or {}).get("track") or "prediction")
-        outcome = T.read(track, list(draft.get("actions") or []))
+        actions = list(draft.get("actions") or [])
+        if draft.get("track_actions_from") is not None:  # the review (2026-10-29): only what was done on this track judges it
+            since = int(draft.get("actions_total") or 0) - int(draft["track_actions_from"])
+            actions = actions[-since:] if since > 0 else []
+        outcome = T.read(track, actions)
         if outcome is None:
             return None
         now_ = outcome.model_dump(mode="json")
@@ -2248,8 +2281,14 @@ class HomeAgent:
         from ..ledger import capture
 
         exit_ = draft.get("exit") or {}
+        hint, tool = draft.get("suggestion_record") or {}, draft.get("tool") or {}
+        more = []
+        if hint.get("record") and hint.get("on") == outcome.track:  # kept their own track to a result: the suggestion was not needed
+            more.append((hint["record"], "request.suggestion", "none"))
+        if tool.get("record") and tool.get("by") == "rule" and tool.get("track") == outcome.track:
+            more.append((tool["record"], "request.tool", tool.get("tool")))
         capture.track_outcome(draft_id, outcome, exit_record=exit_.get("record"), exit_kind=exit_.get("kind"),
-                              intent_record=(draft.get("intent") or {}).get("record"))
+                              intent_record=(draft.get("intent") or {}).get("record"), more=tuple(more))
         return now_
 
     def next_turn(self, draft_id: str, opening: bool = False) -> None:

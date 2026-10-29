@@ -139,6 +139,9 @@ PURPOSES: dict[str, Purpose] = {
                                              "its bands (storage type, share of distinct and missing values, the shape of its written values), "
                                              "the outcome's name, the prediction moment, measures computed on training rows only (a column's "
                                              "signal against the outcome, the holdout's metrics once read); never rows or cell values (27.6)"),
+    "routing_labeler": Purpose("standard", 90, "P8 (2026-10-29): one routing decision Home made, as a blind labeller sees it: the person's "
+                                               "request words, the decision's question, its options with their meanings and the state's bands; "
+                                               "never the answer Home or any answerer took, never data, column names or cell values", cell_values=0),
     "decision_labeler": Purpose("standard", 60, "what a blind reviewer sees of one decision: its point, question and options, its subject "
                                                 "(a column's or table's name) and the state (the column's name, its name tokens and bands, "
                                                 "the outcome column's name; for a project's or a workflow's decision, its id and aggregate measures such as a "

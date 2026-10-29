@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.142.0 (2026-10-29)
+
+- `ledger` (P8's gaps on the Home plan): two routing points. `request.suggestion`, whether a request's words point to
+  another kind of help than the one Home is on (a track, or `none`), labelled by the person's switch to it or by a
+  confirmed result on their own track; `request.tool`, the tool serving a kind of help (`ml_project`, `query`,
+  `segmentation_project`, `recipe`, `dashboard`, `business_brief`, `cited_answer`), one per track by rule and the
+  person's choice for groups of customers. Both are workflow points, not learned from journeys (`workflow_labels`), and
+  not mapped to the main product (no front door there yet).
+
 ## 0.141.0 (2026-10-29)
 
 - `routing_example` (P8 of the Home plan): `RoutingExample` v1, one routing decision as the 7th model (a routing model)

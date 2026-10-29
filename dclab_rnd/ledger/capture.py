@@ -507,6 +507,52 @@ def request_exit(draft_id: str, track: str, kind: str, suggested: Optional[str])
     return getattr(record, "id", None)
 
 
+SUGGESTIONS = (*TRACKS, "none")  # request.suggestion: another kind of help the words point to, or none
+TOOLS = ("ml_project", "query", "segmentation_project", "recipe", "dashboard", "business_brief", "cited_answer")
+TOOL_OF_TRACK = {"prediction": "ml_project", "analysis": "query", "preparation": "recipe", "reporting": "dashboard",
+                 "business": "business_brief", "advice": "cited_answer"}  # rule:track_tools_v1, one tool per kind of help
+
+
+@_quiet
+def suggestion_read(draft_id: str, track: str, suggested: Optional[str], rule: str = "") -> Optional[str]:
+    """2026-10-29 (P8's gap): the cross-route suggestion as its own decision: whether the person's words point to another kind
+    of help than the one Home is on (a track, or ``none``), by rule. Labelled by what the person does: they switch to the
+    suggested track (that track), or keep their own to a confirmed result (``none``). The state holds codes only."""
+    if track not in TRACKS:
+        return None
+    value = suggested if suggested in TRACKS and suggested != track else "none"
+    record = _put("request.suggestion", ("draft", draft_id), [answer("rule", "rule:exits_suggest_v1", value, reason=_code(rule))], value,
+                  "rule", options=SUGGESTIONS, state={"track": track}, draft=draft_id, conversation=draft_id)
+    return getattr(record, "id", None)
+
+
+@_quiet
+def suggestion_taken(record_id: Optional[str], track: str) -> int:
+    """The person switched to the track the suggestion named: that track is the label."""
+    if not record_id or track not in TRACKS:
+        return 0
+    from types import SimpleNamespace
+
+    return int(bool(label(SimpleNamespace(id=record_id, point="request.suggestion"), track, "user_decision_exposed", "person")))
+
+
+@_quiet
+def tool_chosen(draft_id: str, track: str, tool: str, used_by: str, *, rule_tool: Optional[str] = None) -> Optional[str]:
+    """2026-10-29 (P8's gap): which tool serves the request's kind of help. The rule gives one per track (rule:track_tools_v1);
+    for groups of customers it gives none and the person chooses between the groups they have (the query engine) and new groups
+    (a segmentation project): their choice is the value and the label. A rule's tool is labelled by a confirmed result."""
+    if track not in TRACKS or tool not in TOOLS or used_by not in ("rule", "person"):
+        return None
+    answers = [answer("rule", "rule:track_tools_v1", rule_tool if rule_tool in TOOLS else None)]
+    if used_by == "person":
+        answers.append(answer("person", "person", tool))
+    record = _put("request.tool", ("draft", draft_id), answers, tool, used_by, options=TOOLS, state={"track": track},
+                  draft=draft_id, conversation=draft_id)
+    if record is not None and used_by == "person":
+        label(record, tool, "user_decision_exposed", "person")
+    return getattr(record, "id", None)
+
+
 @_quiet
 def exit_reached(record_id: Optional[str], kind: str) -> int:
     """H8: where the request really left (an answer given, a project built) labels the exit read for it."""
@@ -632,7 +678,7 @@ OUTCOME_BY = "person:outcome"  # 36.2: the labels track_outcome writes, so it re
 
 @_quiet
 def track_outcome(draft_id: str, outcome: Any, *, exit_record: Optional[str], exit_kind: Optional[str], intent_record: Optional[str],
-                  log: Any = None) -> int:
+                  log: Any = None, more: tuple = ()) -> int:
     """36.2: what the person did with what the routing produced (a dclab_core.track_outcome.TrackOutcome, read by its rule
     from the draft's ordered actions). Call it when the outcome changes. One track.outcome event each time, names and
     counts only (open too: produced and not judged yet is counted). The draft's own exit (the exit kind taken) and reading
@@ -653,8 +699,9 @@ def track_outcome(draft_id: str, outcome: Any, *, exit_record: Optional[str], ex
     confirms = outcome.verdict in ("kept", "changed") and outcome.by == "person"
     ledger_ = current_ledger()
     n = 0
+    # ``more``: other routing records of the draft as (record, point, value), labelled the same way (request.suggestion, request.tool)
     for record_id, point, value in ((exit_record, "request.exit", exit_kind if exit_kind in EXITS else None),
-                                    (intent_record, "request.intent", outcome.track if outcome.track in TRACKS else None)):
+                                    (intent_record, "request.intent", outcome.track if outcome.track in TRACKS else None), *more):
         if not record_id or value is None:
             continue
         mine = [lb for lb in (ledger_.labels(record=record_id) if ledger_ is not None else []) if getattr(lb, "by", None) == OUTCOME_BY]

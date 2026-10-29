@@ -35,6 +35,8 @@ NOT_LEARNED = {
     "problem.pack": "only two problem kinds declare a pack, too few to learn from",
     "request.intent": "H2: labelled by the person's choice on Home's card, not by a journey's truth (the written journeys are all predictions)",
     "request.exit": "H8: labelled by where the request really left Home (an answer given, a project built), not by a journey's truth",
+    "request.suggestion": "labelled by what the person does with the suggestion (switch, or keep their own route to a result), not by a journey's truth",
+    "request.tool": "one tool per kind of help by rule, and the person's choice for groups of customers: labelled by the person, not by a journey's truth",
     "recipe.step": "H9: labelled by the person's yes or no to the guard, not by a journey's truth",
     "query.plan": "S4: labelled by the plan of the answer a person keeps, not by a journey's truth (no journey asks a question of its table)",
     "workflow.template": "drawn from the pack by a fixed table: there is nothing to learn",

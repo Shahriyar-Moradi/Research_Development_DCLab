@@ -83,6 +83,7 @@ MODEL_USES: dict[str, str] = {  # purpose -> why it is not an agent: one complet
     "campaign_review": "the review of a finished research campaign",
     "decision_answer": "one decision answered from its state, beside the rule (22.5)",
     "decision_labeler": "one drawn decision labelled from its blind view, kept apart from a person's labels",
+    "routing_labeler": "P8: one Home routing decision labelled from the person's words, blind to every answerer's reading, kept apart as silver",
     "solver_answer": "one solver question answered on the benchmark of verified invented problems (27.6), beside their planted truth",
     "metric_question": "a question about a number turned into a tested template and its parameters, validated, beside the rules' reading (30.20)",
     "home_query": "H6: a query plan for a question about the person's own table, from column summaries; code validates and runs it",

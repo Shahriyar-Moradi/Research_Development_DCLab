@@ -1,0 +1,105 @@
+{
+ "package": "P8-routing-gaps",
+ "title": "Home's last two routing decisions recorded, and Claude's blind labels for the routing model",
+ "date": "2026-10-29",
+ "request": "The owner: close the Home plan's open items without waiting (the routing collector's gaps, no real routing labels: use Claude labels, the browser check, the gate's rules-alone check, the budget).",
+ "spec": "request.suggestion and request.tool as ledger points with labels from what the person does; a blind Claude labeller for unlabelled routing examples, silver and apart; the browser check of the owner's two sentences.",
+ "plan": [
+  "Ledger points in dclab_core with their notes (workflow labels, conformance) and the studio's capture",
+  "Wire them into Home's route, open_track, the segments answer, choose_intent and the outcome",
+  "A routing_labeler purpose, prompt and command; the routing set reads its answers as silver",
+  "Review, fix, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "The suggestion's record id kept apart (suggestion_record), route_suggestion unchanged",
+   "why": "other code reads route_suggestion as 'a suggestion was offered'; a record id there would read as an offer"
+  },
+  {
+   "decision": "Claude's routing labels in the store's own file, never a ledger",
+   "why": "the owner's rule: silver labels apart from people's and weighted lower; the routing set fills a label from it only where no person's or written label stands"
+  },
+  {
+   "decision": "Claude reads the person's words, never the blind view of decision_labeler",
+   "why": "a routing decision's state holds counts and codes only: from it alone the kind of help cannot be read"
+  },
+  {
+   "decision": "Scripted examples labelled only up to 40 per point",
+   "why": "4,626 next-question records are test traffic; a census would cost about EUR 40 for little"
+  },
+  {
+   "decision": "Monthly cap 60 to 70 EUR",
+   "why": "the owner agreed the budget be raised for these runs"
+  }
+ ],
+ "change": "dclab_core 0.142.0: ledger points request.suggestion and request.tool (workflow_labels and conformance notes; routing_example listed in conformance). dclab_rnd: capture.suggestion_read, suggestion_taken, tool_chosen and track_outcome's more; Home's route, open_track, _tool, the segments answer, choose_intent(by_person) and acted (a track judged only by its own actions); store.routing_labels with the routing_labeler purpose and prompt; the routing set reads Claude's labels as silver.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A result nobody judged was labelled kept on a new track",
+   "scenario": "An analysis answer saved, the person switches to reporting and a dashboard is produced: the verdict read every action of the draft and labelled the reporting suggestion none and its tool dashboard by the person.",
+   "cause": "acted read the draft's whole action list for the current track (since 36.2, for the exit and intent labels too).",
+   "fix": "move_to keeps where a track's actions start; acted reads only the actions since then.",
+   "test": "tests/test_home_routing_points.py RoutingPointsTests.test_a_result_on_an_earlier_track_never_labels_the_new_one"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Home's own move to the project path counted as the person taking a suggestion",
+   "scenario": "Segments and a churn wish in one request; on analysis the suggestion names prediction; the person answers new groups and Home moves the draft to the prediction path: the suggestion and the intent reading were labelled prediction by the person.",
+   "cause": "the segments answer called choose_intent, which labels as the person's choice.",
+   "fix": "choose_intent(by_person=False) from the segments answer labels nothing; the person's tool choice still labels request.tool.",
+   "test": "tests/test_home_routing_points.py RoutingPointsTests.test_new_groups_moved_by_home_label_neither_the_suggestion_nor_the_reading"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A rule's tool record disagreed with itself",
+   "scenario": "New groups chosen, then the person moves away and back to prediction: the record says the rule used segmentation_project while the rule's answer says ml_project.",
+   "cause": "_tool passed the track's default tool as the rule's answer.",
+   "fix": "the rule's answer is the tool it recorded.",
+   "test": "tests/test_home_routing_points.py RoutingPointsTests.test_a_rule_tool_record_agrees_with_itself"
+  },
+  {
+   "id": "F4",
+   "source": "test",
+   "severity": "latent",
+   "defect": "The routing_example contract had no conformance entry",
+   "scenario": "tests/test_conformance.py failed on main after P8's commit.",
+   "cause": "the contract was added without its line in CONTRACT_ADAPTERS.",
+   "fix": "listed as library-only: the main product has no Home front door.",
+   "test": "tests/test_conformance.py GateTest"
+  },
+  {
+   "id": "F5",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The ledger refused the suggestion record",
+   "scenario": "The suggestion's rule name was put in the decision's state.",
+   "cause": "a state holds only its contract's fields: the guard that keeps table values out.",
+   "fix": "the rule's name goes in the answer's reason.",
+   "test": "tests/test_home_routing_points.py RoutingPointsTests.test_a_suggestion_taken_is_labelled_with_its_track"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Browser check of the owner's two sentences (Playwright Chromium, downloaded with the owner's yes)",
+   "gate": "an open question with six kinds of help, no ML panel; segments get their two ways",
+   "result": "passed in 16 s",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "Every Home routing decision now has a ledger point and a label from what the person does; the routing set can take Claude's blind labels as silver.",
+ "lessons": [
+  "A move the system makes for the person must never be recorded as the person's choice",
+  "A verdict must read only the actions of the thing it judges"
+ ],
+ "risks": [
+  "Claude's silver labels teach Claude's reading: they are kept apart and never promote a model alone"
+ ],
+ "commits": []
+}
