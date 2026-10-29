@@ -498,9 +498,15 @@ class HomeAgent:
                     self.client.output(not dropped, "; ".join(dropped)[:200])
             except Exception:  # noqa: BLE001 — no model, no problem: the keyword rules still read the sentence
                 kept = {}
+            from .. import cited
+
+            said = set().union(*(cited.numbers(t, source=True) for t in plans.user_text(draft)), set())
             for field, item in kept.items():
                 if not u.get(field):
-                    self.note(draft_id, field, item["value"], item["status"], "model", item["quote"])
+                    # HOME-017: the model wrote "top 10%" for "the top decile", and the opening says the value back: a value
+                    # with a number the person did not write is replaced by their own words (its quote)
+                    value = item["quote"] if cited.numbers(str(item["value"])) - said else item["value"]
+                    self.note(draft_id, field, value, item["status"], "model", item["quote"])
                     filled.append(field)
         for field, quote in plans.extract(draft["problem"]).items():
             if field not in filled and not u.get(field):
@@ -753,6 +759,8 @@ class HomeAgent:
         texts = " ".join(plans.user_text(draft))
         missing: dict[str, list[str]] = {}
 
+        model_fields = (draft.get("intent") or {}).get("fields") or {}  # the model's reading of each kind's fields, quote-checked
+
         def put(d):
             kept = d.setdefault("track_brief", {})
             for t in dict.fromkeys(tracks):
@@ -762,6 +770,27 @@ class HomeAgent:
                 for field in read["missing"]:  # the table has no such column: a reading of the rules is withdrawn, never a person's
                     if (before.get(field) or {}).get("source") == "rules":
                         before.pop(field)
+                if names:  # the review: a model field kept earlier (its intent since changed by the person) is checked too
+                    known_names = {n.lower() for n in names}
+                    for field, entry in list(before.items()):
+                        if (entry or {}).get("source") in ("rules", "model"):
+                            absent = [w for w in briefs._SNAKE.findall(str(entry.get("value") or "").lower()) if w not in known_names]
+                            if absent:
+                                missing[field] = absent
+                                before.pop(field)
+                # 2026-10-29 (AI first): the model's fields come first, the rules fill only what it left; the rules' own reading is
+                # kept beside it (for the routing data), and a field naming a column the table does not have is never kept
+                for field, entry in (model_fields.get(t) or {}).items():
+                    old = before.get(field) or {}
+                    if old.get("asked") or old.get("source") not in (None, "default", "rules", "model"):
+                        continue  # the person's own answer or edit stands, "Not sure" included (the review)
+                    if names:
+                        absent = [w for w in briefs._SNAKE.findall(str(entry.get("value") or "").lower()) if w not in {n.lower() for n in names}]
+                        if absent:
+                            missing[field] = absent
+                            before.pop(field, None)
+                            continue
+                    before[field] = {**entry, "rule_value": (read["fields"].get(field) or {}).get("value")}
                 kept[t] = briefs.fill(t, read["fields"], before)
         self.store.update(draft_id, put)
         self.store.emit(draft_id, "status", {"track_brief": self.store.get(draft_id).get("track_brief")})
@@ -771,7 +800,9 @@ class HomeAgent:
             self.store.update(draft_id, lambda d: d.update(brief_missing_said=sorted(said | {f"{f}:{','.join(a)}" for f, a in missing.items()})))
         self.moved(draft_id, "read_brief", {"tracks": list(dict.fromkeys(tracks))},
                    {"fields": {t: sorted(k for k, v in ((self.store.get(draft_id).get("track_brief") or {}).get(t) or {}).items()
-                                         if (v or {}).get("source") == "rules") for t in dict.fromkeys(tracks)}})
+                                         if (v or {}).get("source") == "rules") for t in dict.fromkeys(tracks)},
+                    "model_fields": {t: sorted(k for k, v in ((self.store.get(draft_id).get("track_brief") or {}).get(t) or {}).items()
+                                               if (v or {}).get("source") == "model") for t in dict.fromkeys(tracks)}})
         for field, absent in missing.items():
             self.say(draft_id, f"Your data has no column named {', '.join(f'`{a}`' for a in absent)}, so I did not use it for the "
                                f"{field.replace('_', ' ')}. Which column did you mean?", kind="text")

@@ -365,5 +365,112 @@ class NumbersTests(unittest.TestCase):
         self.assertNotIn("30", out)
 
 
+class FieldsTests(unittest.TestCase):
+    """HOME-017 (sealed v4): Home read the fields of each kind 17 right against Claude alone's 64, because only the rules read
+    them. The model reads them in the same call as the kind of help; the rules fill only what it left."""
+
+    def setUp(self):
+        self.home = Path(tempfile.mkdtemp())
+        self.store = DraftStore(self.home / "drafts")
+        ledger.install(ledger.FileLedger(self.home / "ledger", "wtest"))
+        self.addCleanup(ledger.install, None)
+
+    def test_only_quoted_fields_of_the_kind_are_kept(self):
+        text = "Can you show monthly revenue for each sales region over the last quarter?"
+        r = intent.read(text, Scripted(reading(tracks=["analysis"], quote="monthly revenue", confidence=0.9, fields={"analysis": {
+            "measure": {"value": "monthly revenue", "quote": "monthly revenue"},
+            "breakdown": {"value": "sales region", "quote": "each sales region"},
+            "period": {"value": "last 90 days", "quote": "the last 90 days"},          # not the person's words
+            "audience": {"value": "the board", "quote": "monthly revenue"},            # not a field of an analysis
+            "filters": {"value": "top 10 regions", "quote": "each sales region"}}})))  # a number nobody wrote
+        self.assertEqual(set(r["fields"]["analysis"]), {"measure", "breakdown"})
+        self.assertEqual(r["fields"]["analysis"]["measure"]["source"], "model")
+
+    def test_a_reworded_value_is_kept_in_the_persons_words(self):  # HOME-018: "هر هفته" came back as "every week"
+        text = "I want a KPI dashboard of bookings that is refreshed every Monday morning for the ops team"
+        r = intent.read(text, Scripted(reading(tracks=["reporting"], quote="KPI dashboard", confidence=0.9, fields={"reporting": {
+            "refresh": {"value": "weekly", "quote": "refreshed every Monday morning"},
+            "audience": {"value": "ops team", "quote": "for the ops team"}}})))
+        self.assertEqual(r["fields"]["reporting"]["refresh"]["value"], "refreshed every Monday morning")
+        self.assertEqual(r["fields"]["reporting"]["audience"]["value"], "ops team")  # already the person's words: kept
+
+    def test_the_models_fields_come_first_and_the_rules_fill_the_rest(self):
+        text = "Can you show monthly revenue for each sales region over the last quarter?"
+        client = Scripted(reading(tracks=["analysis"], quote="monthly revenue", confidence=0.9,
+                                  fields={"analysis": {"measure": {"value": "monthly revenue", "quote": "monthly revenue"}}}))
+        d = self.store.create(text)
+        HomeAgent(self.store, None, intent_client=client, on_request=lambda *a: None).start(d["id"])
+        brief = self.store.get(d["id"])["track_brief"]["analysis"]
+        self.assertEqual((brief["measure"]["value"], brief["measure"]["source"]), ("monthly revenue", "model"))
+        self.assertIn("rule_value", brief["measure"])  # the rules' own reading kept beside it, for the routing data
+        self.assertNotEqual(brief["period"].get("source"), "model")  # what the model left, the rules or the default fill
+
+    def test_a_field_naming_a_column_the_table_lacks_is_refused(self):
+        text = "Show the average discount_pct per channel this year"
+        client = Scripted(reading(tracks=["analysis"], quote="average discount_pct", confidence=0.9,
+                                  fields={"analysis": {"measure": {"value": "average discount_pct", "quote": "average discount_pct"}}}))
+        d = self.store.create(text)
+        self.store.update(d["id"], lambda x: x.update(analysis={"columns": [{"name": "amount", "kind": "numeric", "unique": 90},
+                                                                           {"name": "channel", "kind": "categorical", "unique": 3}]}))
+        HomeAgent(self.store, None, intent_client=client, on_request=lambda *a: None).start(d["id"])
+        draft = self.store.get(d["id"])
+        self.assertNotEqual((draft["track_brief"]["analysis"].get("measure") or {}).get("source"), "model")
+        self.assertIn("no column named `discount_pct`", " ".join(m.get("text") or "" for m in draft["messages"]))
+
+    def agent_with(self, text, fields):
+        client = Scripted(reading(tracks=["analysis"], quote=text.split()[1] + " " + text.split()[2], confidence=0.9, fields={"analysis": fields}))
+        d = self.store.create(text)
+        return HomeAgent(self.store, None, intent_client=client, on_request=lambda *a: None), d
+
+    def table(self, draft_id, *columns):
+        self.store.update(draft_id, lambda x: x.update(analysis={"columns": [{"name": c, "kind": "numeric", "unique": 50} for c in columns]}))
+
+    def test_a_model_field_on_a_missing_column_is_withdrawn_after_the_intent_changed(self):  # review finding 1
+        text = "Show the average discount_pct per channel this year"
+        agent, d = self.agent_with(text, {"measure": {"value": "average discount_pct", "quote": "average discount_pct"}})
+        agent.start(d["id"])
+        agent.choose_intent(d["id"], "reporting")
+        agent.choose_intent(d["id"], "analysis")
+        self.table(d["id"], "amount", "channel")
+        agent.open_brief(d["id"])
+        self.assertNotEqual((self.store.get(d["id"])["track_brief"]["analysis"].get("measure") or {}).get("value"), "average discount_pct")
+
+    def test_not_sure_is_never_overwritten_by_the_model(self):  # review finding 2
+        text = "Show the average discount_pct per channel this year"
+        agent, d = self.agent_with(text, {"measure": {"value": "average discount_pct", "quote": "average discount_pct"}})
+        self.table(d["id"], "amount", "channel")
+        agent.start(d["id"])
+        q = agent.pending(self.store.get(d["id"]))
+        if q is not None and q.get("field") == "measure":
+            agent.reply(d["id"], "Not sure")
+        self.store.update(d["id"], lambda x: x["track_brief"]["analysis"].update(measure={"value": None, "source": None, "asked": True}))
+        self.table(d["id"], "amount", "channel", "discount_pct")
+        agent.open_brief(d["id"])
+        self.assertNotEqual(self.store.get(d["id"])["track_brief"]["analysis"]["measure"].get("source"), "model")  # never the model over an answer
+
+    def test_the_models_fields_reach_the_project_memory(self):  # review finding 3
+        from dclab_rnd.draft import memory
+        text = "Show the total revenue per region for last month"
+        agent, d = self.agent_with(text, {"measure": {"value": "total revenue", "quote": "total revenue"},
+                                          "breakdown": {"value": "region", "quote": "per region"}})
+        agent.start(d["id"])
+        facts = memory.facts(self.store.get(d["id"]))
+        self.assertTrue(any("total revenue" in f for f in facts), facts)
+
+    def test_a_predictions_value_with_an_invented_number_says_the_persons_words(self):  # HOME-017's "10%"
+        text = "Score everyone at month start; the top decile goes to the save-desk, and we predict who will churn."
+
+        class Planner:
+            def complete(self, messages, tools=None, max_tokens=1800):
+                return {"content": json.dumps({"action": {"status": "stated", "value": "top 10% go to the save-desk",
+                                                          "quote": "the top decile goes to the save-desk"}})}
+        d = self.store.create(text)
+        self.store.update(d["id"], lambda x: x.update(intent=intent.chosen("prediction")))
+        HomeAgent(self.store, Planner(), on_request=lambda *a: None).start(d["id"])
+        u = self.store.get(d["id"])["understanding"]
+        self.assertEqual(u["action"], "the top decile goes to the save-desk")
+        self.assertNotIn("10%", " ".join(m.get("text") or "" for m in self.store.get(d["id"])["messages"]))
+
+
 if __name__ == "__main__":
     unittest.main()

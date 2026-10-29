@@ -15,7 +15,14 @@ Answer with one JSON object and nothing else:
  "goal": the decision or result it serves, if they said it,
  "data_said": what they said about their data, if anything,
  "unknowns": [the few things still missing to help them well],
- "best_question": one short, friendly question that would make the request clear, in the person's language}
+ "best_question": one short, friendly question that would make the request clear, in the person's language,
+ "fields": {kind: {field: {"value": what they said, in a few words, "quote": the exact words of the request it rests on}}}
+   for each kind of help named, only fields the request states. The fields of each kind:
+   analysis: measure (what is counted or summed), breakdown (split by what), period, filters;
+   preparation: rules (the steps), inputs (which tables), output_grain (one row per what), destination;
+   reporting: kpis (the numbers shown), audience, refresh (how often), decisions_supported, period;
+   business: decision, options, success_measure, period_compared, constraints;
+   advice: topic.}
 
-Rules: copy the quote exactly. Use no number the person did not write, not even as an example. When the request is vague
+Rules: copy every quote exactly. Leave a field out when the request does not say it; never fill one from a guess. Use no number the person did not write, not even as an example. When the request is vague
 ("I have data problems"), answer {"tracks": [], ...} with the best question; do not guess a kind of help.

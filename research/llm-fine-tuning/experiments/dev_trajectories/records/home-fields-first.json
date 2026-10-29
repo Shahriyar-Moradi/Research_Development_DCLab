@@ -1,0 +1,122 @@
+{
+ "package": "home fields first",
+ "title": "Home's model reads each kind's fields in the same call as the kind of help; the rules fill only what it left",
+ "date": "2026-10-29",
+ "request": "Sealed v4 (HOME-017): Home with Claude read the kind of help as well as Claude alone (35 of 36) but the fields far worse (17 right, 28 wrong, against 64 and 17). The owner: yes, let Claude read the fields first too, with the rules checking.",
+ "spec": "The owner's rule: AI first, rules as the checker and the fallback. A field is kept only with a quote in the person's words and only numbers they wrote; a field naming a column the table lacks is never kept; a person's answer is never replaced.",
+ "plan": [
+  "Ask the intent reader for each kind's fields",
+  "Keep a field only when its kind has it, its quote is the person's words and its numbers are theirs",
+  "Put the model's fields first in the brief, the rules' reading beside them",
+  "Refuse a field on a missing column, now and when the table arrives",
+  "Fix the prediction value that invented 10%",
+  "Review, test, measure on dev"
+ ],
+ "decisions": [
+  {
+   "decision": "One call reads the kind of help and its fields",
+   "why": "no second request per draft; the fields of the kind the model read are what it already understood"
+  },
+  {
+   "decision": "The rules' own reading is kept beside each model field (rule_value)",
+   "why": "the routing data for the 7th model needs every answerer's reading, the rules' included"
+  },
+  {
+   "decision": "A prediction value with a number the person did not write is replaced by its quote",
+   "why": "HOME-017's uncited 10% came from the plan model writing \"top 10%\" for \"the top decile\", said back in the opening"
+  },
+  {
+   "decision": "The column check stays on column-shaped names (snake_case)",
+   "why": "the same check as the rules; a plain word like \"discount\" cannot be told from a measure the table computes"
+  }
+ ],
+ "change": "dclab_rnd/prompts/home_intent.md (fields per kind), dclab_rnd/draft/intent.py (_fields), dclab_rnd/draft/chat.py (open_brief puts the model's fields first and checks them against the table; read_problem's number check; the step record names the model's fields), dclab_rnd/draft/memory.py (model fields reach the project memory), tests/test_home_understand.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Home read the fields of each non-prediction kind with the rules alone",
+   "scenario": "HOME-017: fields 17 right and 28 wrong against Claude alone's 64 and 17.",
+   "cause": "open_brief read the briefs with brief.read (rules); the model only read the kind of help.",
+   "fix": "The intent reader returns each kind's fields; open_brief puts them first and the rules fill only what they left.",
+   "test": "tests/test_home_understand.py FieldsTests.test_the_models_fields_come_first_and_the_rules_fill_the_rest"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A prediction value said back a number the person never wrote",
+   "scenario": "HOME-017 s4-05: \"the top decile goes to the save-desk\" became \"top 10%\".",
+   "cause": "The plan model's value is said in the opening; only its quote was checked.",
+   "fix": "A value with a number the person did not write is replaced by its quote.",
+   "test": "FieldsTests.test_a_predictions_value_with_an_invented_number_says_the_persons_words"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A model field on a missing column survived a change of the kind of help",
+   "scenario": "A model measure on discount_pct, the kind changed twice by the person, then a table without that column.",
+   "cause": "The column check ran only on the intent's current fields; the person's choice drops them.",
+   "fix": "Every rules or model entry in the brief is checked against the table when it arrives.",
+   "test": "FieldsTests.test_a_model_field_on_a_missing_column_is_withdrawn_after_the_intent_changed"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A person's Not sure could be overwritten by a model field",
+   "scenario": "Measure answered Not sure, then a table with the column arrives.",
+   "cause": "The guard let entries with no source be replaced.",
+   "fix": "An answered question (asked) is never replaced by the model.",
+   "test": "FieldsTests.test_not_sure_is_never_overwritten_by_the_model"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Model-read fields did not reach the project memory",
+   "scenario": "\"Show the total revenue per region for last month\" with the model's fields: only the period reached memory.",
+   "cause": "memory.confirmed_facts kept brief entries from the person or the rules only.",
+   "fix": "Quote-checked model fields are kept too.",
+   "test": "FieldsTests.test_the_models_fields_reach_the_project_memory"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The read_brief step recorded only the rules' fields",
+   "scenario": "A brief the model filled recorded no fields in the harness step.",
+   "cause": "The step listed fields with source rules only.",
+   "fix": "The step also lists the model's fields.",
+   "test": "tests/test_home_understand.py FieldsTests"
+  },
+  {
+   "id": "F7",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The model translated or reworded a field's value",
+   "scenario": "HOME-018 dev: a Persian \"every week\" came back in English, a decision was paraphrased.",
+   "cause": "The prompt asked for \"what they said, in a few words\"; only the quote was checked against the person's words.",
+   "fix": "A value not found in the person's words is replaced by its quote.",
+   "test": "FieldsTests.test_a_reworded_value_is_kept_in_the_persons_words"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Home dev with the model reading the fields (HOME-018)",
+   "gate": "dev: no gate, compared with HOME-016",
+   "result": "fields 71 right, 4 wrong, 5 missed (HOME-016: 71, 1, 7); the kind of help 33 of 36 (35); every trap; no uncited number; EUR 1.14. Two of the new wrong fields were reworded values, fixed after the run; the rest are single cases. Dev is where the rules were tuned, so the fresh sealed set is the real measure.",
+   "verdict": "not scored"
+  }
+ ],
+ "outcome": "The model reads each kind's fields first, in the person's own words, the rules filling and checking. On dev it reads as many fields as before with fewer missed; dev favours the rules, so a fresh sealed set is the measure.",
+ "lessons": [
+  "A rule that guards one path (the intent's current fields) misses the state the person's choices leave behind: check what is stored, not what produced it."
+ ],
+ "risks": [
+  "The column check sees column-shaped names only; a plain word naming an absent column is still taken."
+ ],
+ "commits": []
+}

@@ -79,7 +79,7 @@ def confirmed_facts(draft: dict[str, Any]) -> list[tuple[str, bool]]:
             out.append((f"{LABELS[field]}: {_clip(value)}", entry.get("source") in ("answer", "person")))
     for brief in (draft.get("track_brief") or {}).values():
         for field, entry in (brief or {}).items():
-            if field in LABELS and isinstance(entry, dict) and entry.get("value") and entry.get("source") in ("user", "rules") and entry.get("quote"):
+            if field in LABELS and isinstance(entry, dict) and entry.get("value") and entry.get("source") in ("user", "rules", "model") and entry.get("quote"):  # a model field is quote-checked
                 out.append((f"{LABELS[field]}: {_clip(entry['value'])}", entry.get("source") == "user"))
     seen: set[str] = set()
     return [(line, ok) for line, ok in out if not (line in seen or seen.add(line))]

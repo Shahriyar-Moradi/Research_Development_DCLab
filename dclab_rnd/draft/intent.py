@@ -240,6 +240,7 @@ def _model_reading(text: str, client: Any, texts: list[str]) -> dict[str, Any]:
     said = {k: str(answer.get(k) or "").strip()[:400] for k in _TEXT_FIELDS}
     said = {k: v for k, v in said.items() if v and _own_numbers(v, texts)}
     unknowns = [str(u)[:120] for u in answer.get("unknowns") or [] if isinstance(u, str)][:5]
+    fields = _fields(answer.get("fields"), texts)
     tracks = [t for t in answer.get("tracks") or [answer.get("track")] if t in TRACKS]
     quote = str(answer.get("quote") or "")
     report = getattr(client, "output", None)
@@ -259,7 +260,28 @@ def _model_reading(text: str, client: Any, texts: list[str]) -> dict[str, Any]:
     except (TypeError, ValueError):
         confidence = 0.7
     return {"ok": True, "track": tracks[0], "tracks": tracks, "quote": quote, "confidence": round(confidence, 2), **said,
-            "unknowns": unknowns, "request": request}
+            "unknowns": unknowns, "request": request, **({"fields": fields} if fields else {})}
+
+
+def _fields(raw: Any, texts: list[str]) -> dict[str, dict[str, dict[str, Any]]]:
+    """2026-10-29 (HOME-017: the rules read the fields of each kind of help, 17 right against Claude alone's 64): the model's
+    fields per kind, each kept only when the kind's brief has it, its quote is the person's own words, and its value names
+    no number the person did not write. {kind: {field: {value, status, source, quote}}}."""
+    from .brief import TRACK_FIELDS
+    from .plan import quoted
+
+    out: dict[str, dict[str, dict[str, Any]]] = {}
+    for kind, entries in (raw if isinstance(raw, dict) else {}).items():
+        names = {f.name for f in TRACK_FIELDS.get(kind, ())}
+        for name, item in (entries if isinstance(entries, dict) else {}).items():
+            if name not in names or not isinstance(item, dict):
+                continue
+            value, quote = str(item.get("value") or "").strip()[:200], str(item.get("quote") or "").strip()[:300]
+            if value and quoted(quote, texts) and _own_numbers(value, texts):
+                if not quoted(value, texts):  # HOME-018: a value the model translated or reworded is said in the person's words
+                    value = quote[:200]
+                out.setdefault(kind, {})[name] = {"value": value, "status": "stated", "source": "model", "quote": quote}
+    return out
 
 
 def _open(base: dict[str, Any], source: str, tracks: list[str], said: dict[str, Any], quote: Optional[str] = None,
@@ -303,7 +325,7 @@ def read(text: str, client: Any = None, texts: Optional[list[str]] = None) -> di
     if client is not None:
         reading = _model_reading(text, client, texts)
         if reading.get("ok"):
-            said = {k: reading[k] for k in (*_TEXT_FIELDS, "unknowns") if reading.get(k)}
+            said = {k: reading[k] for k in (*_TEXT_FIELDS, "unknowns", "fields") if reading.get(k)}
             model = {**base, **said, "rule_track": rule_track, "model_track": reading["track"], "model_request": reading.get("request")}
             # the rules check the model: a strong reading of another track that the model did not name is asked
             strong = rule_track is not None and found["scores"][rule_track] >= STRONG and not tie
