@@ -94,7 +94,8 @@ class ChatClient:
     with a reason safe to show (see ``failure``); after a refusal that will not go away, requests pause for a while."""
 
     def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None, timeout: float = 180, max_retries: int = 1,
-                 reasoning_field: str | None = None, chat_template_kwargs: dict[str, Any] | None = None, tool_arguments: str = "json"):
+                 reasoning_field: str | None = None, chat_template_kwargs: dict[str, Any] | None = None, tool_arguments: str = "json",
+                 max_tokens_floor: int | None = None):
         cfg = settings()
         self.model = model or cfg["model"]
         self.base_url = base_url or os.environ.get("DCLAB_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
@@ -107,6 +108,9 @@ class ChatClient:
         self.reasoning_field = reasoning_field or None
         self.chat_template_kwargs = dict(chat_template_kwargs or {})
         self.tool_arguments = tool_arguments
+        # 2026-10-29: a local thinking model writes its whole reasoning before the answer and can spend a hosted model's
+        # limit on thinking alone (Qwen3.5-4B: 1,800 tokens of reasoning, an empty reply); the tier's floor raises every limit
+        self.max_tokens_floor = int(max_tokens_floor) if max_tokens_floor else None
 
     def _extra(self, kwargs: dict[str, Any]) -> dict[str, Any]:
         """The endpoint's chat-template setting on every request, in ``extra_body`` beside whatever the caller put there."""
@@ -163,6 +167,8 @@ class ChatClient:
         servers (Ollama, the Hugging Face router, vLLM) take ``max_tokens``. None sends no limit."""
         if max_tokens is None:
             return {}
+        if self.max_tokens_floor:
+            max_tokens = max(int(max_tokens), self.max_tokens_floor)
         return {"max_completion_tokens" if "api.openai.com" in self.base_url else "max_tokens": max_tokens}
 
     def _pause_key(self) -> str:

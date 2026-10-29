@@ -40,14 +40,19 @@ RETRIES = int(_number("DCLAB_MODEL_RETRIES", 2))  # attempts after the first, fo
 BACKOFF = _number("DCLAB_MODEL_BACKOFF", 1.5)  # seconds, doubled after each attempt
 
 
+def _timeout(t: dict[str, Any], p: settings.Purpose) -> float:
+    """The purpose's seconds, or the tier's floor when it is longer (DCLAB_TIER_<TIER>_TIMEOUT: a slow local model)."""
+    return max(float(p.timeout), float(t.get("timeout_floor") or 0))
+
+
 def _transport(t: dict[str, Any], p: settings.Purpose) -> ChatClient:
     if t.get("provider") == "anthropic":
         from .anthropic_client import AnthropicClient
 
-        return AnthropicClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=p.timeout, max_retries=0)
-    return ChatClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=p.timeout, max_retries=0,
+        return AnthropicClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=_timeout(t, p), max_retries=0)
+    return ChatClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=_timeout(t, p), max_retries=0,
                       reasoning_field=t.get("reasoning_field"), chat_template_kwargs=t.get("chat_template_kwargs"),
-                      tool_arguments=t.get("tool_arguments") or "json")
+                      tool_arguments=t.get("tool_arguments") or "json", max_tokens_floor=t.get("max_tokens_floor"))
 
 
 NO_EMBEDDINGS = ("anthropic",)  # providers that serve no embeddings: the embedding purpose is not offered on them

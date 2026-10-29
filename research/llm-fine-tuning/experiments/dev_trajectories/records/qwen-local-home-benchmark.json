@@ -1,0 +1,86 @@
+{
+ "package": "qwen-local-home-benchmark",
+ "title": "A local thinking model on Home's dev set, beside Claude's stored runs",
+ "date": "2026-10-29",
+ "request": "The owner: compare the best Qwen thinking model that fits an 8 GB Mac with every Home run so far; never run Claude beside it again, build the benchmark from Claude's past runs; keep a local model's whole reasoning for training.",
+ "spec": "Home's 36 dev cases on Qwen3.5-4B (Ollama, 16k context); the benchmark from stored results and logs only.",
+ "plan": [
+  "Pick the model by memory and disk",
+  "Check its reasoning reaches the exchange log",
+  "Floors for a slow local endpoint: timeout and output tokens",
+  "A benchmark builder over stored runs, chunked runs as one column",
+  "Run in resumable chunks with a disk guard"
+ ],
+ "decisions": [
+  {
+   "decision": "Qwen3.5-4B, not 9B",
+   "why": "the Mac has 8 GB of memory and 9 GB of free disk; the 9B weights (about 6.6 GB) and the swap that grows beside them would cross the 2 GB disk floor, as swap did twice before"
+  },
+  {
+   "decision": "A tier timeout floor (DCLAB_TIER_<TIER>_TIMEOUT), never a cut",
+   "why": "the purposes' seconds are set for a hosted model; a 4B model thinking on a laptop wrote about 10 tokens a second"
+  },
+  {
+   "decision": "A tier output-token floor (DCLAB_TIER_<TIER>_MAX_TOKENS), said in the comparison",
+   "why": "Claude's 1,800-token limit left Qwen an empty reply after 1,800 tokens of reasoning; the comparison states that the local model had more room"
+  },
+  {
+   "decision": "Claude's columns from stored runs only",
+   "why": "the owner: no Claude run beside the local model; HOME-023/024 are the same code and the same cases"
+  },
+  {
+   "decision": "Calls belong to a run by model and time window",
+   "why": "the Opus and Sonnet runs were made side by side; the model name keeps them apart"
+  }
+ ],
+ "change": "Tier floors for a slow local endpoint (settings.options timeout_floor and max_tokens_floor; gateway._timeout; ChatClient._limit), the Home benchmark builder dclab_rnd.agent_eval.home.compare (stored results, the usage log and the kept exchanges; chunked runs joined into one column), tests in tests/test_models_reasoning_field.py and tests/test_home_compare.py, .env.example.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A local thinking model returned an empty reply on Home's intent and first agent call",
+   "scenario": "Qwen3.5-4B on Ollama, Home's eval case d-p1, the gateway's default limit of 1,800 output tokens.",
+   "cause": "The model writes its whole reasoning before the answer; 1,800 tokens held about 7,000 characters of reasoning and no reply.",
+   "fix": "DCLAB_TIER_<TIER>_MAX_TOKENS raises every request's limit on that tier to a floor (8,000 for the run).",
+   "test": "tests/test_models_reasoning_field.py SettingsTests.test_a_thinking_local_tier_gets_its_output_floor_and_never_a_lower_limit"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A local model's calls would time out at the purpose's 60 to 90 seconds",
+   "scenario": "Qwen3.5-4B on an 8 GB M1: 175 to 295 seconds a call with reasoning.",
+   "cause": "The purposes' timeouts are set for a hosted model.",
+   "fix": "DCLAB_TIER_<TIER>_TIMEOUT, a floor in seconds for the tier.",
+   "test": "tests/test_models_reasoning_field.py SettingsTests.test_a_slow_local_tier_gets_its_timeout_floor_and_never_a_shorter_one"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "latent",
+   "defect": "Swap beside the loaded model shrank free disk from 5.4 to 3.8 GB in minutes",
+   "scenario": "Qwen loaded (4.1 GB) with the desktop apps on an 8 GB Mac.",
+   "cause": "macOS grows swap files on the system disk under memory pressure.",
+   "fix": "The run goes in chunks that start only above 2.5 GB free and stop below 2 GB; it waits for the owner to free memory at night.",
+   "test": "none: an operating rule of the run script"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Benchmark from stored runs (no model called)",
+   "gate": "the numbers match the earlier analysis",
+   "result": "HOME-024 Sonnet 5.5 xhigh: kind 33/36, fields 72/3/5, traps 6/6; HOME-023 Opus 5.5 high: 32/36, 72/2/6, 5/6; HOME-018 Sonnet older code: 33/36, 71/4/5, 6/6",
+   "verdict": "not scored"
+  }
+ ],
+ "outcome": "The floors and the benchmark builder are in; the Qwen run itself was stopped by the owner and waits for the night.",
+ "lessons": [
+  "A local thinking model needs room to finish its reasoning: a hosted model's limits measure the wrong thing",
+  "On an 8 GB machine the disk, not the memory, is the limit: swap grows into it"
+ ],
+ "risks": [
+  "The output floor gives the local model more room than Claude had; the comparison must say so"
+ ],
+ "commits": []
+}

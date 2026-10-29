@@ -120,7 +120,7 @@ class SettingsTests(unittest.TestCase):
 
         clean = {k: "" for k in ("OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY")} \
             | {f"DCLAB_TIER_{t.upper()}_{n}": "" for t in settings.ROUTABLE
-               for n in ("BASE_URL", "MODEL", "API_KEY", "LOCAL", "REASONING_FIELD", "CHAT_TEMPLATE_KWARGS", "TOOL_ARGUMENTS")} | {"OPENAI_API_KEY": "k"}
+               for n in ("BASE_URL", "MODEL", "API_KEY", "LOCAL", "REASONING_FIELD", "CHAT_TEMPLATE_KWARGS", "TOOL_ARGUMENTS", "TIMEOUT", "MAX_TOKENS")} | {"OPENAI_API_KEY": "k"}
         env = mock.patch.dict(os.environ, clean)
         env.start()
         self.addCleanup(env.stop)
@@ -160,6 +160,43 @@ class SettingsTests(unittest.TestCase):
 
             transport = gw._transport(settings.tier("cheap"), settings.purpose("intern"))
         self.assertEqual((transport.reasoning_field, transport.tool_arguments, transport.chat_template_kwargs), ("reasoning", "object", {}))
+
+    def test_a_slow_local_tier_gets_its_timeout_floor_and_never_a_shorter_one(self):
+        """2026-10-29: a 4B model thinking on an 8 GB laptop takes longer than a purpose's seconds (set for a hosted model)."""
+        from dclab_rnd.models import gateway as gw
+        from dclab_rnd.models import settings
+
+        local = {"DCLAB_TIER_CHEAP_BASE_URL": "http://127.0.0.1:11434/v1", "DCLAB_TIER_CHEAP_MODEL": "qwen3.5:4b"}
+        with mock.patch.dict(os.environ, {**local, "DCLAB_TIER_CHEAP_TIMEOUT": "900"}):
+            slow = gw._transport(settings.tier("cheap"), settings.purpose("home_intent"))
+        with mock.patch.dict(os.environ, {**local, "DCLAB_TIER_CHEAP_TIMEOUT": "5"}):
+            short = gw._transport(settings.tier("cheap"), settings.purpose("home_intent"))
+        with mock.patch.dict(os.environ, local):
+            plain = gw._transport(settings.tier("cheap"), settings.purpose("home_intent"))
+        purpose_seconds = settings.purpose("home_intent").timeout
+        self.assertEqual((slow.timeout, short.timeout, plain.timeout), (900.0, purpose_seconds, purpose_seconds))
+        for wrong in ("soon", "0", "-3"):
+            with mock.patch.dict(os.environ, {"DCLAB_TIER_CHEAP_TIMEOUT": wrong}):
+                with self.assertRaises(ValueError):
+                    settings.options("cheap")
+
+    def test_a_thinking_local_tier_gets_its_output_floor_and_never_a_lower_limit(self):
+        """2026-10-29: Qwen3.5-4B spent Home's 1,800 tokens on reasoning alone and returned an empty reply."""
+        from dclab_rnd.models import gateway as gw
+        from dclab_rnd.models import settings
+
+        local = {"DCLAB_TIER_CHEAP_BASE_URL": "http://127.0.0.1:11434/v1", "DCLAB_TIER_CHEAP_MODEL": "qwen3.5:4b"}
+        with mock.patch.dict(os.environ, {**local, "DCLAB_TIER_CHEAP_MAX_TOKENS": "8000"}):
+            floored = gw._transport(settings.tier("cheap"), settings.purpose("home_intent"))
+        with mock.patch.dict(os.environ, local):
+            plain = gw._transport(settings.tier("cheap"), settings.purpose("home_intent"))
+        self.assertEqual((floored._limit(1800), floored._limit(12000), floored._limit(None)),
+                         ({"max_tokens": 8000}, {"max_tokens": 12000}, {}))
+        self.assertEqual(plain._limit(1800), {"max_tokens": 1800})
+        for wrong in ("lots", "0", "-1", "2.5"):
+            with mock.patch.dict(os.environ, {"DCLAB_TIER_CHEAP_MAX_TOKENS": wrong}):
+                with self.assertRaises(ValueError):
+                    settings.options("cheap")
 
 
 def scripted_gateway(home, replies):

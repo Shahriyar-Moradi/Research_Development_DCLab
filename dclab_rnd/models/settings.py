@@ -199,7 +199,24 @@ def options(name: str) -> dict[str, Any]:
     arguments = _env(name, "TOOL_ARGUMENTS").lower() or "json"
     if arguments not in TOOL_ARGUMENTS:
         raise ValueError(f"DCLAB_TIER_{name.upper()}_TOOL_ARGUMENTS must be {' or '.join(TOOL_ARGUMENTS)}, not {arguments!r}")
-    return {"reasoning_field": field, "chat_template_kwargs": kwargs, "tool_arguments": arguments}
+    # 2026-10-29: a slow endpoint (a 4B model thinking on an 8 GB laptop) needs longer than a purpose's seconds, which are
+    # set for a hosted model: DCLAB_TIER_<TIER>_TIMEOUT is a floor in seconds for every request of this tier, never a cut
+    raw_timeout = _env(name, "TIMEOUT")
+    try:
+        timeout = float(raw_timeout) if raw_timeout else None
+    except ValueError:
+        raise ValueError(f"DCLAB_TIER_{name.upper()}_TIMEOUT must be a number of seconds, not {raw_timeout!r}") from None
+    if timeout is not None and timeout <= 0:
+        raise ValueError(f"DCLAB_TIER_{name.upper()}_TIMEOUT must be above zero")
+    raw_tokens = _env(name, "MAX_TOKENS")  # a floor for every request's output limit (a local model that thinks at length)
+    try:
+        tokens = int(raw_tokens) if raw_tokens else None
+    except ValueError:
+        raise ValueError(f"DCLAB_TIER_{name.upper()}_MAX_TOKENS must be a whole number of tokens, not {raw_tokens!r}") from None
+    if tokens is not None and tokens <= 0:
+        raise ValueError(f"DCLAB_TIER_{name.upper()}_MAX_TOKENS must be above zero")
+    return {"reasoning_field": field, "chat_template_kwargs": kwargs, "tool_arguments": arguments, "timeout_floor": timeout,
+            "max_tokens_floor": tokens}
 
 
 def _host(url: str) -> str:
