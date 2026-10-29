@@ -233,14 +233,21 @@
    "gate": "home_gate_v3, written before the run",
    "result": "FAIL: the kind of help 27 of 36 in both the rules and the model arm (the model arm lacked the intent reader), English 0.92, Persian 0.38; one uncited number; the missing-column trap missed by every arm; Claude alone 36 of 36",
    "verdict": "fail"
+  },
+  {
+   "name": "Home sealed v4 (HOME-017), home_gate_v4, English only, with the intent reader",
+   "gate": "home_gate_v4, written and committed before the run",
+   "result": "FAIL (uncited 1, the missing-column trap, new wrong fields). The kind of help: Home with Claude 35 of 36 (bar 0.85, met), the rules 27, Claude alone 35. Fields right/wrong: Home with Claude 17/28, Claude alone 64/17, the rules 9/20. Traps: Home with Claude 4 of 5 (the missing column missed by every arm). EUR 1.14.",
+   "verdict": "fail"
   }
  ],
- "outcome": "Home asks before it routes and its model reads first; dev and a fresh sealed set are still to be measured.",
+ "outcome": "Home now reads the kind of help as well as Claude alone on a fresh sealed set (35 of 36); it still reads the fields of each kind far worse (17 right against 64), one invented number got through, and no arm says that a named column is missing.",
  "lessons": [
   "A default that guesses hides itself in every suite that grew up beside it: changing it shows how many tests encoded the guess.",
   "Rules tuned on dev sentences read the dev sentences; the reading belongs to the model, the checking to code.",
   "Adaptive thinking decides for itself whether to think: asking for a summary is not enough to get one on short requests; the effort level is what makes it think.",
-  "An eval arm must build the agent the way the product does: a missing client measures a different system, and the numbers look plausible."
+  "An eval arm must build the agent the way the product does: a missing client measures a different system, and the numbers look plausible.",
+  "Fixing the first decision exposes the next one: once the kind of help is read by the model, the fields, still read by rules first, are the gap."
  ],
  "risks": [
   "The no-model fallback still reads some vague requests as predictions when they say a pack's word (a review, a ticket).",
