@@ -72,6 +72,9 @@ class SplitTests(unittest.TestCase):
         self.assertEqual({p.name for p in home.sealed_runs("sealed_v3")}, {"HOME-015_sealed_v3.json"})  # spent once
         self.assertEqual({p.name for p in home.sealed_runs("sealed_v4")}, {"HOME-017_sealed_v4.json"})
         self.assertEqual(home.gate_for("sealed_v5")["version"], "home_gate_v5")
+        self.assertEqual({p.name for p in home.sealed_runs("sealed_v5")}, {"HOME-021_sealed_v5.json"})  # spent once
+        self.assertEqual(home.gate_for("sealed_v6")["version"], "home_gate_v6")
+        self.assertEqual(home.fingerprint(home.SPLITS["sealed_v6"]), home.recorded_fingerprint("sealed_v6"))  # pinned before its run
 
 
 class ScoringTests(unittest.TestCase):
@@ -226,6 +229,22 @@ class RunTests(unittest.TestCase):
         self.assertEqual(home.verdict(result, "sealed")["status"], "not scored")  # an arm asked for did not run
         result["summary"]["plain"], result["requests"] = dict(arm), 0
         self.assertEqual(home.verdict(result, "sealed")["status"], "not scored")  # a model run that sent nothing
+
+    def test_gate_v6_reports_the_rules_alone_and_never_fails_on_them(self):
+        """The owner, 2026-10-29: AI first, rules as the fallback; v6 was written before any run of its set."""
+        arm = {"track_accuracy": 0.9, "quote_invalid": 0, "uncited": 0, "rows_exposed": 0, "destructive_unconfirmed": 0,
+               "median_questions": 2, "traps": {t: True for t in home.TRAPS}, "new_wrong": []}
+        result = {"arms": ["rules", "model", "plain"], "requests": 40, "failures": [],
+                  "summary": {"rules": {**arm, "track_accuracy": 0.5}, "model": dict(arm), "plain": dict(arm)}}
+        self.assertEqual(home.verdict(result, "sealed_v5")["status"], "fail")  # v5 still needs the rules at 0.70
+        v6 = home.verdict(result, "sealed_v6")
+        self.assertEqual((v6["gate"], v6["status"], v6["reported"]), ("home_gate_v6", "pass", {"rules_track_accuracy": False}))
+        self.assertNotIn("rules_track_accuracy", v6["checks"])
+        for k in home.GATE:
+            if k not in ("version", "split", "rules_track_accuracy"):
+                self.assertEqual(home.GATE_V6[k], home.GATE[k], k)  # every other check and number is the same
+        result["summary"]["model"]["uncited"] = 1
+        self.assertEqual(home.verdict(result, "sealed_v6")["status"], "fail")
 
     def test_the_plain_arm_takes_the_models_answer_as_given(self):
         case = next(c for c in home.load("dev") if c["id"] == "d-a1")

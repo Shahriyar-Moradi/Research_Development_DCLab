@@ -51,10 +51,12 @@ RESULTS = ROOT / "evidence" / "campaigns" / "home_v1" / "results"
 SPLITS = {"dev": HERE / "requests_dev.json", "sealed": HERE / "requests_sealed.json", "sealed_v2": HERE / "requests_sealed_v2.json",
           "sealed_v3": HERE / "requests_sealed_v3.json",  # v3 (2026-10-29): written by an independent agent for P6/P7, pinned unread
           "sealed_v4": HERE / "requests_sealed_v4.json",  # v4 (2026-10-29): English only, by an agent shown the format alone
-          "sealed_v5": HERE / "requests_sealed_v5.json"}  # v5 (2026-10-29): the same way, for the fields read by the model
+          "sealed_v5": HERE / "requests_sealed_v5.json",  # v5 (2026-10-29): the same way, for the fields read by the model
+          "sealed_v6": HERE / "requests_sealed_v6.json"}  # v6 (2026-10-29 night): the same way, after the person's own words (8f43e62d)
 SEALED = {"sealed": HERE / "sealed.sha256", "sealed_v2": HERE / "sealed_v2.sha256", "sealed_v3": HERE / "sealed_v3.sha256",
           "sealed_v4": HERE / "sealed_v4.sha256",
-          "sealed_v5": HERE / "sealed_v5.sha256"}  # each sealed set's committed fingerprint
+          "sealed_v5": HERE / "sealed_v5.sha256",
+          "sealed_v6": HERE / "sealed_v6.sha256"}  # each sealed set's committed fingerprint
 TRACKS = ("prediction", "analysis", "preparation", "reporting", "business", "advice")
 EXITS = ("ml_project", "analysis", "dataset", "dashboard", "decision_brief", "answer")
 TRAPS = ("real_prediction", "report_not_model", "silent_drop", "rows_request", "persian_no_model", "missing_column")
@@ -83,8 +85,13 @@ GATE_V2 = {**GATE, "version": "home_gate_v2", "split": "sealed_v2"}
 GATE_V3 = {**GATE, "version": "home_gate_v3", "split": "sealed_v3"}  # written 2026-10-29 before any run: the same checks and numbers
 GATE_V4 = {**GATE, "version": "home_gate_v4", "split": "sealed_v4"}  # written 2026-10-29 before any run: the same checks and numbers
 GATE_V5 = {**GATE, "version": "home_gate_v5", "split": "sealed_v5"}  # written 2026-10-29 before any run: the same checks and numbers
-GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3, "sealed_v4": GATE_V4, "sealed_v5": GATE_V5}
-LATEST_SEALED = "sealed_v5"
+# v6 (2026-10-29, the owner: "AI first, rules as the fallback"): the rules alone are measured and reported, never a pass check;
+# Home reads with its model first and the rules answer alone only when no model does. Every other check and number is v5's.
+GATE_V6 = {**GATE, "version": "home_gate_v6", "split": "sealed_v6",
+           "rules_track_accuracy": "the same with the rules alone: reported, not a pass check (the model reads first since 2026-10-29)",
+           "rules_reported_only": True}
+GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3, "sealed_v4": GATE_V4, "sealed_v5": GATE_V5, "sealed_v6": GATE_V6}
+LATEST_SEALED = "sealed_v6"
 
 
 def gate_for(split: str) -> dict[str, Any]:
@@ -542,10 +549,13 @@ def verdict(result: Mapping[str, Any], split: str) -> dict[str, Any]:
     if missing or not result.get("requests"):  # an arm that was asked for and did not run, or a model run that sent nothing
         why = f"arm(s) {', '.join(missing)} did not run" if missing else "no request was sent"
         return {"gate": gate["version"], "status": "not scored", "why": why, "checks": checks}
+    reported = {}
+    if gate.get("rules_reported_only"):  # v6: the rules alone are read beside, never a reason to fail
+        reported["rules_track_accuracy"] = checks.pop("rules_track_accuracy")
     status = "pass" if all(checks.values()) else "fail"
     if split != gate["split"]:
         status = f"{status} (dev: the gate is read on the sealed set)"
-    return {"gate": gate["version"], "status": status, "checks": checks}
+    return {"gate": gate["version"], "status": status, "checks": checks, **({"reported": reported} if reported else {})}
 
 
 # ------------------------------------------------------------------------------------------------ plan and records
