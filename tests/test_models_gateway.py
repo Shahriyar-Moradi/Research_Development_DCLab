@@ -615,7 +615,7 @@ class ApiTests(unittest.TestCase):
         while time.time() < deadline and "home_agent" not in (c.get("/api/models").json()["usage"] or {}).get("by_purpose", {}):
             time.sleep(0.2)
         overview = c.get("/api/models").json()
-        self.assertEqual(set(overview["usage"]["by_purpose"]), {"home_agent", "evidence_answer"})
+        self.assertEqual(set(overview["usage"]["by_purpose"]), {"home_intent", "home_agent", "evidence_answer"})  # 2026-10-29: the model reads every request first
         self.assertNotIn("sk-never-logged", json.dumps(overview))
 
 

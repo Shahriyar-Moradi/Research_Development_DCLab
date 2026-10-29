@@ -118,6 +118,10 @@ class Coordinator:
         from .chat import HomeAgent
 
         track = HomeAgent.track(self.drafts.get(draft_id))
+        open_q = self.agent.pending(self.drafts.get(draft_id)) if track == "undecided" else None
+        if open_q is not None and open_q.get("field") == "intent":  # 2026-10-29: the kind of help is the person's to say first
+            self._answer(draft_id, person)
+            track = HomeAgent.track(self.drafts.get(draft_id))
         if track != "prediction":  # H2 (the review): the walk builds a prediction; another kind of help is not walked
             return {"state": "problem", "next": "stop", "says": f"This draft is not a prediction ({track}); change the type of help to a "
                     "prediction first", "blockers": [], "passed": [], "steps": [], "project_id": None}

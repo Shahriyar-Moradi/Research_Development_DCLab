@@ -112,7 +112,8 @@ class ReviewOfH4Tests(unittest.TestCase):
                          "I want to explore the data and find which customers churn",
                          "Profile my users and find who is at risk",
                          "Use statistics to figure out which customers are at risk of churning"):
-            self.assertEqual(intent.read(sentence)["track"], "prediction", sentence)
+            # never read as an analysis; one the rules cannot read is asked openly (2026-10-29), never guessed
+            self.assertIn(intent.read(sentence)["track"], ("prediction", None), sentence)
         self.assertEqual(intent.read("I want an analysis of my tickets.")["track"], "analysis")  # asked outright: still strong
 
     def test_words_that_are_not_fields(self):
@@ -136,11 +137,22 @@ class HomeTests(unittest.TestCase):
         ledger.install(ledger.FileLedger(self.home / "ledger", "wtest"))
         self.addCleanup(ledger.install, None)
 
-    def start(self, text):
+    def start(self, text, table=False):
         d = self.store.create(text)
+        if table:  # a described table (names and kinds only): the measure question has the table's columns as buttons
+            self.store.update(d["id"], lambda x: x.update(analysis={"columns": [{"name": "resolution_hours", "kind": "numeric", "unique": 80},
+                                                                               {"name": "region", "kind": "categorical", "unique": 4}]}))
         agent = HomeAgent(self.store, None)
         agent.start(d["id"])
         return agent, self.store.get(d["id"])
+
+    def test_no_measure_question_before_the_table(self):  # 2026-10-29: "What should I measure?" with only "Number of rows"
+        agent, d = self.start("I want an analysis of my tickets.")
+        self.assertIsNone(agent.pending(d))
+        agent, d = self.start("I want an analysis of my tickets.", table=True)
+        q = agent.pending(d)
+        self.assertEqual(q["field"], "measure")
+        self.assertIn("resolution_hours", q["options"])
 
     def test_an_analysis_request_that_says_everything_asks_nothing(self):
         agent, d = self.start("What was the average satisfaction per team last month?")
@@ -150,7 +162,7 @@ class HomeTests(unittest.TestCase):
         self.assertIsNone(agent.pending(d))
 
     def test_an_unclear_analysis_asks_one_question_with_a_not_sure_button_and_not_sure_moves_on(self):
-        agent, d = self.start("I want an analysis of my tickets.")
+        agent, d = self.start("I want an analysis of my tickets.", table=True)
         q = agent.pending(d)
         self.assertEqual((q["field"], q["brief"]), ("measure", "analysis"))
         self.assertEqual(q["options"][-1], "Not sure")
@@ -178,27 +190,27 @@ class HomeTests(unittest.TestCase):
         self.assertNotIn("brief", q)
 
     def test_changing_to_a_prediction_closes_the_brief_question(self):
-        agent, d = self.start("I want an analysis of my tickets.")
+        agent, d = self.start("I want an analysis of my tickets.", table=True)
         self.assertEqual(agent.pending(d)["brief"], "analysis")
         agent.choose_intent(d["id"], "prediction")
         q = agent.pending(self.store.get(d["id"]))
         self.assertTrue(q is None or "brief" not in q)
 
     def test_another_request_while_a_brief_question_is_open_is_never_its_answer(self):
-        agent, d = self.start("I want an analysis of my tickets.")
+        agent, d = self.start("I want an analysis of my tickets.", table=True)
         self.assertEqual(agent.pending(d)["field"], "measure")
         agent.reply(d["id"], "Actually I want to predict which customers will churn next month")
         d = self.store.get(d["id"])
         self.assertNotEqual((d["track_brief"]["analysis"]["measure"] or {}).get("source"), "user")  # not taken as the measure
-        agent2, d2 = self.start("I want an analysis of my tickets.")
+        agent2, d2 = self.start("I want an analysis of my tickets.", table=True)
         agent2.reply(d2["id"], "Can you make synthetic data for me?")
         self.assertNotEqual((self.store.get(d2["id"])["track_brief"]["analysis"]["measure"] or {}).get("source"), "user")
-        agent3, d3 = self.start("I want an analysis of my tickets.")
+        agent3, d3 = self.start("I want an analysis of my tickets.", table=True)
         agent3.reply(d3["id"], "resolution time")  # a short answer is the answer
         self.assertEqual(self.store.get(d3["id"])["track_brief"]["analysis"]["measure"]["value"], "resolution time")
 
     def test_a_sheet_edit_closes_the_open_question_on_that_field(self):
-        agent, d = self.start("I want an analysis of my tickets.")
+        agent, d = self.start("I want an analysis of my tickets.", table=True)
         self.assertEqual(agent.pending(d)["field"], "measure")
         agent.set_brief(d["id"], "analysis", "measure", "resolution time")
         agent.reply(d["id"], "and split it by region please")

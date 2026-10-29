@@ -219,12 +219,16 @@ def fill(track: str, read_fields: dict[str, dict[str, Any]], before: Optional[di
     return out
 
 
-def asks(track: str, brief: dict[str, dict[str, Any]], asked: int) -> Optional[Field]:
-    """The next field worth a question: unknown, with no safe default, never asked before, within the track's budget."""
+def asks(track: str, brief: dict[str, dict[str, Any]], asked: int, has_columns: bool = True) -> Optional[Field]:
+    """The next field worth a question: unknown, with no safe default, never asked before, within the track's budget.
+    A field whose buttons come from the table's columns waits for the table (2026-10-29: "What should I measure?" was
+    asked before any upload, with "Number of rows" as its only choice)."""
     if asked >= BUDGET.get(track, 0):
         return None
     for f in TRACK_FIELDS.get(track, ()):
         entry = brief.get(f.name) or {}
+        if f.options_from and not has_columns and len(f.options) <= 1:  # its buttons would be the table's columns and one fixed choice
+            continue
         if f.asked and entry.get("status") == "unknown" and not entry.get("asked"):
             return f
     return None

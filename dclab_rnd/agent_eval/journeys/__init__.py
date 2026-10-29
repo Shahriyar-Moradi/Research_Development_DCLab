@@ -242,6 +242,10 @@ class _Person:
 
     def _find(self, field: str, question: str) -> Optional[str]:
         self.asked.append(field)
+        if field == "intent" and not self.answers.get("intent"):  # 2026-10-29: Home asks the kind of help first; these people came
+            from dclab_rnd.draft.intent import LABELS                 # for a prediction (each journey is a kind the engine predicts)
+
+            return LABELS["prediction"]
         said = self.answers.get(field) or self.answers.get(self.SAME.get(field, field))
         if said:
             return said

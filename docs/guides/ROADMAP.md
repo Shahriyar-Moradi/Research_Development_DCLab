@@ -35,6 +35,18 @@ review of 2026-10-28 kept every answer's, brief's and export's values out of the
 Home code work on pandas 3. Its leftovers fixed the same day: a build from a button asks H3.1's column question in the chat, and
 small filters that together remove many rows ask first. The exposure log (H8) is now read beside every holdout number: a holdout the chat's answers already looked at is said so, the split never moved.
 
+**Home understands before it routes (2026-10-29, the owner: "AI first, rules as the fallback"):** the second sealed set
+(HOME-013) failed too and worse (the rules 21 of 36, Home with Claude 31, Claude alone 36; three uncited numbers), and the
+owner's own two tests misrouted ("I have data analysis problems" became a prediction; "segment of the my customer" was
+asked what to measure before any table). Now Home's model reads first (the need, what is missing, the question that would
+make it clear), the rules check it and answer alone only with no model; an unclear request gets one open question with
+every kind of help as a button, never a silent prediction; a failed reading is said; segments have their two ways (groups
+the person has, or a segmentation project with no outcome); no question waits on columns before the table; every track's
+numbers are checked; the page shows the ML panels only for a prediction that was stated or chosen. Plan:
+`~/.claude/plans/magical-waddling-honey.md` (P0 to P8). In flight in their own sessions: about 600 written, labelled
+requests and an intent classifier in shadow (P6), and a collector of every routing decision for the 7th model, a routing
+model to be trained (P8). Next: measure on dev, then a fresh sealed set once.
+
 **Phase 12, training data that teaches why and never forgets (planned 2026-10-28):** 36.0 to 36.7 in
 `PHASE12_TRAINING_DATA_PLAN.md`: every agent's thinking and reasoning collected, coverage per agent and per kind of help,
 outcomes for non-prediction help, frozen exams, replay sets and verified code against forgetting. Part A (the backfill of

@@ -59,7 +59,9 @@ class SplitTests(unittest.TestCase):
                 self.assertEqual(home.GATE_V2[k], home.GATE[k], k)
         names = {p.name for p in home.sealed_runs("sealed")}
         self.assertTrue(names and all(n.endswith("_sealed.json") for n in names))  # HOME-011 spent the first set
-        self.assertEqual(home.sealed_runs("sealed_v2"), [])  # it does not spend the second
+        v2 = {p.name for p in home.sealed_runs("sealed_v2")}
+        self.assertEqual(v2, {"HOME-013_sealed_v2.json"})  # spent once on 2026-10-29; HOME-012 was unscored and spent nothing
+        self.assertFalse(names & v2)  # each set's run is its own
 
 
 class ScoringTests(unittest.TestCase):

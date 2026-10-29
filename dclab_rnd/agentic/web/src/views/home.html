@@ -47,11 +47,13 @@
             <div class="row small muted" data-f="home.quickstarts">
               <span>Examples:</span>
               <div class="chips">
+                <button type="button" class="chip" data-example="Predict which customers will cancel their subscription next month, so the retention team can call them first.">Predict churn</button>
+                <button type="button" class="chip" data-example="Show me our sales per region and per month for this year.">Analyse my sales</button>
+                <button type="button" class="chip" data-example="I want to find groups of customers who behave alike, to target offers.">Find customer segments</button>
+                <button type="button" class="chip" data-example="Merge my two customer files and remove the duplicate rows.">Clean or combine files</button>
+                <button type="button" class="chip" data-example="Build a weekly dashboard of orders and revenue per channel for my manager.">Weekly dashboard</button>
+                <button type="button" class="chip" data-example="Why did revenue drop in March compared with February?">Why did revenue drop?</button>
                 <button type="button" class="chip" data-example="Find card fraud at authorization time; the positives are 0.17% of rows, so do not trust accuracy.">Fraud · 0.17% positives</button>
-                <button type="button" class="chip" data-example="Forecast tomorrow's bike rentals and beat the lag-2 baseline honestly.">Daily demand forecast</button>
-                <button type="button" class="chip" data-example="Predict whether a reviewer recommends a product from the review text, on products the model has never seen.">Text + tabular</button>
-                <button type="button" class="chip" data-example="Detect pedestrians at night and in rain; split by drive so frames from one drive never land in both train and test.">Vision · pedestrians</button>
-                <button type="button" class="chip" data-example="Fine-tune a small model that knows our ten workflow steps and when to stop and ask.">Fine-tune a small model</button>
               </div>
             </div>
             <div class="row small muted" data-f="home.pack">
@@ -186,8 +188,7 @@
       <div class="panel-head"><div class="panel-title"><h2>Conversation</h2><span class="sub" id="home-chat-sub">A few questions to understand the problem, and the data as it gets ready.</span></div><span class="row" data-style="gap:8px;align-items:center"><span class="pill outline" id="home-chat-mode" hidden></span><button type="button" class="btn primary sm" id="home-create" title="DCLab builds the project from what this chat settled and its agent plans and runs it">Build this chat as a project</button></span></div>
       <div class="panel-foot bar" id="home-intent" hidden data-f="home.intent">
         <span class="small"><span class="muted">Type of help:</span> <b id="home-intent-label"></b> <span class="muted" id="home-intent-why"></span></span>
-        <label class="sr-only" for="home-intent-change">Change the type of help</label>
-        <select id="home-intent-change" class="sm"><option value="">Change…</option></select>
+        <span class="chips" id="home-intent-change" role="group" aria-label="Change the type of help"></span>
       </div>
       <div class="panel-foot" id="home-brief" hidden data-f="home.brief">
         <div class="small muted">What DCLab understood (change anything that is wrong):</div>
@@ -508,19 +509,26 @@ DC.view('home', {
     const INTENTS = { prediction: 'A prediction (a model)', analysis: 'Numbers from my data', preparation: 'Cleaning or combining data',
       reporting: 'A report or dashboard', business: 'A business question', advice: 'Advice or an explanation' };
     function drawIntent(intent) {
-      const box = $('#home-intent', el), sel = $('#home-intent-change', el);
+      const box = $('#home-intent', el), chips = $('#home-intent-change', el);
       if (!intent) { box.hidden = true; $('#home-create', el).hidden = false; return; }  // a draft from before H2: a prediction
       if (S.draft) S.draft.intent = intent;
       const asked = intent.status === 'asked';
       $('#home-intent-label', el).textContent = asked ? 'not decided yet' : INTENTS[intent.track] || intent.track;
-      $('#home-intent-why', el).textContent = asked ? '— answer below, or choose' : intent.source === 'user' ? '(you chose)'
-        : intent.quote ? `— from “${intent.quote}”` : intent.source === 'default' ? '(the usual start; change it if not)' : '';
-      sel.innerHTML = '<option value="">Change…</option>' + Object.entries(INTENTS).filter(([k]) => asked || k !== intent.track)
-        .map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
+      $('#home-intent-why', el).textContent = asked ? '— answer below, or choose:' : intent.source === 'user' ? '(you chose)'
+        : intent.quote ? `— from “${intent.quote}”` : '';
+      // the kinds of help as chips (2026-10-29): one click changes it, the same choice as the question's buttons
+      chips.innerHTML = Object.entries(INTENTS).filter(([k]) => asked || k !== intent.track)
+        .map(([k, v]) => `<button type="button" class="chip sm" data-switch-track="${esc(k)}">${esc(v)}</button>`).join('');
       box.hidden = false;
-      const prediction = !asked && intent.track === 'prediction';
+      // only a prediction that was stated or chosen shows the ML panels: the solution workflow, the outcome and moment, the
+      // domain pack and the build button (2026-10-29: a vague request showed all of them as "the usual start")
+      const prediction = !asked && intent.track === 'prediction' && intent.source !== 'default';
       $('#home-solution', el).hidden = !prediction;
       $('#home-create', el).hidden = !prediction;
+      $('#home-understand', el).hidden = !prediction;
+      const packRow = $('[data-f="home.pack"]', el);
+      if (packRow) packRow.hidden = !prediction;
+      if (!prediction) $('#home-packs', el).hidden = true;
       if (S.draft) drawBrief(S.draft);
     }
     /* What DCLab understood for this kind of help (package H4): each field with where it came from, and a Change control.
@@ -561,13 +569,6 @@ DC.view('home', {
         S.draft = await DC.client.setBrief(S.draft.id, { body: { track: S.draft.intent.track, field, value } });
         drawBrief(S.draft);
       } catch (err) { toast(err.message, { ok: false }); e.target.disabled = false; }
-    });
-    $('#home-intent-change', el).addEventListener('change', async e => {
-      const track = e.target.value; if (!track || !S.draft) return;
-      e.target.disabled = true;
-      try { S.draft = await DC.client.chooseIntent(S.draft.id, { body: { track } }); drawIntent(S.draft.intent); }
-      catch (err) { toast(err.message, { ok: false }); }
-      finally { e.target.disabled = false; e.target.value = ''; }
     });
     async function resume(id) {
       try { const d = await DC.client.readDraft(id, { quiet: true }); if (CHATS.includes(d.status)) { remember(d.id); openDraft(d); return true; } }

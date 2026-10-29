@@ -54,6 +54,11 @@ def clause_of(text: str, word: str) -> str:
 
 
 LATER = re.compile(r"\b(after|once|only|later|not known|unknown|leak\w*)\b", re.I)  # a column mentioned as known later
+SEGMENTS_FIELD = "segments_route"
+SEGMENTS_ROUTES = ("Describe groups I already have", "Find new groups in the data")
+SEGMENTS_SAID = ("There are two ways to look at groups. If you already have them in a column (a plan, a region, a customer type), "
+                 "upload the table and I'll show the numbers per group. If you want DCLab to find new groups of customers who "
+                 "behave alike, that is a segmentation project: no outcome is needed, and DCLab checks how stable the groups are.")
 COSTS_QUESTION = ("Roughly, what does acting on one case cost, and what is a case worth or a miss? For example: a call costs 5; "
                   "a lost customer costs 300.")
 
@@ -330,7 +335,7 @@ class HomeAgent:
         """``source="critic"`` (28.4): the understanding critic sends a settled field back to the person (the card it read
         is wrong or unsure there); it is asked past the cap and over a settled field, still never twice while open."""
         draft = self.store.get(draft_id)
-        if field != "intent" and self.track(draft) != "prediction":
+        if field not in ("intent", SEGMENTS_FIELD) and self.track(draft) != "prediction":
             return None  # H2 (the review): off a prediction no question of the prediction path is asked, the critic's included
         asked = counted(draft)
         critic = source in ("critic", "second_opinion")  # 28.4, 28.6: a field the card settled is put to the person again
@@ -341,7 +346,7 @@ class HomeAgent:
             return None  # the person said it already, or the table is here: asking again is what they found unintelligent
         if field in OPTIONAL and not critic and ((draft.get("understanding") or {}).get(field) or any(q.get("field") == field and q.get("answered") for q in draft["questions"])):
             return None  # live (HRN-022): an optional field no plan settles was asked four times in one walk; answered once, it is known
-        q = {"id": f"q{len(draft['questions']) + 1}", "field": field, "text": question, "options": (options or [])[:4], "why": why, "answered": None,
+        q = {"id": f"q{len(draft['questions']) + 1}", "field": field, "text": question, "options": (options or [])[:7 if field == "intent" else 4], "why": why, "answered": None,
              **({"source": source} if source else {}), **(extra or {})}  # 28.6: the second opinion's verdict travels with its question
         replied = None if critic else self.answerable(draft)
         if replied is not None and (replied["field"] == field or replied.get("source") in ("critic", "second_opinion")):
@@ -567,7 +572,8 @@ class HomeAgent:
                 was = self.track(draft)
                 # only the rules' own reading moves the track: a default (nothing read) never replaces a model's reading (the
                 # review of the H2 port: an edited sentence threw a model's "analysis" away and opened the ML path)
-                if reading["status"] != "asked" and (reading["source"] == "rules" or (draft.get("intent") or {}).get("source") != "model"):
+                if reading["status"] != "asked" and ((reading["source"] == "rules" and not reading.get("fallback"))
+                                                     or (draft.get("intent") or {}).get("source") != "model"):
                     self.move_to(draft_id, reading, was)
                     if reading["track"] != was:
                         return  # the new track was opened (a prediction is read, planned and asked from the start)
@@ -623,7 +629,7 @@ class HomeAgent:
         the default and the person's own choice are not readings."""
         if value.get("source") != "user":
             value = {**value, "rule_track": value.get("rule_track", value.get("track"))}
-        if sample and value.get("source") in ("rules", "model") and value.get("quote"):
+        if sample and value.get("source") in ("rules", "model") and (value.get("quote") or value.get("status") == "asked"):
             from ..ledger import capture
 
             draft = self.store.get(draft_id)
@@ -678,8 +684,24 @@ class HomeAgent:
             return
         has_data = bool(draft.get("assets"))
         offer = [] if track == "advice" or has_data else ["upload", "connect"]
-        self.say(draft_id, f"I read this as {intents.LABELS[track].lower()}: “{draft['problem']}”. {intents.NEXT[track]}", kind="text",
-                 actions=offer, track=track)
+        need = (draft.get("intent") or {}).get("need")  # the model's one line, kept only with the person's own numbers
+        if need:  # "find groups among your customers"; a model that still wrote "They want to ..." is said to the person
+            need = re.sub(r"^(?:they|the (?:person|user|customer)|he|she)\s+(?:wants?|would like|needs?)\s+to\s+", "", need.strip(), flags=re.I)
+        if need and re.search(r"[\u0600-\u06FF]", need):  # live: a Persian need inside an English sentence read badly; it is quoted
+            opening = f"I understood: “{need.rstrip('.')}”."
+        elif need:
+            opening = f"I understood: you want to {need[:1].lower() + need[1:].rstrip('.')}."
+        else:
+            opening = f"I read this as {intents.LABELS[track].lower()}: “{draft['problem']}”."
+        said_need = str((draft.get("intent") or {}).get("need") or "")
+        segments = track == "analysis" and (set((draft.get("intent") or {}).get("signals") or []) & set(intents.SEGMENT_SIGNALS)
+                                            or re.search(r"\b(?:segment\w*|cluster\w*|groups?\s+(?:of|among)\b|personas?)", said_need, re.I))
+        if segments:  # 2026-10-29: groups have two ways, and only one of them is numbers per group
+            self.say(draft_id, f"{opening} {SEGMENTS_SAID}", kind="text", actions=offer, track=track)
+            self.ask(draft_id, SEGMENTS_FIELD, "Which way do you need?", list(SEGMENTS_ROUTES),
+                     "Groups you already have are counted from a column; new groups are found by a segmentation project.")
+            return
+        self.say(draft_id, f"{opening} {intents.NEXT[track]}", kind="text", actions=offer, track=track)
         self.open_brief(draft_id)
 
     # ------------------------------------------------------------------ H4: a brief per kind of help
@@ -1251,7 +1273,7 @@ class HomeAgent:
         if track not in briefs.TRACK_FIELDS or self.pending(draft) is not None:
             return None
         asked = sum(1 for q in draft["questions"] if q.get("brief") == track)
-        f = briefs.asks(track, (draft.get("track_brief") or {}).get(track) or {}, asked)
+        f = briefs.asks(track, (draft.get("track_brief") or {}).get(track) or {}, asked, has_columns=bool(briefs.columns_of(draft)))
         if f is None:
             return None
         choices = [o for o in briefs.options(f, briefs.columns_of(draft)) if o != briefs.NOT_SURE][:3]  # at most four buttons
@@ -1352,6 +1374,8 @@ class HomeAgent:
                     q.update(answered="(the type of help changed)", superseded=True)
             if track != "prediction":
                 d["workflow"] = None
+                if (d.get("pack") or {}).get("source") != "user":
+                    d["pack"] = None  # 2026-10-29: a pack set while the draft was read as a prediction showed on an analysis
         self.store.update(draft_id, settle)
         if track != was:
             self.open_track(draft_id)
@@ -1378,11 +1402,25 @@ class HomeAgent:
         else:
             reading = self.set_intent(draft_id, intents.read(draft["problem"], self.intent_client, plans.user_text(draft)))
         if reading["status"] == "asked":
-            options = [intents.LABELS[t] for t in reading["tracks"][:3]]
-            self.ask(draft_id, "intent", "Which kind of help do you need?", options + ["Something else"],
-                     "A prediction needs a model and a moment; an answer about what already happened needs neither.")
+            self.ask_intent(draft_id, reading)
             return
         self.open_track(draft_id)
+
+    UNDERSTAND_TURNS = 2  # open questions before Home routes by the buttons alone
+
+    def ask_intent(self, draft_id: str, reading: dict[str, Any]) -> None:
+        """2026-10-29 (the owner: understand before routing): an unclear request gets one open question, the model's own
+        when it kept the person's numbers, with every kind of help as a button (its reading first); two readings that
+        clash get the either-or question. A prediction is never assumed."""
+        if reading.get("ask") == "open":
+            first = [t for t in reading.get("tracks") or [] if t in intents.TRACKS]
+            order = first + [t for t in intents.TRACKS if t not in first]
+            self.ask(draft_id, "intent", reading.get("question") or intents.OPEN_QUESTION, [intents.LABELS[t] for t in order],
+                     "Answer in your own words or pick one; nothing is built until the kind of help is clear.")
+            return
+        options = [intents.LABELS[t] for t in reading["tracks"][:3]]
+        self.ask(draft_id, "intent", "Which kind of help do you need?", options + ["Something else"],
+                 "A prediction needs a model and a moment; an answer about what already happened needs neither.")
 
     def open_prediction(self, draft_id: str) -> None:
         """The prediction track, as Home always ran it: restate the problem, pick the pack, draw the workflow, ask the first question."""
@@ -1400,7 +1438,9 @@ class HomeAgent:
         # Live (2026-10-16): the opening quoted the person's whole sentence back and explained a default pack; it now
         # says what was understood from it, and why a pack only when something in the words chose it
         self.say(draft_id, (f"From your message I have {' and '.join(known)}; correct them on the sheet if I misread."
-                            if known else "Thanks. First let's pin down what the model should predict, and when.")
+                            if known else ("Thanks. This kind of problem has no outcome to predict: first let's pin down which rows "
+                                           "are grouped and what describes them." if (u.get("family") in NO_OUTCOME_COLUMN)
+                                           else "Thanks. First let's pin down what the model should predict, and when."))
                  + (f" I'll start from the {name} pack ({why[:1].lower() + why[1:]})." if det["source"] != "default" else "")
                  + (" Your data is being prepared now; I'll describe it as soon as it is ready." if has_data else
                     " You can upload or connect data at any time, or we can plan the solution first."), kind="text")
@@ -1673,17 +1713,61 @@ class HomeAgent:
         if q["field"] == "intent":  # H2: the kind of help, from a button or the person's words
             before = draft.get("intent") or {}
             labels = {t: intents.LABELS[t] for t in intents.TRACKS}
-            track = intents.from_answer(value, labels)
             self.store.update(draft_id, lambda d: [x.update(answered=value) for x in d["questions"] if x["id"] == q["id"]])
-            if track is None:  # "Something else", "I'm not sure": not a choice; start with the reading, which the card can change
-                first = before.get("track") or "prediction"
+            from ..ledger import capture
+
+            button = next((t for t, label in labels.items() if value.strip().casefold() == label.casefold()), None)
+            if button is not None:  # a button is the person's choice
+                capture.intent_chosen(before.get("record"), button)
+                self.move_to(draft_id, intents.chosen(button, before), "undecided", sample=False)
+                return
+            if self.intent_client is None:  # no model: the rules read the answer's own words, a strong phrase only (the review)
+                alone = intents.read(value)
+                if alone["status"] != "asked" and not alone.get("fallback"):
+                    self.move_to(draft_id, alone, "undecided")
+                    return
+            # their own words (2026-10-29): read again, the model first, with everything they have said so far
+            draft = self.store.get(draft_id)
+            said = plans.user_text(draft)
+            reading = intents.read("\n".join(t for t in said if t), self.intent_client, said)
+            turns = sum(1 for x in draft["questions"] if x.get("field") == "intent" and x.get("answered"))
+            if reading.get("ask") == "either" and reading.get("source") == "model" and reading.get("track"):
+                # the person answered in their own words and the model read them: their words settle it over the rules' strong
+                # reading of the first sentence (the review: "Neither, I want a weekly dashboard" was thrown away)
+                reading = {**reading, "status": "inferred", "ask": None}
+            if reading["status"] != "asked":
+                self.move_to(draft_id, reading, "undecided")
+                return
+            same = set((reading.get("tracks") or [])[:2]) == set((before.get("tracks") or [])[:2])
+            if before.get("ask") == "either" and before.get("track") and (reading.get("ask") == "open" or same):
+                # "Something else", "I'm not sure" to two clear readings: start with the first, which the card can change
+                first = before["track"]
                 self.say(draft_id, f"I'll start with {intents.LABELS[first].lower()}. If that is not it, change the type of help above.")
                 self.move_to(draft_id, {**before, "status": "inferred"}, "undecided", sample=False)
                 return
-            from ..ledger import capture
-
-            capture.intent_chosen(before.get("record"), track)
-            self.move_to(draft_id, intents.chosen(track, before), "undecided", sample=False)
+            if reading.get("question") == intents.OPEN_QUESTION:  # the same words twice read as not listening
+                reading = {**reading, "question": intents.OPEN_AGAIN}
+            self.set_intent(draft_id, reading)
+            if turns >= self.UNDERSTAND_TURNS:  # still unclear after two answers: the kinds of help as buttons alone
+                reading = {**reading, "ask": "open", "question": "Which of these is closest to what you need?"}
+            self.ask_intent(draft_id, reading)
+            return
+        if q["field"] == SEGMENTS_FIELD:  # 2026-10-29: groups the person has, or new groups found by a segmentation project
+            self.store.update(draft_id, lambda d: [x.update(answered=value) for x in d["questions"] if x["id"] == q["id"]])
+            said = value.strip().casefold()
+            if said == SEGMENTS_ROUTES[0].casefold():
+                new = False
+            elif said == SEGMENTS_ROUTES[1].casefold():
+                new = True
+            else:  # their words: "already have", "describe", "existing" keep the groups they have; finding new ones is said plainly
+                new = bool(re.search(r"\b(?:find|discover|create|build)\b[^.?!]{0,30}\b(?:new\s+)?(?:groups|segments|clusters)\b|^new\b", said)) \
+                    and not re.search(r"\b(?:already|existing|describe|don'?t\s+need\s+new|no\s+new|not\s+new)\b", said)
+            if new:
+                self.record(draft_id, "family", "segmentation")
+                self.record(draft_id, "family_by", "answer")
+                self.choose_intent(draft_id, "prediction")  # the project path: a segmentation kind, which reads no outcome
+            elif self.ask_brief(draft_id) is None:
+                self.say(draft_id, intents.NEXT["analysis"], kind="text", track="analysis")
             return
         if q.get("field") == "entity_check":  # the repeating key's question: yes groups by it, no says there is none
             self.entity_answer(draft_id, q, value)
@@ -2153,6 +2237,8 @@ class HomeAgent:
                         candidates[:OPTION_COUNT] + ["Something else"], "The model learns from the column, so it must be the outcome you described.")
             if plan[field]["status"] != "unknown" or field in asked:
                 continue
+            if field == "target" and u.get("family") == "segmentation":
+                continue  # 2026-10-29: groups found in the data have no outcome to ask for (the moment and the action still are)
             if field == "target":
                 if candidates:
                     return ("target", "Which column is the outcome the model should predict?", candidates[:OPTION_COUNT] + ["Something else"],
@@ -2376,19 +2462,25 @@ class HomeAgent:
                 self.next_turn(draft_id)
 
     def checked_reply(self, draft: dict[str, Any], text: str) -> str:
-        """H2 (the model run HOME-003): off a prediction, a model's reply stated numbers nobody gave ("a churn rate of 2.5%");
-        every number must be in the person's words or the table's analysis, else the code's own line replaces the reply."""
+        """Every number in a model's reply must be in the person's words, the table's analysis or the product's own example
+        questions (H2, HOME-003: "a churn rate of 2.5%"; HOME-013: a prediction's invented examples). Off a prediction the
+        code's own line replaces the reply; elsewhere only the sentences whose numbers someone gave are kept."""
         track = self.track(draft)
-        if track == "prediction" or track not in intents.NEXT:
-            return text
         from .. import cited
 
         allowed = set().union(*(cited.numbers(t, source=True) for t in plans.user_text(draft)), set())
-        allowed |= cited.numbers(json.dumps(draft.get("analysis") or {}, default=str), source=True)
-        allowed |= cited.numbers(intents.NEXT[track], source=True)
-        if cited.numbers(text) - allowed:
+        allowed |= cited.numbers(json.dumps([draft.get(k) for k in ("analysis", "answers", "assets", "recipe", "business", "dashboard",
+                                                                 "cleaning_log")], default=str), source=True)
+        # the product's own example questions (a pack's opening, the cost question, the tracks' next steps) may be echoed
+        allowed |= cited.numbers(" ".join([*packs.OPENING.values(), COSTS_QUESTION, *intents.NEXT.values()]), source=True)
+        if not (cited.numbers(text) - allowed):
+            return text
+        if track in intents.NEXT:
             return f"I read this as {intents.LABELS[track].lower()}. {intents.NEXT[track]}"
-        return text
+        # HOME-013 (2026-10-29): on a prediction the model's own example numbers ("say 1000 customers") reached the person;
+        # every track is checked now, and here only the sentences whose numbers someone gave are kept
+        kept = [s for s in re.split(r"(?<=[.?!])\s+", text.strip()) if s and not (cited.numbers(s) - allowed)]
+        return " ".join(kept) if kept else "Tell me more about what you need, in your own words."
 
     def complete(self, draft_id: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None) -> tuple[dict[str, Any], str | None]:
         """One model step. With a streaming client the reply reaches the page as ``token`` events while it is written.

@@ -69,9 +69,9 @@ class RuleTests(unittest.TestCase):
                 self.assertIn(reading["quote"].lower(), sentence.lower())  # the words behind the reading are the person's
                 self.assertTrue(plan.quoted(reading["quote"], [sentence]))  # and a valid quote by the product's own rule
 
-    def test_a_request_with_no_signal_starts_as_a_prediction_and_says_so(self):
+    def test_a_request_with_no_signal_is_asked_never_a_prediction(self):  # 2026-10-29: understand before routing
         reading = intent.read("Help with my customers")
-        self.assertEqual((reading["track"], reading["status"], reading["source"]), ("prediction", "inferred", "default"))
+        self.assertEqual((reading["track"], reading["status"], reading["ask"], reading["source"]), (None, "asked", "open", "rules"))
         self.assertIsNone(reading["quote"])
 
     def test_a_real_tie_is_asked(self):
@@ -103,10 +103,11 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(len(briefs), 12)
         for brief in briefs:
             reading = intent.read(brief["description"])
-            self.assertEqual(reading["track"], "prediction", brief["id"])
-            self.assertNotEqual(reading["status"], "asked", brief["id"])
+            # never another kind of help; a brief the rules cannot read is asked openly (2026-10-29), never guessed
+            self.assertIn(reading["track"], ("prediction", None), brief["id"])
+            self.assertTrue(reading["status"] != "asked" or reading["ask"] == "open", brief["id"])
         for sentence in ("Help me decide which leads to call first", "Monitor machines and alert before a failure"):
-            self.assertEqual(intent.read(sentence)["track"], "prediction", sentence)
+            self.assertIn(intent.read(sentence)["track"], ("prediction", None), sentence)
 
     def test_a_report_riding_on_a_prediction_is_asked_not_taken(self):
         for sentence in ("Build a churn model and send me a weekly report of its scores",
@@ -117,7 +118,7 @@ class RuleTests(unittest.TestCase):
 
     def test_a_request_too_short_to_quote_is_not_a_rules_reading(self):
         reading = intent.read("Predict.")
-        self.assertEqual(reading["source"], "default")  # never a reading whose words fail the quote rule
+        self.assertEqual((reading["status"], reading["ask"]), ("asked", "open"))  # never a reading whose words fail the quote rule
 
 
 class ModelReadingTests(unittest.TestCase):
@@ -130,18 +131,21 @@ class ModelReadingTests(unittest.TestCase):
     def test_a_quote_the_person_did_not_write_is_refused(self):
         client = Scripted('{"tracks": ["business"], "quote": "grow revenue fast", "confidence": 0.9}')
         reading = intent.read("Help with my customers", client)
-        self.assertEqual(reading["source"], "default")
+        self.assertEqual((reading["status"], reading["model_failed"]), ("asked", "the reading's quote is not the person's words"))
         self.assertEqual(client.outputs, [False])
 
     def test_an_unknown_track_or_a_failure_leaves_the_rules_reading(self):
-        self.assertEqual(intent.read("Help with my customers", Scripted('{"tracks": ["poetry"], "quote": "my customers"}'))["source"], "default")
-        self.assertEqual(intent.read("Help with my customers", Scripted(RuntimeError("down")))["source"], "default")
+        unknown = intent.read("Help with my customers", Scripted('{"tracks": ["poetry"], "quote": "my customers"}'))
+        self.assertEqual((unknown["status"], unknown["ask"]), ("asked", "open"))  # no known track: the request is asked about
+        failed = intent.read("Help with my customers", Scripted(RuntimeError("down")))
+        self.assertEqual((failed["status"], failed["model_failed"]), ("asked", "down"))
         self.assertEqual(intent.read(TIE, Scripted("not json"))["status"], "asked")
 
-    def test_a_clear_request_never_calls_the_model(self):
-        client = Scripted()
-        intent.read(BY_TRACK["business"][0], client)
-        self.assertEqual(client.seen, [])
+    def test_the_model_reads_first_even_a_clear_request(self):  # 2026-10-29: AI first, the rules check and fall back
+        client = Scripted('{"tracks": ["business"], "quote": "profit drop", "confidence": 0.9}')
+        reading = intent.read(BY_TRACK["business"][0], client)
+        self.assertEqual(len(client.seen), 1)
+        self.assertEqual((reading["track"], reading["source"], reading["rule_track"]), ("business", "model", "business"))
 
 
 class AgentTests(unittest.TestCase):
@@ -297,11 +301,11 @@ class AgentTests(unittest.TestCase):
         self.assertTrue(d["workflow"])
 
     def test_a_model_set_intent_to_the_same_track_writes_nothing(self):
-        d = self.start("Help with my customers and their orders")
+        d = self.start("Predict which customers will reorder")
         from dclab_rnd.agents import default_registry
         tool = default_registry().get("set_intent")
         before = len(self.readings())
-        self.assertTrue(tool.handler(Turn(HomeAgent(self.store, None), d["id"]), track="prediction", quote="their orders")["unchanged"])
+        self.assertTrue(tool.handler(Turn(HomeAgent(self.store, None), d["id"]), track="prediction", quote="customers will reorder")["unchanged"])
         self.assertEqual(len(self.readings()), before)
 
     def test_the_intent_question_does_not_take_an_ml_question(self):

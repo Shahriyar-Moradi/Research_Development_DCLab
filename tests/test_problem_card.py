@@ -210,6 +210,8 @@ class HomeTest(unittest.TestCase):
         from dclab_rnd.studio import ProjectStore
 
         d = self.store.create("Find the unusual orders")["id"]  # a tabular-pack sentence: the labels question comes all the same
+        from dclab_rnd.draft import intent as intents
+        self.store.update(d, lambda x: x.update(intent=intents.chosen("prediction")))  # the person chose a prediction (2026-10-29: unread is asked)
         HomeAgent(self.store, None).start(d)
         self.assertEqual(self.store.get(d)["questions"][0]["field"], "target")  # the outcome first …
         self.assertEqual(HomeAgent(self.store, None).next_question(self.store.get(d))[0], "labels")  # … then the labels

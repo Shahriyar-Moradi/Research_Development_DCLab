@@ -118,6 +118,8 @@ class HomeAgentTests(unittest.TestCase):
     def draft(self, second_opinion=True):
         agent = self.HomeAgent(self.store, None, second_opinion=second_opinion)
         draft = self.store.create(WORDS)["id"]
+        from dclab_rnd.draft import intent as intents
+        self.store.update(draft, lambda x: x.update(intent=intents.chosen("prediction")))  # the person chose a prediction (unread is asked)
         agent.start(draft)
         self.upload(self.store, agent, draft, "dispatch.csv", self.table)
         # where the reader left the card on JS5-08: the outcome named, the moment said, the reader's family a number

@@ -1,0 +1,223 @@
+{
+ "package": "home understands first",
+ "title": "Home's model reads the request first, an unclear one is asked, and only a stated prediction shows the ML path",
+ "date": "2026-10-29",
+ "request": "The owner tested Home twice and both chats went wrong: a vague request became a prediction and a segmentation request was asked what to measure before any table. The owner: understand people before routing them; AI first, rules as the fallback; later our own routing model first.",
+ "spec": "Plan P0-P5 (~/.claude/plans/magical-waddling-honey.md): budget and failed readings said; the model reads first and the rules check; an open question before routing; segments and no column question before the data; every number checked; the page follows the kind of help.",
+ "plan": [
+  "Reproduce both chats offline",
+  "Trace the reading path",
+  "Model first, rules check, no silent default",
+  "Open understanding question",
+  "Segments' two ways",
+  "Wait for the table before column questions",
+  "Numbers checked on every track",
+  "Track-aware page",
+  "Fix the suites that relied on the default",
+  "Check the real page"
+ ],
+ "decisions": [
+  {
+   "decision": "The model reads every request when Home has one; the rules run as a checker and alone only without a model",
+   "why": "the sealed runs showed the rules overfit (0.78 dev, 0.72, then 0.58) while the model alone read 36 of 36; the owner's principle"
+  },
+  {
+   "decision": "A clash between a strong rule reading and the model is asked in two buttons",
+   "why": "code checks the model rather than silently choosing either"
+  },
+  {
+   "decision": "Nothing read is an open question with all six kinds of help as buttons, never a prediction",
+   "why": "the owner's first test: a vague request became a prediction with the ML workflow"
+  },
+  {
+   "decision": "With no model, words that name a kind of prediction (a pack's own words, which ones will, a future) are read as one",
+   "why": "the fallback must still serve clear prediction requests; about 40 suite tests showed what a pure ask would cost, and a vague request names none"
+  },
+  {
+   "decision": "Segments get two ways: groups the person has (numbers per group) or a segmentation project with no outcome",
+   "why": "both needs are real and only one of them is analysis; the engine already runs segmentation"
+  },
+  {
+   "decision": "A brief question whose buttons come from the columns waits for the table",
+   "why": "\"What should I measure?\" was asked with \"Number of rows\" as its only choice"
+  },
+  {
+   "decision": "Every track's model reply has its numbers checked; on a prediction only the sentences with given numbers are kept",
+   "why": "HOME-013's three uncited numbers came from the model's own examples on the prediction track, where the check was skipped"
+  }
+ ],
+ "change": "dclab_rnd/draft/intent.py (model-first read, rules as checker, open questions, failed readings, segments signal, the no-model kind-word fallback), dclab_rnd/draft/chat.py (ask_intent, the open-answer reading, the segments route, segmentation opening, checked_reply on every track, the pack cleared off prediction), dclab_rnd/draft/brief.py, dclab_rnd/draft/lang.py, dclab_rnd/prompts/home_intent.md and home_agent.md, dclab_rnd/agentic/web/src/views/home.html, tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "A vague request became a prediction with the ML workflow and an outcome question",
+   "scenario": "\"I have data analysis problems\" on Home with Claude configured.",
+   "cause": "No rule matched; the model's reading was empty or failed and was swallowed; the reading fell to track prediction, source default, which the page called the usual start.",
+   "fix": "The model reads first; an empty, low-confidence or failed reading becomes an open question with every kind of help as a button; the failure is recorded as model_failed.",
+   "test": "tests/test_home_understand.py ReadTests, HomeTests.test_a_vague_request_gets_an_open_question_not_the_ml_path"
+  },
+  {
+   "id": "F2",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Customer segmentation was read as numbers and asked what to measure before any table",
+   "scenario": "\"I want analyze my customer and segment of the my customer\".",
+   "cause": "One rule (\"analyze my\") skipped the model; no track knew segments; the analysis brief asked its column-based field with no columns.",
+   "fix": "A segments signal (English and Persian) and its two ways; new groups open a segmentation project with no outcome question; column-based brief questions wait for the table.",
+   "test": "tests/test_home_understand.py test_segments_get_their_two_ways_and_new_groups_need_no_outcome; tests/test_home_brief.py test_no_measure_question_before_the_table"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Numbers nobody gave reached the person on the prediction track",
+   "scenario": "HOME-013: \"1000\" and \"30\" in model replies to prediction requests.",
+   "cause": "checked_reply returned early on the prediction track.",
+   "fix": "Every track is checked; the product's own example questions are allowed; on a prediction only sentences with given numbers are kept; the prompt forbids invented examples.",
+   "test": "tests/test_home_intent.py test_a_model_reply_off_a_prediction_states_no_number_nobody_gave and the Home suites"
+  },
+  {
+   "id": "F4",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The segments rule read a column named segment in a join request as segmentation",
+   "scenario": "\"Join the orders with the customer table ... city and segment.\"",
+   "cause": "The first rule matched the bare word segment.",
+   "fix": "The rule needs segmentation, clustering, personas, customer segments, or segments of a kind of row.",
+   "test": "tests/test_home_prepare.py test_a_join_adds_to_the_table_where_the_key_repeats_in_the_natural_upload_order"
+  },
+  {
+   "id": "F5",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "About 40 suite tests relied on unread requests becoming predictions",
+   "scenario": "The morning guard, journeys, fraud, team walks and coordinator suites with no model.",
+   "cause": "Their sentences name a prediction the intent rules do not read (fraud, which ones will, a future).",
+   "fix": "With no model, words naming a kind of prediction are read as one; tests whose vague sentence tests the prediction path start with the person's choice of a prediction.",
+   "test": "the 66 Home-related test files"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With no model a bare future read as a prediction",
+   "scenario": "\"I'm going to upload my customer table\" and \"What will help me with my data?\".",
+   "cause": "The fallback's future pattern matched any \"will\" or \"going to\".",
+   "fix": "The fallback reads \"will\" only with an outcome (late, churn, buy, default and the like) and never \"which\" alone.",
+   "test": "tests/test_home_understand.py ReviewTests.test_a_bare_future_is_not_a_prediction"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An edited sentence let the no-model fallback replace a model's reading",
+   "scenario": "The model read analysis; the person edited the sentence so a pack word appeared; replan moved the draft to a prediction.",
+   "cause": "The replan guard trusted source \"rules\"; the fallback is labelled rules too.",
+   "fix": "The fallback marks its reading (fallback: true) and replan never lets it replace a model's reading.",
+   "test": "ReviewTests.test_an_edit_never_lets_the_fallback_replace_a_models_reading"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An answer typed after an either-or question was thrown away",
+   "scenario": "\"Neither, I want a weekly dashboard\" after a prediction-or-advice question.",
+   "cause": "The joined text was a new either-or (model reporting, rules prediction) and the branch started with the first old reading.",
+   "fix": "When the model reads the person's own answer it settles an either-or; the old reading is kept only for an open reading or the same pair again.",
+   "test": "ReviewTests.test_words_after_an_either_question_are_read_by_the_model"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With no model weak words became the person's locked choice and a false label",
+   "scenario": "\"not sure, maybe compare a few things\" became a confirmed analysis by the user.",
+   "cause": "from_answer ranked any signal and its track was stored as the person's choice.",
+   "fix": "Only an exact button is the person's choice; words are read by the rules at their strong threshold, as a reading, not a choice.",
+   "test": "ReviewTests.test_weak_words_are_never_the_persons_choice"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The rules changed under their old version name",
+   "scenario": "The ledger's rule:intent_rules_v2 answers would mix two rule sets.",
+   "cause": "Segments and the fallback were added without a new version.",
+   "fix": "intent_rules_v3.",
+   "test": "ReviewTests.test_the_rules_have_a_new_version"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Open readings were never recorded, so the person's choice labelled nothing",
+   "scenario": "A vague request asked openly, then a button: intent_chosen(None, ...).",
+   "cause": "set_intent recorded only readings with a quote.",
+   "fix": "Asked readings are recorded too, so the choice labels them (routing data for the 7th model).",
+   "test": "ReviewTests.test_an_open_reading_is_recorded_and_the_choice_labels_it"
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Segments depended on one regex and the answer on loose words",
+   "scenario": "The page's own chip got no signal; \"I don't need new groups\" started a segmentation project; a describe answer with no table got no reply.",
+   "cause": "Segments came only from a rules signal; the answer matched find/new/discover anywhere.",
+   "fix": "Groups of customers and behave alike in the rule, the model's need can mark segments, the buttons are matched first and a negation keeps the groups, and the next step is said when nothing is asked.",
+   "test": "ReviewTests.test_segments_from_the_example_chip_the_model_and_plain_words"
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The memory said prediction while Home was asking",
+   "scenario": "An open reading has no track; memory.summary defaulted to prediction.",
+   "cause": "intent.get(\"track\") or \"prediction\".",
+   "fix": "undecided while the kind of help is asked.",
+   "test": "ReviewTests.test_the_memory_says_undecided_while_home_asks"
+  },
+  {
+   "id": "F14",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The business next step's \"two periods\" counted as an uncited 2",
+   "scenario": "HOME-013 s2-v4, both arms.",
+   "cause": "cited.numbers reads number words; the grader does not take Home's next-step texts as a source.",
+   "fix": "The next step says \"the periods you name\"; a test holds that Home's fixed texts carry no number.",
+   "test": "NumbersTests.test_homes_own_words_hold_no_number"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The owner's two sentences on the real page, no model",
+   "gate": "no ML panel; an open question or the segments route",
+   "result": "an open question with six buttons; the segments route with two ways; workflow, outcome panel, pack and build hidden",
+   "verdict": "pass"
+  },
+  {
+   "name": "Live replay with Claude of the owner's two sentences and one more (written, not the sealed set)",
+   "gate": "no failed request; the right kind of help; no ML question off a prediction",
+   "result": "an open question then analysis from the person's answer; analysis with the segments offer; a business question; EUR 0.019 in total",
+   "verdict": "pass"
+  },
+  {
+   "name": "Thinking summaries by effort, claude-sonnet-5-5, three home_intent requests",
+   "gate": "a summary on every call (the owner's rule)",
+   "result": "0 of 3 at the default, medium and high; 3 of 3 at xhigh (about 2.5 times a call's cost) and max; DCLAB_THINKING_EFFORT=xhigh set",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "Home asks before it routes and its model reads first; dev and a fresh sealed set are still to be measured.",
+ "lessons": [
+  "A default that guesses hides itself in every suite that grew up beside it: changing it shows how many tests encoded the guess.",
+  "Rules tuned on dev sentences read the dev sentences; the reading belongs to the model, the checking to code.",
+  "Adaptive thinking decides for itself whether to think: asking for a summary is not enough to get one on short requests; the effort level is what makes it think."
+ ],
+ "risks": [
+  "The no-model fallback still reads some vague requests as predictions when they say a pack's word (a review, a ticket).",
+  "Not yet measured live on dev or a sealed set."
+ ],
+ "commits": []
+}

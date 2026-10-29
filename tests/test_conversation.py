@@ -180,6 +180,8 @@ class HomeTest(unittest.TestCase):
         store = DraftStore(Path(tempfile.mkdtemp()))
         agent = HomeAgent(store, None)
         d = store.create("Look at our orders")["id"]
+        from dclab_rnd.draft import intent as intents
+        store.update(d, lambda x: x.update(intent=intents.chosen("prediction")))  # the person chose a prediction (unread is asked)
         agent.start(d)
         first = store.get(d)["questions"][0]
         agent.reply(d, "it is anomaly detection")  # typed as the outcome, the morning of 2026-10-13
@@ -218,6 +220,8 @@ class HomeGuardTest(unittest.TestCase):
 
         store = self.store()
         d = store.create("Look at our orders")["id"]
+        from dclab_rnd.draft import intent as intents
+        store.update(d, lambda x: x.update(intent=intents.chosen("prediction")))  # the person chose a prediction (unread is asked)
         HomeAgent(store, None).start(d)
         field = store.get(d)["questions"][0]["field"]
         agent = HomeAgent(store, ScriptedClient([("record", {"field": field, "value": "anomaly detection"})]))

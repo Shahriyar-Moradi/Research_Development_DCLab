@@ -75,6 +75,7 @@ SIGNALS: list[tuple[str, str, int, str]] = [
     ("analysis", "fa_how_much", 3, rf"{_B}چقدر\s*(بود|است|هست|شد){_E}|{_B}چند\s*(تا|تاست|بود|است|عدد){_E}"),
     ("analysis", "fa_count", 2, rf"{_B}تعداد{_E}"),
     ("analysis", "fa_analyse", 3, rf"{_B}(تحلیل|آنالیز|آمار){_E}"),  # H4: "analyse", "statistics", asked outright
+    ("analysis", "fa_segments", 3, rf"{_B}(تقسیم|بخش|خوشه|گروه){_S}بندی"),  # 2026-10-29: customer segments, a need of its own
     ("analysis", "fa_aggregate", 2, rf"{_B}(میانگین|مجموع|جمع\s+کل|بیشترین|کمترین|متوسط){_E}"),
     ("analysis", "fa_breakdown", 2, rf"{_B}(به\s*تفکیک|بر\s*حسب){_E}"),
     ("analysis", "fa_show", 2, rf"{_B}نشان\s*(بده|بدهید|دهید){_E}"),

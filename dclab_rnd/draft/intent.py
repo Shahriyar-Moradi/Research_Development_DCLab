@@ -4,17 +4,18 @@ Six tracks: ``prediction`` (a model that predicts what is not yet known), ``anal
 happened), ``preparation`` (cleaning, combining or reshaping data), ``reporting`` (a report or dashboard that is kept up to
 date), ``business`` (a business question or decision) and ``advice`` (an explanation; no data work).
 
-Code decides, a model advises (CLAUDE.md rule 5):
+A model reads first, code checks (the owner, 2026-10-29: "AI first, rules as the fallback"):
 
-1. **Rules first.** Phrases of each track score the request (``SIGNALS``: a strong phrase 3, a medium one 2, a weak one 1).
-   The track with the highest score is the main one; every track that scored is kept, in score order. The quote is the
-   person's own words that matched, checked with ``plan.quoted``.
-2. **A model second**, only when the rules found nothing or the two leading tracks are the classic confusion (a prediction
-   against an analysis or a report of what already happened, with equal scores): its reading is kept only with a known
-   track and a quote that is the person's words.
-3. **Ask when it is still unsure**: that confusion, with no model to settle it, becomes one question with the tracks as buttons.
-4. **Nothing found, nothing asked**: the request is read as a prediction, as Home always did (``source: default``), and the
-   person can change it on the card. Persian and other languages are read by the rules in package H3.
+1. **The model reads first** when Home has one (the ``home_intent`` purpose): the tracks, the need in one line, and the
+   question that would make the request clear. Code keeps a track only when it is one of ``TRACKS`` and its quote is the
+   person's own words (``plan.quoted``); a sentence the person will read keeps only numbers the person gave.
+2. **The rules check it.** Phrases of each track score the request (``SIGNALS``: strong 3, medium 2, weak 1). When the
+   rules read another track strongly and the model did not name it, Home asks which one, in two buttons.
+3. **Unclear is asked, never guessed.** A model that says the request does not tell, or reads it with low confidence, and
+   a request nobody could read, become one open question ("Tell me a bit more ...") with the kinds of help as buttons
+   (``status: asked``, ``ask: open``). A failed or refused model call is said on the reading (``model_failed``) and the
+   rules read alone; nothing read is never a prediction by default.
+4. **No model**: the rules read alone, as before, and a tie between two strong readings is asked.
 
 The person's choice on the card (``source: user``) always wins; a model or a later reading never changes it.
 """
@@ -53,7 +54,9 @@ LEAD_MIN = 2
 # unclear (the model reads it, or the prediction default stands), and only two strong readings can make Home ask.
 STRONG = 3
 PROMPT = "home_intent"
-RULES_VERSION = "intent_rules_v2"  # v2 (H4): plain asks for an analysis, stats, insights; Persian "analyse"
+SEGMENT_SIGNALS = ("segments", "fa_segments")  # a request about groups: Home offers the two ways to find them
+RULES_VERSION = "intent_rules_v3"  # v3 (2026-10-29): segments (English, Persian) and the no-model kind words; v2 (H4): plain
+# asks for an analysis, stats, insights; Persian "analyse"
 
 _N = r"(?:\w+(?:\s+\w+)?)"  # one or two words ("customers", "the bookings")
 SIGNALS: list[tuple[str, str, int, str]] = [
@@ -84,6 +87,12 @@ SIGNALS: list[tuple[str, str, int, str]] = [
     # by prediction requests too ("explore the data and find who churns": the review of H4), so they weigh 2 and leave it to
     # the model, or to the prediction default
     ("analysis", "analyse_this", 3, r"\b(?:analy[sz]e|an\s+analysis\s+of)\s+(?:my|the|our|this|these|some)\b"),
+    # 2026-10-29 (the owner's test: "segment of the my customer"): groups of customers, items or places, a need of its own
+    ("analysis", "segments", 3, r"\b(?:segmentation|clustering|personas?|(?:customer|user|client|shopper)\s+segments?|"
+                                r"(?:segment(?:s|ing)?|cluster(?:s|ing)?)\s+(?:of\s+)?(?:the\s+|my\s+|our\s+|these\s+)*"
+                                r"(?:customers?|users?|clients?|shoppers?|members?|stores?|products?|buyers?)|"
+                                r"groups?\s+of\s+(?:the\s+|my\s+|our\s+)*(?:customers|users|clients|shoppers|members|stores|buyers)|"
+                                r"behave\s+alike)\b"),
     ("analysis", "explore_this", 2, r"\b(?:explore|summari[sz]e|profile)\s+(?:my|the|our|this|these|some)\b"),
     ("analysis", "stats", 2, r"\b(?:stats|statistics|insights?\s+(?:from|about|into|on))\b"),
     ("analysis", "compare", 2, r"\bcompare\b"),
@@ -134,7 +143,7 @@ NEXT = {
                    "a step that removes many rows waits for your yes, and the original file is never changed.",
     "reporting": "Upload or connect the table and I'll build the dashboard you described: one tile per number, per group, refreshed "
                  "whenever the table changes; a list of single rows is never a tile.",
-    "business": "Upload or connect the table and I'll show where a number changed between two periods you name, and what moved it "
+    "business": "Upload or connect the table and I'll show where a number changed between the periods you name, and what moved it "
                 "most; the data shows association, not cause. If part of the question is a prediction, change the type of help above.",
     "advice": "Ask it in the Evidence library: its answers cite DCLab's recorded experiments.",
 }
@@ -199,33 +208,69 @@ def _first_json(text: str) -> Optional[dict[str, Any]]:
     return None
 
 
-def _model_reading(text: str, client: Any, texts: list[str]) -> Optional[dict[str, Any]]:
-    """The model's reading, or None when it fails or proposes what code cannot accept."""
+UNSURE = 0.6  # a model reading below this confidence is asked as an open question, its tracks first among the buttons
+OPEN_AGAIN = ("Thanks. What would you like to end up with? For example: numbers or charts about what happened, a cleaned or "
+              "combined table, a dashboard, an answer to why something changed, a model that predicts something, or advice.")
+OPEN_QUESTION = ("Tell me a bit more so I can help the right way: what is the situation, what data do you have, and what would "
+                 "you like to end up with: a prediction, numbers or charts from your data, a cleaned or combined table, a "
+                 "dashboard, an answer to a business question, or advice?")
+_TEXT_FIELDS = ("need", "goal", "data_said", "best_question")
+
+
+def _own_numbers(sentence: str, texts: list[str]) -> bool:
+    """A sentence Home will say keeps only numbers the person wrote (cited.py, the one number check)."""
+    from dclab_rnd import cited
+
+    allowed = set().union(*(cited.numbers(t, source=True) for t in texts)) if texts else set()
+    return not (cited.numbers(sentence) - allowed)
+
+
+def _model_reading(text: str, client: Any, texts: list[str]) -> dict[str, Any]:
+    """The model's reading: ``{"ok": True, ...}`` with a kept track and quote, ``{"unclear": True, ...}`` when it says the
+    request does not tell (its question kept), or ``{"failed": reason}`` when the call fails or proposes what code
+    cannot accept. Its sentences are kept only with the person's own numbers."""
     from .plan import quoted
 
     try:
         reply = client.complete([{"role": "system", "content": prompts.text(PROMPT)}, {"role": "user", "content": text}], None)
-    except Exception:  # noqa: BLE001 — no model, no problem: the rules' reading stands
-        return None
+    except Exception as error:  # noqa: BLE001 - said on the reading; the rules read alone
+        return {"failed": (str(error) or type(error).__name__)[:200]}
     answer = _first_json(reply.get("content") if isinstance(reply, dict) else str(reply)) or {}
+    said = {k: str(answer.get(k) or "").strip()[:400] for k in _TEXT_FIELDS}
+    said = {k: v for k, v in said.items() if v and _own_numbers(v, texts)}
+    unknowns = [str(u)[:120] for u in answer.get("unknowns") or [] if isinstance(u, str)][:5]
     tracks = [t for t in answer.get("tracks") or [answer.get("track")] if t in TRACKS]
     quote = str(answer.get("quote") or "")
-    ok = bool(tracks) and quoted(quote, texts)
     report = getattr(client, "output", None)
+    if not tracks:
+        named = [t for t in answer.get("tracks") or [] if t]
+        if report is not None:  # an empty list is the model's honest "it does not say"; tracks it invented are not
+            report(bool(answer) and not named, "" if answer and not named else ("the reading named no known track" if named else "the reading was not JSON"))
+        return {"unclear": True, **said, "unknowns": unknowns} if answer else {"failed": "the reading was not JSON"}
+    ok = quoted(quote, texts)
     if report is not None:
-        report(ok, "" if ok else "the reading named no known track or its quote is not the person's words")
+        report(ok, "" if ok else "the reading's quote is not the person's words")
     if not ok:
-        return None
+        return {"failed": "the reading's quote is not the person's words"}
     try:
-        confidence = max(0.0, min(1.0, float(answer.get("confidence", 0.6))))
+        confidence = max(0.0, min(1.0, float(answer.get("confidence", 0.7))))
     except (TypeError, ValueError):
-        confidence = 0.6
-    return {"track": tracks[0], "tracks": tracks, "quote": quote, "confidence": round(confidence, 2)}
+        confidence = 0.7
+    return {"ok": True, "track": tracks[0], "tracks": tracks, "quote": quote, "confidence": round(confidence, 2), **said,
+            "unknowns": unknowns}
 
 
-def read(text: str, client: Any = None, texts: Optional[list[str]] = None) -> dict[str, Any]:
-    """The intent of a request: track, tracks, status (stated, inferred, asked), source (rules, model, default), quote,
-    confidence and the alternatives, with the rules' scores and signals (for the decision sample)."""
+def _open(base: dict[str, Any], source: str, tracks: list[str], said: dict[str, Any], quote: Optional[str] = None,
+          confidence: float = 0.0) -> dict[str, Any]:
+    """An open question: the request is not clear enough to route. Its tracks (a model's low-confidence reading, or
+    none) come first among the buttons; the question is the model's own when it kept the person's numbers."""
+    return {**base, "track": tracks[0] if tracks else None, "tracks": tracks, "status": "asked", "ask": "open", "source": source,
+            "quote": quote, "confidence": confidence, "alternatives": tracks[1:],
+            "question": said.get("best_question") or OPEN_QUESTION, **{k: v for k, v in said.items() if k != "best_question"}}
+
+
+def _rules_reading(text: str) -> tuple[dict[str, Any], list[str], bool, dict[str, Any]]:
+    """The rules' reading: (what they found, their ranked tracks, whether the two leaders are a tie to ask, the base record)."""
     from .plan import quoted
 
     found = rules(text)
@@ -242,24 +287,74 @@ def read(text: str, client: Any = None, texts: Optional[list[str]] = None) -> di
            and set(ranked[:2]) in ASK_PAIRS)
     if ranked and ranked[0] == "reporting" and found["scores"]["prediction"] >= LEAD_MIN:
         tie = True  # "build a churn model and send me a weekly report": a report of a model's output, or a report alone? ask
+    return found, ranked, tie, base
+
+
+def read(text: str, client: Any = None, texts: Optional[list[str]] = None) -> dict[str, Any]:
+    """The intent of a request: track, tracks, status (stated, inferred, asked), source (model, rules), quote, confidence,
+    the alternatives and, when asked, ``ask`` ("open" or "either") and the question; with the rules' scores and signals
+    (for the decision sample) and their own track (``rule_track``) beside a model's."""
+    texts = texts or [text]
+    found, ranked, tie, base = _rules_reading(text)
+    rule_track = ranked[0] if ranked else None
+    failed = None
+    if client is not None:
+        reading = _model_reading(text, client, texts)
+        if reading.get("ok"):
+            said = {k: reading[k] for k in (*_TEXT_FIELDS, "unknowns") if reading.get(k)}
+            model = {**base, **said, "rule_track": rule_track}
+            # the rules check the model: a strong reading of another track that the model did not name is asked
+            strong = rule_track is not None and found["scores"][rule_track] >= STRONG and not tie
+            if strong and rule_track not in reading["tracks"]:
+                pair = [reading["track"], rule_track]
+                return {**model, "track": pair[0], "tracks": pair, "status": "asked", "ask": "either", "source": "model",
+                        "quote": reading["quote"], "confidence": reading["confidence"], "alternatives": pair[1:]}
+            rest = [t for t in ranked if t not in reading["tracks"]]
+            if reading["confidence"] < UNSURE:
+                return _open(model, "model", reading["tracks"] + rest, said, reading["quote"], reading["confidence"])
+            return {**model, "track": reading["track"], "tracks": reading["tracks"] + rest, "status": "inferred", "source": "model",
+                    "quote": reading["quote"], "confidence": reading["confidence"], "alternatives": reading["tracks"][1:] + rest}
+        if reading.get("unclear"):
+            said = {k: reading[k] for k in (*_TEXT_FIELDS, "unknowns") if reading.get(k)}
+            return _open({**base, "rule_track": rule_track}, "model", ranked, said)
+        failed = reading.get("failed")
+    note = {"model_failed": failed} if failed else {}
     if ranked and not tie:
         main = ranked[0]
         total = sum(found["scores"].values())
-        return {**base, "track": main, "tracks": ranked, "status": "stated", "source": "rules", "quote": found["quotes"].get(main),
-                "confidence": round(found["scores"][main] / total, 2), "alternatives": ranked[1:]}
-    if client is not None:
-        reading = _model_reading(text, client, texts or [text])
-        if reading is not None:
-            rest = [t for t in ranked if t not in reading["tracks"]]
-            # the rules' own answer kept beside the model's (the review of the H2 port: the ledger recorded the model's track as the
-            # rules' too, so every comparison of the two agreed); None when the rules read nothing
-            return {**base, **reading, "tracks": reading["tracks"] + rest, "status": "inferred", "source": "model",
-                    "alternatives": [t for t in reading["tracks"][1:] + rest], "rule_track": ranked[0] if ranked else None}
+        return {**base, **note, "track": main, "tracks": ranked, "status": "stated", "source": "rules", "quote": found["quotes"].get(main),
+                "confidence": round(found["scores"][main] / total, 2), "alternatives": ranked[1:], "rule_track": main}
     if tie:
-        return {**base, "track": ranked[0], "tracks": ranked, "status": "asked", "source": "rules", "quote": found["quotes"].get(ranked[0]),
-                "confidence": 0.5, "alternatives": ranked[1:]}
-    return {**base, "track": "prediction", "tracks": ["prediction"], "status": "inferred", "source": "default", "quote": None,
-            "confidence": 0.0, "alternatives": []}
+        return {**base, **note, "track": ranked[0], "tracks": ranked, "status": "asked", "ask": "either", "source": "rules",
+                "quote": found["quotes"].get(ranked[0]), "confidence": 0.5, "alternatives": ranked[1:], "rule_track": ranked[0]}
+    kind = _prediction_kind(text)
+    if kind:  # the fallback with no model: the words name a kind of prediction (fraud, churn, a forecast), read as one
+        return {**base, **note, "signals": [*base["signals"], "kind_words"], "track": "prediction", "tracks": ["prediction"],
+                "status": "inferred", "source": "rules", "fallback": True, "quote": kind, "confidence": 0.3, "alternatives": [],
+                "rule_track": "prediction"}
+    return _open({**base, **note, "rule_track": None}, "rules", [], {})
+
+
+def _prediction_kind(text: str) -> Optional[str]:
+    """The person's words that name a kind of prediction (a domain pack's own words: fraud, a forecast, reviews or tickets
+    to classify; or which ones will churn, cancel, default), quoted; None when they name none. Only the no-model fallback
+    reads it, and only when no rule read the request: "I have data analysis problems" names none and is asked."""
+    from . import pack
+    from .plan import quoted
+
+    low = str(text or "").lower()
+    # a pack's own words, an outcome that happens to someone (churn, cancel, default), or "will" with an outcome ("if it will
+    # be late", "which ones will buy"); never "which" alone ("which products sell best" asks about the past, live 2026-10-29)
+    # nor a bare future ("I'm going to upload my table", the review)
+    outcome = r"(?:late|delayed|fail\w*|default\w*|churn\w*|cancel\w*|leave|quit|buy|purchase|pay|return\w*|convert\w*|renew\w*|respond\w*|click\w*)"
+    for pattern in [p for _, p in pack.KEYWORDS] + [r"\b(?:churn|cancel|leav(?:e|es|ing)|convert|respond|defaults?|renew)\w*",
+                                                 rf"\bwill\s+(?:be\s+)?(?:\w+\s+)?{outcome}\b"]:
+        m = re.search(pattern, low)
+        if m:
+            q = _quote(str(text), m.start(), m.end())
+            if quoted(q, [str(text)]):
+                return q
+    return None
 
 
 def from_answer(answer: str, options: dict[str, str]) -> Optional[str]:

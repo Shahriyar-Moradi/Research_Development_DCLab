@@ -24,7 +24,7 @@ def _clip(value: Any) -> str:
 def summary(draft: dict[str, Any]) -> dict[str, Any]:
     """What the whole conversation has settled, from the draft's records alone."""
     intent = draft.get("intent") or {}
-    track = intent.get("track") or "prediction"
+    track = "undecided" if intent.get("status") == "asked" else intent.get("track") or "prediction"  # an open question is no prediction
     plan = draft.get("plan") or {}
     known: dict[str, dict[str, Any]] = {}
     for field, value in (draft.get("understanding") or {}).items():

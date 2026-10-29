@@ -239,19 +239,26 @@ DC.view('home', {
     const INTENTS = { prediction: 'A prediction (a model)', analysis: 'Numbers from my data', preparation: 'Cleaning or combining data',
       reporting: 'A report or dashboard', business: 'A business question', advice: 'Advice or an explanation' };
     function drawIntent(intent) {
-      const box = $('#home-intent', el), sel = $('#home-intent-change', el);
+      const box = $('#home-intent', el), chips = $('#home-intent-change', el);
       if (!intent) { box.hidden = true; $('#home-create', el).hidden = false; return; }  // a draft from before H2: a prediction
       if (S.draft) S.draft.intent = intent;
       const asked = intent.status === 'asked';
       $('#home-intent-label', el).textContent = asked ? 'not decided yet' : INTENTS[intent.track] || intent.track;
-      $('#home-intent-why', el).textContent = asked ? '— answer below, or choose' : intent.source === 'user' ? '(you chose)'
-        : intent.quote ? `— from “${intent.quote}”` : intent.source === 'default' ? '(the usual start; change it if not)' : '';
-      sel.innerHTML = '<option value="">Change…</option>' + Object.entries(INTENTS).filter(([k]) => asked || k !== intent.track)
-        .map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
+      $('#home-intent-why', el).textContent = asked ? '— answer below, or choose:' : intent.source === 'user' ? '(you chose)'
+        : intent.quote ? `— from “${intent.quote}”` : '';
+      // the kinds of help as chips (2026-10-29): one click changes it, the same choice as the question's buttons
+      chips.innerHTML = Object.entries(INTENTS).filter(([k]) => asked || k !== intent.track)
+        .map(([k, v]) => `<button type="button" class="chip sm" data-switch-track="${esc(k)}">${esc(v)}</button>`).join('');
       box.hidden = false;
-      const prediction = !asked && intent.track === 'prediction';
+      // only a prediction that was stated or chosen shows the ML panels: the solution workflow, the outcome and moment, the
+      // domain pack and the build button (2026-10-29: a vague request showed all of them as "the usual start")
+      const prediction = !asked && intent.track === 'prediction' && intent.source !== 'default';
       $('#home-solution', el).hidden = !prediction;
       $('#home-create', el).hidden = !prediction;
+      $('#home-understand', el).hidden = !prediction;
+      const packRow = $('[data-f="home.pack"]', el);
+      if (packRow) packRow.hidden = !prediction;
+      if (!prediction) $('#home-packs', el).hidden = true;
       if (S.draft) drawBrief(S.draft);
     }
     /* What DCLab understood for this kind of help (package H4): each field with where it came from, and a Change control.
@@ -292,13 +299,6 @@ DC.view('home', {
         S.draft = await DC.client.setBrief(S.draft.id, { body: { track: S.draft.intent.track, field, value } });
         drawBrief(S.draft);
       } catch (err) { toast(err.message, { ok: false }); e.target.disabled = false; }
-    });
-    $('#home-intent-change', el).addEventListener('change', async e => {
-      const track = e.target.value; if (!track || !S.draft) return;
-      e.target.disabled = true;
-      try { S.draft = await DC.client.chooseIntent(S.draft.id, { body: { track } }); drawIntent(S.draft.intent); }
-      catch (err) { toast(err.message, { ok: false }); }
-      finally { e.target.disabled = false; e.target.value = ''; }
     });
     async function resume(id) {
       try { const d = await DC.client.readDraft(id, { quiet: true }); if (CHATS.includes(d.status)) { remember(d.id); openDraft(d); return true; } }

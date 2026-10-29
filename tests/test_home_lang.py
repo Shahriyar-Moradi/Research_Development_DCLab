@@ -73,7 +73,7 @@ class IntentTests(unittest.TestCase):
 
     def test_english_readings_are_unchanged(self):
         self.assertEqual(intent.read("What is the difference between precision and recall?")["track"], "advice")
-        self.assertEqual(intent.read("Help with my customers")["source"], "default")
+        self.assertEqual(intent.read("Help with my customers")["ask"], "open")  # 2026-10-29: nothing read is asked, never a prediction
 
 
 class PlanTests(unittest.TestCase):
@@ -135,7 +135,7 @@ class WordTests(unittest.TestCase):
 
 
 SIGNAL_EXAMPLES = {  # one ordinary sentence per Persian signal, each must fire it (written for this test)
-    "fa_predict": "پیش‌بینی فروش هفته بعد", "fa_which_will": "کدام کارمندها استعفا خواهند داد",
+    "fa_predict": "پیش‌بینی فروش هفته بعد", "fa_segments": "مشتری‌هایم را خوشه‌بندی کن", "fa_which_will": "کدام کارمندها استعفا خواهند داد",
     "fa_window": "ظرف ۱۴ روز چه می‌شود", "fa_likely": "احتمال خرید هر مشتری را بگو",
     "fa_model": "یک مدلی بساز برای ریزش", "fa_how_much": "درآمد پارسال چقدر بود؟", "fa_count": "تعداد کاربران فعال",
     "fa_aggregate": "مجموع فروش", "fa_analyse": "داده‌های فروش را تحلیل کن", "fa_breakdown": "فروش بر حسب شهر", "fa_show": "سفارش‌ها را نشان بده",
