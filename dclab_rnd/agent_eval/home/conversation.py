@@ -25,6 +25,8 @@ from typing import Any, Callable, Mapping, Optional
 
 HERE = Path(__file__).resolve().parent
 PERSONAS = HERE / "personas_dev.json"
+SPLITS = {"dev": PERSONAS, "sealed_v1": HERE / "personas_sealed_v1.json"}  # sealed: written by an agent shown the format alone
+SEALED = {"sealed_v1": HERE / "personas_sealed_v1.sha256"}  # pinned before its one run
 MAX_TURNS = 10
 TOPICS = (  # what Home's question is about -> the fact that answers it
     ("goal", re.compile(r"\b(?:goal|achieve|hoping|hope|want|trying|improve|change|end up|outcome|success|aim)\b", re.I)),
@@ -175,9 +177,27 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--cap-eur", type=float, default=None)
-    parser.add_argument("--only", default=None, help="a comma list of person ids")
+    parser.add_argument("--only", default=None, help="a comma list of person ids (dev only)")
+    parser.add_argument("--split", choices=tuple(SPLITS), default="dev")
     args = parser.parse_args(argv)
-    people = load()
+    root = HERE.parents[2]
+    results = root / "evidence" / "campaigns" / "home_v1" / "results"
+    if args.split in SEALED:
+        import hashlib
+
+        if args.only:
+            parser.error("--only is for dev: a sealed set is run once, whole")
+        pinned = SEALED[args.split].read_text(encoding="utf-8").strip()
+        if hashlib.sha256(SPLITS[args.split].read_bytes()).hexdigest() != pinned:
+            print("refused: the sealed set does not match its pinned fingerprint", file=sys.stderr)
+            return 2
+        if args.yes and list(results.glob(f"HOMECONV-*_{args.split}.json")):
+            print(f"refused: {args.split} was already run; a sealed set is run once", file=sys.stderr)
+            return 2
+        from dclab_rnd import experience as _experience
+
+        _experience.sealed_run(args.split)  # an exam's model calls keep their shape only (the owner's rule)
+    people = load(SPLITS[args.split], owner=args.split == "dev")
     if args.only:
         wanted = {x.strip() for x in args.only.split(",")}
         people = [p for p in people if p["id"] in wanted]
@@ -199,15 +219,14 @@ def main(argv: Optional[list[str]] = None) -> int:
     gateway = for_workspace()
     gateway.shadows = None
     budget = Budget(gateway, args.cap_eur)
-    root = HERE.parents[2]
-    keep = root / "agent_runs" / "live_tests" / f"{datetime.now(timezone.utc):%Y-%m-%d}-home-conversation" / f"dev-{datetime.now(timezone.utc):%H%M%S}"
+    keep = None if args.split in SEALED else \
+        root / "agent_runs" / "live_tests" / f"{datetime.now(timezone.utc):%Y-%m-%d}-home-conversation" / f"dev-{datetime.now(timezone.utc):%H%M%S}"  # an exam is never kept
     result = measure(people, lambda pid: budget.client(f"conv-{pid}", "home_understand"), lambda pid: budget.intent(f"conv-{pid}"), keep)
-    results = root / "evidence" / "campaigns" / "home_v1" / "results"
     n = 1 + max([int(m.group(1)) for p in results.glob("HOMECONV-*.json") if (m := re.match(r"HOMECONV-(\d+)", p.name))] or [0])
-    record = {"id": f"HOMECONV-{n:03d}", "split": "dev", "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    record = {"id": f"HOMECONV-{n:03d}", "split": args.split, "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
               "model": getattr(budget.clients[0], "model", None) if budget.clients else None, "spent_eur": round(budget.spent_eur(), 4),
-              "kept": str(keep.relative_to(root)), **result, "verdict": verdict(result["summary"])}
-    path = results / f"HOMECONV-{n:03d}_dev.json"
+              "kept": str(keep.relative_to(root)) if keep else None, **result, "verdict": verdict(result["summary"])}
+    path = results / f"HOMECONV-{n:03d}_{args.split}.json"
     path.write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps(result["summary"], indent=1))
     print(json.dumps(verdict(result["summary"]), indent=1))

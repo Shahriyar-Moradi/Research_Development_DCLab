@@ -1,0 +1,97 @@
+[
+  {"id": "s-01", "opening": "hi, my boss said I should try this with our customer file. not really sure where to start", "upload": "customers",
+   "facts": {"situation": "I work in retention at a small internet provider. Every month some people just leave and we only notice after they're gone.", "goal": "I want to know before the month starts which of our current customers are likely to quit, so we can call them first.", "data": "the file I uploaded has everyone with their plan, tenure, spend, tickets, and a column if they churned the next month.", "decision": "my team has time to call maybe a small slice of the base each month, so we need to pick who gets a call.", "other": "we tried just calling people with many tickets but it felt random."},
+   "route": "prediction", "tool": "ml_project"},
+
+  {"id": "s-02", "opening": "Hello. We have a problem with our numbers in the hotel and I need some help please", "upload": "bookings",
+   "facts": {"situation": "I manage revenue for a beach hotel. Too many rooms get cancelled at last minute and we end up with empty rooms.", "goal": "When a new booking arrives I want to see how likely it will be cancelled, so we can overbook a bit on risky dates.", "data": "Bookings export from our system, with lead time, channel, nationality, free cancel flag and if it was cancelled in the end.", "decision": "decide per booking if we ask for deposit or not, and how many extra rooms to sell.", "other": "the channel managers say OTA bookings are worst but I am not sure."},
+   "route": "prediction", "tool": "ml_project"},
+
+  {"id": "s-03", "opening": "we keep losing slots at the clinic, can your tool do something about it?", "upload": null,
+   "facts": {"situation": "I'm the practice manager at a physio clinic with three locations. Patients book and just don't show up, maybe one in eight.", "goal": "for each appointment booked for next week i want a flag for the ones that will probably be a no-show so reception can send extra reminders or double book.", "data": "we have about two years of appointments in our booking software, with patient age, days between booking and visit, past no-shows, weather maybe. I can export as csv later.", "decision": "reception decides every morning who gets a phone reminder.", "other": "patient names I would rather not upload."},
+   "route": "prediction", "tool": "ml_project"},
+
+  {"id": "s-04", "opening": "I need a weekly report for our dispatch team about late shipments", "upload": null,
+   "facts": {"situation": "I run operations at a regional freight company. Our customers get angry when trucks arrive late and we only find out on the day.", "goal": "the 'report' i mean is a list every monday of the shipments planned for this week that are likely to be late, before they leave, so we can reroute or warn the client.", "data": "we have shipment history with route, carrier, pickup time, weight, weather, and the actual delivery time vs promised.", "decision": "dispatchers choose which loads to swap to a more reliable carrier.", "other": "not interested in charts of last month, we already know last month was bad."},
+   "route": "prediction", "tool": "ml_project"},
+
+  {"id": "s-05", "opening": "Our marketing is kind of one size fits all right now, looking for ideas", "upload": "customers",
+   "facts": {"situation": "I'm marketing lead at a SaaS for small accountants. We send the same newsletter to everyone.", "goal": "I'd like to discover natural groups of customers in our data, like 3 to 6 types, based on how they use and pay, so each gets different messaging.", "data": "uploaded our customer table: plan, tenure, monthly spend, support tickets, city, signup date. The 'segment' column is just SMB/mid from sales, it's old and nobody trusts it.", "decision": "we'll build a different email track and offer for each group.", "other": "I want the groups to be explainable in plain words for the team, like 'the cheap loyal ones'."},
+   "route": "prediction", "tool": "segmentation_project"},
+
+  {"id": "s-06", "opening": "we have lots of donor data and dont really use it", "upload": null,
+   "facts": {"situation": "im fundraising coordinator at an NGO for clean water. we have years of donations, events attended, how they found us.", "goal": "we want the data to show us what kinds of donors we actualy have - find personas we dont know yet, not the categories we already made up.", "data": "a donor CRM export, one row per donor with gift amounts, frequency, first gift date, channel, age band. can share later.", "decision": "plan different appeals for each persona for the year end campaign.", "other": "small team, no data person at all."},
+   "route": "prediction", "tool": "segmentation_project"},
+
+  {"id": "s-07", "opening": "can you build me a model of our customers? want to understand them better", "upload": "customers",
+   "facts": {"situation": "I'm the new COO of a meal-kit subscription. The board asked me to present who our customers are.", "goal": "honestly I just need the picture of today: how many per plan and city, avg spend and tenure per segment, how churn looks across the segments we already have.", "data": "the customers file I uploaded, with segment, plan, city, spend, tenure, tickets and churn.", "decision": "it goes into my board slides next week, nothing automated.", "other": "when I said model I meant like a profile, not AI predictions. I don't need to forecast anything."},
+   "route": "analysis", "tool": "query"},
+
+  {"id": "s-08", "opening": "got our order export here, wanted to look into it a bit", "upload": "sales",
+   "facts": {"situation": "We sell kitchen tools online and in two shops. I'm the owner, doing everything myself.", "goal": "Want to know which product categories and which channel brought most revenue last year, and how many orders got returned or cancelled by region.", "data": "the sales file has order date, region, channel, category, amount, status and customer id.", "decision": "decide which categories to reorder more of for next season.", "other": "just one-off numbers, I won't look at it every week."},
+   "route": "analysis", "tool": "query"},
+
+  {"id": "s-09", "opening": "hi i have the bookings sheet from our tour company, what can you tell me", "upload": "bookings",
+   "facts": {"situation": "we're a small tour operator doing trips to the mountains and the coast. me and my partner split the planning.", "goal": "i want to know from what already happened: which destinations sell to which nationalities, average lead time per destination, and cancel rate with vs without free cancellation.", "data": "uploaded the bookings, it has everything from last two seasons.", "decision": "we'll use it to decide where to advertise abroad next year.", "other": "no need for anything ongoing or predictive, just the facts please."},
+   "route": "analysis", "tool": "query"},
+
+  {"id": "s-10", "opening": "The school governors want some evidence about attendance. Can you help?", "upload": null,
+   "facts": {"situation": "I'm deputy head at a secondary school. Governors asked if attendance differs between year groups and between pupils on free meals and others.", "goal": "Compare absence rates for last academic year across year groups, gender and free school meals status.", "data": "I can export a table of pupils with year group, FSM flag, gender and sessions missed from our MIS.", "decision": "It'll go in a paper for the next governors' meeting to decide where to put our attendance officer's time.", "other": "Just last year's figures, a one-time thing."},
+   "route": "analysis", "tool": "query"},
+
+  {"id": "s-11", "opening": "quick question about our warehouse picks, there's something off", "upload": null,
+   "facts": {"situation": "i supervise a distribution centre for a pharmacy chain. some shifts feel slower than others.", "goal": "want to see average picks per hour by shift, by zone and by picker experience for the past 3 months, and error rate per shift.", "data": "the WMS gives a log of every pick with timestamp, picker id, zone, shift and if it was a mispick.", "decision": "decide if we need to move experienced pickers to the night shift.", "other": "i'm not asking to forecast, i want to see what happened."},
+   "route": "analysis", "tool": "query"},
+
+  {"id": "s-12", "opening": "hey, i need to get some customers out of this file for my team", "upload": "customers",
+   "facts": {"situation": "I'm in customer success at a phone plan company. My manager wants a call campaign this week.", "goal": "I need a list of the actual customers on the premium plan in Lisbon and Porto with more than 3 tickets in last 90 days, with their ids and spend, so I can download it as excel.", "data": "the customers table I uploaded.", "decision": "the agents will call each person on the list.", "other": "I don't need scores or charts, just the rows with the columns cleaned up."},
+   "route": "preparation", "tool": "recipe"},
+
+  {"id": "s-13", "opening": "our sales data is a mess, cant do anything with it like this", "upload": "sales",
+   "facts": {"situation": "I'm a finance analyst at a furniture wholesaler. The export from the old ERP has duplicates, regions spelled different ways, some amounts as text with currency signs.", "goal": "I want one clean table: no duplicate orders, region names fixed, amount as a number, and dates in one format, with a column for month.", "data": "uploaded the sales export, order id, date, region, channel, category, amount, status, customer id.", "decision": "I'll load the clean table into our accounting system and excel models.", "other": "the analysis I will do myself after, I just need the clean file."},
+   "route": "preparation", "tool": "recipe"},
+
+  {"id": "s-14", "opening": "I have like five spreadsheets from different branches and my director wants one thing", "upload": null,
+   "facts": {"situation": "I'm office manager at a chain of dental clinics. Each branch keeps its own patient visits sheet, different column names and orders.", "goal": "combine all branches into one table with the same columns, a branch column added, and the treatment codes mapped to one list.", "data": "five excel files, one per branch, about a year each. Some have dates as day/month and others month/day.", "decision": "the director will do her own pivot tables from the combined file.", "other": "I am not a technical person, please keep it simple."},
+   "route": "preparation", "tool": "recipe"},
+
+  {"id": "s-15", "opening": "machine data question - we log a lot from the line but its unusable", "upload": null,
+   "facts": {"situation": "process engineer at a plastics factory. Sensors write one row per reading per second, long format with sensor name and value.", "goal": "I need it reshaped to one row per minute per machine, with a column per sensor (averaged), and joined with the batch table so each minute has its batch number.", "data": "sensor log as csv, plus a batch table with machine, start and end time of each batch.", "decision": "our quality team will then use that table in their own SPC software.", "other": "no ML needed right now, first we need a usable table."},
+   "route": "preparation", "tool": "recipe"},
+
+  {"id": "s-16", "opening": "the regional managers keep asking me for numbers every monday", "upload": "sales",
+   "facts": {"situation": "I'm a sales ops guy at a building materials distributor. Every week I build the same excel by hand for the regional managers.", "goal": "I want something they can open anytime that shows revenue by region, channel and category, updated when new orders come in, with a filter for the week.", "data": "the sales file I attached, we get a new export daily.", "decision": "managers check it themselves to chase their targets, I stop sending excels.", "other": "it should stay current without me doing anything."},
+   "route": "reporting", "tool": "dashboard"},
+
+  {"id": "s-17", "opening": "we're opening a new food bank site and need to keep an eye on things", "upload": null,
+   "facts": {"situation": "I coordinate volunteers and stock at a food bank network, now three sites.", "goal": "a screen the coordinators can look at every day with stock levels per category, parcels given per site and volunteers hours this week, refreshing on its own.", "data": "we have a google sheet for stock in/out and another for volunteer sign-ins, both updated daily.", "decision": "coordinators decide when to request more donations or move stock between sites.", "other": "the board also wants to look at it once a month."},
+   "route": "reporting", "tool": "dashboard"},
+
+  {"id": "s-18", "opening": "Need help with the KPIs for our support team", "upload": null,
+   "facts": {"situation": "Head of support at a B2B software company, 12 agents, tickets in Zendesk.", "goal": "I want a live view of first response time, resolution time, backlog and CSAT per agent and per product, that updates through the day.", "data": "Zendesk export of tickets, can be pulled automatically every hour.", "decision": "team leads use it in the daily standup to rebalance queues.", "other": "We had a one-off analysis last year, it was out of date in a week."},
+   "route": "reporting", "tool": "dashboard"},
+
+  {"id": "s-19", "opening": "something happened to our sales and nobody can tell me what", "upload": "sales",
+   "facts": {"situation": "I own a sports nutrition brand selling via our website, Amazon and some gyms.", "goal": "revenue in september fell a lot compared to august and I want to know why: which region, channel or product dragged it down, and what we should do about it.", "data": "the sales file I uploaded, covers this year.", "decision": "decide if we cut the Amazon ad budget or fix something else before Q4.", "other": "my marketing guy says it's seasonal but I don't buy it."},
+   "route": "business", "tool": "business_brief"},
+
+  {"id": "s-20", "opening": "This summer felt different at the resort. Can you look?", "upload": "bookings",
+   "facts": {"situation": "I'm general manager of a family resort. Bookings this summer were weaker than last summer even though we lowered prices.", "goal": "Understand what changed between last summer and this one, which markets and channels dropped, was it cancellations or fewer bookings, and what to do for next season.", "data": "I attached the bookings, both summers are in there.", "decision": "decide our pricing and which markets to push for next summer.", "other": "the owners want an explanation I can defend, not just charts."},
+   "route": "business", "tool": "business_brief"},
+
+  {"id": "s-21", "opening": "our cancellations went up and the CEO is asking questions", "upload": "sales",
+   "facts": {"situation": "ops director at an online electronics retailer. The share of cancelled orders jumped this quarter vs last.", "goal": "find what drives the rise between the two quarters, which categories, channels, regions, and give me 2-3 actions.", "data": "uploaded sales with order status, so cancelled is in there.", "decision": "I present causes and actions to the CEO on friday.", "other": "we changed payment provider in july, might matter."},
+   "route": "business", "tool": "business_brief"},
+
+  {"id": "s-22", "opening": "Margins at the bakery shops arent what they used to be", "upload": null,
+   "facts": {"situation": "I own four bakery shops. This year profit is down compared to last year though we look busy.", "goal": "I want to understand why profit dropped year on year, is it flour prices, staff hours, product mix or fewer customers, and what I should change.", "data": "I have monthly sales per shop and product, costs from the accountant, and staff rota hours, in excel.", "decision": "decide whether to raise prices, cut a product line or reduce opening hours in one shop.", "other": "I'm not good with numbers, plain explanation please."},
+   "route": "business", "tool": "business_brief"},
+
+  {"id": "s-23", "opening": "i keep hearing about this thing and wondered if it's for us", "upload": null,
+   "facts": {"situation": "I run HR at a mid-size logistics company. A vendor is pitching us 'AI attrition prediction'.", "goal": "I just want to understand what that really means, how such a prediction works, what data it needs, and what the risks are like bias or privacy, before the meeting.", "data": "nothing to share right now, I don't want to upload employee data.", "decision": "decide if we even take the vendor meeting seriously.", "other": "please explain in normal words, no coding."},
+   "route": "advice", "tool": "cited_answer"},
+
+  {"id": "s-24", "opening": "our analyst left and I'm stuck with something she started", "upload": null,
+   "facts": {"situation": "I'm product manager at a small bank's mobile app team. Our analyst ran an A/B test on a new onboarding screen before she left.", "goal": "I need someone to explain what statistical significance and a p-value mean, and whether running the test for only one week is a problem, so I can read her slides.", "data": "only her slides, no data, and I don't need anything recalculated.", "decision": "decide whether to trust the result and roll out the new screen.", "other": "keep it simple, I have a business background."},
+   "route": "advice", "tool": "cited_answer"}
+]
