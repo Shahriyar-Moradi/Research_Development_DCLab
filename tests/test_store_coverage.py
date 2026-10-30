@@ -84,6 +84,25 @@ class StoreCountsTest(unittest.TestCase):
 
         self.layout = Layout(Path(tempfile.mkdtemp()))
 
+    def test_a_twin_lanes_thinking_transcript_counts_as_kept_thinking(self):
+        """2026-10-30: the twin keeps Claude's thinking in its lane's transcripts/thinking.jsonl (kind "other" in the store),
+        not in model_exchanges; the coverage said no kept exchange held the twin's thinking."""
+        import gzip
+
+        from dclab_rnd.store.layout import Layout
+
+        layout = Layout(Path(tempfile.mkdtemp()))
+        folder = layout.records_of("other") / "twin_lane"
+        folder.mkdir(parents=True)
+        rows = [{"id": f"other:t:{n}", "kind": "other", "provenance": {"workspace": "twin_lane", "source": "transcripts/thinking.jsonl"},
+                 "body": {"n": n, "request": n, "purpose": "ai_first", "thinking": ["Day of month, not a time order."] if n else []}}
+                for n in (0, 1, 2, 2)]  # one reply without thinking, one counted twice in two entry versions
+        with gzip.open(folder / "x.jsonl.gz", "wt") as fh:
+            fh.write("".join(json.dumps(r) + "\n" for r in rows))
+        doc = cov.measure(layout, home=Path(tempfile.mkdtemp()))
+        self.assertEqual((doc["sources"]["by_agent"]["twin"]["exchanges"], doc["sources"]["by_agent"]["twin"]["thinking"]), (2, 2))
+        self.assertFalse([g for g in cov.gaps(doc) if g.startswith("agent twin: sends")])
+
     def test_a_request_kept_in_two_entry_versions_counts_once(self):
         line = {"purpose": "home_agent", "model": "m", "at": "2026-10-28T09:00:00+00:00", "draft": "d1"}
         prov = {"source": "model_requests.jsonl", "workspace": "w1"}

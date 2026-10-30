@@ -614,7 +614,9 @@ def chat_row(ex: dict[str, Any]) -> dict[str, Any]:
         task = f"Home's next routing step ({ex.get('point')}): choose one of {', '.join(options)}."
     said = "; ".join(f"{k}: {v}" for k, v in sorted((ex.get("state") or {}).items()) if v is not None)
     user = str(ex.get("text") or "") + (f"\n[{said}]" if said and ex.get("point") != "request.intent" else "")
-    reading = next((r for r in ex.get("readings") or [] if r.get("by") == "model" and r.get("value") == ex.get("label") and r.get("thinking")), None)
+    giver = str(ex.get("label_by") or "").rsplit(":", 1)[-1]  # the reason is the label giver's own thinking when it kept one
+    same = [r for r in ex.get("readings") or [] if r.get("by") == "model" and r.get("value") == ex.get("label") and r.get("thinking")]
+    reading = next((r for r in same if r.get("answerer") == giver), None) or next(iter(same), None)
     answer = {"role": "assistant", "content": str(ex["label"])}
     answer.update({"reasoning": reading["thinking"], "reasoning_source": "recorded"} if reading else
                   {"no_reasoning": "no model reading with this answer kept its API thinking summary"})

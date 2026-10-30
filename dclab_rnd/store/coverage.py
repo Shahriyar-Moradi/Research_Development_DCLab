@@ -445,6 +445,20 @@ def measure(layout: Optional[Layout] = None, home: Optional[Path] = None) -> dic
         for d in _jsonl_rows(home / "model_exchanges"):
             if d.get("model_request"):
                 exchanges.setdefault(str(d["model_request"]), d)
+    # 2026-10-30: a twin lane keeps Claude's thinking in its own transcript (transcripts/thinking.jsonl, one row per reply
+    # that thought), filed as "other" in the store; counted here as kept replies with their thinking, by purpose
+    seen_thoughts: set[str] = set()
+    for r in _gz_rows(layout.records_of("other"), "transcripts/thinking.jsonl"):
+        b, prov = r.get("body") or {}, r.get("provenance") or {}
+        if not str(prov.get("source") or "").endswith("transcripts/thinking.jsonl") or not (b.get("thinking") or b.get("redacted")):
+            continue
+        key = f"{prov.get('workspace')}:{b.get('request') or b.get('n')}"
+        if key in seen_thoughts:
+            continue
+        seen_thoughts.add(key)
+        adds = {"exchanges": 1, "thinking": int(bool(b.get("thinking"))), "thinking_redacted": int(not b.get("thinking") and bool(b.get("redacted")))}
+        _bump(by_agent, _purpose_agent(b.get("purpose")), SOURCE_COLUMNS, **adds)
+        _bump(by_purpose, str(b.get("purpose") or "(none)"), SOURCE_COLUMNS, **adds)
     exchange_agent: dict[str, str] = {}
     exchange_track: dict[str, str] = {}
     for key, d in exchanges.items():

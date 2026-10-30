@@ -115,12 +115,61 @@
    "cause": "the agent environment has no Anthropic SDK, so the gateway serves nothing there; the old path used litellm",
    "fix": "open: the SDK must be installed in the agent environment and added to its lock file, with the owner's agreement",
    "test": "none yet"
+  },
+  {
+   "id": "F9",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A Claude routing label was trained with Home's thinking, not the labeller's",
+   "scenario": "A silver label from the routing labeller, where Home's intent reader gave the same answer first: the chat export took Home's thinking as the label's reason",
+   "cause": "chat_row took the first model reading with the same answer and a thinking summary",
+   "fix": "chat_row prefers the reading of the label's giver (label_by), then any reading with the same answer",
+   "test": "tests/test_store_routing.py test_claudes_label_carries_its_api_thinking_summary_as_the_answers_reasoning"
+  },
+  {
+   "id": "F10",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The coverage said no kept exchange held the twin's thinking",
+   "scenario": "A live twin run kept every reply's thinking in its lane's transcripts/thinking.jsonl; the store files it as other, and the coverage read thinking from model_exchanges only",
+   "cause": "the twin lane's own client writes its thinking transcript instead of the gateway's exchange",
+   "fix": "the coverage counts the twin's thinking transcripts as kept replies with their thinking",
+   "test": "tests/test_store_coverage.py test_a_twin_lanes_thinking_transcript_counts_as_kept_thinking"
   }
  ],
  "measurements": [
-  {"name": "team measurement live, kept", "gate": "three team runs recorded in the kept workspace with the roles' thinking summaries", "result": "three team runs completed and recorded; every role but the reporter kept its thinking summary; EUR 0.22; the gate's churn acceptance check failed as in the run before", "verdict": "pass", "cost_eur": 0.22, "limits": ["the team gate itself failed on one acceptance check that predates this change"]},
-  {"name": "workspace chat live", "gate": "one answered question with its run recorded and its thinking kept", "result": "answered, run recorded, three of five exchanges with the thinking summary kept redacted (the purpose sees table results); EUR 0.02", "verdict": "pass", "cost_eur": 0.02},
-  {"name": "campaign live", "gate": "one campaign request through the gateway keeps its thinking summary", "result": "failed on the first request: the agent environment has no Anthropic SDK", "verdict": "fail", "cost_eur": 0.0, "next": "install the SDK in the agent environment with the owner's agreement and run again"}
+  {
+   "name": "team measurement live, kept",
+   "gate": "three team runs recorded in the kept workspace with the roles' thinking summaries",
+   "result": "three team runs completed and recorded; every role but the reporter kept its thinking summary; EUR 0.22; the gate's churn acceptance check failed as in the run before",
+   "verdict": "pass",
+   "cost_eur": 0.22,
+   "limits": [
+    "the team gate itself failed on one acceptance check that predates this change"
+   ]
+  },
+  {
+   "name": "workspace chat live",
+   "gate": "one answered question with its run recorded and its thinking kept",
+   "result": "answered, run recorded, three of five exchanges with the thinking summary kept redacted (the purpose sees table results); EUR 0.02",
+   "verdict": "pass",
+   "cost_eur": 0.02
+  },
+  {
+   "name": "campaign live",
+   "gate": "one campaign request through the gateway keeps its thinking summary",
+   "result": "failed on the first request: the agent environment has no Anthropic SDK",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "next": "install the SDK in the agent environment with the owner's agreement and run again"
+  },
+  {
+   "name": "twin live",
+   "gate": "a completed twin run whose Claude replies keep their thinking summary",
+   "result": "both lanes completed; 25 of 32 Claude replies kept their thinking in the lane's transcript; EUR 1.16",
+   "verdict": "pass",
+   "cost_eur": 1.16
+  }
  ],
  "outcome": "The campaign, its review and its live eval now ask for and keep Claude's thinking through the gateway, with the cost and the model that answered recorded; team measurements are kept where the store collects them. Workspace chat and team are proven live; the campaign waits for the SDK in the agent environment.",
  "lessons": [

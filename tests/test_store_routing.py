@@ -320,6 +320,9 @@ class RoutingCollectorTest(unittest.TestCase):
         self.assertEqual(len(labeller), 1)
         self.assertTrue(labeller[0]["shadow"] and not labeller[0]["used"])
         self.assertEqual(labeller[0]["thinking"], "Groups of customers is analysis, not a prediction.")
+        home_reading = {"by": "model", "answerer": "home_intent", "value": "analysis", "thinking": "Home's own reading.", "thinking_source": "recorded"}
+        first = {**r2, "readings": [home_reading, *r2["readings"]]}  # Home's reading with the same answer comes first
+        self.assertEqual(R.chat_row(first)["messages"][-1]["reasoning"], "Groups of customers is analysis, not a prediction.")  # the giver's
         answer = R.chat_row(r2)["messages"][-1]
         self.assertEqual((answer["reasoning"], answer["reasoning_source"]), ("Groups of customers is analysis, not a prediction.", "recorded"))
         self.assertNotIn("a field the reply wrote", json.dumps(r2))
