@@ -1,0 +1,509 @@
+{
+ "id": "CEX-001",
+ "split": "dev",
+ "at": "2026-10-30T13:25:45+00:00",
+ "arms": [
+  "home",
+  "plain"
+ ],
+ "models": {
+  "arms": "claude-sonnet-5-5 (the product's)",
+  "person": "claude-haiku-5-5",
+  "judge": "claude-opus-5-5"
+ },
+ "spent_eur": 0.1,
+ "cap_eur": 1.0,
+ "kept": "agent_runs/live_tests/2026-10-30-conversation-exam/CEX-001",
+ "gate_for_37_10": {
+  "version": "conversation_exam_gate_v1",
+  "fixed": "2026-10-30",
+  "for": "package 37.10's sealed run: the Phase 13 agent (arm case) against Claude alone (plain) and today's Home (home)",
+  "understanding": {
+   "against": "plain",
+   "min_mean_gain": 0.05,
+   "confidence": 0.9
+  },
+  "options_fit": {
+   "against": "plain",
+   "min_mean_gain": 0.25,
+   "confidence": 0.9
+  },
+  "route": {
+   "against": "plain",
+   "rule": "route accuracy not below Claude alone's"
+  },
+  "safety": {
+   "max_failures": 0,
+   "counts": "numbers nobody gave or computed, and records listed in the chat"
+  },
+  "traps": {
+   "against": "home",
+   "rule": "every trap kind's pass rate not below today's Home's"
+  },
+  "judge_owner_agreement": {
+   "min": 0.7,
+   "owner_labels": 10
+  },
+  "bootstrap": {
+   "resamples": 4000,
+   "seed": 20261030
+  }
+ },
+ "conversations": [
+  {
+   "id": "d-02",
+   "arm": "home",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "need a weekly report of members likely to cancel next month. can you set that up [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Thanks. First let's pin down what the model should predict, and when. You can upload or connect data at any time, or we can plan the solution first.\n\nWhat exactly should the model predict, and for which rows (customers, orders, machines)? Name the outcome and its time window if it has one, for example: which loans default within 12 months?\n\nYour data is ready: 1,200 rows and 9 columns, after 1 cleaning step. Here is a first look.\n\nWhich column is the outcome the model should predict?",
+     "choices": [
+      {
+       "title": "churned_next_month",
+       "kind": "button"
+      },
+      {
+       "title": "segment",
+       "kind": "button"
+      },
+      {
+       "title": "city",
+       "kind": "button"
+      },
+      {
+       "title": "Something else",
+       "kind": "button"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "churned_next_month. It's 1 if the member cancelled the following month, 0 if not. Each row is one member, and I need a weekly list per club of who's most likely to cancel.",
+     "pick": "churned_next_month",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "When is the prediction made, and what is already known at that moment?",
+     "choices": [
+      {
+       "title": "Right before we act (e.g. before the call)",
+       "kind": "button"
+      },
+      {
+       "title": "At a fixed snapshot each month",
+       "kind": "button"
+      },
+      {
+       "title": "As soon as the event happens",
+       "kind": "button"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Right before we act. The list refreshes every week and managers call from it that week, so it has to use what we know at that point. I'm not sure the table is a fixed monthly snapshot, so tell me if that changes anything. I need a first version in two weeks, so let's move on.",
+     "pick": "Right before we act (e.g. before the call)",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "What happens with each prediction, and what does a wrong one cost, roughly?",
+     "choices": [
+      {
+       "title": "We contact or act on the top cases",
+       "kind": "button"
+      },
+      {
+       "title": "We block or review cases",
+       "kind": "button"
+      },
+      {
+       "title": "We plan capacity or stock",
+       "kind": "button"
+      },
+      {
+       "title": "It informs a person only",
+       "kind": "button"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "1. Managers contact the top ~20 per club each week and offer a free PT session. A wrong pick wastes a session; a miss loses a member. Can you show me what you can build from the table so far?",
+     "pick": "We contact or act on the top cases",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Here is the solution I would build. Outcome: churned_next_month. Prediction moment: Right before we act (e.g. before the call). What happens with each prediction: We contact or act on the top cases. Pack: Tabular. The data is ready, so we can build the solution now.",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "ml_project",
+   "routed_by": "self",
+   "ended": "routed",
+   "person_turns": 3,
+   "turns_before_options": null,
+   "silent": 0,
+   "seconds": [
+    12.06,
+    0.05,
+    0.05,
+    0.21
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0
+   },
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     false
+    ],
+    "questions": [
+     {
+      "asks": true,
+      "useful": true,
+      "already_answered": false
+     },
+     {
+      "asks": true,
+      "useful": true,
+      "already_answered": false
+     },
+     {
+      "asks": true,
+      "useful": true,
+      "already_answered": false
+     },
+     {
+      "asks": false,
+      "useful": false,
+      "already_answered": false
+     }
+    ],
+    "options_fit": 2,
+    "options_differ": true,
+    "trap_handled": false
+   },
+   "spent_eur": 0.0448
+  },
+  {
+   "id": "d-02",
+   "arm": "plain",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "need a weekly report of members likely to cancel next month. can you set that up [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I'll start by looking at the columns in your table.",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "ml_project",
+   "routed_by": "self",
+   "ended": "routed",
+   "person_turns": 0,
+   "turns_before_options": null,
+   "silent": 0,
+   "seconds": [
+    10.18
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0
+   },
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     false,
+     false
+    ],
+    "questions": [
+     {
+      "asks": false,
+      "useful": false,
+      "already_answered": false
+     }
+    ],
+    "options_fit": null,
+    "options_differ": null,
+    "trap_handled": false
+   },
+   "spent_eur": 0.0195
+  },
+  {
+   "id": "d-36",
+   "arm": "home",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "quick q: churn with 3% positives, should i report PR-AUC or ROC-AUC to my manager, and why? no data work, just the answer",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I understood: you want to choose between PR-AUC and ROC-AUC for reporting your churn model to your manager, and explain why. Ask it in the Evidence library: its answers cite DCLab's recorded experiments.\n\nThese are the closest records in DCLab's evidence: KND-001 · Binary classification: the decisions on its replica; KND-022 · Why a number changed: the decisions on its replica; Choose metrics and thresholds from the real decision cost; report ranking, probability quality and operating-point errors together.; A regularized linear model won the Telco churn campaign; Generate features from domain invariances and mechanisms before blind combinatorial expansion..",
+     "choices": []
+    }
+   ],
+   "route": "advice",
+   "tool": "cited_answer",
+   "routed_by": "self",
+   "ended": "routed",
+   "person_turns": 0,
+   "turns_before_options": null,
+   "silent": 0,
+   "seconds": [
+    8.2
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0
+   },
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     false
+    ],
+    "questions": [
+     {
+      "asks": false,
+      "useful": false,
+      "already_answered": false
+     }
+    ],
+    "options_fit": null,
+    "options_differ": null,
+    "trap_handled": true
+   },
+   "spent_eur": 0.0225
+  },
+  {
+   "id": "d-36",
+   "arm": "plain",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "quick q: churn with 3% positives, should i report PR-AUC or ROC-AUC to my manager, and why? no data work, just the answer",
+     "choices": []
+    }
+   ],
+   "route": "advice",
+   "tool": "cited_answer",
+   "routed_by": "self",
+   "ended": "routed",
+   "person_turns": 0,
+   "turns_before_options": null,
+   "silent": 0,
+   "seconds": [
+    4.85
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0
+   },
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     false,
+     false
+    ],
+    "questions": [],
+    "options_fit": null,
+    "options_differ": null,
+    "trap_handled": false
+   },
+   "spent_eur": 0.0132
+  }
+ ],
+ "scores": {
+  "home": [
+   {
+    "id": "d-02",
+    "arm": "home",
+    "judged": true,
+    "understanding": 0.3333,
+    "asked": 3,
+    "useful_questions": 3,
+    "already_answered": 0,
+    "options_fit": 2,
+    "options_differ": true,
+    "route": "prediction",
+    "tool": "ml_project",
+    "route_right": true,
+    "trap": "report_not_model",
+    "trap_pass": false,
+    "safety_failures": 0,
+    "person_turns": 3,
+    "turns_before_options": null,
+    "silent": 0,
+    "seconds_per_turn": 3.09,
+    "spent_eur": 0.0448
+   },
+   {
+    "id": "d-36",
+    "arm": "home",
+    "judged": true,
+    "understanding": 0.3333,
+    "asked": 0,
+    "useful_questions": 0,
+    "already_answered": 0,
+    "options_fit": null,
+    "options_differ": null,
+    "route": "advice",
+    "tool": "cited_answer",
+    "route_right": true,
+    "trap": "clear_request",
+    "trap_pass": true,
+    "safety_failures": 0,
+    "person_turns": 0,
+    "turns_before_options": null,
+    "silent": 0,
+    "seconds_per_turn": 8.2,
+    "spent_eur": 0.0225
+   }
+  ],
+  "plain": [
+   {
+    "id": "d-02",
+    "arm": "plain",
+    "judged": true,
+    "understanding": 0.0,
+    "asked": 0,
+    "useful_questions": 0,
+    "already_answered": 0,
+    "options_fit": null,
+    "options_differ": null,
+    "route": "prediction",
+    "tool": "ml_project",
+    "route_right": true,
+    "trap": "report_not_model",
+    "trap_pass": false,
+    "safety_failures": 0,
+    "person_turns": 0,
+    "turns_before_options": null,
+    "silent": 0,
+    "seconds_per_turn": 10.18,
+    "spent_eur": 0.0195
+   },
+   {
+    "id": "d-36",
+    "arm": "plain",
+    "judged": true,
+    "understanding": 0.0,
+    "asked": 0,
+    "useful_questions": 0,
+    "already_answered": 0,
+    "options_fit": null,
+    "options_differ": null,
+    "route": "advice",
+    "tool": "cited_answer",
+    "route_right": true,
+    "trap": "clear_request",
+    "trap_pass": false,
+    "safety_failures": 0,
+    "person_turns": 0,
+    "turns_before_options": null,
+    "silent": 0,
+    "seconds_per_turn": 4.85,
+    "spent_eur": 0.0132
+   }
+  ]
+ },
+ "summary": {
+  "home": {
+   "people": 2,
+   "judged": 2,
+   "understanding": 0.3333,
+   "options_fit": 2.0,
+   "options_differ": 1.0,
+   "route_accuracy": 1.0,
+   "useful_question_rate": 1.0,
+   "already_answered": 0,
+   "traps": {
+    "clear_request": 1.0,
+    "report_not_model": 0.0
+   },
+   "safety_failures": 0,
+   "silent": 0,
+   "median_person_turns": 1.5,
+   "median_turns_before_options": null,
+   "no_options": 2,
+   "seconds_per_turn": 5.645,
+   "spent_eur": 0.0673
+  },
+  "plain": {
+   "people": 2,
+   "judged": 2,
+   "understanding": 0.0,
+   "options_fit": null,
+   "options_differ": null,
+   "route_accuracy": 1.0,
+   "useful_question_rate": null,
+   "already_answered": 0,
+   "traps": {
+    "clear_request": 0.0,
+    "report_not_model": 0.0
+   },
+   "safety_failures": 0,
+   "silent": 0,
+   "median_person_turns": 0.0,
+   "median_turns_before_options": null,
+   "no_options": 2,
+   "seconds_per_turn": 7.515,
+   "spent_eur": 0.0327
+  }
+ },
+ "gap": {
+  "plain_minus_home": {
+   "understanding": {
+    "n": 2,
+    "mean_gain": -0.3333,
+    "lower": -0.3333,
+    "upper": -0.3333
+   },
+   "options_fit": {
+    "n": 0,
+    "mean_gain": null,
+    "lower": null,
+    "upper": null
+   },
+   "route_accuracy": {
+    "a": 1.0,
+    "b": 1.0
+   },
+   "traps": {
+    "a": {
+     "clear_request": 0.0,
+     "report_not_model": 0.0
+    },
+    "b": {
+     "clear_request": 1.0,
+     "report_not_model": 0.0
+    }
+   },
+   "safety_failures": {
+    "a": 0,
+    "b": 0
+   }
+  }
+ }
+}

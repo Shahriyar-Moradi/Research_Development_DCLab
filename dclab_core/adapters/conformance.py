@@ -40,6 +40,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "data_card": LIBRARY + " (drawn from a table the host hands the library)",
     "dataset_manifest": LIBRARY + " (written by the builders over adapted events and records)",
     "problem_card": LIBRARY + " (the understanding conversation's result)",
+    "case_file": LIBRARY + " (37.1: the living record of a case; the main product reads its problem card through case.to_card and the card's adapters)",
     "problem_data_check": LIBRARY + " (the problem set against its tables)",
     "fit_verdict": LIBRARY + " (G2: the problem card against the data card, 30.13)",
     "calibrator": LIBRARY + " (step 8 of the Workflow Run, fitted on out-of-fold scores, carried in the artifact, 30.15)",

@@ -1,0 +1,6 @@
+{
+  "campaign_id": "conversation_exam_v1",
+  "objective": "Package 37.0 (Phase 13): whole conversations judged against Claude alone. 40 written dev people with hidden truths (situation, goal, decision, user, data, knowledge, limits), the points a good listener must understand, the right route and planted traps, plus the owner's own Telco session; a simulated person (Haiku 5.5) answers from the truth; arms: today's Home and Claude alone (Sonnet 5.5, a plain prompt, the same table view); a judge (Opus 5.5) blind to the arm scores understanding, questions, options and traps; code scores the route and safety. The gate for the sealed run (37.10), conversation_exam_gate_v1, was fixed before any run.",
+  "rule": "Scores say how each arm handles these written, simulated people, judged by a model and checked on a sample by the owner; nothing about other conversations or production readiness.",
+  "command": "python -m dclab_rnd.agent_eval.conversation_exam [--only IDS] [--yes --cap-eur N]"
+}

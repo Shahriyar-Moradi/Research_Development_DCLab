@@ -4,6 +4,21 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.148.0 (2026-10-30)
+
+- `case` (new, Phase 13 package 37.1): `CaseFile` v1, the one living record of a case: the goal, the decision it serves,
+  who uses the result, the data and what it cannot answer, limits, assumptions, unknowns ranked by what they block, the
+  options offered and chosen, and the route. Every fact says where it came from (`said` quotes the person exactly,
+  `computed` names what computed it, `assumed` is never counted as known until the person confirms it); every change is a
+  version with who and why; `readiness` and `check_options` are code; the problem card is a view (`from_card`, `to_card`,
+  unchanged on a round trip). A question ceiling (about six asked, or two declined) lets an agent propose with what is open
+  stated as assumptions.
+
+## 0.147.0 (2026-10-30)
+
+- `store`: `m7_judges` sets may hold `chat_example`s: a judge's lesson as the case it read, its verdict and its summarized
+  thinking (Phase 13's conversation exam judge). No contract changed shape.
+
 ## 0.146.0 (2026-10-30)
 
 - `plan`: an advisor may not replace the primary metric the rules set (by the positive rate for a binary task, or by the

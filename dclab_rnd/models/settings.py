@@ -139,6 +139,14 @@ PURPOSES: dict[str, Purpose] = {
                                              "its bands (storage type, share of distinct and missing values, the shape of its written values), "
                                              "the outcome's name, the prediction moment, measures computed on training rows only (a column's "
                                              "signal against the outcome, the holdout's metrics once read); never rows or cell values (27.6)"),
+    "exam_plain": Purpose("standard", 180, "37.0: the conversation exam's Claude-alone arm: a written person's words (simulated, never a "
+                                           "real person's) and, when they share an invented exam table, its column names, kinds and what "
+                                           "DCLab noticed about each; never a row or a cell value", cell_values=0, keeps_text=True),
+    "exam_person": Purpose("standard", 90, "37.0: the simulated person of the conversation exam (served by Haiku 5.5): a written person's "
+                                           "hidden truth and the conversation so far; never data, a row or a cell value", cell_values=0, keeps_text=True),
+    "exam_judge": Purpose("standard", 240, "37.0: the conversation exam's judge (served by Opus 5.5), blind to the arm: a written person's "
+                                           "hidden truth, the points to understand, the trap and the conversation; never data, a row or a "
+                                           "cell value", cell_values=0, keeps_text=True),
     "home_understand": Purpose("standard", 90, "the owner's Telco test (2026-10-29): Home's understanding conversation: the person's words, "
                                                "Home's own earlier understanding questions, and the table's column names and kinds with what "
                                                "DCLab noticed about each (an identifier, an outcome-like name, a date, a small code); never a row "

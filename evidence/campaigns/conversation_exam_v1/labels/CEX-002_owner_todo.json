@@ -1,0 +1,92 @@
+[
+ {
+  "ref": "20a50e8b53",
+  "person": {
+   "truth": {
+    "situation": "I'm the analyst at a gym chain with 14 clubs; our customers table has one row per member, with churned_next_month.",
+    "goal": "I want each club manager to get, every week, the members most likely to cancel next month so they can talk to them in time.",
+    "decision": "Every week each club manager picks about 20 members to offer a free personal-training session to keep them.",
+    "user": "14 club managers, about 20 conversations each per week",
+    "data": "The customers table I uploaded: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+    "knows": "I'm good at SQL and reports; I've never built a predictive model and assumed this is just a filtered report.",
+    "constraints": "It must refresh weekly, managers only read a simple list, and I want a first version within two weeks."
+   },
+   "level": "analyst",
+   "style": "impatient",
+   "must_understand": [
+    "'likely to cancel next month' needs a forward-looking score per member, not a report of past cancellations",
+    "each club manager acts on about 20 members a week",
+    "the list must refresh weekly and stay simple for managers"
+   ],
+   "trap": "report_not_model",
+   "trap_check": "Explains that knowing who will cancel needs a prediction model trained on churned_next_month (a score per member), not only a filtered report, and proposes the model route before any dashboard."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "need a weekly report of members likely to cancel next month. can you set that up [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'll start by looking at the columns in your table.\n\nI've started a prediction project, which is the first step. Your table already has a `churned_next_month` column, so DCLab can learn from past members who cancelled and score the others on how likely they are to cancel. It will use columns like plan, tenure, monthly spend and support tickets in the last 90 days.\n\nThe weekly report comes after that. Your table doesn't have scores for each member yet, so the model has to exist before there's anything to report. Once it's built and you're happy with how well it predicts, I can set up the weekly report listing the members most likely to cancel.\n\nBefore we get to the report, it would help to know two things:\n- **Who should be on the list?** For example, the top 50 members by risk, or everyone above a certain risk level.\n- **Which columns should it show?** For example, member ID, plan, city and risk score.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "ae377d0165",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a fintech app; our churn rate is about 3%.",
+    "goal": "I want to report the metric that honestly shows how good the model is.",
+    "decision": "I'll choose which metric goes in my model review slide for my manager.",
+    "user": "my manager, who is not technical",
+    "data": "No data needed for this question.",
+    "knows": "I know both metrics; I want a clear reason to give my manager.",
+    "constraints": "Review is tomorrow."
+   },
+   "level": "data_scientist",
+   "style": "impatient",
+   "must_understand": [
+    "a guidance question, no data work",
+    "3% positives makes the class imbalance central",
+    "the answer must be explainable to a non-technical manager"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "quick q: churn with 3% positives, should i report PR-AUC or ROC-AUC to my manager, and why? no data work, just the answer",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started a cited answer on PR-AUC versus ROC-AUC for churn with about 3% positives. It's a straight explanation and doesn't touch any data.\n\nMy short answer is to lead with PR-AUC and mention ROC-AUC as a secondary number. With only 3% positives, ROC-AUC can look strong even when the model isn't useful for the retention team. The cited answer will cover the reasoning and the sources.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]

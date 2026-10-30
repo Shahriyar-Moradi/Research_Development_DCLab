@@ -21,7 +21,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 from dclab_core.datasets import split_of
-from dclab_core.store import Episode, EpisodeStep, JudgedExample, Message, PreferencePair, RetrievalExample, StoreRecord
+from dclab_core.store import ChatExample, Episode, EpisodeStep, JudgedExample, Message, PreferencePair, RetrievalExample, StoreRecord
 
 from ..layout import Layout
 from . import write_set
@@ -243,6 +243,31 @@ def review_findings(root: Optional[Any] = None) -> list[JudgedExample]:
     return out
 
 
+JUDGES = {"exam_judge": "37.0: the conversation exam's judge (Opus 5.5), blind to the arm"}  # purposes whose verdicts teach a judge
+SILVER = 0.5  # a provider's model made the verdict: silver and apart (the owner, 2026-10-25)
+
+
+def judge_lessons(layout: Layout, choices: Optional[dict] = None) -> list[ChatExample]:
+    """37.0 (the owner: every test's data kept for training): each kept call of a judge as a judge's lesson, the case it read
+    in and its verdict out, with its summarized thinking as the reasoning (never asked for in its answer). A provider's
+    model made it, so it is silver at half weight; the cases are written, simulated people."""
+    from .. import shapers
+    from . import allowed
+    from .llm import from_exchange
+
+    choices = choices if choices is not None else {}
+    out: list[ChatExample] = []
+    for r in shapers.records(layout, "model_requests"):
+        if str(r.body.get("purpose") or "") not in JUDGES or not r.provenance.source.startswith("model_exchanges/"):
+            continue
+        if not allowed(r, "m7_judges", choices):
+            continue
+        ex = from_exchange(r, model_type="m7_judges")
+        if ex is not None:
+            out.append(ex.model_copy(update={"weight": SILVER, "check": {**ex.check, "judge": JUDGES[str(r.body["purpose"])], "silver": True}}))
+    return out
+
+
 def preferences(layout: Layout, choices: Optional[dict] = None, scripted: Optional[frozenset[str]] = None) -> list[PreferencePair]:
     """32.19: each correction as a preference pair: what the person made it (chosen) over what DCLab proposed (rejected);
     never a scripted person's (S8)."""
@@ -325,6 +350,8 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         groups[("m7_judges", "preferences")].append(p)
     for j in review_findings():
         groups[("m7_judges", "review_findings")].append(j)
+    for c in judge_lessons(layout, choices):
+        groups[("m7_judges", "exam_judgments")].append(c)
     for x in retrievals(layout, choices):
         groups[("m8_retrieval", x.corpus)].append(x)
     abouts = {"m6_stepwise_decisions": "Processes decided step by step: each step's state, action and outcome, the episode's outcome from its record.",
@@ -337,4 +364,4 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
     return report
 
 
-__all__ = ["build", "episodes", "judged", "preferences", "retrievals", "review_findings"]
+__all__ = ["build", "episodes", "judge_lessons", "judged", "preferences", "retrievals", "review_findings"]

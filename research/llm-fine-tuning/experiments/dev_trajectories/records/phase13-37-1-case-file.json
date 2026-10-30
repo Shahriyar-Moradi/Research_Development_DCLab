@@ -1,0 +1,51 @@
+{
+ "package": "37.1",
+ "title": "The case file: one living record of a case, every fact with its source, every change a version, readiness and options checked by code",
+ "date": "2026-10-30",
+ "request": "The owner, after accepting the Phase 13 review: build the thin slice without stopping; 37.1 is the case file the lead agent will read and write.",
+ "spec": "dclab_core.case: CaseFile v1 with the goal, decision, user, data, what the data cannot answer, limits, assumptions, unknowns, options, choice and route; facts said (quoted), computed (by code, about the data) or assumed (never counted until the person confirms); versions with who and why; readiness and the question ceiling in code; options checked (runnable, real columns, no invented number, different kinds, at most three); the problem card as a view that comes back unchanged.",
+ "plan": [
+  "Read the problem card contract it must rebuild",
+  "Tests first: facts and quotes, versions, readiness and the ceiling, options, the card view",
+  "Write dclab_core/case.py, register it, generate its schema, the conformance reason, the changelog",
+  "Review, fix every finding with a test, rd-check, record, commit"
+ ],
+ "decisions": [
+  {"decision": "A said fact needs two whole words of one message, on word boundaries, sharing a content word with its value", "why": "the review showed a one-letter quote or a piece of a word passed, and nothing tied the quote to what it claimed"},
+  {"decision": "Only code writes computed facts, and only about the data", "why": "an agent marking the goal, decision and user as computed reached readiness with nothing from the person"},
+  {"decision": "The person's words grow only by hear(); an assumption is confirmed only by the person, in a message after it was made", "why": "an agent could replace the words and then quote itself, or confirm an assumption with older words"},
+  {"decision": "The problem card's rule-made parts are kept whole in the case file; to_card changes only what the person's facts changed and closes the open fields they filled", "why": "the card stays the main product's contract; a round trip must be exact (checked on 12 briefs), and a correction must not leave a field both filled and open"},
+  {"decision": "An option's kind is its tool, and each tool serves one kind of help", "why": "three tracks on one tool were one plan in three wordings"},
+  {"decision": "Every version is validated whole and shares nothing with the one before", "why": "a copy skipped the contract's limits and shared lists, so an append rewrote history"},
+  {"decision": "The track-brief and problem-map views wait for 37.3", "why": "the thin slice needs the card view now; the lead agent decides which other views it reads"}
+ ],
+ "change": "dclab_core.case (new): CaseFile v1, CaseFact, CaseChange, CaseOption, CaseRoute, Unknown, Readiness; new, apply, hear, confirm, asked, known, readiness (ceiling six asked or two declined), check_fact, quote_ok, check_options, numbers_unsaid, from_card, to_card, views. Registered for schemas (case_file.json and its baseline), a conformance reason (the main product reads the card through to_card), CORE_INTEGRATION.md section, dclab-core 0.148.0.",
+ "findings": [
+  {"id": "F1", "source": "reviewer", "severity": "behaviour", "defect": "An agent could reach readiness with facts marked computed", "scenario": "goal, decision, user and data written as computed with 'my reading' made the case ready", "cause": "computed allowed on every field and for every writer", "fix": "computed only for data and what it cannot answer, and only by code", "test": "tests/test_core_case.py FactTests.test_only_code_computes_and_only_about_the_data"},
+  {"id": "F2", "source": "reviewer", "severity": "behaviour", "defect": "apply could replace the person's words", "scenario": "words set to the agent's text, then said facts quoting it made the case ready", "cause": "words was an apply field", "fix": "words grow only by hear(), a version by the person", "test": "tests/test_core_case.py FactTests.test_the_persons_words_grow_only_by_hearing_them"},
+  {"id": "F3", "source": "reviewer", "severity": "behaviour", "defect": "The quote check was too loose", "scenario": "quote 'a' or 'ales te' accepted for any value", "cause": "any substring matched, and nothing tied quote to value", "fix": "two whole words on word boundaries, a content word shared with the value", "test": "tests/test_core_case.py FactTests.test_a_quote_is_two_whole_words_of_a_message_sharing_a_word_with_the_value"},
+  {"id": "F4", "source": "reviewer", "severity": "behaviour", "defect": "confirm accepted earlier words and any caller", "scenario": "an assumption added after message 3 confirmed by the agent with 'the'", "cause": "no record of when the assumption was made, no check of who confirms", "fix": "after_words recorded; the answer must be in a later message, by the person", "test": "tests/test_core_case.py FactTests.test_an_assumption_the_person_confirms_counts_and_one_they_reject_does_not"},
+  {"id": "F5", "source": "reviewer", "severity": "behaviour", "defect": "from_card brought in said facts the rules refuse", "scenario": "a card's decision owner from answers not in the case's words counted as known", "cause": "the card's facts were taken as said without the check", "fix": "a failing fact enters as an assumption", "test": "tests/test_core_case.py CardViewTests.test_a_cards_quote_not_in_these_words_is_only_an_assumption"},
+  {"id": "F6", "source": "reviewer", "severity": "behaviour", "defect": "A correction left the card inconsistent", "scenario": "a decision given by the person stayed in open_fields; an assumed decision blanked the card's own", "cause": "to_card overwrote fields without the open fields or the fact's status", "fix": "filled fields leave open_fields; an assumed or rejected change keeps the card's value", "test": "tests/test_core_case.py CardViewTests.test_a_decision_the_person_gave_closes_its_open_field_and_an_assumption_keeps_the_card"},
+  {"id": "F7", "source": "reviewer", "severity": "behaviour", "defect": "One plan passed as three kinds", "scenario": "prediction, advice and business options all on ml_project were kept", "cause": "kind judged by the track and tool pair, no pairing checked", "fix": "kind is the tool; each tool serves one track", "test": "tests/test_core_case.py OptionTests.test_one_tool_is_one_kind_whatever_the_track_says"},
+  {"id": "F8", "source": "reviewer", "severity": "behaviour", "defect": "Invented numbers passed and equal numbers failed", "scenario": "'.85', '5x', '9 in 10' passed; '12%' against '12 percent' and '300.0' against '300' failed", "cause": "the pattern missed a leading point, units and ratios, and compared raw text", "fix": "units and ratios read, forms normalised", "test": "tests/test_core_case.py OptionTests.test_numbers_with_units_and_ratios_are_claims_and_equal_forms_match"},
+  {"id": "F9", "source": "reviewer", "severity": "behaviour", "defect": "apply could store a case that cannot be read back", "scenario": "five options stored; reading the JSON failed on the four-option limit", "cause": "model_copy skips validation; options unchecked", "fix": "every version validated whole; unrunnable options refused", "test": "tests/test_core_case.py VersionTests.test_a_change_that_would_break_the_contract_is_refused_and_counting_is_versioned"},
+  {"id": "F10", "source": "reviewer", "severity": "behaviour", "defect": "Words and the question counts changed without a version", "scenario": "two declined questions made may_propose true at version 0 with no change", "cause": "hear and asked copied the case without a change", "fix": "both are versions (by the person, by the agent)", "test": "tests/test_core_case.py VersionTests"},
+  {"id": "F11", "source": "reviewer", "severity": "latent", "defect": "Versions shared their lists", "scenario": "one.words.append rewrote the earlier version's words", "cause": "shallow copies", "fix": "each version built from a JSON copy", "test": "tests/test_core_case.py VersionTests.test_every_change_is_a_version_with_who_and_why_and_the_old_value"},
+  {"id": "F12", "source": "reviewer", "severity": "gap", "defect": "The track-brief and problem-map views are not built", "scenario": "the package row names them beside the card", "cause": "the thin slice built the card view first", "fix": "deferred to 37.3, where the lead agent reads them", "test": "none", "verdict": "open"}
+ ],
+ "measurements": [
+  {"name": "problem card round trip", "gate": "to_card(from_card(card)) equals the card", "result": "equal on the test's card and on 12 varied briefs the reviewer built (with and without data, answers, Persian, entity tables, text only)", "verdict": "pass", "cost_eur": 0.0}
+ ],
+ "outcome": "The case file exists as a core contract: a model can write it only through rules that keep the person's words as the source of every known fact, every change is a version, and readiness, the question ceiling and the options' checks are code. The problem card comes back unchanged and takes the person's corrections.",
+ "lessons": [
+  "A rule that a model's record must cite the person is only as strong as its quote check: test the shortest quote that should fail",
+  "A record a model writes needs every way in closed, not only the main one: the words, the counts and the copies were side doors",
+  "A view that rebuilds another contract must update every field the change touches, or the two disagree"
+ ],
+ "risks": [
+  "A paraphrase that shares no content word with the person's quote is refused: the agent must quote closer",
+  "The track-brief and problem-map views are not built yet"
+ ],
+ "commits": []
+}

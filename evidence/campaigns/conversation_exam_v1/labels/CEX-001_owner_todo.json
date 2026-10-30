@@ -1,0 +1,257 @@
+[
+ {
+  "ref": "ab77be08c2",
+  "person": {
+   "truth": {
+    "situation": "I'm the analyst at a gym chain with 14 clubs; our customers table has one row per member, with churned_next_month.",
+    "goal": "I want each club manager to get, every week, the members most likely to cancel next month so they can talk to them in time.",
+    "decision": "Every week each club manager picks about 20 members to offer a free personal-training session to keep them.",
+    "user": "14 club managers, about 20 conversations each per week",
+    "data": "The customers table I uploaded: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+    "knows": "I'm good at SQL and reports; I've never built a predictive model and assumed this is just a filtered report.",
+    "constraints": "It must refresh weekly, managers only read a simple list, and I want a first version within two weeks."
+   },
+   "level": "analyst",
+   "style": "impatient",
+   "must_understand": [
+    "'likely to cancel next month' needs a forward-looking score per member, not a report of past cancellations",
+    "each club manager acts on about 20 members a week",
+    "the list must refresh weekly and stay simple for managers"
+   ],
+   "trap": "report_not_model",
+   "trap_check": "Explains that knowing who will cancel needs a prediction model trained on churned_next_month (a score per member), not only a filtered report, and proposes the model route before any dashboard."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "need a weekly report of members likely to cancel next month. can you set that up [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks. First let's pin down what the model should predict, and when. You can upload or connect data at any time, or we can plan the solution first.\n\nWhat exactly should the model predict, and for which rows (customers, orders, machines)? Name the outcome and its time window if it has one, for example: which loans default within 12 months?\n\nYour data is ready: 1,200 rows and 9 columns, after 1 cleaning step. Here is a first look.\n\nWhich column is the outcome the model should predict?",
+    "choices": [
+     {
+      "title": "churned_next_month",
+      "kind": "button"
+     },
+     {
+      "title": "segment",
+      "kind": "button"
+     },
+     {
+      "title": "city",
+      "kind": "button"
+     },
+     {
+      "title": "Something else",
+      "kind": "button"
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "churned_next_month. It's 1 if the member cancelled the following month, 0 if not. Each row is one member, and I need a weekly list per club of who's most likely to cancel.",
+    "pick": "churned_next_month",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "When is the prediction made, and what is already known at that moment?",
+    "choices": [
+     {
+      "title": "Right before we act (e.g. before the call)",
+      "kind": "button"
+     },
+     {
+      "title": "At a fixed snapshot each month",
+      "kind": "button"
+     },
+     {
+      "title": "As soon as the event happens",
+      "kind": "button"
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Right before we act. The list refreshes every week and managers call from it that week, so it has to use what we know at that point. I'm not sure the table is a fixed monthly snapshot, so tell me if that changes anything. I need a first version in two weeks, so let's move on.",
+    "pick": "Right before we act (e.g. before the call)",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "What happens with each prediction, and what does a wrong one cost, roughly?",
+    "choices": [
+     {
+      "title": "We contact or act on the top cases",
+      "kind": "button"
+     },
+     {
+      "title": "We block or review cases",
+      "kind": "button"
+     },
+     {
+      "title": "We plan capacity or stock",
+      "kind": "button"
+     },
+     {
+      "title": "It informs a person only",
+      "kind": "button"
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "1. Managers contact the top ~20 per club each week and offer a free PT session. A wrong pick wastes a session; a miss loses a member. Can you show me what you can build from the table so far?",
+    "pick": "We contact or act on the top cases",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Here is the solution I would build. Outcome: churned_next_month. Prediction moment: Right before we act (e.g. before the call). What happens with each prediction: We contact or act on the top cases. Pack: Tabular. The data is ready, so we can build the solution now.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "ae377d0165",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a fintech app; our churn rate is about 3%.",
+    "goal": "I want to report the metric that honestly shows how good the model is.",
+    "decision": "I'll choose which metric goes in my model review slide for my manager.",
+    "user": "my manager, who is not technical",
+    "data": "No data needed for this question.",
+    "knows": "I know both metrics; I want a clear reason to give my manager.",
+    "constraints": "Review is tomorrow."
+   },
+   "level": "data_scientist",
+   "style": "impatient",
+   "must_understand": [
+    "a guidance question, no data work",
+    "3% positives makes the class imbalance central",
+    "the answer must be explainable to a non-technical manager"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "quick q: churn with 3% positives, should i report PR-AUC or ROC-AUC to my manager, and why? no data work, just the answer",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "c6fe4cdaf2",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a fintech app; our churn rate is about 3%.",
+    "goal": "I want to report the metric that honestly shows how good the model is.",
+    "decision": "I'll choose which metric goes in my model review slide for my manager.",
+    "user": "my manager, who is not technical",
+    "data": "No data needed for this question.",
+    "knows": "I know both metrics; I want a clear reason to give my manager.",
+    "constraints": "Review is tomorrow."
+   },
+   "level": "data_scientist",
+   "style": "impatient",
+   "must_understand": [
+    "a guidance question, no data work",
+    "3% positives makes the class imbalance central",
+    "the answer must be explainable to a non-technical manager"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "quick q: churn with 3% positives, should i report PR-AUC or ROC-AUC to my manager, and why? no data work, just the answer",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I understood: you want to choose between PR-AUC and ROC-AUC for reporting your churn model to your manager, and explain why. Ask it in the Evidence library: its answers cite DCLab's recorded experiments.\n\nThese are the closest records in DCLab's evidence: KND-001 · Binary classification: the decisions on its replica; KND-022 · Why a number changed: the decisions on its replica; Choose metrics and thresholds from the real decision cost; report ranking, probability quality and operating-point errors together.; A regularized linear model won the Telco churn campaign; Generate features from domain invariances and mechanisms before blind combinatorial expansion..",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "20a50e8b53",
+  "person": {
+   "truth": {
+    "situation": "I'm the analyst at a gym chain with 14 clubs; our customers table has one row per member, with churned_next_month.",
+    "goal": "I want each club manager to get, every week, the members most likely to cancel next month so they can talk to them in time.",
+    "decision": "Every week each club manager picks about 20 members to offer a free personal-training session to keep them.",
+    "user": "14 club managers, about 20 conversations each per week",
+    "data": "The customers table I uploaded: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+    "knows": "I'm good at SQL and reports; I've never built a predictive model and assumed this is just a filtered report.",
+    "constraints": "It must refresh weekly, managers only read a simple list, and I want a first version within two weeks."
+   },
+   "level": "analyst",
+   "style": "impatient",
+   "must_understand": [
+    "'likely to cancel next month' needs a forward-looking score per member, not a report of past cancellations",
+    "each club manager acts on about 20 members a week",
+    "the list must refresh weekly and stay simple for managers"
+   ],
+   "trap": "report_not_model",
+   "trap_check": "Explains that knowing who will cancel needs a prediction model trained on churned_next_month (a score per member), not only a filtered report, and proposes the model route before any dashboard."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "need a weekly report of members likely to cancel next month. can you set that up [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'll start by looking at the columns in your table.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]

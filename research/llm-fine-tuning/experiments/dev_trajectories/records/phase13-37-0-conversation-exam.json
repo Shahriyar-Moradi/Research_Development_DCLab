@@ -1,0 +1,304 @@
+{
+ "package": "37.0",
+ "title": "The conversation exam: written people, a simulated person, a blind judge, today's Home against Claude alone, and the sealed gate fixed first",
+ "date": "2026-10-30",
+ "request": "The owner accepted the Phase 13 review (budget $35, store everything, judge Opus, person a third Claude model, a question ceiling, the thin slice) and said: start 37.0, the exam.",
+ "spec": "Written dev people with hidden truths; a model plays each person from the truth only; arms today's Home and Claude alone on the same people; a judge blind to the arm scores understanding, questions, options and traps; code scores the route and safety; the gate for the sealed run 37.10 written before any run; the owner labels ten conversations a run; every conversation and model call kept for training, marked simulated.",
+ "plan": [
+  "Record the owner's decisions and put the plan in the repository with a status table",
+  "Read the existing Home conversation eval and the gateway's purposes, prices and model override",
+  "Tests first: person, arms, judge, safety, score, gate, labels, refused runs, thinking kept",
+  "Build the package: people, person, arms, judge, gate, labels, runner; three prompts and purposes",
+  "Smoke runs on two and three people, then the full dev run",
+  "Review, fix, rerun the review, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "Claude alone sees exactly the table view Home's model sees (column names, kinds, what DCLab noticed), computed through Home's own upload path",
+   "why": "the exam must compare the structure around Claude, not what each arm was allowed to see; a test asserts the two views are equal"
+  },
+  {
+   "decision": "Claude alone gets two tools, offer_options and start_work, labelled with the six kinds of help",
+   "why": "its route must be readable by code; the labels are vocabulary, not DCLab's flow"
+  },
+  {
+   "decision": "The judge answers only facts (points understood, each question, fit, difference, trap); no reason field",
+   "why": "the owner's rule: reasoning is read from the summarized API thinking, never asked for in the reply"
+  },
+  {
+   "decision": "The person is Haiku 5.5, the judge Opus 5.5, both arms Sonnet 5.5",
+   "why": "the owner's accepted decision: the judge differs from the agent, a third model plays the person"
+  },
+  {
+   "decision": "Every number check follows cited.py's rule for every arm: digits nobody gave and code did not compute; words and whole numbers up to ten are no claim",
+   "why": "the plan's deterministic table: every number shown to the person traced to data; the review showed number words and list markers flagged harmless text"
+  },
+  {
+   "decision": "One stopping rule for both arms: a route is chosen and the last message asks nothing",
+   "why": "the review found Claude alone stopped at its start while Home went on asking and earned credit for it"
+  },
+  {
+   "decision": "A conversation the person, judge or budget broke is unjudged and must be rerun; only an arm's own failure scores against it",
+   "why": "a judge's slip falls more often on the arm with more messages; a cap reached mid-run filled the rest with fake failures"
+  },
+  {
+   "decision": "Option fit in the gate: an absolute bar (4 of 5 over at least 10 people shown options) plus the paired gain where both arms showed options to at least 10",
+   "why": "Claude alone often starts work with no options, so a paired comparison alone could be empty and fail or pass by construction"
+  },
+  {
+   "decision": "Exam exchanges carry an exam: draft id and are filed under their own stage, marked simulated; the judge's verdicts never teach the workflow LLM",
+   "why": "the owner: keep everything for training, but simulation and judges never mixed with real people"
+  },
+  {
+   "decision": "GATE_V1 was revised twice by the reviews before any measured run (smoke runs only)",
+   "why": "a gate is fixed before the run that it judges; the smoke runs judged nothing"
+  }
+ ],
+ "change": "dclab_rnd.agent_eval.conversation_exam (new): people_dev.json (40 people written by a separate agent from the format alone, plus the owner's Telco session as a gold case), person (ModelPerson), arms (HomeArm through DraftWork.agent, PlainArm), judge (blind, checked shape, one retry), gate (GATE_V1 for 37.10, paired bootstrap, gap), labels (ten conversations blind for the owner, agreement), runner (play, safety, score, summarize, measure, Budget with a per-request cap, CLI refusing sealed and the case arm). Prompts exam_plain, exam_person, exam_judge; purposes in models.settings; agents.harness MODEL_USES; store.sets.llm: exam_judge and exam_person outside the workflow sets, exam: drafts under the exam_simulation stage and out of the reasoning sets. evidence/campaigns/conversation_exam_v1. docs/guides/PHASE13_CLAUDE_FIRST_PLAN.md with the owner's decisions and a status table. Workspace cap raised to EUR 150 (owner). Later the same day (the owner: every test's data and thinking kept for training): m7_judges/exam_judgments from the judge's calls (dclab-core 0.147.0: m7_judges may hold chat examples), exam calls named by their run, run ids never reused.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Claude alone's turn was cut at its start_work call",
+   "scenario": "CEX-001 d-36: the advice question got no answer; the judge saw an empty message",
+   "cause": "the plain arm ended its turn as soon as a tool showed options or started work",
+   "fix": "a turn ends only on a message to the person",
+   "test": "tests/test_conversation_exam.py PlainArmTests.test_a_start_without_words_still_ends_on_the_message_to_the_person"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "An identifier was read as a number",
+   "scenario": "C-00012 in a reply counted as the uncited number -12",
+   "cause": "cited.numbers reads the dash and digits",
+   "fix": "identifier shapes are stripped before numbers are read, as Home's own check does",
+   "test": "tests/test_conversation_exam.py SafetyTests"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The safety check was unfair between the arms",
+   "scenario": "Home's allowed numbers were the whole draft (464 numbers, timestamps and its own card); Claude alone's only the column view; 'two things' and 'top 50' failed Claude alone",
+   "cause": "the draft dumped whole as a source, and number words counted",
+   "fix": "computed facts only (the table's analysis for both arms, the arm's computed outputs), digits only, whole numbers up to ten ignored",
+   "test": "tests/test_conversation_exam.py SafetyTests and HomeArmTests.test_homes_number_sources_are_what_code_computed_never_its_own_words"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The Home arm was not today's Home",
+   "scenario": "Only the intent and understanding clients were passed; the advice answer took the no-model path",
+   "cause": "HomeAgent built by hand",
+   "fix": "DraftWork(store, budget view).agent(id), the product's wiring",
+   "test": "tests/test_conversation_exam.py HomeArmTests.test_home_is_built_with_every_client_the_product_gives_it"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The arms stopped by different rules",
+   "scenario": "Claude alone stopped at start_work with questions open; Home went on three turns and learned more",
+   "cause": "done meant different things per arm",
+   "fix": "one rule in play: a route and no question; a pick is answered by Claude too",
+   "test": "tests/test_conversation_exam.py StopTests"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Failed conversations dropped out of the averages",
+   "scenario": "An arm crashing on hard people was compared only on the rest",
+   "cause": "None scores skipped by the paired comparison",
+   "fix": "an arm's failure scores 0, the lowest fit and a failed trap; the gate's complete check",
+   "test": "tests/test_conversation_exam.py ScoreTests.test_a_broken_conversation_counts_against_the_arm, GateTests.test_a_missing_person_fails_the_gate"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The owner's label file was not blind",
+   "scenario": "Entries alternated home, plain and only Home's had buttons",
+   "cause": "round-robin order and choice kinds kept",
+   "fix": "shuffled, choices stripped to title and what",
+   "test": "tests/test_conversation_exam.py LabelTests"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The euro cap was not a hard cap",
+   "scenario": "Three live clients could each spend the whole remainder",
+   "cause": "a limit set once at creation",
+   "fix": "a proxy sets each client's limit before every request from what the run has left",
+   "test": "tests/test_conversation_exam.py BudgetTests"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Home's generic buttons were scored as options",
+   "scenario": "CEX-001 Home had options_fit 2 with no options shown",
+   "cause": "the judge's fit accepted without an option-kind choice",
+   "fix": "fit and difference null unless options were shown",
+   "test": "tests/test_conversation_exam.py ScoreTests.test_buttons_are_no_options_to_score"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Exam exchanges would mix with real Home work in the training sets",
+   "scenario": "exam_judge mapped to the report stage; the exam's home_understand calls unmarked",
+   "cause": "no mark for the exam's drafts",
+   "fix": "exam: draft ids, the exam_simulation stage marked simulated, kept out of the reasoning sets; exam_judge and exam_person outside the workflow sets",
+   "test": "tests/test_conversation_exam.py StoreTests"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The gate's safety part was narrower than the plan's rubric",
+   "scenario": "No count for a build without a yes or an ignored guard",
+   "cause": "only numbers and records counted",
+   "fix": "both counted (zero for today's arms; 37.6 and 37.10 must wire them)",
+   "test": "tests/test_conversation_exam.py GateTests"
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A judge's slip counted against the arm",
+   "scenario": "Opus merging two Home messages in one entry gave Home understanding 0",
+   "cause": "no retry, and every invalid judgment scored 0",
+   "fix": "the judge is asked once more; still invalid, the row is unjudged and the gate waits for a rerun",
+   "test": "tests/test_conversation_exam.py JudgeRetryTests, ScoreTests.test_a_conversation_the_person_or_judge_broke_is_unjudged_never_scored"
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Reaching the cap filled the run with fake failures",
+   "scenario": "With the cap spent at person 20, people 21 to 41 scored 0 in both arms",
+   "cause": "the run went on after the budget refused",
+   "fix": "the run stops, the person in play is left out, the record says incomplete",
+   "test": "tests/test_conversation_exam.py RunTests.test_the_cap_stops_the_run_and_marks_it_incomplete"
+  },
+  {
+   "id": "F14",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The option-fit check could be empty",
+   "scenario": "Claude alone showed options to 0 of 2 people: the paired comparison had no rows",
+   "cause": "fit compared only where both arms showed options",
+   "fix": "an absolute bar for the lead plus the paired gain where at least 10 pairs exist",
+   "test": "tests/test_conversation_exam.py GateTests.test_option_fit_needs_good_options_even_when_claude_alone_showed_none"
+  },
+  {
+   "id": "F15",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A run stopped early left its folder unmarked as simulated",
+   "scenario": "The stopped full run's folders could be read as real people's picks",
+   "cause": "the markers were written after the loop",
+   "fix": "WHY.md and scripted.json written before the first conversation",
+   "test": "tests/test_conversation_exam.py RunTests.test_the_cap_stops_the_run_and_marks_it_incomplete"
+  },
+  {
+   "id": "F16",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Home's offer was shown twice",
+   "scenario": "CEX-003 owner-telco: every option title appeared again as a button",
+   "cause": "the offer's titles come back among the question's buttons",
+   "fix": "a button with an option's title is shown once",
+   "test": "tests/test_conversation_exam.py HomeArmTests"
+  },
+  {
+   "id": "F17",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Today's Home loops on the prediction moment after the person refuses prediction (left for Phase 13)",
+   "scenario": "CEX-003 owner-telco: 'groups only, no predictions' confirmed three times, the switch to describing data failed, the same question asked four times",
+   "cause": "the track switch to analysis did not take, and the prediction brief's question stayed pending",
+   "fix": "not fixed in 37.0, which measures; the lead agent (37.3, 37.4) owns the conversation",
+   "test": "the exam itself (CEX-003)"
+  },
+  {
+   "id": "F18",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Some code-written Home messages are their own number source",
+   "scenario": "A message of kind answer or brief is allowed as a source while its own words are checked",
+   "cause": "the source list takes code-written message kinds",
+   "fix": "kept: those numbers already pass cited.py against Home's records; noted for 37.6",
+   "test": "none"
+  },
+  {
+   "id": "F19",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A smoke run reused the id of the stopped run and overwrote two of its conversations",
+   "scenario": "The stopped full run kept its folder as CEX-003 with no result file; the next smoke run took CEX-003 again and replaced d-02's two conversation files (their model calls stay in the exchange log)",
+   "cause": "next_id read only stored results",
+   "fix": "next_id reads the kept folders too",
+   "test": "tests/test_conversation_exam.py RunTests.test_a_new_run_never_reuses_the_id_of_a_stopped_run"
+  },
+  {
+   "id": "F20",
+   "source": "owner",
+   "severity": "gap",
+   "defect": "The judge's verdicts were stored but taught no model",
+   "scenario": "64 exam_judge calls kept whole with Opus's summarized thinking, read by no training set",
+   "cause": "m7_judges took only scored items; no builder read judge calls",
+   "fix": "m7_judges/exam_judgments: each judge call as a chat lesson (the case in, the verdict out, the summarized thinking as the reasoning), silver at half weight; dclab-core 0.147.0 lets m7_judges hold chat examples",
+   "test": "tests/test_conversation_exam.py StoreTests"
+  },
+  {
+   "id": "F21",
+   "source": "measurement",
+   "severity": "latent",
+   "defect": "Two runs' calls on the same person shared one draft id",
+   "scenario": "exam:home-d-02 named the calls of CEX-003 and of the stopped run alike, told apart only by time",
+   "cause": "exam keys had no run id",
+   "fix": "every exam call's draft id names its run (exam:CEX-NNN:...)",
+   "test": "tests/test_conversation_exam.py StoreTests"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "CEX-004, the conversation exam on dev (41 people: 40 written, the owner's Telco session)",
+   "gate": "none for 37.0: it measures the gap; conversation_exam_gate_v1 judges 37.10 only",
+   "result": "understanding of the points: today's Home 0.50, Claude alone 0.50 (paired difference -0.004, 90% interval -0.10 to 0.09); right route: Home 80%, Claude alone 76%; options shown: Home 7 of 41, Claude alone 13 of 41, fit about 3 of 5 for both; questions useful: Home 56%, Claude alone 84%; questions already answered: Home 51, Claude alone 4; traps: Claude alone better on clear requests (5/6 vs 2/6), missing columns (3/3 vs 1/3) and reports that are predictions (2/2 vs 0/2), Home better on a silent drop (1/1 vs 0/1) and vague goals (2/3 vs 0/3); both missed both real-prediction traps; numbers no one gave: Home 3, Claude alone 10 (about 1 and 9 after the 200k reading fix, most of Claude alone's illustrative numbers in advice answers); no silent turn, no failure, no unjudged conversation",
+   "verdict": "not scored",
+   "cost_eur": 5.88,
+   "limits": [
+    "written, simulated people: real sessions are what it needs most",
+    "the judge is checked against the owner's ten labels only once they are given",
+    "41 people: intervals are wide",
+    "the stored result keeps the number check as it ran (the 200k reading was fixed after)"
+   ]
+  },
+  {
+   "name": "smoke runs CEX-001 to CEX-003 and the stopped run",
+   "gate": "none: smoke runs to check the exam itself",
+   "result": "found the cut Claude-alone turn, the unfair number sources, the Home wiring and the stopping rule; kept as data",
+   "verdict": "not scored",
+   "cost_eur": 1.34
+  }
+ ],
+ "outcome": "The exam exists and measured the gap on dev: today's Home and Claude alone understand the same share of what a good listener would (about half), Home routes a little better but asks many questions already answered, Claude alone asks better questions but acts at once and states illustrative numbers; neither writes options that fit the person (about 3 of 5). Phase 13's lead agent must beat both on understanding, the one place neither is good. The gate for the sealed run is fixed; the owner's ten labels wait in the labelling page.",
+ "lessons": [
+  "An exam's fairness is code: the same view, the same stopping rule and the same number rule for every arm, each pinned by a test",
+  "A failure has an owner: the arm's counts against it, the person's, the judge's or the budget's is rerun",
+  "Read the transcripts of a smoke run before trusting its numbers: the first one showed an arm cut mid-turn"
+ ],
+ "risks": [
+  "The judge is one Claude model judging Claude: its agreement with the owner's labels is the check",
+  "The people are written; real sessions are what the exam needs most",
+  "The strict number rule fails illustrative numbers in an advice answer, as Home's own cited.py does"
+ ],
+ "commits": []
+}

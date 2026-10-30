@@ -687,7 +687,8 @@ class DataLimitTests(unittest.TestCase):
                   "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell",
                   "home_orchestrator", "reflector", "memory_embedding"}
         no_user_data = {"campaign", "campaign_review", "embedding",  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
-                        "journey_writer", "journey_checker"}  # S8 B1: invented replica tables' column names and written people, never a workspace's data (tests/test_people_writer.py)
+                        "journey_writer", "journey_checker",  # S8 B1 (below)
+                        "exam_plain", "exam_person", "exam_judge"}  # 37.0: written, simulated people and invented exam tables' column views (tests/test_conversation_exam.py); S8 B1: invented replica tables' column names and written people, never a workspace's data (tests/test_people_writer.py)
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))
 

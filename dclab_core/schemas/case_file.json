@@ -1,0 +1,437 @@
+{
+  "$defs": {
+    "CaseChange": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "default": null,
+          "title": "After"
+        },
+        "before": {
+          "default": null,
+          "title": "Before"
+        },
+        "by": {
+          "description": "person, agent, code, card, or specialist:<name>.",
+          "maxLength": 120,
+          "title": "By",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 60,
+          "title": "Field",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "why": {
+          "maxLength": 1000,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "field",
+        "by",
+        "why"
+      ],
+      "title": "CaseChange",
+      "type": "object"
+    },
+    "CaseFact": {
+      "additionalProperties": false,
+      "properties": {
+        "after_words": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An assumption: how many of the person's messages there were when it was made.",
+          "title": "After Words"
+        },
+        "computed": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What code computed it from (a record path, a profile).",
+          "title": "Computed"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The person's exact words (said), or their yes (confirmed).",
+          "title": "Quote"
+        },
+        "status": {
+          "enum": [
+            "said",
+            "computed",
+            "assumed",
+            "confirmed",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "status"
+      ],
+      "title": "CaseFact",
+      "type": "object"
+    },
+    "CaseOption": {
+      "additionalProperties": false,
+      "description": "One way DCLab could help, written for this person: what it does, what they get, the trade-off and its effort.",
+      "properties": {
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Columns",
+          "type": "array"
+        },
+        "effort": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Effort",
+          "type": "string"
+        },
+        "gets": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Gets",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tool": {
+          "maxLength": 60,
+          "title": "Tool",
+          "type": "string"
+        },
+        "track": {
+          "maxLength": 40,
+          "title": "Track",
+          "type": "string"
+        },
+        "tradeoff": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Tradeoff",
+          "type": "string"
+        },
+        "what": {
+          "maxLength": 1000,
+          "title": "What",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "what",
+        "track",
+        "tool"
+      ],
+      "title": "CaseOption",
+      "type": "object"
+    },
+    "CaseRoute": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "person",
+            "agent",
+            "code"
+          ],
+          "title": "By",
+          "type": "string"
+        },
+        "reasons": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Reasons",
+          "type": "string"
+        },
+        "tool": {
+          "maxLength": 60,
+          "title": "Tool",
+          "type": "string"
+        },
+        "track": {
+          "maxLength": 40,
+          "title": "Track",
+          "type": "string"
+        }
+      },
+      "required": [
+        "track",
+        "tool"
+      ],
+      "title": "CaseRoute",
+      "type": "object"
+    },
+    "Unknown": {
+      "additionalProperties": false,
+      "properties": {
+        "blocks": {
+          "description": "Which options wait for it: every one, some, or none.",
+          "enum": [
+            "all",
+            "some",
+            "none"
+          ],
+          "title": "Blocks",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 60,
+          "title": "Field",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 1000,
+          "title": "Question",
+          "type": "string"
+        },
+        "rank": {
+          "default": 0,
+          "description": "Lower first: what unblocks the most.",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Rank",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "field",
+        "question",
+        "blocks"
+      ],
+      "title": "Unknown",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.case_file.v1.json",
+  "additionalProperties": false,
+  "description": "The living record of one case (v1).",
+  "properties": {
+    "asked": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Asked",
+      "type": "integer"
+    },
+    "assumptions": {
+      "items": {
+        "$ref": "#/$defs/CaseFact"
+      },
+      "maxItems": 30,
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "cannot_answer": {
+      "description": "What the data cannot answer, computed.",
+      "items": {
+        "$ref": "#/$defs/CaseFact"
+      },
+      "maxItems": 30,
+      "title": "Cannot Answer",
+      "type": "array"
+    },
+    "card": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The problem card as read (from_card): its rule-made parts, kept whole.",
+      "title": "Card"
+    },
+    "case_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Case Id",
+      "type": "string"
+    },
+    "changes": {
+      "items": {
+        "$ref": "#/$defs/CaseChange"
+      },
+      "title": "Changes",
+      "type": "array"
+    },
+    "chosen": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The option's title, or the person's own words.",
+      "title": "Chosen"
+    },
+    "constraints": {
+      "items": {
+        "$ref": "#/$defs/CaseFact"
+      },
+      "maxItems": 30,
+      "title": "Constraints",
+      "type": "array"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseFact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The data: computed from an upload, or the person's words (including 'none')."
+    },
+    "decision": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseFact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "declined": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Declined",
+      "type": "integer"
+    },
+    "goal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseFact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "options": {
+      "items": {
+        "$ref": "#/$defs/CaseOption"
+      },
+      "maxItems": 4,
+      "title": "Options",
+      "type": "array"
+    },
+    "route": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseRoute"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.case_file.v1",
+      "default": "dclab_core.case_file.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "unknowns": {
+      "items": {
+        "$ref": "#/$defs/Unknown"
+      },
+      "maxItems": 30,
+      "title": "Unknowns",
+      "type": "array"
+    },
+    "user": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseFact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Who uses the result."
+    },
+    "version": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Version",
+      "type": "integer"
+    },
+    "words": {
+      "description": "The person's messages, whole, in order.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 200,
+      "title": "Words",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "case_id"
+  ],
+  "title": "CaseFile",
+  "type": "object"
+}

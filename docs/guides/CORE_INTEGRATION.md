@@ -1280,3 +1280,14 @@ Unless the status is `after`, say its `note` beside the holdout number (`exposur
 first look (rule 2). It never moves a split. The main product has no analysis front door at the pinned commit, so nothing
 maps onto it yet; its experiments would carry the note in their holdout result's limits.
 
+
+## The case file (Phase 13, package 37.1, dclab-core 0.148.0)
+
+The library's: `dclab_core.case`. One `CaseFile` per case is the record every agent reads and writes, from the person's
+first sentence to the build. A host keeps it beside its own conversation and calls `case.apply(case, field, fact, by=,
+why=)` for every change; each call returns the next version, and a fact that breaks the source rules (a `said` fact whose
+quote is not the person's words, a `computed` fact that names nothing it was computed from) raises `CaseRefused` with
+the reason for the agent to read. `case.readiness(case)` decides when options may be shown (assumptions never count);
+`case.check_options(options, case, columns=, computed=)` decides which. The main product has no case of its own at the
+pinned commit: it reads the problem card through `case.to_card(case)` and maps it with the card's adapters as before
+(`adapters.main_product.problem_spec`), so a person's correction on the case reaches its ProblemSpec.

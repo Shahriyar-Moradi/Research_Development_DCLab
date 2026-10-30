@@ -496,7 +496,7 @@ for _name, _cls in (("experiment_record", ExperimentRecord), ("workflow_record",
 EXAMPLE_SHAPES: dict[str, tuple[str, ...]] = {  # model type -> the example contracts its sets hold
     "m1_students": ("decision_example",), "m2_workflow_decisions": ("decision_example",), "m3_ml_decisions": ("decision_example", "experiment_record"),
     "m4_workflow_llm": ("chat_example", "preference_pair"), "m5_solver_llm": ("solver_trajectory", "chat_example", "preference_pair", "experiment_record"),
-    "m6_stepwise_decisions": ("episode",), "m7_judges": ("judged_example", "preference_pair"), "m8_retrieval": ("retrieval_example",),
+    "m6_stepwise_decisions": ("episode",), "m7_judges": ("judged_example", "preference_pair", "chat_example"), "m8_retrieval": ("retrieval_example",),
     "m7_routing": ("routing_example",),
 }
 

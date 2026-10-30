@@ -38,7 +38,9 @@ STAGES = {"home_agent": "understand_problem", "conversation_reader": "understand
           "home_intent": "understand_problem", "home_query": "understand_data", "home_business": "report", "home_orchestrator": "plan", "project_answer": "report", "journey_writer": "understand_problem",
           "journey_checker": "report", "decision_answer": "design_solution", "decision_labeler": "report", "home_understand": "understand_problem", "lesson_proposal": "report",
           "reflector": "report", "notebook_cell": "code", "parse_pattern": "understand_data", "synthetic_schema": "understand_data",
-          "store_curator": "report", "reasoning_teacher": "report", "campaign": "plan", "campaign_review": "report"}
+          "store_curator": "report", "reasoning_teacher": "report", "campaign": "plan", "campaign_review": "report",
+          # 37.0: Claude alone in the conversation exam understands a written person; the exam's judge judges a whole conversation
+          "exam_plain": "understand_problem"}
 BENCHMARKS = Path(__file__).resolve().parent / "benchmarks.txt"
 SEALED_GLOBS = ("dclab_rnd/agent_eval/**/*sealed*.json", "dclab_rnd/agent_eval/**/*sealed*.jsonl")
 MIN_SEALED = 40  # a sealed sentence this long or longer is looked for in every example
@@ -207,14 +209,14 @@ def final_recorded(example: Any) -> bool:
     return bool(turns) and turns[-1].reasoning_source == "recorded" and bool(turns[-1].reasoning)
 
 
-def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None, replayed: Optional[dict[str, dict[str, Any]]] = None
-                  ) -> Optional[ChatExample]:
+def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None, replayed: Optional[dict[str, dict[str, Any]]] = None,
+                  model_type: str = "m4_workflow_llm") -> Optional[ChatExample]:
     """One kept exchange as an M4 example: its messages (each earlier assistant turn with the reasoning and the tool calls the
     agent sent back, each tool turn with the call it answers), the tools offered, and the reply with its thinking as the reasoning."""
     b = record.body
     if not b.get("whole") or not isinstance(b.get("messages"), list):
         return None
-    if str(b.get("purpose") or "") in NOT_WORKFLOW:
+    if model_type == "m4_workflow_llm" and str(b.get("purpose") or "") in NOT_WORKFLOW:
         return None
     messages = []
     for m in b["messages"]:
@@ -240,10 +242,12 @@ def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None, 
     if len(messages) < 2:
         return None
     purpose = str(b.get("purpose") or "unknown")
-    return ChatExample(id=f"m4_workflow_llm:{record.id}", model_type="m4_workflow_llm", split=record.split or split_of(str(b.get("model_request") or record.id)),
-                       provenance=record.provenance, task=purpose, stage=STAGES.get(purpose, "plan"), messages=messages,
+    simulated = str(b.get("draft") or "").startswith(EXAM_DRAFT)
+    return ChatExample(id=f"{model_type}:{record.id}", model_type=model_type, split=record.split or split_of(str(b.get("model_request") or record.id)),
+                       provenance=record.provenance, task=purpose, stage="judge" if model_type == "m7_judges" else EXAM_STAGE if simulated else STAGES.get(purpose, "plan"), messages=messages,
                        tools=[t for t in b.get("tools") or [] if isinstance(t, dict)],  # P1 keeps the schemas offered with a whole exchange
-                       weight=0.5 if ((taught or again) and not thinking) else 1.0, check={"outcome": b.get("outcome"), "model": b.get("model")})
+                       weight=0.5 if ((taught or again) and not thinking) else 1.0,
+                       check={"outcome": b.get("outcome"), "model": b.get("model"), **({"simulated": "conversation exam (37.0)"} if simulated else {})})
 
 
 LOST_BEFORE = "lost before 2026-10-28"  # the owner's rule took effect that night: older thinking was not kept (thinking-reasoning-all-data-plan)
@@ -256,7 +260,13 @@ def _lost_or(at: Any, later: str) -> str:
 # Purposes whose exchanges are not the workflow LLM's work (2026-10-30, the review of home-three-open-items): the routing
 # labeller's blind labels train the routing model as readings and silver labels, and its next-question answers are
 # readings only; as m4 examples they sat in sealed-pending files only because their draft id split as sealed
-NOT_WORKFLOW = frozenset({"routing_labeler"})
+# 37.0: the exam's simulated person speaks for a written person from a hidden truth; its lines are a simulation, never DCLab's work
+# and its judge's verdicts teach a judge (m7), not the workflow LLM
+NOT_WORKFLOW = frozenset({"routing_labeler", "exam_person", "exam_judge"})
+# 37.0: every exchange of the conversation exam has a draft id starting "exam:" (Home's own calls in the exam too): kept for
+# training, filed under a stage of its own and marked simulated, never among real people's conversations
+EXAM_DRAFT = "exam:"
+EXAM_STAGE = "exam_simulation"
 TRACK_STAGES = {"prediction": "understand_problem", "analysis": "home_analysis", "preparation": "home_preparation",
                 "reporting": "home_reporting", "business": "home_business", "advice": "home_advice"}  # Part B: every kind of help
 
@@ -957,15 +967,16 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
     # sealed always" holds across folders (studio v1 split by session, v3 by table: a row sealed there is sealed here too); every
     # row passed the contamination guard on its way into the parent. M4's takes a clean answerer's exchanges only (a provider's
     # model's are evaluation and silver until the owner's D11; an exchange naming no model is not clean either).
-    write("m4_workflow_llm", REASONING, [e for (mt, f), kept in written.items() if mt == "m4_workflow_llm" for e in kept
+    # 37.0: the conversation exam's simulated turns stay in their own stage set, never in the reasoning sets beside real turns
+    write("m4_workflow_llm", REASONING, [e for (mt, f), kept in written.items() if mt == "m4_workflow_llm" and f != EXAM_STAGE for e in kept
                                         if all_recorded(e) and clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
     # the owner (2026-10-25: a provider's outputs train too, silver and apart; 2026-10-28: keep every model's thinking): the
     # provider's whole exchanges whose every turn has its recorded thinking, at weight 0.5, under provider_outputs' consent
     write("m4_workflow_llm", REASONING_SILVER, [e.model_copy(update={"weight": 0.5}) for (mt, f), kept in written.items()
-                                               if mt == "m4_workflow_llm" and f != REASONING for e in kept
+                                               if mt == "m4_workflow_llm" and f not in (REASONING, EXAM_STAGE) for e in kept
                                                if all_recorded(e) and e.check.get("model")
                                                and not clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
-    m4_stage = [e for (mt, f), kept in written.items() if mt == "m4_workflow_llm" and not f.startswith("reasoning") for e in kept
+    m4_stage = [e for (mt, f), kept in written.items() if mt == "m4_workflow_llm" and not f.startswith("reasoning") and f != EXAM_STAGE for e in kept
                 if final_recorded(e)]
     write("m4_workflow_llm", REASONING_FINAL, [e for e in m4_stage if clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
     write("m4_workflow_llm", REASONING_FINAL_SILVER, [e.model_copy(update={"weight": 0.5}) for e in m4_stage if e.check.get("model")

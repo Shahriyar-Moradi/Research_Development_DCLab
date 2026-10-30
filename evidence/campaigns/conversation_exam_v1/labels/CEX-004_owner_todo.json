@@ -1,0 +1,609 @@
+[
+ {
+  "ref": "c8049f792c",
+  "person": {
+   "truth": {
+    "situation": "I'm an analyst at an electronics retailer; our sales table has orders from 2025 to Q1 2026.",
+    "goal": "I want to show leadership how each region and channel grew year over year.",
+    "decision": "The board will use the slide to decide which regions get more store staff in Q3.",
+    "user": "me, for the CEO's board slide on Thursday",
+    "data": "The sales table I uploaded: order_id, order_date, region, channel, product_category, amount, status, customer_id; I know there are refunds and cancelled orders in it.",
+    "knows": "SQL is fine for me; I didn't think about duplicate rows.",
+    "constraints": "Thursday deadline; one slide with one table."
+   },
+   "level": "analyst",
+   "style": "impatient",
+   "must_understand": [
+    "a year-over-year comparison for one board slide on Thursday",
+    "revenue should count paid orders, not refunded or cancelled ones",
+    "the board will decide Q3 store staffing from it"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "revenue by region and channel, Q1 2026 vs Q1 2025. need it for a slide thursday [shares sales.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'll check the columns in sales.csv first, to confirm it has what this needs.\n\nI've started the query. The table has what it needs: `order_date`, `region`, `channel` and `amount`. I'm treating `amount` as revenue. It will total revenue by region and channel for Q1 2026 (Jan–Mar) and Q1 2025, then compare the two.\n\nThe table also has a `status` column. Before you put the numbers on a slide, check whether cancelled or refunded orders should be left out. I'll flag it if that changes the totals.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "701701a07b",
+  "person": {
+   "truth": {
+    "situation": "I work in the analytics team of a mobile telecom; our customers table has one row per subscriber with churned_next_month.",
+    "goal": "My manager wants our senior support agents to handle the subscribers who are most at risk of leaving.",
+    "decision": "Each month about 500 at-risk subscribers get their tickets sent to the senior support queue instead of the normal one.",
+    "user": "the support operations manager, who sets the routing rule",
+    "data": "The customers table I uploaded, with support_tickets_90d, plan, tenure_months, monthly_spend and churned_next_month among its columns.",
+    "knows": "I can do group-bys; I thought comparing averages would give us a routing rule.",
+    "constraints": "The senior queue takes only about 500 subscribers a month; the rule is updated monthly."
+   },
+   "level": "analyst",
+   "style": "vague",
+   "must_understand": [
+    "the averages are a step toward a routing decision for about 500 subscribers a month",
+    "routing needs a churn-risk score for each subscriber, not a group average",
+    "the support operations manager will apply the result"
+   ],
+   "trap": "real_prediction",
+   "trap_check": "Asks what the averages are for and, on hearing about the senior-queue routing, proposes a churn-risk score per subscriber (prediction) rather than only the group averages."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "can i get avg support tickets for churned vs not churned [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'll check the columns in your table first, to make sure it has churn and support ticket fields.\n\nYes, I can do that, and I've started it. Your table has the two columns it needs:\n\n- **`support_tickets_90d`** is the number of support tickets each customer opened in the last 90 days.\n- **`churned_next_month`** shows whether the customer churned.\n\nThe result will be the average ticket count for churned customers and for customers who stayed, so you can compare them directly.\n\nThe ticket counts cover the 90 days before the churn flag. The comparison shows whether churned customers filed more tickets, but not whether tickets caused the churn.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "d55cadfa19",
+  "person": {
+   "truth": {
+    "situation": "I run a small home-internet subscription company in Manchester with about 9,000 customers; roughly 3% leave every month.",
+    "goal": "I want to keep more customers by reaching the ones who are about to leave before they go.",
+    "decision": "Each month my call team can make about 300 retention calls, and I need to know which 300 customers to call first.",
+    "user": "our 3-person customer care team, who work from a call list in Excel",
+    "data": "An Excel export from our billing system with customer number, start date, plan, monthly bill, number of support calls and whether they left; I haven't sent it yet.",
+    "knows": "I know nothing about machine learning; I only know that some customers complain before they leave.",
+    "constraints": "Only 300 calls a month, no budget for new software, and I want something working before January."
+   },
+   "level": "business_owner",
+   "style": "vague",
+   "must_understand": [
+    "the real goal is fewer cancellations, not a description of past churn",
+    "the result must rank customers so the team can choose 300 calls a month",
+    "the users are a small call team working from Excel",
+    "the billing export exists but has not been shared yet"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "hi, we keep losing customers every month and i dont know what to do about it",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'm sorry, that's a hard one. There are a few ways I can help, depending on what's most useful right now.\n\nWhich of these is closest to what you need? If none fit, tell me more about your business and what you've noticed so far.",
+    "choices": [
+     {
+      "title": "Find out why customers are leaving and what to do",
+      "what": "A business brief that looks at why you're losing customers and recommends what to do about it."
+     },
+     {
+      "title": "See who has already left",
+      "what": "Numbers on the customers you've lost: how many each month, and how they differ from the ones who stayed."
+     },
+     {
+      "title": "Predict who is likely to leave next",
+      "what": "A model that flags current customers at risk of leaving, so you can reach out before they go."
+     },
+     {
+      "title": "Get general advice on reducing customer loss",
+      "what": "A plain explanation of common reasons customers leave and ways to keep them. It uses none of your data."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "We have about 9,000 home internet customers in Manchester and around 3% leave each month. I want to reach the ones about to leave before they go. My team can only make about 300 calls a month, so I need to know which 300 to ring first. I think option 3 is closest.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started a prediction project to find which customers are most likely to leave next.\n\nIt will need a table with one row per customer. The table should show whether each customer has already left, and it should include details about them, such as how long they've been a customer, what they buy and how often they get in touch. The model learns from the customers who left and the ones who stayed. Then it scores your current customers by how likely they are to go.\n\nCan you share that customer table? If you're not sure what it should contain, tell me what data you keep on your customers and I'll help you work out what to use.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "I can get an Excel export from our billing system. It has customer number, start date, plan, monthly bill, how many support calls they've made, and whether they've left. I haven't sent it yet. Is that enough, or is something missing? And should I send it as it is?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, that's enough to start, and you can send it more or less as it is.\n\n**What you have is a good base.** Plan, monthly bill, support calls and start date are the kinds of details that often separate customers who leave from those who stay. The \"whether they've left\" column is the most important one, because the model learns from it.\n\n**Before you send it:**\n- **One sheet, one row per customer.** Put the column names in the top row. Remove any total rows, merged cells or notes above the table.\n- **Make the \"left\" column clear.** Something like yes/no is fine. Just use the same wording on every row.\n- **You don't need to clean anything else.** I can check the table once it's here and tell you if something looks off.\n- **Leave out anything personal that isn't needed**, such as names, emails or phone numbers. The customer number is enough to tell customers apart.\n\n**Things that would help if your billing system has them (none are required):**\n- **The date each customer left.** This shows when people leave, not just whether they did.\n- **Contract type** (monthly or yearly), **payment method**, and any **late payments or discounts**.\n- **Other details**, such as the customer's location or size, if you're selling to businesses.\n\n**Two things to watch:**\n- **Support calls and the monthly bill.** For customers who have left, check that these don't include their last weeks or a final bill. Otherwise the model learns from things that only happen once someone has already gone, and it won't help you spot people early. If you can't tell, mention it when you send the file.\n- **How many customers have left.** The model needs a reasonable number of them to learn from, ideally dozens or more. If only a handful have left, the predictions won't be reliable.\n\nSend the file when you're ready and I'll go from there.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "3a2fd181f0",
+  "person": {
+   "truth": {
+    "situation": "I'm the operations analyst at a tour operator in Istanbul.",
+    "goal": "I want to show the director how cancellations differ by channel and by the free-cancellation option.",
+    "decision": "The director will decide whether to keep offering free cancellation on agent bookings.",
+    "user": "the operations director, through my monthly ops note",
+    "data": "The bookings table I uploaded: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id.",
+    "knows": "I'm comfortable with SQL and rates.",
+    "constraints": "The note is due Friday; one small table."
+   },
+   "level": "analyst",
+   "style": "detailed",
+   "must_understand": [
+    "cancellation rate by channel and by free_cancellation, 2025 bookings only",
+    "TEST destinations excluded",
+    "a small table for the director's monthly note"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "From the bookings table I uploaded, excluding rows where destination is TEST, please give me the cancellation rate by channel and by free_cancellation for bookings made in 2025. It's for my monthly ops note to the director, so a small table is enough. [shares bookings.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I understood: you want to work out your cancellation rate by channel and by free_cancellation for 2025 bookings, as a small table. Upload or connect the table and I'll answer from it: numbers per group, never single rows. If you need a prediction instead, change the type of help above.\n\nYour data is ready: 1,500 rows and 11 columns, after 1 cleaning step. Here is a first look.\n\nMean of cancelled by channel, free_cancellation, where destination ne TEST, per year of booking_date from 2025-01-01 to 2025-12-31: agent False 2025 0.25; agent True 2025 0.22; app False 2025 0.25; app True 2025 0.21; web False 2025 0.21; web True 2025 0.24.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "1b8aa0d49b",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a regional logistics company in Lyon; the route plan changed in August and on-time rate dropped.",
+    "goal": "I want to tell whether the new route plan caused the drop or whether something else changed at the same time.",
+    "decision": "The operations director will decide whether to roll back the new route plan.",
+    "user": "the operations director",
+    "data": "Delivery logs from January to October, not sent: delivery id, date, depot, route id, planned time, delivered time, weather flag, driver id.",
+    "knows": "I know statistics; I know that August also brought holiday traffic and new drivers.",
+    "constraints": "The director wants an answer within two weeks."
+   },
+   "level": "data_scientist",
+   "style": "detailed",
+   "must_understand": [
+    "the decision is whether to roll back the route plan",
+    "other changes in August (holidays, new drivers) may explain the drop",
+    "the data is not shared yet"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "Our on-time delivery rate fell from 94% to 88% after we introduced a new route plan in August. Operations wants to know whether to roll the plan back. I have the delivery logs but haven't sent them. How should we approach this?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I understood: you want to decide whether to roll back your new route plan by checking if it caused the drop in on-time deliveries. Upload or connect the table and I'll show where a number changed between the periods you name, and what moved it most; the data shows association, not cause. If part of the question is a prediction, change the type of help above.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "37f4bbe517",
+  "person": {
+   "truth": {
+    "situation": "I'm an analyst at a pet-supplies retailer; my totals from the sales table are higher than the finance team's figure.",
+    "goal": "I want a clean sales table that matches finance's numbers.",
+    "decision": "This table becomes the source for the monthly finance reconciliation.",
+    "user": "me and the finance controller",
+    "data": "The sales table I uploaded: order_id, order_date, region, channel, product_category, amount, status, customer_id.",
+    "knows": "I didn't check for duplicate rows, and I counted refunded orders as revenue.",
+    "constraints": "The month-end close is in 5 days."
+   },
+   "level": "analyst",
+   "style": "vague",
+   "must_understand": [
+    "the gap likely comes from duplicate rows and refunded or cancelled orders",
+    "they need a clean table that becomes the reconciliation source",
+    "the finance controller must be able to trust it by month-end"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "my sales totals look too high compared to finance, not sure why [shares sales.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "So your sales totals come out higher than what finance reports, and you're not sure why. That's a common puzzle, and it usually has a findable cause. What data are you adding up to get your sales totals?\n\nYour data is ready: 2,000 rows and 8 columns, after 2 cleaning steps. Here is a first look.",
+    "choices": [
+     {
+      "title": "Show me what you can do",
+      "what": null
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Mostly just the amount column, added up by month. I think I used all the rows in the file.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Happy to show you. Since your sales totals look too high next to finance's, here are a few ways we could track down the gap using your orders table.",
+    "choices": [
+     {
+      "title": "Break down the total by order status",
+      "what": "See how much of your total comes from each status, so you can spot orders finance may leave out."
+     },
+     {
+      "title": "Check for duplicate orders",
+      "what": "Find order IDs that appear more than once and show how much they add to your total."
+     },
+     {
+      "title": "Total sales by month to match finance",
+      "what": "Get your sales total for each month, so you can compare it with finance's figures period by period."
+     },
+     {
+      "title": "Investigate the gap with finance",
+      "what": "Get a short written brief on the likely reasons your total differs from finance's, based on your orders."
+     },
+     {
+      "title": "Something else",
+      "what": null
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "ok, i think refunds might be in there somewhere. not sure about the rest. close is in 5 days so need it to match finance fast",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I read this as numbers from my data: “my sales totals look too high compared to finance, not sure why”. Upload or connect the table and I'll answer from it: numbers per group, never single rows. If you need a prediction instead, change the type of help above.\n\nTotal of amount by status: paid 404,459.34; refunded 42,422.1; cancelled 20,945.95.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "6699010e7d",
+  "person": {
+   "truth": {
+    "situation": "I'm the analyst for a group of 4 family clinics in Toronto; missed appointments waste doctors' time.",
+    "goal": "I want the no-show rate by weekday and by doctor over the last year.",
+    "decision": "The clinic manager will decide on which days and for which doctors to double-book a few slots.",
+    "user": "the clinic manager who builds the weekly schedule",
+    "data": "An appointments export, not sent yet: appointment_id, date, weekday, doctor, patient_id, booked_at, status (attended, no-show, cancelled).",
+    "knows": "I can use Excel and some SQL.",
+    "constraints": "Patient details must be removed before I share the file; the schedule is set monthly."
+   },
+   "level": "analyst",
+   "style": "vague",
+   "must_understand": [
+    "no-show rates by weekday and doctor about what already happened",
+    "the result decides where to double-book slots",
+    "the export is not shared yet and holds patient information"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "hey, how many patients dont show up, by day and doctor? i have the appointments export",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started a query on your appointments export. It will count the patients who didn't show up for each day and each doctor.\n\nIf the export has a column that marks no-shows, such as a status or attended flag, I'll use that. I'll check how it's coded, because cancellations can get mixed in with no-shows. If you want cancellations left out, tell me.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "2def3f4857",
+  "person": {
+   "truth": {
+    "situation": "I run an online toy shop with web, app and one physical store; revenue from the app seems to have dropped in Q1 2026.",
+    "goal": "I want to understand why app sales fell and whether our app ads are still worth it.",
+    "decision": "I must decide whether to cut the app advertising budget for next quarter.",
+    "user": "me and my business partner, deciding the Q2 budget",
+    "data": "The sales table I uploaded: order_id, order_date, region, channel, product_category, amount, status, customer_id.",
+    "knows": "I'm not technical; I just look at monthly totals.",
+    "constraints": "The Q2 budget is fixed in two weeks."
+   },
+   "level": "business_owner",
+   "style": "vague",
+   "must_understand": [
+    "the concern is the app channel's drop in Q1 2026",
+    "the decision is whether to cut app advertising next quarter",
+    "the partners decide the budget in two weeks"
+   ],
+   "trap": "vague_goal",
+   "trap_check": "Asks what feels off and what the owner has to decide before analysing, and reaches the app-channel advertising decision through questions."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "sales feel off lately. can you take a look [shares sales.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'll start by looking at what's in your table.\n\nI looked at sales.csv. It has order date, region, channel, product category, amount, order status and customer. That's enough to see where sales have shifted.\n\n\"Off\" could mean a few things, so I've listed three ways to go. Pick whichever fits:\n\n- **Find out why sales changed:** I'd look for what's behind the change and suggest what to do about it.\n- **Show me the numbers:** a straight comparison of recent sales with earlier periods, split by region, channel and category.\n- **Set up a sales dashboard:** a view that stays current, so you can catch dips as they happen.\n\nIf you can tell me what feels off, I can aim better. For example, it might be lower totals, fewer orders, one region, or more cancellations.",
+    "choices": [
+     {
+      "title": "Find out why sales changed",
+      "what": "Dig into what's driving the change, looking at region, channel, product category and order status over time, and suggest what to do about it."
+     },
+     {
+      "title": "Show me the numbers",
+      "what": "Compare recent sales with earlier periods. This covers total amount and order counts, broken down by region, channel and product category, so you can see what moved."
+     },
+     {
+      "title": "Set up a sales dashboard",
+      "what": "Build a dashboard that tracks sales over time by region, channel and category and stays up to date, so you can spot dips early."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "mostly the app i think. seems like app sales dropped in q1 this year. not sure why. we have to decide next quarter's ad budget in about 2 weeks, so is it worth keeping the app ads or not. 1 is closest to what i need",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started the business brief on why your sales changed. It will use your order dates, regions, channels, product categories, order amounts and statuses to look for what moved and when. It will finish with suggestions for what to do next.\n\nIf you know roughly when things started to feel off, or which region or product you suspect, tell me. That will help me focus the brief.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "c6fe4cdaf2",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a fintech app; our churn rate is about 3%.",
+    "goal": "I want to report the metric that honestly shows how good the model is.",
+    "decision": "I'll choose which metric goes in my model review slide for my manager.",
+    "user": "my manager, who is not technical",
+    "data": "No data needed for this question.",
+    "knows": "I know both metrics; I want a clear reason to give my manager.",
+    "constraints": "Review is tomorrow."
+   },
+   "level": "data_scientist",
+   "style": "impatient",
+   "must_understand": [
+    "a guidance question, no data work",
+    "3% positives makes the class imbalance central",
+    "the answer must be explainable to a non-technical manager"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "quick q: churn with 3% positives, should i report PR-AUC or ROC-AUC to my manager, and why? no data work, just the answer",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I understood: you want to explain which metric, PR-AUC or ROC-AUC, to report for your churn model and why. Ask it in the Evidence library: its answers cite DCLab's recorded experiments.\n\nLead with average precision, because the records pair it with rare positives, while ROC-AUC is paired with balanced classes. The records name average precision, not PR-AUC, so I can't say more about PR-AUC itself. Also report recall at the review budget, meaning the share of cases found when the team reviews its budget. It does not specify calibration or the false-positive/false-negative tradeoff, so report ranking, probability quality and operating-point errors together. Choose metrics and thresholds from the real decision cost.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "06a6a1e5df",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a tour operator in Cape Town, and the sales team asked me for a weekly view.",
+    "goal": "I want the sales team to see new bookings and cancellations by destination and channel each week.",
+    "decision": "At the Monday stand-up, the sales team decides which destinations to promote that week.",
+    "user": "the 8-person sales team at their Monday stand-up",
+    "data": "The bookings table I uploaded: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id.",
+    "knows": "I know modelling, but they don't want a model; I haven't cleaned the TEST rows yet.",
+    "constraints": "Weekly refresh before Monday 9 am; no model needed."
+   },
+   "level": "data_scientist",
+   "style": "vague",
+   "must_understand": [
+    "a weekly view kept up to date, not a one-off analysis or model",
+    "the sales team picks destinations to promote at the Monday stand-up",
+    "TEST rows must be excluded"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "the sales team wants some kind of bookings view each week, not sure what exactly [shares bookings.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I understood: you want to set up a bookings view for your sales team that updates every week. Upload or connect the table and I'll build the dashboard you described: one tile per number, per group, refreshed whenever the table changes; a list of single rows is never a tile.\n\nYour data is ready: 1,500 rows and 11 columns, after 1 cleaning step. Here is a first look.\n\nWhich numbers should it show?",
+    "choices": [
+     {
+      "title": "lead_time_days",
+      "what": null
+     },
+     {
+      "title": "Not sure",
+      "what": null
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Neither of those, really. They want new bookings and cancellations by destination and by channel, once a week. They use it on Monday to decide which destinations to push that week.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks, that's clear. The dashboard will show new bookings and cancellations by destination and by channel each week, so the team can use it on Monday. I can build it from your `bookings.csv`, which has 1,500 rows.\n\nOne thing to settle first: your table says whether a booking was cancelled, but not when. Should each week count cancellations among bookings made that week, or among trips starting that week?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Not sure, honestly. I'd have to check with the sales team. The table only has the booking date and the travel date, so I don't know which one they'd want. There are also some test rows in there I haven't cleaned out yet.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "No problem, we can leave the week question open until you've checked with the sales team. I've noted that the table has no cancellation date, so the choice is between booking date and travel date.\n\nFor the test rows, how can I spot them? For example, they might have a certain `customer_id`, a `booking_id` pattern, or a particular destination or channel value. Once I know, I'll remove them from a copy of the table. Your original file stays unchanged.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Not sure yet, I haven't looked at them properly. Maybe the ids look odd or the destination is something like TEST? You'd have to check the table.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I can't see individual values from here. The summary only gives counts: `destination` has 6 distinct values, `channel` has 3, and every `booking_id` is unique. So I can't find the test rows until you give me a pattern.\n\nCould you open `bookings.csv` and tell me the six destination names? Please also send any `booking_id` or `customer_id` that looks odd, such as \"TEST\" or \"000\". Once I have that, I'll take those rows out of a copy of the table. Your original file stays unchanged.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Honestly I'd have to open the file to get the destination names, I don't have them in my head. The test rows I think have TEST in them somewhere, maybe the booking_id? Not sure which column. Can you just tell me what to filter on and I'll check?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes. Open `bookings.csv`, search the whole sheet for \"TEST\" (ignoring upper or lower case), and note which column it shows up in. The most likely columns are `booking_id`, `customer_id` and `destination`. While you're there, copy the six destination names from the `destination` column, which also helps with spotting odd ones.\n\nOnce you tell me the column and the text, such as `booking_id` containing \"TEST\", I'll remove those rows from a copy of the table. If more than a small share of rows would go, I'll check with you first.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]
