@@ -40,7 +40,7 @@ STAGES = {"home_agent": "understand_problem", "conversation_reader": "understand
           "reflector": "report", "notebook_cell": "code", "parse_pattern": "understand_data", "synthetic_schema": "understand_data",
           "store_curator": "report", "reasoning_teacher": "report", "campaign": "plan", "campaign_review": "report",
           # 37.0: Claude alone in the conversation exam understands a written person; the exam's judge judges a whole conversation
-          "exam_plain": "understand_problem"}
+          "exam_plain": "understand_problem", "case_agent": "understand_problem"}
 BENCHMARKS = Path(__file__).resolve().parent / "benchmarks.txt"
 SEALED_GLOBS = ("dclab_rnd/agent_eval/**/*sealed*.json", "dclab_rnd/agent_eval/**/*sealed*.jsonl")
 MIN_SEALED = 40  # a sealed sentence this long or longer is looked for in every example

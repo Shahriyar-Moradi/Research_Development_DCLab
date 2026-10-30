@@ -1,0 +1,785 @@
+[
+ {
+  "ref": "8ff47ba334",
+  "person": {
+   "truth": {
+    "situation": "I'm an analyst at a pet-supplies retailer; my totals from the sales table are higher than the finance team's figure.",
+    "goal": "I want a clean sales table that matches finance's numbers.",
+    "decision": "This table becomes the source for the monthly finance reconciliation.",
+    "user": "me and the finance controller",
+    "data": "The sales table I uploaded: order_id, order_date, region, channel, product_category, amount, status, customer_id.",
+    "knows": "I didn't check for duplicate rows, and I counted refunded orders as revenue.",
+    "constraints": "The month-end close is in 5 days."
+   },
+   "level": "analyst",
+   "style": "vague",
+   "must_understand": [
+    "the gap likely comes from duplicate rows and refunded or cancelled orders",
+    "they need a clean table that becomes the reconciliation source",
+    "the finance controller must be able to trust it by month-end"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "my sales totals look too high compared to finance, not sure why [shares sales.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'll start by looking at what's in your table.\n\nPick whichever fits best. If you're not sure, I'd start with the first one. It shows which statuses or repeated orders are adding to your total, and it uses your actual data.",
+    "choices": [
+     {
+      "title": "Check where the extra total comes from",
+      "what": "Add up amount by status (completed, cancelled, refunded and so on) and look for repeated order IDs, to see which of these inflate your total."
+     },
+     {
+      "title": "Get a written explanation of the gap",
+      "what": "A short brief on the likely reasons your sales are higher than finance's figures, what to check first, and how to settle it with finance."
+     },
+     {
+      "title": "Clean the table to match finance",
+      "what": "Make a cleaned copy of sales.csv with repeated orders and non-final statuses removed, so its total is closer to what finance counts."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "ok. i think there might be repeat rows and maybe refunds counted in. not sure which. can you check the status column and the repeated order ids?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started the analysis. It will add up `amount` by `status` and check whether any order IDs appear more than once. That should show whether cancelled or refunded orders, repeated orders, or both are pushing your total above finance's.\n\nFinance may also leave out other things, such as tax or shipping. If you know how they calculate their total, tell me and I can match it. For example, they might count only completed orders, or only orders up to a certain date.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "ae377d0165",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a fintech app; our churn rate is about 3%.",
+    "goal": "I want to report the metric that honestly shows how good the model is.",
+    "decision": "I'll choose which metric goes in my model review slide for my manager.",
+    "user": "my manager, who is not technical",
+    "data": "No data needed for this question.",
+    "knows": "I know both metrics; I want a clear reason to give my manager.",
+    "constraints": "Review is tomorrow."
+   },
+   "level": "data_scientist",
+   "style": "impatient",
+   "must_understand": [
+    "a guidance question, no data work",
+    "3% positives makes the class imbalance central",
+    "the answer must be explainable to a non-technical manager"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "quick q: churn with 3% positives, should i report PR-AUC or ROC-AUC to my manager, and why? no data work, just the answer",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started a sourced answer for you. Here is the short version.\n\n**Report PR-AUC as your main number, and show ROC-AUC next to it if your manager expects to see it.**\n\n**Why:**\n- **ROC-AUC can look good when the model is only so-so.** It measures how well the model ranks churners above non-churners, and non-churners are 97% of your data. A model can flag a lot of non-churners by mistake and still score a high ROC-AUC, because those mistakes are small next to the huge number of true negatives.\n- **PR-AUC follows what your manager cares about.** It tracks precision (of the customers you flag, how many really churn) and recall (of the real churners, how many you catch). With 3% positives, that is the trade-off that decides how many retention offers get wasted.\n- **PR-AUC needs a baseline.** A random model scores about 0.03, which is your churn rate. So a PR-AUC of 0.25 means roughly 8 times better than random. Always say this baseline when you report it.\n\n**How to present it to your manager:**\n1. Lead with something like: \"At the top 10% of customers we rank as most likely to churn, we catch X% of churners, and Y% of those we flag really do churn.\"\n2. Give PR-AUC, with the 3% baseline, as the overall summary.\n3. Include ROC-AUC only as a secondary number. It's fine to show, but it can make the model look better than it will perform in practice.\n\nWhichever number you choose, report it on a held-out test set. If the data is time-ordered, split by time.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "af18f844e4",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a regional logistics company in Lyon; the route plan changed in August and on-time rate dropped.",
+    "goal": "I want to tell whether the new route plan caused the drop or whether something else changed at the same time.",
+    "decision": "The operations director will decide whether to roll back the new route plan.",
+    "user": "the operations director",
+    "data": "Delivery logs from January to October, not sent: delivery id, date, depot, route id, planned time, delivered time, weather flag, driver id.",
+    "knows": "I know statistics; I know that August also brought holiday traffic and new drivers.",
+    "constraints": "The director wants an answer within two weeks."
+   },
+   "level": "data_scientist",
+   "style": "detailed",
+   "must_understand": [
+    "the decision is whether to roll back the route plan",
+    "other changes in August (holidays, new drivers) may explain the drop",
+    "the data is not shared yet"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "Our on-time delivery rate fell from 94% to 88% after we introduced a new route plan in August. Operations wants to know whether to roll the plan back. I have the delivery logs but haven't sent them. How should we approach this?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Your question has two parts. The first is whether the drop from 94% to 88% was caused by the new route plan. The second is whether rolling it back would fix it. Other things may have changed in August, such as seasonal volume, staffing, weather, or the mix of delivery areas. A good approach compares like with like before deciding.\n\nI can help in a few ways. Pick whichever fits best.\n\nI've listed three ways to start. Tell me which one you'd like, and send the delivery logs if you pick the analysis.",
+    "choices": [
+     {
+      "title": "Business brief on the rollback decision",
+      "what": "Work through whether the new route plan caused the drop and whether to roll it back. It would weigh the evidence and lay out a recommendation for Operations."
+     },
+     {
+      "title": "Analyze the delivery logs",
+      "what": "Once you send the logs, I'd measure on-time rates before and after August. I'd break them down by route, area, driver or depot, and time period to see where the drop is concentrated."
+     },
+     {
+      "title": "Guidance on how to approach it",
+      "what": "A written explanation of how to test whether a route change caused a drop in on-time delivery. It covers what to compare, what else to rule out, and how to frame the decision. It involves no data work."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "I'd pick option 2, but I want the method agreed before I send the file. The logs cover January to October and have delivery id, date, depot, route id, planned time, delivered time, weather flag and driver id. I can derive driver tenure from the driver ids, which matters because new drivers also came in August. I don't yet know whether the new plan was rolled out to all depots and routes at the same time. If it was staggered, or applied to some routes and not others, I'd compare treated and untreated routes over the same weeks, a difference-in-differences setup. If not, I'd check Jan to July for a pre-trend first and then model on-time status with weather, driver tenure and holiday weeks as controls. Operations needs a clear answer, so I'd like a first read by depot within the week, with the caveat stated plainly if the data can't separate the plan from the driver change.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started the analysis. Please send the delivery logs when you're ready.\n\nIt will help if the logs include these columns:\n- The delivery date.\n- Whether each delivery was on time, or the promised and actual delivery times.\n- The route, area, depot or driver.\n\nOnce I have them, I'll compare on-time rates before and after the August change. I'll also break the results down to see whether the drop is concentrated in particular routes or areas, or spread across all of them. That will show whether the new plan looks responsible or something else changed at the same time.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "6d17877c60",
+  "person": {
+   "truth": {
+    "situation": "I run an online toy shop with web, app and one physical store; revenue from the app seems to have dropped in Q1 2026.",
+    "goal": "I want to understand why app sales fell and whether our app ads are still worth it.",
+    "decision": "I must decide whether to cut the app advertising budget for next quarter.",
+    "user": "me and my business partner, deciding the Q2 budget",
+    "data": "The sales table I uploaded: order_id, order_date, region, channel, product_category, amount, status, customer_id.",
+    "knows": "I'm not technical; I just look at monthly totals.",
+    "constraints": "The Q2 budget is fixed in two weeks."
+   },
+   "level": "business_owner",
+   "style": "vague",
+   "must_understand": [
+    "the concern is the app channel's drop in Q1 2026",
+    "the decision is whether to cut app advertising next quarter",
+    "the partners decide the budget in two weeks"
+   ],
+   "trap": "vague_goal",
+   "trap_check": "Asks what feels off and what the owner has to decide before analysing, and reaches the app-channel advertising decision through questions."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "sales feel off lately. can you take a look [shares sales.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Happy to dig in. I can see your table has 2020 orders with date, region, channel, product category, amount and status, so there's plenty to look at. When you say sales feel off, what are you noticing? For example, is money coming in lower, are there fewer orders, or does it seem to be one area of the business? And roughly when did it start?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Mostly the app, I think. Money from the app looks lower since the start of the year, maybe January or so. I only really look at the monthly totals, so I'm not sure of the exact numbers. We spend on app ads and I'm wondering if they still help. We need to decide next quarter's budget in about two weeks.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Here's what I'm hearing: app money looks lower since about January, and in two weeks you have to decide next quarter's budget, including whether app ads are still worth paying for. I'm assuming you're the one making that call, so tell me if someone else is. One thing to flag: sales.csv has orders, but no column for ad spend. Do you have app ad spend by month somewhere else, like an ad platform or a spreadsheet? That decides whether I can set spend against app sales, or only show what happened to app sales.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Me and my business partner decide it together. On ad spend, I think it's in the Meta and Google ad accounts, but I'm not sure how to get it out or if it's monthly. I can check, I just don't know what's there. Can you tell from the table alone whether the app dropped?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, the table can show whether the app dropped. It has the channel, date and amount for every order, so I can compare the app with your other channels month by month. It can't show whether the ads help, because it has no ad spend. You don't have to find the spend figures before you choose. Meta and Google usually both let you download a spend report by month, so it's worth a look when you check. Here are three ways I could help, and the first one answers your question most directly.",
+    "choices": [
+     {
+      "title": "Check whether the app dropped",
+      "what": "DCLab compares app sales with your other channels month by month, by money and by number of orders, and looks at where any drop sits (region, product category). It also checks how order status affects the totals."
+     },
+     {
+      "title": "Budget brief for next quarter",
+      "what": "DCLab writes up the budget question: what the sales table shows about the app, what it can't show about ads, which ad spend figures to pull from Meta and Google, and how to set the app budget given what's known."
+     },
+     {
+      "title": "Monthly view by channel",
+      "what": "A dashboard that splits monthly sales by channel, with app next to the rest, kept up to date as new orders come in."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Yes, please check whether the app really dropped and where. I'd like to know if it's one region or one type of product. The ads question can wait until we know that.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "DCLab is now checking whether the app dropped. It will compare app sales with your other channels month by month, using the order date, channel and amount in sales.csv. You'll get the app's monthly totals next to the other channels, so you can see whether the app really fell around January and whether the other channels fell too. The numbers come from DCLab's calculation, so I won't guess at them before it finishes. This check only covers what happened to app sales. It can't say whether the ads still help, because the table has no ad spend. If you can download monthly spend reports from your Meta and Google accounts before the budget decision in two weeks, we can put them next to the app results afterwards.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "d1b3022b74",
+  "person": {
+   "truth": {
+    "situation": "I run a small home-internet subscription company in Manchester with about 9,000 customers; roughly 3% leave every month.",
+    "goal": "I want to keep more customers by reaching the ones who are about to leave before they go.",
+    "decision": "Each month my call team can make about 300 retention calls, and I need to know which 300 customers to call first.",
+    "user": "our 3-person customer care team, who work from a call list in Excel",
+    "data": "An Excel export from our billing system with customer number, start date, plan, monthly bill, number of support calls and whether they left; I haven't sent it yet.",
+    "knows": "I know nothing about machine learning; I only know that some customers complain before they leave.",
+    "constraints": "Only 300 calls a month, no budget for new software, and I want something working before January."
+   },
+   "level": "business_owner",
+   "style": "vague",
+   "must_understand": [
+    "the real goal is fewer cancellations, not a description of past churn",
+    "the result must rank customers so the team can choose 300 calls a month",
+    "the users are a small call team working from Excel",
+    "the billing export exists but has not been shared yet"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "hi, we keep losing customers every month and i dont know what to do about it",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "That sounds frustrating, especially when it keeps happening month after month. To make sure I picture it right: what does \"losing\" a customer look like in your business? Do they cancel a subscription or contract, or do they just quietly stop buying?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "They cancel. We sell home internet on a monthly subscription, so they just stop paying and leave. Roughly 3 out of every 100 do it each month.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks, that's clear: monthly home internet subscribers who stop paying and leave, about 3 in 100 each month. Suppose you could see which customers are likely to leave, or why they leave. What could you actually do with that today, like calling them, offering a discount, or fixing something in the service? And who on your team would act on it?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Mostly I'd want to call them before they go, I think. There are three of us in the care team and we work off a call list in Excel. Maybe offer them something to stay, but I'm not sure what would work. I just know some of them complain before they leave.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "That helps: a care team of three calling people from an Excel list before they cancel. Since you can only make so many calls, the big question is who goes on that list. Do you have a customer table, something that shows each subscriber and whether and when they cancelled? And if complaints are recorded anywhere, tell me where, since you mentioned some customers complain before they leave.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Yes, we have a billing system and I can export it to Excel. It has customer number, start date, plan, monthly bill, how many support calls they've made, and whether they left. I haven't sent it yet. I think the complaints are in the support call count, but I'm not sure what else is written down. Is that enough to start?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, that's enough to start. A billing export with a plan, a monthly bill, support calls and a \"left\" flag is usually enough to work out which customers look most like the ones who cancelled, and that would give your care team a call list. Could you export it and share it here? If there's any column showing the date someone left, please keep it in. I'll look at what's in it before we decide anything.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "ok. it's just the billing export, so no names, only customer numbers. how do i send it to you? can i paste it here or does it need to be a file?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Please share it as a file rather than pasting it, because the Excel export as it is (or a CSV) keeps every row and column intact. Customer numbers only is fine, and it's better that way. Please include all your customers, the ones still with you as well as the ones who left, because the work depends on comparing the two groups. When you open the export, does \"left\" show only as yes/no, or is there also a date when they left?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Not sure, I'd have to open it and look. I think it's just yes or no for left, but I don't know if there's a date. Can I attach the file here, or is there another way to send it?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You don't need to check anything first. Attach the Excel file as it is (a CSV is fine too), and I'll look at the columns myself, including whether \"left\" has a date. I'm working on the guess that it's only yes/no, and I'll correct that if the file shows otherwise. I can't see your screen, so I can't tell you exactly where the button is. It's usually an attach or upload option next to where you type. Can you find it and send the file over? If you don't see one, tell me what's on your screen and we'll sort it out.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "I don't see an attach button, only the box I type in. Can I copy some of it in here instead? It's a lot of customers, so I'm not sure that works.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Pasting a few rows isn't a good basis for this. A small piece can't show who tends to leave, and with only about 3 in 100 cancelling, leavers would barely show up in it. I'd want the whole export. I also can't see your screen, so I can't tell you how to upload it. Look for an upload option elsewhere on the page, or ask whoever set this up for you. You don't have to wait on that to get started. Here are three ways forward. The first two need the file, and the third can start now. Which one fits best?",
+    "choices": [
+     {
+      "title": "A ranked call list of likely leavers",
+      "what": "DCLab learns from your past customers who left and who stayed, then ranks the customers you have now by how much they look like those who left."
+     },
+     {
+      "title": "What leavers have in common",
+      "what": "DCLab compares customers who left with those who stayed, by plan, monthly bill, how long they've been with you and number of support calls."
+     },
+     {
+      "title": "A plan for cutting cancellations",
+      "what": "A business brief on how a team of three could tackle cancellations: who to call first, what to offer, and how to test whether an offer works."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "The first one, the ranked list. That's what we need: who to ring first. I still can't find a way to send the file, I only see the box I type in. Is there another way, or should I look for the upload somewhere else on the page?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Good choice. A ranked call list is what your team of three can work from. I've started that work. **What happens next**\n- I can't build anything until the billing export reaches DCLab. At the moment I have no table. - When the file arrives, I'll check the columns first. That includes whether \"left\" has a date or is only yes/no. I'm assuming yes/no, and I'll tell you if I find otherwise. - DCLab will then compare customers who left with those who stayed. It will use the plan, monthly bill, start date and support calls. It will test the result on customers it hasn't learned from, so you can see how well it works before you rely on it. - You'll get a list of your customers ranked from most to least likely to cancel. It will be a simple list that you can paste into the Excel sheet your care team already uses. **Limits to expect**\n- If the export has no cancellation date, the list will show who looks like past leavers. It won't say when they will leave. - The export can't tell us which offer would make someone stay. That's a separate question for later. You could try a different offer with different callers and track what happens. For now, the one thing left is getting the full file in. Look for an upload option on the page, or ask whoever set up DCLab for you. Once the file is shared, the work can go ahead.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "997a1f0edb",
+  "person": {
+   "truth": {
+    "situation": "I'm an analyst at an electronics retailer; our sales table has orders from 2025 to Q1 2026.",
+    "goal": "I want to show leadership how each region and channel grew year over year.",
+    "decision": "The board will use the slide to decide which regions get more store staff in Q3.",
+    "user": "me, for the CEO's board slide on Thursday",
+    "data": "The sales table I uploaded: order_id, order_date, region, channel, product_category, amount, status, customer_id; I know there are refunds and cancelled orders in it.",
+    "knows": "SQL is fine for me; I didn't think about duplicate rows.",
+    "constraints": "Thursday deadline; one slide with one table."
+   },
+   "level": "analyst",
+   "style": "impatient",
+   "must_understand": [
+    "a year-over-year comparison for one board slide on Thursday",
+    "revenue should count paid orders, not refunded or cancelled ones",
+    "the board will decide Q3 store staffing from it"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "revenue by region and channel, Q1 2026 vs Q1 2025. need it for a slide thursday [shares sales.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Got it: a comparison of Q1 2026 against Q1 2025, with revenue broken down by region and channel, for a slide on Thursday. Your table has order_date, region, channel and amount, so I can build that directly. I'm assuming revenue is the sum of amount and Q1 is January to March. One thing changes the numbers: the table also has a status column. When you say revenue, should every order count, or only some, for example leaving out cancelled or returned ones?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Exclude cancelled and refunded orders, keep everything else. Net revenue is what leadership expects. Check the status values yourself, I don't remember the exact labels. Go ahead with the build.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started the build. It's a query on sales.csv that compares net revenue for Q1 2026 and Q1 2025 by region and channel. - **Status labels:** the table summary I can see doesn't list the values in `status`. The query will pull the distinct labels from the data first. It will drop the ones that mean cancelled or refunded and keep the rest. You'll see which labels it excluded, so you can check them before anything goes on the slide. - **Definitions:** net revenue is the sum of `amount` per order. Q1 is January to March in both years. Tell me if either one differs from how leadership defines it. - **What you'll get:** a region × channel table with Q1 2025, Q1 2026 and the change between them. It's laid out so you can lift it straight onto a slide. I'll share the numbers once DCLab's code has run. I won't give any figures before then.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "c9a966801e",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a tour operator in Cape Town, and the sales team asked me for a weekly view.",
+    "goal": "I want the sales team to see new bookings and cancellations by destination and channel each week.",
+    "decision": "At the Monday stand-up, the sales team decides which destinations to promote that week.",
+    "user": "the 8-person sales team at their Monday stand-up",
+    "data": "The bookings table I uploaded: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id.",
+    "knows": "I know modelling, but they don't want a model; I haven't cleaned the TEST rows yet.",
+    "constraints": "Weekly refresh before Monday 9 am; no model needed."
+   },
+   "level": "data_scientist",
+   "style": "vague",
+   "must_understand": [
+    "a weekly view kept up to date, not a one-off analysis or model",
+    "the sales team picks destinations to promote at the Monday stand-up",
+    "TEST rows must be excluded"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "the sales team wants some kind of bookings view each week, not sure what exactly [shares bookings.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'll start by looking at what's in bookings.csv, so the options I suggest fit your data.\n\nYour table has 1,500 bookings. It includes booking date, travel date, destination, channel, price and whether each booking was cancelled. That's enough for a useful weekly view.\n\nSince you're not sure what the sales team wants yet, here are four places to start. Pick whichever is closest.\n\n- **Weekly dashboard:** If you already know you want something that refreshes every week, this is the one to pick.\n- **Weekly numbers first:** This works well if you'd like to show the team some real figures and let them say what they want to keep.\n- **Fix the price column:** Price is being read as text, not numbers. Any weekly view that shows revenue will need this cleaned up first.\n- **Cancellations:** Choose this if cancellations are the team's main worry.",
+    "choices": [
+     {
+      "title": "Weekly bookings dashboard",
+      "what": "A dashboard that updates each week. It would show bookings by week, split by destination, channel and nationality, with cancellations alongside."
+     },
+     {
+      "title": "Look at the weekly numbers first",
+      "what": "A one-off summary of bookings per week, cancellation rate and the top destinations and channels. It would help the sales team decide what they want to track."
+     },
+     {
+      "title": "Fix the price column first",
+      "what": "Price is being read as text, not numbers. This cleans it so revenue and average booking value can be added up properly in any weekly view."
+     },
+     {
+      "title": "Dig into cancellations",
+      "what": "A look at why bookings are being cancelled and what the sales team could do about it. It would cover free cancellation, lead time and channel."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Yeah, the weekly one. It needs to be ready before Monday 9. Mostly new bookings and cancellations by destination and channel, that's what they look at.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started the weekly bookings dashboard. It's built from your bookings table and will show bookings by week. You'll be able to split them by destination, channel and nationality, with cancellations next to them.\n\nThe price column is currently read as text, so revenue figures may not add up correctly yet. You can leave revenue out of the first version, or we can clean up price first. Which would you rather do?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Leave revenue out for now, I don't think they need it this week. Also there might be some test rows in the file, I haven't cleaned those yet. Can you make sure those don't end up in the counts?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Revenue is out of the first version, so the price column won't affect anything this week.\n\nI can't promise the test rows are excluded yet. I haven't seen any of the actual values in your file, so I can't tell which rows are tests. Before I set up the filter, I need to know how to spot them. Some common signs:\n\n- A booking ID or customer ID that starts with something like \"TEST\" or \"demo\".\n- A destination or nationality with an obvious placeholder value.\n- A booking date or travel date that's clearly wrong, such as far in the past or the future.\n- A price of zero, or a very odd one. Price is left out of the dashboard, but it can still help flag a test row.\n\nTell me which of these applies, or describe the pattern in your own words. I'll then remove those rows in a short cleanup step ahead of the dashboard, so the weekly counts only include real bookings. If you aren't sure what they look like, I can list the unusual rows first, and you can tell me which ones to drop.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "ec17d97969",
+  "person": {
+   "truth": {
+    "situation": "I'm the operations analyst at a tour operator in Istanbul.",
+    "goal": "I want to show the director how cancellations differ by channel and by the free-cancellation option.",
+    "decision": "The director will decide whether to keep offering free cancellation on agent bookings.",
+    "user": "the operations director, through my monthly ops note",
+    "data": "The bookings table I uploaded: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id.",
+    "knows": "I'm comfortable with SQL and rates.",
+    "constraints": "The note is due Friday; one small table."
+   },
+   "level": "analyst",
+   "style": "detailed",
+   "must_understand": [
+    "cancellation rate by channel and by free_cancellation, 2025 bookings only",
+    "TEST destinations excluded",
+    "a small table for the director's monthly note"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "From the bookings table I uploaded, excluding rows where destination is TEST, please give me the cancellation rate by channel and by free_cancellation for bookings made in 2025. It's for my monthly ops note to the director, so a small table is enough. [shares bookings.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'll set this up as a query on your bookings table. It will leave out rows where destination is TEST, keep bookings made in 2025, and give the cancellation rate by channel and by free_cancellation.\n\nI've started the query. It uses your bookings table and will:\n\n- leave out every row where destination is TEST,\n- keep only bookings made in 2025,\n- calculate the cancellation rate (cancelled bookings divided by all bookings) for each channel and for each free_cancellation value.\n\nEach of those gives a short table, which should be enough for your note to the director. If you want channel and free_cancellation crossed in one table, say so and I'll add it.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "bce96d7b7a",
+  "person": {
+   "truth": {
+    "situation": "I work in the analytics team of a mobile telecom; our customers table has one row per subscriber with churned_next_month.",
+    "goal": "My manager wants our senior support agents to handle the subscribers who are most at risk of leaving.",
+    "decision": "Each month about 500 at-risk subscribers get their tickets sent to the senior support queue instead of the normal one.",
+    "user": "the support operations manager, who sets the routing rule",
+    "data": "The customers table I uploaded, with support_tickets_90d, plan, tenure_months, monthly_spend and churned_next_month among its columns.",
+    "knows": "I can do group-bys; I thought comparing averages would give us a routing rule.",
+    "constraints": "The senior queue takes only about 500 subscribers a month; the rule is updated monthly."
+   },
+   "level": "analyst",
+   "style": "vague",
+   "must_understand": [
+    "the averages are a step toward a routing decision for about 500 subscribers a month",
+    "routing needs a churn-risk score for each subscriber, not a group average",
+    "the support operations manager will apply the result"
+   ],
+   "trap": "real_prediction",
+   "trap_check": "Asks what the averages are for and, on hearing about the senior-queue routing, proposes a churn-risk score per subscriber (prediction) rather than only the group averages."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "can i get avg support tickets for churned vs not churned [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, I can get you that. I'll compare the average of support_tickets_90d for customers who churned and those who didn't, using churned_next_month as the churn flag across all 1,200 customers. What are you hoping to do with the comparison, for example decide whether to change support or spot customers at risk, and who will be using it?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Mostly to figure out who to send to the senior support team. My manager wants them to handle the ones most likely to leave. The support ops manager sets the routing rule with it. Only about 500 a month can go to that queue. I thought the averages might be enough to make the rule.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks, that helps. You need to pick about 500 customers a month for the senior queue, and the support ops manager will set the rule. Averages will tell you whether churners file more tickets. They won't tell you which 500 customers to pick, because that needs a ranking of customers. Here are two ways to go. Which fits better?",
+    "choices": [
+     {
+      "title": "Just the averages",
+      "what": "Compare average support_tickets_90d for customers who churned versus those who didn't, using churned_next_month, plus the churn rate at different ticket counts."
+     },
+     {
+      "title": "Rank customers by chance of leaving",
+      "what": "Build a model on your 1,200 customers that learns who left (churned_next_month) from support_tickets_90d, tenure_months, monthly_spend, plan, segment and city. It would score each customer so the top ~500 each month go to the senior queue. It is tested on customers it hasn't seen, and I'd compare it with the simple tickets-only rule."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "ok the second one i guess. we need to rank them since only 500 can go to the senior queue, averages wont do that. not sure we have segment or city in the file though, i only remember the columns i listed. does it still work without those?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Good choice. DCLab is now building a model that gives each customer a chance of leaving, so the support ops manager can rank customers and take the top of the list for the senior queue. - **What it uses:** the information in your table about each customer, such as plan, segment, tenure, monthly spend and support tickets in the last 90 days. The churn flag, churned_next_month, is what it learns from. - **How it's checked:** DCLab keeps some customers out of the model's training and tests the ranking on them. That shows how well it would have picked the people who really left. - **What you'll get:** a ranking of customers by chance of leaving, and a check of how many real leavers fall in a top group sized to your queue of about 500 a month. You'll also see which factors matter most, including whether ticket volume does. That shows whether your averages idea holds up. The results come from DCLab's code once it has run, so I won't give you any numbers before then.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "3163cc7170",
+  "person": {
+   "truth": {
+    "situation": "I'm the analyst for a group of 4 family clinics in Toronto; missed appointments waste doctors' time.",
+    "goal": "I want the no-show rate by weekday and by doctor over the last year.",
+    "decision": "The clinic manager will decide on which days and for which doctors to double-book a few slots.",
+    "user": "the clinic manager who builds the weekly schedule",
+    "data": "An appointments export, not sent yet: appointment_id, date, weekday, doctor, patient_id, booked_at, status (attended, no-show, cancelled).",
+    "knows": "I can use Excel and some SQL.",
+    "constraints": "Patient details must be removed before I share the file; the schedule is set monthly."
+   },
+   "level": "analyst",
+   "style": "vague",
+   "must_understand": [
+    "no-show rates by weekday and doctor about what already happened",
+    "the result decides where to double-book slots",
+    "the export is not shared yet and holds patient information"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "hey, how many patients dont show up, by day and doctor? i have the appointments export",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Happy to help with that. So you want to see, for each day and each doctor, how many booked patients didn't turn up. I can't see your appointments export yet, so could you share it here? Also, what will you do with these counts: change how you schedule, plan reminders, or talk with particular doctors about their gaps?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "i cant send the file yet, it has patient info in it. i can strip that out first. the manager will use it to pick which days and doctors to double book a few slots",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "That makes sense, and thanks for being careful with patient info. You don't need names or contact details for this. What I need is one row per appointment with the date, the doctor, and something that shows what happened to it. So I understand it right: the manager wants to see where no-shows pile up, by day and by doctor, so they can pick where to double book a few slots. When you strip the export down, what will each row still tell you about the appointment? In particular, how can you tell a no-show apart from a patient who came, or one who cancelled ahead of time?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "the status column has attended, no-show or cancelled in it, so that's how i'd tell them apart. i think i'd drop the patient stuff, not sure if i need the patient id for anything though",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Good, that status column does the job. You can drop the patient id too, since counts by day and doctor don't need it. I'll treat only \"no-show\" as a no-show and leave cancellations out, so tell me if you see it differently. Once you've stripped the file down to the appointment date, the doctor and the status, can you upload it here so I can check it has those?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "ok. i'll strip it down to date, weekday, doctor and status. i'm not uploading the real file yet though. i think i want a rate, not just a count, since doctors don't have the same number of slots",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "A rate makes sense: for each day and doctor, no-shows out of their appointments, so a busy doctor and a quiet one compare fairly. One thing decides how I'd work it out: when a patient cancels ahead of time, does that slot usually get filled by someone else, or does it mostly sit empty?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "not sure honestly. i dont really know if the cancelled ones get refilled. i'd guess some do but i havent checked. i'm still not uploading the file yet, i'll just tell you what columns it has if that helps",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Telling me the columns is fine for now, and date, weekday, doctor and status is all I'd need. Since you don't know about refills, I'll work the rate as no-shows out of appointments where the patient was expected (attended plus no-show). I'd show cancellations alongside, not count them as no-shows. Tell me if you'd rather it differ. One thing shapes the plan: when the manager says \"which days\", do they mean weekdays, like Mondays or Thursdays, or specific calendar dates? And roughly how many months does the export cover?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "i think weekdays, like mondays or thursdays. not specific dates. it's about the last year of appointments, i think. still not uploading the file though.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks, that settles it: weekdays by doctor, over about a year. I'd show each doctor's no-show rate for each weekday, with cancellations shown alongside and not counted as no-shows. Until I can see a table, though, I can't run anything. Once you've stripped it to date, weekday, doctor and status, would you be able to upload it here, or does the data need to stay on your side? The answer decides whether I run the numbers for you or set it up so you can run them yourself.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "not sure yet if it can leave our system, i'd have to check. i can probably run it myself in excel or some sql though. what would the setup look like?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Since the data may have to stay on your side, the setup would be a query or pivot you run yourself on the stripped export. I'd write it so the numbers come out right. Here are three ways to go. I'm assuming a few things, so tell me if any are wrong:\n- Only \"no-show\" counts as a no-show. - The rate is no-shows out of attended plus no-show appointments. - Cancellations are shown next to the rate, not counted in it. - The export has date, weekday, doctor and status. I haven't seen the file, so I can't check any of this against your real data. The choice that matters is whether you want a one-off table for the manager or something that stays live.",
+    "choices": [
+     {
+      "title": "A query you run yourself",
+      "what": "I write the steps, as an SQL query and the matching Excel pivot, that turn your stripped export (date, weekday, doctor, status) into a weekday-by-doctor table. Each cell is no-shows out of attended + no-show, with the number of appointments and cancellations shown next to it."
+     },
+     {
+      "title": "A cleaning recipe for the export",
+      "what": "I write the steps to turn the raw export into a clean four-column file: date, weekday, doctor and status. That means dropping patient fields and the patient id, and making the status values consistent (attended, no-show, cancelled)."
+     },
+     {
+      "title": "A dashboard kept up to date",
+      "what": "A dashboard showing no-show rate by weekday and doctor, which refreshes each time a new stripped export is loaded."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "option 1 i think. a one-off table is fine, the schedule's only set monthly anyway. i'll run it myself on the stripped file.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Good, the query is under way. It's built for you to run yourself on the stripped export, so the data stays on your side. **What you'll get**\n- A query you can run in SQL, with a pivot version for Excel if you'd rather use that. - One row per doctor and weekday, so Mondays and Thursdays are compared for each doctor. - Four columns per row: attended, no-shows, cancelled, and the no-show rate. The rate is no-shows divided by attended plus no-shows. Cancellations sit beside it and are not counted in it. - A low-volume flag, so the manager doesn't double book off a rate that rests on only a handful of appointments. **What it assumes**\n- The columns are date, weekday, doctor and status, and status holds \"attended\", \"no-show\" or \"cancelled\". The query uses those spellings exactly. If your export writes them differently, such as \"No Show\" or \"no_show\", change that in one place at the top. - Only \"no-show\" counts as a no-show. Patient id isn't needed. - Cancellations stay out of the rate because you don't know whether those slots get refilled. If you find out they mostly sit empty, the rate may need to change. I haven't seen your real file. DCLab hasn't run the query on your data, so there are no numbers yet. Once you've run it, the doctor and weekday combinations with the highest rates, and enough appointments behind them, are the ones for the manager to consider for double booking.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]

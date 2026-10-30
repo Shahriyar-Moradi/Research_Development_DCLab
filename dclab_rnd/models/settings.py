@@ -139,6 +139,9 @@ PURPOSES: dict[str, Purpose] = {
                                              "its bands (storage type, share of distinct and missing values, the shape of its written values), "
                                              "the outcome's name, the prediction moment, measures computed on training rows only (a column's "
                                              "signal against the outcome, the holdout's metrics once read); never rows or cell values (27.6)"),
+    "case_agent": Purpose("standard", 180, "37.3: the lead agent: the person's words, the case file (facts with their sources, assumptions, "
+                                           "unknowns, readiness), and, once a table is shared, its column names, kinds, what DCLab noticed "
+                                           "and its row count; never a row or a cell value", cell_values=0, keeps_text=True),
     "exam_plain": Purpose("standard", 180, "37.0: the conversation exam's Claude-alone arm: a written person's words (simulated, never a "
                                            "real person's) and, when they share an invented exam table, its column names, kinds and what "
                                            "DCLab noticed about each; never a row or a cell value", cell_values=0, keeps_text=True),

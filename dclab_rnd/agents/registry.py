@@ -25,7 +25,7 @@ from typing import Any, Callable, Protocol
 
 import jsonschema
 
-SCOPES = ("project", "draft", "session", "campaign", "workspace", "home", "chat")  # workspace: 30.21, the chat over the workspace's tables; home: the Home orchestrator's team on a built project; chat: A7, DCLab's agents behind an external chat
+SCOPES = ("project", "draft", "session", "campaign", "workspace", "home", "chat", "case")  # case: 37.3, the lead agent's case-file tools  # workspace: 30.21, the chat over the workspace's tables; home: the Home orchestrator's team on a built project; chat: A7, DCLab's agents behind an external chat
 EFFECTS = ("read", "write")
 
 

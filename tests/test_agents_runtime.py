@@ -139,6 +139,8 @@ class DclabRegistryTests(unittest.TestCase):
                                                         "propose_step", "undo_step", "export_data",  # H9b: preparing a table
                                                         "compare_periods", "decision_brief"})  # H11b: a business question
         self.assertEqual(set(registry.names("session")), {"write_plan", "finish"})
+        self.assertEqual(set(registry.names("case")), {"case_read_table", "case_note", "case_add_unknown", "case_resolve", "case_confirm_assumption",
+                                                       "case_ask", "case_propose", "case_start"})  # 37.3: the lead agent's case-file tools
         # A7: DCLab's own agents as tools for an external chat at /mcp
         self.assertTrue({"home_start", "home_message", "home_add_data", "home_status", "home_build", "home_list"} <= set(registry.names("chat")))
         # the research campaign's experiment tool is a closed part, absent from the open edition
@@ -153,7 +155,8 @@ class DclabRegistryTests(unittest.TestCase):
                     moves = {"project": studio_graph.MOVES, "draft": DRAFT_MOVES.values(), "session": SESSION_MOVES.values(),
                              "campaign": ("experiment",),
                              "home": __import__("dclab_rnd.draft.orchestrator", fromlist=["HOME_MOVES"]).HOME_MOVES,
-                             "chat": __import__("dclab_rnd.chat_agents", fromlist=["CHAT_MOVES"]).CHAT_MOVES}[tool.scope]
+                             "chat": __import__("dclab_rnd.chat_agents", fromlist=["CHAT_MOVES"]).CHAT_MOVES,
+                             "case": __import__("dclab_rnd.agents.case_agent", fromlist=["MOVES"]).MOVES.values()}[tool.scope]  # 37.3
                     self.assertIn(tool.move, moves)
                     self.assertEqual(tool.effect, "write")
         for old, new in LEGACY_TOOLS.items():

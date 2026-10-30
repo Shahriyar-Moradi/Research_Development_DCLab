@@ -45,6 +45,7 @@ AGENTS: dict[str, Agent] = {
     "home.project.rules": Agent("dclab_rnd.draft.orchestrator:Orchestrator.rules_turn", "session", (), "the Home orchestrator's rules, without a model or when it fails"),
     "home.script": Agent("dclab_rnd.draft.chat:HomeAgent.script_turn", "session", (), "the Home agent without a model, or when it fails"),
     "intern": Agent("dclab_rnd.intern.loop:Intern._llm_loop", "loop", ("intern",), "the intern with a model"),
+    "case": Agent("dclab_rnd.agents.case_agent:turn", "loop", ("case_agent",), "37.3: the Phase 13 lead agent, one case around the case file, behind DCLAB_CASE_AGENT"),
     "workspace_chat": Agent("dclab_rnd.workspace_chat:ask", "loop", ("workspace_chat",), "30.21: a question about the workspace's tables, every number computed"),
     "intern.standard": Agent("dclab_rnd.intern.loop:Intern._plan_run", "session", (), "the intern's standard plan, and its follow-ups"),
     "team": Agent("dclab_rnd.studio.team:run", "session", (), "the team of roles on a project"),

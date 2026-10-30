@@ -17,7 +17,7 @@ from string import Template
 from typing import Any
 
 HERE = Path(__file__).resolve().parent
-TOOL_SCOPES = ("project", "draft", "session", "campaign", "workspace", "home")
+TOOL_SCOPES = ("project", "draft", "session", "campaign", "workspace", "home", "case")
 
 
 @functools.cache

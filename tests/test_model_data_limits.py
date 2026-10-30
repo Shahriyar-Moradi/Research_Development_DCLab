@@ -685,7 +685,7 @@ class DataLimitTests(unittest.TestCase):
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "routing_labeler", "home_understand", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
                   "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell",
-                  "home_orchestrator", "reflector", "memory_embedding"}
+                  "home_orchestrator", "reflector", "memory_embedding", "case_agent"}
         no_user_data = {"campaign", "campaign_review", "embedding",  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
                         "journey_writer", "journey_checker",  # S8 B1 (below)
                         "exam_plain", "exam_person", "exam_judge"}  # 37.0: written, simulated people and invented exam tables' column views (tests/test_conversation_exam.py); S8 B1: invented replica tables' column names and written people, never a workspace's data (tests/test_people_writer.py)

@@ -1,0 +1,234 @@
+{
+ "package": "37.2-37.4",
+ "title": "The thin lead agent: a context builder, a Claude-first agent around the case file on the shared runtime, and its conversation, measured against Home and Claude alone",
+ "date": "2026-10-30",
+ "request": "The owner: continue without stopping through the thin slice (37.2 context builder, 37.3 lead agent, 37.4 understanding conversation), measure it on dev, then stop and decide.",
+ "spec": "A context builder that always shows the case file whole and the recent turns within a budget; a lead agent on run_policy with case-file tools registered once in scope case behind a guard; a prompt that lets Claude listen, reflect, explore with the table and propose; code guards on facts, readiness, options, numbers and the route; the exam's third arm.",
+ "plan": [
+  "Read the registry, runtime, harness and gateway contracts for a new agent",
+  "Write the prompt, the context builder and the agent with its tools, guard and moves",
+  "Tests with scripted models, the harness probe, the data limit, thinking kept",
+  "Live smoke checks on two or three people, fix what they show",
+  "Review, fix, the full dev run, compare, stop and decide"
+ ],
+ "decisions": [
+  {
+   "decision": "The case agent's tools are registered once in a new scope case with a guard and moves",
+   "why": "the house rule: no private tool list, every write through its scope's guard"
+  },
+  {
+   "decision": "Only a question ends a turn; after options or a start the agent writes its message",
+   "why": "CEX-005: options came with no words and a start ended the turn silently"
+  },
+  {
+   "decision": "An advice answer starts without a ready case",
+   "why": "it builds nothing; without it the conversation looped on thanks (CEX-005 d-36)"
+  },
+  {
+   "decision": "Once the work has started, new options are refused and a different start needs the person's own latest words",
+   "why": "the review and CEX-007: the route flipped after the person's pick, and new options turned a base rate into a new route"
+  },
+  {
+   "decision": "Every sentence with a number nobody gave is dropped by one shared rule (cited.unsaid, also the exam's), sent back once for a rewrite with no tool allowed, and never leaves a turn silent",
+   "why": "CEX-006: '3 in 100' for the person's 3% emptied a turn; the review: the rewrite asked a question twice and the agent's rule and the exam's disagreed"
+  },
+  {
+   "decision": "The person's words are always in the context; declines and 'show me options' are read per message and only from short passes",
+   "why": "the review: dropped turns lost the words quotes need; 'we pass the list to sales' counted as a pass; one advice question opened options for the rest of the case"
+  },
+  {
+   "decision": "Claude alone sees the row count too",
+   "why": "the review: the case arm saw it and Claude alone did not, so the comparison was unfair"
+  },
+  {
+   "decision": "The product switch DCLAB_CASE_AGENT exists but Home's route does not read it yet",
+   "why": "the thin slice measures first; the page comes in 37.9 if the measurement says continue"
+  }
+ ],
+ "change": "dclab_rnd.agents.context (new): case_text with the person's words, table_text, build within a budget, messages with the state under the latest words. dclab_rnd.agents.case_agent (new): CaseState, tools case_read_table, case_note, case_add_unknown, case_resolve, case_confirm_assumption, case_ask, case_propose, case_start in scope case with MOVES and CaseGuard, turn() and pick() on run_policy with one tracer per case, checked() and the rewrite loop, declines(), WANTS_OPTIONS. prompts/case_agent.md (new). dclab_rnd.cited.unsaid (one rule for the agent and the exam). dclab-core 0.149.0: case.declined. Purpose case_agent, AGENTS case, scope case in the registry and the prompt fingerprints, store stage, the runtime's conversation id for case. The exam: CaseArm with the case file kept, plain arm's row count, gaps and a dev-only gate preview.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "An advice answer never started, so the conversation looped",
+   "scenario": "CEX-005 d-36: the right answer, then eight turns of thanks",
+   "cause": "start needed a ready case",
+   "fix": "advice starts without one",
+   "test": "tests/test_case_agent.py TurnTests.test_an_advice_answer_starts_without_a_ready_case_and_a_start_is_followed_by_words"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A start and a set of options came with no words",
+   "scenario": "CEX-005: owner-telco's last turn empty; d-02's options bare",
+   "cause": "start and propose ended the turn",
+   "fix": "only ask ends the turn; the tools tell the agent to write its message",
+   "test": "tests/test_case_agent.py TurnTests"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A sentence in the person's own number said another way emptied a turn",
+   "scenario": "CEX-006 d-36: '3 in 100' for '3%' dropped the only sentence, seven silent turns",
+   "cause": "every sentence dropped and nothing told the agent",
+   "fix": "dropped sentences go back for one rewrite; a code line if it fails",
+   "test": "tests/test_case_agent.py TurnTests.test_a_dropped_sentence_goes_back_to_the_agent_to_write_again_never_a_silent_turn"
+  },
+  {
+   "id": "F4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The question repeated as the message showed twice",
+   "scenario": "CEX-006: 'Sorry, my last answer...' twice",
+   "cause": "the ask's question and the content were both shown",
+   "fix": "each paragraph once",
+   "test": "tests/test_case_agent.py"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The route flipped after the person's pick",
+   "scenario": "the person picks analysis, the agent starts prediction: the route is the agent's; CEX-007 d-02 flipped to analysis after new options",
+   "cause": "start passed whenever a choice existed; the guard refused new options only before a choice",
+   "fix": "after a start, options refused and a different start needs the person's latest words",
+   "test": "tests/test_case_agent.py TurnTests.test_the_route_the_person_picked_stays_theirs"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The rewrite ran tools again",
+   "scenario": "a dropped question asked again in the rewrite: asked counted twice",
+   "cause": "the rewrite offered every tool",
+   "fix": "a rewriting flag: the guard refuses every move while the tools stay offered",
+   "test": "tests/test_case_agent.py TurnTests.test_the_rewrite_runs_no_tool_and_a_question_counts_once"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A silent turn was still possible",
+   "scenario": "'About 14% leave' then 'Roughly 15% leave': empty text",
+   "cause": "no fallback after a failed rewrite",
+   "fix": "code's own line, with the question if one was asked",
+   "test": "tests/test_case_agent.py TurnTests.test_a_dropped_sentence_goes_back_to_the_agent_to_write_again_never_a_silent_turn"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The agent's number rule and the exam's disagreed",
+   "scenario": "'3 in 100' kept by the agent, counted unsafe by the exam",
+   "cause": "two rules (dclab_core's ratio canon and cited.numbers)",
+   "fix": "one rule, cited.unsaid, used by both; the ratio canon reverted",
+   "test": "tests/test_case_agent.py and tests/test_conversation_exam.py SafetyTests"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Answers read as declines",
+   "scenario": "'we pass the list to the sales team' and 'I don't know who will leave, that is the problem' counted toward the ceiling",
+   "cause": "a word anywhere in any message",
+   "fix": "short passes only, bare pass or skip only as the whole message",
+   "test": "tests/test_case_agent.py TurnTests.test_answers_that_mention_passing_or_not_knowing_are_not_declines"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One advice question opened options for the whole case",
+   "scenario": "'What would you recommend: PR-AUC or ROC-AUC?' set the flag for good",
+   "cause": "a broad pattern that never reset",
+   "fix": "per message, the recommend alternative removed",
+   "test": "tests/test_case_agent.py TurnTests.test_options_wait_for_readiness_unless_the_person_asks_to_see_them"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The case arm saw more than Claude alone",
+   "scenario": "the row count in read_table, not in profile_table",
+   "cause": "two views",
+   "fix": "profile_table gives the row count too",
+   "test": "tests/test_conversation_exam.py PlainArmTests"
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Dropped turns took the person's words with them",
+   "scenario": "a quote from an early message could not be checked once its turn left the context",
+   "cause": "the state held no words",
+   "fix": "the person's words in the case text",
+   "test": "tests/test_case_agent.py CaptureTests.test_the_persons_words_stay_in_the_state_when_old_turns_are_dropped"
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "No test showed the lead agent's thinking stored",
+   "scenario": "rule 8 asks one for a new purpose",
+   "cause": "only the setting was tested",
+   "fix": "a test through the gateway",
+   "test": "tests/test_case_agent.py CaptureTests.test_the_lead_agents_thinking_summary_is_stored_whole"
+  },
+  {
+   "id": "F14",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A case's turns were not one conversation in the record",
+   "scenario": "each turn a new traced run with its own id",
+   "cause": "a tracer per turn, and the runtime named conversations only for home and intern",
+   "fix": "one tracer per case, and case among the conversational agents",
+   "test": "tests/test_case_agent.py"
+  },
+  {
+   "id": "F15",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Home's route does not use the lead agent yet; the context has no memory, evidence or past cases from a caller",
+   "scenario": "the thin slice",
+   "cause": "measure first",
+   "fix": "37.9 and 37.2's callers after the decision",
+   "test": "none",
+   "verdict": "open"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "CEX-009, the conversation exam on dev: the lead agent and Claude alone, 41 people (Home from CEX-004, same people and judge)",
+   "gate": "the stop-and-decide rule accepted by the owner: continue only if the lead agent clearly beats both on understanding; conversation_exam_gate_v1 previewed on dev only",
+   "result": "understanding: lead agent 0.88, Claude alone 0.52, Home 0.50 (paired gain over Claude alone +0.36, 90% interval +0.29 to +0.42; over Home +0.38, +0.30 to +0.46); option fit 4.1 against 3.1 and 3.3; numbers nobody gave: 0 against 33 and 3; traps: every kind at or above Home's (vague goals 3/3, missing columns 3/3, reports that are predictions 2/2); route 73% against 78% and 80%, the only gate check that fails on dev: 6 of 11 misses went to advice for people whose data was not uploaded; no silent turn, no failure, no unjudged conversation; median 2 person turns; 23 s a turn; EUR 0.10 a case for the agent",
+   "verdict": "pass",
+   "cost_eur": 6.79,
+   "limits": [
+    "dev people, written; the sealed set is read once, in the sealed exam package",
+    "the judge is unchecked until the owner's labels",
+    "Home's scores are from CEX-004, a run of its own"
+   ]
+  },
+  {
+   "name": "smoke runs CEX-005 to CEX-008",
+   "gate": "none: smoke runs of the new arm",
+   "result": "found the bare options, the silent start, the advice loop, the dropped ratio and the route flip; CEX-008 stopped after 3 people when the review found the route flip and the unfair row count",
+   "verdict": "not scored",
+   "cost_eur": 1.52
+  }
+ ],
+ "outcome": "The thin lead agent understands people far better than today's Home and Claude alone on dev (0.88 against 0.50 and 0.52), writes options that fit (4.1 of 5), invents no number and handles every trap kind; it routes slightly worse (73%), mostly by answering as advice for people whose data is not yet shared. By the owner's rule the phase continues; the routing is the next fix.",
+ "lessons": [
+  "A rule that drops words must tell the writer and must never leave silence",
+  "Two copies of one rule drift: the agent and its exam must share the number check",
+  "A route a person chose belongs to them: code must refuse anything that changes it without their words"
+ ],
+ "risks": [
+  "Prompt caching covers the instructions and tools only: past turns are rebuilt each turn",
+  "The judge is unchecked until the owner's labels"
+ ],
+ "commits": []
+}

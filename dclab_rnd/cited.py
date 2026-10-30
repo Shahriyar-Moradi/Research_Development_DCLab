@@ -24,7 +24,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Iterable
 
 CITE = re.compile(r"\[([A-Za-z][A-Za-z0-9_.-]*)\]")
 IDS = re.compile(r"\b(?:DCLAB-R\d+|WF-\d+|EXP-\d+|PIT-\d+|CAT-\d+|LEAK-[a-z_]+|FINDING-[a-z-]+|DATASET-[a-z_]+|PRJ-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*|LESSON-[A-Za-z0-9]+)\b")
@@ -183,3 +183,23 @@ def strip_overclaims(text: str) -> tuple[str, int]:
     if len(kept) == len(parts):
         return text, 0
     return ("\n" if "\n" in text.strip() else " ").join(kept), len(parts) - len(kept)
+
+
+_CODE_SHAPE = re.compile(r"\b[A-Z]{1,4}-\d{3,}\b")  # C-00012, ORD-10007: a record's identifier, never a number
+_DIGITS = re.compile(r"(?<![\w.])\d[\d,]*(?:\.\d+)?(?:%|[kKmMbB]\b)?")
+
+
+def unsaid(text: str, sources: Iterable[str]) -> list[str]:
+    """37.0 and 37.3: the numbers a reply states in digits that no source holds (the person's words, what code computed),
+    one rule for the lead agent's check and the conversation exam's. Words ("two options") and bare whole numbers up to ten
+    (counts of options, steps, questions) are no claim; a share or a decimal always is; an identifier is a record."""
+    allowed = set().union(*(numbers(s, source=True) for s in sources)) if sources else set()
+    out = []
+    for token in _DIGITS.findall(_CODE_SHAPE.sub(" ", str(text or ""))):
+        bare = token.replace(",", "")
+        if bare.isdigit() and int(bare) <= 10:
+            continue
+        if numbers(token) - allowed:
+            out.append(token)
+    return out
+

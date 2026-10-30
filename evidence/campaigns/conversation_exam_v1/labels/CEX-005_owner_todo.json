@@ -1,0 +1,281 @@
+[
+ {
+  "ref": "c86d8c2b32",
+  "person": {
+   "truth": {
+    "situation": "we are a telecom company and customers leave us",
+    "goal": "show my customer segments",
+    "decision": "I want to treat each group of customers differently",
+    "user": "me",
+    "data": "it is my customer churn table",
+    "knows": "not said",
+    "constraints": "not said"
+   },
+   "level": "business_owner",
+   "style": "vague",
+   "must_understand": [
+    "they want groups of customers found in the data, not a single prediction",
+    "the groups are for treating each group of customers differently",
+    "the table is a customer churn table of a telecom company"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "how can I analyze my customer [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks, I've looked at your table. It has 1,200 customers, with their plan, city, segment, how long they've been with you, monthly spend, recent support tickets, and a column called churned_next_month. What are you hoping to find out about your customers, and what would you do differently once you know it? For example, you might want to keep more of them from leaving, or understand who your best customers are.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "i want to see the groups of customers, like which ones are different from each other. then i can treat each group different instead of all the same. the ones that leave too, i guess i want to know who they are.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "So you want to see which kinds of customers you have and how they differ, so you can treat each group in its own way, and you'd also like to know who the customers that leave are. Your table already has a column called segment. Are those the groups you use today, or do you want to find new groups from how customers actually behave (spend, tenure, support tickets)?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "hmm, i'm not sure how the segment column got made, someone set it up a while back. i'd rather see what actually makes them different, like how much they pay and how long they stay. whatever shows the real groups is fine.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Understood. I'll look for groups in how customers actually behave, mainly what they pay and how long they stay, and leave the old segment column aside. Then I'll show you how many in each group leave, so you can see who those customers are. One thing before I set it up: who will use these groups, just you, or a team (sales, marketing, support) who will need to read the results and act on them?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Just me, for now. I'm the one who will look at it and decide what to do.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "9939ed820c",
+  "person": {
+   "truth": {
+    "situation": "I'm the analyst at a gym chain with 14 clubs; our customers table has one row per member, with churned_next_month.",
+    "goal": "I want each club manager to get, every week, the members most likely to cancel next month so they can talk to them in time.",
+    "decision": "Every week each club manager picks about 20 members to offer a free personal-training session to keep them.",
+    "user": "14 club managers, about 20 conversations each per week",
+    "data": "The customers table I uploaded: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+    "knows": "I'm good at SQL and reports; I've never built a predictive model and assumed this is just a filtered report.",
+    "constraints": "It must refresh weekly, managers only read a simple list, and I want a first version within two weeks."
+   },
+   "level": "analyst",
+   "style": "impatient",
+   "must_understand": [
+    "'likely to cancel next month' needs a forward-looking score per member, not a report of past cancellations",
+    "each club manager acts on about 20 members a week",
+    "the list must refresh weekly and stay simple for managers"
+   ],
+   "trap": "report_not_model",
+   "trap_check": "Explains that knowing who will cancel needs a prediction model trained on churned_next_month (a score per member), not only a filtered report, and proposes the model route before any dashboard."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "need a weekly report of members likely to cancel next month. can you set that up [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, I can set that up. As I understand it, you want a list each week of the members most at risk of cancelling in the coming month, and your table has a churned_next_month column that looks like how you know who left in the past. When someone lands on that list, what happens next, and who acts on it? For example, does someone in retention call them, or do they get an offer? That tells me how to build the report.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Club managers. Each of the 14 managers picks about 20 members a week and offers them a free personal training session to keep them. They only need a simple list they can read, refreshed weekly. I assumed this was just a filtered report, so tell me if it needs more than that.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks, that's clear: 14 club managers each choose about 20 members a week and offer them a free personal training session, so they need a short, readable list. One thing to flag: a filter can't do this. Your table says who left in the past, but for members who are still here nobody knows yet who will leave. So the list has to come from a model that learns from past cancellations and scores current members. It's still a simple list for the managers. Here's my one question. Each week, where will the current members' data come from? Can you export the same columns (plan, tenure, spend, support tickets and so on) for members who are active now, or is it a different system or format?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Same columns. The table I uploaded already has active members, not just churned ones, so I can re-export it weekly. I'm not sure what system it comes from. Can you show me what the first version would look like?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "",
+    "choices": [
+     {
+      "title": "Weekly risk list from a prediction",
+      "what": "DCLab learns from past members which ones went on to cancel (churned_next_month), using plan, segment, city, tenure_months, monthly_spend and support_tickets_90d. It then scores each active member and ranks them from most to least likely to cancel. The managers' weekly list is the top of that ranking."
+     },
+     {
+      "title": "Look at who left in the past first",
+      "what": "DCLab works out, from what already happened, how cancellation differs by plan, segment, city, tenure_months, monthly_spend and support_tickets_90d. This gives managers simple rules of thumb, for example which kinds of member leave most often."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Option 1. Build the weekly ranked list. Keep the first version simple so managers can read it, and it has to refresh weekly. I'm fine with the model as long as I can see what it's doing.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'm starting the weekly risk list now. DCLab will learn from the members in your table who stayed or left (`churned_next_month`). It will then score current members and rank them by how likely they are to cancel. Your managers get a short readable list, not a model. I'm working on two assumptions. Tell me if either is wrong:\n- **Meaning of the column:** `churned_next_month` = 1 means the member cancelled in the month after the export, and 0 means they stayed. In your weekly re-export, current members' values will be blank or unknown, because nobody knows yet. - **One list for now:** your table has `city` but no club or manager column. The first version will be a single ranked list. To give each of your 14 managers their own ~20 names, I'd need a column that ties each member to a club.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "0d0f6415e7",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a fintech app; our churn rate is about 3%.",
+    "goal": "I want to report the metric that honestly shows how good the model is.",
+    "decision": "I'll choose which metric goes in my model review slide for my manager.",
+    "user": "my manager, who is not technical",
+    "data": "No data needed for this question.",
+    "knows": "I know both metrics; I want a clear reason to give my manager.",
+    "constraints": "Review is tomorrow."
+   },
+   "level": "data_scientist",
+   "style": "impatient",
+   "must_understand": [
+    "a guidance question, no data work",
+    "3% positives makes the class imbalance central",
+    "the answer must be explainable to a non-technical manager"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "quick q: churn with 3% positives, should i report PR-AUC or ROC-AUC to my manager, and why? no data work, just the answer",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "**Report PR-AUC as your headline number, and give ROC-AUC as a secondary one.**\n\n**Why PR-AUC**\n- With 3% positives, ROC-AUC can look good even when the model is poor for the retention team. Its false-positive rate divides by the huge pool of non-churners. A model can raise many false alarms and still post a high ROC-AUC. - PR-AUC tracks what your manager cares about: of the customers we flag, how many really churn (precision), and how many of the churners we catch (recall). - The baseline is clear. **Caveats**\n- PR-AUC depends on the churn rate. Don't compare it across segments or periods with different rates unless you also show the baseline. - ROC-AUC is still useful as a measure of ranking quality that doesn't depend on the churn rate. Keep it as a supporting number. **What to add for a manager**\nA single AUC rarely drives a decision. Add one line at the operating point your team can act on. For example: \"If we contact the top N% by risk, we catch X% of churners, and Y% of those contacted would have churned.\" Pick N from the retention team's capacity. Compute all of these on a holdout set the model never saw, ideally split by time.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "ok, that's the reason I needed. thanks, that's enough for tomorrow.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You're welcome. For tomorrow, you could say it in one line: \"With only 3% churners, PR-AUC shows how useful the flagged list is to the retention team, while ROC-AUC can look good even when most of the flags are false alarms.\"\n\nAlso state the 3% baseline next to the PR-AUC number. Good luck with your manager.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Got it, thanks. That's all I need for tomorrow.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You're welcome, and good luck tomorrow. If you want to work on the churn model later, come back and share your table.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Thanks, that's all I need.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You're welcome. Good luck tomorrow.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Got it, that's all I need. Thanks.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You're welcome. Good luck tomorrow.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Done, thanks. That's all I need.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You're welcome. Good luck tomorrow.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Done. Nothing else needed.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Understood, we're done. Good luck tomorrow.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Thanks, we're done.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You're welcome. Good luck with your manager tomorrow.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Done, thanks. Nothing else needed.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You're welcome. Good luck tomorrow.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]

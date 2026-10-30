@@ -32,6 +32,7 @@ PROBES = {
     "home.project": "tests/test_home_orchestrator.py::test_the_model_plans_the_turn_and_a_number_it_made_up_is_dropped",
     "home.project.rules": "tests/test_home_orchestrator.py::test_the_rules_turn_is_a_session_of_its_agent",
     "intern": "test_intern_with_a_model",
+    "case": "tests/test_case_agent.py::test_it_reads_the_table_notes_what_was_said_and_asks_one_question",
     "intern.standard": "test_intern_standard_plan",
     "mcp": "test_an_mcp_clients_calls",
     "team": "tests/test_team.py::test_the_teams_moves_are_steps_of_its_run",

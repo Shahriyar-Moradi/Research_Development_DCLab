@@ -21,7 +21,8 @@ from .traces import FileTraces, PgTraces, Tracer, open_traces, replay
 GROUPS = {"project": "dclab_rnd.intern.tools", "draft": "dclab_rnd.draft.chat", "session": "dclab_rnd.intern.loop",
           "campaign": "dclab_rnd.agentic.campaign_tools", "workspace": "dclab_rnd.workspace_chat",
           "home": "dclab_rnd.draft.orchestrator",
-          "chat": "dclab_rnd.chat_agents", "memory": "dclab_rnd.memory.tools"}  # memory: 35.4's recall; workspace: 30.21's chat over the workspace's tables; home: the Home orchestrator's specialists; chat: A7, DCLab's agents behind an external chat at /mcp
+          "chat": "dclab_rnd.chat_agents", "memory": "dclab_rnd.memory.tools",
+          "case": "dclab_rnd.agents.case_agent"}  # memory: 35.4's recall; workspace: 30.21's chat over the workspace's tables; home: the Home orchestrator's specialists; chat: A7, DCLab's agents behind an external chat at /mcp
 
 
 def build_registry(groups: tuple[str, ...] = tuple(GROUPS)) -> Registry:

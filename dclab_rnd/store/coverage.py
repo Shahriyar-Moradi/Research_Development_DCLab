@@ -64,6 +64,7 @@ CAPTURE: dict[str, Capture] = {
     "home.script": Capture((*_RUN, "event:chat.person", "event:chat.agent", "point:request.intent", "store:conversations")),
     "intern": Capture((*_RUN, "event:tool.call", "purpose:intern", "store:conversations", "store:actions")),
     "workspace_chat": Capture((*_RUN, "purpose:workspace_chat", "store:conversations")),
+    "case": Capture((*_RUN, "purpose:case_agent")),  # 37.3: steps and calls; the case file's own events in 37.12
     "intern.standard": Capture((*_RUN, "event:tool.call", "store:actions")),
     "team": Capture((*_RUN, "event:team.handoff", "event:team.recorded", "store:workflows")),
     "campaign": Capture((*_RUN, "purpose:campaign", "store:actions")),

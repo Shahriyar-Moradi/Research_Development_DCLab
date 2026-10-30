@@ -4,6 +4,10 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.149.0 (2026-10-30)
+
+- `case`: `declined` records a question the person passed over (a version, counted toward the ceiling).
+
 ## 0.148.0 (2026-10-30)
 
 - `case` (new, Phase 13 package 37.1): `CaseFile` v1, the one living record of a case: the goal, the decision it serves,

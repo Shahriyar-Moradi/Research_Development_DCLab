@@ -420,9 +420,6 @@ class RunTests(unittest.TestCase):
     def test_a_sealed_run_is_refused_until_37_10(self):
         self.assertEqual(X.main(["--split", "sealed", "--yes", "--cap-eur", "1"]), 2)
 
-    def test_the_case_arm_is_refused_until_the_lead_agent_exists(self):
-        self.assertEqual(X.main(["--arms", "case", "--yes", "--cap-eur", "1"]), 2)
-
     def test_the_cap_stops_the_run_and_marks_it_incomplete(self):  # round 2: no fake failures after the cap
         keep = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, keep, True)

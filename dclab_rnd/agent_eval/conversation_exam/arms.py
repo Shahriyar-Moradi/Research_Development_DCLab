@@ -61,7 +61,7 @@ def table_view(name: str) -> list[dict[str, Any]]:
 
 
 PLAIN_TOOLS = [
-    {"type": "function", "function": {"name": "profile_table", "description": "The shared table's columns: names, kinds and what DCLab noticed about each. No values.",
+    {"type": "function", "function": {"name": "profile_table", "description": "The shared table's row count and columns: names, kinds and what DCLab noticed about each. No values.",
                                       "parameters": {"type": "object", "properties": {}}}},
     {"type": "function", "function": {
         "name": "offer_options", "description": "Show the person 2 to 4 options to pick from.",
@@ -118,7 +118,10 @@ class PlainArm:
             for c in calls:
                 args = c.get("arguments") or {}
                 if c["name"] == "profile_table" and self.upload:
-                    value: Any = {"table": f"{self.upload}.csv", "columns": table_view(self.upload)}
+                    from ..home import tables
+
+                    # the same view the lead agent's read_table gives: columns and the row count (the review of 37.3)
+                    value: Any = {"table": f"{self.upload}.csv", "rows": len(tables.build(self.upload)), "columns": table_view(self.upload)}
                     self.computed.append(json.dumps(value))
                 elif c["name"] == "offer_options":
                     options = [o for o in args.get("options") or [] if isinstance(o, dict) and o.get("title")]
@@ -246,3 +249,58 @@ class _NoModels:
 
     def available(self, *args: Any, **kwargs: Any) -> bool:
         return False
+
+
+class CaseArm:
+    """The Phase 13 lead agent (37.3) as the exam's third arm: the same person, the same table view, its case file kept."""
+
+    name = "case"
+
+    def __init__(self, client: Any):
+        self.client = client
+        self.state: Any = None
+        self.choices: list[dict[str, Any]] = []
+
+    def open(self, person: Mapping[str, Any]) -> dict[str, Any]:
+        from dclab_core import case as C
+        from dclab_rnd.agents import case_agent as A
+
+        from ..home import tables
+
+        upload = person.get("upload") or None
+        table = A.table_of(f"{upload}.csv", table_view(upload), len(tables.build(upload))) if upload else None
+        self.state = A.CaseState(case=C.new(f"exam-{person['id']}"), table=table)
+        opening = str(person["opening"]) + (f"\n\n(I shared a table: {upload}.csv)" if upload else "")
+        return self._out(A.turn(self.state, self.client, opening))
+
+    def _out(self, r: Mapping[str, Any]) -> dict[str, Any]:
+        self.choices = [{"title": o.title, "what": o.what, "track": o.track, "tool": o.tool, "kind": "option"} for o in r.get("options") or []]
+        return {"text": r.get("text") or "", "choices": list(self.choices), "waiting": bool(r.get("asking"))}
+
+    def send(self, words: str) -> dict[str, Any]:
+        from dclab_rnd.agents import case_agent as A
+
+        return self._out(A.turn(self.state, self.client, words))
+
+    def pick(self, i: int) -> dict[str, Any]:
+        from dclab_rnd.agents import case_agent as A
+
+        return self._out(A.pick(self.state, self.client, self.choices[i]["title"]))
+
+    def outcome(self) -> dict[str, Any]:
+        route = self.state.case.route if self.state else None
+        if route is None:
+            return {"route": None, "tool": None, "routed_by": None}
+        return {"route": route.track, "tool": route.tool, "routed_by": "option" if route.by == "person" else "self"}
+
+    def sources(self) -> list[str]:
+        return list(self.state.computed) if self.state else []
+
+    def notes(self) -> dict[str, Any]:
+        """The case file whole (kept with the conversation for training) and its readiness."""
+        if not self.state:
+            return {}
+        from dclab_core import case as C
+
+        return {"case_file": self.state.case.model_dump(mode="json"), "ready": C.readiness(self.state.case).ready,
+                "asked": self.state.case.asked, "declined": self.state.case.declined}

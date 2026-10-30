@@ -134,7 +134,7 @@ def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str
     began, clock, result, error, interrupted = datetime.now(timezone.utc).isoformat(timespec="microseconds"), time.monotonic(), None, None, False
     from .. import experience
 
-    conversation = trace.run_id if str(getattr(trace, "agent", "")).split(".")[0] in ("home", "intern") else None
+    conversation = trace.run_id if str(getattr(trace, "agent", "")).split(".")[0] in ("home", "intern", "case") else None
     try:
         with experience.bind(run=trace.run_id, conversation=conversation):  # 21.1: what a tool asks (a role, a model) joins this run
             result = _run(policy, client, registry, messages, context, on_step, stream, steps_used, started, trace, contexts)

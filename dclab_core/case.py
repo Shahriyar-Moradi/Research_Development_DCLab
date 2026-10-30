@@ -281,6 +281,11 @@ def asked(case: CaseFile, declined: bool = False, by: str = "agent") -> CaseFile
                  asked=case.asked + 1, declined=case.declined + int(declined))
 
 
+def declined(case: CaseFile, by: str = "code") -> CaseFile:
+    """The person passed over the last question (they did not know or would not say): a version, counted toward the ceiling."""
+    return _next(case, "declined", case.declined + 1, by, "the person passed over a question", declined=case.declined + 1)
+
+
 def known(fact: Optional[CaseFact]) -> bool:
     return fact is not None and fact.status in KNOWN
 
@@ -404,6 +409,6 @@ def views(case: CaseFile) -> Mapping[str, Any]:
 CONTRACTS["case_file"] = CaseFile  # its schema is published with the others
 
 __all__ = ["CaseFile", "CaseFact", "CaseChange", "CaseOption", "CaseRoute", "Unknown", "Readiness", "CaseRefused", "CEILING", "TOOLS",
-           "TRACKS", "TRACK_OF_TOOL", "new", "apply", "hear", "confirm", "asked", "known", "readiness", "check_fact", "check_options",
+           "TRACKS", "TRACK_OF_TOOL", "new", "apply", "hear", "confirm", "asked", "declined", "known", "readiness", "check_fact", "check_options",
            "numbers_unsaid", "quote_ok",
            "from_card", "to_card", "views"]

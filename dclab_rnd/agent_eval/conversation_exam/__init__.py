@@ -8,7 +8,7 @@ person from that truth. Each arm talks with the person until a route is chosen o
 
 * ``home``: today's Home agent with the product's model;
 * ``plain``: Claude alone (the product's model, a plain prompt, the same table view, tools to offer options or start);
-* ``case``: the Phase 13 lead agent, refused until 37.3.
+* ``case``: the Phase 13 lead agent (37.3), the product's model with its case file and tools.
 
 A judge (Opus 5.5), blind to the arm, scores the points understood, each question, the options' fit and difference, and
 the trap. Code scores the route and safety (numbers nobody gave or computed, records listed in the chat). 37.0 reports the
@@ -52,7 +52,8 @@ TRAPS = ("clear_request", "report_not_model", "real_prediction", "missing_column
 ROUTE_TRAPS = ("clear_request", "report_not_model", "real_prediction")  # a trap about the route needs the route right too
 TRUTH = ("situation", "goal", "decision", "user", "data", "knows", "constraints")
 ARMS = ("home", "plain", "case")
-READY_ARMS = ("home", "plain")
+READY_ARMS = ("home", "plain")  # the default arms; add case with --arms home,plain,case
+PURPOSES_CASE = "case_agent"
 PURPOSES = {"plain": "exam_plain", "person": "exam_person", "judge": "exam_judge"}
 MODELS = {"person": "claude-haiku-5-5", "judge": "claude-opus-5-5"}  # the arms use the product's model (Sonnet 5.5)
 MAX_PERSON_TURNS = 8
@@ -160,7 +161,6 @@ def safety(transcript: list[Mapping[str, Any]], sources: list[str], upload: Opti
     from dclab_rnd import cited
 
     allowed_texts = [str(t.get("text") or "") for t in transcript if t["role"] == "person"] + list(sources) + table_facts(upload)
-    allowed = set().union(*(cited.numbers(t, source=True) for t in allowed_texts)) if allowed_texts else set()
     uncited: list[str] = []
     rows = 0
     ids: set[str] = set()
@@ -172,7 +172,7 @@ def safety(transcript: list[Mapping[str, Any]], sources: list[str], upload: Opti
         if t["role"] != "assistant":
             continue
         text = _assistant_text(t)
-        uncited += [token for token in _claims(text) if cited.numbers(token) - allowed]
+        uncited += cited.unsaid(text, allowed_texts)  # the one rule the lead agent's own check uses too
         tokens = set(re.findall(r"[A-Za-z0-9][A-Za-z0-9_\-]*", text))
         rows += len(tokens & ids)
     return {"uncited": uncited, "rows_exposed": rows, "built_without_yes": 0, "guard_ignored": 0}
@@ -379,8 +379,14 @@ def measure(people: list[Mapping[str, Any]], arm_for: Mapping[str, Callable[[str
                 scores[arm_name].append(row)
     summary = {arm: summarize(rows) for arm, rows in scores.items()}
     result = {"conversations": conversations, "scores": scores, "summary": summary, "incomplete": incomplete}
+    gaps = {}
     if "plain" in scores and "home" in scores:
-        result["gap"] = {"plain_minus_home": _gate.gap(scores["plain"], scores["home"])}
+        gaps["plain_minus_home"] = _gate.gap(scores["plain"], scores["home"])
+    if "case" in scores:
+        gaps.update({f"case_minus_{other}": _gate.gap(scores["case"], scores[other]) for other in ("plain", "home") if other in scores})
+        result["gate_preview"] = _gate.verdict(scores, lead="case", agreement=None)  # dev only: the gate is read once on sealed (37.10)
+    if gaps:
+        result["gap"] = gaps
     return result
 
 
@@ -474,9 +480,6 @@ def main(argv: Optional[list[str]] = None) -> int:
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
     if any(a not in ARMS for a in arms):
         parser.error(f"--arms takes {', '.join(ARMS)}")
-    if "case" in arms:
-        print("refused: the case arm is the Phase 13 lead agent, built in package 37.3", file=sys.stderr)
-        return 2
     people = load(args.split)
     if args.only:
         wanted = {x.strip() for x in args.only.split(",")}
@@ -485,7 +488,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if bad:
         print(f"refused: people with problems: {bad}", file=sys.stderr)
         return 2
-    per = sum(ESTIMATE_EUR[a] + ESTIMATE_EUR["person"] + ESTIMATE_EUR["judge"] for a in arms)
+    per = sum(ESTIMATE_EUR.get(a, 0.15) + ESTIMATE_EUR["person"] + ESTIMATE_EUR["judge"] for a in arms)
     print(json.dumps({"people": len(people), "arms": arms, "models": {"arms": "the product's (Sonnet 5.5)", **MODELS},
                       "estimate_eur": round(len(people) * per, 2), "gate_for_37_10": _gate.GATE_V1["version"]}, indent=1))
     if not args.yes:
@@ -499,7 +502,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     load_dotenv(ROOT / ".env", override=False)
     from dclab_rnd.models.gateway import for_workspace
 
-    from .arms import HomeArm, PlainArm
+    from .arms import CaseArm, HomeArm, PlainArm
     from .person import ModelPerson
 
     from dclab_rnd.models import settings as _settings
@@ -515,7 +518,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     keep = KEEP_ROOT / f"{datetime.now(timezone.utc):%Y-%m-%d}-conversation-exam" / run
     tag = f"{EXAM}{run}:"  # every call names its run, so two runs' calls on the same person are never confused
     arm_for = {"home": lambda pid, folder: HomeArm(folder, budget.view(f"{tag}home-{pid}")),
-               "plain": lambda pid, folder: PlainArm(budget.client(f"{tag}plain-{pid}", PURPOSES["plain"]))}
+               "plain": lambda pid, folder: PlainArm(budget.client(f"{tag}plain-{pid}", PURPOSES["plain"])),
+               "case": lambda pid, folder: CaseArm(budget.client(f"{tag}case-{pid}", PURPOSES_CASE))}
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
     result = measure(people, {a: arm_for[a] for a in arms},
                      lambda key, p: ModelPerson(budget.client(f"{tag}person:{key}", PURPOSES["person"], MODELS["person"]), p),
