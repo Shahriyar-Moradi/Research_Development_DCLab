@@ -460,3 +460,4 @@ def test_a_paid_reply_is_counted_when_it_does_not_parse_or_the_caller_leaves(mon
 
     asyncio.run(leave_early())
     assert seen == [True]
+

@@ -86,8 +86,7 @@ TRACK_CAPTURE: dict[str, Capture] = {
     "preparation": Capture((*_ASKED, "event:data.cleaned", "point:data.cleaning_step", _JUDGED)),  # 36.2: a yes or no on a step, the table taken
     "reporting": Capture((*_ASKED, _JUDGED)),  # 36.2: a thumb on the reply that delivered the dashboard
     "business": Capture((*_ASKED, _JUDGED)),  # 36.2: a thumb on the reply that delivered the brief
-    "advice": Capture((*_ASKED, "purpose:evidence_answer", "point:evidence.records"), missing="the advice track has no product of its own yet: its exit (answer) is not built, and the Evidence library's record "
-                                                                                                "carries no draft id, so there is nothing to judge"),
+    "advice": Capture((*_ASKED, "purpose:evidence_answer", "point:evidence.records", _JUDGED)),  # 2026-10-30: Home's cited answer, a thumb on it
 }
 
 
@@ -143,6 +142,7 @@ def capture_gaps(agents: Optional[dict[str, Any]] = None, tracks: Optional[Itera
 
 
 # ---------------------------------------------------------------------------------------------------------- the report
+TRACE_ONLY = ("campaign",)  # agents whose runs may exist only as trace rows (their environment has no session log)
 SOURCES = (*REASONING_SOURCES, *(s for s in ("replayed",) if s not in REASONING_SOURCES))
 EXAMPLE_COLUMNS = ("examples", "exchanges", *SOURCES, "lost", "note", "no_model", "none", "outcome", "fa", "en")
 SOURCE_COLUMNS = ("runs", "calls", "exchanges", "whole", "thinking", "thinking_redacted", "thought_lost", "fa", "en")
@@ -401,6 +401,7 @@ def measure(layout: Optional[Layout] = None, home: Optional[Path] = None) -> dic
     by_track: dict[str, dict[str, int]] = {t: _zero(SOURCE_COLUMNS) for t in track_rows}
     by_purpose: dict[str, dict[str, int]] = {}
     runs: dict[str, tuple[str, Any, Any]] = {}
+    traced: set[str] = set()  # the review of 2026-10-30: a session's record names its trace's run id as its parent
     for r in _gz_rows(layout.records_of("sessions")):
         b = r.get("body") or {}
         ids, payload = b.get("ids") or {}, b.get("payload") or {}
@@ -409,6 +410,15 @@ def measure(layout: Optional[Layout] = None, home: Optional[Path] = None) -> dic
             tracks.built.add(str(ids["conversation"]))
         elif b.get("kind") == "run.recorded" and payload.get("run_kind") == "agent" and payload.get("run"):
             runs[str(payload["run"])] = (str(payload.get("name") or "(unnamed)"), ids.get("conversation"), ids.get("project"))
+            traced.update(str(x) for x in (payload.get("parent"), ids.get("run")) if x)  # the trace's own run id
+    # 2026-10-30: an agent whose environment cannot write session events (the campaign's, with no numpy) still leaves its
+    # trace rows (agent_steps.jsonl, kind actions): one run per run id, counted where no run.recorded names it
+    for r in _gz_rows(layout.records_of("actions"), keep='"run_id"'):
+        b = r.get("body") or {}
+        agent, run_id = b.get("agent"), b.get("run_id")
+        if agent in harness.AGENTS and run_id and str(run_id) not in runs and str(run_id) not in traced and harness.AGENTS[agent].runs == "session" \
+                and str(agent) in TRACE_ONLY:
+            runs[str(run_id)] = (str(agent), None, None)
     purposes = harness.purposes()
     for name, conversation, project in runs.values():
         name = name if name in harness.AGENTS else str(purposes.get(name, name))  # the orchestrator records its runs by its purpose

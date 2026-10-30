@@ -922,6 +922,9 @@ DC.view('home', {
       } else if (m.kind === 'route_suggestion' && m.suggestion) {  // H8: another route the person's words may mean; they choose
         const TRACK = { prediction: 'a prediction', analysis: 'numbers from my data', preparation: 'a prepared table', reporting: 'a report or dashboard', business: 'a business question', advice: 'advice' };
         body = `<p>${esc(m.text)}</p><div class="row"><button type="button" class="btn sm" data-switch-track="${esc(m.suggestion.track)}">Switch to ${esc(TRACK[m.suggestion.track] || m.suggestion.track)}</button></div>`;
+      } else if (m.kind === 'answer' && m.track === 'advice') {  // 2026-10-30: the advice answer, from DCLab's recorded evidence
+        const src = (m.sources || []).map(r => `<li>${esc(r.title)} <span class="muted">${esc(r.id)}</span></li>`).join('');
+        body = `<p>${esc(m.text)}</p>${src ? `<details class="small"><summary>Sources (${(m.sources || []).length})</summary><ul>${src}</ul></details>` : ''}${m.note ? `<div class="small muted">${esc(m.note)}</div>` : ''}`;
       } else if (m.kind === 'answer') {  // H7b: an answer from the person's own table, with the chart code chose
         body = `<p>${esc(m.text)}</p>${answerCard(m.answer)}`;
       } else if (m.kind === 'summary') {

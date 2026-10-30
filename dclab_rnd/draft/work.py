@@ -28,7 +28,8 @@ class DraftWork:
                          intent_client=self.models.client("home_intent", draft_id=draft_id),
                          query_client=self.models.client("home_query", draft_id=draft_id),
                          business_client=self.models.client("home_business", draft_id=draft_id),
-                         understand_client=self.models.client("home_understand", draft_id=draft_id))
+                         understand_client=self.models.client("home_understand", draft_id=draft_id),
+                         evidence_client=self.models.client("evidence_answer", draft_id=draft_id))
 
     def pattern_on(self, name: str) -> bool:
         """28.6: a team pattern's switch in this workspace's settings (on only where its gate passed)."""

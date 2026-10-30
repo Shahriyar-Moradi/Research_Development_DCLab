@@ -729,7 +729,8 @@ class AgentEnvironmentTests(unittest.TestCase):
                 "from dclab_rnd.models import pause\n"
                 "from dclab_rnd import experience\n"
                 "assert pause.get('x') == (0.0, '')\n"
-                "assert type(experience.open_log(pathlib.Path(tempfile.mkdtemp()), 'w')).__name__ == 'FileLog'\n")
+                "assert type(experience.open_log(pathlib.Path(tempfile.mkdtemp()), 'w')).__name__ == 'FileLog'\n"
+                "assert experience.file_workspace_id(pathlib.Path(tempfile.mkdtemp())).startswith('w')\n")
         env = {k: v for k, v in os.environ.items() if k != "DCLAB_DATABASE_URL"}
         out = subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env, capture_output=True, text=True, timeout=120)
         self.assertEqual(out.returncode, 0, out.stderr[-2000:])

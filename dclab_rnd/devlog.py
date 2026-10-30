@@ -63,6 +63,9 @@ class Finding(BaseModel):
     impact: str = ""  # what this defect would have done, specifically (who gets what wrong result, and when)
     alternatives: list[str] = Field(default_factory=list)  # fixes considered and set aside, each with why
     open: str = ""  # what the fix leaves open, when something does
+    # 2026-10-30: what became of the finding: confirmed (fixed, or shown real), declined (shown wrong or not taken, with why
+    # in ``fix``), or open; declined findings are what teaches a judge that a plausible claim can be false
+    verdict: Literal["confirmed", "declined", "open"] = "confirmed"
 
 
 class Measurement(BaseModel):
@@ -202,14 +205,14 @@ def examples(t: Trajectory) -> list[dict]:
     """The SFT examples of one trajectory: (task, system, prompt, answer)."""
     head = _context(t)
     out = [("plan_package", f"{head}\n\nThe request: {t.request}\n\nPlan the work.", _plan_answer(t))]
-    reviewed = [f for f in t.findings if f.source == "reviewer"]
+    reviewed = [f for f in t.findings if f.source == "reviewer" and f.verdict == "confirmed"]  # a declined claim is no defect to list
     if t.change and reviewed:
         order = ("leakage", "privacy", "behaviour", "latent", "gap", "flaky")
         ranked = sorted(reviewed, key=lambda f: order.index(f.severity))
         answer = ("(1) Findings\n" + "\n".join(_finding_lines(f) for f in ranked)
                   + f"\n\n(2) Verdict\nFAIL: {len(ranked)} finding{'s' if len(ranked) != 1 else ''} to fix before this change is committed.")
         out.append(("review_change", f"{head}\n\nThe change: {t.change}\n\nReview it.", answer))
-    for f in t.findings:
+    for f in (x for x in t.findings if x.verdict == "confirmed"):  # 2026-10-30: never "fix" a finding that was declined or is open
         out.append(("fix_finding", f"{head}\n\nThe change: {t.change or t.request}\n\nA finding ({f.source}, {f.severity}): {f.defect}\n"
                                    f"How it shows: {f.scenario}\n\nDiagnose and fix it.", _fix_answer(f)))
     for m in t.measurements:

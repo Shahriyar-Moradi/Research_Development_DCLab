@@ -10,6 +10,17 @@ from .schemas import RunRequest, DEFAULT_GOAL
 from .store import Store
 from .engine import run_research, worker
 
+def session_log(home: Path):
+    """2026-10-30: the command line installed only the gateway. The workspace's session log is installed for the campaign's
+    run events; in the agent environment (no numpy, so no dclab_core contracts) it records nothing, and the campaign's
+    runs are counted from its trace rows (agent_steps.jsonl), which the store keeps (store/coverage.py)."""
+    from .. import experience
+
+    log = experience.open_log(Path(home))
+    experience.install(log)
+    return log
+
+
 def main():
     load_dotenv(ROOT / ".env", override=False)
     parser = argparse.ArgumentParser(description="DCLab agentic research studio")
@@ -48,6 +59,7 @@ def main():
         from dclab_core import tracing
         from .. import observe
         observe.TRACE.set((tracing.new_trace_id(), tracing.new_span_id(), None))
+        session_log(store.home)
     if args.command == "serve":
         import uvicorn
         from .server import app

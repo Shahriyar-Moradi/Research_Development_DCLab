@@ -193,6 +193,56 @@ def judged(layout: Layout, choices: Optional[dict] = None, scripted: Optional[fr
     return [j for j in out if j.candidate_by != j.judge]  # a candidate judged by its own maker with no other evidence: never
 
 
+RECORDS = "research/llm-fine-tuning/experiments/dev_trajectories/records"
+REVIEW_WEIGHT = {"test": 0.5, "model": 0.3}  # code review of DCLab's own code: another domain than the ML judgements, apart and lower
+
+
+def review_findings(root: Optional[Any] = None) -> list[JudgedExample]:
+    """2026-10-30 (the owner: the reviewer's findings, each confirmed or declined, are a judge's lessons): every reviewer
+    finding of the development records as a judged claim. The candidate is the claim (what is wrong and how it shows,
+    never the fix); the score is 1 when it was confirmed, 0 when it was declined; open findings are left out. A test that
+    proves it is the judge where one is named, else the developer's verdict (a model's, weighed lower). One package's
+    findings stay in one split."""
+    import hashlib
+    from pathlib import Path
+
+    from ...devlog import _split as devlog_split
+    from ..layout import ROOT
+
+    folder = Path(root or ROOT) / RECORDS
+    out: list[JudgedExample] = []
+    for path in sorted(folder.glob("*.json")) if folder.is_dir() else []:
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError:
+            continue
+        package = str(doc.get("package") or path.stem)
+        # the review: the development set (sft/out_dev) trains on its train packages; their findings are train here too, so a
+        # sealed review finding was never seen in training
+        split = "train" if devlog_split(package) == "train" else split_of(f"package:{package}")
+        seen: set[str] = set()
+        prov = {"entry": f"devlog:{package}"[:200], "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "source": f"{RECORDS}/{path.name}",
+                "workspace": "rnd", "consent": "train", "at": f"{doc.get('date') or '2026-10-01'}T00:00:00+00:00", "by": "dclab-reviewer"}
+        for f in doc.get("findings") or []:
+            if not isinstance(f, dict) or f.get("source") != "reviewer" or f.get("verdict", "confirmed") == "open":
+                continue
+            test = str(f.get("test") or "")
+            proven = any(k in test for k in ("tests/", "test_")) or test.startswith("make ")  # the review: "(code)" or "review" proves nothing
+            evidence = "test" if proven else "model"
+            fid = str(f.get("id"))
+            fid = fid if fid not in seen else f"{fid}.{len(seen)}"  # the review: a record that reuses a finding's id
+            seen.add(fid)
+            try:
+                out.append(JudgedExample(id=f"m7:review:{package}:{fid}"[:200], model_type="m7_judges", split=split,
+                                         provenance=prov, weight=REVIEW_WEIGHT[evidence], judged="review_finding",
+                                         candidate={"defect": f.get("defect"), "scenario": f.get("scenario"), "severity": f.get("severity")},
+                                         candidate_by="reviewer", score=0.0 if f.get("verdict") == "declined" else 1.0,
+                                         judge="tests" if proven else "developer", evidence=evidence))
+            except Exception:  # noqa: BLE001 - a record the contract refuses never enters the set
+                continue
+    return out
+
+
 def preferences(layout: Layout, choices: Optional[dict] = None, scripted: Optional[frozenset[str]] = None) -> list[PreferencePair]:
     """32.19: each correction as a preference pair: what the person made it (chosen) over what DCLab proposed (rejected);
     never a scripted person's (S8)."""
@@ -273,6 +323,8 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         groups[("m7_judges", j.judged if j.judged in ("code", "result") else "correction")].append(j)
     for p in preferences(layout, choices):
         groups[("m7_judges", "preferences")].append(p)
+    for j in review_findings():
+        groups[("m7_judges", "review_findings")].append(j)
     for x in retrievals(layout, choices):
         groups[("m8_retrieval", x.corpus)].append(x)
     abouts = {"m6_stepwise_decisions": "Processes decided step by step: each step's state, action and outcome, the episode's outcome from its record.",
@@ -285,4 +337,4 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
     return report
 
 
-__all__ = ["build", "episodes", "judged", "preferences", "retrievals"]
+__all__ = ["build", "episodes", "judged", "preferences", "retrievals", "review_findings"]

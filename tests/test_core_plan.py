@@ -280,6 +280,29 @@ class ValidatorHolesTest(unittest.TestCase):
         self.assertEqual([f["reason"] for f in fields["forbidden"] if f["column"] == "courier_rating"], ["the rules"])
         Solution(**fields)
 
+    def test_an_advisor_may_not_replace_the_primary_metric_the_positive_rate_set(self):
+        """TEAM-001 and TEAM-002 (the churn replica): the planner made average precision primary on a balanced outcome; it may
+        report another metric beside the primary one, never in its place."""
+        import numpy as np
+        import pandas as pd
+
+        from dclab_core.analyse import analyse
+        from dclab_core.plan import _guard, plan
+
+        rng = np.random.default_rng(0)
+        frame = pd.DataFrame({"tenure": rng.integers(1, 72, 600), "charges": rng.normal(60, 20, 600), "churned": rng.random(600) < 0.27})
+        findings = analyse({"t": frame}, target="churned")
+        p = plan(None, findings)
+        self.assertEqual(p.decision("metric.primary").choice, "roc_auc")
+        self.assertIn("not replace it", _guard("metric.primary", "average_precision", p, findings))
+        self.assertIsNone(_guard("metric.primary", "roc_auc", p, findings))
+        self.assertIsNone(_guard("metric.secondary", ["average_precision", "brier"], p, findings))  # beside it: fine
+        from dclab_core.contracts import ProblemBrief
+
+        named = plan(ProblemBrief.model_validate({"primary_metric": {"value": "average precision", "status": "stated", "quote": "average precision", "source": "text"}}), findings)
+        self.assertEqual(named.decision("metric.primary").choice, "average_precision")  # the person's word leads
+        self.assertIn("the person's own word", _guard("metric.primary", "roc_auc", named, findings))  # and an advisor may not undo it
+
     def test_a_plan_without_a_training_split_says_so(self):
         from dclab_core.analyse import analyse
         from dclab_core.plan import plan

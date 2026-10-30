@@ -165,6 +165,17 @@
    "cause": "the gateway wrote one vague reason for three cases, so the coverage could not tell an exam from a loss",
    "fix": "sealed_run marks the process; the kept exchange names the exam and the coverage no longer counts it as lost",
    "test": "tests/test_thinking_capture.py test_an_exams_shape_only_exchange_says_so_and_is_never_counted_as_lost_thinking"
+  },
+  {
+   "id": "F14",
+   "source": "reviewer",
+   "severity": "latent",
+   "verdict": "declined",
+   "defect": "The team's model exchanges were said to land in a different workspace from its events",
+   "scenario": "The reviewer proposed opening the team measurement's gateway on the kept folder, so its usage log and kept exchanges sit beside the run's events",
+   "cause": "the kept folder had the session log and ledger, the gateway logged to the main workspace",
+   "fix": "not taken: a gateway opened on the kept folder counts the monthly cap from that folder's empty usage log, so a run could spend past the owner's cap; the store joins exchanges to runs by request id across workspaces, as the Home eval's are",
+   "test": "none: the gateway stays the workspace's own (dclab_rnd.agent_eval.team main)"
   }
  ],
  "measurements": [

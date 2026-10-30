@@ -1,0 +1,410 @@
+{
+ "id": "TEAM-003",
+ "experiment_id": "TEAM-003",
+ "campaign_id": "team_v1",
+ "kind": "team_measured",
+ "at": "2026-10-30T11:08:34+00:00",
+ "completed_at": "2026-10-30T11:14:37+00:00",
+ "status": "completed",
+ "gate": {
+  "version": "team_gate_v1",
+  "fixed": "2026-10-13, before its first run",
+  "rule": "on the fraud, churn and delivery replicas with every role on: each run completes; every graph move is allowed or waits for a person's approval that then comes; the person is asked at most the two essentials and three open questions; every role is asked on every replica; the holdout is read once; the spend stays under the cap; and each replica still reaches its kind's acceptance decisions (16.2)"
+ },
+ "cap_eur": 1.0,
+ "spent_eur": 0.2299,
+ "verdict": {
+  "gate": "team_gate_v1",
+  "status": "pass"
+ },
+ "kept": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/agent_runs/live_tests/2026-10-30-team/110834",
+ "result": {
+  "rows": [
+   {
+    "kind": "rare_event",
+    "status": "completed",
+    "why": null,
+    "steps": [
+     {
+      "role": "problem_analyst",
+      "step": "WF-01",
+      "source": "advisor",
+      "reason": "filled target_column"
+     },
+     {
+      "role": "data_investigator",
+      "step": "WF-04",
+      "source": "advisor",
+      "reason": "10 findings; the investigator's reading added 2",
+      "added": [
+       "F-entity-biker_phone",
+       "F-entity-sender_phone"
+      ]
+     },
+     {
+      "role": "solution_planner",
+      "step": "WF-03",
+      "source": "advisor",
+      "reason": "accepted after validation",
+      "kept": [
+       "{'key': 'features.identifiers', 'choice': ['Unnamed: 0', 'order_id', 'terminal_ref', 'biker_id', 'biker_phone'], 'reason"
+      ],
+      "refused": [
+       "{'key': 'features.to_confirm', 'choice': '[{\"column\": \"biker_id\", \"reason\": \"Missing in 1% of rows, and the missing rows are more often fraud. Confirm with the person whether an unassigned or unknown "
+      ]
+     },
+     {
+      "role": "feature_engineer",
+      "step": "WF-06",
+      "source": "advisor",
+      "reason": "accepted after validation",
+      "kept": [
+       "ride_distance",
+       "very_short_ride",
+       "fare_per_metre",
+       "rides_per_account",
+       "rides_per_phone",
+       "rides_per_account_phone",
+       "account_mean_fare",
+       "fare_vs_account",
+       "fare_vs_category",
+       "rides_per_account_route",
+       "rides_per_source_place"
+      ],
+      "refused": []
+     },
+     {
+      "role": "critic",
+      "step": "WF-07",
+      "source": "fallback",
+      "reason": "review rounds in the rules' order",
+      "refused": []
+     },
+     {
+      "role": "reporter",
+      "step": "WF-10",
+      "source": "advisor",
+      "reason": "accepted after validation",
+      "kept": 12,
+      "dropped": 3
+     }
+    ],
+    "asked": [
+     {
+      "field": "prediction_moment",
+      "question": "When is the prediction made, and what is known at that moment?"
+     },
+     {
+      "field": "action",
+      "question": "What happens with each prediction, and roughly what does a wrong one cost?"
+     },
+     {
+      "field": "budget",
+      "question": "What share of rows can the team review, for example 0.5% of them, or a number a day?"
+     }
+    ],
+    "asked_ok": true,
+    "moves": 11,
+    "moves_ok": true,
+    "holdout_uses": 1,
+    "acceptance": [
+     {
+      "decision": "the label file is joined on the order, never on a coarser key",
+      "ok": true
+     },
+     {
+      "decision": "labels from a sample are partial: an unlabelled ride is unknown",
+      "ok": true
+     },
+     {
+      "decision": "behaviour features are chosen over the raw columns",
+      "ok": true
+     },
+     {
+      "decision": "folds are grouped by biker",
+      "ok": true
+     },
+     {
+      "decision": "rules, anomaly detectors and PU bagging are screened",
+      "ok": true
+     },
+     {
+      "decision": "the holdout average precision is above 0.35 and 20 times chance",
+      "ok": true
+     },
+     {
+      "decision": "recall at the budget beats reviewing at random",
+      "ok": true
+     },
+     {
+      "decision": "precision is reported as a lower bound",
+      "ok": true
+     },
+     {
+      "decision": "the baselines the kind declares are computed",
+      "ok": true
+     }
+    ],
+    "acceptance_ok": true,
+    "asked_roles": {
+     "problem_analyst": 1,
+     "brief_checker": 1,
+     "data_investigator": 1,
+     "solution_planner": 1,
+     "feature_engineer": 1,
+     "critic": 1,
+     "reporter": 1
+    },
+    "every_role_asked": true,
+    "roles_answered": [
+     "data_investigator",
+     "feature_engineer",
+     "problem_analyst",
+     "reporter",
+     "solution_planner"
+    ]
+   },
+   {
+    "kind": "binary",
+    "status": "completed",
+    "why": null,
+    "steps": [
+     {
+      "role": "problem_analyst",
+      "step": "WF-01",
+      "source": "advisor",
+      "reason": "filled unit, task, target_column, horizon"
+     },
+     {
+      "role": "data_investigator",
+      "step": "WF-04",
+      "source": "fallback",
+      "reason": "4 findings; the investigator's reading added 0",
+      "added": []
+     },
+     {
+      "role": "solution_planner",
+      "step": "WF-03",
+      "source": "fallback",
+      "reason": "accepted after validation",
+      "kept": [],
+      "refused": [
+       "{'key': 'metric.primary', 'choice': 'average_precision', 'why': 'the primary metric is roc_auc, set by the positive rate (F-prevalence): an advisor may report another beside it (metric.secondary), not",
+       "{'key': 'metric.secondary', 'choice': '[\"roc_auc\", \"brier\"]', 'why': 'secondary metrics are a list of names'}"
+      ]
+     },
+     {
+      "role": "feature_engineer",
+      "step": "WF-06",
+      "source": "advisor",
+      "reason": "accepted after validation",
+      "kept": [
+       "support_calls_per_month",
+       "late_payments_per_month",
+       "fee_vs_plan",
+       "support_calls_vs_plan",
+       "late_payments_vs_plan",
+       "tenure_vs_plan",
+       "has_late_payment",
+       "new_subscriber",
+       "plan_share"
+      ],
+      "refused": []
+     },
+     {
+      "role": "critic",
+      "step": "WF-07",
+      "source": "fallback",
+      "reason": "review rounds in the rules' order",
+      "refused": []
+     },
+     {
+      "role": "reporter",
+      "step": "WF-10",
+      "source": "advisor",
+      "reason": "accepted after validation",
+      "kept": 13,
+      "dropped": 2
+     }
+    ],
+    "asked": [
+     {
+      "field": "prediction_moment",
+      "question": "When is the prediction made, and what is known at that moment?"
+     }
+    ],
+    "asked_ok": true,
+    "moves": 10,
+    "moves_ok": true,
+    "holdout_uses": 1,
+    "acceptance": [
+     {
+      "decision": "`final_refund_amount` is kept out of the model (paid only after a cancellation)",
+      "ok": true
+     },
+     {
+      "decision": "`subscriber_id` is kept out of the model (an identifier)",
+      "ok": true
+     },
+     {
+      "decision": "the holdout is the latest signups",
+      "ok": true
+     },
+     {
+      "decision": "scored by ROC-AUC (cancellations are not rare)",
+      "ok": true
+     },
+     {
+      "decision": "the leakage audit measures how much the refund would have inflated the score (by more than 0.1)",
+      "ok": true
+     },
+     {
+      "decision": "the holdout ROC-AUC is at least 0.65 and 0.1 above chance",
+      "ok": true
+     },
+     {
+      "decision": "the baselines the kind declares are computed",
+      "ok": true
+     }
+    ],
+    "acceptance_ok": true,
+    "asked_roles": {
+     "problem_analyst": 1,
+     "brief_checker": 1,
+     "data_investigator": 1,
+     "solution_planner": 1,
+     "feature_engineer": 1,
+     "critic": 1,
+     "reporter": 1
+    },
+    "every_role_asked": true,
+    "roles_answered": [
+     "feature_engineer",
+     "problem_analyst",
+     "reporter"
+    ]
+   },
+   {
+    "kind": "regression",
+    "status": "completed",
+    "why": null,
+    "steps": [
+     {
+      "role": "problem_analyst",
+      "step": "WF-01",
+      "source": "advisor",
+      "reason": "filled target_column"
+     },
+     {
+      "role": "data_investigator",
+      "step": "WF-04",
+      "source": "fallback",
+      "reason": "10 findings; the investigator's reading added 0",
+      "added": []
+     },
+     {
+      "role": "solution_planner",
+      "step": "WF-03",
+      "source": "fallback",
+      "reason": "accepted after validation",
+      "kept": [],
+      "refused": [
+       "{'key': 'features.to_confirm', 'choice': '[{\"column\": \"weather\", \"reason\": \"Confirm that weather is recorded or fetched at order placement and not filled in after delivery. Its absence predicts the ta"
+      ]
+     },
+     {
+      "role": "feature_engineer",
+      "step": "WF-06",
+      "source": "advisor",
+      "reason": "accepted after validation",
+      "kept": [
+       "orders_per_restaurant",
+       "restaurant_mean_basket",
+       "basket_vs_restaurant",
+       "restaurant_mean_distance",
+       "distance_vs_restaurant",
+       "distance_per_courier",
+       "items_per_courier",
+       "value_per_item",
+       "long_distance",
+       "few_couriers"
+      ],
+      "refused": []
+     },
+     {
+      "role": "critic",
+      "step": "WF-07",
+      "source": "advisor",
+      "reason": "review rounds in the critic's order",
+      "refused": []
+     },
+     {
+      "role": "reporter",
+      "step": "WF-10",
+      "source": "advisor",
+      "reason": "accepted after validation",
+      "kept": 9,
+      "dropped": 5
+     }
+    ],
+    "asked": [
+     {
+      "field": "action",
+      "question": "What happens with each prediction, and roughly what does a wrong one cost?"
+     },
+     {
+      "field": "entities",
+      "question": "Do rows belong to repeating entities (customers, couriers, machines) that a split must keep together?"
+     }
+    ],
+    "asked_ok": true,
+    "moves": 10,
+    "moves_ok": true,
+    "holdout_uses": 1,
+    "acceptance": [
+     {
+      "decision": "`delivered_at` is kept out of the model (the target can be recomputed from it)",
+      "ok": true
+     },
+     {
+      "decision": "`courier_rating` is kept out of the model (given after the delivery)",
+      "ok": true
+     },
+     {
+      "decision": "scored by mean absolute error",
+      "ok": true
+     },
+     {
+      "decision": "the holdout MAE is at most 0.9 times the training median's",
+      "ok": true
+     },
+     {
+      "decision": "the cap at 60 minutes is found on the training rows and its errors called censored",
+      "ok": true
+     },
+     {
+      "decision": "the baselines the kind declares are computed",
+      "ok": true
+     }
+    ],
+    "acceptance_ok": true,
+    "asked_roles": {
+     "problem_analyst": 1,
+     "brief_checker": 1,
+     "data_investigator": 1,
+     "solution_planner": 1,
+     "feature_engineer": 1,
+     "critic": 2,
+     "reporter": 1
+    },
+    "every_role_asked": true,
+    "roles_answered": [
+     "critic",
+     "feature_engineer",
+     "problem_analyst",
+     "reporter"
+    ]
+   }
+  ]
+ }
+}

@@ -4,6 +4,12 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.146.0 (2026-10-30)
+
+- `plan`: an advisor may not replace the primary metric the rules set (by the positive rate for a binary task, or by the
+  person's own word in the brief); it may report another metric beside it (`metric.secondary`). The team's planner had made
+  average precision primary on a balanced churn outcome (TEAM-001, TEAM-002).
+
 ## 0.145.0 (2026-10-30)
 
 - `store`: `decision_example.v4` and `episode.v3` add `no_reasoning` (on the example, and on each episode step): why a row

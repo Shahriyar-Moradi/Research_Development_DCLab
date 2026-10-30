@@ -1015,7 +1015,7 @@ def synthetic_shape(draft_id: str, info: dict[str, Any], rows: int | None, model
 
 
 @_quiet
-def evidence_search(question: str, hits: list[dict[str, Any]], weak: float) -> Any:
+def evidence_search(question: str, hits: list[dict[str, Any]], weak: float, draft: Optional[str] = None) -> Any:
     """29.6: the record the evidence search ranked first for a question (subject: an id of its own, never its words),
     with how many came back, the best score and the method; the truth is the people's, or the retrieval set's 60 questions."""
     import uuid
@@ -1023,14 +1023,17 @@ def evidence_search(question: str, hits: list[dict[str, Any]], weak: float) -> A
     if not hits:
         return None
     top = max(float(h.get("score") or 0.0) for h in hits)
-    key = uuid.uuid4().hex[:16]  # each search its own subject: a hash of a short question could be reversed by a dictionary
+    # each search its own subject (a hash of a short question could be reversed by a dictionary); Home's advice answer is its
+    # draft's (2026-10-30: the advice track's answer, judged by the person's thumb, joined to its conversation)
+    key = str(draft) if draft else uuid.uuid4().hex[:16]
     value = str(hits[0].get("record_id") or "")[:200]
     if not value:
         return None
     method = _code(hits[0].get("method")) or "unknown"
     return _put("evidence.records", ("conversation", key), [answer("rule", f"retrieval:{method}", value)], value, "rule",
                 state={"hits": len(hits), "top_score": round(top, 4), "method": method, "weak": top < weak},
-                options=sorted(str(h.get("record_id"))[:200] for h in hits if h.get("record_id")), conversation=key)  # sorted: the order never says the answer
+                options=sorted(str(h.get("record_id"))[:200] for h in hits if h.get("record_id")), conversation=key,  # sorted: the order never says the answer
+                **({"draft": draft} if draft else {}))
 
 
 @_quiet

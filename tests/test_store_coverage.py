@@ -125,6 +125,21 @@ class StoreCountsTest(unittest.TestCase):
         self.assertEqual(by_track[cov.NO_REQUEST]["runs"], 1)  # an intern session is no draft
         self.assertEqual(by_track["prediction"]["runs"], 1)    # a built draft read before H2
 
+    def test_a_campaign_run_counts_from_its_trace_rows(self):
+        """2026-10-30: the campaign's environment has no session log (no numpy, no core contracts); its runs are its trace
+        rows, one run per run id; an agent with session events is never counted twice."""
+        steps = [{"body": {"run_id": "c1", "agent": "campaign", "n": i, "tool": t}} for i, t in enumerate(("plan", "review"))]
+        steps += [{"body": {"run_id": "c2", "agent": "campaign", "n": 0, "tool": "plan"}},
+                  {"body": {"run_id": "c3", "agent": "campaign", "n": 0, "tool": "plan"}},  # also recorded by a session (below)
+                  {"body": {"run_id": "r9", "agent": "intern", "n": 0, "tool": "profile"}}]  # the intern's runs come from its events
+        gz(self.layout.records_of("actions") / "a.jsonl.gz", steps)
+        gz(self.layout.records_of("sessions") / "s.jsonl.gz", [{"body": {"kind": "run.recorded", "ids": {"run": "c3"},
+                                                                       "payload": {"run_kind": "agent", "run": "run-new", "parent": "c3", "name": "campaign"}}}])
+        doc = cov.measure(self.layout, home=Path(tempfile.mkdtemp()))
+        self.assertEqual(doc["sources"]["by_agent"]["campaign"]["runs"], 3)  # c1, c2, and c3 once (its session record), never twice
+        self.assertEqual(doc["sources"]["by_agent"]["intern"]["runs"], 0)
+        self.assertFalse([g for g in cov.gaps(doc) if g.startswith("agent campaign: no run recorded")])
+
     def test_only_the_persons_own_label_moves_a_draft(self):
         t = cov._Tracks()
         t.decision({"point": "request.intent", "id": "rec1", "draft": "d1", "value_used": "prediction"})

@@ -505,11 +505,13 @@ class DataLimitTests(unittest.TestCase):
         table = marked_table()
         findings = analyse({"customers": table}, target="churned", task="binary")
         cite = findings.findings[0].id
-        change = {"key": "metric.primary", "choice": "average_precision", "reason": "the positives matter more than the negatives here", "cites": [cite]}
+        # threshold.policy, not metric.primary: since 2026-10-30 an advisor may not replace the primary metric, so a primary
+        # change would be refused before any dispute and the judge would never be asked
+        change = {"key": "threshold.policy", "choice": {"kind": "review_budget"}, "reason": "the team can review a fixed number of flags each day", "cites": [cite]}
         gw = gateway({"solution_planner": [{"content": _json.dumps({"decisions": [change]}), "tool_calls": [], "usage": {}}],
-                      "solution_challenger": [{"content": _json.dumps({"decisions": [{**change, "choice": "f1", "reason": "the review budget makes f1 the fairer reading"}]}),
+                      "solution_challenger": [{"content": _json.dumps({"decisions": [{**change, "choice": {"kind": "expected_cost"}, "reason": "the costs of a miss and of a false alarm decide it here"}]}),
                                                "tool_calls": [], "usage": {}}],  # a different choice: a dispute, so the judge is asked
-                      "debate_judge": [{"content": _json.dumps({"rulings": [{"key": "metric.primary", "keep": "a", "reason": "the first design's metric fits the use",
+                      "debate_judge": [{"content": _json.dumps({"rulings": [{"key": "threshold.policy", "keep": "a", "reason": "the first design's policy fits the use",
                                                                              "cites": [cite]}]}), "tool_calls": [], "usage": {}}]})
         out = debate(GatewayAdvisor(gw), GatewayAdvisor(gw), GatewayAdvisor(gw), None, findings)
         self.assertEqual(out["debate"].sources["judge"], "advisor")  # the judge was asked: its request is checked below

@@ -1,0 +1,185 @@
+{
+ "package": "four-open-items",
+ "title": "Campaign runs counted, review findings as judge lessons, an advice answer to judge, and the primary metric kept by the rule",
+ "date": "2026-10-30",
+ "request": "The owner: fix the campaign runs the store did not collect, the advice track with no product, the missing m7 judges review findings set, and the team gate's churn metric check.",
+ "spec": "Campaign runs counted from what the store keeps; every reviewer finding a judged claim with its verdict; Home answers an advice request from the Evidence library and a thumb on any result reply is the track's outcome; the primary metric follows the person's word or the positive rate.",
+ "plan": [
+  "Find why the store sees no campaign run",
+  "Build the review findings set and record declined findings from now on",
+  "Give the advice track an answer, and make thumbs on result replies reach the outcome",
+  "Find why the team scores the churn replica by average precision",
+  "Tests, live team gate, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "Campaign runs are counted from their trace rows, not by installing numpy in the agent environment",
+   "why": "the session log needs dclab_core's contracts, which need numpy; the trace rows (agent_steps.jsonl) already reach the store, one run per run id"
+  },
+  {
+   "decision": "Review findings are a set of their own at lower weight, and a finding gets a verdict field",
+   "why": "they judge DCLab's own code, not ML work; 2,624 confirmed claims against one declined one cannot teach a judge that a plausible claim can be false, so declined findings are recorded from now on"
+  },
+  {
+   "decision": "The advice answer comes from the Evidence library's search and its citation check, the closest records when no model answers",
+   "why": "the same checked path as the Evidence page: no number or claim reaches the person that a record does not hold"
+  },
+  {
+   "decision": "The planner may report another metric beside the primary one, never in its place",
+   "why": "the rule chooses ROC-AUC when positives are not rare; the planner's preference for average precision on a balanced outcome broke the replica's acceptance"
+  }
+ ],
+ "change": "dclab_rnd.store.coverage counts trace-only agents' runs (campaign); dclab_rnd.agentic main installs a session log. dclab_rnd.devlog Finding.verdict, declined findings kept out of fix examples; dclab_rnd.store.sets.others review_findings into m7_judges/review_findings. dclab_rnd.draft.chat advise (Evidence library answer, the person's latest words); Home's page shows an advice answer's sources; the feedback route's thumb refuses a reply of an earlier track (track_messages_from); evidence.ask and capture.evidence_search join the search to its draft. dclab-core 0.146.0: plan's guard refuses an advisor's change of the primary metric. Also: experience.file_workspace_id names its marker without storage.db.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The store recorded no campaign run",
+   "scenario": "Four campaign runs today left trace rows but no run.recorded event",
+   "cause": "the command line installed no session log, and in the agent environment the session log records nothing (no numpy, no core contracts)",
+   "fix": "the coverage counts a trace-only agent's runs from its trace rows",
+   "test": "tests/test_store_coverage.py test_a_campaign_run_counts_from_its_trace_rows"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The reviewer's findings taught no model",
+   "scenario": "2,624 reviewer findings sat in the development records with their tests, outside every set",
+   "cause": "no builder read them",
+   "fix": "m7_judges/review_findings: each finding a judged claim, by its test or the developer's verdict",
+   "test": "tests/test_review_findings.py"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The advice track produced nothing to judge",
+   "scenario": "An advice request got a sentence pointing to the Evidence library and no answer",
+   "cause": "Home's advice track had no exit of its own",
+   "fix": "Home answers from the Evidence library with its sources, recorded as a produced answer",
+   "test": "tests/test_home_advice_answer.py"
+  },
+  {
+   "id": "F5",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The team scored a balanced churn outcome by average precision",
+   "scenario": "TEAM-001 and TEAM-002: the solution planner made average precision primary on the churn replica, and its acceptance check failed",
+   "cause": "the plan's guard let an advisor replace the primary metric the rules set",
+   "fix": "the guard refuses it; another metric goes beside the primary one",
+   "test": "tests/test_core_plan.py test_an_advisor_may_not_replace_the_primary_metric_the_positive_rate_set"
+  },
+  {
+   "id": "F6",
+   "source": "test",
+   "severity": "latent",
+   "defect": "The browser coverage test did not know the understand check",
+   "scenario": "test_web_client failed: the browser script gained the understanding conversation's check on 29 Oct",
+   "cause": "the expected list was not updated with the check",
+   "fix": "understand added to the expected checks",
+   "test": "tests/test_web_client.py"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A new thumb route counted every thumb twice",
+   "scenario": "One click on a result reply appended thumb_up twice: the feedback route already turned a thumb into the track's action (_thumb_outcome)",
+   "cause": "I took the gap for a missing path and did not look for the existing one in pages/ledger.py",
+   "fix": "the new route, method and page call removed; the existing path kept",
+   "test": "tests/test_home_track_outcome.py ThumbTest"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A campaign run was counted twice",
+   "scenario": "A run.recorded names its trace's run id as its parent; the trace rows counted the same run again",
+   "cause": "the trace count compared trace ids with the session records' own new ids",
+   "fix": "trace ids named by a session record's parent or run id are skipped",
+   "test": "tests/test_store_coverage.py test_a_campaign_run_counts_from_its_trace_rows"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The metric guard let an advisor replace the person's named metric",
+   "scenario": "A brief naming average precision on a balanced table: the planner's roc_auc passed the guard",
+   "cause": "the guard skipped its check when the brief named the metric",
+   "fix": "every advisor change of the primary metric is refused, the person's word named as its setter",
+   "test": "tests/test_core_plan.py test_an_advisor_may_not_replace_the_primary_metric_the_positive_rate_set"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A thumb on an earlier track's result judged the current track",
+   "scenario": "An analysis answer, then advice and its answer; a thumb down on the old answer refused the advice outcome",
+   "cause": "the thumb path read any product reply of the draft",
+   "fix": "a track switch records its first message; the thumb path refuses replies before it",
+   "test": "tests/test_home_track_outcome.py ThumbTest.test_a_thumb_on_an_earlier_tracks_result_never_judges_the_new_track"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The advice answer searched the start of everything said",
+   "scenario": "A long first request then a new question on the advice track: the search read only the old text",
+   "cause": "the question was all the person's words joined and cut at 800 characters",
+   "fix": "the person's latest words",
+   "test": "tests/test_home_advice_answer.py AdviceAnswerTests.test_the_question_is_the_persons_latest_words"
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Review findings: wrong judges, repeated ids and a split that leaked",
+   "scenario": "133 findings whose test field named no test counted as test-proven; two ids appeared twice; 371 sealed rows came from packages the development set trains on",
+   "cause": "a loose test check, ids taken as written, and a split of its own",
+   "fix": "proof only by a named test, a reused id made unique, the development set's train packages kept in train",
+   "test": "tests/test_review_findings.py"
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A data-limit test lost its dispute",
+   "scenario": "The debate test disputed the primary metric; the new guard refused the change, so the judge was never asked and its data limit never checked",
+   "cause": "the test relied on an advisor replacing the primary metric",
+   "fix": "the test disputes the threshold policy",
+   "test": "tests/test_model_data_limits.py test_the_debates_challenger_and_judge_see_summaries_never_values"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "review findings set",
+   "gate": "every reviewer finding judged, a package in one split",
+   "result": "2,625 judged findings: 2,071 proven by a named test, 553 confirmed by the developer, 1 declined; sealed rows only from packages the development set never trains on",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "only one declined finding: the set cannot yet teach that a plausible claim can be false"
+   ]
+  },
+  {
+   "name": "team gate, live",
+   "gate": "team_gate_v1 on the fraud, churn and delivery replicas with every role on",
+   "result": "TEAM-003 passes, every replica's acceptance checks right; EUR 0.23",
+   "verdict": "pass",
+   "cost_eur": 0.23
+  }
+ ],
+ "outcome": "Campaign runs counted, review findings in m7 judges with declined findings recorded from now on, an advice answer that a thumb judges, thumbs counted on every result reply, and the primary metric kept by the rule.",
+ "lessons": [
+  "A missing count can be a missing reader: look at what the store already keeps",
+  "A set of only confirmed claims cannot teach a judge to doubt: record the declined ones",
+  "A button that exists but goes nowhere is a gap no test of the button finds"
+ ],
+ "risks": [
+  "The advice answer leans on the evidence index's coverage: questions outside it get the closest records or a plain no",
+  "A brief whose metric was inferred rather than said would still let its metric lead"
+ ],
+ "commits": []
+}

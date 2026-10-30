@@ -191,7 +191,7 @@ _GUARD = threading.Lock()
 def file_workspace_id(home: Path) -> str:
     """The id a folder workspace goes by: the same formula PostgreSQL uses for it (storage.db.workspace), read without
     writing anything into the folder (its marker when there is one, else its path, as ``storage.db.workspace_key``)."""
-    from ..storage.db import MARKER
+    MARKER = ".dclab_workspace"  # storage.db.MARKER, named here: storage.db needs sqlalchemy, which the agent environment lacks
 
     try:
         key = (Path(home) / MARKER).read_text(encoding="utf-8").strip()

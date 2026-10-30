@@ -108,14 +108,14 @@ def _brief(h: dict[str, Any]) -> dict[str, Any]:
             "snippet": text[:260] + ("…" if len(text) > 260 else "")}
 
 
-def ask(question: str, client=None, path: Path = INDEX) -> dict[str, Any]:
+def ask(question: str, client=None, path: Path = INDEX, draft_id: str | None = None) -> dict[str, Any]:
     loaded = _index(path)
     # the product's index searches by the measured method (A5.1: the hybrid only if it is not worse on any question group)
     hits = retrieval.search(question, k=K, index=lessons.merged(loaded[1])) if loaded else []  # with the workspace's accepted lessons (A5.3)
     out: dict[str, Any] = {"question": question, "records": [_brief(h) for h in hits], "sentences": [], "dropped": 0}
     from ...ledger import capture  # 29.6: the record ranked first, with how the search went (never the question's words)
 
-    capture.evidence_search(question, hits, WEAK)
+    capture.evidence_search(question, hits, WEAK, draft=draft_id)  # Home's advice answer: joined to its draft
     if not hits:
         return out | {"mode": "none", "covered": False, "note": NOT_COVERED}
     if client is not None:

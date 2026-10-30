@@ -121,6 +121,16 @@ class ThumbTest(ActedTest):
         self.assertEqual(self.store.get(self.id)["outcome"]["verdict"], "refused")
         self.assertEqual(self.current("request.exit"), [])
 
+    def test_a_thumb_on_an_earlier_tracks_result_never_judges_the_new_track(self):
+        """The review of 2026-10-30: an analysis answer, then a switch of track and a new result; a thumb down on the old answer
+        withdrew the new track's route label."""
+        old = self.board()
+        self.store.update(self.id, lambda d: d.update(track_messages_from=len(d.get("messages") or [])))  # what a switch records
+        new = self.board()
+        self.thumb(new, "helpful")
+        self.thumb(old, "unhelpful")  # the earlier track's reply: no verdict on this one
+        self.assertEqual(self.store.get(self.id)["outcome"]["verdict"], "kept")
+
     def test_a_thumb_on_another_reply_or_wrong_is_no_verdict(self):
         self.board()
         other = self.agent.say(self.id, "Which period do you mean?", kind="text")["id"]

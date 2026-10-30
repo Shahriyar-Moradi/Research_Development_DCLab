@@ -318,9 +318,10 @@ class HomeAgent:
     def __init__(self, store: DraftStore, client=None, on_request: Callable[[str, str, dict[str, Any]], None] | None = None,
                  registry: Registry | None = None, traces: Any = None, reader: Callable[..., Any] | None = None,
                  second_opinion: bool = False, intent_client: Any = None, query_client: Any = None, business_client: Any = None,
-                 understand_client: Any = None):
+                 understand_client: Any = None, evidence_client: Any = None):
         self.store, self.client, self.traces = store, client, traces
         self.understand_client = understand_client  # the owner's Telco test: the model leading the understanding conversation
+        self.evidence_client = evidence_client  # 2026-10-30: the advice track's answer, from the Evidence library's records
         self.intent_client = intent_client  # H2: the model reading the kind of help, only where the rules find no clear winner
         self.query_client = query_client  # H7: the model writing a query plan from column summaries, where the rules cannot
         self.business_client = business_client  # H11b: the model rewording a decision brief, kept only through cited.py
@@ -827,7 +828,35 @@ class HomeAgent:
             return
         self.say(draft_id, f"{opening} {intents.NEXT[track]}", kind="text", actions=offer, track=track)
         self._tool(draft_id, track, capture.TOOL_OF_TRACK[track], "rule")
+        if track == "advice":
+            self.advise(draft_id)
         self.open_brief(draft_id)
+
+    def advise(self, draft_id: str) -> dict[str, Any] | None:
+        """2026-10-30: the advice track's own product. The person's question goes to the Evidence library (its search, the
+        model's answer kept only through the citation and number check, else the closest records); the answer is said in the
+        chat with its sources, recorded as a produced answer the person's thumb then judges (the feedback route's _thumb_outcome), the search joined to this
+        draft. Nothing covered: Home says so, and nothing is produced."""
+        from ..agentic.pages import evidence
+
+        draft = self.store.get(draft_id)
+        said = [t for t in plans.user_text(draft) if str(t or "").strip()]  # the review: the latest words, never the start of all
+        question = str(said[-1] if said else draft.get("problem") or "")[:800]
+        try:
+            out = evidence.ask(question, self.evidence_client, draft_id=draft_id)
+        except Exception:  # noqa: BLE001 - the evidence index is optional: Home goes on without it
+            return None
+        sources = [{"id": r["id"], "title": r["title"]} for r in out.get("records") or []][:5]
+        if out.get("sentences"):
+            text = " ".join(str(s.get("text") or "") for s in out["sentences"]).strip()
+        elif sources and out.get("covered") is not False:
+            text = "These are the closest records in DCLab's evidence: " + "; ".join(r["title"] for r in sources) + "."
+        else:
+            self.say(draft_id, str(out.get("note") or evidence.NOT_COVERED), kind="text", track="advice")
+            return None
+        msg = self.say(draft_id, text, kind="answer", track="advice", sources=sources, mode=out.get("mode"), note=out.get("note"))
+        self.acted(draft_id, "answer")
+        return msg
 
     def _tool(self, draft_id: str, track: str, tool: str, used_by: str) -> None:
         """P8's gap (2026-10-29): the tool serving the kind of help, recorded once per track and tool (request.tool)."""
@@ -1593,6 +1622,7 @@ class HomeAgent:
                     q.update(answered="(the type of help changed)", superseded=True)
             if track != was:  # a result made on the earlier track never judges this one (track_outcome reads from here)
                 d["track_actions_from"] = int(d.get("actions_total", len(d.get("actions") or [])))
+                d["track_messages_from"] = len(d.get("messages") or [])  # the review of 2026-10-30: nor a thumb on its reply
             if track != "prediction":
                 d["workflow"] = None
                 if (d.get("pack") or {}).get("source") != "user":

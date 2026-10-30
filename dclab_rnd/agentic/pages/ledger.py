@@ -275,6 +275,7 @@ def _thumb_outcome(draft_id: str, ref: str, thumb: str) -> None:
         draft = work.drafts.get(draft_id)
     except Exception:  # noqa: BLE001 - no such draft (deleted, another workspace): nothing to judge
         return
-    if any(m.get("id") == ref and m.get("role") == "agent" and m.get("kind") in PRODUCT_KINDS for m in draft.get("messages") or []
-           if isinstance(m, dict)):
+    messages = [m for m in draft.get("messages") or [] if isinstance(m, dict)]
+    start = int(draft.get("track_messages_from") or 0)  # the review of 2026-10-30: a reply of an earlier track never judges this one
+    if any(i >= start and m.get("id") == ref and m.get("role") == "agent" and m.get("kind") in PRODUCT_KINDS for i, m in enumerate(messages)):
         work.agent(draft_id).acted(draft_id, thumb)

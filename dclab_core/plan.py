@@ -621,6 +621,14 @@ def _guard(key: str, choice: Any, current: SolutionPlan, findings: DataFindings,
     elif key == "metric.secondary":
         if not isinstance(choice, list) or not all(isinstance(m, str) and len(m) <= 60 for m in choice):
             return "secondary metrics are a list of names"
+    elif key == "metric.primary" and old is not None and choice != old.choice:
+        # 2026-10-30 (TEAM-001 and TEAM-002, the churn replica): the planner made average precision primary on a balanced
+        # outcome; the primary metric follows the person's own word or the positive rate (F-prevalence), and another metric is
+        # reported beside it, never in its place
+        setter = ("the person's own word in the brief" if str(old.reason or "").startswith("The brief names") else
+                  "the positive rate (F-prevalence)" if current.task == "binary" else "the task")
+        return (f"the primary metric is {old.choice}, set by {setter}: "
+                "an advisor may report another beside it (metric.secondary), not replace it")
     return None
 
 
