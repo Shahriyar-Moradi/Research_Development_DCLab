@@ -1,6 +1,6 @@
 {
  "what": "Other answerers' answers on every DCLab test, each kept whole in lake/bronze/answers/<answerer>/<source>/ (not committed; kept permanently by make archive): the text and schema asked, the raw output, the value, the confidence, the model's revision, the time; the true answers stay in the tests (lake/gold, lake/bronze/decisions).",
- "at": "2026-10-29T10:27:54+00:00",
+ "at": "2026-10-30T03:41:48+00:00",
  "answerers": {
   "claude": {
    "committee": {
@@ -214,139 +214,159 @@
    }
   },
   "dclab-rules": {
-   "lake": {
+   "committee": {
     "column.category_code": {
      "train": {
-      "answered": 1343,
+      "answered": 1400,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 425,
+      "answered": 600,
       "confidence_mean": null,
-      "seconds_mean": null
+      "seconds_mean": null,
+      "agrees_with_label": 0.8067,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.8067
      },
      "sealed": {
-      "answered": 954,
+      "answered": 400,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "column.group": {
      "train": {
-      "answered": 2229,
+      "answered": 2380,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 710,
+      "answered": 1020,
       "confidence_mean": null,
-      "seconds_mean": null
+      "seconds_mean": null,
+      "agrees_with_label": 1.0,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 1.0
      },
      "sealed": {
-      "answered": 1598,
+      "answered": 680,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "column.is_identifier": {
      "train": {
-      "answered": 2229,
+      "answered": 2380,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 710,
+      "answered": 1020,
       "confidence_mean": null,
-      "seconds_mean": null
+      "seconds_mean": null,
+      "agrees_with_label": 1.0,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 1.0
      },
      "sealed": {
-      "answered": 1598,
+      "answered": 680,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "column.semantic_role": {
      "train": {
-      "answered": 2003,
+      "answered": 2100,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 637,
+      "answered": 900,
       "confidence_mean": null,
-      "seconds_mean": null
+      "seconds_mean": null,
+      "agrees_with_label": 0.8378,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.8378
      },
      "sealed": {
-      "answered": 1421,
+      "answered": 600,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "column.time": {
      "train": {
-      "answered": 2248,
+      "answered": 2380,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 715,
+      "answered": 1020,
       "confidence_mean": null,
-      "seconds_mean": null
+      "seconds_mean": null,
+      "agrees_with_label": 0.9412,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.9412
      },
      "sealed": {
-      "answered": 1601,
+      "answered": 680,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "feature.leakage_suspect": {
      "train": {
-      "answered": 2247,
+      "answered": 2380,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 713,
+      "answered": 1020,
       "confidence_mean": null,
-      "seconds_mean": null
+      "seconds_mean": null,
+      "agrees_with_label": 0.9157,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.9157
      },
      "sealed": {
-      "answered": 1599,
+      "answered": 680,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
-    },
+    }
+   },
+   "lake": {
     "sessions": {
      "model": null,
      "revision": null,
@@ -365,12 +385,12 @@
    "routing": {
     "request.exit": {
      "train": {
-      "answered": 18,
+      "answered": 121,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 3,
+      "answered": 18,
       "confidence_mean": null,
       "seconds_mean": null,
       "agrees_with_label": 1.0,
@@ -383,24 +403,24 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "d377c1e5",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "request.intent": {
      "train": {
-      "answered": 248,
+      "answered": 601,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 56,
+      "answered": 127,
       "confidence_mean": null,
       "seconds_mean": null,
-      "agrees_with_label": 0.6786,
+      "agrees_with_label": 0.8504,
       "agrees_with_rule": 1.0,
-      "rule_agrees_with_label": 0.6786
+      "rule_agrees_with_label": 0.8504
      },
      "sealed": {
       "answered": 47,
@@ -408,24 +428,24 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "d377c1e5",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "workflow.next_question": {
      "train": {
-      "answered": 11,
+      "answered": 112,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 8,
+      "answered": 44,
       "confidence_mean": null,
       "seconds_mean": null,
-      "agrees_with_label": 0.875,
+      "agrees_with_label": 0.4545,
       "agrees_with_rule": 1.0,
-      "rule_agrees_with_label": 0.875
+      "rule_agrees_with_label": 0.4545
      },
      "sealed": {
       "answered": 3,
@@ -433,7 +453,7 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "d377c1e5",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -442,87 +462,87 @@
    "selfplay": {
     "column.is_identifier": {
      "train": {
-      "answered": 2712,
+      "answered": 18518,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 514,
+      "answered": 3944,
       "confidence_mean": null,
       "seconds_mean": null,
-      "agrees_with_label": 0.9455,
+      "agrees_with_label": 0.9539,
       "agrees_with_rule": 1.0,
-      "rule_agrees_with_label": 0.9455
+      "rule_agrees_with_label": 0.9539
      },
      "sealed": {
-      "answered": 410,
+      "answered": 4154,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "feature.leakage_suspect": {
      "train": {
-      "answered": 2712,
+      "answered": 18518,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 514,
+      "answered": 3944,
       "confidence_mean": null,
       "seconds_mean": null,
-      "agrees_with_label": 0.9183,
-      "agrees_with_rule": 0.9805,
-      "rule_agrees_with_label": 0.9377
+      "agrees_with_label": 0.9498,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.9498
      },
      "sealed": {
-      "answered": 410,
+      "answered": 4154,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "split.time_column": {
      "train": {
-      "answered": 286,
+      "answered": 2266,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 56,
+      "answered": 462,
       "confidence_mean": null,
       "seconds_mean": null,
-      "agrees_with_label": 0.75,
+      "agrees_with_label": 0.8225,
       "agrees_with_rule": 1.0,
-      "rule_agrees_with_label": 0.75
+      "rule_agrees_with_label": 0.8225
      },
      "sealed": {
-      "answered": 44,
+      "answered": 502,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "task.framing": {
      "train": {
-      "answered": 286,
+      "answered": 2266,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 56,
+      "answered": 462,
       "confidence_mean": null,
       "seconds_mean": null,
       "agrees_with_label": 1.0,
@@ -530,12 +550,12 @@
       "rule_agrees_with_label": 1.0
      },
      "sealed": {
-      "answered": 44,
+      "answered": 502,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -557,7 +577,7 @@
       "rule_agrees_with_label": 0.8947
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -577,7 +597,7 @@
       "rule_agrees_with_label": 0.9048
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -597,7 +617,7 @@
       "rule_agrees_with_label": 0.8788
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -617,7 +637,7 @@
       "rule_agrees_with_label": 0.9792
      },
      "model": "DCLab's rules",
-     "revision": "8139d15",
+     "revision": "71620e29",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -627,6 +647,19 @@
   "gliner2.5-decide": {
    "committee": {
     "column.category_code": {
+     "train": {
+      "answered": 1400,
+      "confidence_mean": 0.568,
+      "seconds_mean": 0.1764
+     },
+     "dev": {
+      "answered": 600,
+      "confidence_mean": 0.5624,
+      "seconds_mean": 0.1721,
+      "agrees_with_label": 0.625,
+      "agrees_with_rule": 0.6117,
+      "rule_agrees_with_label": 0.8067
+     },
      "sealed": {
       "answered": 400,
       "confidence_mean": 0.5598,
@@ -639,6 +672,19 @@
      "licence": "Apache-2.0"
     },
     "column.group": {
+     "train": {
+      "answered": 2380,
+      "confidence_mean": 0.7503,
+      "seconds_mean": 0.2167
+     },
+     "dev": {
+      "answered": 1020,
+      "confidence_mean": 0.7434,
+      "seconds_mean": 0.2149,
+      "agrees_with_label": 0.9392,
+      "agrees_with_rule": 0.9392,
+      "rule_agrees_with_label": 1.0
+     },
      "sealed": {
       "answered": 680,
       "confidence_mean": 0.7408,
@@ -651,6 +697,19 @@
      "licence": "Apache-2.0"
     },
     "column.is_identifier": {
+     "train": {
+      "answered": 2380,
+      "confidence_mean": 0.573,
+      "seconds_mean": 0.1945
+     },
+     "dev": {
+      "answered": 1020,
+      "confidence_mean": 0.5693,
+      "seconds_mean": 0.1954,
+      "agrees_with_label": 0.8265,
+      "agrees_with_rule": 0.8265,
+      "rule_agrees_with_label": 1.0
+     },
      "sealed": {
       "answered": 680,
       "confidence_mean": 0.5688,
@@ -663,6 +722,19 @@
      "licence": "Apache-2.0"
     },
     "column.semantic_role": {
+     "train": {
+      "answered": 2100,
+      "confidence_mean": 0.452,
+      "seconds_mean": 0.2657
+     },
+     "dev": {
+      "answered": 900,
+      "confidence_mean": 0.4508,
+      "seconds_mean": 0.2673,
+      "agrees_with_label": 0.4589,
+      "agrees_with_rule": 0.4256,
+      "rule_agrees_with_label": 0.8378
+     },
      "sealed": {
       "answered": 600,
       "confidence_mean": 0.454,
@@ -675,6 +747,19 @@
      "licence": "Apache-2.0"
     },
     "column.time": {
+     "train": {
+      "answered": 2380,
+      "confidence_mean": 0.8679,
+      "seconds_mean": 0.1672
+     },
+     "dev": {
+      "answered": 1020,
+      "confidence_mean": 0.8595,
+      "seconds_mean": 0.1659,
+      "agrees_with_label": 0.9412,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.9412
+     },
      "sealed": {
       "answered": 680,
       "confidence_mean": 0.8617,
@@ -687,6 +772,19 @@
      "licence": "Apache-2.0"
     },
     "feature.leakage_suspect": {
+     "train": {
+      "answered": 2380,
+      "confidence_mean": 0.5875,
+      "seconds_mean": 0.186
+     },
+     "dev": {
+      "answered": 1020,
+      "confidence_mean": 0.5874,
+      "seconds_mean": 0.1854,
+      "agrees_with_label": 0.3588,
+      "agrees_with_rule": 0.3216,
+      "rule_agrees_with_label": 0.9157
+     },
      "sealed": {
       "answered": 680,
       "confidence_mean": 0.5866,
@@ -702,19 +800,20 @@
    "journeys": {
     "problem.family_from_words": {
      "train": {
-      "answered": 149,
-      "confidence_mean": 0.6467,
-      "seconds_mean": 1.2843
+      "answered": 1159,
+      "confidence_mean": 0.6763,
+      "seconds_mean": 0.9748
      },
      "dev": {
-      "answered": 29,
-      "confidence_mean": 0.659,
-      "seconds_mean": 1.44
+      "answered": 699,
+      "confidence_mean": 0.6936,
+      "seconds_mean": 1.0494,
+      "agrees_with_label": 0.3104
      },
      "sealed": {
-      "answered": 33,
-      "confidence_mean": 0.6769,
-      "seconds_mean": 1.5894
+      "answered": 414,
+      "confidence_mean": 0.6498,
+      "seconds_mean": 0.9596
      },
      "model": "fastino/GLiNER2.5-Decide",
      "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
@@ -904,16 +1003,16 @@
    "routing": {
     "request.exit": {
      "train": {
-      "answered": 18,
-      "confidence_mean": 0.6441,
-      "seconds_mean": 1.1744
+      "answered": 121,
+      "confidence_mean": 0.6103,
+      "seconds_mean": 0.2971
      },
      "dev": {
-      "answered": 3,
-      "confidence_mean": 0.7469,
-      "seconds_mean": 2.693,
-      "agrees_with_label": 0.3333,
-      "agrees_with_rule": 0.3333,
+      "answered": 18,
+      "confidence_mean": 0.4796,
+      "seconds_mean": 0.5884,
+      "agrees_with_label": 0.1111,
+      "agrees_with_rule": 0.1111,
       "rule_agrees_with_label": 1.0
      },
      "sealed": {
@@ -929,17 +1028,17 @@
     },
     "request.intent": {
      "train": {
-      "answered": 767,
-      "confidence_mean": 0.4968,
-      "seconds_mean": 1.1689
+      "answered": 1126,
+      "confidence_mean": 0.4962,
+      "seconds_mean": 0.8908
      },
      "dev": {
-      "answered": 233,
-      "confidence_mean": 0.4758,
-      "seconds_mean": 1.4436,
-      "agrees_with_label": 0.5365,
-      "agrees_with_rule": 0.4107,
-      "rule_agrees_with_label": 0.6786
+      "answered": 308,
+      "confidence_mean": 0.4598,
+      "seconds_mean": 1.1653,
+      "agrees_with_label": 0.4805,
+      "agrees_with_rule": 0.3622,
+      "rule_agrees_with_label": 0.8504
      },
      "sealed": {
       "answered": 109,
@@ -954,17 +1053,17 @@
     },
     "workflow.next_question": {
      "train": {
-      "answered": 11,
-      "confidence_mean": 0.385,
-      "seconds_mean": 1.3989
+      "answered": 112,
+      "confidence_mean": 0.3222,
+      "seconds_mean": 0.4142
      },
      "dev": {
-      "answered": 8,
-      "confidence_mean": 0.4253,
-      "seconds_mean": 0.606,
-      "agrees_with_label": 0.0,
-      "agrees_with_rule": 0.125,
-      "rule_agrees_with_label": 0.875
+      "answered": 44,
+      "confidence_mean": 0.3295,
+      "seconds_mean": 0.3858,
+      "agrees_with_label": 0.1136,
+      "agrees_with_rule": 0.0682,
+      "rule_agrees_with_label": 0.4545
      },
      "sealed": {
       "answered": 3,
@@ -981,22 +1080,22 @@
    "selfplay": {
     "column.is_identifier": {
      "train": {
-      "answered": 2712,
-      "confidence_mean": 0.6465,
-      "seconds_mean": 0.2748
+      "answered": 18518,
+      "confidence_mean": 0.6466,
+      "seconds_mean": 0.2238
      },
      "dev": {
-      "answered": 514,
-      "confidence_mean": 0.6494,
-      "seconds_mean": 6.535,
-      "agrees_with_label": 0.8949,
-      "agrees_with_rule": 0.8716,
-      "rule_agrees_with_label": 0.9455
+      "answered": 3944,
+      "confidence_mean": 0.6526,
+      "seconds_mean": 1.03,
+      "agrees_with_label": 0.8978,
+      "agrees_with_rule": 0.8796,
+      "rule_agrees_with_label": 0.9539
      },
      "sealed": {
-      "answered": 410,
-      "confidence_mean": 0.6598,
-      "seconds_mean": 4.2912
+      "answered": 4154,
+      "confidence_mean": 0.6485,
+      "seconds_mean": 0.6161
      },
      "model": "fastino/GLiNER2.5-Decide",
      "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
@@ -1006,22 +1105,22 @@
     },
     "feature.leakage_suspect": {
      "train": {
-      "answered": 2712,
-      "confidence_mean": 0.5882,
-      "seconds_mean": 0.3019
+      "answered": 18518,
+      "confidence_mean": 0.6057,
+      "seconds_mean": 0.2198
      },
      "dev": {
-      "answered": 514,
-      "confidence_mean": 0.5908,
-      "seconds_mean": 0.2098,
-      "agrees_with_label": 0.6907,
-      "agrees_with_rule": 0.6518,
-      "rule_agrees_with_label": 0.9377
+      "answered": 3944,
+      "confidence_mean": 0.6042,
+      "seconds_mean": 0.2125,
+      "agrees_with_label": 0.5472,
+      "agrees_with_rule": 0.5223,
+      "rule_agrees_with_label": 0.9498
      },
      "sealed": {
-      "answered": 410,
-      "confidence_mean": 0.606,
-      "seconds_mean": 0.2047
+      "answered": 4154,
+      "confidence_mean": 0.6062,
+      "seconds_mean": 0.2075
      },
      "model": "fastino/GLiNER2.5-Decide",
      "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
@@ -1031,22 +1130,22 @@
     },
     "split.time_column": {
      "train": {
-      "answered": 286,
-      "confidence_mean": 0.7855,
-      "seconds_mean": 4.7913
+      "answered": 2266,
+      "confidence_mean": 0.8199,
+      "seconds_mean": 1.6924
      },
      "dev": {
-      "answered": 56,
-      "confidence_mean": 0.8072,
-      "seconds_mean": 2.2112,
-      "agrees_with_label": 0.0536,
-      "agrees_with_rule": 0.0536,
-      "rule_agrees_with_label": 0.75
+      "answered": 462,
+      "confidence_mean": 0.8052,
+      "seconds_mean": 1.503,
+      "agrees_with_label": 0.039,
+      "agrees_with_rule": 0.039,
+      "rule_agrees_with_label": 0.8225
      },
      "sealed": {
-      "answered": 44,
-      "confidence_mean": 0.8266,
-      "seconds_mean": 2.6739
+      "answered": 502,
+      "confidence_mean": 0.8235,
+      "seconds_mean": 1.4579
      },
      "model": "fastino/GLiNER2.5-Decide",
      "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",
@@ -1056,22 +1155,22 @@
     },
     "task.framing": {
      "train": {
-      "answered": 286,
-      "confidence_mean": 0.4416,
-      "seconds_mean": 5.9875
+      "answered": 2266,
+      "confidence_mean": 0.4606,
+      "seconds_mean": 1.8787
      },
      "dev": {
-      "answered": 56,
-      "confidence_mean": 0.4421,
-      "seconds_mean": 5.8813,
-      "agrees_with_label": 0.4643,
-      "agrees_with_rule": 0.4643,
+      "answered": 462,
+      "confidence_mean": 0.4586,
+      "seconds_mean": 1.9828,
+      "agrees_with_label": 0.6104,
+      "agrees_with_rule": 0.6104,
       "rule_agrees_with_label": 1.0
      },
      "sealed": {
-      "answered": 44,
-      "confidence_mean": 0.443,
-      "seconds_mean": 7.3344
+      "answered": 502,
+      "confidence_mean": 0.4582,
+      "seconds_mean": 1.8857
      },
      "model": "fastino/GLiNER2.5-Decide",
      "revision": "9d1bfb848cd16d93ee56ccbc59cd92bf0f284d90",

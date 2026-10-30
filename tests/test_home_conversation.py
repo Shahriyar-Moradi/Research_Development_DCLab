@@ -303,6 +303,28 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(result["summary"]["route_right"], 2)
         self.assertEqual(C.answer_for("What data do you have about them?", {"data": "a table", "goal": "x"}, set()), "a table")
 
+    def test_a_kept_run_keeps_the_conversations_decisions(self):
+        """2026-10-30: the kept dev runs had drafts but no ledger: request.understand_turn and request.options were lost."""
+        import tempfile
+
+        from dclab_rnd import ledger as L
+        from dclab_rnd.agent_eval.home import conversation as C
+
+        person = {"id": "t-1", "opening": "can you help with our customers?", "upload": None, "route": "prediction", "tool": "segmentation_project",
+                  "facts": {"goal": "I want to find types of members to target offers", "data": "a members table with visits"}}
+        replies = [turn("What are you hoping to achieve?", tracks=["analysis"]), turn("What data do you have?", tracks=["prediction"]),
+                   turn("Here is how I can help.", enough=True, options=[SEGMENTS, CHURN], tracks=["prediction"],
+                        goal={"value": "find types of members", "quote": "find types of members"},
+                        data_said={"value": "a members table with visits", "quote": "a members table with visits"})]
+        before = L.current_ledger()
+        with tempfile.TemporaryDirectory() as tmp:
+            C.measure([person], lambda pid: Script(*replies), lambda pid: Script(json.dumps({"tracks": []})), Path(tmp))
+            points = [json.loads(line)["point"] for f in (Path(tmp) / "t-1" / "ledger").rglob("*.jsonl") for line in f.read_text().splitlines()
+                      if line.strip() and "point" in json.loads(line)]
+        self.assertIn("request.understand_turn", points)
+        self.assertIn("request.options", points)
+        self.assertIs(L.current_ledger(), before)  # the ledger in place before the run is put back
+
 
 if __name__ == "__main__":
     unittest.main()

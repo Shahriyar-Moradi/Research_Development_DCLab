@@ -162,16 +162,22 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 def measure(personas: list[dict[str, Any]], understand_for: Callable[[str], Any], intent_for: Callable[[str], Any],
             keep: Optional[Path] = None) -> dict[str, Any]:
+    import contextlib
     import tempfile
 
+    from dclab_rnd import ledger as _ledger
     from dclab_rnd.draft.store import DraftStore
 
     from . import _isolated, mark_scripted
 
     rows = []
-    with _isolated():
+    with _isolated(), contextlib.ExitStack() as restore:
+        if keep:  # 2026-10-30: the kept dev runs had drafts but no ledger, so request.understand_turn and request.options were lost
+            restore.callback(_ledger.install, _ledger.current_ledger())
         for persona in personas:
             folder = (keep / str(persona["id"])) if keep else Path(tempfile.mkdtemp())
+            if keep:
+                _ledger.install(_ledger.FileLedger(folder / "ledger", f"{keep.name}-{persona['id']}"))
             store = DraftStore(folder / "drafts")
             rows.append(play(persona, understand_for(str(persona["id"])), intent_for(str(persona["id"])), store))
     if keep:
