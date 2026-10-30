@@ -231,7 +231,10 @@ class ReviewFindingsTests(unittest.TestCase):
         for rel in ("dclab_rnd/agentic/agents.py", "dclab_rnd/agentic/live_eval.py", "dclab_rnd/agentic/guide_review.py"):
             source = (ROOT / rel).read_text(encoding="utf-8")
             self.assertRegex(source, r"\(ResponsesClient\)")
-            self.assertIn("installed().record(", source.replace(" ", ""), rel)
+            # 2026-10-30: every NOOA client's request goes through the gateway (which records, caps and keeps the thinking),
+            # never NOOA's own litellm call with the cost recorded beside it
+            self.assertIn("through_gateway(", source, rel)
+            self.assertNotIn("super().acall(", source, rel)
         for rel in ("dclab_rnd/agentic/__main__.py", "dclab_rnd/agentic/live_eval.py", "dclab_rnd/agentic/guide_review.py"):
             self.assertIn("install(for_workspace(", (ROOT / rel).read_text(encoding="utf-8"), rel)
 
@@ -562,7 +565,7 @@ class NoClientOutsideTheGatewayTests(unittest.TestCase):
 class AdapterTests(unittest.TestCase):
     def test_the_campaign_adapter_reports_to_the_usage_log(self):
         source = (ROOT / "dclab_rnd/agentic/agents.py").read_text(encoding="utf-8")
-        self.assertIn('installed().record("campaign"', source)  # NOOA runs only in .venv-agent; the reporting is checked here
+        self.assertIn('through_gateway("campaign"', source)  # NOOA runs only in .venv-agent: its gateway path is tested there
         with mock.patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "k"}):
             usage = FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl")
             Gateway(usage).record("campaign", "gpt-x", {"input_tokens": 11, "output_tokens": 4}, 0.5, 1, "ok")

@@ -90,23 +90,24 @@ class WorkflowKnowledgeReviewer(Agent):
 class AuditedReviewClient(ResponsesClient):
     def __init__(self, model):
         super().__init__(model="openai/"+model,store=False,max_tokens=5000,retry_config=RetryConfig(max_retries=0,rate_limit_extra_retries=0),num_retries=0)
-        self.calls=0;self.usage={}
-    async def acall(self,messages,**kwargs):
-        from ..models.gateway import check_external, installed  # NOOA keeps its own HTTP client; the gateway still checks and counts
-        self.calls+=1
-        check_external("campaign_review")  # a cap already reached stops the request here
-        started=time.monotonic()
-        try:
-            response=await asyncio.wait_for(super().acall(messages,**kwargs),timeout=240)
-        except Exception as exc:
-            installed().record("campaign_review", self.model.removeprefix("openai/"),None,time.monotonic()-started,1,f"{type(exc).__name__}: the model request failed", base_url=_endpoint())
-            raise
-        usage=response.usage or {}
-        installed().record("campaign_review", self.model.removeprefix("openai/"),{"input_tokens":usage.get("prompt_tokens") or usage.get("input_tokens"),
-                                                        "output_tokens":usage.get("completion_tokens") or usage.get("output_tokens")},
-                           time.monotonic()-started,1,"ok",base_url=_endpoint())
-        for key,value in (response.usage or {}).items():
-            if isinstance(value,(int,float)): self.usage[key]=self.usage.get(key,0)+value
+        self.calls = 0
+        self.usage = {}
+        self.answered_by = None
+
+    async def acall(self, messages, tools=None, output_model=None, **kwargs):
+        """2026-10-30: through the gateway (agents.through_gateway): the thinking asked for and kept with the exchange, the
+        model that answered recorded (``answered_by``); this client was OpenAI-only through NOOA's own litellm client."""
+        from .agents import through_gateway
+
+        self.calls += 1
+
+        def counted(usage, answered_by, abandoned):
+            self.answered_by = answered_by
+            for key, value in usage.items():
+                if isinstance(value, (int, float)):
+                    self.usage[key] = self.usage.get(key, 0) + value
+
+        response, _ = await through_gateway("campaign_review", self.model, messages, output_model, tools, 240, counted)
         return response
 
 def write_status(model, status, reason=None, calls=0, usage=None, evidence_pack_sha256=None):
@@ -155,7 +156,8 @@ def contexts(pack,rules,workflows):
 
 async def run(model):
     load_dotenv(ROOT/".env",override=False)
-    if not os.environ.get("OPENAI_API_KEY"): raise RuntimeError("OPENAI_API_KEY is required in the process or local .env")
+    from ..models import installed as _installed
+    if _installed().client("campaign_review") is None: raise RuntimeError("no model serves campaign_review: set the provider's key in .env")
     pack=json.loads((KNOWLEDGE/"master_evidence_pack.json").read_text())
     rules=[json.loads(line) for line in (KNOWLEDGE/"model_building_rules.jsonl").read_text().splitlines() if line]
     workflows=json.loads((KNOWLEDGE/"workflow_blocks.json").read_text())
@@ -166,12 +168,12 @@ async def run(model):
         context=section_contexts[name];allowed=ids_for(context);context["allowed_evidence_ids"]=allowed
         agent=agent_type(llm=client,context={"dclab_contract":POLICY})
         from ..models import installed
-        gw_model=str(client.model).removeprefix("openai/")
         try:
             result=(await agent.review(json.dumps(context,ensure_ascii=False))).model_dump()
         except Exception as exc:
-            if "budget" not in str(exc).lower(): installed().check("campaign_review",gw_model,False,f"the typed answer did not parse ({type(exc).__name__})")
+            if "budget" not in str(exc).lower(): installed().check("campaign_review",client.answered_by or model,False,f"the typed answer did not parse ({type(exc).__name__})")
             raise
+        gw_model=client.answered_by or model  # the model that answered (the gateway's), never the name asked for
         cited=set(result["evidence_ids"])
         for rule in result["proposed_rules"]: cited.update(rule["evidence_ids"])
         if not cited <= set(allowed):
@@ -180,9 +182,9 @@ async def run(model):
         installed().check("campaign_review",gw_model,True)
         results[name]=result
         print(f"completed {name}",flush=True)
-    payload={"schema_version":1,"model":model,"provider":"OpenAI Responses API","store":False,"generated_at":datetime.now(timezone.utc).isoformat(),"calls":client.calls,"usage":client.usage,"evidence_pack_sha256":hashlib.sha256((KNOWLEDGE/"master_evidence_pack.json").read_bytes()).hexdigest(),"advisory_only":True,"sections":results}
+    payload={"schema_version":1,"model":client.answered_by or model,"asked_for":model,"provider":"DCLab gateway","store":False,"generated_at":datetime.now(timezone.utc).isoformat(),"calls":client.calls,"usage":client.usage,"evidence_pack_sha256":hashlib.sha256((KNOWLEDGE/"master_evidence_pack.json").read_bytes()).hexdigest(),"advisory_only":True,"sections":results}
     (KNOWLEDGE/"gpt6_astra_master_review.json").write_text(json.dumps(payload,indent=2,allow_nan=False))
-    write_status(model, "completed", calls=client.calls, usage=client.usage, evidence_pack_sha256=payload["evidence_pack_sha256"])
+    write_status(client.answered_by or model, "completed", calls=client.calls, usage=client.usage, evidence_pack_sha256=payload["evidence_pack_sha256"])
     return payload
 
 def main():
@@ -195,7 +197,7 @@ def main():
         message = str(exc).lower()
         if "quota" in message or "credit_balance" in message or "insufficient_quota" in message:
             reason = "api_quota_or_provider_unavailable"
-        elif "openai_api_key" in message:
+        elif "no model serves" in message:
             reason = "missing_api_key"
         else:
             reason = "review_failed"

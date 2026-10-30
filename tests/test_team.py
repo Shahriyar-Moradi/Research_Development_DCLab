@@ -117,6 +117,22 @@ class TeamTest(unittest.TestCase):
         done = [e for e in events if e.kind == "run.recorded" and e.ids.run == steps[0].ids.run]
         self.assertEqual((done[-1].payload["name"], done[-1].payload["status"]), ("team", "completed"))
 
+    def test_a_kept_measurement_leaves_its_runs_where_the_store_collects_them(self):
+        """2026-10-30: every team measurement ran in a temporary folder, so the store had no team run: a kept one leaves its
+        projects, its session log (the team's run.recorded) and its ledger in a workspace folder marked scripted."""
+        from unittest import mock
+
+        from dclab_rnd import experience
+
+        keep = Path(tempfile.mkdtemp()) / "team-run"
+        with mock.patch.object(harness, "KINDS", ("binary",)):
+            result = harness.measure(advisor(), keep)
+        self.assertEqual(result["rows"][0]["status"], "completed")
+        self.assertTrue((keep / "scripted.json").is_file() and any((keep / "projects").iterdir()))
+        events = experience.open_log(keep).read()
+        self.assertIn(("team", "completed"), [(e.payload.get("name"), e.payload.get("status")) for e in events if e.kind == "run.recorded"])
+        self.assertIsNone(experience._INSTALLED.get("log"))  # the process's log put back
+
     def test_only_what_is_open_is_asked_and_the_answers_are_used(self):
         store, pid, case, out, _ = self.run_team("rare_event")
         fields = [q["field"] for q in out["asked"]]

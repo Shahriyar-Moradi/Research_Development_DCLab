@@ -35,12 +35,12 @@ DESCRIPTIONS = {
 REQUESTS_PER_RUN = 10  # analyst, checker, investigator, planner, engineer, up to 4 critic rounds, reporter
 
 
-def _project(key: str) -> tuple[Any, str, Any]:
+def _project(key: str, keep: Optional[Path] = None) -> tuple[Any, str, Any]:
     from dclab_rnd import kinds
     from dclab_rnd.studio import ProjectStore, data as sd
 
     case = kinds.get(key).case(0)
-    store = ProjectStore(Path(tempfile.mkdtemp()))
+    store = ProjectStore(Path(keep) / "projects" if keep else Path(tempfile.mkdtemp()))
     pid = store.create(key, "general", DESCRIPTIONS[key])["id"]
     directory = store.data_dir(pid)
     if case.files is not None:
@@ -78,7 +78,21 @@ def _approvals_came(moves: list[dict[str, Any]]) -> bool:
     return all(m["status"] in ("allowed", "needs_approval") for m in moves)
 
 
-def measure(advisor: Optional[Any]) -> dict[str, Any]:
+def measure(advisor: Optional[Any], keep: Optional[Path] = None) -> dict[str, Any]:
+    """``keep``: a workspace folder under ``agent_runs/`` the runs are kept in (2026-10-30: every team run had gone to a
+    temporary folder, so the store had no team run at all): its projects, session log and decision ledger, marked scripted."""
+    from dclab_rnd import campaign_capture
+
+    if keep is None:
+        return _measure(advisor, None)
+    from .home import mark_scripted
+
+    mark_scripted(Path(keep), "the team's person is a script answering from the replica's case: its answers are no human's")
+    with campaign_capture.recorded(Path(keep)):
+        return _measure(advisor, keep)
+
+
+def _measure(advisor: Optional[Any], keep: Optional[Path]) -> dict[str, Any]:
     from dclab_rnd import kinds
     from dclab_rnd.expansion import runner
     from dclab_rnd.kinds import acceptance
@@ -88,7 +102,7 @@ def measure(advisor: Optional[Any]) -> dict[str, Any]:
     for key in KINDS:
         before = _calls(advisor)
         try:
-            store, pid, case = _project(key)
+            store, pid, case = _project(key, keep)
             answers = {"target_column": case.target, "prediction_moment": case.moment, "budget": str(case.solution.get("alert_budget") or "")}
             person = team.Person(answer=lambda field, question, a=answers: a.get(field), approve=lambda gate, summary: True,
                                  who="scripted person")
@@ -139,6 +153,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.agent_eval.team")
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--cap-eur", type=float, default=None)
+    parser.add_argument("--keep", type=Path, default=None, help="the workspace folder the runs are kept in (default: agent_runs/live_tests/<date>-team/<time>)")
     args = parser.parse_args(argv)
     from dotenv import load_dotenv
 
@@ -146,22 +161,26 @@ def main(argv: list[str] | None = None) -> int:
     from dclab_rnd.core_advisor import GatewayAdvisor
     from dclab_rnd.models.gateway import for_workspace
 
-    gateway = for_workspace()
-    gateway.shadows = None
     print(json.dumps({"gate": GATE, "replicas": KINDS, "max_requests": REQUESTS_PER_RUN * len(KINDS)}, indent=1))
     if not args.yes or args.cap_eur is None:
         print("nothing was sent: add --yes and --cap-eur to run it")
         return 0
+    keep = args.keep or (Path(__file__).resolve().parents[2] / "agent_runs" / "live_tests" /
+                         f"{datetime.now(timezone.utc):%Y-%m-%d}-team" / f"{datetime.now(timezone.utc):%H%M%S}")
+    # the workspace's own gateway, not one on ``keep``: the monthly cap is counted from one usage log, and a kept folder's would
+    # start empty; the exchanges stay in the workspace, joined to these runs by their request ids (as the Home eval's are)
+    gateway = for_workspace()
+    gateway.shadows = None
     advisor = GatewayAdvisor(gateway, max_tokens=3000, cap_eur=args.cap_eur)
     started = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-    result = measure(advisor)
+    result = measure(advisor, keep)
     spent = round(advisor.spent_eur(), 4)
     judged = verdict(result, spent, args.cap_eur)
     RESULTS.mkdir(parents=True, exist_ok=True)
     n = len(list(RESULTS.glob("TEAM-*.json"))) + 1
     record = {"id": f"TEAM-{n:03d}", "experiment_id": f"TEAM-{n:03d}", "campaign_id": "team_v1", "kind": "team_measured", "at": started,
               "completed_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(), "status": "completed", "gate": GATE,
-              "cap_eur": args.cap_eur, "spent_eur": spent, "verdict": judged, "result": result}
+              "cap_eur": args.cap_eur, "spent_eur": spent, "verdict": judged, "kept": str(keep), "result": result}
     path = RESULTS / f"TEAM-{n:03d}_three_replicas.json"
     with path.open("x", encoding="utf-8") as handle:
         json.dump(record, handle, indent=1, default=str)

@@ -5,6 +5,7 @@ import json
 from nooa import Agent, PredictStrategy, strategy
 from nooa.config import PredictConfig
 from nooa.unifiedllm import ResponsesClient, RetryConfig
+from nooa.unifiedllm.unifiedllm import LLMResponse, _instantiate_output_model, extract_and_parse_json
 import nooa.agent as _nooa_agent
 from .schemas import Agenda, DataReview, Experiment, Critique, Synthesis
 
@@ -103,6 +104,67 @@ class KnowledgeCurator(Agent):
         """
         ...
 
+def gateway_call(purpose, model, messages, output_model=None, tools=None, max_tokens=6000):
+    """One typed NOOA request through the gateway (2026-10-30): NOOA's own litellm client asked for no thinking, kept no
+    exchange and returned ``reasoning=None``. The gateway asks Claude for its thinking (adaptive, display summarized), keeps
+    the whole exchange with the API thinking summary, checks the caps, counts the cost and records the request in the
+    session. Returns the reply and the model that answered (never parsed here: a reply that does not parse is still paid)."""
+    from ..models import installed, settings
+    from .campaign_model import bare
+
+    if tools:
+        raise RuntimeError("the campaign's agents call no tools: a tool request has no path through the gateway here")
+    name = bare(model)
+    serving = settings.tier(settings.purpose(purpose).tier)
+    # a Claude model the run named, only on an Anthropic tier; another provider's name is never sent anywhere
+    override = name if name.startswith("claude") and serving.get("provider") == "anthropic" else None
+    client = installed().client(purpose, model=override)
+    if client is None:
+        raise RuntimeError(f"no model serves {purpose}: set the provider's key")
+    sent = [dict(m) for m in messages if isinstance(m, dict)]
+    if output_model is not None:  # the typed answer NOOA validates; never a field asking for the model's reasons
+        schema = json.dumps(output_model.model_json_schema(), ensure_ascii=False)
+        sent = [{"role": "system", "content": "Answer with one JSON object, and nothing else, that fits this JSON Schema:\n" + schema}, *sent]
+    reply = client.complete(sent, None, max_tokens=max_tokens)
+    return reply, str(getattr(client, "model", None) or override or serving.get("model") or "")
+
+
+def as_response(reply, output_model=None):
+    """NOOA's ``LLMResponse``: the typed answer parsed (raises when it does not fit), its reasoning the thinking summary."""
+    text = str(reply.get("content") or "")
+    thinking = "\n\n".join(str(b.get("text") or "") for b in reply.get("thinking") or [] if isinstance(b, dict)) or None
+    finish = "length" if reply.get("finish_reason") == "length" else "stop"
+    content = _instantiate_output_model(output_model, extract_and_parse_json(text)) if output_model is not None else text
+    return LLMResponse(raw_response=reply, content=content, tool_calls=[], finish_reason=finish,
+                       assistant_message={"role": "assistant", "content": text}, reasoning=thinking, usage=reply.get("usage") or {})
+
+
+async def through_gateway(purpose, model, messages, output_model, tools, timeout, on_usage):
+    """``gateway_call`` in a thread, its usage always reported through ``on_usage(usage, answered_by, abandoned)``: a thread
+    cannot be cancelled, so on a pause or a timeout the request still finishes and is paid; its usage then arrives later,
+    marked abandoned, instead of being lost. The reply is parsed only after its usage is counted."""
+    fut = asyncio.ensure_future(asyncio.to_thread(gateway_call, purpose, model, messages, output_model, tools))
+    gone = {"yes": False}
+
+    def finished(f):
+        if gone["yes"] and not f.cancelled() and f.exception() is None:
+            reply, answered_by = f.result()
+            on_usage(reply.get("usage") or {}, answered_by, True)
+
+    fut.add_done_callback(finished)
+    try:
+        reply, answered_by = await asyncio.wait_for(asyncio.shield(fut), timeout)
+    except (asyncio.CancelledError, asyncio.TimeoutError):
+        if fut.done() and not fut.cancelled() and fut.exception() is None:  # it finished as the caller left: count it now
+            reply, answered_by = fut.result()
+            on_usage(reply.get("usage") or {}, answered_by, True)
+        else:
+            gone["yes"] = True
+        raise
+    on_usage(reply.get("usage") or {}, answered_by, False)
+    return as_response(reply, output_model), answered_by
+
+
 class AuditedClient(ResponsesClient):
     def __init__(self, model, store, run_id):
         from .campaign_model import client_args
@@ -112,60 +174,45 @@ class AuditedClient(ResponsesClient):
         super().__init__(model=name, store=False, max_tokens=6000,
                          retry_config=RetryConfig(max_retries=0, rate_limit_extra_retries=0), num_retries=0, **extra)
         self.ledger, self.run_id = store, run_id
-    async def acall(self, messages, **kwargs):
+    async def acall(self, messages, tools=None, output_model=None, **kwargs):
+        """2026-10-30: through the gateway, not NOOA's own litellm client. That client never asked for thinking, kept no
+        exchange and returned ``reasoning=None``, so every campaign call lost its thinking (the owner's rule 8). The gateway
+        asks Claude for its thinking (adaptive, display summarized), keeps the whole exchange with the API thinking summary,
+        counts the cost against the caps and records the request in the session. The run's own call budget stays here."""
         run = self.ledger.get(self.run_id)
         # No hidden model/provider retry loop. Every requested call is counted.
         if run["llm_calls"] >= 5 + 2 * run["config"]["max_experiments"]:
             raise RuntimeError("LLM call budget exhausted")
+        if tools:
+            raise RuntimeError("the campaign's agents call no tools: a tool request has no path through the gateway here")
         self.ledger.update(self.run_id, llm_calls=run["llm_calls"] + 1)
         self.ledger.event(self.run_id, "llm_request", {"model": self.model, "messages": messages, "max_output_tokens": 6000})
-        from ..models.gateway import check_external, installed  # NOOA keeps its own HTTP client; the gateway still checks and counts
-        check_external("campaign")  # a cap already reached stops the request here
-        started = time.monotonic()
-        try:
-            response = await asyncio.wait_for(super().acall(messages, **kwargs), timeout=180)
-        except Exception as exc:
-            outcome = f"{type(exc).__name__}: the model request failed"
-            eur = installed().record("campaign", self.model.split("/", 1)[-1], None, time.monotonic() - started, 1, outcome, base_url=_endpoint())
-            self._recorded(messages, None, eur, time.monotonic() - started, outcome)
-            raise
-        usage = response.usage or {}
-        tokens = {"input_tokens": usage.get("prompt_tokens") or usage.get("input_tokens"),
-                  "output_tokens": usage.get("completion_tokens") or usage.get("output_tokens")}
-        eur = installed().record("campaign", self.model.split("/", 1)[-1], tokens, time.monotonic() - started, 1, "ok", base_url=_endpoint())
-        self._recorded(messages, tokens, eur, time.monotonic() - started, "ok")
-        total = self.ledger.get(self.run_id)["usage"]
-        for key, value in usage.items():
-            if isinstance(value, (int, float)): total[key] = total.get(key, 0) + value
-        self.ledger.update(self.run_id, usage=total)
-        self.ledger.event(self.run_id, "llm_usage", {"model": self.model, "usage": usage, "finish_reason": response.finish_reason})
+        def counted(usage, answered_by, abandoned):
+            if getattr(self, "session", None) is not None:
+                self.session.used({"input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens")})
+            total = self.ledger.get(self.run_id)["usage"]
+            for key, value in usage.items():
+                if isinstance(value, (int, float)): total[key] = total.get(key, 0) + value
+            self.ledger.update(self.run_id, usage=total)
+            self.answered_by = answered_by
+            self.ledger.event(self.run_id, "llm_abandoned" if abandoned else "llm_usage",
+                              {"model": self.model, "answered_by": answered_by, "usage": usage})
+
+        response, _ = await through_gateway("campaign", self.model, messages, output_model, tools, 240, counted)
         return response
-
-    def _recorded(self, messages, tokens, eur, seconds, outcome):
-        """21.1: the request in the session record like any gateway request (NOOA keeps its own HTTP client), joined to
-        the campaign's run; its next phase step names it."""
-        from .. import experience
-        from ..experience import hooks
-
-        if getattr(self, "session", None) is not None:
-            self.session.used(tokens)
-        hooks.from_model_request({"id": experience.new_model_request(), "purpose": "campaign", "tier": None, "model": self.model.split("/", 1)[-1],
-                                  "input_tokens": (tokens or {}).get("input_tokens"), "output_tokens": (tokens or {}).get("output_tokens"),
-                                  "cost_eur": eur, "seconds": round(seconds, 3), "outcome": outcome, "run": self.run_id},
-                                 [m for m in messages if isinstance(m, dict)] if isinstance(messages, list) else None)
 
 async def ask(agent_type, method, client, context):
     # A fresh specialist per node prevents hidden cross-node conversation state;
     # LangGraph's persisted context is the explicit source of memory.
     from ..models import installed
     agent = agent_type(llm=client, context={"dclab_contract": POLICY})
-    model = str(getattr(client, "model", "")).split("/", 1)[-1]
+    asked = str(getattr(client, "model", "")).split("/", 1)[-1]
     try:
         result = await getattr(agent, method)(json.dumps(context, ensure_ascii=False))
         dumped = result.model_dump()
     except Exception as exc:
         if "budget" not in str(exc).lower():  # a cap or a refusal is not the model's fault
-            installed().check("campaign", model, False, f"the typed answer did not parse ({type(exc).__name__})")
+            installed().check("campaign", getattr(client, "answered_by", None) or asked, False, f"the typed answer did not parse ({type(exc).__name__})")
         raise
-    installed().check("campaign", model, True)
+    installed().check("campaign", getattr(client, "answered_by", None) or asked, True)  # the model that answered, never the one named
     return dumped

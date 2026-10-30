@@ -1,0 +1,136 @@
+{
+ "package": "capture-campaign-team",
+ "title": "The research campaign's calls keep Claude's thinking through the gateway, and team measurements are kept for the store",
+ "date": "2026-10-30",
+ "request": "The owner: fix the agents the store never captured (workspace chat, team, campaign, twin's thinking), then run small capped live checks and show the data samples.",
+ "spec": "Every campaign, campaign review and campaign live-eval request goes through the gateway, so Claude's API thinking summary (adaptive, display summarized) is kept with the exchange; the team measurement keeps its runs in a workspace folder the store collects; live checks prove each path with a real model.",
+ "plan": [
+  "Find why each agent has no captured run or thinking",
+  "Route NOOA's typed requests through the gateway with one shared function",
+  "Keep the team measurement's projects, session log and ledger in a scripted workspace folder",
+  "Tests for the capture and the failure paths",
+  "Live checks with caps: workspace chat, campaign, team, twin",
+  "Independent review, fixes, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "Send the campaign's requests through the gateway instead of asking NOOA's litellm client for thinking",
+   "why": "NOOA calls litellm's Responses API and always returns reasoning=None; the gateway already asks Claude for summarized thinking, keeps the whole exchange and holds the caps"
+  },
+  {
+   "decision": "The typed answer is asked with the output model's JSON Schema in a system message and parsed by NOOA's own helpers",
+   "why": "NOOA's PredictStrategy validates the parsed answer and retries a failed parse; no field asks for the model's reasons"
+  },
+  {
+   "decision": "Usage is reported through a callback, before parsing, and later for a call the caller left",
+   "why": "a thread cannot be cancelled: a paused or timed-out request still finishes and is paid, and a reply that does not parse is paid too"
+  },
+  {
+   "decision": "The team measurement keeps the workspace's own gateway, not one opened on the kept folder",
+   "why": "the monthly cap is counted from one usage log; a kept folder's would start empty and let a run spend past the cap; the store joins exchanges to runs by request id"
+  },
+  {
+   "decision": "A Claude model name is passed only to an Anthropic tier; the record names the model that answered",
+   "why": "the review found a GPT name credited for Claude's answers and a Claude name sent to a non-Anthropic tier"
+  }
+ ],
+ "change": "dclab_rnd.agentic.agents: gateway_call, as_response and through_gateway; AuditedClient.acall counts usage and the model that answered in the run ledger; ask credits the model that answered. dclab_rnd.agentic.guide_review and dclab_rnd.agentic.live_eval: their clients use through_gateway, no OpenAI key required, the model that answered recorded. dclab_rnd.agent_eval.team: measure(advisor, keep) keeps projects, session log and ledger in a scripted workspace folder (campaign_capture.recorded); main keeps by default under the live tests folder.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The research campaign kept no exchange and no thinking",
+   "scenario": "Campaign calls on two days were counted in the usage log and none was kept as an exchange",
+   "cause": "AuditedClient called NOOA's own litellm client; the gateway only checked the caps and counted the cost",
+   "fix": "every campaign request goes through the gateway (through_gateway)",
+   "test": "tests/test_agentic.py test_a_campaign_call_goes_through_the_gateway_and_keeps_its_thinking_summary"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The store had no team run at all",
+   "scenario": "Every team measurement built its projects in a temporary folder, so its run events were written nowhere the store reads",
+   "cause": "agent_eval.team created a ProjectStore in tempfile.mkdtemp and installed no session log",
+   "fix": "measure(advisor, keep) keeps the projects, the session log and the ledger in a scripted workspace folder",
+   "test": "tests/test_team.py test_a_kept_measurement_leaves_its_runs_where_the_store_collects_them"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The campaign review and live eval credited a GPT model for Claude's answers",
+   "scenario": "With the Anthropic provider on, the review file said provider OpenAI Responses API and model gpt while the gateway's Claude answered",
+   "cause": "the records kept the model name asked for",
+   "fix": "the clients keep answered_by from the gateway; the payload, the status and the checks use it",
+   "test": "tests/test_agentic.py test_a_campaign_call_goes_through_the_gateway_and_keeps_its_thinking_summary"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The review and live eval refused to start without an OpenAI key",
+   "scenario": "On a machine with only the Anthropic key both stopped before any request",
+   "cause": "an OPENAI_API_KEY check left from the litellm path",
+   "fix": "the check asks whether the gateway serves the purpose",
+   "test": "none: both commands are run by hand"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A paused or timed-out request was paid but missing from the run's usage",
+   "scenario": "Pause during a campaign call: the thread keeps running and the gateway charges it, but the run never counts it",
+   "cause": "asyncio.to_thread cannot be cancelled and its result was dropped",
+   "fix": "the call is shielded and a done callback reports its usage as abandoned",
+   "test": "tests/test_agentic.py test_a_paid_reply_is_counted_when_it_does_not_parse_or_the_caller_leaves"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A reply that did not parse was missing from the run's usage",
+   "scenario": "Claude's answer does not fit the schema: the gateway charged it, the run's usage skipped it",
+   "cause": "the reply was parsed before its usage was reported",
+   "fix": "usage is reported first, then the reply is parsed",
+   "test": "tests/test_agentic.py test_a_paid_reply_is_counted_when_it_does_not_parse_or_the_caller_leaves"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A Claude model name could be sent to a tier that is not Anthropic",
+   "scenario": "The standard tier is Anthropic but the strong tier points to a local server: the campaign's Claude name goes there and every call fails",
+   "cause": "the override checked the name only",
+   "fix": "the override is passed only when the purpose's tier is Anthropic",
+   "test": "tests/test_agentic.py test_a_paid_reply_is_counted_when_it_does_not_parse_or_the_caller_leaves"
+  },
+  {
+   "id": "F8",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The live campaign check could not reach the gateway",
+   "scenario": "The live campaign failed on its first request in the agent environment",
+   "cause": "the agent environment has no Anthropic SDK, so the gateway serves nothing there; the old path used litellm",
+   "fix": "open: the SDK must be installed in the agent environment and added to its lock file, with the owner's agreement",
+   "test": "none yet"
+  }
+ ],
+ "measurements": [
+  {"name": "team measurement live, kept", "gate": "three team runs recorded in the kept workspace with the roles' thinking summaries", "result": "three team runs completed and recorded; every role but the reporter kept its thinking summary; EUR 0.22; the gate's churn acceptance check failed as in the run before", "verdict": "pass", "cost_eur": 0.22, "limits": ["the team gate itself failed on one acceptance check that predates this change"]},
+  {"name": "workspace chat live", "gate": "one answered question with its run recorded and its thinking kept", "result": "answered, run recorded, three of five exchanges with the thinking summary kept redacted (the purpose sees table results); EUR 0.02", "verdict": "pass", "cost_eur": 0.02},
+  {"name": "campaign live", "gate": "one campaign request through the gateway keeps its thinking summary", "result": "failed on the first request: the agent environment has no Anthropic SDK", "verdict": "fail", "cost_eur": 0.0, "next": "install the SDK in the agent environment with the owner's agreement and run again"}
+ ],
+ "outcome": "The campaign, its review and its live eval now ask for and keep Claude's thinking through the gateway, with the cost and the model that answered recorded; team measurements are kept where the store collects them. Workspace chat and team are proven live; the campaign waits for the SDK in the agent environment.",
+ "lessons": [
+  "A framework that keeps its own HTTP client loses the exchange even when the cost is counted",
+  "A measurement run in a temporary folder leaves nothing to train on",
+  "Moving a call into a thread changes what cancel means: count what is paid even when the caller is gone"
+ ],
+ "risks": [
+  "A request left by a pause still runs to its end in its thread",
+  "The campaign's typed answers now depend on JSON in the reply instead of the Responses API's structured output"
+ ],
+ "commits": []
+}

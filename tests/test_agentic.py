@@ -308,8 +308,68 @@ def test_the_campaign_runs_in_the_harness_and_its_requests_are_recorded(monkeypa
     assert all(r["run_id"] == "h" and r["agent"] == "campaign" for r in rows)
     phases = {r["tool"]: r.get("model_request") for r in rows}
     assert phases["plan"] and phases["review"] is None  # a phase names the request it made, never an earlier one
-    AuditedClient._recorded(SimpleNamespace(model="openai/m", run_id="h"), [{"role": "user", "content": "plan"}], {"input_tokens": 3, "output_tokens": 2}, 0.001, 0.5, "ok")
-    assert (requests[0]["purpose"], requests[0]["run"], requests[0]["input_tokens"]) == ("campaign", "h", 3)
+
+
+def test_a_campaign_call_goes_through_the_gateway_and_keeps_its_thinking_summary(monkeypatch):
+    """2026-10-30: NOOA's own litellm client asked for no thinking and kept no exchange (22 calls on 2026-10-26, none kept).
+    The campaign's typed answer now comes through the gateway: Claude's API thinking summary is kept with the exchange and
+    handed to NOOA as the reply's reasoning; the run's call budget and ledger events stay; a tool request is refused."""
+    from types import SimpleNamespace
+
+    from pydantic import BaseModel
+
+    import dclab_rnd.models as models
+    from dclab_rnd.agentic.agents import AuditedClient
+    from dclab_rnd.models import gateway as gw
+    from dclab_rnd.models import settings
+
+    class Answer(BaseModel):
+        title: str
+
+    sent = []
+
+    class Transport:
+        thinking = None
+
+        def complete(self, messages, tools=None, max_tokens=None, **options):
+            sent.append((messages, self.thinking))
+            return {"content": '{"title": "ratio of balance to age"}', "tool_calls": [], "finish_reason": "stop",
+                    "thinking": [{"text": "A ratio is safe: both inputs are known at prediction time.", "signature": "s"}],
+                    "usage": {"input_tokens": 12, "output_tokens": 7}}
+
+    home = Path(tempfile.mkdtemp())
+    g = gw.Gateway()
+    g.transport = lambda tier, p: Transport()
+    bound = gw.Bound(g, "campaign", settings.purpose("campaign"), {"name": "strong", "model": "claude-sonnet-5-5"}, None, None)
+    asked = []
+    monkeypatch.setattr(models, "installed", lambda: SimpleNamespace(client=lambda purpose, **kw: asked.append((purpose, kw)) or bound))
+    monkeypatch.setattr(gw, "_exchange_home", lambda gateway, live=False: home)
+    monkeypatch.setattr("dclab_rnd.experience.model_text_allowed", lambda *a, **k: True)
+    real_tier = settings.tier
+    monkeypatch.setattr(settings, "tier", lambda name: {**real_tier(name), "provider": "anthropic"})
+    with tempfile.TemporaryDirectory() as directory:
+        store = Store(Path(directory)); store.create("h", RunRequest(max_experiments=1).model_dump())
+        client = object.__new__(AuditedClient)
+        client.model, client.ledger, client.run_id = "anthropic/claude-sonnet-5-5", store, "h"
+        reply = asyncio.run(client.acall([{"role": "user", "content": "propose one feature"}], output_model=Answer))
+        assert reply.content == Answer(title="ratio of balance to age")
+        assert reply.reasoning == "A ratio is safe: both inputs are known at prediction time."
+        assert store.get("h")["llm_calls"] == 1 and store.get("h")["usage"]["input_tokens"] == 12
+        with pytest.raises(RuntimeError, match="no tools"):
+            asyncio.run(client.acall([{"role": "user", "content": "x"}], tools=[object()]))
+    from dclab_rnd.agentic.guide_review import AuditedReviewClient
+
+    review = object.__new__(AuditedReviewClient)
+    review.model, review.calls, review.usage = "openai/gpt-5", 0, {}
+    asyncio.run(review.acall([{"role": "user", "content": "review"}]))  # the OpenAI-only reviewer: now the gateway's Claude
+    assert asked == [("campaign", {"model": "claude-sonnet-5-5"}), ("campaign_review", {"model": None})]
+    assert review.calls == 1 and review.usage["output_tokens"] == 7
+    assert review.answered_by == "claude-sonnet-5-5"  # the review's record credits the model that answered, never GPT
+    assert sent[0][1] == "adaptive"  # the gateway asked for the thinking (display summarized in the Anthropic client)
+    assert "JSON Schema" in sent[0][0][0]["content"] and "reason" not in sent[0][0][0]["content"].lower()
+    kept = [json.loads(line) for f in (home / "model_exchanges").rglob("*.jsonl") for line in f.read_text().splitlines()]
+    assert [k["purpose"] for k in kept] == ["campaign", "campaign"]  # the scripted Bound serves both purposes here
+    assert kept[0]["thinking"][0]["text"].startswith("A ratio is safe")
 
 
 def test_the_campaign_runs_on_the_products_claude_and_never_on_a_blocked_provider(monkeypatch):
@@ -354,3 +414,49 @@ def test_the_campaign_runs_on_the_products_claude_and_never_on_a_blocked_provide
     monkeypatch.setenv("DCLAB_BLOCK_PROVIDERS", "openai")
     assert campaign_model.choice() is None
     assert campaign_model.model_for("claude-sonnet-5-5", openai) == openai["model"]
+
+
+def test_a_paid_reply_is_counted_when_it_does_not_parse_or_the_caller_leaves(monkeypatch):
+    """The review of the gateway path: a reply that does not fit the schema is still paid, so its usage is counted before it
+    is parsed; a thread cannot be cancelled, so a call left by a pause or a timeout reports its usage later, abandoned; a
+    Claude name is never sent to a tier that is not Anthropic."""
+    import time
+    from types import SimpleNamespace
+
+    from pydantic import BaseModel
+
+    import dclab_rnd.models as models
+    from dclab_rnd.agentic import agents
+    from dclab_rnd.models import settings
+
+    class Answer(BaseModel):
+        title: str
+
+    asked, slow = [], {"s": 0.0}
+
+    class Client:
+        model = "claude-sonnet-5-5"
+
+        def complete(self, messages, tools=None, max_tokens=None, **options):
+            time.sleep(slow["s"])
+            return {"content": "not json at all", "usage": {"input_tokens": 5, "output_tokens": 3}}
+
+    monkeypatch.setattr(models, "installed", lambda: SimpleNamespace(client=lambda purpose, **kw: asked.append(kw) or Client()))
+    monkeypatch.setattr(settings, "tier", lambda name: {"provider": "openai_compatible", "model": "local"})
+    seen = []
+    with pytest.raises(Exception):
+        asyncio.run(agents.through_gateway("campaign", "anthropic/claude-sonnet-5", [{"role": "user", "content": "x"}], Answer, None, 5,
+                                           lambda usage, by, abandoned: seen.append((usage["input_tokens"], by, abandoned))))
+    assert seen == [(5, "claude-sonnet-5-5", False)]  # counted before the parse failed
+    assert asked == [{"model": None}]  # the strong tier is not Anthropic: no Claude name sent to it
+    seen.clear()
+    slow["s"] = 0.3
+
+    async def leave_early():
+        with pytest.raises(asyncio.TimeoutError):
+            await agents.through_gateway("campaign", "m", [{"role": "user", "content": "x"}], None, None, 0.05,
+                                         lambda usage, by, abandoned: seen.append(abandoned))
+        await asyncio.sleep(0.5)  # the thread finishes and reports
+
+    asyncio.run(leave_early())
+    assert seen == [True]

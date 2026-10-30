@@ -38,26 +38,23 @@ class MeteredClient(ResponsesClient):
                          retry_config=RetryConfig(max_retries=0, rate_limit_extra_retries=0), num_retries=0)
         self.calls = 0
         self.usage = {}
+        self.answered_by = None
 
-    async def acall(self, messages, **kwargs):
-        from ..models.gateway import check_external, installed  # NOOA keeps its own HTTP client; the gateway still checks and counts
+    async def acall(self, messages, tools=None, output_model=None, **kwargs):
+        """2026-10-30: through the gateway (agents.through_gateway): the thinking asked for and kept with the exchange, the
+        model that answered recorded (``answered_by``); this client was OpenAI-only through NOOA's own litellm client."""
+        from .agents import through_gateway
+
         self.calls += 1
-        check_external("campaign")  # a cap already reached stops the request here
-        started = time.monotonic()
-        try:
-            response = await asyncio.wait_for(super().acall(messages, **kwargs), timeout=180)
-        except Exception as exc:
-            installed().record("campaign", self.model.removeprefix("openai/"), None, time.monotonic() - started, 1, f"{type(exc).__name__}: the model request failed", base_url=_endpoint())
-            raise
-        usage = response.usage or {}
-        installed().record("campaign", self.model.removeprefix("openai/"), {"input_tokens": usage.get("prompt_tokens") or usage.get("input_tokens"),
-                                                     "output_tokens": usage.get("completion_tokens") or usage.get("output_tokens")},
-                           time.monotonic() - started, 1, "ok", base_url=_endpoint())
-        for key, value in (response.usage or {}).items():
-            if isinstance(value, (int, float)):
-                self.usage[key] = self.usage.get(key, 0) + value
-        return response
 
+        def counted(usage, answered_by, abandoned):
+            self.answered_by = answered_by
+            for key, value in usage.items():
+                if isinstance(value, (int, float)):
+                    self.usage[key] = self.usage.get(key, 0) + value
+
+        response, _ = await through_gateway("campaign", self.model, messages, output_model, tools, 180, counted)
+        return response
 
 def grade(case, answer):
     """Conservative hard checks. Passing does not replace domain-expert review."""
@@ -97,7 +94,7 @@ async def evaluate(manifest, model, limit=None):
         except Exception as exc:
             # Error text may contain request details; retain only the safe type.
             record.update(status="failed", schema_valid=False, hard_check_pass=False, error_type=type(exc).__name__)
-        record.update(model_calls=client.calls, usage=client.usage)
+        record.update(model_calls=client.calls, usage=client.usage, answered_by=client.answered_by)
         records.append(record)
         if record.get("error_type") in ("RateLimitError", "AuthenticationError", "PermissionDeniedError", "InternalServerError"):
             break
@@ -118,14 +115,16 @@ def main():
     if args.limit is not None and args.limit < 1:
         parser.error("--limit must be positive")
     load_dotenv(ROOT / ".env", override=False)
-    if not os.environ.get("OPENAI_API_KEY"):
-        parser.error("OPENAI_API_KEY is missing; do not pass it on the command line")
+    from ..models import installed
+    if installed().client("campaign") is None:
+        parser.error("no model serves the campaign: set the provider's key in .env (never on the command line)")
     model = args.model or os.environ.get("OPENAI_MODEL", "gpt-5.6-terra")
     manifest_bytes = args.manifest.read_bytes()
     manifest = json.loads(manifest_bytes)
     records = asyncio.run(evaluate(manifest, model, args.limit))
     result = {"suite_id": manifest["suite_id"], "manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
-              "created_at": datetime.now(timezone.utc).isoformat(), "model": model,
+              "created_at": datetime.now(timezone.utc).isoformat(), "asked_for": model,
+              "model": sorted({r.get("answered_by") for r in records if r.get("answered_by")}) or None,
               "cases_requested": len(manifest["cases"][:args.limit]), "cases_run": len(records),
               "cases_not_run": len(manifest["cases"][:args.limit]) - len(records),
               "hard_check_passed": sum(r["hard_check_pass"] for r in records),
