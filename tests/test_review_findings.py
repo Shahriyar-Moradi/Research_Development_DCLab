@@ -50,3 +50,27 @@ class ReviewFindingsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReviewFindingsCoverageTests(unittest.TestCase):
+    def test_a_developer_judged_finding_is_a_note_never_a_missing_thinking(self):
+        """2026-10-30: the developer's verdict is written in the record (its fix); no API thinking was kept for it, and the
+        coverage says so instead of listing it as a model's row with no reason."""
+        from dclab_rnd.store import coverage as cov
+        from dclab_rnd.store.layout import Layout
+        from dclab_rnd.store.sets.others import review_findings
+
+        root = Path(tempfile.mkdtemp())
+        folder = root / "research/llm-fine-tuning/experiments/dev_trajectories/records"
+        folder.mkdir(parents=True)
+        (folder / "pkg-x.json").write_text(json.dumps(record([finding("F2", test="(code)")])))
+        row = review_findings(root)[0]
+        layout = Layout(Path(tempfile.mkdtemp()))
+        out = layout.sets("m7_judges", "review_findings", "v1")
+        out.mkdir(parents=True)
+        (out / "MANIFEST.json").write_text("{}")
+        (out / "train.jsonl").write_text(row.model_dump_json() + "\n")
+        doc = cov.measure(layout, home=Path(tempfile.mkdtemp()))
+        m = doc["model_types"]["m7_judges"]
+        self.assertEqual((m["note"], m["none"]), (1, 0))
+        self.assertFalse([g for g in cov.gaps(doc) if g.startswith("m7_judges")])

@@ -79,8 +79,6 @@
  },
  "coverage": {
   "gaps": [
-   "agent campaign: no run recorded",
-   "track advice: the advice track has no product of its own yet: its exit (answer) is not built, and the Evidence library's record carries no draft id, so there is nothing to judge",
    "m7_routing request.intent: 27 of 1434 model readings without their thinking summary and without a reason it cannot exist",
    "m1_students: 27 of 248746 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
    "m2_workflow_decisions: 27 of 21260 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
@@ -635,16 +633,18 @@
       "outcome": 7
      },
      "(studio code)": {
-      "examples": 7849,
-      "no_model": 7849,
-      "outcome": 7849
+      "examples": 10362,
+      "no_model": 9825,
+      "note": 537,
+      "outcome": 10362
      }
     },
     "by_track": {
      "(no request)": {
-      "examples": 5985,
-      "no_model": 5985,
-      "outcome": 5985
+      "examples": 8498,
+      "no_model": 7961,
+      "note": 537,
+      "outcome": 8498
      },
      "prediction": {
       "en": 7,
@@ -655,19 +655,19 @@
      }
     },
     "en": 7,
-    "examples": 7856,
+    "examples": 10369,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 0,
-    "no_model": 7849,
+    "no_model": 9825,
     "none": 0,
-    "note": 7,
-    "outcome": 7856,
+    "note": 544,
+    "outcome": 10369,
     "recorded": 0,
     "replayed": 0,
-    "sealed_not_read": 931,
-    "sets": 5,
+    "sealed_not_read": 1050,
+    "sets": 6,
     "teacher": 0,
     "visible": 0
    },
@@ -919,27 +919,28 @@
    "by_agent": {
     "(model uses)": {
      "calls": 8127,
-     "en": 1428,
-     "exchanges": 2953,
+     "en": 1430,
+     "exchanges": 2955,
      "fa": 73,
-     "thinking": 1286,
+     "thinking": 1288,
      "thinking_redacted": 3,
      "thought_lost": 706,
-     "whole": 1501
+     "whole": 1503
     },
     "(roles)": {
      "calls": 2550,
-     "en": 28,
-     "exchanges": 53,
-     "thinking": 36,
-     "thinking_redacted": 3,
+     "en": 47,
+     "exchanges": 75,
+     "thinking": 55,
+     "thinking_redacted": 6,
      "thought_lost": 4,
-     "whole": 28
+     "whole": 47
     },
     "campaign": {
      "calls": 16,
      "en": 8,
      "exchanges": 8,
+     "runs": 4,
      "thinking": 8,
      "whole": 8
     },
@@ -1028,10 +1029,10 @@
     },
     "brief_checker": {
      "calls": 29,
-     "en": 3,
-     "exchanges": 3,
-     "thinking": 3,
-     "whole": 3
+     "en": 6,
+     "exchanges": 6,
+     "thinking": 6,
+     "whole": 6
     },
     "campaign": {
      "calls": 16,
@@ -1048,17 +1049,17 @@
     },
     "critic": {
      "calls": 12,
-     "en": 4,
-     "exchanges": 4,
-     "thinking": 4,
-     "whole": 4
+     "en": 8,
+     "exchanges": 8,
+     "thinking": 8,
+     "whole": 8
     },
     "data_investigator": {
      "calls": 326,
-     "en": 3,
-     "exchanges": 3,
-     "thinking": 3,
-     "whole": 3
+     "en": 6,
+     "exchanges": 6,
+     "thinking": 6,
+     "whole": 6
     },
     "data_need": {
      "calls": 38
@@ -1096,10 +1097,10 @@
     },
     "feature_engineer": {
      "calls": 14,
-     "en": 3,
-     "exchanges": 3,
-     "thinking": 3,
-     "whole": 3
+     "en": 6,
+     "exchanges": 6,
+     "thinking": 6,
+     "whole": 6
     },
     "home_agent": {
      "calls": 3262,
@@ -1117,12 +1118,12 @@
     },
     "home_intent": {
      "calls": 517,
-     "en": 265,
-     "exchanges": 520,
+     "en": 266,
+     "exchanges": 521,
      "fa": 71,
-     "thinking": 279,
+     "thinking": 280,
      "thought_lost": 179,
-     "whole": 336
+     "whole": 337
     },
     "home_orchestrator": {
      "calls": 91,
@@ -1140,11 +1141,11 @@
     },
     "home_understand": {
      "calls": 257,
-     "en": 195,
-     "exchanges": 260,
-     "thinking": 195,
+     "en": 196,
+     "exchanges": 261,
+     "thinking": 196,
      "thought_lost": 65,
-     "whole": 195
+     "whole": 196
     },
     "intern": {
      "calls": 3797,
@@ -1199,10 +1200,10 @@
     },
     "problem_analyst": {
      "calls": 227,
-     "en": 3,
-     "exchanges": 11,
-     "thinking": 11,
-     "whole": 3
+     "en": 6,
+     "exchanges": 14,
+     "thinking": 14,
+     "whole": 6
     },
     "project_answer": {
      "calls": 21,
@@ -1227,8 +1228,8 @@
     },
     "reporter": {
      "calls": 16,
-     "exchanges": 9,
-     "thinking_redacted": 3
+     "exchanges": 12,
+     "thinking_redacted": 6
     },
     "routing_labeler": {
      "calls": 305,
@@ -1242,10 +1243,10 @@
     },
     "solution_planner": {
      "calls": 239,
-     "en": 3,
-     "exchanges": 3,
-     "thinking": 3,
-     "whole": 3
+     "en": 6,
+     "exchanges": 6,
+     "thinking": 6,
+     "whole": 6
     },
     "solution_router": {
      "calls": 139
@@ -1286,14 +1287,14 @@
    "by_track": {
     "(no request)": {
      "calls": 12660,
-     "en": 2395,
-     "exchanges": 4686,
+     "en": 2416,
+     "exchanges": 4710,
      "fa": 342,
-     "runs": 7421,
-     "thinking": 1315,
-     "thinking_redacted": 7,
+     "runs": 7425,
+     "thinking": 1336,
+     "thinking_redacted": 10,
      "thought_lost": 1096,
-     "whole": 2737
+     "whole": 2758
     },
     "advice": {
      "calls": 31,

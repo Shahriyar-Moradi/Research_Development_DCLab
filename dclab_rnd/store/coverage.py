@@ -39,7 +39,7 @@ from typing import Any, Iterable, Iterator, Optional
 from dclab_core.store import MODEL_TYPES, REASONING_SOURCES
 
 from .layout import DEFAULT, Layout
-from .sets import why_no_reasoning
+from .sets import NOTE_PREFIX, why_no_reasoning
 from .store import now, write_json
 
 # ------------------------------------------------------------------------------------------------------------ the gate
@@ -520,7 +520,11 @@ def measure(layout: Optional[Layout] = None, home: Optional[Path] = None) -> dic
                         found: set[str] = set()
                         notes: list[str] = []
                         _reasoning(row, found, notes)
-                        no_model = bool(not found and not notes and why_no_reasoning(row))  # no model made it: nothing to keep
+                        why = why_no_reasoning(row) if not found and not notes else None
+                        if why and why.startswith(NOTE_PREFIX):  # a model's work with a stated reason: a note, not "no model"
+                            notes.append(why)
+                            why = None
+                        no_model = bool(why)  # no model made it: nothing to keep
                         lang = _example_language(row)
                         adds = {"examples": 1, **{s: int(s in found) for s in SOURCES},
                                 "lost": int(not found and any("lost" in n.lower() for n in notes)),

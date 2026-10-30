@@ -97,6 +97,7 @@ LOST_PREFIX = "lost before"
 
 # Who answers without thinking (2026-10-30, the owner: the gap list counted ~460,000 rule and classifier rows as "no reasoning
 # and no note"; the reasoning backfill is cancelled, so a row no model made needs only the note saying so)
+NOTE_PREFIX = "note: "  # a reason that is a note on a model's work, not a row no model made (counted as a note, never as no_model)
 NO_MODEL_ANSWERERS = ("rule", "classifier", "person", "student")
 NO_MODEL_JUDGES = ("validator", "g4", "tests", "person", "rule", "measured")
 NO_MODEL_PROCESSES = ("job", "walk", "stages")  # the job queue, the record's walk, the engine's stages: code's steps
@@ -116,6 +117,9 @@ def why_no_reasoning(row: dict[str, Any]) -> Optional[str]:
         judge = str(row.get("judge") or "").split(":")[0]
         if judge in NO_MODEL_JUDGES or row.get("evidence") in ("measured", "test", "person"):
             return f"judged by {judge or row.get('evidence')}, not a model: there was no thinking to keep"
+        if judge == "developer" and row.get("judged") == "review_finding":  # 2026-10-30: a development session's verdict
+            return (NOTE_PREFIX + "the developer's verdict on a review finding is written in its development record (its fix), "
+                    "and no API thinking was kept for it")
         return None
     if shape == "episode":
         return "the steps of code (a job, a walk, the stages): no model acted" if row.get("process") in NO_MODEL_PROCESSES else None
