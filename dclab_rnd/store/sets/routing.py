@@ -50,7 +50,8 @@ from . import write_set
 MODEL_TYPE = "m7_routing"
 POINTS = ("request.intent", "request.exit", "request.suggestion", "request.tool", "request.understand_turn", "request.options",
           "workflow.next_question", "problem.pack")  # Home's routing decisions on a draft
-READING_PURPOSES = ("home_intent", "home_agent")  # the model purposes whose exchanges read a request (plus any answerer named)
+READING_PURPOSES = ("home_intent", "home_agent")
+LABELLER = "routing_labeler"  # Claude's blind label (2026-10-29): a shadow reading with the API thinking summary its exchange kept  # the model purposes whose exchanges read a request (plus any answerer named)
 BEFORE, AFTER = 600.0, 30.0  # an exchange joined by time: at most this many seconds before (after) its decision
 OUTCOME_BY = "person:outcome"  # ledger.capture.OUTCOME_BY
 RANK = {"card": 0, "outcome": 1, "measured": 2, "blind": 3, "benchmark": 4, "teacher": 5}
@@ -236,7 +237,7 @@ class Joiner:
         self.drafts = drafts(layout, wanted)
         named = {str(a.get("answerer")) for r in self.decisions.values() for a in (r.get("body") or {}).get("answers") or []
                  if isinstance(a, dict) and a.get("by") == "model_role"}
-        self.exchanges = exchanges(layout, set(READING_PURPOSES) | named)
+        self.exchanges = exchanges(layout, set(READING_PURPOSES) | named | {LABELLER})
         self.by_request = {(x["workspace"], str(x["request"])): x for x in self.exchanges if x.get("request")}
         # by draft and purpose, whatever workspace kept it: a live test's exchanges may sit in the home workspace while its
         # ledger is the test's own (models/gateway._exchange_home); a draft's id is unique, its own workspace preferred
@@ -250,7 +251,7 @@ class Joiner:
         self.flagged: set[str] = set()
         # 2026-10-29: Claude's routing labels (dclab_rnd.store.routing_labels), by example id: silver, apart, weighted lower
         self.claude: dict[str, dict[str, Any]] = {}
-        claude_labels = Path(layout.root) / "labels" / "m7_routing_claude.jsonl"
+        claude_labels = layout.labels("m7_routing_claude.jsonl")
         for line in claude_labels.read_text(encoding="utf-8").splitlines() if claude_labels.exists() else []:
             try:
                 row = json.loads(line)
@@ -382,6 +383,11 @@ def _ledger_row(j: Joiner, ws: str, r: dict[str, Any]) -> Optional[RoutingExampl
             seen.append(x)
             more.append(Provenance(**{k: v for k, v in x["prov"].items() if k in Provenance.model_fields}))
             readings.append(_model_reading(x, "home_intent", _reply_track(x.get("reply")), used=False, why_none=""))
+    claude = j.claude.get(f"{MODEL_TYPE}:{ws}:{b.get('id')}")
+    if claude is not None and str(claude.get("value")) in ([str(o) for o in b.get("options") or []] or [str(claude.get("value"))]):  # 2026-10-30, the owner: the label's reason is Claude's summarized thinking, exactly as the API returned it
+        x = j.exchange(ws, "routing-labels", LABELLER, None, str(claude.get("request") or "") or None)
+        readings.append(_model_reading(x, LABELLER, claude.get("value"), used=False,
+                                       why_none="the labeller's exchange is not in the store").model_copy(update={"shadow": True}))
     if text is None:  # the thinking summary reads (and may quote) the person's words: never kept where the words may not be
         readings = [r_.model_copy(update={"thinking": None, "thinking_source": None,
                                           "no_thinking": "the person's words may not be trained on, and the thinking reads them"})
@@ -391,7 +397,6 @@ def _ledger_row(j: Joiner, ws: str, r: dict[str, Any]) -> Optional[RoutingExampl
     origin = "scripted" if ws in j.scripted else (truth["origin"] if truth else "real")
     if value is None and truth is not None and point == "request.intent" and key not in j.flagged:
         value, cls, label_by = truth["label"], "written", truth["by"]
-    claude = j.claude.get(f"{MODEL_TYPE}:{ws}:{b.get('id')}")
     if value is None and claude is not None and str(claude["value"]) in ([str(o) for o in b.get("options") or []] or [str(claude["value"])]):
         # the owner (2026-10-29): with no person's label, Claude's blind reading of the words is the label: silver, apart, half weight
         value, cls, label_by = claude["value"], "silver", f"model:{claude.get('model') or 'claude'}:routing_labeler"
@@ -567,7 +572,7 @@ def counts(layout: Optional[Layout] = None) -> dict[str, Any]:
         point = folder.parent.name
         doc = json.loads(manifest.read_text(encoding="utf-8"))
         row = out.setdefault(point, {"rows": 0, "sealed_not_read": int((doc.get("counts") or {}).get("sealed") or 0), "label": Counter(),
-                                     "origin": Counter(), "text": 0, "thinking": 0, "model_readings": 0, "own_model": 0, "fa": 0, "en": 0, "mixed": 0})
+                                     "origin": Counter(), "text": 0, "thinking": 0, "model_readings": 0, "label_thinking": 0, "own_model": 0, "fa": 0, "en": 0, "mixed": 0})
         for split in ("train", "dev"):
             path = folder / f"{split}.jsonl"
             for line in path.read_text(encoding="utf-8").splitlines() if path.exists() else []:
@@ -576,7 +581,9 @@ def counts(layout: Optional[Layout] = None) -> dict[str, Any]:
                 row["label"][ex.get("label_source") or "none"] += 1
                 row["origin"][ex.get("origin") or "-"] += 1
                 row["text"] += bool(ex.get("text"))
-                models = [r for r in ex.get("readings") or [] if r.get("by") == "model"]
+                models = [r for r in ex.get("readings") or [] if r.get("by") == "model" and r.get("answerer") != LABELLER]
+                labeller = next((r for r in ex.get("readings") or [] if r.get("answerer") == LABELLER), None)
+                row["label_thinking"] += bool(labeller and labeller.get("thinking") and (ex.get("label_by") or "").endswith(LABELLER))
                 row["model_readings"] += len(models)
                 row["thinking"] += sum(bool(r.get("thinking")) for r in models)
                 row["own_model"] += any(r.get("by") == "own_model" for r in ex.get("readings") or [])
@@ -643,7 +650,7 @@ def export(layout: Optional[Layout] = None, out: Optional[Path] = None, version:
             skipped["no words (no consent, or shape only)"] += 1
             continue
         readings = ex.get("readings") or []
-        first = lambda by: next((r for r in readings if r.get("by") == by), {})  # noqa: E731
+        first = lambda by: next((r for r in readings if r.get("by") == by and r.get("answerer") != LABELLER), {})  # noqa: E731
         model = first("model")
         table.append({"id": ex["id"], "split": split, "point": ex.get("point"), "origin": ex.get("origin"), "language": ex.get("language"),
                       "text": ex["text"], "label": ex.get("label"), "label_source": ex.get("label_source"), "label_by": ex.get("label_by"),

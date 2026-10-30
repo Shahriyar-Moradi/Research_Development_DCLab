@@ -95,19 +95,52 @@ def write_set(layout: Layout, model_type: str, folder: str, examples: Iterable[A
 
 LOST_PREFIX = "lost before"
 
+# Who answers without thinking (2026-10-30, the owner: the gap list counted ~460,000 rule and classifier rows as "no reasoning
+# and no note"; the reasoning backfill is cancelled, so a row no model made needs only the note saying so)
+NO_MODEL_ANSWERERS = ("rule", "classifier", "person", "student")
+NO_MODEL_JUDGES = ("validator", "g4", "tests", "person", "rule", "measured")
+NO_MODEL_PROCESSES = ("job", "walk", "stages")  # the job queue, the record's walk, the engine's stages: code's steps
+
+
+def why_no_reasoning(row: dict[str, Any]) -> Optional[str]:
+    """Why an example with no reasoning needs none: no model made it. ``None`` when a model made it (its thinking is a
+    gap) or the record does not say who did."""
+    shape = str(row.get("schema_version") or "").split(".")[1:2]
+    shape = shape[0] if shape else ""
+    if shape == "decision_example":
+        by = {str(a.get("by") or "").split(":")[0] for a in row.get("answers") or [] if isinstance(a, dict)}
+        if by and by <= set(NO_MODEL_ANSWERERS):
+            return f"no model answered ({', '.join(sorted(by))}): there was no thinking to keep"
+        return None
+    if shape == "judged_example":
+        judge = str(row.get("judge") or "").split(":")[0]
+        if judge in NO_MODEL_JUDGES or row.get("evidence") in ("measured", "test", "person"):
+            return f"judged by {judge or row.get('evidence')}, not a model: there was no thinking to keep"
+        return None
+    if shape == "episode":
+        return "the steps of code (a job, a walk, the stages): no model acted" if row.get("process") in NO_MODEL_PROCESSES else None
+    if shape == "retrieval_example":
+        return "a search by code: no model chose the passages"
+    if shape == "routing_example" and not any(isinstance(r, dict) and r.get("by") == "model" for r in row.get("readings") or []):
+        return "no model read this request (the rules, a script or a person): there was no thinking to keep"
+    if shape == "experiment_record":
+        return "a measured experiment: its numbers come from code, not a model"
+    return None
+
 
 def reasoning_counts(examples: Iterable[Any]) -> dict[str, int]:
     """How many answer turns (an assistant message, a trajectory's step, a pair's answer) carry reasoning, by its source:
     recorded, from_record, teacher, visible, replayed; ``lost`` (a note: lost before the rule), ``none`` (another stated
-    reason), ``missing`` (the field is there, with no reasoning and no note: a decision row or a step no source explains yet),
+    reason), ``no_model`` (no model made it: :func:`why_no_reasoning`), ``missing`` (the field is there, with no reasoning and no note: a decision row or a step no source explains yet),
     and ``no_field`` for examples whose shape has no reasoning."""
     out: Counter = Counter()
     for ex in examples:
         turns = [m for m in getattr(ex, "messages", None) or [] if getattr(m, "role", None) == "assistant"]
         turns += [s for s in getattr(ex, "steps", None) or []]
         turns += [x for x in (getattr(ex, "chosen", None), getattr(ex, "rejected", None)) if x is not None]
-        if not turns and hasattr(ex, "reasoning_source"):  # a decision row (v3): its own reasoning, or missing (never "none":
-            out[getattr(ex, "reasoning_source", None) or "missing"] += 1  # nothing was stated)
+        no_model = (lambda ex=ex: why_no_reasoning(ex.model_dump(mode="json")) if hasattr(ex, "model_dump") else None)  # only when asked
+        if not turns and hasattr(ex, "reasoning_source"):  # a decision row (v3): its own reasoning, no model (nothing to keep), or missing
+            out[getattr(ex, "reasoning_source", None) or ("no_model" if no_model() else "missing")] += 1
             continue
         if not turns:
             out["no_field"] += 1
@@ -118,7 +151,7 @@ def reasoning_counts(examples: Iterable[Any]) -> dict[str, int]:
         for t in turns:
             source = getattr(t, "reasoning_source", None) or getattr(t, "thought_source", None)
             note = str(getattr(t, "no_reasoning", None) or getattr(t, "no_thought", None) or "")
-            out[source or ("lost" if note.startswith(LOST_PREFIX) else "none" if note else "missing")] += 1  # missing: no reasoning, no note
+            out[source or ("lost" if note.startswith(LOST_PREFIX) else "none" if note else "no_model" if no_model() else "missing")] += 1
     return dict(out)
 
 
@@ -131,4 +164,4 @@ def card(m: SetManifest, about: str) -> str:
             "below a confirmed label's, and it is kept apart by its source.\n")
 
 
-__all__ = ["write_set", "card", "SPLIT_RULE"]
+__all__ = ["write_set", "card", "SPLIT_RULE", "why_no_reasoning", "reasoning_counts"]

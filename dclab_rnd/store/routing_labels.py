@@ -6,7 +6,8 @@ never sees what Home, the rules, a model or our own classifier answered. Its ans
 ``labels/m7_routing_claude.jsonl``, by example id, never into a ledger: it stays apart from every person's label, and the
 routing set reads it only where no person's or written label stands (class ``silver``, weight 0.5). Every request goes
 through the gateway's ``routing_labeler`` purpose, which keeps the exchange and the API's thinking summary; this file keeps
-the answer, the reason and the exchange's request id beside it.
+the answer and the exchange's request id beside it; the label's reason is that exchange's API thinking summary, never a
+field asked for in the reply (the owner's rule; the first 305 labels, 2026-10-29, also carry a "reason" field, kept as written).
 
 Exams are never labelled (the sealed split is not read). Scripted examples (a test's click) are labelled only up to
 ``--scripted`` per point, so a census of test traffic does not spend the budget.
@@ -95,7 +96,7 @@ def pending(layout: Layout, scripted_per_point: int = 40, points: tuple[str, ...
     out: list[dict[str, Any]] = []
     rng = random.Random(SEED)
     for point in points:
-        base = layout.sets(MODEL_TYPE) / point
+        base = layout.sets(MODEL_TYPE, point)
         versions = sorted(base.glob("v*")) if base.exists() else []
         if not versions:
             continue
@@ -113,7 +114,7 @@ def pending(layout: Layout, scripted_per_point: int = 40, points: tuple[str, ...
 
 
 def labelled(layout: Layout) -> set[str]:
-    path = Path(layout.root) / "labels" / FILE
+    path = layout.labels(FILE)
     return {json.loads(line).get("example") for line in path.read_text(encoding="utf-8").splitlines()} if path.exists() else set()
 
 
@@ -121,7 +122,7 @@ def run(layout: Layout, ask: Callable[[dict[str, Any]], tuple[Optional[dict[str,
         model: str) -> dict[str, int]:
     """Ask about each example and append its label line. ``ask`` returns (parsed reply, meta: request id, tokens, reply text).
     Stops at the first error that says the cap or the provider stopped it, keeping what was written."""
-    path = Path(layout.root) / "labels" / FILE
+    path = layout.labels(FILE)
     path.parent.mkdir(parents=True, exist_ok=True)
     counts = {"asked": 0, "labelled": 0, "unsure": 0, "refused": 0}
     for ex in examples:
@@ -144,7 +145,6 @@ def run(layout: Layout, ask: Callable[[dict[str, Any]], tuple[Optional[dict[str,
         line = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "example": ex["id"], "point": ex["point"],
                 "origin": ex.get("origin"), "split": ex.get("split"), "value": value, "answer": answer,
                 "confidence": (parsed or {}).get("confidence") if isinstance(parsed, dict) else None,
-                "reason": str((parsed or {}).get("reason") or "")[:400] if isinstance(parsed, dict) else "",
                 "model": model, "purpose": "routing_labeler", **meta}
         with path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(line, ensure_ascii=False, default=str) + "\n")
@@ -170,7 +170,7 @@ def asker(gateway: Any, cap_eur: float) -> tuple[Callable[[dict[str, Any]], tupl
         except ValueError:
             parsed = None
         usage = reply.get("usage") or {}
-        return parsed, {"request": getattr(client, "last_request", None), "reply": raw[:2000], "thought": bool(reply.get("thinking")),
+        return parsed, {"request": getattr(client, "last_request", None), "reply": raw[:2000], "thought": bool(reply.get("thinking") or reply.get("reasoning")),  # the summary itself is in the exchange (request id)
                         "input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens")}
 
     return ask, client

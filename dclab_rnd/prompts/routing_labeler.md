@@ -7,4 +7,6 @@ conversation (counts and codes, never data). You are not shown what Home chose. 
 first meeting: the option that fits the person's words best. When the words do not say enough to choose, answer null.
 
 Answer with one JSON object and nothing else:
-{"answer": one option exactly as written, or null, "confidence": "high", "medium" or "low", "reason": one short sentence}
+{"answer": one option exactly as written, or null, "confidence": "high", "medium" or "low"}
+
+Think it through before you answer; do not explain your choice in the reply.

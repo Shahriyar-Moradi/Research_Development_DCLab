@@ -39,6 +39,7 @@ from typing import Any, Iterable, Iterator, Optional
 from dclab_core.store import MODEL_TYPES, REASONING_SOURCES
 
 from .layout import DEFAULT, Layout
+from .sets import why_no_reasoning
 from .store import now, write_json
 
 # ------------------------------------------------------------------------------------------------------------ the gate
@@ -143,7 +144,7 @@ def capture_gaps(agents: Optional[dict[str, Any]] = None, tracks: Optional[Itera
 
 # ---------------------------------------------------------------------------------------------------------- the report
 SOURCES = (*REASONING_SOURCES, *(s for s in ("replayed",) if s not in REASONING_SOURCES))
-EXAMPLE_COLUMNS = ("examples", "exchanges", *SOURCES, "lost", "note", "none", "outcome", "fa", "en")
+EXAMPLE_COLUMNS = ("examples", "exchanges", *SOURCES, "lost", "note", "no_model", "none", "outcome", "fa", "en")
 SOURCE_COLUMNS = ("runs", "calls", "exchanges", "whole", "thinking", "thinking_redacted", "thought_lost", "fa", "en")
 NO_REQUEST = "(no request)"
 _PERSIAN = re.compile(r"[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]")
@@ -495,10 +496,12 @@ def measure(layout: Optional[Layout] = None, home: Optional[Path] = None) -> dic
                         found: set[str] = set()
                         notes: list[str] = []
                         _reasoning(row, found, notes)
+                        no_model = bool(not found and not notes and why_no_reasoning(row))  # no model made it: nothing to keep
                         lang = _example_language(row)
                         adds = {"examples": 1, **{s: int(s in found) for s in SOURCES},
                                 "lost": int(not found and any("lost" in n.lower() for n in notes)),
-                                "note": int(not found and bool(notes)), "none": int(not found and not notes),
+                                "note": int(not found and bool(notes)), "no_model": int(no_model),
+                                "none": int(not found and not notes and not no_model),
                                 "outcome": int(_outcome(row)), "fa": int(lang == "fa"), "en": int(lang == "en")}
                         prov = row.get("provenance") or {}
                         _bump(a_table, _example_agent(row, points), EXAMPLE_COLUMNS, **adds)
@@ -558,10 +561,11 @@ def gaps(doc: dict[str, Any]) -> list[str]:
         if not m["examples"]:
             out.append(f"{model_type}: no example")
             continue
-        if not m.get("recorded"):
+        if not m.get("recorded") and (m.get("none") or m.get("note")):  # rows no model made (no_model) need no thinking
             out.append(f"{model_type}: no example with recorded thinking")
-        if m.get("none"):
-            out.append(f"{model_type}: {m['none']} of {m['examples']} examples have no reasoning and no note saying why")
+        if m.get("none"):  # made by a model, or by someone the record does not name: its thinking is the gap
+            out.append(f"{model_type}: {m['none']} of {m['examples']} examples were made by a model or by someone the record does not name, "
+                       "and carry no reasoning and no note")
     return out
 
 
@@ -597,13 +601,14 @@ def render(doc: dict[str, Any]) -> str:
         out += _table("kind of help", m["by_track"], EXAMPLE_COLUMNS) + [""]
     out += render_routing(doc.get("routing") or {})
     out += ["Columns: ex = examples, rec..replay = examples with written reasoning from that source (rec = recorded thinking), "
-            "lost/note = no reasoning but a note why (lost: the note says it was lost), none = no reasoning and no note, "
+            "lost/note = no reasoning but a note why (lost: the note says it was lost), no_model = no model made it (a rule, a classifier, a "
+            "person, code): nothing to keep, none = no reasoning and no note, "
             "outc = with an outcome or label.", "", f"## Gaps ({len(doc['gaps'])})", ""]
     out += [f"- {g}" for g in doc["gaps"]] or ["- none"]
     return "\n".join(out)
 
 
-ROUTING_COLUMNS = ("rows", "real", "written", "silver", "none", "text", "thinking", "model_readings", "own_model", "fa", "en", "mixed",
+ROUTING_COLUMNS = ("rows", "real", "written", "silver", "none", "text", "thinking", "model_readings", "label_thinking", "own_model", "fa", "en", "mixed",
                    "sealed_not_read")
 
 
@@ -621,7 +626,8 @@ def render_routing(routing: dict[str, Any]) -> list[str]:
                   tuple(origins)) + [""]
     out += ["Columns: real = a person's label on a real request, written = a writer's, an eval's or a script's truth, silver = Claude's "
             "reading of an unconfirmed real request (apart, weighted lower), text = with the person's words (train consent), thinking = "
-            "model readings with their API thinking summary, own_model = with our own model's shadow answer.", ""]
+            "model readings with their API thinking summary, label_thinking = Claude's silver labels carrying its API thinking summary, "
+            "own_model = with our own model's shadow answer.", ""]
     return out
 
 

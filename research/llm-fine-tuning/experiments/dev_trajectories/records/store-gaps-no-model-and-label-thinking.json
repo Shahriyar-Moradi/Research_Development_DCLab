@@ -1,0 +1,129 @@
+{
+ "package": "store-gaps-no-model-and-label-thinking",
+ "title": "The store's gap list names only rows a model made, and Claude's routing labels carry its API thinking summary",
+ "date": "2026-10-30",
+ "request": "The owner: fix the misleading gap list (about 460,000 rule and classifier examples reported as having no reasoning and no note) and the agents never captured; then, mid-turn: use Claude's thinking to add the reason, exactly the summarized thinking.",
+ "spec": "A row no model made gets the note saying so and leaves the gap list; a row a model made, or whose maker the record does not name, stays a gap. Claude's silver routing labels get their reason from the labeller exchange's API thinking summary (thinking enabled, display summarized), never from a field asked for in the reply.",
+ "plan": [
+  "Find where the coverage report counts examples without reasoning",
+  "One function saying why a row needs no thinking, used by the per-set counts and by the coverage report",
+  "Attach the labeller's kept thinking summary to Claude's routing labels by request id",
+  "Stop the labeller prompt asking for a reason in the reply",
+  "Look at why workspace chat, team, campaign and twin have no captured run with thinking",
+  "Tests, the scripted agent and harness suites for the changed prompt, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "Derive the note from the row's own answerers at count time, not a new contract field",
+   "why": "decision, episode, judged and retrieval examples have no no_reasoning field; adding one is a dclab_core version change for a note the counts can read from who answered"
+  },
+  {
+   "decision": "Who needs no thinking: rule, classifier, person and student answers; validator, measured, test and person judges; job, walk and stages episodes; code search; measured experiments; routing rows no model read",
+   "why": "none of them is a model that thinks; the owner cancelled the reasoning backfill, so nothing is owed but the note"
+  },
+  {
+   "decision": "Graph moves, team walks, DCLab Code steps and model-role answers without reasoning stay gaps",
+   "why": "a model made them, or the record does not say who did: their missing thinking is a real gap"
+  },
+  {
+   "decision": "Claude's label becomes a shadow reading (answerer routing_labeler, never used) carrying the exchange's thinking summary",
+   "why": "the chat export already takes an answer's reasoning from a model reading with the same value and a kept summary; readings are never in the prompt, and the table and counts skip the labeller so it is never read as Home's own model"
+  },
+  {
+   "decision": "No new Claude calls to explain rule rows",
+   "why": "Claude explaining a rule's decision would be Claude's guess, not the rule's reason, and the owner cancelled that backfill on 2026-10-28"
+  }
+ ],
+ "change": "dclab_rnd/store/sets: why_no_reasoning and a no_model class in reasoning_counts; store/coverage: a no_model column, gaps only for rows a model made; store/layout: labels(name); store/sets/routing: the labeller's exchange joined by request id as a shadow reading, label_thinking counted, the table's model column never the labeller; store/routing_labels: no reason field written; prompts/routing_labeler: the reply has no reason; the conversation eval's ledger was fixed earlier the same day (dclab_rnd.agent_eval.home.conversation).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "The gap list said about 460,000 examples had no reasoning and no note",
+   "scenario": "m1, m2, m3, m6, m7 and m8 rows answered by rules, classifiers, people, validators, measurements or code were counted as missing reasoning",
+   "cause": "the count read only reasoning fields and notes; rows no model made carry neither",
+   "fix": "why_no_reasoning gives those rows their note; the gap list names only rows a model made",
+   "test": "tests/test_store_decision_reasoning.py NoModelTests"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Claude's 305 routing labels carried no thinking and a reason the reply wrote",
+   "scenario": "The labeller prompt asked for a reason field in the JSON reply, and the label file recorded thought false; the gateway had in fact kept a thinking summary for 271 of the 305 exchanges, joined to nothing",
+   "cause": "the prompt asked for reasoning in the reply (against the owner's rule) and the routing set never looked up the labeller's exchange",
+   "fix": "the prompt no longer asks for a reason; the routing set attaches the exchange's API thinking summary by request id",
+   "test": "tests/test_store_routing.py test_claudes_label_carries_its_api_thinking_summary_as_the_answers_reasoning; tests/test_routing_labels.py test_the_prompt_never_asks_for_the_reason_in_the_reply"
+  },
+  {
+   "id": "F3",
+   "source": "test",
+   "severity": "latent",
+   "defect": "The routing labeller joined store paths by hand",
+   "scenario": "tests/test_store.py checks every store path is built by layout.py; routing_labels.py and the routing set built labels/ and sets/ paths themselves",
+   "cause": "the labels folder had no layout method",
+   "fix": "Layout.labels(name); layout.sets(model_type, point)",
+   "test": "tests/test_store.py test_the_layout_refuses_a_name_that_climbs_out_and_every_store_path_is_built_by_it"
+  },
+  {
+   "id": "F4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The research campaign never keeps its exchanges or asks for thinking",
+   "scenario": "22 campaign calls on 2026-10-26 counted in the usage log, none kept as an exchange",
+   "cause": "the campaign calls the model through NOOA's own litellm client; the gateway only checks and counts it",
+   "fix": "open: needs the campaign routed through the gateway, or thinking passed and kept through NOOA, with a small live check",
+   "test": "none yet"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "coverage gap list on the real store",
+   "gate": "every remaining line names data a model made or a capture path that is missing",
+   "result": "34 lines before, 18 after; m1, m2, m3 and m6 keep 14,887 rows a model made or whose maker is unnamed",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the lines for agents never run stay until they run"
+   ]
+  },
+  {
+   "name": "Claude routing labels carrying their API thinking summary",
+   "gate": "every silver label whose labeller exchange kept a summary carries it as the answer's reasoning",
+   "result": "271 of 305 exchanges kept a summary; 257 silver labels in the rebuilt sets carry it",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "some labeller calls returned no thinking: adaptive thinking skipped easy cases"
+   ]
+  },
+  {
+   "name": "harness suite after the labeller prompt change",
+   "gate": "17 of 17 regression cases and dev journeys right on every step",
+   "result": "HRN-085: 17 of 17, EUR 0",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": []
+  },
+  {
+   "name": "scripted judgment suite after the labeller prompt change",
+   "gate": "the suite runs on the new prompt hashes and stores its result",
+   "result": "AEV-085 stored on scripted policies",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "limits": []
+  }
+ ],
+ "outcome": "The gap list names what is missing; Claude's silver routing labels train with Claude's own summarized thinking as their reason. Workspace chat and team were never run; twin's and campaign's calls predate thinking capture; the campaign's path keeps no exchange at all, still open.",
+ "lessons": [
+  "A count of missing reasoning must know who made the row: a rule has nothing to keep",
+  "Before asking a model again for its reasons, look for the thinking the gateway already kept",
+  "A third-party client that bypasses the gateway loses the exchange even when the cost is counted"
+ ],
+ "risks": [
+  "Rows from a future answerer kind not in the list are counted as gaps until it is added",
+  "34 of the 305 labels have no thinking: adaptive thinking skipped easy cases"
+ ],
+ "commits": []
+}

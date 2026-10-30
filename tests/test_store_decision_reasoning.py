@@ -50,5 +50,46 @@ class DecisionReasoningTests(unittest.TestCase):
         self.assertEqual(Episode.model_validate(old).schema_version, "dclab_core.episode.v2")
 
 
+class NoModelTests(unittest.TestCase):
+    """2026-10-30: the gap list counted ~460,000 rule and classifier rows as "no reasoning and no note"; a row no model made
+    needs only the note saying so, and a row a model made stays a gap."""
+
+    PROV = {"workspace": "w", "source": "ledger/x.jsonl", "entry": "e", "sha256": "0" * 64, "at": "2026-10-30T00:00:00+00:00"}
+
+    def row(self, *by):
+        return DecisionExample.model_validate({"id": "m1:" + "-".join(by), "model_type": "m1_students", "split": "train", "point": "p",
+                                               "group": "g", "provenance": self.PROV,
+                                               "answers": [{"by": b, "value": True} for b in by]})
+
+    def test_rule_classifier_and_person_rows_need_no_thinking_but_a_models_row_does(self):
+        from dclab_rnd.store.sets import why_no_reasoning
+
+        self.assertEqual(reasoning_counts([self.row("rule"), self.row("classifier", "person", "rule")]), {"no_model": 2})
+        self.assertEqual(reasoning_counts([self.row("model_role", "rule")]), {"missing": 1})  # a model answered: its thinking is the gap
+        self.assertIn("rule", why_no_reasoning(self.row("rule").model_dump(mode="json")))
+
+    def test_codes_steps_need_none_but_an_agents_moves_do(self):
+        def ep(process):
+            return Episode(id=f"m6:{process}", model_type="m6_stepwise_decisions", split="train", provenance=self.PROV, process=process,
+                           steps=[EpisodeStep(n=0, action="queued:pipeline"), EpisodeStep(n=1, action="done:pipeline")])
+
+        self.assertEqual(reasoning_counts([ep("job")]), {"no_model": 2})
+        self.assertEqual(reasoning_counts([ep("graph")]), {"missing": 2})  # who made the move is not on the record
+        self.assertEqual(reasoning_counts([ep("dclab_code")]), {"missing": 2})  # an agent's steps without its thinking
+
+    def test_the_gap_list_names_only_rows_a_model_made(self):
+        from dclab_rnd.store import coverage as cov
+
+        def doc(**m1):
+            base = {"examples": 10, "recorded": 0, "none": 0, "note": 0, "no_model": 0, "by_agent": {}, "by_track": {}}
+            return {"sources": {"by_agent": {}, "by_track": {}}, "model_types": {"m1_students": {**base, **m1}}, "routing": {}}
+
+        rules_only = [g for g in cov.gaps(doc(no_model=10)) if g.startswith("m1_students")]
+        self.assertEqual(rules_only, [])
+        mixed = [g for g in cov.gaps(doc(no_model=7, none=3)) if g.startswith("m1_students")]
+        self.assertEqual(len(mixed), 2)
+        self.assertIn("3 of 10 examples were made by a model", mixed[1])
+
+
 if __name__ == "__main__":
     unittest.main()

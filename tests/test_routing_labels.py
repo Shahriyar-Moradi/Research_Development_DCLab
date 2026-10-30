@@ -60,6 +60,12 @@ class RoutingLabelsTests(unittest.TestCase):
         line = json.loads((self.root / "labels" / rl.FILE).read_text().splitlines()[0])
         self.assertEqual((line["value"], line["purpose"], line["request"], line["thought"]), ("prediction", "routing_labeler", "mr-1", True))
         self.assertEqual(rl.pending(self.layout, scripted_per_point=0, points=("request.intent",)), [])  # never asked twice
+        self.assertNotIn("reason", line)  # the label's reason is the exchange's API thinking summary, never a field of the reply
+
+    def test_the_prompt_never_asks_for_the_reason_in_the_reply(self):
+        from dclab_rnd.prompts import text
+
+        self.assertNotIn('"reason"', text("routing_labeler"))
 
     def test_an_answer_outside_the_options_is_no_label(self):
         from dclab_rnd.store import routing_labels as rl

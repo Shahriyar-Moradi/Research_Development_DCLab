@@ -174,6 +174,10 @@ class Layout:
     def runs(self) -> Path:
         return self.root / "runs"
 
+    def labels(self, name: str) -> Path:
+        """A labeller's file (``labels/<name>``): Claude's routing labels, kept locally, copied into every snapshot."""
+        return self.root / "labels" / _part(name)
+
     def run_record(self, day: str, run: str) -> Path:
         return self.runs() / _part(day) / f"{_part(run)}.json"
 

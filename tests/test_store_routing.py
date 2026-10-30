@@ -300,6 +300,31 @@ class RoutingCollectorTest(unittest.TestCase):
         self.assertEqual((rows["m7_routing:dev:dra000000001"]["label"], rows["m7_routing:dev:dra000000001"]["label_source"]), ("analysis", "real"))
         self.assertEqual(rows["m7_routing:dev:dra000000003"]["label_source"], "written")  # its written gold stands; an off-list answer is nothing
 
+    def test_claudes_label_carries_its_api_thinking_summary_as_the_answers_reasoning(self):
+        """2026-10-30, the owner: "use Claude's thinking to add the reason ... exactly summarized thinking": the labeller's kept
+        exchange (by its request id) gives the label its reason, never a field the reply wrote; a shadow reading, never used."""
+        from dclab_rnd.store import Store
+        from dclab_rnd.store.sets import routing as R
+
+        Store(self.layout).keep_log("model_requests", "dev", "model_exchanges/2026/10/29.jsonl",
+                                    (json.dumps(exchange("routing-labels", "mrlabel00001", "2026-10-29T17:10:49+00:00", purpose="routing_labeler",
+                                                         reply='{"answer": "analysis", "confidence": "high"}')) + "\n").encode(), consent="train")
+        labels = Path(self.layout.root) / "labels"
+        labels.mkdir(parents=True, exist_ok=True)
+        (labels / "m7_routing_claude.jsonl").write_text(json.dumps({"example": "m7_routing:dev:dra000000002", "value": "analysis",
+                                                                     "model": "claude-sonnet-5-5", "request": "mrlabel00001",
+                                                                     "reason": "a field the reply wrote"}) + "\n")
+        self.build()
+        r2 = self.rows()["m7_routing:dev:dra000000002"]
+        labeller = [x for x in r2["readings"] if x["answerer"] == "routing_labeler"]
+        self.assertEqual(len(labeller), 1)
+        self.assertTrue(labeller[0]["shadow"] and not labeller[0]["used"])
+        self.assertEqual(labeller[0]["thinking"], "Groups of customers is analysis, not a prediction.")
+        answer = R.chat_row(r2)["messages"][-1]
+        self.assertEqual((answer["reasoning"], answer["reasoning_source"]), ("Groups of customers is analysis, not a prediction.", "recorded"))
+        self.assertNotIn("a field the reply wrote", json.dumps(r2))
+        self.assertEqual(R.counts(self.layout)["request.intent"]["label_thinking"], 1)
+
     def test_the_gliner2_export_keeps_each_label_class_apart_and_coverage_counts_them(self):
         from dclab_rnd.lake import answers
         from dclab_rnd.store import coverage
