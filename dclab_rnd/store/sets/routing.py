@@ -52,6 +52,15 @@ POINTS = ("request.intent", "request.exit", "request.suggestion", "request.tool"
           "workflow.next_question", "problem.pack")  # Home's routing decisions on a draft
 READING_PURPOSES = ("home_intent", "home_agent")
 LABELLER = "routing_labeler"
+# Why a model's reading has no thinking summary, when nothing is missing (2026-10-30): counted apart from a missing one
+EXAM = "an exam's call keeps its shape only"
+COPY = "a copy: the same reading, with its thinking, is its live test workspace's own request.intent row"
+DID_NOT_THINK = "its exchange kept no thinking summary"
+LOST_RUN = "lost before 29 Oct: the run kept no workspace whose ledger holds this arm's reading"
+LOST_GONE = "lost: the case left the dev set, so its words, and its call, cannot be found"
+COPY_FROM = "2026-10-29T11:06"  # 414e87e4: from here a kept run's ledger holds the model's own request.intent reading
+RUN_WINDOW = 6 * 3600  # a run's plain calls come before its result, within this many seconds
+EXPLAINED = (EXAM, COPY, DID_NOT_THINK, "the person's words may not be trained on", "lost")
 # Points whose Claude labels are kept as readings for evaluation, never as training labels (2026-10-30, the next-question
 # study: Claude saw only the outcome and moment flags and a misleading "labels: unknown", and agreed with Home 47 times in
 # 144; records from 0.144.0 carry every question's flag, and a new labelling may be judged then)
@@ -169,7 +178,22 @@ def exchanges(layout: Layout, purposes: set[str]) -> list[dict[str, Any]]:
         out.setdefault(key, {"workspace": key[0], "request": b.get("model_request"), "purpose": b.get("purpose"), "draft": b.get("draft"),
                              "at": _at(b.get("at")), "model": b.get("model"), "user": _user(b.get("messages")), "reply": b.get("reply"),
                              "thinking": _thinking(b.get("thinking")), "whole": bool(b.get("whole")), "prov": prov})
+        out[key]["asked"] = _asked(out[key]["user"])
     return list(out.values())
+
+
+def _asked(user: str) -> str:
+    """The request a plain call read: its user message, or the ``request`` inside a JSON one (the plain arm and the written
+    requests' checker send {"request": ..., "tables": ...}; 2026-10-30: 809 of their readings found no exchange)."""
+    text = str(user or "").strip()
+    if text.startswith("{"):
+        try:
+            doc = json.loads(text)
+        except ValueError:
+            return text
+        if isinstance(doc, dict) and isinstance(doc.get("request"), str):
+            return doc["request"]
+    return text
 
 
 def outcomes(layout: Layout) -> dict[tuple[str, str], str]:
@@ -268,20 +292,39 @@ class Joiner:
     def exchange(self, ws: str, draft: str, purpose: str, at: Optional[float], request: Optional[str]) -> Optional[dict[str, Any]]:
         if request:
             exact = self.by_request.get((ws, request)) or next((x for (w, r), x in self.by_request.items() if r == request), None)
-            if exact is not None:
+            if exact is not None and exact.get("purpose") == purpose:  # the review: a request id of another purpose is never this reading's
                 return exact
         if at is None:
             return None
         near = [x for x in self.by_draft.get((draft, purpose), []) if x["at"] is not None and -BEFORE <= x["at"] - at <= AFTER]
         return min(near, key=lambda x: (x["workspace"] != ws, abs(x["at"] - at))) if near else None
 
-    def by_text(self, text: str, purposes: Iterable[str], at: Optional[float], within: float) -> Optional[dict[str, Any]]:
-        """A draft-less exchange (a checker's, an eval's plain arm) that read these words, the nearest in time."""
+    def by_text(self, text: str, purposes: Iterable[str], at: Optional[float], within: float, answer: Any = ...) -> Optional[dict[str, Any]]:
+        """A draft-less exchange (a checker's, an eval's plain arm) that read these words, the nearest in time; with ``answer``,
+        only one whose reply gave that same answer (several runs read the same words: another run's thinking is never borrowed)."""
         n = norm(text)
         if not n:
             return None
-        found = [x for x in self.exchanges if x["purpose"] in purposes and norm(x["user"]) == n  # the same words, never a part of others
-                 and (at is None or x["at"] is None or abs(x["at"] - at) <= within)]
+        found = [x for x in self.exchanges if x["purpose"] in purposes
+                 and n in (norm(x["user"]), norm(x.get("asked") or ""))  # the same words, never a part of others
+                 and (at is None or x["at"] is None or abs(x["at"] - at) <= within)
+                 and (answer is ... or _reply_track(x.get("reply")) == answer)]
+        return min(found, key=lambda x: abs((x["at"] or 0) - (at or 0))) if found else None
+
+    def plain_call(self, text: str, answer: Any, at: Optional[float], window: float) -> Optional[dict[str, Any]]:
+        """The plain arm's own call for these words (the review of 2026-10-30): a JSON-wrapped call (its words under
+        "request"), that gave this same answer, inside the run's window (before ``at`` by at most ``window``, or with no run
+        time only when exactly one call fits); never for a reading that gave no answer."""
+        n = norm(text)
+        if not n or answer is None:
+            return None
+        found = [x for x in self.exchanges if x["purpose"] in ("home_agent", "home_eval_plain") and x.get("asked") != x["user"]
+                 and norm(x.get("asked") or "") == n and _reply_track(x.get("reply")) == answer]
+        if at is not None:
+            found = [x for x in found if x["at"] is not None and -60 <= at - x["at"] <= window]
+            return max(found, key=lambda x: x["at"]) if found else None
+        return found[0] if len({x["request"] for x in found}) == 1 else None
+
         return min(found, key=lambda x: abs((x["at"] or 0) - (at or 0))) if found else None
 
 
@@ -462,9 +505,9 @@ def _written_rows(j: Joiner) -> list[RoutingExample]:
             plain = (r.get("plain_reading") or [None])[0] if isinstance(r.get("plain_reading"), list) else None
             readings = []
             if r.get("plain_reading") is not None:
-                x = j.by_text(r["text"], ("home_agent",), None, 0)
+                x = j.plain_call(r["text"], plain if plain in TRACKS else None, None, 0)  # one checker run: one call, or none
                 readings.append(_model_reading(x, "home_eval_plain", plain if plain in TRACKS else None, used=False,
-                                               why_none="the checker's exchange is not in the store yet"))
+                                               why_none="no kept exchange of the checker gave this answer to these words"))
             exam = j.exams.get(key)
             group = f"request:{key}"
             try:
@@ -512,11 +555,16 @@ def _eval_rows(j: Joiner) -> list[RoutingExample]:
                 value = observed.get("track") if observed.get("track") in TRACKS else None
                 if by == "rule":
                     readings.append(RoutingReading(by="rule", answerer=answerer, value=value))
-                else:
-                    readings.append(_model_reading(None, answerer, value, used=False,
-                                                   why_none="an exam's call keeps its shape only" if sealed else
-                                                   "an eval run's calls are kept in its live test workspace; its Home arm's reading, with "
-                                                   "its thinking, is that workspace's own request.intent row"))
+                elif sealed:
+                    readings.append(_model_reading(None, answerer, value, used=False, why_none=EXAM))
+                elif answerer == "home_eval_plain":  # its call is kept as home_agent's, its words in JSON, inside this run's window
+                    x = j.plain_call(text, value, run_at, RUN_WINDOW) if text else None
+                    readings.append(_model_reading(x, answerer, value, used=False,
+                                                   why_none="no kept call of this run's plain arm gave this answer" if text else LOST_GONE))
+                elif doc.get("kept") and str(doc.get("at") or "") >= COPY_FROM:
+                    readings.append(_model_reading(None, answerer, value, used=False, why_none=COPY))
+                else:  # no kept workspace, or one from before its ledger held the model's reading (the review of 2026-10-30)
+                    readings.append(_model_reading(None, answerer, value, used=False, why_none=LOST_RUN))
             key = text_key(text) if text else None
             group = f"request:{key}" if key else f"exam:{split_name}:{case}"
             try:
@@ -577,7 +625,7 @@ def counts(layout: Optional[Layout] = None) -> dict[str, Any]:
         point = folder.parent.name
         doc = json.loads(manifest.read_text(encoding="utf-8"))
         row = out.setdefault(point, {"rows": 0, "sealed_not_read": int((doc.get("counts") or {}).get("sealed") or 0), "label": Counter(),
-                                     "origin": Counter(), "text": 0, "thinking": 0, "model_readings": 0, "label_thinking": 0, "own_model": 0, "fa": 0, "en": 0, "mixed": 0})
+                                     "origin": Counter(), "text": 0, "thinking": 0, "model_readings": 0, "explained": 0, "label_thinking": 0, "own_model": 0, "fa": 0, "en": 0, "mixed": 0})
         for split in ("train", "dev"):
             path = folder / f"{split}.jsonl"
             for line in path.read_text(encoding="utf-8").splitlines() if path.exists() else []:
@@ -591,6 +639,7 @@ def counts(layout: Optional[Layout] = None) -> dict[str, Any]:
                 row["label_thinking"] += bool(labeller and labeller.get("thinking") and (ex.get("label_by") or "").endswith(LABELLER))
                 row["model_readings"] += len(models)
                 row["thinking"] += sum(bool(r.get("thinking")) for r in models)
+                row["explained"] += sum(1 for r in models if not r.get("thinking") and str(r.get("no_thinking") or "").startswith(EXPLAINED))
                 row["own_model"] += any(r.get("by") == "own_model" for r in ex.get("readings") or [])
                 if ex.get("language") in ("fa", "en", "mixed"):
                     row[ex["language"]] += 1

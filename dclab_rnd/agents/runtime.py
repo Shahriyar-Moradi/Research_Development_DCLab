@@ -184,6 +184,7 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
         else:
             out = client.complete(messages, schemas)
         reply += 1
+        made = getattr(client, "last_request", None)  # the request this reply came from: its tool calls are its acts
         tokens = {key: int((out.get("usage") or {}).get(key) or 0) for key in ("input_tokens", "output_tokens")}
         for key in tokens:
             result.usage[key] += tokens[key]
@@ -223,7 +224,13 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
             if tool is None or tool.name not in allowed:
                 value: Any = {"error": f"Tool {name!r} is not available here. Available: {', '.join(allowed)}"}
             else:
-                value = registry.call(name, call.get("arguments") or {}, (contexts or {}).get(tool.scope, context))
+                from dclab_rnd import experience as _experience
+
+                acting = _experience._ACTING_REQUEST.set(str(made) if made else None)
+                try:
+                    value = registry.call(name, call.get("arguments") or {}, (contexts or {}).get(tool.scope, context))
+                finally:
+                    _experience._ACTING_REQUEST.reset(acting)
             count += 1
             step = Step(count, name, call.get("arguments") or {}, value, round(time.monotonic() - clock, 3),
                         not (isinstance(value, dict) and "error" in value), reply, thought=thought, thought_source=thought_source)

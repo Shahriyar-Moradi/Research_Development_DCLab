@@ -178,7 +178,7 @@ def run(log: Any = print) -> dict[str, Any]:
                 leaks.append(manifest.parent.relative_to(layout.tier("sets")).as_posix())
         check("sealed groups apart in every set", not leaks, ", ".join(leaks))
         # the owner (2026-10-28): every training example carries reasoning with its source, or says why not
-        known = {"recorded", "from_record", "teacher", "visible", "replayed", "lost", "none", "missing", "no_field"}
+        known = {"recorded", "from_record", "teacher", "visible", "replayed", "lost", "none", "missing", "no_field", "no_model"}
         newest: dict[Path, Path] = {}  # the newest version of each set (an older version is never rewritten)
         for m in layout.tier("sets").rglob("MANIFEST.json"):
             folder, version = m.parent.parent, m.parent.name

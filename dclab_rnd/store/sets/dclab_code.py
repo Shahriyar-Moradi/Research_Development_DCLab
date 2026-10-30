@@ -377,12 +377,15 @@ def examples(layout: Layout, choices: Optional[dict] = None) -> dict[tuple[str, 
             timeline = sorted([(st["order"], "agent", st) for st in s.steps] + [(p["order"], "person", p) for p in s.person_steps], key=lambda x: x[0])
             steps = []
             for i, (_, who, x) in enumerate(timeline):
-                if who == "agent":
-                    steps.append(EpisodeStep(n=i, state=s.state(i, x), action=x["tool"][:200], outcome=Session.step_outcome(x), at=x["at"]))
+                if who == "agent":  # 2026-10-30: the thinking the session kept before this step (its m4 example already had it)
+                    said = {"reasoning": str(x["thinking"])[:2000], "reasoning_source": "recorded"} if x.get("thinking") else \
+                        {"no_reasoning": "no thinking text was recorded before this step"}
+                    steps.append(EpisodeStep(n=i, state=s.state(i, x), action=x["tool"][:200], outcome=Session.step_outcome(x), at=x["at"], **said))
                 else:
                     state = {"step": i, "move": _code(x["action"]), "kind": x["kind"], "method": x["mode"], "gate_required": False,
                              "concern_source": x["guard"] or "none", "rounds": x["turn"]}
-                    steps.append(EpisodeStep(n=i, state=state, action=x["action"], outcome=x["outcome"], at=x["at"]))
+                    steps.append(EpisodeStep(n=i, state=state, action=x["action"], outcome=x["outcome"], at=x["at"],
+                                             no_reasoning="a person's own step: no model thought"))
             groups[("m6_stepwise_decisions", "dclab_code")].append(Episode(
                 # silver while the agent (Claude) made steps in it; the person's steps alone are gold
                 id=f"m6:dclab_code:{s.sid}", model_type="m6_stepwise_decisions", split=split, provenance=first, more=more, weight=SILVER if s.steps else 1.0,

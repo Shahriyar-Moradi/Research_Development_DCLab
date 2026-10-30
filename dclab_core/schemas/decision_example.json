@@ -152,7 +152,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.decision_example.v3.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.decision_example.v4.json",
   "additionalProperties": false,
   "description": "M1, M2, M3: one decision as a classifier learns it (v2: ``split_group``, the table or project it belongs to, so folds and\nsplits keep one table's rows together; v1 reads, its split group unknown).",
   "properties": {
@@ -218,6 +218,19 @@
       "title": "More",
       "type": "array"
     },
+    "no_reasoning": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "No Reasoning"
+    },
     "options": {
       "items": {
         "type": "string"
@@ -266,8 +279,8 @@
       "title": "Reasoning Source"
     },
     "schema_version": {
-      "const": "dclab_core.decision_example.v3",
-      "default": "dclab_core.decision_example.v3",
+      "const": "dclab_core.decision_example.v4",
+      "default": "dclab_core.decision_example.v4",
       "title": "Schema Version",
       "type": "string"
     },

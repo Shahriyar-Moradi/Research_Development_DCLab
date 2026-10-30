@@ -139,8 +139,10 @@ def reasoning_counts(examples: Iterable[Any]) -> dict[str, int]:
         turns += [s for s in getattr(ex, "steps", None) or []]
         turns += [x for x in (getattr(ex, "chosen", None), getattr(ex, "rejected", None)) if x is not None]
         no_model = (lambda ex=ex: why_no_reasoning(ex.model_dump(mode="json")) if hasattr(ex, "model_dump") else None)  # only when asked
-        if not turns and hasattr(ex, "reasoning_source"):  # a decision row (v3): its own reasoning, no model (nothing to keep), or missing
-            out[getattr(ex, "reasoning_source", None) or ("no_model" if no_model() else "missing")] += 1
+        if not turns and hasattr(ex, "reasoning_source"):  # a decision row: its reasoning, why none (v4), no model (nothing to keep), or missing
+            said = str(getattr(ex, "no_reasoning", None) or "")
+            out[getattr(ex, "reasoning_source", None) or ("lost" if said.startswith(LOST_PREFIX) else "none" if said else
+                                                          "no_model" if no_model() else "missing")] += 1
             continue
         if not turns:
             out["no_field"] += 1

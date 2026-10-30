@@ -174,7 +174,8 @@ class LlmSetsTest(unittest.TestCase):
         from dclab_rnd.models import settings
         from dclab_rnd.store.sets import llm
 
-        self.assertEqual(sorted(set(settings.PURPOSES) - set(llm.STAGES) - set(settings.NO_THINKING)), [])  # 35.5: every embedding purpose
+        self.assertEqual(sorted(set(settings.PURPOSES) - set(llm.STAGES) - set(settings.NO_THINKING) - llm.NOT_WORKFLOW), [])  # 35.5: every embedding purpose
+        self.assertFalse(llm.NOT_WORKFLOW & set(llm.STAGES))  # 2026-10-30: the routing labeller's exchanges are no m4 examples
 
     def test_earlier_turns_keep_their_reasoning_and_calls_and_the_reasoning_only_set_takes_clean_whole_ones(self):
         """D2 / P4: the local model's earlier turn keeps the reasoning and the call it sent back, the tool turn its call id, the

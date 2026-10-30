@@ -29,7 +29,7 @@ class DecisionReasoningTests(unittest.TestCase):
                "provenance": {"workspace": "w", "source": "ledger/x.jsonl", "entry": "e", "sha256": "0" * 64, "at": "2026-10-28T00:00:00+00:00"},
                "point": "column.is_identifier", "group": "general"}
         ex = DecisionExample.model_validate(old)
-        self.assertEqual(ex.schema_version, "dclab_core.decision_example.v3")
+        self.assertEqual(ex.schema_version, "dclab_core.decision_example.v4")  # 0.145.0
         self.assertIsNone(ex.reasoning)
         with self.assertRaises(ValueError):
             DecisionExample.model_validate({**old, "reasoning": "because"})  # a reasoning never comes without its source
@@ -47,7 +47,7 @@ class DecisionReasoningTests(unittest.TestCase):
                      process="graph", steps=[step])
         self.assertEqual(reasoning_counts([ep]), {"from_record": 1})
         old = {**ep.model_dump(mode="json"), "schema_version": "dclab_core.episode.v1"}
-        self.assertEqual(Episode.model_validate(old).schema_version, "dclab_core.episode.v2")
+        self.assertEqual(Episode.model_validate(old).schema_version, "dclab_core.episode.v3")  # 0.145.0
 
 
 class NoModelTests(unittest.TestCase):
@@ -93,3 +93,62 @@ class NoModelTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LinkedThinkingTests(unittest.TestCase):
+    """2026-10-30: a model's answer in the ledger named no request, so its kept thinking could never reach its decision row;
+    from now on it names it (``source``), the sets link the used answer's thinking, and older rows say why they cannot."""
+
+    def test_a_models_answer_names_the_request_that_made_it(self):
+        """Only inside the tool call that request made (the review: the last call in a context is often another's)."""
+        from dclab_rnd import experience, ledger
+
+        experience.new_model_request()
+        self.assertIsNone(ledger.answer("model_role", "intern", True).source)  # outside a tool call: nothing borrowed
+        token = experience._ACTING_REQUEST.set("mracting")
+        try:
+            self.assertEqual(ledger.answer("model_role", "intern", True).source, "mracting")
+        finally:
+            experience._ACTING_REQUEST.reset(token)
+        self.assertIsNone(ledger.answer("rule", "rule:id_v1", True).source)  # a rule's answer names none
+        self.assertEqual(ledger.answer("model_role", "intern", True, source="mrgiven").source, "mrgiven")
+
+    def test_the_used_answers_thinking_is_linked_from_its_own_agents_request_only(self):
+        from dclab_rnd.store.sets import decisions as D
+
+        thoughts = {"mr1": ("intern", "Unique per row and named id: an identifier.", {}), "mr2": ("home_agent", "Someone else's call.", {})}
+        used = {"used": "model_role", "value_used": True, "answers": [{"by": "rule", "value": False}, {"by": "model_role", "answerer": "intern", "value": True, "source": "mr1"}]}
+        self.assertEqual(D._linked_thinking(used, thoughts)[0], "Unique per row and named id: an identifier.")
+        stale = {**used, "answers": [{"by": "model_role", "answerer": "intern", "value": True, "source": "mr2"}]}
+        self.assertIsNone(D._linked_thinking(stale, thoughts))  # another agent's request: never borrowed
+        beside = {"used": "rule", "value_used": False, "answers": [{"by": "rule", "value": False}, {"by": "model_role", "answerer": "intern", "value": True, "source": "mr1"}]}
+        self.assertIsNone(D._linked_thinking(beside, thoughts))  # the rule decided: the model's thinking is not its reason
+        self.assertTrue(D._why_none(beside).startswith("the rule answer was used"))  # names what was used
+        unnamed = {**used, "answers": [{"by": "model_role", "answerer": "intern", "value": True}]}
+        self.assertEqual(D._why_none({**unnamed, "at": "2026-10-25T10:00:00+00:00"}), D.LINK_NOTE)  # before answers named requests
+        self.assertEqual(D._why_none({**unnamed, "at": "2026-11-02T10:00:00+00:00"}), D.UNNAMED_NOTE)  # after: never "lost before"
+        self.assertEqual(D._why_none(stale, thoughts), D.OTHER_NOTE)
+        shadow = {**used, "answers": [{"by": "model_role", "answerer": "shadow:m", "value": True, "source": "shadow"}]}
+        self.assertIsNone(D._why_none(shadow))  # a shadow's answer is no answer of the record
+        self.assertIsNone(D._why_none({"used": "rule", "answers": [{"by": "rule", "value": 1}]}))  # no model: nothing owed
+
+    def test_an_older_models_row_counts_as_lost_never_as_missing(self):
+        import json
+        import tempfile
+
+        from dclab_rnd.store import coverage as cov
+        from dclab_rnd.store.layout import Layout
+        from dclab_rnd.store.sets import decisions as D
+
+        layout = Layout(Path(tempfile.mkdtemp()))
+        folder = layout.sets("m1_students", "column.is_identifier", "v1")
+        folder.mkdir(parents=True)
+        (folder / "MANIFEST.json").write_text("{}")
+        row = DecisionExample.model_validate({"id": "m1:z", "model_type": "m1_students", "split": "train", "point": "p", "group": "g",
+                                              "provenance": NoModelTests.PROV, "answers": [{"by": "model_role", "value": True}],
+                                              "no_reasoning": D.LINK_NOTE})
+        (folder / "train.jsonl").write_text(row.model_dump_json() + "\n")
+        doc = cov.measure(layout, home=Path(tempfile.mkdtemp()))
+        m = doc["model_types"]["m1_students"]
+        self.assertEqual((m["lost"], m["none"]), (1, 0))
+        self.assertFalse([g for g in cov.gaps(doc) if g.startswith("m1_students:") and "examples were made by a model" in g])

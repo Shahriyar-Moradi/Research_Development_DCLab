@@ -242,6 +242,20 @@ class RunTests(unittest.TestCase):
         self.r.register(Tool("finish", "End the run.", obj({"report": {"type": "string"}}, ["report"]), lambda report: {"report": report}))
         self.policy = Policy("test", "You add numbers.", ("add", "ask", "finish"), max_steps=6, terminal=("finish",), stop_after=("ask",))
 
+    def test_a_tool_call_runs_with_its_own_request_as_the_acting_request(self):
+        """2026-10-30 (the review of thinking-links): a model's answer recorded inside a tool call names the request that made
+        the call, and only there; before and after the call there is no acting request to borrow."""
+        from dclab_rnd import experience
+        from dclab_rnd.agents.registry import Tool
+
+        seen = []
+        self.r.register(Tool("note", "Note the acting request.", obj(), lambda: seen.append(experience.acting_request()) or {"ok": True}))
+        model = Scripted(reply(calls=[("note", {})]), reply("Done."))
+        model.last_request = "mrthecall1"
+        run(Policy("acting", "s", ("note",), max_steps=3), model, self.r, [])
+        self.assertEqual(seen, ["mrthecall1"])
+        self.assertIsNone(experience.acting_request())
+
     def test_tool_calls_written_as_text_are_not_an_answer(self):
         """8.1: a small model in Ollama wrote its calls as JSON in its answer; nothing ran, yet the run ended "answered"."""
         as_text = '```json\n{"name": "add", "arguments": {"a": 2, "b": 3}}\n```'

@@ -230,6 +230,29 @@ class RoutingCollectorTest(unittest.TestCase):
         dev3 = rows["m7_routing:dev:dra000000003"]
         self.assertEqual(dev3["split_group"], dev_run["split_group"])
 
+    def test_a_plain_reading_finds_its_json_wrapped_call_only_with_the_same_answer(self):
+        """2026-10-30: the plain arm sends {"request": ..., "tables": ...} as purpose home_agent, so 809 plain readings found no
+        exchange; a run whose answer differed must never lend its thinking. The Home arm of an eval run is a copy."""
+        from dclab_rnd.store import Store
+
+        def plain(request, at, reply, thought):
+            x = exchange("home-eval-plain", request, at, purpose="home_agent", reply=reply)
+            x["messages"] = [{"role": "system", "content": "Read it."},
+                             {"role": "user", "content": json.dumps({"request": "weekly sales dashboard", "tables": {}})}]
+            x["thinking"] = [{"text": thought, "signature": "s"}]
+            return json.dumps(x) + "\n"
+
+        Store(self.layout).keep_log("model_requests", "dev", "model_exchanges/2026/10/27.jsonl",
+                                    (plain("mrplain00001", "2026-10-28T09:10:00+00:00", '{"tracks": ["analysis"]}', "Numbers over time: analysis.")
+                                     + plain("mrplain00002", "2026-10-28T09:20:00+00:00", '{"tracks": ["reporting"]}', "A dashboard kept up to date.")
+                                     + plain("mrplain00003", "2026-10-27T09:20:00+00:00", '{"tracks": ["reporting"]}', "Another run's call.")).encode(),
+                                    consent="train")
+        self.build()
+        run = self.rows()["m7_routing:eval:HOME-001:d-a1"]
+        by = {x["answerer"]: x for x in run["readings"]}
+        self.assertEqual(by["home_eval_plain"]["thinking"], "A dashboard kept up to date.")  # its own run's call with its own answer
+        self.assertTrue(by["home_agent"]["no_thinking"].startswith("lost before 29 Oct"))  # the fixture's run kept no workspace
+
     def test_an_unrun_exam_request_is_sealed_and_the_words_come_from_the_store_alone(self):
         os.remove(self.results / "HOME-002_sealed.json")  # the exam not run yet
         self.build()

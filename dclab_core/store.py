@@ -175,8 +175,9 @@ class DecisionExample(_Example):
     """M1, M2, M3: one decision as a classifier learns it (v2: ``split_group``, the table or project it belongs to, so folds and
     splits keep one table's rows together; v1 reads, its split group unknown)."""
 
-    schema_version: Literal["dclab_core.decision_example.v3"] = _version("decision_example", 3)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_example.v1", "dclab_core.decision_example.v2"})
+    schema_version: Literal["dclab_core.decision_example.v4"] = _version("decision_example", 4)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_example.v1", "dclab_core.decision_example.v2",
+                                                 "dclab_core.decision_example.v3"})
     point: str = Field(max_length=120)
     group: str = Field(max_length=80)            # M2: the system (dclab, rnd, internal); M3: the family; M1: the student's model
     split_group: Optional[str] = Field(default=None, max_length=200)  # the record's sealed group (a project, a draft's project, a table)
@@ -189,20 +190,26 @@ class DecisionExample(_Example):
     # (never the label or a person's answer), with its source; None on rows whose builder has none, read from v1 and v2
     reasoning: Optional[str] = Field(default=None, max_length=2000)
     reasoning_source: Optional[ReasoningSource] = None
+    # v4 (2026-10-30): why a row has no reasoning when a model made it (its thinking not kept, or not linkable), said like a
+    # chat turn's ``no_reasoning``; a row no model made needs none
+    no_reasoning: Optional[str] = Field(default=None, max_length=300)
 
     _state = field_validator("state")(classmethod(lambda cls, v: _state_ok(v)))
 
     @model_validator(mode="before")
     @classmethod
     def _read_v1(cls, data: Any) -> Any:
-        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.decision_example.v1", "dclab_core.decision_example.v2"):
-            data = {**data, "schema_version": "dclab_core.decision_example.v3"}
+        if isinstance(data, dict) and data.get("schema_version") in ("dclab_core.decision_example.v1", "dclab_core.decision_example.v2",
+                                                                     "dclab_core.decision_example.v3"):
+            data = {**data, "schema_version": "dclab_core.decision_example.v4"}
         return data
 
     @model_validator(mode="after")
     def _reasoning_labelled(self):
         if (self.reasoning is None) != (self.reasoning_source is None):
             raise ValueError("a reasoning and its source come together")
+        if self.reasoning is not None and self.no_reasoning:
+            raise ValueError("a reasoning, or why there is none, never both")
         return self
 
     @model_validator(mode="after")
@@ -319,6 +326,7 @@ class EpisodeStep(Contract):
     at: Optional[str] = None
     reasoning: Optional[str] = Field(default=None, max_length=2000)  # v2: why this action, from what was known at the step, by its source
     reasoning_source: Optional[ReasoningSource] = None
+    no_reasoning: Optional[str] = Field(default=None, max_length=300)  # v3 (2026-10-30): why a step has none
 
     _state = field_validator("state")(classmethod(lambda cls, v: _state_ok(v)))
 
@@ -326,6 +334,8 @@ class EpisodeStep(Contract):
     def _reasoning_labelled(self):
         if (self.reasoning is None) != (self.reasoning_source is None):
             raise ValueError("a reasoning and its source come together")
+        if self.reasoning is not None and self.no_reasoning:
+            raise ValueError("a reasoning, or why there is none, never both")
         return self
 
 
@@ -333,9 +343,9 @@ class Episode(_Example):
     """M6: a process decided step by step, each step's (state, options, action, outcome, v2: its reasoning), and its final
     outcome."""
 
-    schema_version: Literal["dclab_core.episode.v2"] = _version("episode", 2)
-    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.episode.v1"})
-    _read_v1 = _reads("dclab_core.episode.v1", "dclab_core.episode.v2")
+    schema_version: Literal["dclab_core.episode.v3"] = _version("episode", 3)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.episode.v1", "dclab_core.episode.v2"})
+    _read_v1 = _reads(("dclab_core.episode.v1", "dclab_core.episode.v2"), "dclab_core.episode.v3")
     process: str = Field(max_length=80)          # the walk, a stage, the intern's session, a team's walk, a conductor run
     steps: list[EpisodeStep] = Field(min_length=1)
     gaps: list[int] = Field(default_factory=list)  # step numbers missing from the record, said

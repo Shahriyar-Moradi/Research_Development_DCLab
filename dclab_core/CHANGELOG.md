@@ -4,6 +4,12 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.145.0 (2026-10-30)
+
+- `store`: `decision_example.v4` and `episode.v3` add `no_reasoning` (on the example, and on each episode step): why a row
+  a model made has no reasoning (its thinking was not kept, or cannot be linked to its request), said as a chat turn's is.
+  Earlier versions read as the new ones.
+
 ## 0.144.0 (2026-10-30)
 
 - `ledger`: state flags for `workflow.next_question`: `action_known`, `costs_known`, `data_plan_known`, `entity_known`,

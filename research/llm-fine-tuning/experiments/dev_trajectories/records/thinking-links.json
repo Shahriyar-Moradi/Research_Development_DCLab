@@ -1,0 +1,125 @@
+{
+ "package": "thinking-links",
+ "title": "Thinking that existed is linked to its rows, model answers name the request that made them, and every row without reasoning says why",
+ "date": "2026-10-30",
+ "request": "The owner: fix the routing readings without thinking (1,278 of 1,434) and the m1, m2, m3, m6 and m7 judges rows made by a model without thinking.",
+ "spec": "Measure each gap before calling it lost; link any kept thinking exactly (same request, same purpose, same answer, the run's own window); never borrow another call's thinking, never write reasoning for the model; record the request on model answers from now on; give every remaining row a true reason, and keep only unexplained gaps in the list.",
+ "plan": [
+  "Break the routing readings down by their notes",
+  "Find why the plain arm and the written requests' checker found no exchange",
+  "Check whether ledger model answers can be joined to their calls",
+  "Record the acting request on model answers; link it in the decision sets",
+  "A no_reasoning field on decision rows and episode steps (dclab-core 0.145.0)",
+  "Review, fix, rebuild, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "No reasoning is written for old rows; only thinking the API returned and the gateway kept is linked",
+   "why": "the owner cancelled every backfill on 2026-10-28: thinking that was never kept does not exist, and a reason written afterwards would not be the model's"
+  },
+  {
+   "decision": "The request is set only around the tool call it made (an acting request in the runtime), never 'the last call in this context'",
+   "why": "the review found the last call is often another's: three sub-problems routed first and recorded after would all get the third one's thinking"
+  },
+  {
+   "decision": "A plain reading links only to a JSON-wrapped call with the same answer inside its own run's window, or the single such call",
+   "why": "the same dev cases were read by many runs; a call of another run, or one that gave another answer, must never lend its thinking"
+  },
+  {
+   "decision": "Exam calls, copies of a workspace's own row, lost runs and calls where the model did not think are counted as explained",
+   "why": "none of them can be fixed; the gap list keeps only what is missing and could still be captured"
+  },
+  {
+   "decision": "Thinking from a workspace that does not allow training is never linked, and a linked exchange's provenance joins the row",
+   "why": "consent decides what may be trained on, and a row must say where each part came from"
+  }
+ ],
+ "change": "dclab_rnd.store.sets.routing: exchanges keep the request inside a JSON message (asked), plain_call links a plain reading strictly, exact joins check the purpose, readings carry EXAM, COPY, LOST_RUN, LOST_GONE notes, counts add explained. dclab_rnd.experience: acting_request, set by dclab_rnd.agents.runtime only around a tool call with the reply's request; dclab_rnd.ledger.answer names it on a model's answer. dclab_rnd.store.sets.decisions: thinking_by_request (train consent only), the used answer's thinking linked from its own agent's request with its provenance, and no_reasoning notes. dclab-core 0.145.0: decision_example.v4 and episode.v3 add no_reasoning. m6: the first move names its actor, DCLab Code steps take the session's kept thinking. Coverage and the store check count the new classes.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "809 plain readings found no exchange",
+   "scenario": "The Home eval's plain arm and the written requests' checker send {\"request\": ..., \"tables\": ...} as purpose home_agent; the routing join compared the whole message with the request's words",
+   "cause": "the join read the user message whole, and looked for purpose home_eval_plain, which no call used",
+   "fix": "the request inside a JSON message is matched, with the same answer, inside the run's window",
+   "test": "tests/test_store_routing.py test_a_plain_reading_finds_its_json_wrapped_call_only_with_the_same_answer"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A model's answer in the ledger named no request",
+   "scenario": "The intern's identifier and leak decisions (2,284 each) carried no link to the call whose thinking explains them",
+   "cause": "capture recorded the model's answer without the request that made its tool call",
+   "fix": "the runtime sets the acting request around each tool call, and the ledger's answer names it",
+   "test": "tests/test_agents_runtime.py RunTests.test_a_tool_call_runs_with_its_own_request_as_the_acting_request"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The first version named the wrong request on many answers",
+   "scenario": "Home's problem map routes sub-problems sp1, sp2 and sp3, then records them: all three answers took sp3's request and its thinking; a served answer took its shadow's call",
+   "cause": "every model answer took the last model request of its context",
+   "fix": "only an answer recorded inside a model's own tool call names its request",
+   "test": "tests/test_store_decision_reasoning.py LinkedThinkingTests.test_a_models_answer_names_the_request_that_made_it"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The plain match could borrow another call",
+   "scenario": "With no answer, any home_agent call whose reply named no track matched; with no time limit the earliest of many runs' calls was taken",
+   "cause": "a loose text match with no run window",
+   "fix": "JSON-wrapped calls only, a real answer, the run's own window, or exactly one call",
+   "test": "tests/test_store_routing.py test_a_plain_reading_finds_its_json_wrapped_call_only_with_the_same_answer"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Notes said things that were not true",
+   "scenario": "COPY for runs that kept no workspace or kept one before its ledger held the model's reading; 'lost before 30 Oct' for new rows; 'the rule was used' when a person was; a shadow's answer counted as used",
+   "cause": "notes chosen without checking the run's keep, the record's date, who was used, or the shadow marker",
+   "fix": "COPY only for kept runs after 29 Oct 11:06; dated and undated notes apart; the note names what was used; shadow answers skipped",
+   "test": "tests/test_store_decision_reasoning.py LinkedThinkingTests.test_the_used_answers_thinking_is_linked_from_its_own_agents_request_only"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Linked thinking ignored consent",
+   "scenario": "A live test's exchanges kept in a workspace that does not allow training could lend their thinking to a training row",
+   "cause": "thinking_by_request read every kept exchange",
+   "fix": "only train-consent exchanges, with their provenance added to the row",
+   "test": "tests/test_store_decision_reasoning.py LinkedThinkingTests"
+  },
+  {
+   "id": "F7",
+   "source": "test",
+   "severity": "latent",
+   "defect": "The store check did not know the no_model class",
+   "scenario": "test_store_check failed on the sets' REASONING.json since the no_model class was added earlier the same day",
+   "cause": "the check's list of known sources was not updated",
+   "fix": "no_model added to the known sources",
+   "test": "tests/test_store_check.py"
+  }
+ ],
+ "measurements": [
+  {"name": "routing readings without thinking, by reason", "gate": "each reading's missing thinking explained by its note or linked", "result": "1,741 readings: 809 plain (join fixed), 588 eval Home arm (copy or lost by run), 288 exam, 37 model did not think, 18 no exchange", "verdict": "not scored", "cost_eur": 0.0},
+  {"name": "ledger model answers", "gate": "a model's answer links to its call", "result": "8,564 model answers named no request before this change; from now on an answer inside a model's tool call names it", "verdict": "pass", "cost_eur": 0.0, "limits": ["older answers cannot be linked and say so"]}
+ ],
+ "outcome": "Thinking that existed is linked exactly; future model answers link their calls; the remaining rows say why they have none, and the gap list shows only gaps that could still be captured.",
+ "lessons": [
+  "Measure a gap before calling it lost: most of these readings had a join problem, not a missing thinking",
+  "A 'last call' value is a guess: tie a decision to the call that made it at the moment it is made",
+  "A note that explains a gap must be checked as carefully as the data it explains"
+ ],
+ "risks": [
+  "Redacted thinking is labelled recorded; the label does not say it was redacted",
+  "Decisions recorded by a model outside its own tool call still name no request"
+ ],
+ "commits": []
+}

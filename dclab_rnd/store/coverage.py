@@ -571,14 +571,15 @@ def gaps(doc: dict[str, Any]) -> list[str]:
             out.append(f"m7_routing {point}: no real label yet (a person's confirm or change on the card, on a real request)")
         if not row.get("own_model"):
             out.append(f"m7_routing {point}: no own model's shadow answer yet")
-        if row.get("model_readings") and row.get("thinking", 0) < row["model_readings"]:
-            out.append(f"m7_routing {point}: {row['model_readings'] - row.get('thinking', 0)} of {row['model_readings']} model readings "
-                       "without their thinking summary")
+        missing = row.get("model_readings", 0) - row.get("thinking", 0) - row.get("explained", 0)  # explained: an exam, a copy, no thinking made
+        if missing > 0:
+            out.append(f"m7_routing {point}: {missing} of {row['model_readings']} model readings without their thinking summary and "
+                       "without a reason it cannot exist")
     for model_type, m in doc["model_types"].items():
         if not m["examples"]:
             out.append(f"{model_type}: no example")
             continue
-        if not m.get("recorded") and (m.get("none") or m.get("note")):  # rows no model made (no_model) need no thinking
+        if not m.get("recorded") and (m.get("none") or m.get("lost")):  # a model made rows (missing, or lost before capture)
             out.append(f"{model_type}: no example with recorded thinking")
         if m.get("none"):  # made by a model, or by someone the record does not name: its thinking is the gap
             out.append(f"{model_type}: {m['none']} of {m['examples']} examples were made by a model or by someone the record does not name, "
@@ -625,7 +626,7 @@ def render(doc: dict[str, Any]) -> str:
     return "\n".join(out)
 
 
-ROUTING_COLUMNS = ("rows", "real", "written", "silver", "none", "text", "thinking", "model_readings", "label_thinking", "own_model", "fa", "en", "mixed",
+ROUTING_COLUMNS = ("rows", "real", "written", "silver", "none", "text", "thinking", "model_readings", "explained", "label_thinking", "own_model", "fa", "en", "mixed",
                    "sealed_not_read")
 
 

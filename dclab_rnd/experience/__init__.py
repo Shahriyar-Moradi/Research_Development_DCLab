@@ -496,6 +496,15 @@ def last_model_request() -> Optional[str]:
     return _LAST_MODEL_REQUEST.get()
 
 
+# 2026-10-30 (the review of thinking-links): the model request whose tool call is running now, set by the agent runtime only
+# around that call; a model's answer recorded inside it names that request, and nothing outside it can borrow a stale one
+_ACTING_REQUEST: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("dclab_acting_request", default=None)
+
+
+def acting_request() -> Optional[str]:
+    return _ACTING_REQUEST.get()
+
+
 VISIT_EVENTS = 5000  # the events a card reads per visit; a longer visit's card says so (``cut``)
 
 

@@ -71,6 +71,89 @@ def _best_label(labels: list[StoreRecord]) -> tuple[Any, Optional[str]]:
     return best if best else (None, None)
 
 
+def _purposes_of(answerer: str) -> set[str]:
+    """The model purposes an answerer's request may have: an agent's own purposes, else the answerer's name (a model use)."""
+    from ...agents import harness
+
+    agent = harness.AGENTS.get(str(answerer))
+    return set(agent.purposes) if agent is not None and agent.purposes else {str(answerer)}
+
+
+def thinking_by_request(layout: Layout, ids: set[str]) -> dict[str, tuple[str, str, Any]]:
+    """request id -> (purpose, the kept thinking summary, or its redacted text when the purpose saw table values), for the
+    requests named by model answers (2026-10-30: model answers name their request in ``source``)."""
+    import gzip
+
+    out: dict[str, tuple[str, str, Any]] = {}
+    if not ids:
+        return out
+    base = layout.records_of("model_requests")
+    for path in sorted(base.rglob("*.jsonl.gz")) if base.exists() else []:
+        with gzip.open(path, "rt", encoding="utf-8") as fh:
+            for line in fh:
+                if '"model_exchanges' not in line:  # every kept exchange is parsed once; its id is then looked up
+                    continue
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    continue
+                b, prov = r.get("body") or {}, r.get("provenance") or {}
+                if prov.get("consent") != "train":  # the review: a workspace that does not allow training lends no thinking
+                    continue
+                rid = str(b.get("model_request") or "")
+                blocks = b.get("thinking") or b.get("thinking_redacted") or []
+                text = "\n\n".join(str(x.get("text") or "") for x in blocks if isinstance(x, dict)).strip()
+                if rid in ids and text and rid not in out:
+                    out[rid] = (str(b.get("purpose") or ""), text[:2000], prov)
+    return out
+
+
+from dclab_core.ledger import SHADOW  # noqa: E402 - a shadow's answer: never an answer of the record
+
+
+def _model_answers(body: dict[str, Any]) -> list[dict[str, Any]]:
+    return [a for a in body.get("answers") or [] if isinstance(a, dict) and a.get("by") == "model_role" and a.get("source") != SHADOW]
+
+
+def _used(body: dict[str, Any], a: dict[str, Any]) -> bool:
+    return body.get("used") == "model_role" or a.get("value") == body.get("value_used")
+
+
+def _linked_thinking(body: dict[str, Any], thoughts: dict[str, tuple]) -> Optional[tuple[str, Any]]:
+    """(the thinking, its exchange's provenance) of the model answer that was used (or gave the value used), from its own
+    request of its own agent; None otherwise."""
+    for a in _model_answers(body):
+        if not a.get("source") or not _used(body, a):
+            continue
+        found = thoughts.get(str(a["source"]))
+        if found and found[0] in _purposes_of(str(a.get("answerer"))):
+            return found[1], found[2]
+    return None
+
+
+LINK_NOTE = "lost before 30 Oct: a model's answer recorded before answers named their request, so its thinking cannot be linked"
+UNNAMED_NOTE = "a model's answer that named no request (recorded outside a model's own tool call): its thinking cannot be linked"
+NOT_KEPT_NOTE = "its request kept no thinking summary: the model did not think, or the call came before 28 Oct"
+OTHER_NOTE = "its named request is another agent's call, so that thinking is not this decision's reason"
+LINKS_FROM = "2026-10-30T10:00"  # answers recorded inside a model's tool call name their request from here on
+
+
+def _why_none(body: dict[str, Any], thoughts: Optional[dict[str, tuple]] = None) -> Optional[str]:
+    """Why a row with a model's answer has no reasoning (None for a row no model answered: it needs none)."""
+    models = _model_answers(body)
+    if not models:
+        return None
+    used = [a for a in models if _used(body, a)]
+    if not used:
+        return f"the {body.get('used') or 'other'} answer was used; the model answered beside it, so its thinking is not this decision's reason"
+    named = [a for a in used if a.get("source")]
+    if not named:
+        return LINK_NOTE if str(body.get("at") or "") < LINKS_FROM else UNNAMED_NOTE
+    if thoughts and any(str(a["source"]) in thoughts for a in named):
+        return OTHER_NOTE
+    return NOT_KEPT_NOTE
+
+
 def build(layout: Optional[Layout] = None, scripted: Optional[frozenset[str]] = None) -> dict[str, Any]:
     """``scripted``: the workspaces whose people are a script (``keepers.workspaces.scripted_names``): a person's label
     there is no human's, so it never confirms a decision (S8, 2026-10-25: test clicks and written people)."""
@@ -88,6 +171,9 @@ def build(layout: Optional[Layout] = None, scripted: Optional[frozenset[str]] = 
     sets: dict[tuple[str, str], list[DecisionExample]] = defaultdict(list)
     out_of_sets: dict[str, int] = defaultdict(int)
     set_aside: set[str] = set()
+    named = {str(a.get("source")) for r in records.values() if r.type == "decision" for a in r.body.get("answers") or []
+             if isinstance(a, dict) and a.get("by") == "model_role" and str(a.get("source") or "").startswith("mr")}
+    thoughts = thinking_by_request(layout, named)
     for (rid, model_type), choice in sorted(placed.items()):
         record = records.get(rid)
         if model_type not in MODELS or record is None or record.type != "decision" or choice.get("quality") == "out":
@@ -110,12 +196,20 @@ def build(layout: Optional[Layout] = None, scripted: Optional[frozenset[str]] = 
                    for a in record.body.get("answers") or [] if isinstance(a, dict)]
         state = {k: v for k, v in (record.body.get("state") or {}).items()}
         why = decision_reasoning(str(record.body.get("point")), state, [str(o) for o in record.body.get("options") or []], answers)
+        linked = _linked_thinking(record.body, thoughts)
+        thought = linked[0] if linked else None
         try:
+            from dclab_core.store import Provenance
+
+            more = [Provenance.model_validate({k: v for k, v in linked[1].items() if k in Provenance.model_fields})] if linked else []
             ex = DecisionExample(id=f"{model_type}:{rid}", model_type=model_type, split=split_of(str(group)), provenance=record.provenance,
+                                 more=more,
                                  weight=weight, point=str(record.body.get("point")), group=str(choice.get("folder") or "").split("/")[0] or "general",
                                  split_group=str(group),
                                  state=state, options=[str(o) for o in record.body.get("options") or []], answers=answers, label=value, label_source=source,
-                                 **({"reasoning": why, "reasoning_source": "from_record"} if why else {}))
+                                 **({"reasoning": thought, "reasoning_source": "recorded"} if thought else
+                                    {"reasoning": why, "reasoning_source": "from_record"} if why else
+                                    {"no_reasoning": _why_none(record.body, thoughts)} if _why_none(record.body, thoughts) else {}))
         except Exception as exc:  # noqa: BLE001 - a record whose state the contract refuses (a value in it) never enters a set
             out_of_sets[f"refused by its contract: {type(exc).__name__}"] += 1
             continue

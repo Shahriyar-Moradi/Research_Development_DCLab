@@ -25,6 +25,19 @@
           "title": "N",
           "type": "integer"
         },
+        "no_reasoning": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "No Reasoning"
+        },
         "options": {
           "items": {
             "type": "string"
@@ -210,7 +223,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.episode.v2.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.episode.v3.json",
   "additionalProperties": false,
   "description": "M6: a process decided step by step, each step's (state, options, action, outcome, v2: its reasoning), and its final\noutcome.",
   "properties": {
@@ -269,8 +282,8 @@
       "$ref": "#/$defs/Provenance"
     },
     "schema_version": {
-      "const": "dclab_core.episode.v2",
-      "default": "dclab_core.episode.v2",
+      "const": "dclab_core.episode.v3",
+      "default": "dclab_core.episode.v3",
       "title": "Schema Version",
       "type": "string"
     },

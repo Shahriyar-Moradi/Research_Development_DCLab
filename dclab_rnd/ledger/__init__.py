@@ -407,6 +407,10 @@ def answer(by: str, answerer: str, value: Any, **extra: Any) -> Any:
     """One answer, for ``decide``; None when the contract cannot load (the agent environment)."""
     if contract is None:
         return None
+    if by == "model_role" and not extra.get("source"):  # 2026-10-30: the request whose tool call made it (only inside that call)
+        from ..experience import acting_request
+
+        extra["source"] = acting_request()
     return contract.Answer(by=by, answerer=str(answerer)[:120], value=value, **{k: v for k, v in extra.items() if v is not None})
 
 

@@ -43,9 +43,11 @@ def _episode(eid: str, process: str, steps: list[tuple], first: StoreRecord, oth
     for i, step in enumerate(steps):
         at, action, out = step[:3]
         why = step[3] if len(step) > 3 and step[3] else None
+        none = step[4] if len(step) > 4 and step[4] else None  # 2026-10-30: why a step has no reasoning, when one is owed
         built.append(EpisodeStep(n=i, state={"step": i, "move": _code(action.split(":")[0])}, action=action[:200],
                                  outcome=(out or None) and str(out)[:200], at=at,
-                                 **({"reasoning": str(why)[:2000], "reasoning_source": "from_record"} if why else {})))
+                                 **({"reasoning": str(why)[:2000], "reasoning_source": "from_record"} if why else
+                                    {"no_reasoning": str(none)[:300]} if none else {})))
     more = list({r.provenance.entry: r.provenance for r in others if r.provenance.entry != first.provenance.entry}.values())
     return Episode(id=eid, model_type="m6_stepwise_decisions", split=first.split or split_of(key), provenance=first.provenance, more=more,
                    process=process, steps=built, outcome=(outcome or None) and str(outcome)[:200])
@@ -95,7 +97,9 @@ def episodes(layout: Layout, choices: Optional[dict] = None) -> list[Episode]:
         # each move's reasoning is what was known before it: the previous move's verdict and the checks it failed (why the
         # agent moved on, or tried again), never this move's own verdict, which is its outcome (the review of C2)
         steps = [(str(m.get("at") or r.at), f"{m.get('move')}:{m.get('from')}>{m.get('to')}", m.get("status"),
-                  _move_why(rs[i - 1][1]) if i else None) for i, (r, m) in enumerate(rs)]
+                  _move_why(rs[i - 1][1]) if i else None,
+                  None if i else f"the project's first move (by {m.get('actor') or 'someone the record does not name'}): no earlier "
+                                 "verdict explains it") for i, (r, m) in enumerate(rs)]
         ep = _episode(f"m6:graph:{ws}:{project}", "graph", steps, rs[0][0], [r for r, _ in rs[1:]], rs[-1][1].get("to"), f"project:{project}")
         if ep:
             out.append(ep)
