@@ -76,6 +76,39 @@ class CellsThinkingTest(unittest.TestCase):
         self.assertNotIn("ann@example.com", json.dumps(line["thinking_redacted"]))
         self.assertIn("looks odd", line["thinking_redacted"][0]["text"])
 
+    def test_an_exams_shape_only_exchange_says_so_and_is_never_counted_as_lost_thinking(self):
+        """2026-10-30: 1,020 shape-only exchanges since 28 Oct were all sealed exams' (shape only by the owner's rule), but
+        each said the same vague reason and the coverage counted them as thinking lost."""
+        import json
+        import tempfile
+
+        from dclab_rnd.store import coverage as cov
+
+        home = Path(tempfile.mkdtemp())
+        g = gw.Gateway()
+        g.transport = lambda tier, p: Transport()
+        bound = gw.Bound(g, "home_agent", settings.purpose("home_agent"), {"name": "standard", "model": "m"}, None, None)
+        out = {"content": "done", "thinking": [{"text": "The person wants a forecast.", "signature": "s"}]}
+        with mock.patch.object(gw, "_exchange_home", lambda gateway, live=False: home), \
+                mock.patch.dict(os.environ, {"DCLAB_LOG_PROMPTS": "0", "DCLAB_SEALED_RUN": "sealed_v1"}):
+            bound._keep_exchange("r1", [{"role": "user", "content": "words"}], out, "ok")
+        line = json.loads(next((home / "model_exchanges").rglob("*.jsonl")).read_text().splitlines()[0])
+        self.assertEqual((line["whole"], line["exam"], line["thought"]), (False, "sealed_v1", True))
+        self.assertIn("an exam", line["why"])
+        self.assertNotIn("forecast", json.dumps(line))  # an exam keeps no thinking text
+        from dclab_rnd.store.layout import Layout
+
+        doc = cov.measure(Layout(Path(tempfile.mkdtemp())), home=home)
+        self.assertEqual(doc["sources"]["by_purpose"]["home_agent"]["thought_lost"], 0)
+
+    def test_an_exam_run_marks_itself(self):
+        from dclab_rnd import experience
+
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("DCLAB_SEALED_RUN", None)
+            self.assertTrue(experience.sealed_run("sealed_v2"))
+            self.assertEqual((os.environ["DCLAB_SEALED_RUN"], os.environ["DCLAB_LOG_PROMPTS"]), ("sealed_v2", "0"))
+
 
 if __name__ == "__main__":
     unittest.main()

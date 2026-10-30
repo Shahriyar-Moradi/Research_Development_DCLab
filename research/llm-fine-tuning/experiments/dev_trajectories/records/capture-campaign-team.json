@@ -135,6 +135,36 @@
    "cause": "the twin lane's own client writes its thinking transcript instead of the gateway's exchange",
    "fix": "the coverage counts the twin's thinking transcripts as kept replies with their thinking",
    "test": "tests/test_store_coverage.py test_a_twin_lanes_thinking_transcript_counts_as_kept_thinking"
+  },
+  {
+   "id": "F11",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The agent environment's model requests failed before reaching Claude",
+   "scenario": "The live campaign's first request raised ModuleNotFoundError in the agent environment",
+   "cause": "the gateway's pause check imported storage.db, which needs sqlalchemy, even with no database configured; the session log did the same",
+   "fix": "both read the database setting through storage.url and import the database module only when one is configured",
+   "test": "tests/test_models_gateway.py AgentEnvironmentTests.test_the_pause_and_the_session_log_never_need_sqlalchemy_without_a_database"
+  },
+  {
+   "id": "F12",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A typed campaign answer came back empty",
+   "scenario": "The live campaign's experiment step used all of its 6,000 + 8,000 tokens thinking at high effort and returned no answer",
+   "cause": "the limit was NOOA's 6,000 tokens, sized for a call without thinking",
+   "fix": "campaign requests stream with a 16,000-token answer limit (plus the thinking headroom)",
+   "test": "tests/test_agentic.py test_a_campaign_call_goes_through_the_gateway_and_keeps_its_thinking_summary"
+  },
+  {
+   "id": "F13",
+   "source": "measurement",
+   "severity": "latent",
+   "defect": "Exam exchanges were counted as lost thinking",
+   "scenario": "Since 28 October, 1,020 shape-only exchanges said the model thought and kept no text; every one belonged to a sealed exam run, shape only by rule",
+   "cause": "the gateway wrote one vague reason for three cases, so the coverage could not tell an exam from a loss",
+   "fix": "sealed_run marks the process; the kept exchange names the exam and the coverage no longer counts it as lost",
+   "test": "tests/test_thinking_capture.py test_an_exams_shape_only_exchange_says_so_and_is_never_counted_as_lost_thinking"
   }
  ],
  "measurements": [
@@ -158,10 +188,10 @@
   {
    "name": "campaign live",
    "gate": "one campaign request through the gateway keeps its thinking summary",
-   "result": "failed on the first request: the agent environment has no Anthropic SDK",
-   "verdict": "fail",
-   "cost_eur": 0.0,
-   "next": "install the SDK in the agent environment with the owner's agreement and run again"
+   "result": "after the SDK, the pause import and the streaming limit: the run completed, five requests, all five with Claude's thinking summary kept; EUR 0.42",
+   "verdict": "pass",
+   "cost_eur": 0.42,
+   "next": ""
   },
   {
    "name": "twin live",

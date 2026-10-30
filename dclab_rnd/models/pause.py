@@ -23,9 +23,9 @@ def key(base_url: str, model: str, api_key: str = "") -> str:
 
 
 def _url() -> str | None:
-    from ..storage import db
+    from ..storage.url import database_url  # never storage.db here: it needs sqlalchemy, which the agent environment lacks
 
-    return db.database_url(required=False)
+    return database_url(required=False)
 
 
 def get(name: str) -> tuple[float, str]:

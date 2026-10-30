@@ -366,9 +366,9 @@ class PgLog:
 
 def open_log(home: Path, workspace_id: str | None = None) -> ExperienceLog:
     """The log of the workspace in ``home``: PostgreSQL when it is configured, its folder otherwise."""
-    from ..storage import db
+    from ..storage.url import database_url  # storage.db (sqlalchemy) only when a database is configured
 
-    log: Any = PgLog(workspace_id) if workspace_id and db.database_url(required=False) else FileLog(Path(home) / "experience", workspace_id or file_workspace_id(home))
+    log: Any = PgLog(workspace_id) if workspace_id and database_url(required=False) else FileLog(Path(home) / "experience", workspace_id or file_workspace_id(home))
     log.home = Path(home)  # 23.1: the folder whose consent.json stamps every record written here
     return log
 
@@ -468,6 +468,7 @@ def sealed_run(split: object) -> bool:
     journey's calls were kept whole). Called by every runner that can read a sealed split, right after its arguments."""
     if "sealed" in str(split or "").lower() or str(split or "").lower() == "test":
         os.environ["DCLAB_LOG_PROMPTS"] = "0"
+        os.environ["DCLAB_SEALED_RUN"] = str(split)  # 2026-10-30: each kept exchange says it is an exam's, not a lost thinking
         return True
     return False
 

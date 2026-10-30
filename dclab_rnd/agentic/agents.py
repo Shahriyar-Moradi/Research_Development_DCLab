@@ -104,7 +104,7 @@ class KnowledgeCurator(Agent):
         """
         ...
 
-def gateway_call(purpose, model, messages, output_model=None, tools=None, max_tokens=6000):
+def gateway_call(purpose, model, messages, output_model=None, tools=None, max_tokens=16000):
     """One typed NOOA request through the gateway (2026-10-30): NOOA's own litellm client asked for no thinking, kept no
     exchange and returned ``reasoning=None``. The gateway asks Claude for its thinking (adaptive, display summarized), keeps
     the whole exchange with the API thinking summary, checks the caps, counts the cost and records the request in the
@@ -125,7 +125,10 @@ def gateway_call(purpose, model, messages, output_model=None, tools=None, max_to
     if output_model is not None:  # the typed answer NOOA validates; never a field asking for the model's reasons
         schema = json.dumps(output_model.model_json_schema(), ensure_ascii=False)
         sent = [{"role": "system", "content": "Answer with one JSON object, and nothing else, that fits this JSON Schema:\n" + schema}, *sent]
-    reply = client.complete(sent, None, max_tokens=max_tokens)
+    # streamed, with room to think: at xhigh effort a typed experiment used all of 6,000 + 8,000 tokens on thinking and came
+    # back empty (2026-10-30, live); a request this long must stream (the SDK refuses a long one sent whole)
+    send = getattr(client, "stream", None)
+    reply = send(sent, None, max_tokens=max_tokens) if send else client.complete(sent, None, max_tokens=max_tokens)
     return reply, str(getattr(client, "model", None) or override or serving.get("model") or "")
 
 

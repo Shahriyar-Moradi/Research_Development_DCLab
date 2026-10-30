@@ -710,3 +710,26 @@ class AgentEnvironmentTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AgentEnvironmentTests(unittest.TestCase):
+    """2026-10-30: the research campaign runs in .venv-agent, which has no sqlalchemy. A model request there checked the
+    shared pause through storage.db (sqlalchemy at import) even with no database configured, so every campaign call failed
+    with ModuleNotFoundError. Without a database, the request path never imports sqlalchemy."""
+
+    def test_the_pause_and_the_session_log_never_need_sqlalchemy_without_a_database(self):
+        import subprocess
+
+        code = ("import builtins, os, sys, tempfile, pathlib\n"
+                "real = builtins.__import__\n"
+                "def guard(name, *a, **k):\n"
+                "    if name.split('.')[0] == 'sqlalchemy': raise ModuleNotFoundError(\"No module named 'sqlalchemy'\")\n"
+                "    return real(name, *a, **k)\n"
+                "builtins.__import__ = guard\n"
+                "from dclab_rnd.models import pause\n"
+                "from dclab_rnd import experience\n"
+                "assert pause.get('x') == (0.0, '')\n"
+                "assert type(experience.open_log(pathlib.Path(tempfile.mkdtemp()), 'w')).__name__ == 'FileLog'\n")
+        env = {k: v for k, v in os.environ.items() if k != "DCLAB_DATABASE_URL"}
+        out = subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env, capture_output=True, text=True, timeout=120)
+        self.assertEqual(out.returncode, 0, out.stderr[-2000:])

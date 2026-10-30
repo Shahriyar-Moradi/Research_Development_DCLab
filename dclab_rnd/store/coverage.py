@@ -465,7 +465,7 @@ def measure(layout: Optional[Layout] = None, home: Optional[Path] = None) -> dic
         thinking, redacted = bool(d.get("thinking")), bool(d.get("thinking_redacted"))
         lang = _language(_user_texts(d.get("messages"))) if d.get("whole") else None
         adds = {"exchanges": 1, "whole": int(bool(d.get("whole"))), "thinking": int(thinking), "thinking_redacted": int(redacted),
-                "thought_lost": int(bool(d.get("thought")) and not thinking and not redacted), "fa": int(lang == "fa"), "en": int(lang == "en")}
+                "thought_lost": int(bool(d.get("thought")) and not thinking and not redacted and not d.get("exam")), "fa": int(lang == "fa"), "en": int(lang == "en")}
         agent, track = _purpose_agent(d.get("purpose")), tracks.of(d.get("draft"), d.get("project"))
         exchange_agent[key], exchange_track[key] = agent, track
         _bump(by_agent, agent, SOURCE_COLUMNS, **adds)

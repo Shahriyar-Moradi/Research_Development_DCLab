@@ -565,8 +565,12 @@ class Bound:
                 doc.update(messages=messages, reply=(out or {}).get("content"), tool_calls=(out or {}).get("tool_calls"), thinking=thinking,
                            tools=tools or [])
             else:
-                doc.update(messages=len(messages), reply_chars=len(str((out or {}).get("content") or "")), thought=bool(thinking),
-                           why="a purpose shown cell values or one that may not keep text, or a workspace that keeps no model text: its shape only")
+                exam = os.environ.get("DCLAB_SEALED_RUN") if not experience.model_text_allowed() else None
+                why = (f"an exam ({exam}): its shape only, never its words or its thinking" if exam else
+                       "a purpose shown cell values: its words not kept (its thinking is kept redacted)" if shown_cells else
+                       "a workspace that keeps no model text: its shape only")
+                doc.update(messages=len(messages), reply_chars=len(str((out or {}).get("content") or "")), thought=bool(thinking), why=why,
+                           **({"exam": exam} if exam else {}))
                 if thinking and shown_cells and experience.model_text_allowed():
                     # the owner (2026-10-28): the thinking is kept for training even where the prompt held cell values: its text
                     # with what could identify someone redacted, in the workspace only (may_leave stays the purpose's keeps_text)
