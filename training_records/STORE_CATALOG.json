@@ -81,31 +81,30 @@
   "gaps": [
    "agent campaign: no run recorded",
    "track advice: the advice track has no product of its own yet: its exit (answer) is not built, and the Evidence library's record carries no draft id, so there is nothing to judge",
-   "m7_routing request.intent: 1278 of 1434 model readings without their thinking summary",
-   "m1_students: no example with recorded thinking",
-   "m1_students: 8784 of 248746 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
-   "m2_workflow_decisions: no example with recorded thinking",
-   "m2_workflow_decisions: 1339 of 21260 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
+   "m7_routing request.intent: 27 of 1434 model readings without their thinking summary and without a reason it cannot exist",
+   "m1_students: 27 of 248746 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
+   "m2_workflow_decisions: 27 of 21260 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
    "m3_ml_decisions: no example with recorded thinking",
-   "m3_ml_decisions: 4920 of 193573 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
-   "m6_stepwise_decisions: no example with recorded thinking",
-   "m6_stepwise_decisions: 266 of 4121 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
-   "m7_judges: no example with recorded thinking"
+   "m6_stepwise_decisions: 3 of 4121 examples were made by a model or by someone the record does not name, and carry no reasoning and no note"
   ],
   "model_types": {
    "m1_students": {
     "by_agent": {
      "(studio code)": {
       "examples": 242947,
+      "lost": 8320,
       "no_model": 234570,
-      "none": 8377,
+      "none": 27,
+      "note": 8350,
       "outcome": 11704
      },
      "home": {
       "examples": 5587,
+      "lost": 41,
       "no_model": 5180,
-      "none": 407,
-      "outcome": 117
+      "note": 125,
+      "outcome": 117,
+      "recorded": 282
      },
      "orchestra.walk": {
       "examples": 212,
@@ -116,44 +115,57 @@
     "by_track": {
      "(no request)": {
       "examples": 16701,
+      "lost": 100,
       "no_model": 16574,
-      "none": 127,
+      "none": 27,
+      "note": 100,
       "outcome": 827
      },
      "advice": {
       "examples": 259,
+      "lost": 2,
       "no_model": 175,
-      "none": 84
+      "note": 40,
+      "recorded": 44
      },
      "analysis": {
       "examples": 1460,
+      "lost": 30,
       "no_model": 1338,
-      "none": 122,
-      "outcome": 25
+      "note": 42,
+      "outcome": 25,
+      "recorded": 80
      },
      "business": {
       "examples": 785,
+      "lost": 4,
       "no_model": 739,
-      "none": 46,
-      "outcome": 15
+      "note": 12,
+      "outcome": 15,
+      "recorded": 34
      },
      "prediction": {
       "examples": 227954,
+      "lost": 8222,
       "no_model": 219640,
-      "none": 8314,
-      "outcome": 10903
+      "note": 8260,
+      "outcome": 10903,
+      "recorded": 54
      },
      "preparation": {
       "examples": 789,
+      "lost": 3,
       "no_model": 742,
-      "none": 47,
-      "outcome": 29
+      "note": 11,
+      "outcome": 29,
+      "recorded": 36
      },
      "reporting": {
       "examples": 798,
       "no_model": 754,
-      "none": 44,
-      "outcome": 25
+      "note": 10,
+      "outcome": 25,
+      "recorded": 34
      }
     },
     "en": 0,
@@ -161,12 +173,12 @@
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
-    "lost": 0,
+    "lost": 8361,
     "no_model": 239962,
-    "none": 8784,
-    "note": 0,
+    "none": 27,
+    "note": 8475,
     "outcome": 11824,
-    "recorded": 0,
+    "recorded": 282,
     "replayed": 0,
     "sealed_not_read": 7071,
     "sets": 77,
@@ -177,15 +189,19 @@
     "by_agent": {
      "(studio code)": {
       "examples": 15973,
+      "lost": 1092,
       "no_model": 14852,
-      "none": 1121,
+      "none": 27,
+      "note": 1094,
       "outcome": 110
      },
      "home": {
       "examples": 5075,
+      "lost": 35,
       "no_model": 4857,
-      "none": 218,
-      "outcome": 115
+      "note": 77,
+      "outcome": 115,
+      "recorded": 141
      },
      "orchestra.walk": {
       "examples": 212,
@@ -196,44 +212,57 @@
     "by_track": {
      "(no request)": {
       "examples": 2200,
+      "lost": 11,
       "no_model": 2162,
-      "none": 38,
+      "none": 27,
+      "note": 11,
       "outcome": 41
      },
      "advice": {
       "examples": 151,
+      "lost": 1,
       "no_model": 109,
-      "none": 42
+      "note": 20,
+      "recorded": 22
      },
      "analysis": {
       "examples": 163,
+      "lost": 25,
       "no_model": 92,
-      "none": 71,
-      "outcome": 25
+      "note": 31,
+      "outcome": 25,
+      "recorded": 40
      },
      "business": {
       "examples": 62,
+      "lost": 4,
       "no_model": 37,
-      "none": 25,
-      "outcome": 14
+      "note": 8,
+      "outcome": 14,
+      "recorded": 17
      },
      "prediction": {
       "examples": 18553,
+      "lost": 1083,
       "no_model": 17437,
-      "none": 1116,
-      "outcome": 94
+      "note": 1089,
+      "outcome": 94,
+      "recorded": 27
      },
      "preparation": {
       "examples": 67,
+      "lost": 3,
       "no_model": 42,
-      "none": 25,
-      "outcome": 29
+      "note": 7,
+      "outcome": 29,
+      "recorded": 18
      },
      "reporting": {
       "examples": 64,
       "no_model": 42,
-      "none": 22,
-      "outcome": 25
+      "note": 5,
+      "outcome": 25,
+      "recorded": 17
      }
     },
     "en": 0,
@@ -241,12 +270,12 @@
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
-    "lost": 0,
+    "lost": 1127,
     "no_model": 19921,
-    "none": 1339,
-    "note": 0,
+    "none": 27,
+    "note": 1171,
     "outcome": 228,
-    "recorded": 0,
+    "recorded": 141,
     "replayed": 0,
     "sealed_not_read": 331,
     "sets": 23,
@@ -257,8 +286,9 @@
     "by_agent": {
      "(studio code)": {
       "examples": 193570,
+      "lost": 4892,
       "no_model": 188650,
-      "none": 4920,
+      "note": 4920,
       "outcome": 8787
      },
      "home": {
@@ -270,8 +300,9 @@
     "by_track": {
      "(no request)": {
       "examples": 11421,
+      "lost": 48,
       "no_model": 11373,
-      "none": 48,
+      "note": 48,
       "outcome": 782
      },
      "advice": {
@@ -288,8 +319,9 @@
      },
      "prediction": {
       "examples": 180168,
+      "lost": 4844,
       "no_model": 175296,
-      "none": 4872,
+      "note": 4872,
       "outcome": 8006
      },
      "preparation": {
@@ -306,10 +338,10 @@
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
-    "lost": 0,
+    "lost": 4892,
     "no_model": 188653,
-    "none": 4920,
-    "note": 0,
+    "none": 0,
+    "note": 4920,
     "outcome": 8788,
     "recorded": 0,
     "replayed": 0,
@@ -518,14 +550,16 @@
     "by_agent": {
      "(DCLab Code)": {
       "examples": 56,
-      "none": 56,
-      "outcome": 55
+      "note": 19,
+      "outcome": 55,
+      "recorded": 37
      },
      "(studio code)": {
       "examples": 2031,
       "from_record": 1647,
       "no_model": 174,
-      "none": 210,
+      "none": 3,
+      "note": 207,
       "outcome": 2031
      },
      "orchestra.walk": {
@@ -539,8 +573,10 @@
       "examples": 3283,
       "from_record": 1647,
       "no_model": 1370,
-      "none": 266,
-      "outcome": 3282
+      "none": 3,
+      "note": 226,
+      "outcome": 3282,
+      "recorded": 37
      },
      "advice": {
       "examples": 63,
@@ -580,10 +616,10 @@
     "from_record": 1647,
     "lost": 0,
     "no_model": 2208,
-    "none": 266,
-    "note": 0,
+    "none": 3,
+    "note": 226,
     "outcome": 4120,
-    "recorded": 0,
+    "recorded": 37,
     "replayed": 0,
     "sealed_not_read": 485,
     "sets": 7,
@@ -639,19 +675,21 @@
     "by_agent": {
      "home": {
       "examples": 5794,
+      "lost": 100,
       "no_model": 4342,
-      "note": 1045,
+      "note": 783,
       "outcome": 1681,
-      "recorded": 407
+      "recorded": 669
      }
     },
     "by_track": {
      "(no request)": {
       "examples": 2964,
+      "lost": 100,
       "no_model": 1924,
-      "note": 961,
+      "note": 699,
       "outcome": 1201,
-      "recorded": 79
+      "recorded": 341
      },
      "advice": {
       "examples": 171,
@@ -701,12 +739,12 @@
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
-    "lost": 0,
+    "lost": 100,
     "no_model": 4342,
     "none": 0,
-    "note": 1045,
+    "note": 783,
     "outcome": 1681,
-    "recorded": 407,
+    "recorded": 669,
     "replayed": 0,
     "sealed_not_read": 1736,
     "sets": 6,
@@ -749,6 +787,7 @@
   "routing": {
    "problem.pack": {
     "en": 626,
+    "explained": 0,
     "fa": 0,
     "label": {
      "none": 547,
@@ -769,6 +808,7 @@
    },
    "request.exit": {
     "en": 220,
+    "explained": 0,
     "fa": 42,
     "label": {
      "none": 150,
@@ -791,6 +831,7 @@
    },
    "request.intent": {
     "en": 1053,
+    "explained": 989,
     "fa": 255,
     "label": {
      "none": 7,
@@ -811,10 +852,11 @@
     "rows": 1441,
     "sealed_not_read": 198,
     "text": 1437,
-    "thinking": 156
+    "thinking": 418
    },
    "request.suggestion": {
     "en": 12,
+    "explained": 0,
     "fa": 0,
     "label": {
      "none": 12
@@ -833,6 +875,7 @@
    },
    "request.tool": {
     "en": 12,
+    "explained": 0,
     "fa": 0,
     "label": {
      "none": 12
@@ -851,6 +894,7 @@
    },
    "workflow.next_question": {
     "en": 3386,
+    "explained": 0,
     "fa": 0,
     "label": {
      "none": 3385,
