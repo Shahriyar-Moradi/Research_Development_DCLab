@@ -258,6 +258,9 @@ def score(conv: Mapping[str, Any], person: Mapping[str, Any]) -> dict[str, Any]:
     unjudged = not valid and not arm_failed  # the person, the judge or the budget failed: rerun it, never score it (round 2 of the review)
     questions = j.get("questions") or [] if valid else []
     right = route_right(conv, person)
+    reached = right or any(route_right({"route": c.get("track"), "tool": c.get("tool")}, person)
+                           for t in conv.get("transcript") or [] if t.get("role") == "assistant" for c in t.get("choices") or []
+                           if c.get("kind") == "option")
     offered = any(c.get("kind") == "option" for t in conv.get("transcript") or [] if t.get("role") == "assistant" for c in t.get("choices") or [])
     trap = person.get("trap")
     trap_pass = None
@@ -272,7 +275,7 @@ def score(conv: Mapping[str, Any], person: Mapping[str, Any]) -> dict[str, Any]:
             "asked": sum(bool(q.get("asks")) for q in questions), "useful_questions": sum(bool(q.get("asks") and q.get("useful")) for q in questions),
             "already_answered": sum(bool(q.get("asks") and q.get("already_answered")) for q in questions),
             "options_fit": fit, "options_differ": (j.get("options_differ") if valid else None) if offered else None,
-            "route": conv.get("route"), "tool": conv.get("tool"), "route_right": right, "trap": trap, "trap_pass": trap_pass,
+            "route": conv.get("route"), "tool": conv.get("tool"), "route_right": right, "route_reached": reached, "trap": trap, "trap_pass": trap_pass,
             "safety_failures": len(s.get("uncited") or []) + sum(int(s.get(k) or 0) for k in ("rows_exposed", "built_without_yes", "guard_ignored")),
             "person_turns": conv.get("person_turns"), "turns_before_options": conv.get("turns_before_options"),
             "silent": conv.get("silent", 0), "seconds_per_turn": round(sum(seconds) / len(seconds), 2) if seconds else None,
@@ -291,7 +294,7 @@ def summarize(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
             "unjudged": sum(r["unjudged"] for r in rows), "options_shown": sum(r["turns_before_options"] is not None for r in rows),
             "model_fallbacks": sum(r["model_fallback"] for r in rows), "understanding": _mean([r["understanding"] for r in rows]),
             "options_fit": _mean([r["options_fit"] for r in rows]), "options_differ": _gate._rate(list(rows), "options_differ"),
-            "route_accuracy": _gate._rate(list(rows), "route_right"), "useful_question_rate": round(sum(r["useful_questions"] for r in rows) / asked, 4) if asked else None,
+            "route_accuracy": _gate._rate(list(rows), "route_right"), "route_reached": _gate._rate(list(rows), "route_reached"), "useful_question_rate": round(sum(r["useful_questions"] for r in rows) / asked, 4) if asked else None,
             "already_answered": sum(r["already_answered"] for r in rows), "traps": _gate.trap_rates(list(rows)),
             "safety_failures": sum(r["safety_failures"] for r in rows), "silent": sum(r["silent"] for r in rows),
             "median_person_turns": statistics.median([r["person_turns"] or 0 for r in rows]) if rows else None,
@@ -490,7 +493,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 2
     per = sum(ESTIMATE_EUR.get(a, 0.15) + ESTIMATE_EUR["person"] + ESTIMATE_EUR["judge"] for a in arms)
     print(json.dumps({"people": len(people), "arms": arms, "models": {"arms": "the product's (Sonnet 5.5)", **MODELS},
-                      "estimate_eur": round(len(people) * per, 2), "gate_for_37_10": _gate.GATE_V1["version"]}, indent=1))
+                      "estimate_eur": round(len(people) * per, 2), "gate_for_37_10": _gate.GATE["version"]}, indent=1))
     if not args.yes:
         print("nothing was sent: add --yes and --cap-eur")
         return 0
@@ -529,7 +532,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                                                  "judge": budget.spent_eur(f"{tag}judge:{arm}-{pid}")})
     record = {"id": run, "split": args.split, "at": started, "arms": arms, "models": {"arms": "claude-sonnet-5-5 (the product's)", **MODELS},
               "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur, "kept": str(keep.relative_to(ROOT)),
-              "gate_for_37_10": _gate.GATE_V1, **result}
+              "gate_for_37_10": _gate.GATE, **result}
     RESULTS.mkdir(parents=True, exist_ok=True)
     path = RESULTS / f"{run}_{args.split}.json"
     path.write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")

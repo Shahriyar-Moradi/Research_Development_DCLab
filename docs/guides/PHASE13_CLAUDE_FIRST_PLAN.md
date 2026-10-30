@@ -345,6 +345,7 @@ override the text above where they differ.
 | 37.0 | done (CEX-004) | dev: understanding Home 0.50, Claude alone 0.50; route 80% vs 76%; Home repeats answered questions (51 vs 4); option fit about 3 of 5 for both; EUR 7.2 with the smoke runs. Open: the owner's ten labels (the Exam Labelling Desk page), the judge's agreement, the number rule's illustrative numbers (37.6) |
 | 37.1 | done (dclab-core 0.148.0) | `dclab_core.case`: facts said (two whole words of the person), computed (by code, about the data) or assumed; versions; readiness and the ceiling; option checks; the problem card round trip exact. Open: the track-brief and problem-map views (37.3) |
 | 37.2 to 37.4 | done, thin (CEX-009) | the lead agent on dev: understanding 0.88 (Claude alone 0.52, Home 0.50), option fit 4.1, no invented number, every trap kind at or above Home; route 73% (6 of 11 misses to advice for people whose data was not shared). Stop-and-decide: continue. Open: the routing fix, Home's route behind DCLAB_CASE_AGENT (37.9), memory and evidence in the context |
+| 37.4b | done (CEX-010) | the owner (2026-10-31): the sealed gate is conversation_exam_gate_v2, the route check on the right route offered or taken (v1 kept); dev preview passes every check but the owner's labels. Advice fix: 4 of 5 data needs no longer answered as advice. Open: d-37 and d-40, advice people given data work |
 
 ## خلاصهٔ فارسی
 

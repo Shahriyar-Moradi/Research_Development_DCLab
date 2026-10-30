@@ -281,7 +281,7 @@ class ScoreTests(unittest.TestCase):
 
 class GateTests(unittest.TestCase):
     def rows(self, arm, understanding, fit, route=True, trap=None, unsafe=0, n=40):
-        return [{"id": f"p{i}", "arm": arm, "understanding": understanding, "options_fit": fit, "route_right": route,
+        return [{"id": f"p{i}", "arm": arm, "understanding": understanding, "options_fit": fit, "route_right": route, "route_reached": route,
                  "trap": trap, "trap_pass": None if trap is None else route, "safety_failures": unsafe} for i in range(n)]
 
     def test_the_gate_was_fixed_before_any_run_and_names_its_parts(self):
@@ -319,6 +319,24 @@ class GateTests(unittest.TestCase):
     def test_equal_understanding_does_not_beat_claude_alone(self):
         scores = {"case": self.rows("case", 0.6, 4.5), "plain": self.rows("plain", 0.6, 3.0), "home": self.rows("home", 0.5, 3.0)}
         self.assertEqual(gate.verdict(scores, agreement=0.9)["status"], "fail")
+
+    def test_gate_v2_counts_the_right_route_offered_or_taken(self):  # the owner, 2026-10-31
+        self.assertEqual(gate.GATE["version"], "conversation_exam_gate_v2")
+        self.assertEqual(gate.GATE_V1["version"], "conversation_exam_gate_v1")  # kept for history
+        case = self.rows("case", 0.9, 4.5, route=False)
+        for r in case:
+            r["route_reached"] = True
+        plain = [dict(r, route_reached=True) for r in self.rows("plain", 0.6, 3.0)]
+        home = self.rows("home", 0.5, 3.0)
+        self.assertTrue(gate.verdict({"case": case, "plain": plain, "home": home}, agreement=0.8)["checks"]["route"])
+        self.assertFalse(gate.verdict({"case": case, "plain": plain, "home": home}, agreement=0.8, gate=gate.GATE_V1)["checks"]["route"])
+
+    def test_the_right_route_shown_among_the_options_is_reached(self):
+        conv = {"route": "business", "tool": "business_brief", "safety": {}, "judged": {"valid": False},
+                "transcript": [{"role": "assistant", "text": "x", "choices": [{"title": "a", "kind": "option", "track": "prediction", "tool": "ml_project"}]}]}
+        s = X.score(conv, PERSON)
+        self.assertFalse(s["route_right"])
+        self.assertTrue(s["route_reached"])
 
     def test_the_gap_between_two_arms_has_an_interval(self):
         out = gate.gap(self.rows("plain", 0.7, 4.0), self.rows("home", 0.5, 3.0))

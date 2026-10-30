@@ -1,0 +1,91 @@
+{
+ "package": "37.4b",
+ "title": "The sealed gate counts the right route offered or taken, and the lead agent stops answering data work as advice",
+ "date": "2026-10-31",
+ "request": "The owner, shown that every arm put the right route before the person 36 times in 41 while the lead agent's route taken was 73%: change the gate's route check to the right route offered or taken. And the six misses to advice for people whose data was not shared yet were to be fixed.",
+ "spec": "conversation_exam_gate_v2: v1 with the route check on route_reached (the right route among the options shown, or taken), not below Claude alone's; v1 kept for history; a score's route_reached; the lead agent's prompt keeps advice for questions that need no work on data and turns described-but-unshared data into the data work plus a request for the table.",
+ "plan": [
+  "Measure the route offered or taken for every arm on the stored dev conversations",
+  "Ask the owner, since the gate was theirs",
+  "Gate v2 and route_reached with tests; rescore dev from the stored conversations",
+  "The prompt's advice rule; a ten-person live check: the five advice misses and five controls",
+  "Record, rd-check, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "The route check counts the right route offered or taken",
+   "why": "under v1 a simulated person who picked another reasonable kind of help among good options counted against the agent that offered them; every arm reached the right route 36 times in 41"
+  },
+  {
+   "decision": "The change is made before any sealed run and v1 stays in the file",
+   "why": "a gate is fixed before the run that it judges; the change and its reason stay visible"
+  },
+  {
+   "decision": "The advice fix is in the prompt, not in code",
+   "why": "code cannot tell from words alone whether a person needs work on data they have not shared; the agent can, and the exam checks it"
+  }
+ ],
+ "change": "dclab_rnd.agent_eval.conversation_exam.gate: GATE_V2 (route offered or taken), GATE the sealed run's, verdict(gate=) and gap's route_reached; score() and summarize() report route_reached; the record's gate is GATE. prompts/case_agent.md: advice only for questions that need no work on data.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The route check counted a person's reasonable pick among the agent's options as the agent's miss",
+   "scenario": "CEX-009: owner-telco picked the segment action brief after saying they meant the segment column; d-25 picked finding their costs first; route taken 73% while the right route was offered or taken 36 of 41, as for the other arms",
+   "cause": "gate v1 read only the route taken against the hidden truth",
+   "fix": "gate v2 reads the right route offered or taken",
+   "test": "tests/test_conversation_exam.py GateTests.test_gate_v2_counts_the_right_route_offered_or_taken"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The lead agent answered data work as advice when the data was not shared",
+   "scenario": "CEX-009: d-08, d-19, d-25, d-28 and d-35 routed to advice though their need was a model, an analysis, a dashboard or a business brief",
+   "cause": "the prompt let any answered question start as advice, and advice starts without a ready case",
+   "fix": "advice only for questions that need no work on data; otherwise the data work and a request for the table",
+   "test": "the ten-person live check"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Two advice people still get data work",
+   "scenario": "CEX-010: d-37 routed to business and d-40 (a table shared, advice wanted) to analysis, as in CEX-009",
+   "cause": "the agent turns a question about data into data work when a table or data is in view",
+   "fix": "open: the next pass on the routing",
+   "test": "none",
+   "verdict": "open"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "gate v2 on the stored dev conversations (CEX-009 lead agent and Claude alone, CEX-004 Home, rescored)",
+   "gate": "conversation_exam_gate_v2, previewed on dev only",
+   "result": "every check passes but the judge's agreement with the owner, which waits for the owner's labels; the route check reads the right route offered or taken, 36 of 41 for every arm",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "CEX-010, the advice fix live: the five advice misses of CEX-009 and five controls",
+   "gate": "the misses move to their data work, and no control changes",
+   "result": "four of the five misses now right (d-19, d-25, d-28 and d-35); d-08, who asked for runnable code, still advice; controls d-01, d-15 and d-36 unchanged; d-37 and d-40, advice people routed to data work in CEX-009, still routed to data work; understanding 0.97, option fit 4.5, no invented number, no silent turn",
+   "verdict": "pass",
+   "cost_eur": 1.58,
+   "limits": [
+    "ten people, chosen from the dev set's misses: a dev check, not a measurement of the whole set",
+    "the reverse fault (advice people given data work, d-37 and d-40) is not fixed"
+   ]
+  }
+ ],
+ "outcome": "The sealed gate now counts the right route offered or taken (the owner's decision before any sealed run), and the lead agent no longer answers most data work as advice. On dev the gate's preview passes every check but the owner's labels.",
+ "lessons": [
+  "A route metric must not punish offering choices: measure whether the right route was put before the person, and what they took",
+  "A shortcut for one kind of help (advice without readiness) pulls other needs into it unless its edge is written down"
+ ],
+ "risks": [
+  "Route offered or taken can be gamed by offering every kind: the options check keeps them to three of different kinds, and option fit is judged"
+ ],
+ "commits": []
+}
