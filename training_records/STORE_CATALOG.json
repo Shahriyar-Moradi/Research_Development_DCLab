@@ -28,16 +28,16 @@
  },
  "costs": {
   "by_model_type": {
-   "m4_workflow_llm": 168.442816
+   "m4_workflow_llm": 170.189776
   },
   "by_purpose": {
-   "ai_first": 17.558564,
-   "brief_checker": 0.009636,
+   "ai_first": 18.406708,
+   "brief_checker": 0.016714,
    "campaign": 0.437496,
    "campaign_review": 12.466256,
    "conversation_reader": 14.700744,
-   "critic": 0.00634,
-   "data_investigator": 0.140772,
+   "critic": 0.034334,
+   "data_investigator": 0.156928,
    "data_need": 1.484072,
    "debate_judge": 0.043152,
    "decision_answer": 6.216808,
@@ -45,65 +45,61 @@
    "decomposer": 4.20616,
    "embedding": 0.00446,
    "evidence_answer": 0.012102,
-   "feature_engineer": 0.02984,
+   "feature_engineer": 0.065626,
    "home_agent": 24.810027,
    "home_business": 0.078992,
-   "home_intent": 4.736105,
+   "home_intent": 4.812063,
    "home_orchestrator": 0.402659,
    "home_query": 0.0575,
-   "home_understand": 2.537719,
-   "intern": 36.846789,
+   "home_understand": 2.80109,
+   "intern": 36.987822,
    "journey_checker": 2.307328,
    "journey_writer": 7.305133,
-   "leakage_review": 0.777898,
+   "leakage_review": 0.78741,
    "map_reviewer": 2.418224,
    "metric_question": 0.526472,
    "notebook_cell": 0.188415,
    "parse_pattern": 0.002646,
-   "problem_analyst": 0.251078,
+   "problem_analyst": 0.267378,
    "project_answer": 0.132486,
    "reasoning_teacher": 0.00776,
    "reflector": 0.0851,
-   "reporter": 0.109968,
+   "reporter": 0.185836,
    "routing_labeler": 1.408134,
    "solution_challenger": 0.257164,
-   "solution_planner": 3.834292,
+   "solution_planner": 3.878962,
    "solution_router": 1.569544,
-   "stage_notes": 4.5519,
+   "stage_notes": 4.71237,
    "store_curator": 0.81816,
    "synthetic_schema": 0.431721,
-   "understanding_critic": 6.803352
+   "understanding_critic": 6.803352,
+   "workspace_chat": 0.02462
   },
-  "total_eur": 176.291818
+  "total_eur": 178.038778
  },
  "coverage": {
   "gaps": [
-   "agent workspace_chat: no run recorded",
-   "agent workspace_chat: sends workspace_chat but no kept exchange holds its thinking",
-   "agent team: no run recorded",
    "agent campaign: no run recorded",
-   "agent campaign: sends campaign but no kept exchange holds its thinking",
-   "agent twin: sends ai_first but no kept exchange holds its thinking",
    "track advice: the advice track has no product of its own yet: its exit (answer) is not built, and the Evidence library's record carries no draft id, so there is nothing to judge",
    "m7_routing request.intent: 1278 of 1434 model readings without their thinking summary",
    "m1_students: no example with recorded thinking",
-   "m1_students: 8524 of 248305 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
+   "m1_students: 8784 of 248746 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
    "m2_workflow_decisions: no example with recorded thinking",
-   "m2_workflow_decisions: 1305 of 21220 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
+   "m2_workflow_decisions: 1339 of 21260 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
    "m3_ml_decisions: no example with recorded thinking",
-   "m3_ml_decisions: 4792 of 193326 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
+   "m3_ml_decisions: 4920 of 193573 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
    "m6_stepwise_decisions: no example with recorded thinking",
-   "m6_stepwise_decisions: 266 of 4112 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
+   "m6_stepwise_decisions: 266 of 4121 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
    "m7_judges: no example with recorded thinking"
   ],
   "model_types": {
    "m1_students": {
     "by_agent": {
      "(studio code)": {
-      "examples": 242506,
-      "no_model": 234389,
-      "none": 8117,
-      "outcome": 11512
+      "examples": 242947,
+      "no_model": 234570,
+      "none": 8377,
+      "outcome": 11704
      },
      "home": {
       "examples": 5587,
@@ -142,10 +138,10 @@
       "outcome": 15
      },
      "prediction": {
-      "examples": 227513,
-      "no_model": 219459,
-      "none": 8054,
-      "outcome": 10711
+      "examples": 227954,
+      "no_model": 219640,
+      "none": 8314,
+      "outcome": 10903
      },
      "preparation": {
       "examples": 789,
@@ -161,15 +157,15 @@
      }
     },
     "en": 0,
-    "examples": 248305,
+    "examples": 248746,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 0,
-    "no_model": 239781,
-    "none": 8524,
+    "no_model": 239962,
+    "none": 8784,
     "note": 0,
-    "outcome": 11632,
+    "outcome": 11824,
     "recorded": 0,
     "replayed": 0,
     "sealed_not_read": 7071,
@@ -180,9 +176,9 @@
    "m2_workflow_decisions": {
     "by_agent": {
      "(studio code)": {
-      "examples": 15933,
-      "no_model": 14846,
-      "none": 1087,
+      "examples": 15973,
+      "no_model": 14852,
+      "none": 1121,
       "outcome": 110
      },
      "home": {
@@ -222,9 +218,9 @@
       "outcome": 14
      },
      "prediction": {
-      "examples": 18513,
-      "no_model": 17431,
-      "none": 1082,
+      "examples": 18553,
+      "no_model": 17437,
+      "none": 1116,
       "outcome": 94
      },
      "preparation": {
@@ -241,13 +237,13 @@
      }
     },
     "en": 0,
-    "examples": 21220,
+    "examples": 21260,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 0,
-    "no_model": 19915,
-    "none": 1305,
+    "no_model": 19921,
+    "none": 1339,
     "note": 0,
     "outcome": 228,
     "recorded": 0,
@@ -260,10 +256,10 @@
    "m3_ml_decisions": {
     "by_agent": {
      "(studio code)": {
-      "examples": 193323,
-      "no_model": 188531,
-      "none": 4792,
-      "outcome": 8691
+      "examples": 193570,
+      "no_model": 188650,
+      "none": 4920,
+      "outcome": 8787
      },
      "home": {
       "examples": 3,
@@ -273,8 +269,8 @@
     },
     "by_track": {
      "(no request)": {
-      "examples": 11402,
-      "no_model": 11354,
+      "examples": 11421,
+      "no_model": 11373,
       "none": 48,
       "outcome": 782
      },
@@ -291,10 +287,10 @@
       "no_model": 415
      },
      "prediction": {
-      "examples": 179940,
-      "no_model": 175196,
-      "none": 4744,
-      "outcome": 7910
+      "examples": 180168,
+      "no_model": 175296,
+      "none": 4872,
+      "outcome": 8006
      },
      "preparation": {
       "examples": 412,
@@ -306,15 +302,15 @@
      }
     },
     "en": 0,
-    "examples": 193326,
+    "examples": 193573,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 0,
-    "no_model": 188534,
-    "none": 4792,
+    "no_model": 188653,
+    "none": 4920,
     "note": 0,
-    "outcome": 8692,
+    "outcome": 8788,
     "recorded": 0,
     "replayed": 0,
     "sealed_not_read": 8919,
@@ -335,12 +331,13 @@
       "recorded": 1483
      },
      "(roles)": {
-      "en": 7,
-      "examples": 7,
-      "exchanges": 23,
+      "en": 52,
+      "examples": 52,
+      "exchanges": 45,
       "lost": 7,
       "note": 7,
-      "outcome": 7
+      "outcome": 52,
+      "recorded": 45
      },
      "home": {
       "en": 3132,
@@ -367,19 +364,22 @@
      },
      "twin": {
       "exchanges": 8
+     },
+     "workspace_chat": {
+      "exchanges": 5
      }
     },
     "by_track": {
      "(no request)": {
-      "en": 3174,
-      "examples": 3862,
-      "exchanges": 4647,
+      "en": 3219,
+      "examples": 3907,
+      "exchanges": 4674,
       "fa": 464,
       "from_record": 602,
       "lost": 483,
       "note": 1324,
-      "outcome": 3258,
-      "recorded": 1936
+      "outcome": 3303,
+      "recorded": 1981
      },
      "advice": {
       "en": 35,
@@ -439,17 +439,17 @@
       "recorded": 51
      }
     },
-    "en": 4957,
-    "examples": 5838,
-    "exchanges": 7796,
+    "en": 5002,
+    "examples": 5883,
+    "exchanges": 7823,
     "fa": 640,
     "from_record": 1223,
     "lost": 624,
     "no_model": 0,
     "none": 0,
     "note": 1537,
-    "outcome": 4604,
-    "recorded": 3077,
+    "outcome": 4649,
+    "recorded": 3122,
     "replayed": 1,
     "sealed_not_read": 265,
     "sets": 15,
@@ -470,40 +470,40 @@
       "outcome": 475
      },
      "(solver)": {
-      "examples": 1430,
-      "from_record": 1136,
-      "note": 218,
-      "outcome": 1162,
-      "recorded": 76
+      "examples": 1433,
+      "from_record": 1137,
+      "note": 219,
+      "outcome": 1164,
+      "recorded": 77
      }
     },
     "by_track": {
      "(no request)": {
       "en": 9,
-      "examples": 256,
-      "note": 190,
+      "examples": 257,
+      "note": 191,
       "recorded": 66
      },
      "prediction": {
       "en": 475,
-      "examples": 1658,
-      "from_record": 1136,
+      "examples": 1660,
+      "from_record": 1137,
       "note": 512,
-      "outcome": 1637,
-      "recorded": 10
+      "outcome": 1639,
+      "recorded": 11
      }
     },
     "en": 484,
-    "examples": 1914,
+    "examples": 1917,
     "exchanges": 0,
     "fa": 0,
-    "from_record": 1136,
+    "from_record": 1137,
     "lost": 0,
     "no_model": 0,
     "none": 0,
-    "note": 702,
-    "outcome": 1637,
-    "recorded": 76,
+    "note": 703,
+    "outcome": 1639,
+    "recorded": 77,
     "replayed": 0,
     "sealed_not_read": 692,
     "sets": 8,
@@ -518,25 +518,25 @@
       "outcome": 55
      },
      "(studio code)": {
-      "examples": 2025,
-      "from_record": 1641,
+      "examples": 2031,
+      "from_record": 1647,
       "no_model": 174,
       "none": 210,
-      "outcome": 2025
+      "outcome": 2031
      },
      "orchestra.walk": {
-      "examples": 2031,
-      "no_model": 2031,
-      "outcome": 2031
+      "examples": 2034,
+      "no_model": 2034,
+      "outcome": 2034
      }
     },
     "by_track": {
      "(no request)": {
-      "examples": 3277,
-      "from_record": 1641,
+      "examples": 3283,
+      "from_record": 1647,
       "no_model": 1370,
       "none": 266,
-      "outcome": 3276
+      "outcome": 3282
      },
      "advice": {
       "examples": 63,
@@ -554,9 +554,9 @@
       "outcome": 30
      },
      "prediction": {
-      "examples": 624,
-      "no_model": 624,
-      "outcome": 624
+      "examples": 627,
+      "no_model": 627,
+      "outcome": 627
      },
      "preparation": {
       "examples": 30,
@@ -570,15 +570,15 @@
      }
     },
     "en": 0,
-    "examples": 4112,
+    "examples": 4121,
     "exchanges": 0,
     "fa": 0,
-    "from_record": 1641,
+    "from_record": 1647,
     "lost": 0,
-    "no_model": 2205,
+    "no_model": 2208,
     "none": 266,
     "note": 0,
-    "outcome": 4111,
+    "outcome": 4120,
     "recorded": 0,
     "replayed": 0,
     "sealed_not_read": 485,
@@ -595,35 +595,35 @@
       "outcome": 7
      },
      "(studio code)": {
-      "examples": 7801,
-      "no_model": 7801,
-      "outcome": 7801
+      "examples": 7849,
+      "no_model": 7849,
+      "outcome": 7849
      }
     },
     "by_track": {
      "(no request)": {
-      "examples": 5940,
-      "no_model": 5940,
-      "outcome": 5940
+      "examples": 5985,
+      "no_model": 5985,
+      "outcome": 5985
      },
      "prediction": {
       "en": 7,
-      "examples": 1868,
-      "no_model": 1861,
+      "examples": 1871,
+      "no_model": 1864,
       "note": 7,
-      "outcome": 1868
+      "outcome": 1871
      }
     },
     "en": 7,
-    "examples": 7808,
+    "examples": 7856,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 0,
-    "no_model": 7801,
+    "no_model": 7849,
     "none": 0,
     "note": 7,
-    "outcome": 7808,
+    "outcome": 7856,
     "recorded": 0,
     "replayed": 0,
     "sealed_not_read": 931,
@@ -712,25 +712,25 @@
    "m8_retrieval": {
     "by_agent": {
      "(evidence search)": {
-      "en": 8,
-      "examples": 8,
-      "no_model": 8
+      "en": 9,
+      "examples": 9,
+      "no_model": 9
      }
     },
     "by_track": {
      "(no request)": {
-      "en": 8,
-      "examples": 8,
-      "no_model": 8
+      "en": 9,
+      "examples": 9,
+      "no_model": 9
      }
     },
-    "en": 8,
-    "examples": 8,
+    "en": 9,
+    "examples": 9,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 0,
-    "no_model": 8,
+    "no_model": 9,
     "none": 0,
     "note": 0,
     "outcome": 0,
@@ -870,25 +870,30 @@
   "sources": {
    "by_agent": {
     "(model uses)": {
-     "calls": 8116,
-     "en": 1424,
-     "exchanges": 2693,
+     "calls": 8127,
+     "en": 1428,
+     "exchanges": 2953,
      "fa": 73,
-     "thinking": 1026,
+     "thinking": 1286,
      "thinking_redacted": 3,
      "thought_lost": 706,
-     "whole": 1497
+     "whole": 1501
     },
     "(roles)": {
-     "calls": 2527,
-     "en": 9,
-     "exchanges": 23,
-     "thinking": 9,
+     "calls": 2550,
+     "en": 28,
+     "exchanges": 53,
+     "thinking": 36,
+     "thinking_redacted": 3,
      "thought_lost": 4,
-     "whole": 9
+     "whole": 28
     },
     "campaign": {
-     "calls": 16
+     "calls": 16,
+     "en": 8,
+     "exchanges": 8,
+     "thinking": 8,
+     "whole": 8
     },
     "conductor": {
      "runs": 169
@@ -921,14 +926,15 @@
      "runs": 5884
     },
     "intern": {
-     "calls": 3782,
-     "exchanges": 1881,
-     "runs": 67,
+     "calls": 3797,
+     "exchanges": 2047,
+     "runs": 68,
+     "thinking": 166,
      "thinking_redacted": 306,
      "thought_lost": 266
     },
     "intern.standard": {
-     "runs": 82
+     "runs": 83
     },
     "learning": {
      "runs": 112
@@ -945,27 +951,46 @@
     "orchestra.walk": {
      "runs": 72
     },
+    "team": {
+     "runs": 3
+    },
     "tutor": {
      "runs": 5
     },
     "twin": {
-     "calls": 186,
-     "exchanges": 8,
+     "calls": 191,
+     "exchanges": 127,
      "runs": 1,
+     "thinking": 119,
      "thought_lost": 8
+    },
+    "workspace_chat": {
+     "calls": 5,
+     "exchanges": 5,
+     "runs": 1,
+     "thinking_redacted": 3
     }
    },
    "by_purpose": {
     "ai_first": {
-     "calls": 186,
-     "exchanges": 8,
+     "calls": 191,
+     "exchanges": 127,
+     "thinking": 119,
      "thought_lost": 8
     },
     "brief_checker": {
-     "calls": 26
+     "calls": 29,
+     "en": 3,
+     "exchanges": 3,
+     "thinking": 3,
+     "whole": 3
     },
     "campaign": {
-     "calls": 16
+     "calls": 16,
+     "en": 8,
+     "exchanges": 8,
+     "thinking": 8,
+     "whole": 8
     },
     "campaign_review": {
      "calls": 83
@@ -974,10 +999,18 @@
      "calls": 997
     },
     "critic": {
-     "calls": 8
+     "calls": 12,
+     "en": 4,
+     "exchanges": 4,
+     "thinking": 4,
+     "whole": 4
     },
     "data_investigator": {
-     "calls": 323
+     "calls": 326,
+     "en": 3,
+     "exchanges": 3,
+     "thinking": 3,
+     "whole": 3
     },
     "data_need": {
      "calls": 38
@@ -1014,7 +1047,11 @@
      "calls": 2
     },
     "feature_engineer": {
-     "calls": 11
+     "calls": 14,
+     "en": 3,
+     "exchanges": 3,
+     "thinking": 3,
+     "whole": 3
     },
     "home_agent": {
      "calls": 3262,
@@ -1032,12 +1069,12 @@
     },
     "home_intent": {
      "calls": 517,
-     "en": 264,
-     "exchanges": 519,
+     "en": 265,
+     "exchanges": 520,
      "fa": 71,
-     "thinking": 278,
+     "thinking": 279,
      "thought_lost": 179,
-     "whole": 335
+     "whole": 336
     },
     "home_orchestrator": {
      "calls": 91,
@@ -1055,15 +1092,16 @@
     },
     "home_understand": {
      "calls": 257,
-     "en": 192,
-     "exchanges": 257,
-     "thinking": 192,
+     "en": 195,
+     "exchanges": 260,
+     "thinking": 195,
      "thought_lost": 65,
-     "whole": 192
+     "whole": 195
     },
     "intern": {
-     "calls": 3782,
-     "exchanges": 1881,
+     "calls": 3797,
+     "exchanges": 2047,
+     "thinking": 166,
      "thinking_redacted": 306,
      "thought_lost": 266
     },
@@ -1082,9 +1120,10 @@
      "whole": 204
     },
     "leakage_review": {
-     "calls": 245,
+     "calls": 246,
      "en": 6,
-     "exchanges": 61,
+     "exchanges": 68,
+     "thinking": 7,
      "thought_lost": 18,
      "whole": 6
     },
@@ -1111,11 +1150,16 @@
      "calls": 1
     },
     "problem_analyst": {
-     "calls": 223
+     "calls": 227,
+     "en": 3,
+     "exchanges": 11,
+     "thinking": 11,
+     "whole": 3
     },
     "project_answer": {
      "calls": 21,
-     "exchanges": 12,
+     "exchanges": 21,
+     "thinking": 9,
      "thought_lost": 12
     },
     "reasoning_teacher": {
@@ -1134,8 +1178,9 @@
      "whole": 4
     },
     "reporter": {
-     "calls": 13,
-     "exchanges": 6
+     "calls": 16,
+     "exchanges": 9,
+     "thinking_redacted": 3
     },
     "routing_labeler": {
      "calls": 305,
@@ -1148,16 +1193,20 @@
      "calls": 130
     },
     "solution_planner": {
-     "calls": 236
+     "calls": 239,
+     "en": 3,
+     "exchanges": 3,
+     "thinking": 3,
+     "whole": 3
     },
     "solution_router": {
      "calls": 139
     },
     "stage_notes": {
-     "calls": 483,
+     "calls": 493,
      "en": 20,
-     "exchanges": 419,
-     "thinking": 20,
+     "exchanges": 659,
+     "thinking": 260,
      "thought_lost": 373,
      "whole": 20
     },
@@ -1179,19 +1228,24 @@
      "exchanges": 5,
      "thinking": 5,
      "whole": 5
+    },
+    "workspace_chat": {
+     "calls": 5,
+     "exchanges": 5,
+     "thinking_redacted": 3
     }
    },
    "by_track": {
     "(no request)": {
-     "calls": 12633,
-     "en": 2364,
-     "exchanges": 4647,
+     "calls": 12660,
+     "en": 2395,
+     "exchanges": 4686,
      "fa": 342,
-     "runs": 7418,
-     "thinking": 1284,
-     "thinking_redacted": 1,
+     "runs": 7421,
+     "thinking": 1315,
+     "thinking_redacted": 7,
      "thought_lost": 1096,
-     "whole": 2706
+     "whole": 2737
     },
     "advice": {
      "calls": 31,
@@ -1220,11 +1274,11 @@
      "whole": 85
     },
     "prediction": {
-     "calls": 5041,
+     "calls": 5073,
      "en": 468,
      "exchanges": 2838,
      "fa": 26,
-     "runs": 3110,
+     "runs": 3113,
      "thinking": 341,
      "thinking_redacted": 306,
      "thought_lost": 660,
@@ -1251,10 +1305,10 @@
  },
  "kinds": {
   "actions": {
-   "bytes": 21576633,
-   "entries": 1816,
-   "last": "2026-10-29T20:27:41+00:00",
-   "sources": 1435,
+   "bytes": 21671846,
+   "entries": 1833,
+   "last": "2026-10-30T06:58:14+00:00",
+   "sources": 1443,
    "what": "agent steps and tool calls",
    "workspaces": [
     "dev",
@@ -2517,6 +2571,8 @@
     "live_tests__2026-10-26-dclab-code-long-agents__dclab_workspace__twin__runs__20261026-011838-cabdda__",
     "live_tests__2026-10-28-dclab-code-hyperack-rerun__workspace_known",
     "live_tests__2026-10-28-rnd-hyperack-live__workspace_recommend",
+    "live_tests__2026-10-30-capture__workspace_chat",
+    "live_tests__2026-10-30-team__063024",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-100832-215130__workflow",
     "twin__runs__20261016-112025-a15b8e__ai_first",
@@ -2582,24 +2638,26 @@
     "twin__runs__20261021-214240-a8d50c__workflow",
     "twin__runs__20261021-214334-2e2e98__workflow",
     "twin__runs__20261021-214358-a1c0f6__workflow",
-    "twin__runs__20261021-214403-7bcb4b__workflow"
+    "twin__runs__20261021-214403-7bcb4b__workflow",
+    "twin__runs__20261030-063607-214d06__ai_first",
+    "twin__runs__20261030-063607-214d06__workflow"
    ]
   },
   "agents": {
-   "bytes": 1506772685,
-   "entries": 2707,
-   "last": "2026-10-29T20:40:30+00:00",
-   "sources": 2353,
+   "bytes": 1513234301,
+   "entries": 2716,
+   "last": "2026-10-30T07:12:54+00:00",
+   "sources": 2356,
    "what": "other agents' sessions: Claude Code (the main checkout and its worktrees), testers'",
    "workspaces": [
     "rnd"
    ]
   },
   "audit": {
-   "bytes": 1591262,
-   "entries": 282,
-   "last": "2026-10-29T20:27:41+00:00",
-   "sources": 125,
+   "bytes": 1612018,
+   "entries": 289,
+   "last": "2026-10-30T06:58:14+00:00",
+   "sources": 128,
    "what": "the audit trail",
    "workspaces": [
     "dev",
@@ -2659,6 +2717,7 @@
     "live_tests__2026-10-26-dclab-code-long-agents__dclab_workspace__twin__runs__20261026-011838-cabdda__",
     "live_tests__2026-10-28-dclab-code-hyperack-rerun__workspace_known",
     "live_tests__2026-10-28-rnd-hyperack-live__workspace_recommend",
+    "live_tests__2026-10-30-capture__workspace_chat",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-100832-215130__workflow",
     "twin__runs__20261016-112025-a15b8e__ai_first",
@@ -2724,14 +2783,16 @@
     "twin__runs__20261021-214240-a8d50c__workflow",
     "twin__runs__20261021-214334-2e2e98__workflow",
     "twin__runs__20261021-214358-a1c0f6__workflow",
-    "twin__runs__20261021-214403-7bcb4b__workflow"
+    "twin__runs__20261021-214403-7bcb4b__workflow",
+    "twin__runs__20261030-063607-214d06__ai_first",
+    "twin__runs__20261030-063607-214d06__workflow"
    ]
   },
   "conversations": {
-   "bytes": 376061883,
-   "entries": 7676,
-   "last": "2026-10-29T20:29:13+00:00",
-   "sources": 7538,
+   "bytes": 378346090,
+   "entries": 7687,
+   "last": "2026-10-30T06:59:46+00:00",
+   "sources": 7549,
    "what": "Home, the intern, the workspace chat, the twin, MCP",
    "workspaces": [
     "dev",
@@ -5292,6 +5353,7 @@
     "live_tests__2026-10-29-home-eval__dev-191140__model__d-v1",
     "live_tests__2026-10-29-home-eval__dev-192309__model__d-v1",
     "live_tests__2026-10-29-home-eval__dev-195648__model__d-v1",
+    "live_tests__2026-10-30-capture__workspace_chat",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -5361,24 +5423,26 @@
     "twin__runs__20261021-214240-a8d50c__workflow",
     "twin__runs__20261021-214334-2e2e98__workflow",
     "twin__runs__20261021-214358-a1c0f6__workflow",
-    "twin__runs__20261021-214403-7bcb4b__workflow"
+    "twin__runs__20261021-214403-7bcb4b__workflow",
+    "twin__runs__20261030-063607-214d06__ai_first",
+    "twin__runs__20261030-063607-214d06__workflow"
    ]
   },
   "curation": {
-   "bytes": 1217361223,
-   "entries": 66,
-   "last": "2026-10-29T20:47:55+00:00",
-   "sources": 66,
+   "bytes": 1218912538,
+   "entries": 68,
+   "last": "2026-10-30T07:23:55+00:00",
+   "sources": 68,
    "what": "every curator's choice: where each record went, its quality, why, and its failed answers",
    "workspaces": [
     "rnd"
    ]
   },
   "decisions": {
-   "bytes": 401732990,
-   "entries": 8950,
-   "last": "2026-10-29T20:26:18+00:00",
-   "sources": 8806,
+   "bytes": 402400149,
+   "entries": 8960,
+   "last": "2026-10-30T06:57:05+00:00",
+   "sources": 8816,
    "what": "the decision ledger: records, labels and outcomes",
    "workspaces": [
     "dev",
@@ -6977,6 +7041,8 @@
     "live_tests__2026-10-29-home-eval__dev-191140__model__d-v1",
     "live_tests__2026-10-29-home-eval__dev-192309__model__d-v1",
     "live_tests__2026-10-29-home-eval__dev-195648__model__d-v1",
+    "live_tests__2026-10-30-capture__workspace_chat",
+    "live_tests__2026-10-30-team__063024",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -9164,7 +9230,9 @@
     "twin__runs__20261021-214240-a8d50c__workflow",
     "twin__runs__20261021-214334-2e2e98__workflow",
     "twin__runs__20261021-214358-a1c0f6__workflow",
-    "twin__runs__20261021-214403-7bcb4b__workflow"
+    "twin__runs__20261021-214403-7bcb4b__workflow",
+    "twin__runs__20261030-063607-214d06__ai_first",
+    "twin__runs__20261030-063607-214d06__workflow"
    ]
   },
   "deletions": {
@@ -9182,20 +9250,20 @@
    ]
   },
   "fixes": {
-   "bytes": 131303075,
-   "entries": 1417,
-   "last": "2026-10-29T20:43:25+00:00",
-   "sources": 1377,
+   "bytes": 131759157,
+   "entries": 1428,
+   "last": "2026-10-30T07:17:31+00:00",
+   "sources": 1388,
    "what": "a failing test, the passing run after it, and the commits between",
    "workspaces": [
     "rnd"
    ]
   },
   "model_requests": {
-   "bytes": 126214308,
-   "entries": 264,
-   "last": "2026-10-29T20:27:58+00:00",
-   "sources": 94,
+   "bytes": 126493064,
+   "entries": 273,
+   "last": "2026-10-30T06:58:31+00:00",
+   "sources": 98,
    "what": "every model request with its shadows and checks",
    "workspaces": [
     "dev",
@@ -9247,6 +9315,7 @@
     "live_tests__2026-10-26-dclab-code-long-agents__dclab_workspace",
     "live_tests__2026-10-26-dclab-code-long-agents__dclab_workspace__twin__runs__20261026-011838-cabdda__",
     "live_tests__2026-10-28-rnd-hyperack-live__workspace_recommend",
+    "live_tests__2026-10-30-capture__workspace_chat",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-112025-a15b8e__ai_first",
     "twin__runs__20261016-112855-921d50__ai_first",
@@ -9263,14 +9332,15 @@
     "twin__runs__20261021-153955-36da2b__ai_first",
     "twin__runs__20261021-154916-1c49c5__ai_first",
     "twin__runs__20261021-155706-1183eb__ai_first",
-    "twin__runs__20261021-161241-b0cedc__ai_first"
+    "twin__runs__20261021-161241-b0cedc__ai_first",
+    "twin__runs__20261030-063607-214d06__ai_first"
    ]
   },
   "other": {
-   "bytes": 530013460,
-   "entries": 14234,
-   "last": "2026-10-29T20:32:36+00:00",
-   "sources": 13754,
+   "bytes": 532347332,
+   "entries": 14299,
+   "last": "2026-10-30T07:04:35+00:00",
+   "sources": 13800,
    "what": "anything else a workspace holds (logs, results, designs, transcripts, settings), so nothing is left out",
    "workspaces": [
     "dev",
@@ -11553,6 +11623,8 @@
     "live_tests__2026-10-29-home-conversation__dev-195744__p-16",
     "live_tests__2026-10-29-home-conversation__dev-195744__p-19",
     "live_tests__2026-10-29-home-conversation__dev-195744__p-20",
+    "live_tests__2026-10-30-capture__workspace_chat",
+    "live_tests__2026-10-30-team__063024",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -11963,14 +12035,16 @@
     "twin__runs__20261021-214240-a8d50c__workflow",
     "twin__runs__20261021-214334-2e2e98__workflow",
     "twin__runs__20261021-214358-a1c0f6__workflow",
-    "twin__runs__20261021-214403-7bcb4b__workflow"
+    "twin__runs__20261021-214403-7bcb4b__workflow",
+    "twin__runs__20261030-063607-214d06__ai_first",
+    "twin__runs__20261030-063607-214d06__workflow"
    ]
   },
   "sessions": {
-   "bytes": 305646353,
-   "entries": 3140,
-   "last": "2026-10-29T20:25:16+00:00",
-   "sources": 2774,
+   "bytes": 307540837,
+   "entries": 3152,
+   "last": "2026-10-30T06:56:14+00:00",
+   "sources": 2778,
    "what": "the experience log's events",
    "workspaces": [
     "dev",
@@ -13304,6 +13378,8 @@
     "live_tests__2026-10-26-dclab-code-spike__home",
     "live_tests__2026-10-28-dclab-code-hyperack-rerun__workspace_known",
     "live_tests__2026-10-28-rnd-hyperack-live__workspace_recommend",
+    "live_tests__2026-10-30-capture__workspace_chat",
+    "live_tests__2026-10-30-team__063024",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -13691,14 +13767,16 @@
     "twin__runs__20261021-214240-a8d50c__workflow",
     "twin__runs__20261021-214334-2e2e98__workflow",
     "twin__runs__20261021-214358-a1c0f6__workflow",
-    "twin__runs__20261021-214403-7bcb4b__workflow"
+    "twin__runs__20261021-214403-7bcb4b__workflow",
+    "twin__runs__20261030-063607-214d06__ai_first",
+    "twin__runs__20261030-063607-214d06__workflow"
    ]
   },
   "students": {
-   "bytes": 51892360,
-   "entries": 311,
-   "last": "2026-10-29T21:02:58+00:00",
-   "sources": 214,
+   "bytes": 52380709,
+   "entries": 321,
+   "last": "2026-10-30T08:03:03+00:00",
+   "sources": 222,
    "what": "every student version, whole: the fitted model, its training snapshot, card, measurements, shadow answers",
    "workspaces": [
     "dev",
@@ -13781,10 +13859,10 @@
    ]
   },
   "tests": {
-   "bytes": 324743164,
-   "entries": 12789,
-   "last": "2026-10-29T20:34:15+00:00",
-   "sources": 12533,
+   "bytes": 324826992,
+   "entries": 12818,
+   "last": "2026-10-30T07:04:54+00:00",
+   "sources": 12558,
    "what": "test runs and gates",
    "workspaces": [
     "dev",
@@ -13794,10 +13872,10 @@
    ]
   },
   "workflows": {
-   "bytes": 369968288,
-   "entries": 15244,
-   "last": "2026-10-29T20:43:17+00:00",
-   "sources": 15088,
+   "bytes": 375685304,
+   "entries": 15301,
+   "last": "2026-10-30T07:17:27+00:00",
+   "sources": 15144,
    "what": "each walk from a draft to a report; team and orchestra boards, walks and interrupts",
    "workspaces": [
     "dev",
@@ -16363,6 +16441,8 @@
     "live_tests__2026-10-29-home-eval__dev-191140__model__d-v1",
     "live_tests__2026-10-29-home-eval__dev-192309__model__d-v1",
     "live_tests__2026-10-29-home-eval__dev-195648__model__d-v1",
+    "live_tests__2026-10-30-capture__workspace_chat",
+    "live_tests__2026-10-30-team__063024",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -16432,7 +16512,9 @@
     "twin__runs__20261021-214240-a8d50c__workflow",
     "twin__runs__20261021-214334-2e2e98__workflow",
     "twin__runs__20261021-214358-a1c0f6__workflow",
-    "twin__runs__20261021-214403-7bcb4b__workflow"
+    "twin__runs__20261021-214403-7bcb4b__workflow",
+    "twin__runs__20261030-063607-214d06__ai_first",
+    "twin__runs__20261030-063607-214d06__workflow"
    ]
   }
  },
@@ -16443,13 +16525,13 @@
      "counts": {
       "dev": 224,
       "sealed": 7,
-      "sealed_pending": 256,
-      "train": 632
+      "sealed_pending": 259,
+      "train": 653
      },
      "name": "column.category_code/pairs",
      "path": "sets/m1_students/column.category_code/pairs/v1",
      "reasoning": {
-      "missing": 1119
+      "no_model": 1143
      },
      "version": "v1"
     },
@@ -16457,13 +16539,13 @@
      "counts": {
       "dev": 799,
       "sealed": 7,
-      "sealed_pending": 937,
-      "train": 2284
+      "sealed_pending": 940,
+      "train": 2305
      },
      "name": "column.category_code",
      "path": "sets/m1_students/column.category_code/v1",
      "reasoning": {
-      "missing": 4027
+      "no_model": 4051
      },
      "version": "v1"
     },
@@ -16471,13 +16553,14 @@
      "counts": {
       "dev": 13,
       "sealed": 2,
-      "sealed_pending": 19,
-      "train": 45
+      "sealed_pending": 20,
+      "train": 46
      },
      "name": "column.group/pairs",
      "path": "sets/m1_students/column.group/pairs/v1",
      "reasoning": {
-      "missing": 77
+      "missing": 9,
+      "no_model": 70
      },
      "version": "v1"
     },
@@ -16485,13 +16568,14 @@
      "counts": {
       "dev": 62,
       "sealed": 26,
-      "sealed_pending": 28,
-      "train": 161
+      "sealed_pending": 29,
+      "train": 162
      },
      "name": "column.group",
      "path": "sets/m1_students/column.group/v1",
      "reasoning": {
-      "missing": 277
+      "missing": 18,
+      "no_model": 261
      },
      "version": "v1"
     },
@@ -16499,13 +16583,14 @@
      "counts": {
       "dev": 2137,
       "sealed": 34,
-      "sealed_pending": 2417,
-      "train": 7065
+      "sealed_pending": 2435,
+      "train": 7112
      },
      "name": "column.is_identifier/pairs",
      "path": "sets/m1_students/column.is_identifier/pairs/v1",
      "reasoning": {
-      "missing": 11653
+      "missing": 1503,
+      "no_model": 10215
      },
      "version": "v1"
     },
@@ -16513,13 +16598,14 @@
      "counts": {
       "dev": 10489,
       "sealed": 34,
-      "sealed_pending": 11094,
-      "train": 33026
+      "sealed_pending": 11112,
+      "train": 33073
      },
      "name": "column.is_identifier",
      "path": "sets/m1_students/column.is_identifier/v1",
      "reasoning": {
-      "missing": 54643
+      "missing": 2661,
+      "no_model": 52047
      },
      "version": "v1"
     },
@@ -16527,13 +16613,13 @@
      "counts": {
       "dev": 1370,
       "sealed": 34,
-      "sealed_pending": 1435,
-      "train": 8986
+      "sealed_pending": 1453,
+      "train": 9033
      },
      "name": "column.semantic_role/pairs",
      "path": "sets/m1_students/column.semantic_role/pairs/v1",
      "reasoning": {
-      "missing": 11825
+      "no_model": 11890
      },
      "version": "v1"
     },
@@ -16541,13 +16627,13 @@
      "counts": {
       "dev": 4113,
       "sealed": 34,
-      "sealed_pending": 4456,
-      "train": 16452
+      "sealed_pending": 4474,
+      "train": 16499
      },
      "name": "column.semantic_role",
      "path": "sets/m1_students/column.semantic_role/v1",
      "reasoning": {
-      "missing": 25055
+      "no_model": 25120
      },
      "version": "v1"
     },
@@ -16561,7 +16647,7 @@
      "name": "column.statistics_only",
      "path": "sets/m1_students/column.statistics_only/v1",
      "reasoning": {
-      "missing": 3
+      "no_model": 3
      },
      "version": "v1"
     },
@@ -16569,13 +16655,14 @@
      "counts": {
       "dev": 49,
       "sealed": 1,
-      "sealed_pending": 41,
+      "sealed_pending": 42,
       "train": 163
      },
      "name": "column.time/pairs",
      "path": "sets/m1_students/column.time/pairs/v1",
      "reasoning": {
-      "missing": 254
+      "missing": 43,
+      "no_model": 212
      },
      "version": "v1"
     },
@@ -16583,13 +16670,14 @@
      "counts": {
       "dev": 333,
       "sealed": 1,
-      "sealed_pending": 345,
+      "sealed_pending": 346,
       "train": 1081
      },
      "name": "column.time",
      "path": "sets/m1_students/column.time/v1",
      "reasoning": {
-      "missing": 1760
+      "missing": 63,
+      "no_model": 1698
      },
      "version": "v1"
     },
@@ -16603,7 +16691,7 @@
      "name": "critic.send_back",
      "path": "sets/m1_students/critic.send_back/v1",
      "reasoning": {
-      "missing": 10
+      "no_model": 10
      },
      "version": "v1"
     },
@@ -16617,7 +16705,7 @@
      "name": "data.cases_table/pairs",
      "path": "sets/m1_students/data.cases_table/pairs/v1",
      "reasoning": {
-      "missing": 299
+      "no_model": 299
      },
      "version": "v1"
     },
@@ -16631,7 +16719,7 @@
      "name": "data.cases_table",
      "path": "sets/m1_students/data.cases_table/v1",
      "reasoning": {
-      "missing": 1001
+      "no_model": 1001
      },
      "version": "v1"
     },
@@ -16645,7 +16733,7 @@
      "name": "data.cleaning_keep",
      "path": "sets/m1_students/data.cleaning_keep/v1",
      "reasoning": {
-      "missing": 1436
+      "no_model": 1436
      },
      "version": "v1"
     },
@@ -16659,7 +16747,7 @@
      "name": "data.cleaning_step/pairs",
      "path": "sets/m1_students/data.cleaning_step/pairs/v1",
      "reasoning": {
-      "missing": 3200
+      "no_model": 3200
      },
      "version": "v1"
     },
@@ -16673,7 +16761,7 @@
      "name": "data.cleaning_step",
      "path": "sets/m1_students/data.cleaning_step/v1",
      "reasoning": {
-      "missing": 10739
+      "no_model": 10739
      },
      "version": "v1"
     },
@@ -16687,7 +16775,7 @@
      "name": "data.fit_verdict",
      "path": "sets/m1_students/data.fit_verdict/v1",
      "reasoning": {
-      "missing": 478
+      "no_model": 478
      },
      "version": "v1"
     },
@@ -16701,7 +16789,7 @@
      "name": "data.more_rows",
      "path": "sets/m1_students/data.more_rows/v1",
      "reasoning": {
-      "missing": 58
+      "no_model": 58
      },
      "version": "v1"
     },
@@ -16709,13 +16797,13 @@
      "counts": {
       "dev": 515,
       "sealed": 2,
-      "sealed_pending": 542,
-      "train": 1539
+      "sealed_pending": 544,
+      "train": 1542
      },
      "name": "data.sampling",
      "path": "sets/m1_students/data.sampling/v1",
      "reasoning": {
-      "missing": 2598
+      "no_model": 2603
      },
      "version": "v1"
     },
@@ -16729,7 +16817,7 @@
      "name": "data.structure_format",
      "path": "sets/m1_students/data.structure_format/v1",
      "reasoning": {
-      "missing": 1033
+      "no_model": 1033
      },
      "version": "v1"
     },
@@ -16743,7 +16831,8 @@
      "name": "data.synthetic_shape",
      "path": "sets/m1_students/data.synthetic_shape/v1",
      "reasoning": {
-      "missing": 38
+      "missing": 14,
+      "no_model": 24
      },
      "version": "v1"
     },
@@ -16765,13 +16854,13 @@
      "counts": {
       "dev": 99,
       "sealed": 88,
-      "sealed_pending": 40,
+      "sealed_pending": 41,
       "train": 323
      },
      "name": "experiment.accept",
      "path": "sets/m1_students/experiment.accept/v1",
      "reasoning": {
-      "missing": 550
+      "no_model": 551
      },
      "version": "v1"
     },
@@ -16779,13 +16868,14 @@
      "counts": {
       "dev": 99,
       "sealed": 88,
-      "sealed_pending": 40,
+      "sealed_pending": 41,
       "train": 323
      },
      "name": "experiment.next",
      "path": "sets/m1_students/experiment.next/v1",
      "reasoning": {
-      "missing": 550
+      "missing": 1,
+      "no_model": 550
      },
      "version": "v1"
     },
@@ -16793,13 +16883,14 @@
      "counts": {
       "dev": 2377,
       "sealed": 37,
-      "sealed_pending": 2657,
-      "train": 7804
+      "sealed_pending": 2678,
+      "train": 7855
      },
      "name": "feature.leakage_suspect/pairs",
      "path": "sets/m1_students/feature.leakage_suspect/pairs/v1",
      "reasoning": {
-      "missing": 12875
+      "missing": 1503,
+      "no_model": 11444
      },
      "version": "v1"
     },
@@ -16807,13 +16898,14 @@
      "counts": {
       "dev": 11124,
       "sealed": 37,
-      "sealed_pending": 11708,
-      "train": 34874
+      "sealed_pending": 11729,
+      "train": 34925
      },
      "name": "feature.leakage_suspect",
      "path": "sets/m1_students/feature.leakage_suspect/v1",
      "reasoning": {
-      "missing": 57743
+      "missing": 2661,
+      "no_model": 55154
      },
      "version": "v1"
     },
@@ -16821,13 +16913,14 @@
      "counts": {
       "dev": 514,
       "sealed": 3,
-      "sealed_pending": 538,
-      "train": 1534
+      "sealed_pending": 540,
+      "train": 1537
      },
      "name": "features.recipe",
      "path": "sets/m1_students/features.recipe/v1",
      "reasoning": {
-      "missing": 2589
+      "missing": 4,
+      "no_model": 2590
      },
      "version": "v1"
     },
@@ -16841,7 +16934,8 @@
      "name": "holdout.reuse",
      "path": "sets/m1_students/holdout.reuse/v1",
      "reasoning": {
-      "missing": 3
+      "missing": 2,
+      "no_model": 1
      },
      "version": "v1"
     },
@@ -16855,7 +16949,7 @@
      "name": "image.flip_safe",
      "path": "sets/m1_students/image.flip_safe/v1",
      "reasoning": {
-      "missing": 100
+      "no_model": 100
      },
      "version": "v1"
     },
@@ -16869,7 +16963,7 @@
      "name": "image.label_suspect",
      "path": "sets/m1_students/image.label_suspect/v1",
      "reasoning": {
-      "missing": 20328
+      "no_model": 20328
      },
      "version": "v1"
     },
@@ -16883,7 +16977,7 @@
      "name": "image.near_copy",
      "path": "sets/m1_students/image.near_copy/v1",
      "reasoning": {
-      "missing": 12000
+      "no_model": 12000
      },
      "version": "v1"
     },
@@ -16892,12 +16986,12 @@
       "dev": 65,
       "sealed": 26,
       "sealed_pending": 43,
-      "train": 172
+      "train": 173
      },
      "name": "labels.join_key",
      "path": "sets/m1_students/labels.join_key/v1",
      "reasoning": {
-      "missing": 306
+      "no_model": 307
      },
      "version": "v1"
     },
@@ -16911,7 +17005,7 @@
      "name": "map.edit",
      "path": "sets/m1_students/map.edit/v1",
      "reasoning": {
-      "missing": 15
+      "no_model": 15
      },
      "version": "v1"
     },
@@ -16925,7 +17019,7 @@
      "name": "map.size",
      "path": "sets/m1_students/map.size/v1",
      "reasoning": {
-      "missing": 438
+      "no_model": 438
      },
      "version": "v1"
     },
@@ -16933,13 +17027,13 @@
      "counts": {
       "dev": 515,
       "sealed": 2,
-      "sealed_pending": 542,
-      "train": 1539
+      "sealed_pending": 544,
+      "train": 1542
      },
      "name": "metric.primary",
      "path": "sets/m1_students/metric.primary/v1",
      "reasoning": {
-      "missing": 2598
+      "no_model": 2603
      },
      "version": "v1"
     },
@@ -16947,13 +17041,14 @@
      "counts": {
       "dev": 514,
       "sealed": 2,
-      "sealed_pending": 537,
-      "train": 1528
+      "sealed_pending": 539,
+      "train": 1531
      },
      "name": "model.family",
      "path": "sets/m1_students/model.family/v1",
      "reasoning": {
-      "missing": 2581
+      "missing": 4,
+      "no_model": 2582
      },
      "version": "v1"
     },
@@ -16961,13 +17056,13 @@
      "counts": {
       "dev": 214,
       "sealed": 53,
-      "sealed_pending": 172,
-      "train": 629
+      "sealed_pending": 174,
+      "train": 632
      },
      "name": "model.first",
      "path": "sets/m1_students/model.first/v1",
      "reasoning": {
-      "missing": 1068
+      "no_model": 1073
      },
      "version": "v1"
     },
@@ -16981,7 +17076,7 @@
      "name": "model.promote",
      "path": "sets/m1_students/model.promote/v1",
      "reasoning": {
-      "missing": 36
+      "no_model": 36
      },
      "version": "v1"
     },
@@ -16989,13 +17084,13 @@
      "counts": {
       "dev": 78,
       "sealed": 74,
-      "sealed_pending": 28,
+      "sealed_pending": 29,
       "train": 250
      },
      "name": "model.review",
      "path": "sets/m1_students/model.review/v1",
      "reasoning": {
-      "missing": 430
+      "no_model": 431
      },
      "version": "v1"
     },
@@ -17004,12 +17099,13 @@
       "dev": 729,
       "sealed": 1,
       "sealed_pending": 762,
-      "train": 2248
+      "train": 2250
      },
      "name": "modifier.groups",
      "path": "sets/m1_students/modifier.groups/v1",
      "reasoning": {
-      "missing": 3740
+      "missing": 136,
+      "no_model": 3606
      },
      "version": "v1"
     },
@@ -17018,12 +17114,13 @@
       "dev": 673,
       "sealed": 1,
       "sealed_pending": 711,
-      "train": 2080
+      "train": 2082
      },
      "name": "modifier.noisy_labels",
      "path": "sets/m1_students/modifier.noisy_labels/v1",
      "reasoning": {
-      "missing": 3465
+      "missing": 136,
+      "no_model": 3331
      },
      "version": "v1"
     },
@@ -17032,12 +17129,13 @@
       "dev": 729,
       "sealed": 1,
       "sealed_pending": 762,
-      "train": 2248
+      "train": 2250
      },
      "name": "modifier.rare_positives",
      "path": "sets/m1_students/modifier.rare_positives/v1",
      "reasoning": {
-      "missing": 3740
+      "missing": 136,
+      "no_model": 3606
      },
      "version": "v1"
     },
@@ -17046,12 +17144,13 @@
       "dev": 673,
       "sealed": 1,
       "sealed_pending": 711,
-      "train": 2080
+      "train": 2082
      },
      "name": "modifier.review_capacity",
      "path": "sets/m1_students/modifier.review_capacity/v1",
      "reasoning": {
-      "missing": 3465
+      "missing": 136,
+      "no_model": 3331
      },
      "version": "v1"
     },
@@ -17060,12 +17159,13 @@
       "dev": 729,
       "sealed": 1,
       "sealed_pending": 762,
-      "train": 2248
+      "train": 2250
      },
      "name": "modifier.time_order",
      "path": "sets/m1_students/modifier.time_order/v1",
      "reasoning": {
-      "missing": 3740
+      "missing": 136,
+      "no_model": 3606
      },
      "version": "v1"
     },
@@ -17079,7 +17179,7 @@
      "name": "problem.family/pairs",
      "path": "sets/m1_students/problem.family/pairs/v1",
      "reasoning": {
-      "missing": 63
+      "no_model": 63
      },
      "version": "v1"
     },
@@ -17093,7 +17193,7 @@
      "name": "problem.family",
      "path": "sets/m1_students/problem.family/v1",
      "reasoning": {
-      "missing": 484
+      "no_model": 484
      },
      "version": "v1"
     },
@@ -17107,7 +17207,8 @@
      "name": "problem.pack",
      "path": "sets/m1_students/problem.pack/v1",
      "reasoning": {
-      "missing": 883
+      "missing": 2,
+      "no_model": 881
      },
      "version": "v1"
     },
@@ -17121,7 +17222,7 @@
      "name": "problem.ready/pairs",
      "path": "sets/m1_students/problem.ready/pairs/v1",
      "reasoning": {
-      "missing": 68
+      "no_model": 68
      },
      "version": "v1"
     },
@@ -17135,7 +17236,7 @@
      "name": "problem.ready",
      "path": "sets/m1_students/problem.ready/v1",
      "reasoning": {
-      "missing": 501
+      "no_model": 501
      },
      "version": "v1"
     },
@@ -17149,7 +17250,8 @@
      "name": "query.plan",
      "path": "sets/m1_students/query.plan/v1",
      "reasoning": {
-      "missing": 30
+      "missing": 15,
+      "no_model": 15
      },
      "version": "v1"
     },
@@ -17163,7 +17265,7 @@
      "name": "recipe.step",
      "path": "sets/m1_students/recipe.step/v1",
      "reasoning": {
-      "missing": 10
+      "no_model": 10
      },
      "version": "v1"
     },
@@ -17171,13 +17273,13 @@
      "counts": {
       "dev": 48,
       "sealed": 15,
-      "sealed_pending": 0,
-      "train": 28
+      "sealed_pending": 33,
+      "train": 45
      },
      "name": "report.claim",
      "path": "sets/m1_students/report.claim/v1",
      "reasoning": {
-      "missing": 91
+      "missing": 141
      },
      "version": "v1"
     },
@@ -17191,7 +17293,7 @@
      "name": "request.exit",
      "path": "sets/m1_students/request.exit/v1",
      "reasoning": {
-      "missing": 344
+      "no_model": 344
      },
      "version": "v1"
     },
@@ -17205,7 +17307,8 @@
      "name": "request.intent/pairs",
      "path": "sets/m1_students/request.intent/pairs/v1",
      "reasoning": {
-      "missing": 229
+      "missing": 227,
+      "no_model": 2
      },
      "version": "v1"
     },
@@ -17219,7 +17322,8 @@
      "name": "request.intent",
      "path": "sets/m1_students/request.intent/v1",
      "reasoning": {
-      "missing": 353
+      "missing": 242,
+      "no_model": 111
      },
      "version": "v1"
     },
@@ -17233,7 +17337,7 @@
      "name": "request.suggestion",
      "path": "sets/m1_students/request.suggestion/v1",
      "reasoning": {
-      "missing": 12
+      "no_model": 12
      },
      "version": "v1"
     },
@@ -17247,7 +17351,7 @@
      "name": "request.tool",
      "path": "sets/m1_students/request.tool/v1",
      "reasoning": {
-      "missing": 12
+      "no_model": 12
      },
      "version": "v1"
     },
@@ -17261,7 +17365,7 @@
      "name": "solution.compose",
      "path": "sets/m1_students/solution.compose/v1",
      "reasoning": {
-      "missing": 2
+      "no_model": 2
      },
      "version": "v1"
     },
@@ -17275,7 +17379,7 @@
      "name": "solution.route/pairs",
      "path": "sets/m1_students/solution.route/pairs/v1",
      "reasoning": {
-      "missing": 18
+      "no_model": 18
      },
      "version": "v1"
     },
@@ -17289,7 +17393,7 @@
      "name": "solution.route",
      "path": "sets/m1_students/solution.route/v1",
      "reasoning": {
-      "missing": 438
+      "no_model": 438
      },
      "version": "v1"
     },
@@ -17297,13 +17401,13 @@
      "counts": {
       "dev": 515,
       "sealed": 2,
-      "sealed_pending": 542,
-      "train": 1539
+      "sealed_pending": 544,
+      "train": 1542
      },
      "name": "split.folds",
      "path": "sets/m1_students/split.folds/v1",
      "reasoning": {
-      "missing": 2598
+      "no_model": 2603
      },
      "version": "v1"
     },
@@ -17311,13 +17415,13 @@
      "counts": {
       "dev": 147,
       "sealed": 1,
-      "sealed_pending": 172,
-      "train": 440
+      "sealed_pending": 174,
+      "train": 443
      },
      "name": "split.strategy/pairs",
      "path": "sets/m1_students/split.strategy/pairs/v1",
      "reasoning": {
-      "missing": 760
+      "no_model": 765
      },
      "version": "v1"
     },
@@ -17325,13 +17429,13 @@
      "counts": {
       "dev": 372,
       "sealed": 2,
-      "sealed_pending": 413,
-      "train": 1103
+      "sealed_pending": 415,
+      "train": 1106
      },
      "name": "split.strategy",
      "path": "sets/m1_students/split.strategy/v1",
      "reasoning": {
-      "missing": 1890
+      "no_model": 1895
      },
      "version": "v1"
     },
@@ -17339,13 +17443,14 @@
      "counts": {
       "dev": 789,
       "sealed": 2,
-      "sealed_pending": 822,
-      "train": 2408
+      "sealed_pending": 824,
+      "train": 2411
      },
      "name": "target.column",
      "path": "sets/m1_students/target.column/v1",
      "reasoning": {
-      "missing": 4021
+      "missing": 153,
+      "no_model": 3873
      },
      "version": "v1"
     },
@@ -17353,13 +17458,14 @@
      "counts": {
       "dev": 290,
       "sealed": 1,
-      "sealed_pending": 326,
-      "train": 952
+      "sealed_pending": 328,
+      "train": 955
      },
      "name": "task.framing/pairs",
      "path": "sets/m1_students/task.framing/pairs/v1",
      "reasoning": {
-      "missing": 1569
+      "missing": 78,
+      "no_model": 1496
      },
      "version": "v1"
     },
@@ -17367,13 +17473,14 @@
      "counts": {
       "dev": 792,
       "sealed": 2,
-      "sealed_pending": 824,
-      "train": 2415
+      "sealed_pending": 826,
+      "train": 2418
      },
      "name": "task.framing",
      "path": "sets/m1_students/task.framing/v1",
      "reasoning": {
-      "missing": 4033
+      "missing": 153,
+      "no_model": 3885
      },
      "version": "v1"
     },
@@ -17387,7 +17494,7 @@
      "name": "team.next_node",
      "path": "sets/m1_students/team.next_node/v1",
      "reasoning": {
-      "missing": 223
+      "no_model": 223
      },
      "version": "v1"
     },
@@ -17395,13 +17502,13 @@
      "counts": {
       "dev": 628,
       "sealed": 1,
-      "sealed_pending": 265,
-      "train": 1176
+      "sealed_pending": 266,
+      "train": 1179
      },
      "name": "threshold.operating_point",
      "path": "sets/m1_students/threshold.operating_point/v1",
      "reasoning": {
-      "missing": 2070
+      "no_model": 2074
      },
      "version": "v1"
     },
@@ -17409,13 +17516,13 @@
      "counts": {
       "dev": 511,
       "sealed": 2,
-      "sealed_pending": 534,
-      "train": 1523
+      "sealed_pending": 536,
+      "train": 1526
      },
      "name": "tuning.accept",
      "path": "sets/m1_students/tuning.accept/v1",
      "reasoning": {
-      "missing": 2570
+      "no_model": 2575
      },
      "version": "v1"
     },
@@ -17423,13 +17530,13 @@
      "counts": {
       "dev": 469,
       "sealed": 1,
-      "sealed_pending": 495,
-      "train": 1399
+      "sealed_pending": 497,
+      "train": 1402
      },
      "name": "workflow.g4",
      "path": "sets/m1_students/workflow.g4/v1",
      "reasoning": {
-      "missing": 2364
+      "no_model": 2369
      },
      "version": "v1"
     },
@@ -17437,13 +17544,14 @@
      "counts": {
       "dev": 2865,
       "sealed": 21,
-      "sealed_pending": 3003,
-      "train": 8442
+      "sealed_pending": 3023,
+      "train": 8474
      },
      "name": "workflow.move",
      "path": "sets/m1_students/workflow.move/v1",
      "reasoning": {
-      "missing": 14331
+      "missing": 1272,
+      "no_model": 13111
      },
      "version": "v1"
     },
@@ -17457,7 +17565,7 @@
      "name": "workflow.next_question/pairs",
      "path": "sets/m1_students/workflow.next_question/pairs/v1",
      "reasoning": {
-      "missing": 398
+      "no_model": 398
      },
      "version": "v1"
     },
@@ -17471,7 +17579,7 @@
      "name": "workflow.next_question",
      "path": "sets/m1_students/workflow.next_question/v1",
      "reasoning": {
-      "missing": 4743
+      "no_model": 4743
      },
      "version": "v1"
     },
@@ -17485,7 +17593,8 @@
      "name": "workflow.revisit",
      "path": "sets/m1_students/workflow.revisit/v1",
      "reasoning": {
-      "missing": 2
+      "missing": 1,
+      "no_model": 1
      },
      "version": "v1"
     },
@@ -17494,12 +17603,13 @@
       "dev": 26,
       "sealed": 5,
       "sealed_pending": 39,
-      "train": 86
+      "train": 91
      },
      "name": "workflow.stage_approval",
      "path": "sets/m1_students/workflow.stage_approval/v1",
      "reasoning": {
-      "missing": 156
+      "missing": 155,
+      "no_model": 6
      },
      "version": "v1"
     },
@@ -17513,7 +17623,8 @@
      "name": "workflow.template",
      "path": "sets/m1_students/workflow.template/v1",
      "reasoning": {
-      "missing": 905
+      "missing": 22,
+      "no_model": 883
      },
      "version": "v1"
     }
@@ -17535,7 +17646,7 @@
      "name": "internal/critic.send_back",
      "path": "sets/m2_workflow_decisions/internal/critic.send_back/v1",
      "reasoning": {
-      "missing": 10
+      "no_model": 10
      },
      "version": "v1"
     },
@@ -17563,7 +17674,7 @@
      "name": "internal/team.next_node",
      "path": "sets/m2_workflow_decisions/internal/team.next_node/v1",
      "reasoning": {
-      "missing": 223
+      "no_model": 223
      },
      "version": "v1"
     },
@@ -17571,13 +17682,13 @@
      "counts": {
       "dev": 469,
       "sealed": 1,
-      "sealed_pending": 495,
-      "train": 1399
+      "sealed_pending": 497,
+      "train": 1402
      },
      "name": "internal/workflow.g4",
      "path": "sets/m2_workflow_decisions/internal/workflow.g4/v1",
      "reasoning": {
-      "missing": 2364
+      "no_model": 2369
      },
      "version": "v1"
     },
@@ -17585,13 +17696,14 @@
      "counts": {
       "dev": 99,
       "sealed": 88,
-      "sealed_pending": 40,
+      "sealed_pending": 41,
       "train": 323
      },
      "name": "rnd/experiment.next",
      "path": "sets/m2_workflow_decisions/rnd/experiment.next/v1",
      "reasoning": {
-      "missing": 550
+      "missing": 1,
+      "no_model": 550
      },
      "version": "v1"
     },
@@ -17605,7 +17717,7 @@
      "name": "rnd/map.edit",
      "path": "sets/m2_workflow_decisions/rnd/map.edit/v1",
      "reasoning": {
-      "missing": 15
+      "no_model": 15
      },
      "version": "v1"
     },
@@ -17619,7 +17731,7 @@
      "name": "rnd/map.size",
      "path": "sets/m2_workflow_decisions/rnd/map.size/v1",
      "reasoning": {
-      "missing": 438
+      "no_model": 438
      },
      "version": "v1"
     },
@@ -17633,7 +17745,7 @@
      "name": "rnd/problem.family",
      "path": "sets/m2_workflow_decisions/rnd/problem.family/v1",
      "reasoning": {
-      "missing": 484
+      "no_model": 484
      },
      "version": "v1"
     },
@@ -17647,7 +17759,8 @@
      "name": "rnd/problem.pack",
      "path": "sets/m2_workflow_decisions/rnd/problem.pack/v1",
      "reasoning": {
-      "missing": 883
+      "missing": 2,
+      "no_model": 881
      },
      "version": "v1"
     },
@@ -17661,7 +17774,7 @@
      "name": "rnd/problem.ready",
      "path": "sets/m2_workflow_decisions/rnd/problem.ready/v1",
      "reasoning": {
-      "missing": 501
+      "no_model": 501
      },
      "version": "v1"
     },
@@ -17675,7 +17788,8 @@
      "name": "rnd/query.plan",
      "path": "sets/m2_workflow_decisions/rnd/query.plan/v1",
      "reasoning": {
-      "missing": 30
+      "missing": 15,
+      "no_model": 15
      },
      "version": "v1"
     },
@@ -17689,7 +17803,7 @@
      "name": "rnd/recipe.step",
      "path": "sets/m2_workflow_decisions/rnd/recipe.step/v1",
      "reasoning": {
-      "missing": 10
+      "no_model": 10
      },
      "version": "v1"
     },
@@ -17703,7 +17817,7 @@
      "name": "rnd/request.exit",
      "path": "sets/m2_workflow_decisions/rnd/request.exit/v1",
      "reasoning": {
-      "missing": 344
+      "no_model": 344
      },
      "version": "v1"
     },
@@ -17717,7 +17831,8 @@
      "name": "rnd/request.intent",
      "path": "sets/m2_workflow_decisions/rnd/request.intent/v1",
      "reasoning": {
-      "missing": 353
+      "missing": 242,
+      "no_model": 111
      },
      "version": "v1"
     },
@@ -17731,7 +17846,7 @@
      "name": "rnd/request.suggestion",
      "path": "sets/m2_workflow_decisions/rnd/request.suggestion/v1",
      "reasoning": {
-      "missing": 12
+      "no_model": 12
      },
      "version": "v1"
     },
@@ -17745,7 +17860,7 @@
      "name": "rnd/request.tool",
      "path": "sets/m2_workflow_decisions/rnd/request.tool/v1",
      "reasoning": {
-      "missing": 12
+      "no_model": 12
      },
      "version": "v1"
     },
@@ -17759,7 +17874,7 @@
      "name": "rnd/solution.compose",
      "path": "sets/m2_workflow_decisions/rnd/solution.compose/v1",
      "reasoning": {
-      "missing": 2
+      "no_model": 2
      },
      "version": "v1"
     },
@@ -17773,7 +17888,7 @@
      "name": "rnd/solution.route",
      "path": "sets/m2_workflow_decisions/rnd/solution.route/v1",
      "reasoning": {
-      "missing": 438
+      "no_model": 438
      },
      "version": "v1"
     },
@@ -17781,13 +17896,14 @@
      "counts": {
       "dev": 2865,
       "sealed": 21,
-      "sealed_pending": 3003,
-      "train": 8442
+      "sealed_pending": 3023,
+      "train": 8474
      },
      "name": "rnd/workflow.move",
      "path": "sets/m2_workflow_decisions/rnd/workflow.move/v1",
      "reasoning": {
-      "missing": 14331
+      "missing": 1272,
+      "no_model": 13111
      },
      "version": "v1"
     },
@@ -17801,7 +17917,7 @@
      "name": "rnd/workflow.next_question",
      "path": "sets/m2_workflow_decisions/rnd/workflow.next_question/v1",
      "reasoning": {
-      "missing": 4743
+      "no_model": 4743
      },
      "version": "v1"
     },
@@ -17815,7 +17931,8 @@
      "name": "rnd/workflow.revisit",
      "path": "sets/m2_workflow_decisions/rnd/workflow.revisit/v1",
      "reasoning": {
-      "missing": 2
+      "missing": 1,
+      "no_model": 1
      },
      "version": "v1"
     },
@@ -17824,12 +17941,13 @@
       "dev": 26,
       "sealed": 5,
       "sealed_pending": 39,
-      "train": 86
+      "train": 91
      },
      "name": "rnd/workflow.stage_approval",
      "path": "sets/m2_workflow_decisions/rnd/workflow.stage_approval/v1",
      "reasoning": {
-      "missing": 156
+      "missing": 155,
+      "no_model": 6
      },
      "version": "v1"
     },
@@ -17843,7 +17961,8 @@
      "name": "rnd/workflow.template",
      "path": "sets/m2_workflow_decisions/rnd/workflow.template/v1",
      "reasoning": {
-      "missing": 905
+      "missing": 22,
+      "no_model": 883
      },
      "version": "v1"
     }
@@ -17865,7 +17984,7 @@
      "name": "binary/data.more_rows",
      "path": "sets/m3_ml_decisions/binary/data.more_rows/v1",
      "reasoning": {
-      "missing": 28
+      "no_model": 28
      },
      "version": "v1"
     },
@@ -17879,7 +17998,7 @@
      "name": "binary/model.promote",
      "path": "sets/m3_ml_decisions/binary/model.promote/v1",
      "reasoning": {
-      "missing": 9
+      "no_model": 9
      },
      "version": "v1"
     },
@@ -17893,7 +18012,7 @@
      "name": "binary/threshold.operating_point",
      "path": "sets/m3_ml_decisions/binary/threshold.operating_point/v1",
      "reasoning": {
-      "missing": 808
+      "no_model": 808
      },
      "version": "v1"
     },
@@ -17901,13 +18020,14 @@
      "counts": {
       "dev": 7933,
       "sealed": 17,
-      "sealed_pending": 8352,
-      "train": 24870
+      "sealed_pending": 8360,
+      "train": 24917
      },
      "name": "binary_classification/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/binary_classification/feature.leakage_suspect/v1",
      "reasoning": {
-      "missing": 41172
+      "missing": 2337,
+      "no_model": 38890
      },
      "version": "v1"
     },
@@ -17915,13 +18035,13 @@
      "counts": {
       "dev": 173,
       "sealed": 41,
-      "sealed_pending": 136,
-      "train": 476
+      "sealed_pending": 137,
+      "train": 479
      },
      "name": "binary_classification/model.first",
      "path": "sets/m3_ml_decisions/binary_classification/model.first/v1",
      "reasoning": {
-      "missing": 826
+      "no_model": 830
      },
      "version": "v1"
     },
@@ -17930,12 +18050,13 @@
       "dev": 463,
       "sealed": 1,
       "sealed_pending": 483,
-      "train": 1375
+      "train": 1377
      },
      "name": "binary_classification/modifier.groups",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.groups/v1",
      "reasoning": {
-      "missing": 2322
+      "missing": 113,
+      "no_model": 2211
      },
      "version": "v1"
     },
@@ -17944,12 +18065,13 @@
       "dev": 440,
       "sealed": 1,
       "sealed_pending": 461,
-      "train": 1304
+      "train": 1306
      },
      "name": "binary_classification/modifier.noisy_labels",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.noisy_labels/v1",
      "reasoning": {
-      "missing": 2206
+      "missing": 113,
+      "no_model": 2095
      },
      "version": "v1"
     },
@@ -17958,12 +18080,13 @@
       "dev": 463,
       "sealed": 1,
       "sealed_pending": 483,
-      "train": 1375
+      "train": 1377
      },
      "name": "binary_classification/modifier.rare_positives",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.rare_positives/v1",
      "reasoning": {
-      "missing": 2322
+      "missing": 113,
+      "no_model": 2211
      },
      "version": "v1"
     },
@@ -17972,12 +18095,13 @@
       "dev": 440,
       "sealed": 1,
       "sealed_pending": 461,
-      "train": 1304
+      "train": 1306
      },
      "name": "binary_classification/modifier.review_capacity",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.review_capacity/v1",
      "reasoning": {
-      "missing": 2206
+      "missing": 113,
+      "no_model": 2095
      },
      "version": "v1"
     },
@@ -17986,12 +18110,13 @@
       "dev": 463,
       "sealed": 1,
       "sealed_pending": 483,
-      "train": 1375
+      "train": 1377
      },
      "name": "binary_classification/modifier.time_order",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.time_order/v1",
      "reasoning": {
-      "missing": 2322
+      "missing": 113,
+      "no_model": 2211
      },
      "version": "v1"
     },
@@ -17999,13 +18124,13 @@
      "counts": {
       "dev": 419,
       "sealed": 162,
-      "sealed_pending": 403,
-      "train": 1134
+      "sealed_pending": 408,
+      "train": 1153
      },
      "name": "experiments/binary",
      "path": "sets/m3_ml_decisions/experiments/binary/v1",
      "reasoning": {
-      "no_field": 1956
+      "no_field": 1980
      },
      "version": "v1"
     },
@@ -18041,13 +18166,13 @@
      "counts": {
       "dev": 110,
       "sealed": 85,
-      "sealed_pending": 160,
+      "sealed_pending": 165,
       "train": 505
      },
      "name": "experiments/regression",
      "path": "sets/m3_ml_decisions/experiments/regression/v1",
      "reasoning": {
-      "no_field": 775
+      "no_field": 780
      },
      "version": "v1"
     },
@@ -18089,7 +18214,7 @@
      "name": "extra_trees/tuning.accept",
      "path": "sets/m3_ml_decisions/extra_trees/tuning.accept/v1",
      "reasoning": {
-      "missing": 137
+      "no_model": 137
      },
      "version": "v1"
     },
@@ -18097,13 +18222,13 @@
      "counts": {
       "dev": 799,
       "sealed": 7,
-      "sealed_pending": 937,
-      "train": 2284
+      "sealed_pending": 940,
+      "train": 2305
      },
      "name": "general/column.category_code",
      "path": "sets/m3_ml_decisions/general/column.category_code/v1",
      "reasoning": {
-      "missing": 4027
+      "no_model": 4051
      },
      "version": "v1"
     },
@@ -18111,13 +18236,14 @@
      "counts": {
       "dev": 62,
       "sealed": 26,
-      "sealed_pending": 28,
-      "train": 161
+      "sealed_pending": 29,
+      "train": 162
      },
      "name": "general/column.group",
      "path": "sets/m3_ml_decisions/general/column.group/v1",
      "reasoning": {
-      "missing": 277
+      "missing": 18,
+      "no_model": 261
      },
      "version": "v1"
     },
@@ -18125,13 +18251,14 @@
      "counts": {
       "dev": 10489,
       "sealed": 34,
-      "sealed_pending": 11094,
-      "train": 33026
+      "sealed_pending": 11112,
+      "train": 33073
      },
      "name": "general/column.is_identifier",
      "path": "sets/m3_ml_decisions/general/column.is_identifier/v1",
      "reasoning": {
-      "missing": 54643
+      "missing": 2661,
+      "no_model": 52047
      },
      "version": "v1"
     },
@@ -18139,13 +18266,13 @@
      "counts": {
       "dev": 4113,
       "sealed": 34,
-      "sealed_pending": 4456,
-      "train": 16452
+      "sealed_pending": 4474,
+      "train": 16499
      },
      "name": "general/column.semantic_role",
      "path": "sets/m3_ml_decisions/general/column.semantic_role/v1",
      "reasoning": {
-      "missing": 25055
+      "no_model": 25120
      },
      "version": "v1"
     },
@@ -18159,7 +18286,7 @@
      "name": "general/column.statistics_only",
      "path": "sets/m3_ml_decisions/general/column.statistics_only/v1",
      "reasoning": {
-      "missing": 3
+      "no_model": 3
      },
      "version": "v1"
     },
@@ -18167,13 +18294,14 @@
      "counts": {
       "dev": 333,
       "sealed": 1,
-      "sealed_pending": 345,
+      "sealed_pending": 346,
       "train": 1081
      },
      "name": "general/column.time",
      "path": "sets/m3_ml_decisions/general/column.time/v1",
      "reasoning": {
-      "missing": 1760
+      "missing": 63,
+      "no_model": 1698
      },
      "version": "v1"
     },
@@ -18187,7 +18315,7 @@
      "name": "general/data.cases_table",
      "path": "sets/m3_ml_decisions/general/data.cases_table/v1",
      "reasoning": {
-      "missing": 1001
+      "no_model": 1001
      },
      "version": "v1"
     },
@@ -18201,7 +18329,7 @@
      "name": "general/data.cleaning_keep",
      "path": "sets/m3_ml_decisions/general/data.cleaning_keep/v1",
      "reasoning": {
-      "missing": 1436
+      "no_model": 1436
      },
      "version": "v1"
     },
@@ -18215,7 +18343,7 @@
      "name": "general/data.cleaning_step",
      "path": "sets/m3_ml_decisions/general/data.cleaning_step/v1",
      "reasoning": {
-      "missing": 10739
+      "no_model": 10739
      },
      "version": "v1"
     },
@@ -18229,7 +18357,7 @@
      "name": "general/data.fit_verdict",
      "path": "sets/m3_ml_decisions/general/data.fit_verdict/v1",
      "reasoning": {
-      "missing": 478
+      "no_model": 478
      },
      "version": "v1"
     },
@@ -18237,13 +18365,13 @@
      "counts": {
       "dev": 489,
       "sealed": 2,
-      "sealed_pending": 502,
-      "train": 1454
+      "sealed_pending": 504,
+      "train": 1457
      },
      "name": "general/data.sampling",
      "path": "sets/m3_ml_decisions/general/data.sampling/v1",
      "reasoning": {
-      "missing": 2447
+      "no_model": 2452
      },
      "version": "v1"
     },
@@ -18257,7 +18385,7 @@
      "name": "general/data.structure_format",
      "path": "sets/m3_ml_decisions/general/data.structure_format/v1",
      "reasoning": {
-      "missing": 1033
+      "no_model": 1033
      },
      "version": "v1"
     },
@@ -18271,7 +18399,8 @@
      "name": "general/data.synthetic_shape",
      "path": "sets/m3_ml_decisions/general/data.synthetic_shape/v1",
      "reasoning": {
-      "missing": 38
+      "missing": 14,
+      "no_model": 24
      },
      "version": "v1"
     },
@@ -18279,13 +18408,13 @@
      "counts": {
       "dev": 569,
       "sealed": 3,
-      "sealed_pending": 547,
-      "train": 1721
+      "sealed_pending": 550,
+      "train": 1725
      },
      "name": "general/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/general/feature.leakage_suspect/v1",
      "reasoning": {
-      "missing": 2840
+      "no_model": 2847
      },
      "version": "v1"
     },
@@ -18293,13 +18422,14 @@
      "counts": {
       "dev": 488,
       "sealed": 3,
-      "sealed_pending": 498,
-      "train": 1450
+      "sealed_pending": 500,
+      "train": 1453
      },
      "name": "general/features.recipe",
      "path": "sets/m3_ml_decisions/general/features.recipe/v1",
      "reasoning": {
-      "missing": 2439
+      "missing": 4,
+      "no_model": 2440
      },
      "version": "v1"
     },
@@ -18313,7 +18443,8 @@
      "name": "general/holdout.reuse",
      "path": "sets/m3_ml_decisions/general/holdout.reuse/v1",
      "reasoning": {
-      "missing": 3
+      "missing": 2,
+      "no_model": 1
      },
      "version": "v1"
     },
@@ -18327,7 +18458,7 @@
      "name": "general/image.flip_safe",
      "path": "sets/m3_ml_decisions/general/image.flip_safe/v1",
      "reasoning": {
-      "missing": 100
+      "no_model": 100
      },
      "version": "v1"
     },
@@ -18341,7 +18472,7 @@
      "name": "general/image.label_suspect",
      "path": "sets/m3_ml_decisions/general/image.label_suspect/v1",
      "reasoning": {
-      "missing": 20328
+      "no_model": 20328
      },
      "version": "v1"
     },
@@ -18355,7 +18486,7 @@
      "name": "general/image.near_copy",
      "path": "sets/m3_ml_decisions/general/image.near_copy/v1",
      "reasoning": {
-      "missing": 12000
+      "no_model": 12000
      },
      "version": "v1"
     },
@@ -18364,12 +18495,12 @@
       "dev": 65,
       "sealed": 26,
       "sealed_pending": 43,
-      "train": 172
+      "train": 173
      },
      "name": "general/labels.join_key",
      "path": "sets/m3_ml_decisions/general/labels.join_key/v1",
      "reasoning": {
-      "missing": 306
+      "no_model": 307
      },
      "version": "v1"
     },
@@ -18377,13 +18508,13 @@
      "counts": {
       "dev": 489,
       "sealed": 2,
-      "sealed_pending": 502,
-      "train": 1454
+      "sealed_pending": 504,
+      "train": 1457
      },
      "name": "general/metric.primary",
      "path": "sets/m3_ml_decisions/general/metric.primary/v1",
      "reasoning": {
-      "missing": 2447
+      "no_model": 2452
      },
      "version": "v1"
     },
@@ -18391,13 +18522,14 @@
      "counts": {
       "dev": 488,
       "sealed": 2,
-      "sealed_pending": 497,
-      "train": 1444
+      "sealed_pending": 499,
+      "train": 1447
      },
      "name": "general/model.family",
      "path": "sets/m3_ml_decisions/general/model.family/v1",
      "reasoning": {
-      "missing": 2431
+      "missing": 4,
+      "no_model": 2432
      },
      "version": "v1"
     },
@@ -18411,7 +18543,7 @@
      "name": "general/model.first",
      "path": "sets/m3_ml_decisions/general/model.first/v1",
      "reasoning": {
-      "missing": 57
+      "no_model": 57
      },
      "version": "v1"
     },
@@ -18419,13 +18551,13 @@
      "counts": {
       "dev": 57,
       "sealed": 44,
-      "sealed_pending": 22,
+      "sealed_pending": 23,
       "train": 184
      },
      "name": "general/model.review",
      "path": "sets/m3_ml_decisions/general/model.review/v1",
      "reasoning": {
-      "missing": 307
+      "no_model": 308
      },
      "version": "v1"
     },
@@ -18433,13 +18565,13 @@
      "counts": {
       "dev": 48,
       "sealed": 15,
-      "sealed_pending": 0,
-      "train": 28
+      "sealed_pending": 33,
+      "train": 45
      },
      "name": "general/report.claim",
      "path": "sets/m3_ml_decisions/general/report.claim/v1",
      "reasoning": {
-      "missing": 91
+      "missing": 141
      },
      "version": "v1"
     },
@@ -18447,13 +18579,13 @@
      "counts": {
       "dev": 489,
       "sealed": 2,
-      "sealed_pending": 502,
-      "train": 1454
+      "sealed_pending": 504,
+      "train": 1457
      },
      "name": "general/split.folds",
      "path": "sets/m3_ml_decisions/general/split.folds/v1",
      "reasoning": {
-      "missing": 2447
+      "no_model": 2452
      },
      "version": "v1"
     },
@@ -18461,13 +18593,13 @@
      "counts": {
       "dev": 346,
       "sealed": 2,
-      "sealed_pending": 373,
-      "train": 1018
+      "sealed_pending": 375,
+      "train": 1021
      },
      "name": "general/split.strategy",
      "path": "sets/m3_ml_decisions/general/split.strategy/v1",
      "reasoning": {
-      "missing": 1739
+      "no_model": 1744
      },
      "version": "v1"
     },
@@ -18475,13 +18607,14 @@
      "counts": {
       "dev": 789,
       "sealed": 2,
-      "sealed_pending": 822,
-      "train": 2408
+      "sealed_pending": 824,
+      "train": 2411
      },
      "name": "general/target.column",
      "path": "sets/m3_ml_decisions/general/target.column/v1",
      "reasoning": {
-      "missing": 4021
+      "missing": 153,
+      "no_model": 3873
      },
      "version": "v1"
     },
@@ -18489,13 +18622,14 @@
      "counts": {
       "dev": 792,
       "sealed": 2,
-      "sealed_pending": 824,
-      "train": 2415
+      "sealed_pending": 826,
+      "train": 2418
      },
      "name": "general/task.framing",
      "path": "sets/m3_ml_decisions/general/task.framing/v1",
      "reasoning": {
-      "missing": 4033
+      "missing": 153,
+      "no_model": 3885
      },
      "version": "v1"
     },
@@ -18503,13 +18637,13 @@
      "counts": {
       "dev": 260,
       "sealed": 1,
-      "sealed_pending": 265,
-      "train": 736
+      "sealed_pending": 266,
+      "train": 739
      },
      "name": "general/threshold.operating_point",
      "path": "sets/m3_ml_decisions/general/threshold.operating_point/v1",
      "reasoning": {
-      "missing": 1262
+      "no_model": 1266
      },
      "version": "v1"
     },
@@ -18523,7 +18657,7 @@
      "name": "general/tuning.accept",
      "path": "sets/m3_ml_decisions/general/tuning.accept/v1",
      "reasoning": {
-      "missing": 1303
+      "no_model": 1303
      },
      "version": "v1"
     },
@@ -18537,7 +18671,7 @@
      "name": "global_gbm/tuning.accept",
      "path": "sets/m3_ml_decisions/global_gbm/tuning.accept/v1",
      "reasoning": {
-      "missing": 1
+      "no_model": 1
      },
      "version": "v1"
     },
@@ -18546,12 +18680,12 @@
       "dev": 4,
       "sealed": 2,
       "sealed_pending": 2,
-      "train": 9
+      "train": 11
      },
      "name": "hist_gradient_boosting/tuning.accept",
      "path": "sets/m3_ml_decisions/hist_gradient_boosting/tuning.accept/v1",
      "reasoning": {
-      "missing": 17
+      "no_model": 19
      },
      "version": "v1"
     },
@@ -18565,7 +18699,7 @@
      "name": "lightgbm/tuning.accept",
      "path": "sets/m3_ml_decisions/lightgbm/tuning.accept/v1",
      "reasoning": {
-      "missing": 466
+      "no_model": 466
      },
      "version": "v1"
     },
@@ -18579,7 +18713,7 @@
      "name": "linear_svm/tuning.accept",
      "path": "sets/m3_ml_decisions/linear_svm/tuning.accept/v1",
      "reasoning": {
-      "missing": 32
+      "no_model": 32
      },
      "version": "v1"
     },
@@ -18587,13 +18721,13 @@
      "counts": {
       "dev": 82,
       "sealed": 2,
-      "sealed_pending": 78,
+      "sealed_pending": 79,
       "train": 223
      },
      "name": "logistic_regression/tuning.accept",
      "path": "sets/m3_ml_decisions/logistic_regression/tuning.accept/v1",
      "reasoning": {
-      "missing": 385
+      "no_model": 386
      },
      "version": "v1"
     },
@@ -18601,13 +18735,13 @@
      "counts": {
       "dev": 40,
       "sealed": 38,
-      "sealed_pending": 15,
+      "sealed_pending": 16,
       "train": 142
      },
      "name": "loss.median/experiment.accept",
      "path": "sets/m3_ml_decisions/loss.median/experiment.accept/v1",
      "reasoning": {
-      "missing": 235
+      "no_model": 236
      },
      "version": "v1"
     },
@@ -18621,7 +18755,7 @@
      "name": "multiclass_classification/data.sampling",
      "path": "sets/m3_ml_decisions/multiclass_classification/data.sampling/v1",
      "reasoning": {
-      "missing": 151
+      "no_model": 151
      },
      "version": "v1"
     },
@@ -18635,7 +18769,7 @@
      "name": "multiclass_classification/experiment.accept",
      "path": "sets/m3_ml_decisions/multiclass_classification/experiment.accept/v1",
      "reasoning": {
-      "missing": 123
+      "no_model": 123
      },
      "version": "v1"
     },
@@ -18649,7 +18783,8 @@
      "name": "multiclass_classification/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/multiclass_classification/feature.leakage_suspect/v1",
      "reasoning": {
-      "missing": 5191
+      "missing": 40,
+      "no_model": 5151
      },
      "version": "v1"
     },
@@ -18663,7 +18798,7 @@
      "name": "multiclass_classification/features.recipe",
      "path": "sets/m3_ml_decisions/multiclass_classification/features.recipe/v1",
      "reasoning": {
-      "missing": 150
+      "no_model": 150
      },
      "version": "v1"
     },
@@ -18677,7 +18812,7 @@
      "name": "multiclass_classification/metric.primary",
      "path": "sets/m3_ml_decisions/multiclass_classification/metric.primary/v1",
      "reasoning": {
-      "missing": 151
+      "no_model": 151
      },
      "version": "v1"
     },
@@ -18691,7 +18826,7 @@
      "name": "multiclass_classification/model.family",
      "path": "sets/m3_ml_decisions/multiclass_classification/model.family/v1",
      "reasoning": {
-      "missing": 150
+      "no_model": 150
      },
      "version": "v1"
     },
@@ -18705,7 +18840,7 @@
      "name": "multiclass_classification/model.first",
      "path": "sets/m3_ml_decisions/multiclass_classification/model.first/v1",
      "reasoning": {
-      "missing": 48
+      "no_model": 48
      },
      "version": "v1"
     },
@@ -18719,7 +18854,7 @@
      "name": "multiclass_classification/model.review",
      "path": "sets/m3_ml_decisions/multiclass_classification/model.review/v1",
      "reasoning": {
-      "missing": 123
+      "no_model": 123
      },
      "version": "v1"
     },
@@ -18733,7 +18868,8 @@
      "name": "multiclass_classification/modifier.groups",
      "path": "sets/m3_ml_decisions/multiclass_classification/modifier.groups/v1",
      "reasoning": {
-      "missing": 270
+      "missing": 3,
+      "no_model": 267
      },
      "version": "v1"
     },
@@ -18747,7 +18883,8 @@
      "name": "multiclass_classification/modifier.noisy_labels",
      "path": "sets/m3_ml_decisions/multiclass_classification/modifier.noisy_labels/v1",
      "reasoning": {
-      "missing": 230
+      "missing": 3,
+      "no_model": 227
      },
      "version": "v1"
     },
@@ -18761,7 +18898,8 @@
      "name": "multiclass_classification/modifier.rare_positives",
      "path": "sets/m3_ml_decisions/multiclass_classification/modifier.rare_positives/v1",
      "reasoning": {
-      "missing": 270
+      "missing": 3,
+      "no_model": 267
      },
      "version": "v1"
     },
@@ -18775,7 +18913,8 @@
      "name": "multiclass_classification/modifier.review_capacity",
      "path": "sets/m3_ml_decisions/multiclass_classification/modifier.review_capacity/v1",
      "reasoning": {
-      "missing": 230
+      "missing": 3,
+      "no_model": 227
      },
      "version": "v1"
     },
@@ -18789,7 +18928,8 @@
      "name": "multiclass_classification/modifier.time_order",
      "path": "sets/m3_ml_decisions/multiclass_classification/modifier.time_order/v1",
      "reasoning": {
-      "missing": 270
+      "missing": 3,
+      "no_model": 267
      },
      "version": "v1"
     },
@@ -18803,7 +18943,7 @@
      "name": "multiclass_classification/split.folds",
      "path": "sets/m3_ml_decisions/multiclass_classification/split.folds/v1",
      "reasoning": {
-      "missing": 151
+      "no_model": 151
      },
      "version": "v1"
     },
@@ -18817,7 +18957,7 @@
      "name": "multiclass_classification/split.strategy",
      "path": "sets/m3_ml_decisions/multiclass_classification/split.strategy/v1",
      "reasoning": {
-      "missing": 151
+      "no_model": 151
      },
      "version": "v1"
     },
@@ -18831,7 +18971,7 @@
      "name": "multiclass_classification/tuning.accept",
      "path": "sets/m3_ml_decisions/multiclass_classification/tuning.accept/v1",
      "reasoning": {
-      "missing": 149
+      "no_model": 149
      },
      "version": "v1"
     },
@@ -18845,7 +18985,7 @@
      "name": "percentile_rules/tuning.accept",
      "path": "sets/m3_ml_decisions/percentile_rules/tuning.accept/v1",
      "reasoning": {
-      "missing": 6
+      "no_model": 6
      },
      "version": "v1"
     },
@@ -18859,7 +18999,7 @@
      "name": "predictions.clip/experiment.accept",
      "path": "sets/m3_ml_decisions/predictions.clip/experiment.accept/v1",
      "reasoning": {
-      "missing": 8
+      "no_model": 8
      },
      "version": "v1"
     },
@@ -18868,12 +19008,12 @@
       "dev": 6,
       "sealed": 11,
       "sealed_pending": 0,
-      "train": 11
+      "train": 12
      },
      "name": "pu_bagging/tuning.accept",
      "path": "sets/m3_ml_decisions/pu_bagging/tuning.accept/v1",
      "reasoning": {
-      "missing": 28
+      "no_model": 29
      },
      "version": "v1"
     },
@@ -18887,7 +19027,7 @@
      "name": "regression/data.more_rows",
      "path": "sets/m3_ml_decisions/regression/data.more_rows/v1",
      "reasoning": {
-      "missing": 30
+      "no_model": 30
      },
      "version": "v1"
     },
@@ -18895,13 +19035,14 @@
      "counts": {
       "dev": 1675,
       "sealed": 17,
-      "sealed_pending": 1610,
+      "sealed_pending": 1620,
       "train": 5238
      },
      "name": "regression/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/regression/feature.leakage_suspect/v1",
      "reasoning": {
-      "missing": 8540
+      "missing": 284,
+      "no_model": 8266
      },
      "version": "v1"
     },
@@ -18909,13 +19050,13 @@
      "counts": {
       "dev": 25,
       "sealed": 20,
-      "sealed_pending": 6,
+      "sealed_pending": 7,
       "train": 86
      },
      "name": "regression/model.first",
      "path": "sets/m3_ml_decisions/regression/model.first/v1",
      "reasoning": {
-      "missing": 137
+      "no_model": 138
      },
      "version": "v1"
     },
@@ -18929,7 +19070,7 @@
      "name": "regression/model.promote",
      "path": "sets/m3_ml_decisions/regression/model.promote/v1",
      "reasoning": {
-      "missing": 27
+      "no_model": 27
      },
      "version": "v1"
     },
@@ -18943,7 +19084,8 @@
      "name": "regression/modifier.groups",
      "path": "sets/m3_ml_decisions/regression/modifier.groups/v1",
      "reasoning": {
-      "missing": 1148
+      "missing": 20,
+      "no_model": 1128
      },
      "version": "v1"
     },
@@ -18957,7 +19099,8 @@
      "name": "regression/modifier.noisy_labels",
      "path": "sets/m3_ml_decisions/regression/modifier.noisy_labels/v1",
      "reasoning": {
-      "missing": 1029
+      "missing": 20,
+      "no_model": 1009
      },
      "version": "v1"
     },
@@ -18971,7 +19114,8 @@
      "name": "regression/modifier.rare_positives",
      "path": "sets/m3_ml_decisions/regression/modifier.rare_positives/v1",
      "reasoning": {
-      "missing": 1148
+      "missing": 20,
+      "no_model": 1128
      },
      "version": "v1"
     },
@@ -18985,7 +19129,8 @@
      "name": "regression/modifier.review_capacity",
      "path": "sets/m3_ml_decisions/regression/modifier.review_capacity/v1",
      "reasoning": {
-      "missing": 1029
+      "missing": 20,
+      "no_model": 1009
      },
      "version": "v1"
     },
@@ -18999,7 +19144,8 @@
      "name": "regression/modifier.time_order",
      "path": "sets/m3_ml_decisions/regression/modifier.time_order/v1",
      "reasoning": {
-      "missing": 1148
+      "missing": 20,
+      "no_model": 1128
      },
      "version": "v1"
     },
@@ -19007,13 +19153,13 @@
      "counts": {
       "dev": 3,
       "sealed": 1,
-      "sealed_pending": 3,
+      "sealed_pending": 4,
       "train": 19
      },
      "name": "ridge/tuning.accept",
      "path": "sets/m3_ml_decisions/ridge/tuning.accept/v1",
      "reasoning": {
-      "missing": 26
+      "no_model": 27
      },
      "version": "v1"
     },
@@ -19027,7 +19173,7 @@
      "name": "target.log/experiment.accept",
      "path": "sets/m3_ml_decisions/target.log/experiment.accept/v1",
      "reasoning": {
-      "missing": 184
+      "no_model": 184
      },
      "version": "v1"
     },
@@ -19041,7 +19187,7 @@
      "name": "xgboost/tuning.accept",
      "path": "sets/m3_ml_decisions/xgboost/tuning.accept/v1",
      "reasoning": {
-      "missing": 20
+      "no_model": 20
      },
      "version": "v1"
     }
@@ -19071,15 +19217,16 @@
     },
     {
      "counts": {
-      "dev": 33,
+      "dev": 35,
       "sealed": 30,
-      "sealed_pending": 0,
-      "train": 92
+      "sealed_pending": 2,
+      "train": 94
      },
      "name": "design_solution",
      "path": "sets/m4_workflow_llm/design_solution/v2",
      "reasoning": {
-      "lost": 155
+      "lost": 155,
+      "recorded": 6
      },
      "version": "v2"
     },
@@ -19202,30 +19349,30 @@
     },
     {
      "counts": {
-      "dev": 428,
+      "dev": 433,
       "sealed": 6,
-      "sealed_pending": 423,
-      "train": 683
+      "sealed_pending": 427,
+      "train": 693
      },
      "name": "reasoning/final_turn_silver_frontier",
      "path": "sets/m4_workflow_llm/reasoning/final_turn_silver_frontier/v1",
      "reasoning": {
       "none": 1312,
-      "recorded": 1761
+      "recorded": 1780
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 321,
+      "dev": 326,
       "sealed": 1,
-      "sealed_pending": 366,
-      "train": 439
+      "sealed_pending": 370,
+      "train": 449
      },
      "name": "reasoning/silver_frontier",
      "path": "sets/m4_workflow_llm/reasoning/silver_frontier/v1",
      "reasoning": {
-      "recorded": 1136
+      "recorded": 1155
      },
      "version": "v1"
     },
@@ -19245,17 +19392,17 @@
     },
     {
      "counts": {
-      "dev": 45,
+      "dev": 47,
       "sealed": 21,
-      "sealed_pending": 325,
-      "train": 172
+      "sealed_pending": 326,
+      "train": 173
      },
      "name": "report",
      "path": "sets/m4_workflow_llm/report/v2",
      "reasoning": {
       "lost": 108,
       "none": 58,
-      "recorded": 398
+      "recorded": 402
      },
      "version": "v2"
     },
@@ -19264,14 +19411,14 @@
       "dev": 3,
       "sealed": 6,
       "sealed_pending": 0,
-      "train": 21
+      "train": 24
      },
      "name": "understand_data",
      "path": "sets/m4_workflow_llm/understand_data/v2",
      "reasoning": {
       "lost": 14,
       "none": 12,
-      "recorded": 4
+      "recorded": 7
      },
      "version": "v2"
     },
@@ -19289,10 +19436,10 @@
     },
     {
      "counts": {
-      "dev": 1087,
+      "dev": 1088,
       "sealed": 177,
-      "sealed_pending": 671,
-      "train": 2232
+      "sealed_pending": 672,
+      "train": 2236
      },
      "name": "understand_problem",
      "path": "sets/m4_workflow_llm/understand_problem/v2",
@@ -19300,7 +19447,7 @@
       "from_record": 7936,
       "lost": 3785,
       "none": 4564,
-      "recorded": 1535,
+      "recorded": 1541,
       "replayed": 1
      },
      "version": "v2"
@@ -19345,12 +19492,12 @@
       "dev": 24,
       "sealed": 306,
       "sealed_pending": 56,
-      "train": 222
+      "train": 223
      },
      "name": "trajectories/development",
      "path": "sets/m5_solver_llm/trajectories/development/v2",
      "reasoning": {
-      "none": 38936,
+      "none": 38990,
       "recorded": 2202
      },
      "version": "v2"
@@ -19360,12 +19507,12 @@
       "dev": 12,
       "sealed": 17,
       "sealed_pending": 17,
-      "train": 61
+      "train": 62
      },
      "name": "trajectories/failed",
      "path": "sets/m5_solver_llm/trajectories/failed/v1",
      "reasoning": {
-      "from_record": 877,
+      "from_record": 882,
       "none": 13164,
       "recorded": 169
      },
@@ -19405,13 +19552,13 @@
       "dev": 4,
       "sealed": 2,
       "sealed_pending": 19,
-      "train": 18
+      "train": 19
      },
      "name": "trajectories/silver_frontier",
      "path": "sets/m5_solver_llm/trajectories/silver_frontier/v1",
      "reasoning": {
-      "none": 659,
-      "recorded": 11
+      "none": 669,
+      "recorded": 25
      },
      "version": "v1"
     },
@@ -19498,14 +19645,14 @@
      "counts": {
       "dev": 248,
       "sealed": 146,
-      "sealed_pending": 153,
-      "train": 773
+      "sealed_pending": 155,
+      "train": 776
      },
      "name": "graph",
      "path": "sets/m6_stepwise_decisions/graph/v1",
      "reasoning": {
-      "from_record": 5582,
-      "missing": 1320
+      "from_record": 5629,
+      "missing": 1325
      },
      "version": "v1"
     },
@@ -19519,7 +19666,7 @@
      "name": "job",
      "path": "sets/m6_stepwise_decisions/job/v1",
      "reasoning": {
-      "missing": 872
+      "no_model": 872
      },
      "version": "v1"
     },
@@ -19527,14 +19674,14 @@
      "counts": {
       "dev": 197,
       "sealed": 145,
-      "sealed_pending": 73,
-      "train": 559
+      "sealed_pending": 75,
+      "train": 562
      },
      "name": "stages",
      "path": "sets/m6_stepwise_decisions/stages/v1",
      "reasoning": {
-      "from_record": 2867,
-      "missing": 1945
+      "from_record": 2882,
+      "no_model": 1955
      },
      "version": "v1"
     },
@@ -19572,13 +19719,13 @@
      "counts": {
       "dev": 498,
       "sealed": 175,
-      "sealed_pending": 352,
-      "train": 1533
+      "sealed_pending": 354,
+      "train": 1536
      },
      "name": "walk",
      "path": "sets/m6_stepwise_decisions/walk/v1",
      "reasoning": {
-      "missing": 157886
+      "no_model": 158375
      },
      "version": "v1"
     }
@@ -19592,29 +19739,29 @@
    "sets": [
     {
      "counts": {
-      "dev": 60,
+      "dev": 61,
       "sealed": 15,
-      "sealed_pending": 89,
+      "sealed_pending": 91,
       "train": 198
      },
      "name": "code",
      "path": "sets/m7_judges/code/v1",
      "reasoning": {
-      "no_field": 362
+      "no_field": 365
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1407,
+      "dev": 1417,
       "sealed": 914,
-      "sealed_pending": 478,
-      "train": 4255
+      "sealed_pending": 486,
+      "train": 4289
      },
      "name": "correction",
      "path": "sets/m7_judges/correction/v1",
      "reasoning": {
-      "no_field": 7054
+      "no_field": 7106
      },
      "version": "v1"
     },
@@ -19650,13 +19797,13 @@
      "counts": {
       "dev": 465,
       "sealed": 1,
-      "sealed_pending": 492,
-      "train": 1389
+      "sealed_pending": 494,
+      "train": 1392
      },
      "name": "result",
      "path": "sets/m7_judges/result/v1",
      "reasoning": {
-      "no_field": 2346
+      "no_field": 2351
      },
      "version": "v1"
     }
@@ -19766,12 +19913,12 @@
       "dev": 2,
       "sealed": 2,
       "sealed_pending": 0,
-      "train": 6
+      "train": 7
      },
      "name": "evidence",
      "path": "sets/m8_retrieval/evidence/v1",
      "reasoning": {
-      "no_field": 10
+      "no_field": 11
      },
      "version": "v1"
     }
@@ -19784,8 +19931,8 @@
  },
  "quarantine": {
   ".DS_Store": 0,
-  "a_duplicate_of_a_record_already_placed": 56,
-  "broken": 29,
+  "a_duplicate_of_a_record_already_placed": 58,
+  "broken": 30,
   "the_record_s_consent_improve_does_not_allow_training": 1
  },
  "root": "the store's root (dclab-records, owner/main)",

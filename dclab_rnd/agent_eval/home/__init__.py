@@ -324,6 +324,12 @@ def observe(case: Mapping[str, Any], client_for: Optional[Callable[[str], Any]] 
                 mark_scripted(keep)  # a direct caller's keep folder: marked where it is
             restore.callback(_ledger.install, _ledger.current_ledger())  # put back whatever happens
             _ledger.install(_ledger.FileLedger(Path(keep) / "ledger", Path(keep).name))
+            from dclab_rnd import experience as _experience  # 2026-10-30: and its session log, so each Home run is recorded
+
+            restore.callback(_experience.install, _experience._INSTALLED.get("log"))
+            log = _experience.FileLog(Path(keep) / "experience", Path(keep).name)  # a file log in the kept folder, as the ledger
+            log.home = Path(keep)  # (open_log would give PostgreSQL a made-up workspace when DCLAB_DATABASE_URL is set)
+            _experience.install(log)
         draft = store.create(case["text"])
         client = client_for(draft["id"]) if client_for else None
         # Home as the product runs it (draft/work.py): the intent reader too (2026-10-29: HOME-015's model arm had the

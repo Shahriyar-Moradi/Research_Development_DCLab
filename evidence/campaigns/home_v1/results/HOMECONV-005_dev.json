@@ -1,0 +1,56 @@
+{
+ "id": "HOMECONV-005",
+ "split": "dev",
+ "at": "2026-10-30T08:06:27+00:00",
+ "model": "claude-sonnet-5-5",
+ "spent_eur": 0.0399,
+ "kept": "agent_runs/live_tests/2026-10-30-home-conversation/dev-080549",
+ "rows": [
+  {
+   "id": "p-03",
+   "route": "prediction",
+   "tool": "ml_project",
+   "upload": null,
+   "track": "prediction",
+   "family": null,
+   "right": true,
+   "turns_before_options": 2,
+   "offers": 1,
+   "right_offered": true,
+   "silent": 0,
+   "repeated": 0,
+   "uncited": [],
+   "quote_invalid": [],
+   "fallback": false,
+   "refused_options": 0
+  }
+ ],
+ "summary": {
+  "people": 1,
+  "route_right": 1,
+  "route_accuracy": 1.0,
+  "right_route_offered": 1,
+  "right_route_reached": 1,
+  "median_turns_before_options": 2,
+  "max_turns_before_options": 2,
+  "silent_turns": 0,
+  "repeated_questions": 0,
+  "uncited": 0,
+  "quote_invalid": 0,
+  "fallbacks": 0,
+  "refused_options": 0
+ },
+ "verdict": {
+  "gate": "home_conversation_gate_v2",
+  "status": "pass",
+  "checks": {
+   "route_accuracy": true,
+   "right_route_reached": true,
+   "silent_turns": true,
+   "repeated_questions": true,
+   "uncited": true,
+   "quote_invalid": true,
+   "median_turns_before_options": true
+  }
+ }
+}

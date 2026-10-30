@@ -881,6 +881,22 @@ def _labels_band(draft: dict[str, Any]) -> str:
         return "unknown"
 
 
+def next_question_state(draft: dict[str, Any]) -> dict[str, Any]:
+    """The state of ``workflow.next_question``, one way for the ledger and for Home's decide tool (the review of 2026-10-30:
+    the served state lacked the flags the recorded one had, so a classifier trained on records saw other inputs)."""
+    from dclab_core.workflow_labels import QUESTION_LIMIT
+
+    u = draft.get("understanding") or {}
+    questions = [q for q in draft.get("questions") or [] if not q.get("superseded")]
+    return {"open_questions": sum(1 for f in ("target", "prediction_moment", "action") if not u.get(f)), "step": len(questions),
+            "steps_left": max(QUESTION_LIMIT - len(questions), 0), "labels": _labels_band(draft),
+            "outcome_known": bool(u.get("target")), "moment_known": bool(u.get("prediction_moment")),
+            "pack": _code((draft.get("pack") or {}).get("key")),
+            # 2026-10-30 (the next-question study): what is already settled, so a reviewer can tell which question is open
+            **{f"{f}_known": bool(u.get(f)) for f in ("action", "costs", "data_plan", "entity", "labels", "budget", "family")},
+            "declined": sum(1 for q in questions if q.get("declined"))}
+
+
 @_quiet
 def next_question(draft: dict[str, Any], asked: Any) -> int:
     """The question actually asked next (its field), or none: recorded after the agent asked, so a question the plan
@@ -895,10 +911,7 @@ def next_question(draft: dict[str, Any], asked: Any) -> int:
     questions = [q for q in draft.get("questions") or [] if not q.get("superseded")]
     if field is None and any(not q.get("answered") for q in questions):
         return 0  # a question is pending: the next one is not decided yet
-    state = {"open_questions": sum(1 for f in ("target", "prediction_moment", "action") if not u.get(f)), "step": len(questions),
-             "steps_left": max(QUESTION_LIMIT - len(questions), 0), "labels": _labels_band(draft),
-             "outcome_known": bool(u.get("target")), "moment_known": bool(u.get("prediction_moment")),
-             "pack": _code((draft.get("pack") or {}).get("key"))}
+    state = next_question_state(draft)
     field = "kind" if str(field or "").startswith("kind_") else field  # S9.3: a field of the understood kind (randomised, a series)
     field = "entity" if field == "entity_check" else field  # the repeating key's question (the owner, 2026-10-26) asks for the entity
     value = _code(SAME.get(field, field)) or "none"

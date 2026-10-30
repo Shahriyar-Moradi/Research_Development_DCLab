@@ -74,6 +74,21 @@ def _options(point: str, example: dict[str, Any]) -> list[str]:
     return options
 
 
+# What each fact of a decision means (2026-10-30, the next-question study: "labels: unknown" means no separate file of cases
+# was uploaded, and Claude read it as "nobody said whether outcomes are recorded")
+FACT_MEANINGS = {
+    "labels": "file: the cases come as a separate file the person uploaded; unknown: no such file (this says nothing about whether past outcomes are recorded)",
+    "open_questions": "how many of the three essentials (outcome, prediction moment, action) are still unanswered",
+    "step": "how many questions Home has asked so far", "steps_left": "how many questions Home may still ask in this conversation",
+    "outcome_known": "the outcome to predict is settled", "moment_known": "when each prediction is made is settled",
+    "action_known": "what is done with each prediction is settled", "costs_known": "the cost of a miss and of a false alarm is settled",
+    "data_plan_known": "where the data comes from is settled", "entity_known": "the unit each prediction is about is settled",
+    "labels_known": "whether past outcomes are recorded is settled", "budget_known": "how many flags a team can review is settled",
+    "family_known": "the kind of problem is settled", "declined": "how many questions the person said they could not answer",
+    "pack": "the domain pack Home chose",
+}
+
+
 def view(example: dict[str, Any]) -> dict[str, Any]:
     """What Claude is shown: the words, the question, the options and their meanings, the state's bands. Never a reading."""
     from dclab_core.ledger import POINTS as CORE
@@ -86,7 +101,8 @@ def view(example: dict[str, Any]) -> dict[str, Any]:
 
         meanings = {str(p["key"]): str(p.get("title") or "") for p in PACKS}
     return {"request": example.get("text"), "decision": CORE[point].about if point in CORE else point,
-            "options": [{"option": o, "means": meanings.get(o, "")} for o in options], "facts": example.get("state") or {}}
+            "options": [{"option": o, "means": meanings.get(o, "")} for o in options], "facts": example.get("state") or {},
+            "facts_mean": {k: FACT_MEANINGS[k] for k in (example.get("state") or {}) if k in FACT_MEANINGS}}
 
 
 def pending(layout: Layout, scripted_per_point: int = 40, points: tuple[str, ...] = POINTS) -> list[dict[str, Any]]:

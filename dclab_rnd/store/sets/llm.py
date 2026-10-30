@@ -36,7 +36,7 @@ STAGES = {"home_agent": "understand_problem", "conversation_reader": "understand
           "notebook_review": "code", "solver_answer": "code", "debate_judge": "report",
           # the owner (2026-10-28): every agent's data has a home in a set; none falls silently into "plan"
           "home_intent": "understand_problem", "home_query": "understand_data", "home_business": "report", "home_orchestrator": "plan", "project_answer": "report", "journey_writer": "understand_problem",
-          "journey_checker": "report", "decision_answer": "design_solution", "decision_labeler": "report", "routing_labeler": "report", "home_understand": "understand_problem", "lesson_proposal": "report",
+          "journey_checker": "report", "decision_answer": "design_solution", "decision_labeler": "report", "home_understand": "understand_problem", "lesson_proposal": "report",
           "reflector": "report", "notebook_cell": "code", "parse_pattern": "understand_data", "synthetic_schema": "understand_data",
           "store_curator": "report", "reasoning_teacher": "report", "campaign": "plan", "campaign_review": "report"}
 BENCHMARKS = Path(__file__).resolve().parent / "benchmarks.txt"
@@ -214,6 +214,8 @@ def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None, 
     b = record.body
     if not b.get("whole") or not isinstance(b.get("messages"), list):
         return None
+    if str(b.get("purpose") or "") in NOT_WORKFLOW:
+        return None
     messages = []
     for m in b["messages"]:
         role = _role(m)
@@ -251,6 +253,10 @@ FIX_AT = "2026-10-27T22:24:52+00:00"  # c8455bb5, when the gateway began keeping
 def _lost_or(at: Any, later: str) -> str:
     """The note's opening by when the turn happened: before the fix, lost; after it, the later reason."""
     return LOST_BEFORE if str(at or "") < FIX_AT else later
+# Purposes whose exchanges are not the workflow LLM's work (2026-10-30, the review of home-three-open-items): the routing
+# labeller's blind labels train the routing model as readings and silver labels, and its next-question answers are
+# readings only; as m4 examples they sat in sealed-pending files only because their draft id split as sealed
+NOT_WORKFLOW = frozenset({"routing_labeler"})
 TRACK_STAGES = {"prediction": "understand_problem", "analysis": "home_analysis", "preparation": "home_preparation",
                 "reporting": "home_reporting", "business": "home_business", "advice": "home_advice"}  # Part B: every kind of help
 
@@ -326,7 +332,11 @@ def from_draft(record: StoreRecord, thinking: Optional[dict[str, str]] = None) -
     outcome = b.get("outcome") if isinstance(b.get("outcome"), dict) else {}
     if outcome.get("verdict") in ("kept", "changed", "refused", "asked_again"):  # 36.2: what the person did with the result; open is none
         check.update(outcome=outcome["verdict"], outcome_by=outcome.get("by"))
-    return ChatExample(id=f"m4_workflow_llm:{record.id}", model_type="m4_workflow_llm", split=split_of(group), provenance=record.provenance,
+    # 2026-10-30: the conversation's own draft and project on its provenance (the store's record of a draft file names
+    # neither), so the coverage can tell which kind of help it was
+    prov = record.provenance.model_copy(update={"draft": record.provenance.draft or b.get("id"),
+                                                "project": record.provenance.project or b.get("project_id")})
+    return ChatExample(id=f"m4_workflow_llm:{record.id}", model_type="m4_workflow_llm", split=split_of(group), provenance=prov,
                        task="home_conversation", stage=TRACK_STAGES.get(track, "understand_problem"), messages=messages, check=check)
 
 

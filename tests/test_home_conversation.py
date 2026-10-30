@@ -321,8 +321,11 @@ class RunnerTests(unittest.TestCase):
             C.measure([person], lambda pid: Script(*replies), lambda pid: Script(json.dumps({"tracks": []})), Path(tmp))
             points = [json.loads(line)["point"] for f in (Path(tmp) / "t-1" / "ledger").rglob("*.jsonl") for line in f.read_text().splitlines()
                       if line.strip() and "point" in json.loads(line)]
+            runs = [json.loads(line) for f in (Path(tmp) / "t-1" / "experience").rglob("*.jsonl") for line in f.read_text().splitlines()
+                    if '"run.recorded"' in line]  # 2026-10-30: and a session log, so the store sees Home's run on this track
         self.assertIn("request.understand_turn", points)
         self.assertIn("request.options", points)
+        self.assertTrue(any(str(r["payload"].get("name", "")).startswith("home") for r in runs), runs)
         self.assertIs(L.current_ledger(), before)  # the ledger in place before the run is put back
 
 

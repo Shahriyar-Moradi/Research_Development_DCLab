@@ -55,7 +55,7 @@ LEAD_MIN = 2
 STRONG = 3
 PROMPT = "home_intent"
 SEGMENT_SIGNALS = ("segments", "fa_segments")  # a request about groups: Home offers the two ways to find them
-RULES_VERSION = "intent_rules_v4"  # v4 (2026-10-29 night): rows with their identifiers asked in the chat (sealed v6's spent s6-22)
+RULES_VERSION = "intent_rules_v5"  # v5 (2026-10-30): a report that names nothing it shows is asked; v4 (2026-10-29 night): rows with their identifiers asked in the chat (sealed v6's spent s6-22)
 _V3 = "intent_rules_v3"  # v3 (2026-10-29): segments (English, Persian) and the no-model kind words; v2 (H4): plain
 # asks for an analysis, stats, insights; Persian "analyse"
 
@@ -319,10 +319,47 @@ def _rules_reading(text: str) -> tuple[dict[str, Any], list[str], bool, dict[str
     return found, ranked, tie, base
 
 
+# What a report shows (HOMECONV p-03 / s-04, 2026-10-29: "some kind of weekly report on our subscribers" names nothing, and the
+# person wanted a list of who will cancel, a prediction). Letter boundaries, so a column name (support_tickets_90) counts.
+_L, _R = r"(?<![a-z])", r"(?![a-z])"
+REPORT_CONTENT = re.compile(_L + r"(?:sales|revenue|income|profit|margin|costs?|spend\w*|orders?|refunds?|returns?|counts?|numbers?|"
+    r"how many|totals?|sums?|averages?|avg|mean|median|rates?|ratio|share|percent\w*|churn\w*|retention|cancell?ations?|"
+    r"conversions?|sign-?ups?|kpis?|metrics?|growth|trend\w*|volumes?|minutes|hours|times?|delays?|late|scores?|nps|"
+    r"satisfaction|tickets?|complaints?|visits?|views?|clicks?|traffic|stock|inventory|budget|bookings?|reservations?|"
+    r"occupancy|discharges?|admissions?|applications?|enrol+ments?|attendance|calls?|wait\w*|deliver\w*|shipments?|trips?|"
+    r"harvest|installs?|installations?|projects?|placements?|interviews?|offers?|candidates?|usage|consumption|status|"
+    r"(?:per|by|for each|each)\s+[a-z]+)" + _R, re.I)
+# A report that already exists and is rebuilt by hand: its content is that report's (the review: 30 of 77 clear reports asked)
+EXISTING_REPORT = re.compile(_L + r"(?:rebuild\w*|by hand|manual\w*|automat\w*|update itself|updates itself|refresh\w*|same|"
+                             r"excel|spreadsheet|sheet|export\w*)" + _R, re.I)
+
+
+def _report_content_unsaid(words: str) -> bool:
+    """A reporting request that names nothing it shows and points at no report that exists. Persian is not judged here: the
+    word lists are English, and a Persian request asked for no reason would cost the person a turn."""
+    from .lang import has_persian
+
+    if has_persian(words):
+        return False
+    low = words.lower()
+    return not REPORT_CONTENT.search(low) and not EXISTING_REPORT.search(low)
+
+
 def read(text: str, client: Any = None, texts: Optional[list[str]] = None) -> dict[str, Any]:
     """The intent of a request: track, tracks, status (stated, inferred, asked), source (model, rules), quote, confidence,
     the alternatives and, when asked, ``ask`` ("open" or "either") and the question; with the rules' scores and signals
-    (for the decision sample) and their own track (``rule_track``) beside a model's."""
+    (for the decision sample) and their own track (``rule_track``) beside a model's. Code checks the reading: a report that
+    names nothing it shows is asked, whoever read it (:data:`REPORT_CONTENT`)."""
+    out = _read(text, client, texts)
+    words = " ".join(texts or [text])
+    if out.get("track") == "reporting" and out.get("status") in ("stated", "inferred") and _report_content_unsaid(words):
+        said = {k: out[k] for k in (*_TEXT_FIELDS, "unknowns") if out.get(k)}
+        out = _open({**out, "signals": [*out.get("signals", []), "report_content_unsaid"]}, out.get("source") or "rules",
+                    out.get("tracks") or ["reporting"], said, out.get("quote"), out.get("confidence") or 0.0)
+    return out
+
+
+def _read(text: str, client: Any = None, texts: Optional[list[str]] = None) -> dict[str, Any]:
     texts = texts or [text]
     found, ranked, tie, base = _rules_reading(text)
     rule_track = ranked[0] if ranked else None

@@ -61,6 +61,41 @@ class ReadTests(unittest.TestCase):
         self.assertEqual((r["track"], r["source"], r["status"], r["need"]), ("analysis", "model", "inferred", "find groups among their customers"))
         self.assertEqual(r["rule_track"], "analysis")  # the rules' own answer is kept beside the model's
 
+    def test_a_report_that_names_nothing_it_shows_stays_open(self):
+        """HOMECONV-003 p-03 and the sealed s-04 (2026-10-29): "I need some kind of weekly report on our subscribers" was read
+        as a clear report and routed at once; the person wanted a Monday list of who will cancel (a prediction)."""
+        vague = "I need some kind of weekly report on our subscribers"
+        r = intent.read(vague)
+        self.assertEqual((r["status"], r["ask"]), ("asked", "open"))
+        self.assertIn("report_content_unsaid", r["signals"])
+        self.assertEqual(r["tracks"][0], "reporting")  # still the first guess among the options
+        client = Scripted(reading(tracks=["reporting"], quote="weekly report on our subscribers", confidence=0.9, need="a weekly report"))
+        self.assertEqual(intent.read(vague, client)["status"], "asked")  # the model's confident reading is checked too
+        for clear in ("a weekly report of churn by region", "monthly dashboard of sales and refunds per store",
+                      "a weekly report with the number of new subscribers and the cancellation rate",
+                      # the review of 2026-10-30: content in other words, a column name, a report that exists, Persian
+                      "Want a dashboard refreshing daily with delivery times.", "Dashboard tracking enrollment and attendance numbers",
+                      "Monthly report of active users per country", "A monthly report of complaints by branch",
+                      "Weekly report: customers with more than 5 support_tickets_90",
+                      "Same Excel report every week, rebuilding it by hand is killing me. Can it just update itself?",
+                      "یک داشبورد روزانه از فروش هر کانال برای مدیر بازاریابی می‌خواهم", "گزارش هفتگی فروش"):
+            self.assertIn(intent.read(clear)["status"], ("stated", "inferred"), clear)
+        self.assertEqual(intent.read("Give me a report of which customers will leave next month")["track"], "prediction")
+
+    def test_the_report_check_opens_no_clear_report_in_the_written_sets(self):
+        """The review of 2026-10-30: the first version asked 30 of the 77 reporting requests the rules read right."""
+        home = ROOT / "dclab_rnd" / "agent_eval" / "home"
+        opened = []
+        for name in ("intent_requests_v1.json", "requests_dev.json"):
+            for case in json.loads((home / name).read_text(encoding="utf-8")):
+                text = case.get("text")
+                gold = case.get("track") or ((case.get("gold") or {}).get("tracks") or [None])[0]
+                before = intent._read(text) if text else {}
+                if gold == "reporting" and before.get("track") == "reporting" and before.get("status") in ("stated", "inferred") \
+                        and intent.read(text)["status"] == "asked":
+                    opened.append(text[:80])
+        self.assertEqual(opened, [])
+
     def test_an_unclear_request_gets_the_models_own_question(self):
         q = "What would you like to find out from your data, and what decision would it help?"
         r = intent.read(VAGUE, Scripted(reading(tracks=[], best_question=q, unknowns=["the goal"])))
@@ -225,7 +260,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.book.labels(point="request.intent"), [])
 
     def test_the_rules_have_a_new_version(self):  # finding 6
-        self.assertEqual(intent.RULES_VERSION, "intent_rules_v4")  # v4 (2026-10-29 night): rows with their ids in the chat
+        self.assertEqual(intent.RULES_VERSION, "intent_rules_v5")  # v5 (2026-10-30): a report naming nothing it shows is asked
 
     def test_an_open_reading_is_recorded_and_the_choice_labels_it(self):  # finding 7
         d = self.store.create(VAGUE)

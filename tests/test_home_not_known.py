@@ -79,7 +79,8 @@ class NotKnownTest(unittest.TestCase):
             agent.reply(self.draft["id"], "I don't know.")
         d = self.store.get(self.draft["id"])
         self.assertTrue(d["questions"][0]["declined"])
-        self.assertIsNone(agent.pending(d))
+        open_now = agent.pending(d)  # since 2026-10-29 (C1, never silent) Home goes on to the next open question
+        self.assertTrue(open_now is None or open_now["field"] != "budget", open_now)  # never the declined one again
         self.assertNotIn("budget", d["understanding"])  # never "I don't know" as the budget
 
     def test_a_declined_field_is_never_asked_again_by_the_model(self):

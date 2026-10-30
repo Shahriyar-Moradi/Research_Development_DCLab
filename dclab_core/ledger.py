@@ -63,6 +63,10 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     # the understanding conversation (2026-10-29): counts and a flag, never the person's words
     "turns": (COUNT, ()), "known_fields": (COUNT, ()), "tracks_in_view": (COUNT, ()), "asked_for_options": (FLAG, ()),
     "offered": (COUNT, ()), "with_columns": (COUNT, ()),
+    # 0.144.0 (2026-10-30): which of Home's questions are already answered, and how many were declined (the next-question
+    # study: a reviewer shown only outcome/moment flags picked "labels" 15 times where the action was the open question)
+    "action_known": (FLAG, ()), "costs_known": (FLAG, ()), "data_plan_known": (FLAG, ()), "entity_known": (FLAG, ()),
+    "labels_known": (FLAG, ()), "budget_known": (FLAG, ()), "family_known": (FLAG, ()), "declined": (COUNT, ()),
     "track": (CODE, ()), "suggested": (CODE, ()),  # H8: the kind of help a request is on, and the other route its words suggest
     "step_kind": (CODE, ()),  # H9: a preparation step's kind (filter, dedupe, join, ...)
     "brief_fields": (COUNT, ()),  # S4: the analysis brief's fields an answer's plan was read from

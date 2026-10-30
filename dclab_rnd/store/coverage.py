@@ -519,7 +519,10 @@ def measure(layout: Optional[Layout] = None, home: Optional[Path] = None) -> dic
                                 "outcome": int(_outcome(row)), "fa": int(lang == "fa"), "en": int(lang == "en")}
                         prov = row.get("provenance") or {}
                         _bump(a_table, _example_agent(row, points), EXAMPLE_COLUMNS, **adds)
-                        _bump(t_table, tracks.of(prov.get("draft"), prov.get("project")), EXAMPLE_COLUMNS, **adds)
+                        track = tracks.of(prov.get("draft"), prov.get("project"))
+                        if track == NO_REQUEST and (row.get("check") or {}).get("track") in intent.TRACKS:
+                            track = row["check"]["track"]  # 2026-10-30: a Home conversation says its own kind of help
+                        _bump(t_table, track, EXAMPLE_COLUMNS, **adds)
                         for k, n in adds.items():
                             total[k] += n
         for key in placed.get(model_type, []):

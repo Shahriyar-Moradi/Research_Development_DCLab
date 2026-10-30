@@ -328,6 +328,26 @@ class RoutingCollectorTest(unittest.TestCase):
         self.assertNotIn("a field the reply wrote", json.dumps(r2))
         self.assertEqual(R.counts(self.layout)["request.intent"]["label_thinking"], 1)
 
+    def test_claudes_next_question_labels_are_readings_never_labels(self):
+        """2026-10-30, the next-question study: Claude saw a view that did not say which questions were settled, and agreed
+        with Home 47 times in 144; its answers stay as readings for evaluation, never as silver labels."""
+        labels = Path(self.layout.root) / "labels"
+        labels.mkdir(parents=True, exist_ok=True)
+        (labels / "m7_routing_claude.jsonl").write_text(json.dumps({"example": "m7_routing:dev:dra000000004", "value": "prediction",  # one of the fixture's options
+                                                                     "model": "claude-sonnet-5-5"}) + "\n")
+        self.build()
+        r4 = self.rows("workflow.next_question")["m7_routing:dev:dra000000004"]
+        self.assertNotEqual(r4.get("label_by"), "model:claude-sonnet-5-5:routing_labeler")
+        self.assertIn("routing_labeler", [x["answerer"] for x in r4["readings"]])  # kept, as a shadow reading
+
+    def test_the_labeller_is_told_what_each_fact_means(self):
+        from dclab_rnd.store import routing_labels as rl
+
+        shown = rl.view({"point": "workflow.next_question", "text": "predict churn", "options": ["action", "labels"],
+                         "state": {"labels": "unknown", "action_known": False}})
+        self.assertIn("says nothing about whether past outcomes are recorded", shown["facts_mean"]["labels"])
+        self.assertIn("action_known", shown["facts_mean"])
+
     def test_the_gliner2_export_keeps_each_label_class_apart_and_coverage_counts_them(self):
         from dclab_rnd.lake import answers
         from dclab_rnd.store import coverage

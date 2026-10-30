@@ -4,6 +4,14 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.144.0 (2026-10-30)
+
+- `ledger`: state flags for `workflow.next_question`: `action_known`, `costs_known`, `data_plan_known`, `entity_known`,
+  `labels_known`, `budget_known`, `family_known`, and the count `declined`: which of Home's questions are already settled
+  when the next one is chosen. Without them a reviewer saw only
+  whether the outcome and the moment were known, and read `labels: unknown` (no separate file of cases) as "nobody said
+  whether outcomes are recorded".
+
 ## 0.143.0 (2026-10-29)
 
 - `ledger` (the owner's Telco test): two workflow points for Home's understanding conversation. `request.understand_turn`

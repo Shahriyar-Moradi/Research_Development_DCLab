@@ -51,7 +51,11 @@ MODEL_TYPE = "m7_routing"
 POINTS = ("request.intent", "request.exit", "request.suggestion", "request.tool", "request.understand_turn", "request.options",
           "workflow.next_question", "problem.pack")  # Home's routing decisions on a draft
 READING_PURPOSES = ("home_intent", "home_agent")
-LABELLER = "routing_labeler"  # Claude's blind label (2026-10-29): a shadow reading with the API thinking summary its exchange kept  # the model purposes whose exchanges read a request (plus any answerer named)
+LABELLER = "routing_labeler"
+# Points whose Claude labels are kept as readings for evaluation, never as training labels (2026-10-30, the next-question
+# study: Claude saw only the outcome and moment flags and a misleading "labels: unknown", and agreed with Home 47 times in
+# 144; records from 0.144.0 carry every question's flag, and a new labelling may be judged then)
+NOT_LABELS = {"workflow.next_question": "labelled from a view that did not say which questions were settled"}  # Claude's blind label (2026-10-29): a shadow reading with the API thinking summary its exchange kept  # the model purposes whose exchanges read a request (plus any answerer named)
 BEFORE, AFTER = 600.0, 30.0  # an exchange joined by time: at most this many seconds before (after) its decision
 OUTCOME_BY = "person:outcome"  # ledger.capture.OUTCOME_BY
 RANK = {"card": 0, "outcome": 1, "measured": 2, "blind": 3, "benchmark": 4, "teacher": 5}
@@ -397,11 +401,12 @@ def _ledger_row(j: Joiner, ws: str, r: dict[str, Any]) -> Optional[RoutingExampl
     origin = "scripted" if ws in j.scripted else (truth["origin"] if truth else "real")
     if value is None and truth is not None and point == "request.intent" and key not in j.flagged:
         value, cls, label_by = truth["label"], "written", truth["by"]
-    if value is None and claude is not None and str(claude["value"]) in ([str(o) for o in b.get("options") or []] or [str(claude["value"])]):
+    if value is None and claude is not None and point not in NOT_LABELS and str(claude["value"]) in ([str(o) for o in b.get("options") or []] or [str(claude["value"])]):
         # the owner (2026-10-29): with no person's label, Claude's blind reading of the words is the label: silver, apart, half weight
         value, cls, label_by = claude["value"], "silver", f"model:{claude.get('model') or 'claude'}:routing_labeler"
     if value is None and origin == "real":  # the owner's rule: silver only on real requests, apart, weighted lower
-        model = next((x for x in readings if x.by == "model" and x.value is not None and x.value in (b.get("options") or [x.value])), None)
+        model = next((x for x in readings if x.by == "model" and x.answerer != LABELLER and x.value is not None
+                      and x.value in (b.get("options") or [x.value])), None)  # the labeller's reading is its own label, decided above
         if model is not None:
             value, cls, label_by = model.value, "silver", f"model:{model.answerer}"
     exam = j.exams.get(key) if key else None
@@ -615,7 +620,8 @@ def chat_row(ex: dict[str, Any]) -> dict[str, Any]:
     said = "; ".join(f"{k}: {v}" for k, v in sorted((ex.get("state") or {}).items()) if v is not None)
     user = str(ex.get("text") or "") + (f"\n[{said}]" if said and ex.get("point") != "request.intent" else "")
     giver = str(ex.get("label_by") or "").rsplit(":", 1)[-1]  # the reason is the label giver's own thinking when it kept one
-    same = [r for r in ex.get("readings") or [] if r.get("by") == "model" and r.get("value") == ex.get("label") and r.get("thinking")]
+    same = [r for r in ex.get("readings") or [] if r.get("by") == "model" and r.get("value") == ex.get("label") and r.get("thinking")
+            and not (r.get("answerer") == LABELLER and ex.get("point") in NOT_LABELS)]  # the review: never its reasoning either
     reading = next((r for r in same if r.get("answerer") == giver), None) or next(iter(same), None)
     answer = {"role": "assistant", "content": str(ex["label"])}
     answer.update({"reasoning": reading["thinking"], "reasoning_source": "recorded"} if reading else

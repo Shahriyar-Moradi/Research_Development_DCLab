@@ -199,6 +199,32 @@ class StoreTests(unittest.TestCase):
         asked = llm.from_draft(self.record(self.body(outcome=O.read("analysis", ["answer", "answer"]).model_dump())))
         self.assertEqual((asked.check["outcome"], asked.check["outcome_by"]), ("asked_again", "rule"))
 
+    def test_a_conversation_names_its_draft_and_the_coverage_its_kind_of_help(self):
+        """2026-10-30: the 166 analysis, preparation, reporting, business and advice conversations named no draft on their
+        provenance (a draft file's record names none), so the coverage filed them under "no request"."""
+        import json
+        import tempfile
+        from pathlib import Path
+
+        from dclab_core.store import Provenance, StoreRecord
+        from dclab_rnd.store import coverage as cov
+        from dclab_rnd.store.layout import Layout
+        from dclab_rnd.store.sets import llm
+
+        bare = StoreRecord(id="r2", kind="conversations", type="draft", at="2026-10-28T10:00:00+00:00", body=self.body(), split="train",
+                           provenance=Provenance(workspace="dev", source="drafts/d1.json", entry="e:d1", at="2026-10-28T10:00:00+00:00",
+                                                 sha256="0" * 64, consent="train"))
+        ex = llm.from_draft(bare)
+        self.assertEqual((ex.provenance.draft, ex.stage), ("d1", "home_analysis"))
+        layout = Layout(Path(tempfile.mkdtemp()))
+        folder = layout.sets("m4_workflow_llm", "home_analysis", "v1")
+        folder.mkdir(parents=True)
+        (folder / "MANIFEST.json").write_text("{}")
+        (folder / "train.jsonl").write_text(json.dumps(json.loads(ex.model_dump_json())) + "\n")
+        doc = cov.measure(layout, home=Path(tempfile.mkdtemp()))
+        self.assertEqual(doc["model_types"]["m4_workflow_llm"]["by_track"]["analysis"]["examples"], 1)
+        self.assertFalse([g for g in cov.gaps(doc) if g.startswith("track analysis: no run and no training example")])
+
     def test_an_open_or_missing_outcome_is_no_outcome(self):
         from dclab_rnd.store.sets import llm
 

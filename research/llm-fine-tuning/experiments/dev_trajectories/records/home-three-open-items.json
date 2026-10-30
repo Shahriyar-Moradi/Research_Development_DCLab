@@ -1,0 +1,174 @@
+{
+ "package": "home-three-open-items",
+ "title": "A report that names nothing it shows is asked, the next-question labels are explained and set aside, and the five kinds of help are counted",
+ "date": "2026-10-30",
+ "request": "The owner: fix the one Home miss (a prediction worded like a report), look into the weak next-question labels before any model trains on them, and fix the kinds of help that showed no runs and no training examples.",
+ "spec": "Home asks before routing a report whose words name nothing it shows; the reason Claude and Home disagree on the next question is found and the labels are not trained on until it is fixed; the analysis, preparation, reporting, business and advice tracks' data is found or captured.",
+ "plan": [
+  "Reproduce the miss from the dev person p-03 and the sealed s-04",
+  "A code check on the intent reading, test first, then a live dev check of p-03",
+  "Study the 144 next-question labels with Claude's own thinking",
+  "Record which questions are settled; tell the labeller what each fact means; keep the old labels as readings only",
+  "Find why the five tracks count nothing; link the conversations to their drafts; record the kept Home runs",
+  "Rebuild the sets and the coverage, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "The check is code's, on any reading, the model's included",
+   "why": "both the rules (confidence 1.0) and the model read 'some kind of weekly report on our subscribers' as a clear report; the owner's rule is that the model reads and code checks"
+  },
+  {
+   "decision": "A report is clear only when its words name something it shows: a measure, a count, a rate, or a breakdown by a dimension",
+   "why": "p-03's director wanted a Monday list of who will cancel; a measure word is what separates 'a weekly report of churn by region' from 'some kind of weekly report'"
+  },
+  {
+   "decision": "Claude's next-question answers become readings for evaluation, never labels",
+   "why": "they were made from a view that hid which questions were settled and named the absence of a labels file 'labels: unknown'; relabelling the old records would not help, since they lack the new facts"
+  },
+  {
+   "decision": "Per-question flags in the state, not a list of field codes",
+   "why": "the ledger's token format allows no underscore, and a flag per question is what a classifier reads best"
+  },
+  {
+   "decision": "The track's conversations are linked by their draft id, with the row's own track as the coverage's fallback",
+   "why": "166 conversations existed; only their provenance lacked the draft, so they were counted as no request"
+  }
+ ],
+ "change": "dclab_rnd.draft.intent: REPORT_CONTENT and read() asks a reporting reading that names nothing it shows (rules v5). dclab_core 0.144.0: ledger state flags action_known, costs_known, data_plan_known, entity_known, labels_known, budget_known, family_known and the count declined; dclab_rnd.ledger.capture records them for workflow.next_question. dclab_rnd.store.routing_labels: FACT_MEANINGS shown to the labeller. dclab_rnd.store.sets.routing: NOT_LABELS keeps Claude's next-question answers as readings. dclab_rnd.store.sets.llm: a Home conversation's provenance names its draft and project. dclab_rnd.store.coverage: a row's own track as the fallback. dclab_rnd.agent_eval.home and its conversation eval: kept runs open a session log.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A prediction worded as a report was routed at once to reporting",
+   "scenario": "Dev person p-03 and sealed s-04: 'I need some kind of weekly report on our subscribers'; the person wanted a list of the customers who will cancel next month; Home routed reporting with no question",
+   "cause": "the rules read the generic report words as a stated reporting request (confidence 1.0) and the model agreed; nothing checked that the report named anything it shows",
+   "fix": "a reporting reading whose words name no measure, count, rate or breakdown is asked, so the understanding conversation runs first",
+   "test": "tests/test_home_understand.py ReadTests.test_a_report_that_names_nothing_it_shows_stays_open"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Claude's next-question labels agreed with Home only 47 times in 144",
+   "scenario": "Claude picked 'labels' 15 times where Home asked the action, and 9 where Home asked the outcome; its thinking named the open question as the one fact the view showed unknown",
+   "cause": "the state showed only whether the outcome and the moment were known, and 'labels: unknown' meant only that no labels file was uploaded",
+   "fix": "the state records every question's flag and the declined count; the labeller is shown what each fact means; the old labels are readings only",
+   "test": "tests/test_store_routing.py test_claudes_next_question_labels_are_readings_never_labels and test_the_labeller_is_told_what_each_fact_means"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Five kinds of help showed no training example",
+   "scenario": "The coverage said analysis, preparation, reporting, business and advice had no run and no training example, while 166 of their conversations sat in m4's track sets",
+   "cause": "a draft file's store record names no draft, so each conversation's provenance had none and the coverage filed it under no request",
+   "fix": "the conversation's provenance names its draft and project; the coverage falls back to the row's own track",
+   "test": "tests/test_core_track_outcome.py test_a_conversation_names_its_draft_and_the_coverage_its_kind_of_help"
+  },
+  {
+   "id": "F4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The kept Home test runs recorded no run",
+   "scenario": "Home's dev runs and conversation runs kept their drafts and decisions but no session log, so no run.recorded reached the store for any track",
+   "cause": "the kept folders installed a ledger but never a session log",
+   "fix": "both evals open a session log in each kept folder and put the earlier one back",
+   "test": "tests/test_home_conversation.py RunnerTests.test_a_kept_run_keeps_the_conversations_decisions"
+  },
+  {
+   "id": "F5",
+   "source": "test",
+   "severity": "latent",
+   "defect": "A Home test expected no open question after a declined one",
+   "scenario": "test_home_not_known: after 'I don't know' to the budget, Home now asks the next open question",
+   "cause": "since 2026-10-29 Home is never silent: an empty model turn goes on to the next question",
+   "fix": "the test checks that the declined question is never the one open",
+   "test": "tests/test_home_not_known.py NotKnownTest.test_i_dont_know_to_a_models_question_closes_it_before_the_models_turn"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The report check asked many clear reports, every Persian one included",
+   "scenario": "The first word list opened 30 of the 77 reporting requests the rules read right in the written sets: reports rebuilt by hand, content named in other words, column names with underscores, Persian requests",
+   "cause": "an English-only list matched with word boundaries that treat an underscore as a letter, and no notion of a report that already exists",
+   "fix": "letter boundaries, a wider content list with breakdowns, a report that exists counts as named, Persian not judged here",
+   "test": "tests/test_home_understand.py ReadTests.test_the_report_check_opens_no_clear_report_in_the_written_sets"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The kept runs' session log went to PostgreSQL under a made-up workspace",
+   "scenario": "With DCLAB_DATABASE_URL set, every event of a kept Home run failed and the folder held none",
+   "cause": "open_log returns a PostgreSQL log when a database is configured",
+   "fix": "a file log in the kept folder, as the ledger already was",
+   "test": "tests/test_home_conversation.py on PostgreSQL (run_parallel --pg)"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Home's decide tool served the next-question state without the new flags",
+   "scenario": "A classifier trained on records with the flags was asked by Home's decide tool with a state lacking them",
+   "cause": "chat._problem_state built its own copy of the state",
+   "fix": "one capture.next_question_state used by both",
+   "test": "tests/test_home_routing_points.py and tests/test_workflow_models.py"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The labeller's next-question thinking could still become training reasoning",
+   "scenario": "A person-labelled next-question row where Claude's blind answer agreed: the chat export took Claude's thinking as the reason; and the labeller's exchanges entered m4 as report examples",
+   "cause": "chat_row took any model reading with the same answer; the m4 builder mapped the labeller's purpose to the report stage",
+   "fix": "chat_row skips the labeller's reading on NOT_LABELS points; the labeller's exchanges are no m4 examples (NOT_WORKFLOW)",
+   "test": "tests/test_store_routing.py test_claudes_next_question_labels_are_readings_never_labels"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "p-03 live, dev",
+   "gate": "the conversation gate v2 on the one dev person who was missed",
+   "result": "routed prediction after two turns of talk; gate v2 passes; EUR 0.04",
+   "verdict": "pass",
+   "cost_eur": 0.04,
+   "limits": [
+    "one person; the sealed set is spent and was not run again"
+   ]
+  },
+  {
+   "name": "harness suite after the intent change",
+   "gate": "every regression case and dev journey right on every step",
+   "result": "HRN-086 passes, EUR 0",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "next-question label study",
+   "gate": "a reason for the disagreement found in Claude's own thinking before any model trains on the labels",
+   "result": "47 agreements in 144; the main pairs action against labels and outcome against labels; the view hid the settled questions",
+   "verdict": "not scored",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "report check on the written sets",
+   "gate": "no reporting request the rules read right is asked; the missed persons still asked",
+   "result": "0 of 77 asked (30 before the review's fix); p-03's opening still asked",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  }
+ ],
+ "outcome": "Home asks what a vague report should show before routing; the next-question labels are explained and kept out of training until records with the new facts are labelled; the five kinds of help are counted from their conversations, and kept Home runs are recorded. The tracks' data is still test traffic: real people's sessions are what they need.",
+ "lessons": [
+  "A clear-looking reading can be wrong when the words name no content: check what the request asks to see",
+  "Read the labeller's own thinking before trusting its labels: it says what it could not see",
+  "Data missing from a count may be present and unlinked: check the provenance before capturing more"
+ ],
+ "risks": [
+  "The report content words are a list: a report naming its content in other words is asked once more than needed",
+  "The five tracks still have no real person's data"
+ ],
+ "commits": []
+}

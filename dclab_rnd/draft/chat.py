@@ -3219,14 +3219,12 @@ def _problem_state(agent: HomeAgent, draft: dict[str, Any], point: str, card: An
     """The state the ledger records at a problem point (as ``ledger.capture`` writes it) and the rules' answer there."""
     u = draft.get("understanding") or {}
     if point == "workflow.next_question":
-        from dclab_core.workflow_labels import QUESTION_LIMIT
+        from dclab_core.workflow_labels import SAME
+
+        from dclab_rnd.ledger.capture import next_question_state
 
         questions = [q for q in draft.get("questions") or [] if not q.get("superseded")]
-        state = {"open_questions": sum(1 for f in ("target", "prediction_moment", "action") if not u.get(f)), "step": len(questions),
-                 "steps_left": max(QUESTION_LIMIT - len(questions), 0), "labels": capture_labels(draft),
-                 "outcome_known": bool(u.get("target")), "moment_known": bool(u.get("prediction_moment")),
-                 "pack": capture_code((draft.get("pack") or {}).get("key"))}
-        from dclab_core.workflow_labels import SAME
+        state = next_question_state(draft)  # the same state the ledger records (the review of 2026-10-30)
 
         if any(not q.get("answered") for q in questions):
             return state, None  # a question waits for its answer: the rules decide nothing yet (as the ledger records it)
