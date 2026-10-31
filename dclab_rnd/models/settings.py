@@ -140,11 +140,20 @@ PURPOSES: dict[str, Purpose] = {
                                              "the outcome's name, the prediction moment, measures computed on training rows only (a column's "
                                              "signal against the outcome, the holdout's metrics once read); never rows or cell values (27.6)"),
     "case_agent": Purpose("standard", 180, "37.3: the lead agent: the person's words, the case file (facts with their sources, assumptions, "
-                                           "unknowns, readiness), and, once a table is shared, its column names, kinds, what DCLab noticed "
-                                           "and its row count; never a row or a cell value", cell_values=0, keeps_text=True),
+                                           "unknowns, readiness), and, once a table is shared, its column names, kinds, what DCLab noticed, "
+                                           "its row count, and what code computed when asked (aggregates by group, at most 20 groups: group "
+                                           "names are its only cell values; leakage findings in words; a step's counts); never a row",
+                                           cell_values=40, keeps_text=True),
+    "case_specialist": Purpose("standard", 180, "37.7: a specialist the lead agent sends: the case file (the person's words, facts with "
+                                                "their sources), the shared table's column names, kinds and what DCLab noticed, and what "
+                                                "code computed that holds no group name (leakage findings in words, a step's counts); a group "
+                                                "name only when the lead agent's words or notes repeat one (then its request is marked "
+                                                "as holding cells and kept redacted); never a row", cell_values=40, keeps_text=True),
     "exam_plain": Purpose("standard", 180, "37.0: the conversation exam's Claude-alone arm: a written person's words (simulated, never a "
                                            "real person's) and, when they share an invented exam table, its column names, kinds and what "
-                                           "DCLab noticed about each; never a row or a cell value", cell_values=0, keeps_text=True),
+                                           "DCLab noticed about each, its row count, and the same computed aggregates as the lead agent (at most 20 "
+                                           "groups of an invented table); never a person's data, a row or a person's cell value", cell_values=0,
+                          keeps_text=True),
     "exam_person": Purpose("standard", 90, "37.0: the simulated person of the conversation exam (served by Haiku 5.5): a written person's "
                                            "hidden truth and the conversation so far; never data, a row or a cell value", cell_values=0, keeps_text=True),
     "exam_judge": Purpose("standard", 240, "37.0: the conversation exam's judge (served by Opus 5.5), blind to the arm: a written person's "

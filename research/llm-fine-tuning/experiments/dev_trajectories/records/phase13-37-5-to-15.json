@@ -1,0 +1,245 @@
+{
+ "package": "37.5-37.15",
+ "title": "The lead agent made safe and usable: options in full, guards as tools, specialists, long sessions, Home behind the switch, the recorder, the capture map, the thinking audit and the sealed vault",
+ "date": "2026-10-31",
+ "request": "The owner, going to sleep: build 37.5, 37.6, 37.7, 37.8, 37.9 and the capture packages, each checked, reviewed and committed, then run the sealed exam once; build all of Phase 13 but switch-on.",
+ "spec": "37.5 options say what you get, the trade-off and the effort; 37.6 query, leakage check, step preview and build request run by code with reasons on refusal; 37.7 specialists sent by triggers within a budget, findings into the case file; 37.8 checkpoints and a soft cap that asks; 37.9 Home led by the lead agent behind DCLAB_CASE_AGENT with options as cards and the case file as a panel; 37.12 every case change an event; 37.13 the capture map; 37.14 a prompt audit; 37.15 sealed exams kept whole in a vault no set reads.",
+ "plan": [
+  "Options and guard tools with the same data tools for Claude alone",
+  "Review, fix seven findings",
+  "Specialists and long sessions, case file v2",
+  "Home behind the switch, the page",
+  "The recorder, the vault, the capture map, the audit",
+  "Re-review, fix eight findings, a dev check",
+  "Record, rd-check, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "Claude alone gets the same data tools",
+   "why": "the plan compares the structure around Claude, not what each arm may do"
+  },
+  {
+   "decision": "Whether a request holds cells is decided per request",
+   "why": "a purpose-wide limit would stop every conversation from being kept whole, against the owner's capture rule"
+  },
+  {
+   "decision": "A build request records the person's yes and builds nothing in this package",
+   "why": "the product's build path keeps its own checks; 37.11 joins them"
+  },
+  {
+   "decision": "The six earlier prompts that ask for a reason are listed, not changed tonight",
+   "why": "their readers may need the field; the owner decides"
+  },
+  {
+   "decision": "The sealed vault is counted by the store, never kept as content",
+   "why": "no training set may ever read an exam"
+  }
+ ],
+ "change": "New: dclab_rnd/agents/data_tools.py, specialists.py, case_session.py, person_json.py, draft/case_home.py, prompts/case_specialist.md, tests/test_case_home.py, tests/test_prompt_audit.py. Changed: dclab_core/case.py (v2: findings, build, change op, rebuild; options in full), dclab_core/experience.py (v17: case.changed), the gateway's per-request cells and the exam vault, experience.sealed_run(vault=), the store's vault rule, traces' cell keys, case_agent (tools, guard, consult, checkpoints, cap, recorder, never silent), the exam (sealed_v1 path, full options, the same data tools), Home's page (option cards, case panel), purposes case_agent and case_specialist, the capture map and capture-coverage, training_records README. dclab-core 0.151.0.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The cell limit stopped the lead agent's conversations from being kept whole",
+   "scenario": "Every case_agent request kept only its shape once its purpose allowed cells, turns with no table included",
+   "cause": "a purpose-wide rule",
+   "fix": "the gateway takes a per-request flag; the lead agent marks a request as holding cells only when a query answer is in it or the case has seen group names",
+   "test": "tests/test_case_agent.py CaptureTests, PrivacyEdgeTests"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A no could pass as a yes to a build",
+   "scenario": "'No, please don't build it yet' and 'I pick: ...' passed with a quote of two words",
+   "cause": "the check only matched words",
+   "fix": "a yes word with no refusal or delay, never the pick line; the build is recorded in the case file, nothing built",
+   "test": "tests/test_case_agent.py GuardToolTests.test_a_build_needs_a_project_route_and_the_persons_words"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A step preview could reveal one named customer's outcome",
+   "scenario": "a filter on a customer id with the outcome gave rows_after 1 or 0",
+   "cause": "preview skipped the query rules",
+   "fix": "filters validated as a query; counts under the floor said as 'fewer than'",
+   "test": "tests/test_case_agent.py GuardEdgeTests"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A query that could not run crashed the turn, and Claude alone broke on extra arguments",
+   "scenario": "plan gt 3 raised; limit or sort broke the plain arm",
+   "cause": "no error mapping; no schema filter in the plain arm",
+   "fix": "errors returned as refusals; the plain arm keeps the schema's arguments",
+   "test": "tests/test_case_agent.py GuardEdgeTests"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Groups were cut silently",
+   "scenario": "30 groups shown as 20 with 2 hidden",
+   "cause": "the cut was not counted",
+   "fix": "groups_not_shown, sort exposed",
+   "test": "tests/test_case_agent.py GuardEdgeTests"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The 40-name limit did not hold",
+   "scenario": "three group columns gave 60 names; answers piled up",
+   "cause": "no per-case count",
+   "fix": "two group columns at most; a case's names counted across answers and checkpoints",
+   "test": "tests/test_case_agent.py GuardEdgeTests, PrivacyEdgeTests"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Queries and the leakage check left no exposure record",
+   "scenario": "a later build could not know the outcome was looked at on every row",
+   "cause": "no exposure kept",
+   "fix": "query and leakage return exposure; kept in the state and checkpoints",
+   "test": "tests/test_case_agent.py PrivacyEdgeTests"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Later turns repeating group names were kept whole and could leave",
+   "scenario": "turn 2 after a query by city kept 'Zanjanville' whole, may_leave true; Persian names never matched",
+   "cause": "the flag looked only for the tool message of the same request",
+   "fix": "once a case has seen group names every request holds cells",
+   "test": "tests/test_case_agent.py PrivacyEdgeTests"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A specialist could be sent group names in words",
+   "scenario": "the lead agent's question or notes named a city",
+   "cause": "only the computed list was filtered",
+   "fix": "its request marked as holding cells when a name appears",
+   "test": "tests/test_case_agent.py PrivacyEdgeTests"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Query groups reached trace rows and events",
+   "scenario": "tool.call results held the group names",
+   "cause": "rows was not a scrubbed key",
+   "fix": "rows added to the trace's cell keys",
+   "test": "tests/test_case_agent.py PrivacyEdgeTests"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A shadow read the cells flag late",
+   "scenario": "a shadow's line written after the next request reset the flag",
+   "cause": "the flag read when writing",
+   "fix": "the flag taken when the request was sent",
+   "test": "tests/test_models_gateway.py (suite)"
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The cap setting was ignored for new cases and a yes could buy too little",
+   "scenario": "DCLAB_CASE_CAP_EUR=1 left 5; spent 11 against 5 gave a new cap of 10",
+   "cause": "a hard-coded default; cap plus one cap",
+   "fix": "the default from the setting; max(cap, spent) plus a cap",
+   "test": "tests/test_case_agent.py SessionTests, PrivacyEdgeTests"
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A checkpoint lost what the next turn needs",
+   "scenario": "group names, exposure, the checkpoint path and the tracer's numbers were not saved",
+   "cause": "the snapshot was partial",
+   "fix": "all saved and restored; v1 case files read as v2",
+   "test": "tests/test_case_agent.py PrivacyEdgeTests"
+  },
+  {
+   "id": "F14",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A turn spent on queries left the person with no words",
+   "scenario": "CEX-011 d-04: three turns answered only by the fallback line",
+   "cause": "every reply went to tool calls",
+   "fix": "asked once for its message with no move allowed",
+   "test": "tests/test_case_agent.py NeverSilentTests"
+  },
+  {
+   "id": "F15",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The critic and domain expert had no trigger",
+   "scenario": "they could be sent at any time",
+   "cause": "no rule",
+   "fix": "the critic only when the case may propose, the domain expert once the goal is known",
+   "test": "tests/test_case_agent.py PrivacyEdgeTests"
+  },
+  {
+   "id": "F16",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "Six earlier prompts ask a model for a reason in its answer",
+   "scenario": "base_audit, ai_first_home, journey_checker, leakage_review, store_curator, reasoning_teacher",
+   "cause": "written before the owner's rule",
+   "fix": "listed in the prompt audit for the owner to decide; no new prompt may ask",
+   "test": "tests/test_prompt_audit.py",
+   "verdict": "open"
+  },
+  {
+   "id": "F17",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The browser test was not run",
+   "scenario": "make browser-test needs Chromium, a download that waits for the owner",
+   "cause": "no Chromium on this machine",
+   "fix": "the page's script checks ran; the browser test waits",
+   "test": "none",
+   "verdict": "open"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "CEX-011, the trap people on the guard tools (code before the re-review's fixes)",
+   "gate": "every planted trap refused or handled, and the agent recovers",
+   "result": "seven of nine trap people passed; option fit 4.8 of 5; no invented number, no silent turn; d-04 spent turns on queries with no words (the never-silent fix followed); the cap stopped the run before the tenth person",
+   "verdict": "not scored",
+   "cost_eur": 2.39
+  },
+  {
+   "name": "CEX-012, the final dev check: twelve people (traps, the owner's Telco session, a clear request, a vague segmentation, no upload, advice)",
+   "gate": "no invented number, no silent turn, the right route reached, traps handled",
+   "result": "understanding 0.95, option fit 4.25, the right route reached for 11 of 12, traps 4 of 5 (the clear request took four exchanges), no invented number, no silent turn; no specialist was sent; EUR 0.03 to 0.57 a case",
+   "verdict": "pass",
+   "cost_eur": 2.83,
+   "limits": [
+    "twelve dev people chosen to cover the traps: not the whole set",
+    "specialists unmeasured live: the agent never sent one",
+    "the clear-request fast path needs work"
+   ]
+  }
+ ],
+ "outcome": "The lead agent now computes numbers through code, previews steps, records a build only on the person's yes, keeps its state across turns and stops at its cap, and leads Home behind DCLAB_CASE_AGENT with options as cards and the case file as a panel; every case change is an event, sealed exams are kept whole in a vault no set reads, and no new prompt may ask for reasoning. On twelve dev people it understood 0.95 with no invented number and no silent turn.",
+ "lessons": [
+  "A privacy flag on a purpose is too coarse for an agent whose tools sometimes bring data: decide per request, and once a case has seen data, treat all of it as holding data",
+  "A guard tool is only as safe as its weakest sibling: the preview opened what the query closed",
+  "An agent with good tools can spend a whole turn using them: code must ask for its words"
+ ],
+ "risks": [
+  "Home's page change is untested in a browser",
+  "The lead agent's build request is recorded, not run, until switch-on joins the product's build path"
+ ],
+ "commits": []
+}

@@ -9,7 +9,8 @@ What is never kept as content, only counted (each file's name, size and hash):
 
 - a table's rows (any ``data/`` folder, and exports of tables): they are kept only where a person said yes (32.16);
 - a file whose name says secret (``.env``, a key, a token: ``testers.NEVER``);
-- everything of a workspace whose consent is ``operate``.
+- everything of a workspace whose consent is ``operate``;
+- a sealed exam's vault (``exam_vault/``, 37.15): kept whole there for evaluation, never as the store's content.
 
 Column previews and the other keys that quote a table's cells (``testers.QUOTES_CELLS``) are removed from the files that hold
 them (``testers.SCRUBBED``: projects, stages, activity, drafts, events, intern sessions) before keeping, as the tester share
@@ -74,6 +75,11 @@ FEEDS = {"sessions": ("m2_workflow_decisions", "m4_workflow_llm", "m6_stepwise_d
 
 
 LEDGER_PARTS = ("decisions", "labels", "outcomes", "corrections")
+
+
+def in_vault(rel: str) -> bool:
+    """37.15: a sealed exam's vault, never read as content (no set can learn from an exam)."""
+    return rel.split("/", 1)[0] == "exam_vault"
 
 
 def classify(rel: str) -> tuple[str, str]:
@@ -177,7 +183,8 @@ def inventory(env: Any) -> list[Item]:
                 rel = "ledger/" + rel  # a self-play solve's ledger, filed as any workspace's
             kind, prefix = classify(rel)
             table = TABLE_DIRS.search(rel) or (TABLE_FILES.search(rel) and not NOT_TABLES.search(rel))
-            counted = ("a table's rows: kept only where a person said yes" if table else
+            counted = ("a sealed exam's vault: kept whole there for evaluation, never as the store's content" if in_vault(rel) else
+                       "a table's rows: kept only where a person said yes" if table else
                        "a secret's file name" if _secret(rel) else
                        "this workspace's consent does not allow keeping its content" if ws.consent == "operate" else None)
             items.append(Item(ws, rel, path, kind, prefix, counted))

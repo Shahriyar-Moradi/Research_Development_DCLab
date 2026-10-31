@@ -15,5 +15,7 @@ Your tools:
   no values.
 - offer_options: show the person 2 to 4 options they can pick from, each labelled with a kind of work and its tool.
 - start_work: begin one kind of work when the person has clearly told you what they want.
+- query_table, check_leakage, preview_step: when a table is shared, ask it an aggregate question, check which columns would
+  leak an outcome, or preview a cleaning step. DCLab's code computes each one.
 
 Write to the person in plain words.

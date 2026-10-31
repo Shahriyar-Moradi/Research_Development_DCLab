@@ -31,6 +31,8 @@ from typing import Any, Literal, Optional, Union
 
 from pydantic import Field
 
+from typing import ClassVar
+
 from dclab_core.contracts import CONTRACTS, MAX_TEXT, Contract, TextFact, Versioned, _version
 
 FactStatus = Literal["said", "computed", "assumed", "confirmed", "rejected"]
@@ -87,9 +89,26 @@ class CaseRoute(Contract):
     by: Literal["person", "agent", "code"] = "agent"
 
 
+class CaseFinding(Contract):
+    """37.7: what a specialist found, written into the case for the lead agent: never shown to the person directly."""
+
+    by: str = Field(max_length=60, description="The specialist: data_investigator, leakage_auditor, critic, domain_expert, solution_designer.")
+    kind: Literal["fact", "risk", "question", "assumption"]
+    text: str = Field(min_length=1, max_length=600)
+    field: str = Field(default="", max_length=60)
+
+
+class CaseBuild(Contract):
+    """37.6: the build the person said yes to, with their words; recorded, not run, until the product's build path takes it."""
+
+    tool: str = Field(max_length=60)
+    quote: str = Field(min_length=1, max_length=MAX_TEXT)
+
+
 class CaseChange(Contract):
     version: int = Field(ge=1)
     field: str = Field(max_length=60)
+    op: Literal["set", "add", "remove", "counts"] = Field(default="set", description="v2: how the field changed, so a case rebuilds from its changes")
     by: str = Field(max_length=120, description="person, agent, code, card, or specialist:<name>.")
     why: str = Field(max_length=1000)
     before: Any = None
@@ -97,9 +116,11 @@ class CaseChange(Contract):
 
 
 class CaseFile(Versioned):
-    """The living record of one case (v1)."""
+    """The living record of one case. v2 (37.6, 37.7) adds the specialists' findings and the build the person said yes to;
+    v1 reads as v2 with neither."""
 
-    schema_version: Literal["dclab_core.case_file.v1"] = _version("case_file")
+    schema_version: Literal["dclab_core.case_file.v2"] = _version("case_file", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.case_file.v1"})
     case_id: str = Field(min_length=1, max_length=120)
     version: int = Field(default=0, ge=0)
     words: list[str] = Field(default_factory=list, max_length=200, description="The person's messages, whole, in order.")
@@ -117,7 +138,16 @@ class CaseFile(Versioned):
     chosen: Optional[str] = Field(default=None, max_length=MAX_TEXT, description="The option's title, or the person's own words.")
     route: Optional[CaseRoute] = None
     card: Optional[dict[str, Any]] = Field(default=None, description="The problem card as read (from_card): its rule-made parts, kept whole.")
+    findings: list[CaseFinding] = Field(default_factory=list, max_length=30, description="v2: what the specialists found.")
+    build: Optional[CaseBuild] = Field(default=None, description="v2: the build the person said yes to.")
     changes: list[CaseChange] = Field(default_factory=list)
+
+    @classmethod
+    def read(cls, document: Any) -> "CaseFile":
+        data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
+        if data.get("schema_version") == "dclab_core.case_file.v1":
+            data = {**data, "schema_version": cls.model_fields["schema_version"].default}
+        return super().read(data)
 
 
 class Readiness(Contract):
@@ -206,12 +236,12 @@ def _dump(value: Any) -> Any:
     return value.model_dump(mode="json") if hasattr(value, "model_dump") else value
 
 
-def _next(case: CaseFile, field: str, value: Any, by: str, why: str, **update: Any) -> CaseFile:
+def _next(case: CaseFile, field: str, value: Any, by: str, why: str, op: str = "set", **update: Any) -> CaseFile:
     """The next version, validated whole and sharing nothing with the one before (the review of 37.1: a copy skipped the
     limits and shared its lists, so an append rewrote history)."""
     version = case.version + 1
     before = getattr(case, field, None)
-    change = CaseChange(version=version, field=field, by=by, why=why, before=json.loads(json.dumps(_dump(before), default=_dump)),
+    change = CaseChange(version=version, field=field, op=op, by=by, why=why, before=json.loads(json.dumps(_dump(before), default=_dump)),
                         after=json.loads(json.dumps(_dump(value), default=_dump)))
     doc = json.loads(case.model_dump_json())
     doc.update(json.loads(json.dumps({k: _dump(v) if not isinstance(v, list) else [_dump(x) for x in v] for k, v in update.items()}, default=_dump)))
@@ -234,12 +264,12 @@ def apply(case: CaseFile, field: str, value: Union[CaseFact, Unknown, CaseOption
         facts = [f.model_copy(update={"after_words": len(case.words)}) if f is not None and f.status == "assumed" else f for f in facts]
         if field in SINGLE:
             return _next(case, field, facts[0], by, why, **{field: facts[0]})
-        return _next(case, field, facts, by, why, **{field: [*getattr(case, field), *facts]})
+        return _next(case, field, facts, by, why, op="add", **{field: [*getattr(case, field), *facts]})
     if field == "unknowns":
         items = value if isinstance(value, list) else [value]
-        return _next(case, field, items, by, why, unknowns=sorted([*case.unknowns, *items], key=lambda u: u.rank))
+        return _next(case, field, items, by, why, op="add", unknowns=sorted([*case.unknowns, *items], key=lambda u: u.rank))
     if field == "resolved":  # an unknown answered: removed by its field
-        return _next(case, "unknowns", value, by, why, unknowns=[u for u in case.unknowns if u.field != value])
+        return _next(case, "unknowns", value, by, why, op="remove", unknowns=[u for u in case.unknowns if u.field != value])
     if field == "options":
         options = list(value or [])
         wrong = [f"{o.title}: DCLab cannot run {o.track}/{o.tool}" for o in options if TRACK_OF_TOOL.get(o.tool) != o.track]
@@ -248,6 +278,14 @@ def apply(case: CaseFile, field: str, value: Union[CaseFact, Unknown, CaseOption
         return _next(case, field, options, by, why, options=options)
     if field in ("chosen", "route"):
         return _next(case, field, value, by, why, **{field: value})
+    if field == "findings":  # 37.7: a specialist's findings, appended
+        items = value if isinstance(value, list) else [value]
+        return _next(case, field, items, by, why, op="add", findings=[*case.findings, *items])
+    if field == "build":  # 37.6: the person's yes to a build, with their words
+        latest = case.words[-1:] if case.words else []
+        if value is None or not quote_ok(value.quote, value.quote, latest):
+            raise CaseRefused("a build needs the person's own words from their latest message")
+        return _next(case, field, value, by, why, build=value)
     raise CaseRefused(f"no field {field!r} the agent may change")
 
 
@@ -255,7 +293,7 @@ def hear(case: CaseFile, words: str) -> CaseFile:
     """The person's next message, kept whole: a version by the person (the words are the record every fact quotes)."""
     if not str(words).strip():
         return case
-    return _next(case, "words", str(words), "person", "the person wrote", words=[*case.words, str(words)])
+    return _next(case, "words", [str(words)], "person", "the person wrote", op="add", words=[*case.words, str(words)])
 
 
 def confirm(case: CaseFile, index: int, *, quote: str, by: str = "person", reject: bool = False) -> CaseFile:
@@ -277,13 +315,40 @@ def confirm(case: CaseFile, index: int, *, quote: str, by: str = "person", rejec
 def asked(case: CaseFile, declined: bool = False, by: str = "agent") -> CaseFile:
     """A question was put to the person (and declined, when they would not or could not answer): a version, since the
     ceiling it counts toward decides when options may be shown."""
-    return _next(case, "asked", case.asked + 1, by, "a question was declined" if declined else "a question was asked",
-                 asked=case.asked + 1, declined=case.declined + int(declined))
+    counts = {"asked": case.asked + 1, "declined": case.declined + int(declined)}
+    return _next(case, "asked", counts, by, "a question was declined" if declined else "a question was asked", op="counts", **counts)
 
 
 def declined(case: CaseFile, by: str = "code") -> CaseFile:
     """The person passed over the last question (they did not know or would not say): a version, counted toward the ceiling."""
-    return _next(case, "declined", case.declined + 1, by, "the person passed over a question", declined=case.declined + 1)
+    counts = {"asked": case.asked, "declined": case.declined + 1}
+    return _next(case, "declined", counts, by, "the person passed over a question", op="counts", **counts)
+
+
+MODELS = {"goal": CaseFact, "decision": CaseFact, "user": CaseFact, "data": CaseFact, "cannot_answer": CaseFact, "constraints": CaseFact,
+          "assumptions": CaseFact, "unknowns": Unknown, "options": CaseOption, "route": CaseRoute, "findings": CaseFinding, "build": CaseBuild}
+
+
+def rebuild(case_id: str, changes: Iterable[Mapping[str, Any]]) -> CaseFile:
+    """37.12: a case file from its changes alone, in version order (the recorder's events): the same case, version for version."""
+    doc: dict[str, Any] = json.loads(new(case_id).model_dump_json())
+    kept: list[dict[str, Any]] = []
+    for ch in sorted((dict(c) for c in changes), key=lambda c: int(c["version"])):
+        field, op, after = ch["field"], ch.get("op", "set"), ch.get("after")
+        if op == "counts":
+            doc.update({k: int(v) for k, v in (after or {}).items()})
+        elif op == "add":
+            doc[field] = [*doc.get(field, []), *(after or [])]
+            if field == "unknowns":
+                doc[field] = sorted(doc[field], key=lambda u: int(u.get("rank", 0)))
+        elif op == "remove":
+            doc[field] = [u for u in doc.get(field, []) if u.get("field") != after]
+        else:
+            doc[field] = after
+        doc["version"] = int(ch["version"])
+        kept.append(ch)
+    doc["changes"] = kept
+    return CaseFile.model_validate(doc)
 
 
 def known(fact: Optional[CaseFact]) -> bool:
@@ -319,6 +384,8 @@ def check_options(options: Iterable[CaseOption], case: CaseFile, *, columns: Ite
         missing = [c for c in o.columns if c not in columns]
         if missing:
             why.append(f"the table has no column {', '.join(missing)}")
+        if not (o.gets.strip() and o.tradeoff.strip() and o.effort.strip()):  # 37.5: written for the person, in full
+            why.append("an option says what they get, its trade-off and its effort")
         unsaid = numbers_unsaid(" ".join((o.title, o.what, o.gets, o.tradeoff, o.effort)), sources)
         if unsaid:
             why.append(f"numbers nobody gave: {', '.join(unsaid)}")
@@ -408,7 +475,7 @@ def views(case: CaseFile) -> Mapping[str, Any]:
 
 CONTRACTS["case_file"] = CaseFile  # its schema is published with the others
 
-__all__ = ["CaseFile", "CaseFact", "CaseChange", "CaseOption", "CaseRoute", "Unknown", "Readiness", "CaseRefused", "CEILING", "TOOLS",
+__all__ = ["CaseFile", "CaseFact", "CaseChange", "CaseFinding", "CaseBuild", "CaseOption", "CaseRoute", "Unknown", "Readiness", "CaseRefused", "CEILING", "TOOLS",
            "TRACKS", "TRACK_OF_TOOL", "new", "apply", "hear", "confirm", "asked", "declined", "known", "readiness", "check_fact", "check_options",
-           "numbers_unsaid", "quote_ok",
+           "numbers_unsaid", "quote_ok", "rebuild",
            "from_card", "to_card", "views"]

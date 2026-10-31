@@ -21,6 +21,12 @@ class DraftWork:
         self.drafts, self.models, self.traces, self.jobs = drafts, models, traces, jobs
 
     def agent(self, draft_id: str | None = None) -> HomeAgent:
+        from ..agents import case_agent
+
+        if case_agent.on():  # 37.9: the lead agent leads Home's conversation; with the switch off the rules-first Home does
+            from .case_home import CaseHome
+
+            return CaseHome(self.drafts, self.models, traces=self.traces)
         from .reader import reader
 
         return HomeAgent(self.drafts, self.models.client("home_agent", draft_id=draft_id), on_request=self.requests, traces=self.traces,

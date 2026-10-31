@@ -177,6 +177,7 @@ DC.view('home', {
       drawIntent(draft.intent);
       updateDataPill();
       drawUnderstanding(draft);
+      drawCase(draft);
       loadTwin();
       // dclab:closed-begin  (the understanding team: the full edition's)
       loadTeam();
@@ -399,7 +400,10 @@ DC.view('home', {
 
     /* ---------- events from the draft ---------- */
     function onEvent(kind, data) {
-      if (kind === 'chat') renderMessage(data);
+      if (kind === 'chat') {
+        renderMessage(data);
+        if (S.draft && (data.by === 'case_agent' || data.kind === 'case_options')) DC.client.readDraft(S.draft.id).then(d => { S.draft = d; drawCase(d); }).catch(() => {});
+      }
       else if (kind === 'token') renderToken(data);
       else if (kind === 'pipeline') renderPipeline(data);
       else if (kind === 'analysis') { S.analysis[data.asset] = data.analysis; }
@@ -411,6 +415,32 @@ DC.view('home', {
       else if (kind === 'fit' && S.draft) {  // 30.13: a fit edit accepted: the person's answers changed, the panel shows them
         DC.client.readDraft(S.draft.id).then(d => { S.draft = d; drawUnderstanding(S.draft); }).catch(() => {});
       }
+    }
+
+    /* ---------- 37.9: the lead agent's case file ---------- */
+    const CASE_LABELS = { goal: 'Goal', decision: 'The decision it serves', user: 'Who uses the result', data: 'The data' };
+    const CASE_STATUS = { said: ['ok', 'your words'], confirmed: ['ok', 'you confirmed'], computed: ['info', 'computed from the data'], assumed: ['warn', 'assumed'], rejected: ['bad', 'you rejected'] };
+    function drawCase(draft) {
+      const panel = $('#home-case', el); if (!panel) return;
+      const c = draft && draft.case;
+      panel.hidden = !c;
+      if (!c) return;
+      $('#home-understand', el).hidden = true;  // one panel of what was understood: the case's
+      const facts = c.facts || {};
+      $('#home-case-facts', el).innerHTML = Object.keys(CASE_LABELS).map(f => {
+        const v = facts[f];
+        const [pill, word] = v ? (CASE_STATUS[v.status] || ['outline', v.status]) : ['outline', 'not known yet'];
+        return `<div class="stack tight"><div class="spread"><b class="small">${esc(CASE_LABELS[f])}</b><span class="pill ${pill}">${esc(word)}</span></div>`
+          + `<div class="small">${v ? esc(v.value) : '<span class="muted">not known yet</span>'}</div>`
+          + (v && v.quote ? `<div class="xs muted">“${esc(String(v.quote).slice(0, 160))}”</div>` : '') + '</div>';
+      }).join('');
+      const r = c.readiness || {};
+      const ready = $('#home-case-ready', el); ready.hidden = false; ready.textContent = r.ready ? 'ready to propose' : 'still understanding';
+      const list = (title, items) => items.length ? `<div><b>${esc(title)}</b><ul>${items.map(i => `<li>${i}</li>`).join('')}</ul></div>` : '';
+      $('#home-case-more', el).innerHTML = list('Assumed, to confirm', (c.assumptions || []).map(a => esc(a.value)))
+        + list('Still open', (c.unknowns || []).map(u => esc(u.question)))
+        + ((c.findings || []).length ? `<details><summary>What the specialists found (${c.findings.length})</summary><ul>${c.findings.map(f => `<li><span class="muted">${esc(f.by.replace(/_/g, ' '))}:</span> ${esc(f.text)}</li>`).join('')}</ul></details>` : '')
+        + (c.route ? `<div class="muted">Work started: ${esc(c.route.track)} (${esc(c.route.tool)})</div>` : '');
     }
 
     /* ---------- 25.5: what DCLab understood, editable ---------- */
@@ -630,7 +660,14 @@ DC.view('home', {
         return scrollThread();
       }
       let body = '';
-      if (m.kind === 'question') {
+      if (m.kind === 'case_options') {  // 37.9: the lead agent's options, each written for this person and checked by code
+        const cards = (m.options || []).map(o => `<div class="inset stack tight"><b>${esc(o.title)}</b><div class="small">${esc(o.what || '')}</div>`
+          + (o.gets ? `<div class="xs"><span class="muted">You get:</span> ${esc(o.gets)}</div>` : '')
+          + (o.tradeoff ? `<div class="xs"><span class="muted">Trade-off:</span> ${esc(o.tradeoff)}</div>` : '')
+          + (o.effort ? `<div class="xs"><span class="muted">Effort:</span> ${esc(o.effort)}</div>` : '')
+          + `<div class="row"><button type="button" class="ask-option" data-answer="${esc(o.title)}">Choose this</button></div></div>`).join('');
+        body = `<div class="ask-card"><div class="grid g2">${cards}</div><div class="small muted">Or say in your own words what you would rather do.</div></div>`;
+      } else if (m.kind === 'question') {
         const q = m.question || {};
         body = `<div class="ask-card"><div class="q">${esc(m.text)}</div>${q.why ? `<div class="small muted">${esc(q.why)}</div>` : ''}${(q.options || []).length ? `<div class="ask-options">${q.options.map(o => `<button type="button" class="ask-option" data-answer="${esc(o)}">${esc(o)}</button>`).join('')}</div>` : '<div class="small muted">Answer below in your own words.</div>'}</div>`;
       } else if (m.kind === 'build') {  // 25.13: the project built from "build it", the agent carrying out its plan

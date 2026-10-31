@@ -41,7 +41,8 @@ from .judge import judge as _judge
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 PEOPLE = HERE / "people_dev.json"
-SPLITS = {"dev": PEOPLE}
+SPLITS = {"dev": PEOPLE, "sealed_v1": HERE / "people_sealed_v1.json"}  # sealed: 40 people by an agent shown the format alone
+SEALED = {"sealed_v1": HERE / "people_sealed_v1.sha256"}  # pinned before its one run (37.10)
 CAMPAIGN = ROOT / "evidence" / "campaigns" / "conversation_exam_v1"
 RESULTS = CAMPAIGN / "results"
 LABELS = CAMPAIGN / "labels"
@@ -471,18 +472,34 @@ ESTIMATE_EUR = {"home": 0.08, "plain": 0.10, "person": 0.01, "judge": 0.08}  # p
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--split", default="dev")
+    parser.add_argument("--split", default="dev", help="dev, or sealed_v1 (run once, every arm, kept in the exam vault)")
     parser.add_argument("--arms", default=",".join(READY_ARMS))
     parser.add_argument("--only", default=None, help="a comma list of person ids")
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--cap-eur", type=float, default=None)
     args = parser.parse_args(argv)
-    if args.split != "dev":
-        print("refused: the sealed conversation exam is package 37.10, run once after 37.4 to 37.9", file=sys.stderr)
+    if args.split not in SPLITS:
+        print(f"refused: no split {args.split!r}; there are {', '.join(SPLITS)}", file=sys.stderr)
         return 2
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
     if any(a not in ARMS for a in arms):
         parser.error(f"--arms takes {', '.join(ARMS)}")
+    sealed = args.split in SEALED
+    if sealed:  # 37.10: read once, whole, with every arm the gate compares, and kept only in the eval-only vault
+        import hashlib
+
+        if args.only:
+            print("refused: a sealed set is run once, whole: no --only", file=sys.stderr)
+            return 2
+        if set(arms) != set(ARMS):
+            print(f"refused: the sealed run compares every arm ({', '.join(ARMS)})", file=sys.stderr)
+            return 2
+        if hashlib.sha256(SPLITS[args.split].read_bytes()).hexdigest() != SEALED[args.split].read_text(encoding="utf-8").strip():
+            print("refused: the sealed set does not match its pinned fingerprint", file=sys.stderr)
+            return 2
+        if args.yes and list(RESULTS.glob(f"CEX-*_{args.split}.json")):
+            print(f"refused: {args.split} was already run; a sealed set is run once", file=sys.stderr)
+            return 2
     people = load(args.split)
     if args.only:
         wanted = {x.strip() for x in args.only.split(",")}
@@ -512,17 +529,25 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     gateway = for_workspace()
     gateway.shadows = None
+    run = next_id()
+    vault = None
+    if sealed:
+        from dclab_rnd import experience as _experience
+        from dclab_rnd.settings import Settings
+
+        vault = Path(Settings().agent_home) / "exam_vault" / f"{run}_{args.split}"  # outside every folder the store reads
+        _experience.sealed_run(args.split, vault=vault)  # its calls: shape in the log, whole in the vault
     standard = str((_settings.tier("standard") or {}).get("model") or "")
     if not standard.startswith("claude"):
         print(f"refused: the exam's arms run on the product's Claude model; the standard tier serves {standard!r}", file=sys.stderr)
         return 2
     budget = Budget(gateway, args.cap_eur)
-    run = next_id()
-    keep = KEEP_ROOT / f"{datetime.now(timezone.utc):%Y-%m-%d}-conversation-exam" / run
+    keep = (vault / "conversations") if sealed else KEEP_ROOT / f"{datetime.now(timezone.utc):%Y-%m-%d}-conversation-exam" / run
     tag = f"{EXAM}{run}:"  # every call names its run, so two runs' calls on the same person are never confused
     arm_for = {"home": lambda pid, folder: HomeArm(folder, budget.view(f"{tag}home-{pid}")),
                "plain": lambda pid, folder: PlainArm(budget.client(f"{tag}plain-{pid}", PURPOSES["plain"])),
-               "case": lambda pid, folder: CaseArm(budget.client(f"{tag}case-{pid}", PURPOSES_CASE))}
+               "case": lambda pid, folder: CaseArm(budget.client(f"{tag}case-{pid}", PURPOSES_CASE),
+                                                   budget.client(f"{tag}case-{pid}", "case_specialist"), folder)}
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
     result = measure(people, {a: arm_for[a] for a in arms},
                      lambda key, p: ModelPerson(budget.client(f"{tag}person:{key}", PURPOSES["person"], MODELS["person"]), p),
@@ -530,19 +555,25 @@ def main(argv: Optional[list[str]] = None) -> int:
                      exhausted=lambda: budget.spent_eur() >= 0.98 * budget.cap_eur,
                      spent_for=lambda pid, arm: {"arm": budget.spent_eur(f"{tag}{arm}-{pid}"), "person": budget.spent_eur(f"{tag}person:{arm}-{pid}"),
                                                  "judge": budget.spent_eur(f"{tag}judge:{arm}-{pid}")})
+    kept_at = str(keep.relative_to(ROOT)) if keep.is_relative_to(ROOT) else f"<workspace>/exam_vault/{run}_{args.split}/conversations"
     record = {"id": run, "split": args.split, "at": started, "arms": arms, "models": {"arms": "claude-sonnet-5-5 (the product's)", **MODELS},
-              "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur, "kept": str(keep.relative_to(ROOT)),
-              "gate_for_37_10": _gate.GATE, **result}
+              "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur, "kept": kept_at, "gate_for_37_10": _gate.GATE, **result}
+    if sealed:  # the verdict, read once; the conversations stay in the vault (never in a file a set could read)
+        record.pop("conversations", None)
+        record["verdict"] = _gate.verdict(result["scores"], lead="case", agreement=None)
     RESULTS.mkdir(parents=True, exist_ok=True)
     path = RESULTS / f"{run}_{args.split}.json"
     path.write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-    LABELS.mkdir(parents=True, exist_ok=True)
+    labels_dir = (vault / "labels") if sealed else LABELS
+    labels_dir.mkdir(parents=True, exist_ok=True)
     todo = _labels.todo(result["conversations"], {p["id"]: p for p in people})
-    (LABELS / f"{run}_owner_todo.json").write_text(_labels.dumps(todo), encoding="utf-8")
+    (labels_dir / f"{run}_owner_todo.json").write_text(_labels.dumps(todo), encoding="utf-8")
     if result["incomplete"]:
         print(f"INCOMPLETE ({result['incomplete']}): {len(result['scores'][arms[0]])} of {len(people)} people scored", file=sys.stderr)
     print(json.dumps(result["summary"], indent=1))
     if "gap" in result:
         print(json.dumps(result["gap"], indent=1))
-    print(f"spent €{budget.spent_eur():.4f}; stored {path.relative_to(ROOT)}; owner labels to fill: {(LABELS / f'{run}_owner_todo.json').relative_to(ROOT)}")
+    if sealed:
+        print(json.dumps(record["verdict"], indent=1))
+    print(f"spent €{budget.spent_eur():.4f}; stored {path.relative_to(ROOT)}; owner labels to fill: {labels_dir / f'{run}_owner_todo.json'}")
     return 0

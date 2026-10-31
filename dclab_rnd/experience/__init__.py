@@ -462,13 +462,15 @@ def release() -> str:
     return _RELEASE[0]
 
 
-def sealed_run(split: object) -> bool:
+def sealed_run(split: object, vault: Optional[Path] = None) -> bool:
     """A sealed (or test) split is about to run: its model exchanges keep their shape only, never a message, a reply or
     the thinking, so an exam never becomes training data (the review of 2026-10-28: with keeping on by default, a sealed
     journey's calls were kept whole). Called by every runner that can read a sealed split, right after its arguments."""
     if "sealed" in str(split or "").lower() or str(split or "").lower() == "test":
         os.environ["DCLAB_LOG_PROMPTS"] = "0"
         os.environ["DCLAB_SEALED_RUN"] = str(split)  # 2026-10-30: each kept exchange says it is an exam's, not a lost thinking
+        if vault is not None:  # 37.15: kept whole there, outside every folder the store reads
+            os.environ["DCLAB_EXAM_VAULT"] = str(vault)
         return True
     return False
 

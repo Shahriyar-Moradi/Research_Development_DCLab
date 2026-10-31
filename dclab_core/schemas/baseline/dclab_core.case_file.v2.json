@@ -1,0 +1,451 @@
+{
+  "$defs": {
+    "CaseBuild": {
+      "additionalProperties": false,
+      "properties": {
+        "quote": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        "tool": {
+          "maxLength": 60,
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "quote"
+      ],
+      "type": "object"
+    },
+    "CaseChange": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "default": null
+        },
+        "before": {
+          "default": null
+        },
+        "by": {
+          "maxLength": 120,
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 60,
+          "type": "string"
+        },
+        "op": {
+          "default": "set",
+          "enum": [
+            "set",
+            "add",
+            "remove",
+            "counts"
+          ],
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "why": {
+          "maxLength": 1000,
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "field",
+        "by",
+        "why"
+      ],
+      "type": "object"
+    },
+    "CaseFact": {
+      "additionalProperties": false,
+      "properties": {
+        "after_words": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "computed": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "enum": [
+            "said",
+            "computed",
+            "assumed",
+            "confirmed",
+            "rejected"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "status"
+      ],
+      "type": "object"
+    },
+    "CaseFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "maxLength": 60,
+          "type": "string"
+        },
+        "field": {
+          "default": "",
+          "maxLength": 60,
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "fact",
+            "risk",
+            "question",
+            "assumption"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 600,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "by",
+        "kind",
+        "text"
+      ],
+      "type": "object"
+    },
+    "CaseOption": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 30,
+          "type": "array"
+        },
+        "effort": {
+          "default": "",
+          "maxLength": 200,
+          "type": "string"
+        },
+        "gets": {
+          "default": "",
+          "maxLength": 1000,
+          "type": "string"
+        },
+        "tool": {
+          "maxLength": 60,
+          "type": "string"
+        },
+        "track": {
+          "maxLength": 40,
+          "type": "string"
+        },
+        "tradeoff": {
+          "default": "",
+          "maxLength": 1000,
+          "type": "string"
+        },
+        "what": {
+          "maxLength": 1000,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "what",
+        "track",
+        "tool"
+      ],
+      "type": "object"
+    },
+    "CaseRoute": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "person",
+            "agent",
+            "code"
+          ],
+          "type": "string"
+        },
+        "reasons": {
+          "default": "",
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "tool": {
+          "maxLength": 60,
+          "type": "string"
+        },
+        "track": {
+          "maxLength": 40,
+          "type": "string"
+        }
+      },
+      "required": [
+        "track",
+        "tool"
+      ],
+      "type": "object"
+    },
+    "Unknown": {
+      "additionalProperties": false,
+      "properties": {
+        "blocks": {
+          "enum": [
+            "all",
+            "some",
+            "none"
+          ],
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 60,
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 1000,
+          "type": "string"
+        },
+        "rank": {
+          "default": 0,
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "field",
+        "question",
+        "blocks"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "asked": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "assumptions": {
+      "items": {
+        "$ref": "#/$defs/CaseFact"
+      },
+      "maxItems": 30,
+      "type": "array"
+    },
+    "build": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseBuild"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "cannot_answer": {
+      "items": {
+        "$ref": "#/$defs/CaseFact"
+      },
+      "maxItems": 30,
+      "type": "array"
+    },
+    "card": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "case_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    },
+    "changes": {
+      "items": {
+        "$ref": "#/$defs/CaseChange"
+      },
+      "type": "array"
+    },
+    "chosen": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "constraints": {
+      "items": {
+        "$ref": "#/$defs/CaseFact"
+      },
+      "maxItems": 30,
+      "type": "array"
+    },
+    "data": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseFact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "decision": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseFact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "declined": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/CaseFinding"
+      },
+      "maxItems": 30,
+      "type": "array"
+    },
+    "goal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseFact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "options": {
+      "items": {
+        "$ref": "#/$defs/CaseOption"
+      },
+      "maxItems": 4,
+      "type": "array"
+    },
+    "route": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseRoute"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.case_file.v2",
+      "default": "dclab_core.case_file.v2",
+      "type": "string"
+    },
+    "unknowns": {
+      "items": {
+        "$ref": "#/$defs/Unknown"
+      },
+      "maxItems": 30,
+      "type": "array"
+    },
+    "user": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseFact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "version": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "words": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 200,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "case_id"
+  ],
+  "type": "object"
+}

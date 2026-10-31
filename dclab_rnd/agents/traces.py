@@ -30,6 +30,7 @@ FIELDS = ("run_id", "agent", "n", "reply", "at", "state", "tool", "arguments", "
 ARGUMENT_CHARS = 8000  # names and sentences; far above any real call, so a cut row is rare
 RESULT_CHARS = 360
 CELL_KEYS = frozenset({"examples", "preview", "top_values", "values", "head", "sample_rows", "rows_preview"})
+LIST_CELL_KEYS = frozenset({"rows"})  # 37.6: a query's groups (a list: their names are cell values); a row count stays
 VERDICTS = ("ok", "error", "blocked", "needs_approval")
 
 
@@ -50,7 +51,7 @@ def verdict_of(result: Any) -> str:
 def scrub(value: Any) -> Any:
     """The value without the keys that carry cells from the user's table (at any depth)."""
     if isinstance(value, dict):
-        return {k: scrub(v) for k, v in value.items() if k not in CELL_KEYS}
+        return {k: scrub(v) for k, v in value.items() if k not in CELL_KEYS and not (k in LIST_CELL_KEYS and isinstance(v, list))}
     if isinstance(value, list):
         return [scrub(v) for v in value]
     return value

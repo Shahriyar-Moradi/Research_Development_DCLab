@@ -346,6 +346,15 @@ override the text above where they differ.
 | 37.1 | done (dclab-core 0.148.0) | `dclab_core.case`: facts said (two whole words of the person), computed (by code, about the data) or assumed; versions; readiness and the ceiling; option checks; the problem card round trip exact. Open: the track-brief and problem-map views (37.3) |
 | 37.2 to 37.4 | done, thin (CEX-009) | the lead agent on dev: understanding 0.88 (Claude alone 0.52, Home 0.50), option fit 4.1, no invented number, every trap kind at or above Home; route 73% (6 of 11 misses to advice for people whose data was not shared). Stop-and-decide: continue. Open: the routing fix, Home's route behind DCLAB_CASE_AGENT (37.9), memory and evidence in the context |
 | 37.4b | done (CEX-010) | the owner (2026-10-31): the sealed gate is conversation_exam_gate_v2, the route check on the right route offered or taken (v1 kept); dev preview passes every check but the owner's labels. Advice fix: 4 of 5 data needs no longer answered as advice. Open: d-37 and d-40, advice people given data work |
+| 37.5 | done | options say what DCLab does, what you get, the trade-off and the effort; one option per tool |
+| 37.6 | done (CEX-011, CEX-012) | query, leakage check, step preview and build request run by code with reasons; the same data tools for Claude alone; cells decided per request |
+| 37.7 | done, unused live | five specialists behind triggers and a budget of three per case, findings into the case file (v2); the agent sent none on dev |
+| 37.8 | done | a checkpoint after every turn, resume with nothing lost, a soft cap (DCLAB_CASE_CAP_EUR, 5) that stops and asks |
+| 37.9 | done, browser test owed | Home led by the lead agent behind DCLAB_CASE_AGENT: option cards and the case-file panel; make browser-test waits for Chromium (a download) |
+| 37.12 | done | every case change a case.changed event (experience v17); a case rebuilds from its events |
+| 37.13 | done | the capture map holds the lead agent's events and specialists; make capture-coverage |
+| 37.14 | done, six prompts open | no new prompt may ask for reasoning; six earlier prompts that ask for a reason are listed for the owner |
+| 37.15 | done | a sealed exam's calls kept whole in exam_vault/, counted by the store, never its content |
 
 ## خلاصهٔ فارسی
 

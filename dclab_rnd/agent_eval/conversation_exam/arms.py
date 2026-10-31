@@ -68,13 +68,25 @@ PLAIN_TOOLS = [
         "parameters": {"type": "object", "required": ["options"], "properties": {"options": {
             "type": "array", "minItems": 2, "maxItems": 4, "items": {
                 "type": "object", "required": ["title", "what", "track", "tool"],
-                "properties": {"title": {"type": "string"}, "what": {"type": "string"},
+                "properties": {"title": {"type": "string"}, "what": {"type": "string"}, "gets": {"type": "string"},
+                               "tradeoff": {"type": "string"}, "effort": {"type": "string"},
                                "track": {"type": "string", "enum": list(TRACKS)}, "tool": {"type": "string", "enum": list(TOOLS)}}}}}}}},
     {"type": "function", "function": {
         "name": "start_work", "description": "Begin one kind of work the person has clearly asked for.",
         "parameters": {"type": "object", "required": ["track", "tool"],
                        "properties": {"track": {"type": "string", "enum": list(TRACKS)}, "tool": {"type": "string", "enum": list(TOOLS)}}}}},
 ]
+
+
+def _data_tools() -> list[dict[str, Any]]:
+    from dclab_rnd.agents import data_tools
+
+    names = {"query": "query_table", "leakage": "check_leakage", "preview_step": "preview_step"}
+    return [{"type": "function", "function": {"name": names[k], "description": data_tools.DESCRIPTIONS[k], "parameters": data_tools.SCHEMAS[k]}}
+            for k in ("query", "leakage", "preview_step")]
+
+
+DATA_TOOLS = _data_tools()  # 37.6: Claude alone gets the same data tools as the lead agent
 
 
 class PlainArm:
@@ -87,9 +99,15 @@ class PlainArm:
         self.choices: list[dict[str, Any]] = []
         self.route: dict[str, Any] = {"route": None, "tool": None, "routed_by": None}
         self.computed: list[str] = []
+        self.frame: Any = None
+        self.group_names: set[str] = set()
 
     def open(self, person: Mapping[str, Any]) -> dict[str, Any]:
         self.upload = person.get("upload") or None
+        if self.upload:
+            from ..home import tables
+
+            self.frame = tables.build(self.upload)
         shared = f"\n\n(I shared a table: {self.upload}.csv)" if self.upload else ""
         return self.send(str(person["opening"]) + shared)
 
@@ -106,7 +124,7 @@ class PlainArm:
     def _turn(self) -> dict[str, Any]:
         said: list[str] = []
         self.choices = []
-        tools = PLAIN_TOOLS if self.upload else PLAIN_TOOLS[1:]
+        tools = PLAIN_TOOLS + DATA_TOOLS if self.upload else PLAIN_TOOLS[1:]
         for _ in range(MAX_CALLS):
             out = self.client.complete(self.messages, tools, max_tokens=MAX_TOKENS)
             self.messages.append(out.get("assistant_message") or {"role": "assistant", "content": out.get("content") or ""})
@@ -125,15 +143,29 @@ class PlainArm:
                     self.computed.append(json.dumps(value))
                 elif c["name"] == "offer_options":
                     options = [o for o in args.get("options") or [] if isinstance(o, dict) and o.get("title")]
-                    self.choices = [{"title": str(o["title"]), "what": str(o.get("what") or ""), "track": o.get("track"),
+                    self.choices = [{"title": str(o["title"]), "what": _option_text(o.get("what") or "", o.get("gets") or "", o.get("tradeoff") or "", o.get("effort") or ""), "track": o.get("track"),
                                      "tool": o.get("tool"), "kind": "option"} for o in options[:4]]
                     value = {"shown": len(self.choices), "next": "the person sees them under your message"}
+                elif c["name"] in ("query_table", "check_leakage", "preview_step") and self.frame is not None:
+                    from dclab_rnd.agents import data_tools
+
+                    fn = {"query_table": "query", "check_leakage": "leakage", "preview_step": "preview_step"}[c["name"]]
+                    allowed_args = set(data_tools.SCHEMAS[fn]["properties"])  # the same schema the lead agent's registry checks
+                    kept_args = {k: v for k, v in args.items() if k in allowed_args}
+                    if fn == "query":
+                        kept_args["seen"] = self.group_names
+                    try:
+                        value = data_tools.TOOLS[fn](self.frame, **kept_args)
+                    except TypeError as error:  # a wrong argument is a refusal the model can read, as in the lead agent's arm
+                        value = {"error": f"the arguments do not fit the tool: {error}"[:300]}
+                    if "error" not in value:
+                        self.computed.append(json.dumps(value, default=str))
                 elif c["name"] == "start_work":
                     self.route = {"route": args.get("track"), "tool": args.get("tool"), "routed_by": "self"}
                     value = {"started": True, "next": "tell the person"}
                 else:
                     value = {"error": f"no tool {c['name']!r} here"}
-                self.messages.append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps(value)})
+                self.messages.append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps(value, default=str)})
         return {"text": "\n\n".join(said), "choices": list(self.choices)}
 
     def outcome(self) -> dict[str, Any]:
@@ -251,13 +283,20 @@ class _NoModels:
         return False
 
 
+def _option_text(what: str, gets: str = "", tradeoff: str = "", effort: str = "") -> str:
+    """An option as the person reads it (37.5): what DCLab does, what they get, the trade-off and the effort."""
+    parts = [str(what or "").strip()]
+    parts += [f"{label}: {v.strip()}" for label, v in (("You get", gets), ("Trade-off", tradeoff), ("Effort", effort)) if str(v or "").strip()]
+    return " ".join(p if p.endswith(".") else p + "." for p in parts if p)
+
+
 class CaseArm:
     """The Phase 13 lead agent (37.3) as the exam's third arm: the same person, the same table view, its case file kept."""
 
     name = "case"
 
-    def __init__(self, client: Any):
-        self.client = client
+    def __init__(self, client: Any, specialist_client: Any = None, folder: Any = None):
+        self.client, self.specialist_client, self.folder = client, specialist_client, folder
         self.state: Any = None
         self.choices: list[dict[str, Any]] = []
 
@@ -269,12 +308,15 @@ class CaseArm:
 
         upload = person.get("upload") or None
         table = A.table_of(f"{upload}.csv", table_view(upload), len(tables.build(upload))) if upload else None
-        self.state = A.CaseState(case=C.new(f"exam-{person['id']}"), table=table)
+        self.state = A.CaseState(case=C.new(f"exam-{person['id']}"), table=table, frame=tables.build(upload) if upload else None,
+                                 specialist_client=self.specialist_client,
+                                 checkpoint=(Path(self.folder) / "case_checkpoint.json") if self.folder else None)
         opening = str(person["opening"]) + (f"\n\n(I shared a table: {upload}.csv)" if upload else "")
         return self._out(A.turn(self.state, self.client, opening))
 
     def _out(self, r: Mapping[str, Any]) -> dict[str, Any]:
-        self.choices = [{"title": o.title, "what": o.what, "track": o.track, "tool": o.tool, "kind": "option"} for o in r.get("options") or []]
+        self.choices = [{"title": o.title, "what": _option_text(o.what, o.gets, o.tradeoff, o.effort), "track": o.track, "tool": o.tool, "kind": "option"}
+                        for o in r.get("options") or []]
         return {"text": r.get("text") or "", "choices": list(self.choices), "waiting": bool(r.get("asking"))}
 
     def send(self, words: str) -> dict[str, Any]:
@@ -303,4 +345,5 @@ class CaseArm:
         from dclab_core import case as C
 
         return {"case_file": self.state.case.model_dump(mode="json"), "ready": C.readiness(self.state.case).ready,
-                "asked": self.state.case.asked, "declined": self.state.case.declined}
+                "asked": self.state.case.asked, "declined": self.state.case.declined, "consulted": list(self.state.consulted),
+                "build": self.state.build, "exposure": list(self.state.exposure), "spent_eur": round(self.state.spent_eur, 4)}

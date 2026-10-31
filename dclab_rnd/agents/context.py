@@ -32,6 +32,10 @@ def case_text(case: C.CaseFile) -> str:
             lines.append(f"- {label}: {fact.value} [{fact.status}]")
     for i, fact in enumerate(case.assumptions):
         lines.append(f"- assumption {i}: {fact.value} [{fact.status}]")
+    for f in case.findings:  # 37.7: what the specialists found, for the agent, never shown to the person as such
+        lines.append(f"- {f.by} found ({f.kind}{', ' + f.field if f.field else ''}): {f.text}")
+    if case.build:
+        lines.append(f"- the person said yes to building ({case.build.tool}): \"{case.build.quote}\"")
     for u in case.unknowns:
         lines.append(f"- unknown ({u.field}, blocks {u.blocks}): {u.question}")
     if case.options:

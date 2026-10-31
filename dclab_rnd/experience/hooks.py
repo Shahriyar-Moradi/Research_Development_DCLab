@@ -195,7 +195,8 @@ def from_model_request(entry: dict[str, Any], messages: list[dict[str, Any]] | N
     from ..models import settings as model_settings
 
     try:  # a purpose shown cell values (the parser's sample lines, the intern's tool results) keeps no prompt or reply
-        shown_cells = int(getattr(model_settings.purpose(str(entry.get("purpose"))), "cell_values", 0) or 0) > 0
+        shown_cells = bool(entry["shown_cells"]) if isinstance(entry.get("shown_cells"), bool) else \
+            int(getattr(model_settings.purpose(str(entry.get("purpose"))), "cell_values", 0) or 0) > 0  # 37.6: the request's own word
     except Exception:  # noqa: BLE001 - an unknown purpose is treated as one shown cells
         shown_cells = True
     keep = model_text_allowed() and not shown_cells

@@ -180,6 +180,12 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(C.numbers_unsaid("about 12% of them, 300.0 calls", ["12 percent leave", "300 calls a month"]), [])
         self.assertEqual(C.numbers_unsaid("two options, step 3", []), [])
 
+    def test_an_option_says_what_they_get_its_trade_off_and_its_effort(self):  # 37.5
+        bare = C.CaseOption(title="Rank by risk", what="a ranked list", track="prediction", tool="ml_project")
+        kept, refused = C.check_options([bare], C.new("c", WORDS), columns=self.COLUMNS)
+        self.assertEqual(kept, [])
+        self.assertIn("trade-off", refused["Rank by risk"])
+
     def test_a_route_no_tool_runs_is_refused(self):
         kept, refused = C.check_options([self.option("Write a poem", "advice", "poem_writer")], C.new("c", WORDS), columns=set(), computed=[])
         self.assertEqual(kept, [])

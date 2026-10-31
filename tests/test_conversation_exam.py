@@ -435,8 +435,45 @@ class RunTests(unittest.TestCase):
         with mock.patch.object(X, "RESULTS", base / "results"), mock.patch.object(X, "KEEP_ROOT", base / "keep"):
             self.assertEqual(X.next_id(), "CEX-004")
 
-    def test_a_sealed_run_is_refused_until_37_10(self):
-        self.assertEqual(X.main(["--split", "sealed", "--yes", "--cap-eur", "1"]), 2)
+    def test_a_sealed_run_is_once_whole_with_every_arm_and_pinned(self):  # 37.10
+        self.assertEqual(X.main(["--split", "sealed", "--yes", "--cap-eur", "1"]), 2)  # no such split
+        self.assertEqual(X.main(["--split", "sealed_v1", "--only", "s-01", "--yes", "--cap-eur", "1"]), 2)  # whole only
+        self.assertEqual(X.main(["--split", "sealed_v1", "--arms", "home,plain", "--yes", "--cap-eur", "1"]), 2)  # every arm
+        import hashlib
+        self.assertEqual(hashlib.sha256(X.SPLITS["sealed_v1"].read_bytes()).hexdigest(), X.SEALED["sealed_v1"].read_text().strip())
+        sealed = json.loads(X.SPLITS["sealed_v1"].read_text())
+        self.assertEqual((len(sealed), sum(bool(X.check_person(p)) for p in sealed)), (40, 0))
+
+    def test_a_sealed_runs_calls_are_kept_whole_in_the_vault_and_only_their_shape_in_the_log(self):  # 37.15
+        from dclab_rnd import experience
+        from dclab_rnd.models import gateway as gw
+
+        home = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, home, True)
+
+        class T:
+            thinking = {"type": "adaptive"}
+
+            def complete(self, messages, tools=None, max_tokens=1800, **options):
+                return {"content": "a sealed answer", "tool_calls": [], "usage": {"input_tokens": 1, "output_tokens": 1},
+                        "thinking": [{"text": "sealed thought"}], "assistant_message": {"role": "assistant", "content": "x"}}
+
+        clean = {k: "" for k in ("OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY",
+                                 "DCLAB_NO_LIVE_MODELS", "DCLAB_THINKING", "DCLAB_SEALED_RUN", "DCLAB_EXAM_VAULT", "DCLAB_LOG_PROMPTS")} | {
+                     "OPENAI_API_KEY": "k", "DCLAB_AGENT_HOME": str(home)}
+        transport = T()
+        with mock.patch.object(gw, "_transport", lambda tier, purpose: transport), mock.patch.dict(os.environ, clean), \
+                mock.patch.object(experience, "current_log", lambda: None):
+            experience.sealed_run("sealed_v1", vault=home / "exam_vault" / "CEX-T")
+            gw.Gateway(transport=gw._transport).client("exam_plain").complete([{"role": "user", "content": "a sealed person"}], None)
+        log = [json.loads(line) for p in sorted((home / "model_exchanges").rglob("*.jsonl")) for line in p.read_text().splitlines()]
+        vault = [json.loads(line) for p in sorted((home / "exam_vault").rglob("*.jsonl")) for line in p.read_text().splitlines()]
+        self.assertFalse(log[0]["whole"])
+        self.assertNotIn("sealed thought", json.dumps(log))  # the log the store reads holds no word of the exam
+        self.assertEqual(vault[0]["thinking"], [{"text": "sealed thought"}])
+        self.assertEqual(vault[0]["messages"][0]["content"], "a sealed person")
+        from dclab_rnd.store.keepers import standard
+        self.assertTrue(standard.in_vault("exam_vault/CEX-T/model_exchanges/2026/10/31.jsonl"))  # counted only, never kept as content
 
     def test_the_cap_stops_the_run_and_marks_it_incomplete(self):  # round 2: no fake failures after the cap
         keep = Path(tempfile.mkdtemp())

@@ -29,7 +29,9 @@ from .runtime import Policy
 PROMPT = "case_agent"
 PURPOSE = "case_agent"
 SWITCH = "DCLAB_CASE_AGENT"
-TOOLS = ("read_table", "note", "add_unknown", "resolve", "confirm_assumption", "ask", "propose", "start")
+TOOLS = ("read_table", "query", "check_leakage", "preview_step", "note", "add_unknown", "resolve", "confirm_assumption", "ask", "propose",
+         "start", "request_build", "consult")  # 37.6: the guard layer's tools; 37.7: consult sends a specialist
+BUILDS = ("ml_project", "segmentation_project")  # what a build request starts: a project
 ENDS_TURN = ("ask",)  # a question ends the turn; after options or a start the agent writes its message (CEX-005: both came bare)
 NO_DATA_WORK = ("advice",)  # an answer with no data work starts without a ready case: nothing is built
 DECLINES = re.compile(r"\b(?:not sure|no idea|don'?t know|do not know|can'?t say|rather not say|no clue)\b", re.I)
@@ -38,6 +40,15 @@ DECLINE_WORDS = 6  # the review: "I don't know who will leave, that is the probl
 # the person asks to see what DCLab can do: the agent may propose then, with what is open stated (the prompt says so)
 WANTS_OPTIONS = re.compile(r"\b(?:what can you do|show me (?:the |some |your )?options|just show me|"
                            r"show me what you can do|give me (?:some )?options|what are my options)\b", re.I)
+
+
+YES_BUILD = re.compile(r"\b(?:yes|yeah|yep|go ahead|build it|please build|do it|start it|ok(?:ay)?|sure|let'?s go)\b", re.I)
+NOT_NOW = re.compile(r"\b(?:no|not|don'?t|do not|wait|hold|later|stop|never|cancel)\b", re.I)
+
+
+def says_yes(words: str) -> bool:
+    """The person's yes to building: a yes word and no refusal or delay in the same message (the review of 37.6)."""
+    return bool(YES_BUILD.search(str(words or ""))) and not NOT_NOW.search(str(words or ""))
 
 
 def declines(words: str) -> bool:
@@ -64,9 +75,48 @@ class CaseState:
     wants_options: bool = False  # the person asked, in this message, to see what DCLab can do
     rewriting: bool = False  # the agent is rewriting dropped sentences: no move may run (the review: a question counted twice)
     trace: Any = None  # one tracer for the whole case, so its turns are one conversation in the record
+    frame: Any = None  # the shared table itself (never sent to a model; the data tools read it)
+    build: Optional[dict[str, Any]] = None  # 37.6: the build the person said yes to (their words), never one without
+    group_names: set[str] = field(default_factory=set)  # every group name the case was shown (at most data_tools.MAX_NAMES)
+    exposure: list[dict[str, Any]] = field(default_factory=list)  # what the answers looked at (H8): carried to a build
+    specialist_client: Any = None  # 37.7: the client specialists are sent with (purpose case_specialist); None: none may be sent
+    consulted: list[str] = field(default_factory=list)  # 37.7: the specialists already sent on this case
+    spent_eur: float = 0.0  # 37.8: what this case's model work has cost so far
+    cap_eur: float = field(default_factory=lambda: __import__("dclab_rnd.agents.case_session", fromlist=["cap_eur"]).cap_eur())  # 37.8: the soft cap (DCLAB_CASE_CAP_EUR), raised by the person's yes
+    waiting_on_budget: bool = False  # 37.8: the case stopped at its cap and asked
+    checkpoint: Any = None  # 37.8: where the state is saved after every turn (None: not saved)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "recorded", self.case.version)  # what the case already held is not a new event (a resumed case)
+        object.__setattr__(self, "_ready", True)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        object.__setattr__(self, name, value)
+        if name == "case" and getattr(self, "_ready", False):
+            record_changes(self)
 
     def refuse(self, error: Exception) -> dict[str, Any]:
         return {"error": str(error)}
+
+
+ACTORS = {"person": "person", "code": "system", "card": "system"}  # everyone else (the agent, a specialist) is "agent"
+
+
+def record_changes(state: CaseState) -> None:
+    """37.12: every new version of the case file is an event the moment it is made (case.changed), under the case's id and the
+    turn's trace, so a kill mid-turn loses no change and a case rebuilds from its events alone (dclab_core.case.rebuild)."""
+    import json
+
+    from .. import experience
+
+    for change in state.case.changes:
+        if change.version <= getattr(state, "recorded", 0):
+            continue
+        experience.record("case.changed", ACTORS.get(change.by.split(":")[0], "agent"),
+                          {"case": state.case.case_id, "version": change.version, "field": change.field, "op": change.op, "by": change.by,
+                           "after": json.dumps(change.after, ensure_ascii=False, default=str)},
+                          conversation=state.case.case_id)
+        object.__setattr__(state, "recorded", change.version)
 
 
 def _read_table(state: CaseState) -> dict[str, Any]:
@@ -82,6 +132,83 @@ def _read_table(state: CaseState) -> dict[str, Any]:
 
     state.computed.append(json.dumps(out))  # what code read: its numbers may be said
     return out
+
+
+def _data(state: CaseState, name: str, **arguments: Any) -> dict[str, Any]:
+    """37.6: one of the guard layer's data tools on the shared table; what it computes may be said to the person."""
+    import json
+
+    from . import data_tools
+
+    if state.frame is None:
+        return {"error": "No table has been shared: ask the person to share it, or work without numbers."}
+    if name == "query":
+        arguments["seen"] = state.group_names
+    out = data_tools.TOOLS[name](state.frame, **arguments)
+    if "error" not in out:
+        if out.get("exposure"):
+            state.exposure.append(out["exposure"])
+        state.computed.append(json.dumps(out, default=str))
+    return out
+
+
+def _query(state: CaseState, group_by: Optional[list[str]] = None, measures: Optional[list[dict[str, Any]]] = None,
+           filters: Optional[list[dict[str, Any]]] = None, sort: Optional[list[dict[str, Any]]] = None) -> dict[str, Any]:
+    return _data(state, "query", group_by=group_by, measures=measures, filters=filters, sort=sort)
+
+
+def _check_leakage(state: CaseState, outcome: str) -> dict[str, Any]:
+    return _data(state, "leakage", outcome=outcome)
+
+
+def _preview_step(state: CaseState, kind: str, columns: Optional[list[str]] = None, filters: Optional[list[dict[str, Any]]] = None,
+                  keys: Optional[list[str]] = None) -> dict[str, Any]:
+    return _data(state, "preview_step", kind=kind, columns=columns, filters=filters, keys=keys)
+
+
+def _request_build(state: CaseState, quote: str) -> dict[str, Any]:
+    """A build only on a project route, a ready case (or the person's own choice), and the person's yes in their latest words."""
+    route = state.case.route
+    if route is None or route.tool not in BUILDS:
+        return {"error": "a build starts a project: start a prediction or segmentation first, with the person's choice"}
+    r = C.readiness(state.case)
+    if not r.ready and not state.case.chosen:
+        return {"error": "the case is not ready: " + "; ".join(r.reasons)}
+    latest = state.case.words[-1] if state.case.words else ""
+    if latest.startswith("I pick:") or not says_yes(latest) or not (quote and C.quote_ok(quote, quote, [latest])):
+        return {"error": "a build needs the person's yes to building, in their latest message: ask them plainly, and pass their words as quote"}
+    state.build = {"tool": route.tool, "quote": quote}
+    try:  # the case file keeps the person's yes with their words (v2)
+        state.case = C.apply(state.case, "build", C.CaseBuild(tool=route.tool, quote=quote), by="person", why="the person said yes to the build")
+    except C.CaseRefused as error:
+        return state.refuse(error)
+    return {"recorded": route.tool, "next": "tell the person their yes is recorded and the build is the next step; nothing is built yet"}
+
+
+def _consult(state: CaseState, specialist: str, question: str) -> dict[str, Any]:
+    """37.7: send a specialist with the case; its findings go into the case file for the lead agent, never to the person."""
+    from . import context as ctx_
+    from . import specialists as S
+
+    if state.specialist_client is None:
+        return {"error": "no specialist can be sent in this session"}
+    why = S.allowed(specialist, state.case, state.table, state.consulted)
+    if why:
+        return {"error": why}
+    plain = [c for c in state.computed if '"groups_not_shown"' not in c]  # never a query's answers
+    case_text = ctx_.case_text(state.case)
+    named = any(n and (n in question or n in case_text) for n in state.group_names)  # the review: names reach it in words too
+    try:
+        state.specialist_client.request_cells = named
+    except AttributeError:
+        pass
+    out = S.consult(state.specialist_client, specialist, question, case_text, ctx_.table_text(state.table), plain)
+    state.consulted.append(specialist)
+    if "error" in out:
+        return out
+    findings = [C.CaseFinding(by=specialist, **f) for f in out["findings"]]
+    state.case = C.apply(state.case, "findings", findings, by=f"specialist:{specialist}", why=question[:200])
+    return {"findings": out["findings"], "next": "use what helps; ask the person about any question it raised"}
 
 
 def _note(state: CaseState, field: str, value: str, status: str, quote: Optional[str] = None) -> dict[str, Any]:
@@ -163,7 +290,7 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     return {"started": f"{track}/{tool}", "next": "now tell the person in a few sentences what happens next, then stop"}
 
 
-MOVES = {"note": "case.note", "add_unknown": "case.unknown", "resolve": "case.resolve", "confirm_assumption": "case.confirm",
+MOVES = {"consult": "case.consult", "request_build": "case.build", "note": "case.note", "add_unknown": "case.unknown", "resolve": "case.resolve", "confirm_assumption": "case.confirm",
          "ask": "case.ask", "propose": "case.propose", "start": "case.start"}
 
 
@@ -186,7 +313,20 @@ class CaseGuard:
 
 def register(registry: Registry) -> None:
     S = {"type": "string"}
+    from . import data_tools
+
     defs = [
+        ("query", data_tools.DESCRIPTIONS["query"], data_tools.SCHEMAS["query"]["properties"], [], _query, "read"),
+        ("check_leakage", data_tools.DESCRIPTIONS["leakage"], data_tools.SCHEMAS["leakage"]["properties"], ["outcome"], _check_leakage, "read"),
+        ("preview_step", data_tools.DESCRIPTIONS["preview_step"], data_tools.SCHEMAS["preview_step"]["properties"], ["kind"], _preview_step, "read"),
+        ("request_build", "Ask DCLab to build the project the person chose, once they said yes: pass their words as quote.",
+         {"quote": S}, ["quote"], _request_build, "write"),
+        ("consult", "Send a specialist with the case when a question needs depth: data_investigator (what the table can answer), "
+                    "leakage_auditor (columns known only after the decision), critic (what is weak before you propose), "
+                    "domain_expert (what matters in this kind of business), solution_designer (how started work should be set up). "
+                    "Its findings come back to you and go into the case file. Code decides whether it may be sent now.",
+         {"specialist": {"type": "string", "enum": ["data_investigator", "leakage_auditor", "critic", "domain_expert", "solution_designer"]},
+          "question": S}, ["specialist", "question"], _consult, "write"),
         ("read_table", "Read the shared table's columns: names, kinds and what DCLab noticed about each, and its row count. No values.", {}, [], _read_table, "read"),
         ("note", "Record a fact in the case file: goal, decision, user (who uses the result), data, cannot_answer, constraints or "
                  "assumptions. status said needs the person's exact words as quote; status assumed is your supposition.",
@@ -200,7 +340,7 @@ def register(registry: Registry) -> None:
          {"index": {"type": "integer"}, "quote": S, "reject": {"type": "boolean"}}, ["index", "quote"], _confirm, "write"),
         ("ask", "Ask the person one question. It ends your turn.", {"question": S}, ["question"], _ask, "write"),
         ("propose", "Show the person two or three options that differ in kind. Code checks them; then write your message leading into them.",
-         {"options": {"type": "array", "minItems": 2, "maxItems": 3, "items": {"type": "object", "required": ["title", "what", "track", "tool"], "properties": {
+         {"options": {"type": "array", "minItems": 2, "maxItems": 3, "items": {"type": "object", "required": ["title", "what", "gets", "tradeoff", "effort", "track", "tool"], "properties": {
              "title": S, "what": S, "gets": S, "tradeoff": S, "effort": S, "track": {"type": "string", "enum": list(C.TRACKS)},
              "tool": {"type": "string", "enum": list(C.TOOLS)}, "columns": {"type": "array", "items": S}}}}},
          ["options"], _propose, "write"),
@@ -237,6 +377,8 @@ def checked(text: str, state: CaseState, dropped: Optional[list[str]] = None) ->
     return " ".join(kept)
 
 
+SAY_NOW = ("[DCLab's code] You have not written to the person this turn. Write your message now: what you understood or found, "
+           "then one question or the next step. No tool runs now.")
 FALLBACK = "Could you tell me a little more about what you need?"
 FALLBACK_NUMBERS = ("I want to give you only numbers that come from you or from your data, so let me put that differently: "
                     "could you tell me a little more about what you need?")
@@ -252,6 +394,15 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     from .runtime import run as run_policy  # the harness's loop: every step traced and recorded (21.1)
 
     registry = registry or default_registry()
+    from . import case_session
+
+    stop = case_session.ask_to_continue(state, str(words))  # 37.8: at the cap, ask before any more model work
+    if stop is not None:
+        state.case = C.hear(state.case, words)
+        state.turns += [{"role": "user", "content": str(words)}, {"role": "assistant", "content": stop}]
+        if state.checkpoint:
+            case_session.save(state, state.checkpoint)
+        return {"text": stop, "options": [], "route": state.case.route, "asking": True}
     if state.asking and declines(str(words)):
         state.case = C.declined(state.case)
     state.case = C.hear(state.case, words)
@@ -265,8 +416,20 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     built = ctx.build(state.case, state.turns, state.table)
     messages = ctx.messages(prompts.text(PROMPT), built)
     start = len(messages)
+    before = _spent(client) + _spent(state.specialist_client)
+    client = _Cells(client, state)  # 37.6: a request holds cell values only when a query's answer is in it
     result = run_policy(POLICY, client, registry, messages, context=state, trace=state.trace)
     texts = [str(m.get("content") or "").strip() for m in result.messages[start:] if m.get("role") == "assistant" and str(m.get("content") or "").strip()]
+    if not texts and not state.said:  # CEX-011 d-04: every reply spent on queries, no word for the person: asked once, no move allowed
+        again_from = len(result.messages)
+        result.messages.append({"role": "user", "content": SAY_NOW})
+        once = Policy(name="case", system="", tools=TOOL_NAMES, max_steps=POLICY.max_steps, max_replies=1, stop_after=POLICY.stop_after)
+        state.rewriting = True
+        try:
+            run_policy(once, client, registry, result.messages, context=state, trace=state.trace)
+        finally:
+            state.rewriting = False
+        texts = [str(m.get("content") or "").strip() for m in result.messages[again_from + 1:] if m.get("role") == "assistant" and str(m.get("content") or "").strip()]
     dropped: list[str] = []
     words_out = _unique([checked(t, state, dropped) for t in texts] + [checked(q, state, dropped) for q in state.said])
     if dropped:  # a refusal comes back to the agent so it can write again (the plan's rule), once: never a silent turn
@@ -285,8 +448,52 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     if not any(words_out):  # never a silent turn (the review): code's own line, and the question if one was asked
         words_out = [FALLBACK_NUMBERS if dropped else FALLBACK] + ([q for q in (checked(q, state) for q in state.said) if q] or [])
     text = "\n\n".join(w for w in words_out if w)
+    state.spent_eur += max(0.0, _spent(client) + _spent(state.specialist_client) - before)  # 37.8: what this turn cost
     state.turns.append({"role": "assistant", "content": text + ("\n(Options: " + "; ".join(o.title for o in state.shown) + ")" if state.shown else "")})
+    if state.checkpoint:  # 37.8: saved after every turn, so a stop or a crash loses nothing
+        case_session.save(state, state.checkpoint)
     return {"text": text, "options": list(state.shown), "route": state.case.route, "asking": state.asking}
+
+
+def _spent(client: Any) -> float:
+    try:
+        return float(getattr(client, "spent_eur", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+class _Cells:
+    """A client that tells the gateway, request by request, whether the messages hold a query's answer (group names: cell
+    values). Requests without one are kept whole (the review of 37.6: the purpose's limit had stopped every request's text
+    from being kept)."""
+
+    def __init__(self, inner: Any, state: "CaseState"):
+        object.__setattr__(self, "_inner", inner)
+        object.__setattr__(self, "_state", state)
+
+    def _mark(self, messages: list[dict[str, Any]]) -> None:
+        # the review: a later turn repeats the names in the agent's own words, and a non-ASCII name never matched its stored
+        # text: once the case has been shown group names, every request of it holds cells
+        held = bool(self._state.group_names) or any(
+            m.get("role") == "tool" and '"groups_not_shown"' in str(m.get("content") or "") for m in messages)
+        try:
+            self._inner.request_cells = held
+        except AttributeError:
+            pass
+
+    def complete(self, messages: list[dict[str, Any]], *args: Any, **kwargs: Any) -> Any:
+        self._mark(messages)
+        return self._inner.complete(messages, *args, **kwargs)
+
+    def stream(self, messages: list[dict[str, Any]], *args: Any, **kwargs: Any) -> Any:
+        self._mark(messages)
+        return self._inner.stream(messages, *args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        setattr(self._inner, name, value)
 
 
 def _unique(parts: list[str]) -> list[str]:

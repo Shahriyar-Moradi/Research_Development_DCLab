@@ -94,8 +94,10 @@
   },
   {
    "contract": "case_file",
-   "reads": [],
-   "version": "dclab_core.case_file.v1"
+   "reads": [
+    "dclab_core.case_file.v1"
+   ],
+   "version": "dclab_core.case_file.v2"
   },
   {
    "contract": "challenge_key",
@@ -259,7 +261,7 @@
   {
    "contract": "experience_event",
    "reads": [],
-   "version": "dclab_core.experience_event.v16"
+   "version": "dclab_core.experience_event.v17"
   },
   {
    "contract": "experience_session",
@@ -701,7 +703,7 @@
    "what": "A solved project from its problem to its report, one row per project: the card, the map, the routes, the stages run and the report's kept sentences, never a row of its table; only projects whose consent allows training, and none at all below the builder's minimum of projects (30.19)."
   }
  ],
- "dclab_core": "0.149.0",
+ "dclab_core": "0.151.0",
  "decision_points": [
   {
    "about": "Which tool does the agent call next?",
@@ -1714,6 +1716,25 @@
     "to": "meta"
    },
    "kind": "auth.workspace_switched",
+   "leaves_at": "improve",
+   "never_leaves": [],
+   "train_only": []
+  },
+  {
+   "emitted_by": [
+    "dclab_rnd/agents/case_agent.py"
+   ],
+   "example": "python -m dclab_rnd.experience search --kind case.changed",
+   "family": "case",
+   "fields": {
+    "after": "agent_text",
+    "by": "meta",
+    "case": "meta",
+    "field": "meta",
+    "op": "meta",
+    "version": "count"
+   },
+   "kind": "case.changed",
    "leaves_at": "improve",
    "never_leaves": [],
    "train_only": []

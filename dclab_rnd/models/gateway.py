@@ -352,6 +352,9 @@ class Bound:
     def __init__(self, gateway: Gateway, purpose: str, p: settings.Purpose, tier: dict[str, Any] | None, project_id: str | None,
                  draft_id: str | None, model: str | None = None):
         self.gateway, self.purpose, self.p, self.project_id, self.draft_id, self._model_override = gateway, purpose, p, project_id, draft_id, model
+        # 37.6: a caller that knows whether this request holds cell values says so (True/False); None keeps the purpose's rule.
+        # A purpose allowed cells only when a tool brings them (the lead agent's query) keeps its other requests whole.
+        self.request_cells: bool | None = None
         self.tier, self._shadow_tier, self._serving = {}, None, None
         if tier is not None:  # a fixed tier (older callers); otherwise the routing decides before each request
             self.tier, self._serving = tier, tier["name"]
@@ -395,6 +398,7 @@ class Bound:
         if shadow is None or gateway.shadows is None:
             return
         snapshot, served = copy.deepcopy(messages), {"tier": self.tier.get("name"), "model": self.model}
+        cells = self.request_cells  # 37.6: as it was when this request was sent, never as a later request set it
         offered = {str((t.get("function") or t).get("name")) for t in tools or [] if isinstance(t, dict)}
         project_id, draft_id = self.project_id, self.draft_id
 
@@ -415,7 +419,7 @@ class Bound:
             import secrets as _secrets
 
             self._keep_exchange("mr" + _secrets.token_hex(8), snapshot, reply, outcome, tools, shadow=shadow,
-                                asked=_asked_of(transport))
+                                asked=_asked_of(transport), cells=cells)
             try:
                 gateway.shadows.record({"at": gateway.clock(), "purpose": self.purpose, "primary_tier": served["tier"], "primary_model": served["model"],
                                         "shadow_tier": shadow["name"], "shadow_model": shadow["model"], "project_id": project_id, "draft_id": draft_id,
@@ -519,7 +523,8 @@ class Bound:
             return out
 
     def _keep_exchange(self, request_id: str, messages: list[dict[str, Any]], out: dict[str, Any] | None, outcome: str,
-                       tools: list[dict[str, Any]] | None = None, shadow: dict[str, Any] | None = None, asked: Any = ...) -> None:
+                       tools: list[dict[str, Any]] | None = None, shadow: dict[str, Any] | None = None, asked: Any = ...,
+                       cells: Any = ...) -> None:
         """32.10: the whole exchange kept, never cut: every message as sent, the reply, its tool calls and the model's thinking, one
         line in ``<workspace>/model_exchanges/YYYY/MM/DD.jsonl`` (the store's model_requests keeper keeps it). Where the workspace
         keeps no model text, or the purpose was shown cell values, only its shape is kept (sizes, tokens, whether it thought).
@@ -535,7 +540,8 @@ class Bound:
             home = _exchange_home(self.gateway, live=outcome == "ok" and self.gateway.transport is _transport)
             if home is None:
                 return
-            shown_cells = int(getattr(self.p, "cell_values", 0) or 0) > 0
+            flag = self.request_cells if cells is ... else cells
+            shown_cells = flag if flag is not None else int(getattr(self.p, "cell_values", 0) or 0) > 0
             # the owner (2026-10-28): every model call keeps its thinking for training. Kept here, in the workspace, whole for
             # every purpose shown no cell values; whether it may leave the workspace is still the purpose's keeps_text
             # (consent.py, 23.10), written on the line as ``may_leave``. Measured that night: about 730 calls had thought and
@@ -569,8 +575,19 @@ class Bound:
                 why = (f"an exam ({exam}): its shape only, never its words or its thinking" if exam else
                        "a purpose shown cell values: its words not kept (its thinking is kept redacted)" if shown_cells else
                        "a workspace that keeps no model text: its shape only")
+                vault = os.environ.get("DCLAB_EXAM_VAULT") if exam else None
+                if vault:  # 37.15 (the owner, 2026-10-30): a sealed exam is kept whole in an eval-only vault no training set reads
+                    from pathlib import Path as _Path
+
+                    day_ = datetime.now(timezone.utc)
+                    vfolder = _Path(vault) / "model_exchanges" / f"{day_:%Y}" / f"{day_:%m}"
+                    vfolder.mkdir(parents=True, exist_ok=True)
+                    whole_doc = {**doc, "whole": True, "vault": exam, "messages": messages, "reply": (out or {}).get("content"),
+                                 "tool_calls": (out or {}).get("tool_calls"), "thinking": thinking, "tools": tools or []}
+                    with open(vfolder / f"{day_:%d}.jsonl", "a", encoding="utf-8") as vh:
+                        vh.write(json.dumps(whole_doc, ensure_ascii=False, default=str) + "\n")
                 doc.update(messages=len(messages), reply_chars=len(str((out or {}).get("content") or "")), thought=bool(thinking), why=why,
-                           **({"exam": exam} if exam else {}))
+                           **({"exam": exam} if exam else {}), **({"in_vault": True} if vault else {}))
                 if thinking and shown_cells and experience.model_text_allowed():
                     # the owner (2026-10-28): the thinking is kept for training even where the prompt held cell values: its text
                     # with what could identify someone redacted, in the workspace only (may_leave stays the purpose's keeps_text)
@@ -604,7 +621,8 @@ class Bound:
                                   "project_id": self.project_id,
                                   "draft_id": self.draft_id, "input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens"),
                                   "cache_read_tokens": usage.get("cache_read_tokens"), "cache_write_tokens": usage.get("cache_write_tokens"),
-                                  "cost_eur": eur, "seconds": round(seconds, 3), "outcome": outcome},
+                                  "cost_eur": eur, "seconds": round(seconds, 3), "outcome": outcome,
+                                  **({"shown_cells": self.request_cells} if self.request_cells is not None else {})},
                                  messages, (out or {}).get("content") if isinstance((out or {}).get("content"), str) else None)
 
 

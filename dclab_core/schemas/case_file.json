@@ -1,5 +1,28 @@
 {
   "$defs": {
+    "CaseBuild": {
+      "additionalProperties": false,
+      "description": "37.6: the build the person said yes to, with their words; recorded, not run, until the product's build path takes it.",
+      "properties": {
+        "quote": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        },
+        "tool": {
+          "maxLength": 60,
+          "title": "Tool",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "quote"
+      ],
+      "title": "CaseBuild",
+      "type": "object"
+    },
     "CaseChange": {
       "additionalProperties": false,
       "properties": {
@@ -20,6 +43,18 @@
         "field": {
           "maxLength": 60,
           "title": "Field",
+          "type": "string"
+        },
+        "op": {
+          "default": "set",
+          "description": "v2: how the field changed, so a case rebuilds from its changes",
+          "enum": [
+            "set",
+            "add",
+            "remove",
+            "counts"
+          ],
+          "title": "Op",
           "type": "string"
         },
         "version": {
@@ -110,6 +145,47 @@
         "status"
       ],
       "title": "CaseFact",
+      "type": "object"
+    },
+    "CaseFinding": {
+      "additionalProperties": false,
+      "description": "37.7: what a specialist found, written into the case for the lead agent: never shown to the person directly.",
+      "properties": {
+        "by": {
+          "description": "The specialist: data_investigator, leakage_auditor, critic, domain_expert, solution_designer.",
+          "maxLength": 60,
+          "title": "By",
+          "type": "string"
+        },
+        "field": {
+          "default": "",
+          "maxLength": 60,
+          "title": "Field",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "fact",
+            "risk",
+            "question",
+            "assumption"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 600,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "by",
+        "kind",
+        "text"
+      ],
+      "title": "CaseFinding",
       "type": "object"
     },
     "CaseOption": {
@@ -251,9 +327,9 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.case_file.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.case_file.v2.json",
   "additionalProperties": false,
-  "description": "The living record of one case (v1).",
+  "description": "The living record of one case. v2 (37.6, 37.7) adds the specialists' findings and the build the person said yes to;\nv1 reads as v2 with neither.",
   "properties": {
     "asked": {
       "default": 0,
@@ -268,6 +344,18 @@
       "maxItems": 30,
       "title": "Assumptions",
       "type": "array"
+    },
+    "build": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CaseBuild"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "v2: the build the person said yes to."
     },
     "cannot_answer": {
       "description": "What the data cannot answer, computed.",
@@ -356,6 +444,15 @@
       "title": "Declined",
       "type": "integer"
     },
+    "findings": {
+      "description": "v2: what the specialists found.",
+      "items": {
+        "$ref": "#/$defs/CaseFinding"
+      },
+      "maxItems": 30,
+      "title": "Findings",
+      "type": "array"
+    },
     "goal": {
       "anyOf": [
         {
@@ -387,8 +484,8 @@
       "default": null
     },
     "schema_version": {
-      "const": "dclab_core.case_file.v1",
-      "default": "dclab_core.case_file.v1",
+      "const": "dclab_core.case_file.v2",
+      "default": "dclab_core.case_file.v2",
       "title": "Schema Version",
       "type": "string"
     },

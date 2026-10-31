@@ -13,8 +13,9 @@ snapshot per `make archive`, never deleted by a rebuild. Each snapshot is read-o
 - `snapshots/<time>/MANIFEST.json`: every file with its size and SHA-256, counted by kind.
 - `INDEX.json`: every snapshot, its counts and its manifest's hash.
 
-What may train a model is said in each record (`use`, `origin`, `split`); Claude's and other hosted models' answers are
-evaluation only until their terms say otherwise.
+What may train a model is said in each record (`use`, `origin`, `split`). Claude's answers train too, as the owner ruled
+on 2026-10-25: silver, kept apart and weighted lower, each with its provenance; a model trained on them is checked against
+Anthropic's terms before it is sold.
 
 - `test_runs/<day>/<run>.jsonl.gz`: every run of the test suite (`tests/run_parallel.py`, so `make test`, the gates and any direct run),
   kept whole: a header (when, the commit and whether the tree was dirty, the command, the verdict, the counts, the switches) and one line
