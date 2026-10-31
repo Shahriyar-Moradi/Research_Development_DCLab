@@ -355,6 +355,9 @@ override the text above where they differ.
 | 37.13 | done | the capture map holds the lead agent's events and specialists; make capture-coverage |
 | 37.14 | done, six prompts open | no new prompt may ask for reasoning; six earlier prompts that ask for a reason are listed for the owner |
 | 37.15 | done | a sealed exam's calls kept whole in exam_vault/, counted by the store, never its content |
+| 37.16 | done | dclab_rnd/ledger/follow.py: a list's results land on every decision of its project (business outcome), nightly from outcomes_inbox (make outcomes-follow) |
+| 37.17 | done, code only | m4_workflow_llm/case_files from finished cases with their source (simulated half weight, real); no model-run curator wired yet |
+| 37.18 | covered | by 36.4 to 36.6 (code sets, replay, pinned exams); the lead agent writes no code |
 
 ## خلاصهٔ فارسی
 

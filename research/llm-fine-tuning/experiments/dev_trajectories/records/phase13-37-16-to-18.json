@@ -1,0 +1,69 @@
+{
+ "package": "37.16-37.18",
+ "title": "Late outcomes land on the decisions that made a list, finished cases become case-file examples with their source, and code is kept by the existing replay",
+ "date": "2026-10-31",
+ "request": "The owner: build all of Phase 13 but switch-on.",
+ "spec": "37.16 a call list's results land on every decision of its project as a measured business outcome, on a schedule; 37.17 finished cases sorted into a set with their source, never edited; 37.18 code from every source kept and replayed against forgetting.",
+ "plan": [
+  "Reuse ledger.outcomes.observe for the follower and an inbox for the schedule",
+  "A set builder for finished cases beside the workflow sets",
+  "Check what 36.4 to 36.6 already give 37.18",
+  "Tests, record, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "The follower measures the listed rows' outcome rate against the others', never a row",
+   "why": "a measured label of what followed, with the row floor every number has"
+  },
+  {
+   "decision": "The case set is built by code and spends nothing; a model-run curator may judge it later",
+   "why": "the night's money went to the sealed exam; the record is the case's own versions"
+  },
+  {
+   "decision": "37.18 is covered by 36.4 to 36.6 (code sets, replay, pinned exams); Phase 13 adds no code source",
+   "why": "the lead agent writes no code; nothing new to keep"
+  }
+ ],
+ "change": "dclab_rnd/ledger/follow.py (list_result, follow_inbox, make outcomes-follow); dclab_rnd/store/sets/cases.py (m4_workflow_llm/case_files: the conversation in, the case file out, simulated or real) hooked into the workflow sets' build; traces: only a list under rows is scrubbed (a row count stays).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Scrubbing every rows key removed row counts from trace rows",
+   "scenario": "test_store_m5_trajectories: a tool result's rows: 2000 was dropped from its step",
+   "cause": "37.6 added rows to the cell keys whatever its value",
+   "fix": "rows is scrubbed only when it holds a list (a query's groups)",
+   "test": "tests/test_store_m5_trajectories.py, tests/test_case_agent.py PrivacyEdgeTests.test_query_groups_never_reach_a_trace_row"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "severity": "latent",
+   "defect": "Three tests named the old event version",
+   "scenario": "rd-check: v16 expected where events now read as v17",
+   "cause": "case.changed moved the experience contract to v17",
+   "fix": "the expected version updated",
+   "test": "tests/test_phase2_capture.py, tests/test_lineage.py, tests/test_team_analysis.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "follower and case set, scripted",
+   "gate": "a list's results land on every decision; a small group is refused; cases carry their source",
+   "result": "three follower tests and one case-set test pass; the store's set tests pass",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  }
+ ],
+ "outcome": "What followed a list can now reach the decisions that made it, nightly from an inbox, and every finished case becomes a case-file example labelled with where it came from.",
+ "lessons": [
+  "A scrub by key name must look at the value: the same key can hold a count or the data",
+  "Reuse the writer that already lands outcomes: the follower only computes the number"
+ ],
+ "risks": [
+  "The case set waits for kept conversations and drafts with a case in the store; a model-run curator is not wired to it yet",
+  "The follower needs the list and the results in its inbox: the product does not put them there yet"
+ ],
+ "commits": []
+}

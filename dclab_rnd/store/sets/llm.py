@@ -864,6 +864,11 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         tail = r.provenance.entry.rsplit(":v", 1)[-1]
         return int(tail) if tail.isdigit() else 0
 
+    from . import cases  # 37.17: finished cases (the exam's kept conversations, drafts with a case) as case-file examples, with their source
+
+    found_cases = [r for kind in ("tests", "conversations") for r in shapers.records(layout, kind) if allowed(r, "m4_workflow_llm", choices)]
+    for ex in cases.from_records(found_cases):
+        add("m4_workflow_llm", cases.FOLDER, ex)
     for r in shapers.records(layout, "conversations"):
         if r.provenance.source.endswith("/draft.json") and allowed(r, "m4_workflow_llm", choices):
             key = (r.provenance.workspace, r.provenance.source)
