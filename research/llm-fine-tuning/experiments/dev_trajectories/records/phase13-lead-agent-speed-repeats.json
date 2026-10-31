@@ -110,8 +110,8 @@
    "defect": "The number check cut the heart of an answer and left a fragment",
    "scenario": "CEX-018 d-36: only 'Does that cover what you need?' reached the person; d-15: the table was dropped and the next turn apologised",
    "cause": "sentences with numbers nobody gave or code computed are dropped; when they are the answer, the rewrite can still fail and the leftover question is sent",
-   "fix": "not yet: when most of a message is dropped, the agent should write the whole answer again with the computed numbers",
-   "test": "open"
+   "fix": "the rewrite names the numbers allowed (exactly as the tools returned them, or the person's own; otherwise words); a rewrite left with questions only or mostly cut gets one stricter try",
+   "test": "tests/test_case_agent.py NumberCutTests"
   }
  ],
  "measurements": [
@@ -149,6 +149,20 @@
    "result": "d-06: build recorded after 2 turns (7 before), 1 yes request (4 before); route 7 of 8; clear requests 4 of 6 (the two misses from the number check, F7); 0 invented numbers",
    "verdict": "pass",
    "cost_eur": 0.59
+  },
+  {
+   "name": "CEX-019 (the number-cut fix) on 4 practice people",
+   "gate": "d-15 and d-36 answered, still no invented number",
+   "result": "d-36 and d-15 clear requests now passed (both failed in CEX-018), repeated questions 1 to 0 each, 0 invented numbers; d-31 and d-04 unchanged",
+   "verdict": "pass",
+   "cost_eur": 0.28
+  },
+  {
+   "name": "blind pairs by three Claude models (Opus, Sonnet, Haiku), run by the owner",
+   "gate": "a human-free second view of lead agent vs Claude alone",
+   "result": "all three agree on 6 of 8 pairs; by majority the lead agent wins 6 of 8, Claude alone 2 (one is the yes-after-yes bug, now fixed)",
+   "verdict": "pass",
+   "cost_eur": 0.0
   }
  ],
  "outcome": "The lead agent is now short: about twice as fast and 60% cheaper on the practice people, still without an invented number; repeated questions rose and the route is one person short of CEX-012, both to watch. The judge agrees with the owner 0.71 on 7 papers with the length rule.",

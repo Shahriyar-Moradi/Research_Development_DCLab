@@ -1,0 +1,253 @@
+[
+ {
+  "ref": "0d0f6415e7",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a fintech app; our churn rate is about 3%.",
+    "goal": "I want to report the metric that honestly shows how good the model is.",
+    "decision": "I'll choose which metric goes in my model review slide for my manager.",
+    "user": "my manager, who is not technical",
+    "data": "No data needed for this question.",
+    "knows": "I know both metrics; I want a clear reason to give my manager.",
+    "constraints": "Review is tomorrow."
+   },
+   "level": "data_scientist",
+   "style": "impatient",
+   "must_understand": [
+    "a guidance question, no data work",
+    "3% positives makes the class imbalance central",
+    "the answer must be explainable to a non-technical manager"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "quick q: churn with 3% positives, should i report PR-AUC or ROC-AUC to my manager, and why? no data work, just the answer",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Report PR-AUC as your headline, and show your 3% base rate next to it. **Why:** When positives are this rare, ROC-AUC can look strong even when many of the customers you flag aren't churners. Its false-positive rate divides by the huge pool of non-churners, so a lot of false alarms barely move it. PR-AUC tracks precision, which is what your retention team will feel. A random model's PR-AUC equals the base rate, so any lift over 3% is easy to read. **For your manager:** Add one plain number, such as \"of the top slice of customers we flag, this share actually churn.\" Pick the slice to match how many customers your team can contact. Managers usually grasp that more easily than any AUC. Does that cover what you need?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Yes, that covers it. Give me one line I can paste on the slide.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Here's a line for the slide:\n\n**\"PR-AUC is our headline metric because only 3% of customers churn. A random model scores 3%, and ours scores [your PR-AUC], so it finds churners [X] times better than chance.\"**\n\nReplace the two brackets with your own results. Good luck with the presentation.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "25622dec1b",
+  "person": {
+   "truth": {
+    "situation": "I own a travel agency in Amman offering packages to about 20 destinations.",
+    "goal": "I want to stop selling the 3 destinations that earn me the least.",
+    "decision": "I'll remove 3 destinations from next season's catalogue.",
+    "user": "me",
+    "data": "The bookings table I uploaded; I assumed it shows what we earn per booking.",
+    "knows": "I'm not technical.",
+    "constraints": "The catalogue goes to print in 3 weeks."
+   },
+   "level": "business_owner",
+   "style": "impatient",
+   "must_understand": [
+    "'make money' means profit to them, not just sales",
+    "the decision is dropping 3 destinations from the catalogue",
+    "cancelled bookings should not count as earned"
+   ],
+   "trap": "missing_column",
+   "trap_check": "Says the bookings table has price but no booking_margin or cost, so earnings cannot be measured as profit, and asks for margin data or offers revenue per destination net of cancellations as an alternative."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "which destinations make me the most money? i want to drop the worst 3 [shares bookings.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I see five real destinations (Paris, Bangkok, Dubai, London, Istanbul), plus 12 \"TEST\" rows I'd set aside, so dropping 3 would leave only 2. The table has price and cancellations but no costs. When you say \"make the most money\", do you mean revenue kept after cancellations, or profit? If it's profit, can you get me costs per destination?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "The price column is what we charge per booking, so I thought that's what we earn. Cancellations should come out, yes. I don't have costs handy. Also, I have about 20 destinations, so only 5 in this file is odd. Maybe it's partial? The catalogue goes to print in 3 weeks, so I need a answer soon. Tell me what you can do with this.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Your suspicion is probably right: this file has only 5 of your ~20 destinations, so it can rank those five but not pick the worst 3 of all. Two things I can do: rank these five by revenue kept after cancellations now (price is stored as text, so I'd convert it first), and redo it fast on a full export. Can you pull the full export, and is the final call yours alone, or does someone else sign off?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "The final call is mine, nobody else signs off. I'm not sure I can pull the full export quickly, I'll check with my booking system today. Meanwhile, rank the five you have by revenue kept after cancellations. Keep it short, the print date is close.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started the ranking of your five destinations by revenue kept after cancellations. It leaves out the TEST rows. Paris and Istanbul lose the fewest bookings to cancellation. Bangkok and London come next, and Dubai loses the most. Booking counts are close across all five, so price will probably decide the order. I'm converting that text column to numbers first. You'll get one short table of revenue kept per destination. Treat it as a ranking of these five only. It can't name the worst three of your full list until the complete export arrives.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "0410aa69f1",
+  "person": {
+   "truth": {
+    "situation": "I'm the operations analyst at a tour operator in Istanbul.",
+    "goal": "I want to show the director how cancellations differ by channel and by the free-cancellation option.",
+    "decision": "The director will decide whether to keep offering free cancellation on agent bookings.",
+    "user": "the operations director, through my monthly ops note",
+    "data": "The bookings table I uploaded: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id.",
+    "knows": "I'm comfortable with SQL and rates.",
+    "constraints": "The note is due Friday; one small table."
+   },
+   "level": "analyst",
+   "style": "detailed",
+   "must_understand": [
+    "cancellation rate by channel and by free_cancellation, 2025 bookings only",
+    "TEST destinations excluded",
+    "a small table for the director's monthly note"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "From the bookings table I uploaded, excluding rows where destination is TEST, please give me the cancellation rate by channel and by free_cancellation for bookings made in 2025. It's for my monthly ops note to the director, so a small table is enough. [shares bookings.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Does the director need to act on this, for example by changing the free-cancellation policy or shifting channel mix? If so, I can add a line on what the table does and doesn't support.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Yes, the director will decide whether we keep offering free cancellation on agent bookings. So the note needs to show how cancellation rates differ by channel and by the free_cancellation option, specifically for agent channel. A line on what the table does and doesn't support would help, since I'll have to defend it. Please keep it to one small table. It's due Friday.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started your table: cancellation rate by channel and by free_cancellation. It covers 2025 bookings by booking_date and leaves out destination TEST. It will be one small table with booking counts next to each rate. A first run shows that for agents, the cancellation rate is 0.2222222222222222 with free cancellation (117 bookings) and 0.24675324675324675 without it (154 bookings). The final table will show these as percentages. Web and app differ in opposite directions, so there's no consistent pattern across channels. The line on what the table supports will cover three points:\n- **Observational data:** free cancellation wasn't assigned at random, so this shows association, not cause. - **Small groups:** the agent gap is small for groups this size, so it may be noise. - **Missing information:** the table has no refund cost or revenue effect. I read `cancelled` as 1 for cancelled. You'll get the final table and the line together.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "5d494fa4dd",
+  "person": {
+   "truth": {
+    "situation": "I'm a marketing analyst at an online home-goods shop; the sales table has orders from 2025 to Q1 2026 with customer_id.",
+    "goal": "I want to bring back customers before they stop buying, without wasting coupons on people who would buy anyway.",
+    "decision": "Next month I can send 15% coupons to at most 1,000 customers and must choose who gets them.",
+    "user": "me and the marketing manager, who approves the coupon list",
+    "data": "The sales table I uploaded: order_id, order_date, region, channel, product_category, amount, status, customer_id.",
+    "knows": "I'm good with Excel and pivot tables; I know what a model is but have never built one.",
+    "constraints": "Coupons for 1,000 customers only; the campaign goes out on the 15th."
+   },
+   "level": "analyst",
+   "style": "detailed",
+   "must_understand": [
+    "the coupon choice is about who will stop buying next, which needs a forward-looking score per customer",
+    "only 1,000 coupons, so the ranking matters",
+    "the marketing manager approves the final list",
+    "spending less last quarter is one signal, not the decision itself"
+   ],
+   "trap": "real_prediction",
+   "trap_check": "Says that choosing who to win back is about who is likely to stop buying in the coming period and proposes a per-customer score (with an outcome built from later orders), not only a list of last quarter's drops."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "Hi! Could you pull which customers spent less this quarter than last quarter? I'm thinking of sending them something to bring them back, maybe a 15% coupon. The sales export is attached. [shares sales.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks, I get it: you want the customers whose spend dropped from last quarter to this one, so you can send them a win-back offer like a 15% coupon. Your table has paid, cancelled and refunded orders. Should cancelled and refunded orders count toward \"spent\", or only paid ones? And is this a one-off list, or something you'd want to rerun each quarter?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Good questions, thanks. Only paid orders should count as spend. Cancelled and refunded orders aren't real revenue, so I'd exclude them, though I'd like to see how many there are first in case refunds are large for some customers. It's not a one-off. I'd rerun it each quarter, but this first list is for a campaign that goes out on the 15th next month.\n\nI should also clarify the goal. Spending less this quarter than last isn't quite what I need. I want customers who are starting to lapse and who wouldn't buy again without a nudge. People whose spend just dipped may be buying on their normal schedule, and giving them coupons would waste them. So I'd like a way to rank customers by how likely they are to stop buying, and send the 1,000 coupons to the ones where the offer is most likely to change what they do.\n\nThe table has order_date, customer_id, amount, status, channel, region, and product_category. I'm comfortable with pivot tables and SQL-style logic but I haven't built a model. Is a simple scoring approach enough, like recency, frequency and spend trends? Or would you want to try a propensity model? My manager has to approve the final list, so I need something clear enough to explain in a few sentences.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "A simple score is a good place to start, and it's easier to defend to your manager. A model is the heavier option. On refunds: of the 2,020 orders, 1,733 are paid, 188 are refunded and 99 are cancelled. Refunds touch 174 customers, so they're spread out, not concentrated. Two caveats:\n- Only 938 customers have a paid order. Your 1,000 coupons would cover nearly everyone, so the ranking matters less than you might expect. - The table has no record of past coupons. Neither option can tell you who the offer would change. Both rank who is drifting away. Which option would you like?",
+    "choices": [
+     {
+      "title": "Transparent lapse score",
+      "what": "Using paid orders only, score each customer on recency, frequency and spend change from last quarter to this one, then rank them. Cancelled and refunded counts shown alongside. You get: A ranked list you can explain in three sentences to your manager, rerunnable each quarter. Trade-off: Ranks who is drifting away, not who the coupon would change. Weights are judgment calls, not learned. Effort: Quick, no modelling."
+     },
+     {
+      "title": "Lapse propensity model",
+      "what": "Train a model on past customer behaviour to predict who stops buying, using paid orders only, and rank customers by that probability. You get: A data-driven risk ranking with an honest accuracy check on held-out customers. Trade-off: The table is modest in size, the result is harder to explain, and like the score it can't show who responds to a coupon. Effort: Longer, needs a clear definition of lapsed."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Thanks, that's very helpful. I'll go with option 1, the transparent lapse score. My manager needs to approve the list, and I need to explain it in a few sentences, so a simple score is the right start. I know it can't tell me who would respond to a coupon, so I'll treat it as a shortlist, not a final answer.\n\nSince only 938 customers have a paid order and I have 1,000 coupons, I want the score to do more than rank everyone. I'd like it to separate three groups: customers who were buying regularly and are now clearly slowing (the ones worth a nudge), customers who bought once or twice and never returned (probably not worth a coupon, since they may never have been loyal), and customers who are steady or growing (exclude them, since they'd buy anyway). Can you define the score that way, with the recency window, frequency and spend-change inputs, and show me how many customers fall into each group? Please keep refund and cancelled counts visible next to each customer, so I can flag anyone who mostly refunds before the list goes up for approval.\n\nI'd also like the lapse cutoff stated clearly, for example 'no paid order in the last 90 days, but at least 3 paid orders in the prior 12 months.' Then I can check whether the cutoff makes sense against the calendar, since the campaign goes out on the 15th and I'll need to rerun it each quarter.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Good choice. DCLab is now building the lapse score from paid orders only. It will rank each customer on three things: how long since their last paid order, how often they buy, and whether their spend is trending down. Each customer will also get a plain-language reason, for example how long it has been since their last order compared with how often they usually buy. That should be easy to explain to your manager. You'll get a ranked list you can rerun each quarter, plus the refund and cancellation counts by customer. The score shows who is drifting away. It can't show who the coupon would change, because the table has no coupon history.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]

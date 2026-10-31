@@ -431,8 +431,18 @@ FALLBACK = "Could you tell me a little more about what you need?"
 FALLBACK_NUMBERS = ("I want to give you only numbers that come from you or from your data, so let me put that differently: "
                     "could you tell me a little more about what you need?")
 REWRITE = ("[DCLab's code] These sentences were not shown to the person, because their numbers come from nobody: the person did "
-           "not give them and no tool computed them:\n{dropped}\nWrite your message again without those numbers (use the person's "
-           "own numbers, or none). Reply with the message only.")
+           "not give them and no tool computed them:\n{dropped}\nWrite your whole message again, keeping its answer. Quote numbers "
+           "exactly as the tools returned them (no rounding, no adding up) or as the person gave them; otherwise say it without "
+           "digits. Reply with the message only.")
+REWRITE_STRICT = ("[DCLab's code] Your message was cut again and the person would get no answer. Write the answer itself now, in "
+                  "words: no digits at all unless they are copied exactly from a tool's result or the person's words. Reply with the "
+                  "message only.")
+
+
+def has_statement(text: str) -> bool:
+    """A message that says something, not only asks (2026-11-01: a cut answer left a bare follow-up question)."""
+    parts = [p for p in re.split(r"(?<=[.?!])\s+", str(text or "").strip()) if p.strip()]
+    return any(not p.rstrip().endswith("?") for p in parts)
 
 
 def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry] = None) -> dict[str, Any]:
@@ -499,6 +509,19 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
             state.rewriting = False
         rewritten = [str(m.get("content") or "").strip() for m in result.messages[again_from + 1:] if m.get("role") == "assistant"]
         fixed = [w for w in (checked(t, state) for t in rewritten if t) if w]
+        kept = sum(len(w) for w in fixed) / max(1, sum(len(t) for t in rewritten if t))
+        if not any(has_statement(w) for w in fixed) or kept < 0.6:  # cut again: one stricter try, so the answer reaches the person
+            strict_from = len(result.messages)
+            result.messages.append({"role": "user", "content": REWRITE_STRICT})
+            state.rewriting = True
+            try:
+                run_policy(once, client, registry, result.messages, context=state, trace=state.trace)
+            finally:
+                state.rewriting = False
+            strict = [str(m.get("content") or "").strip() for m in result.messages[strict_from + 1:] if m.get("role") == "assistant"]
+            again = [w for w in (checked(t, state) for t in strict if t) if w]
+            if any(has_statement(w) for w in again):
+                fixed = again
         if fixed:
             words_out = _unique(fixed)
     if not any(words_out):  # never a silent turn (the review): code's own line, and the question if one was asked

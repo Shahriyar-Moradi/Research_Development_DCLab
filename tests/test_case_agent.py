@@ -671,3 +671,24 @@ class YesAfterYesTests(unittest.TestCase):
         out = A.turn(s, Script(("Your yes is noted: DCLab starts ranking customers by risk now. Shall I build now?", [])), "Yes, go ahead and build it.")
         self.assertIn("starts ranking", out["text"])
         self.assertNotIn("Shall I build", out["text"])
+
+
+class NumberCutTests(unittest.TestCase):
+    """2026-11-01 (CEX-018 d-36, d-15): the number check dropped the heart of an answer and its rewrite was cut again, so only
+    'Does that cover what you need?' reached the person. The rewrite now names the numbers allowed, and a rewrite left with
+    no statement (questions only) or mostly cut gets one stricter try."""
+
+    def test_a_rewrite_cut_again_to_a_bare_question_gets_one_stricter_try(self):
+        s = state(table=False)
+        client = Script(("Report PR-AUC: ROC-AUC can read 0.91 while precision is 0.12. Does that cover it?", []),
+                        ("Use PR-AUC; ROC can show 0.9 when few flags are right. Does that cover it?", []),
+                        ("Report PR-AUC, with your churn rate beside it as the baseline: ROC-AUC can look strong when most flagged customers are wrong.", []))
+        out = A.turn(s, client, "churn with 3% positives: PR-AUC or ROC-AUC for my manager?")
+        self.assertIn("Report PR-AUC", out["text"])
+        self.assertNotIn("0.91", out["text"])
+        self.assertEqual(len(client.seen), 3)
+
+    def test_the_rewrite_names_the_numbers_allowed(self):
+        self.assertIn("exactly as the tools returned", A.REWRITE)
+        self.assertTrue(A.has_statement("Report PR-AUC. Does that cover it?"))
+        self.assertFalse(A.has_statement("Does that cover what you need, or would you like help wording it?"))
