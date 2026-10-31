@@ -6,273 +6,259 @@
 <title>DCLab Vision</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700&family=Vazirmatn:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap">
 <style>
-/* One chapter per row: English on the left, Persian on the right (right to left); stacked on phones. */
 :root{
-  --bg:#f3f6fb; --card:#ffffff; --ink:#18263a; --muted:#56657a; --rule:#d9e1ec;
-  --accent:#2457a6; --accent-soft:#e3ecfa; --sun:#f2b630; --sun-soft:#fdf3d8; --good:#1f7a4d; --bad:#b4442c;
-  --en:"Lexend","Segoe UI",system-ui,sans-serif; --fa:"Vazirmatn","Tahoma",system-ui,sans-serif;
+  --bg:#f3f6fb; --paper:#ffffff; --ink:#18263a; --muted:#56657a; --rule:#d9e1ec;
+  --accent:#2457a6; --accent-soft:#e3ecfa; --sun-soft:#fdf3d8; --good:#1f7a4d; --warn:#9a5b00; --bad:#b4442c;
+  --font:"Lexend","Segoe UI",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0f1622; --card:#172131; --ink:#e7edf6; --muted:#a3b0c2; --rule:#2a3648;
-  --accent:#8fb4f2; --accent-soft:#1d2d47; --sun:#f2c45a; --sun-soft:#3a3016; --good:#6fd39d; --bad:#f08f78; color-scheme:dark}}
+  --bg:#0f1622; --paper:#172131; --ink:#e7edf6; --muted:#a3b0c2; --rule:#2a3648;
+  --accent:#8fb4f2; --accent-soft:#1d2d47; --sun-soft:#3a3016; --good:#6fd39d; --warn:#f2c45a; --bad:#f08f78; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0f1622; --card:#172131; --ink:#e7edf6; --muted:#a3b0c2; --rule:#2a3648;
-  --accent:#8fb4f2; --accent-soft:#1d2d47; --sun:#f2c45a; --sun-soft:#3a3016; --good:#6fd39d; --bad:#f08f78; color-scheme:dark}
+  --bg:#0f1622; --paper:#172131; --ink:#e7edf6; --muted:#a3b0c2; --rule:#2a3648;
+  --accent:#8fb4f2; --accent-soft:#1d2d47; --sun-soft:#3a3016; --good:#6fd39d; --warn:#f2c45a; --bad:#f08f78; color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 var(--en);
-  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:32px 72px}
-.wrap{max-width:1180px;margin:0 auto;display:grid;gap:22px}
-h1,h2{margin:0;line-height:1.2;text-wrap:balance;font-weight:700}
-h1{font-size:clamp(1.7rem,4vw,2.5rem)}
-h2{font-size:1.25rem}
-p,ul,ol{margin:0}
-.en{display:grid;gap:12px;align-content:start;min-width:0}
-.fa{display:grid;gap:12px;align-content:start;min-width:0;font-family:var(--fa);font-size:20px;line-height:2.1;direction:rtl;text-align:right}
-.fa h1,.fa h2{font-family:var(--fa);line-height:1.6}
-.fa h2{font-size:1.3rem}
-bdi{direction:ltr;unicode-bidi:isolate;font-family:var(--en);font-size:.88em}
-.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:22px 24px}
-.row.hero{background:transparent;border:0;padding:4px 0 8px}
-.row.statement{border:2px solid var(--accent)}
-@media (max-width:860px){.row{grid-template-columns:minmax(0,1fr);gap:18px}.row .fa{border-top:1px dashed var(--rule);padding-top:16px}}
-.step{font:500 .74rem var(--en);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
-.fa .step{font-family:var(--fa);font-size:.9rem;letter-spacing:0;text-transform:none}
-.muted{color:var(--muted)}
-.lead{font-size:1.15em;font-weight:500}
-.example{background:var(--sun-soft);border-radius:10px;padding:10px 14px}
-.warn{background:color-mix(in srgb,var(--bad) 12%,transparent);border-radius:10px;padding:10px 14px}
-ul,ol{padding-inline-start:1.3em;display:grid;gap:6px}
-.tag{display:inline-block;font-weight:700;padding:1px 10px;border-radius:999px;font-size:.9em}
-.tag.good{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
-.tag.bad{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
-/* Print (PDF): landscape pages, English and Persian kept side by side */
-@page{size:A4 landscape;margin:11mm 12mm}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 var(--font);padding:32px 16px 72px}
+.doc{max-width:880px;margin:0 auto;background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:48px clamp(18px,5vw,56px)}
+h1,h2,h3{line-height:1.25;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.9rem,4.5vw,2.6rem);font-weight:700}
+h2{font-size:1.4rem;font-weight:700;margin-top:44px;padding-top:18px;border-top:1px solid var(--rule)}
+h3{font-size:1.08rem;font-weight:600;margin-top:24px}
+p,ul,ol,table{margin:12px 0 0}
+ul,ol{padding-inline-start:1.4em}
+li{margin:5px 0}
+a{color:var(--accent)}
+code{font-size:.88em;background:var(--accent-soft);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.kicker{font-size:.78rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.meta{color:var(--muted);font-size:.92rem;margin-top:14px}
+.statement{font-size:1.3rem;font-weight:500;line-height:1.5;border-inline-start:4px solid var(--accent);padding:4px 0 4px 18px;margin-top:22px}
+.box{border-radius:10px;padding:12px 16px;margin-top:14px}
+.example{background:var(--sun-soft)}
+.note{background:var(--accent-soft)}
+.caution{background:color-mix(in srgb,var(--bad) 11%,transparent)}
+.toc{columns:2;column-gap:32px;padding-inline-start:1.2em;font-size:.95rem}
+@media (max-width:640px){.toc{columns:1}}
+.tablebox{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:.93rem;margin:0}
+th,td{border-bottom:1px solid var(--rule);padding:8px 10px;text-align:start;vertical-align:top}
+th{font-weight:600;background:var(--accent-soft)}
+.status{display:inline-block;font-weight:600;font-size:.82rem;padding:1px 9px;border-radius:999px;white-space:nowrap}
+.s-built{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.s-part{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.s-not{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+.loop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}
+.loop .step{flex:1 1 120px;border:1px solid var(--accent);border-radius:10px;padding:10px 12px;text-align:center;background:var(--accent-soft)}
+.loop .step b{display:block}
+.loop .step span{font-size:.82rem;color:var(--muted)}
+.loop .arrow{color:var(--accent);font-weight:700}
+.loop-back{font-size:.88rem;color:var(--muted);text-align:center;margin-top:6px}
+.layers{display:grid;gap:12px;margin-top:14px}
+.layer{border:1px solid var(--rule);border-inline-start:5px solid var(--accent);border-radius:10px;padding:12px 16px}
+.layer h3{margin:0}
+@page{size:A4;margin:16mm 15mm}
 @media print{
-  :root{--bg:#ffffff;--card:#ffffff;color-scheme:light}
-  body{font-size:12.5px;line-height:1.55;padding:0;background:#fff}
-  .wrap{max-width:none;gap:10px}
-  .row,.row.hero{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:22px;padding:12px 16px;break-inside:auto}
-  .row .fa{border-top:0!important;padding-top:0!important}
-  .fa{font-size:15px;line-height:1.95}
-  h1{font-size:1.7rem} h2{font-size:1.05rem} .fa h2{font-size:1.1rem}
-  .example,.warn,li{break-inside:avoid}
+  :root{--bg:#fff;--paper:#fff;color-scheme:light}
+  html{font-size:12px}
+  body{padding:0;font-size:1rem;line-height:1.6;background:#fff}
+  .doc{border:0;padding:0;max-width:none}
+  h2{break-after:avoid;margin-top:26px}
+  h3{break-after:avoid}
+  .box,.layer,tr,.loop{break-inside:avoid}
+  .loop{flex-wrap:nowrap;gap:6px}
+  .loop .step{flex:1 1 0;min-width:0;padding:8px 6px}
+  a{color:inherit;text-decoration:none}
 }
 </style>
 </head>
 <body>
-<div class="wrap">
+<article class="doc">
 
-  <section class="row hero">
-    <div class="en">
-      <p class="step">DCLab vision</p>
-      <h1>From raw data to trusted models, and from models to better decisions</h1>
-      <p class="muted">Written 1 November 2026. English on the left, the same text in Persian on the right.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">چشم‌انداز DCLab</p>
-      <h1>از داده‌ی خام تا مدل‌های قابل اعتماد، و از مدل‌ها تا تصمیم‌های بهتر</h1>
-      <p class="muted">نوشته‌شده در ۱ نوامبر ۲۰۲۶. انگلیسی در سمت چپ، همان متن به فارسی در سمت راست.</p>
-    </div>
-  </section>
+<p class="kicker">DCLab · Official document</p>
+<h1>DCLab Vision</h1>
+<p class="statement">From raw data to trusted models, and from models to better decisions.</p>
+<p class="meta">Version 1.0 · 1 November 2026 · Owner: Shahriar Moradi · Companion document: <a href="plan.html">The Plan to Reach the Vision</a></p>
 
-  <section class="row statement">
-    <div class="en">
-      <p class="step">1 · The vision</p>
-      <p class="lead">DCLab is an AI-powered platform that takes companies from raw data to trusted models, and from models to better decisions.</p>
-      <p><b>For data scientists and ML engineers,</b> DCLab is a smart assistant. An AI agent first understands the problem, then designs and runs the right ML pipeline. Before a model leaves DCLab, it is checked: no leakage, an honest score, and the code that rebuilds it. Developers work from their own notebooks and spend their time on the real problem instead of repetitive work.</p>
-      <p><b>For businesses,</b> DCLab goes one step further. Soon every company will run many models, each making its own predictions. But predictions alone are not enough. Companies need help turning them into the best decisions. DCLab will give each company its own decision model, built on its own data, that grows together with the company and its business.</p>
-      <p><b>Every business decision workflow starts with a data science and ML team.</b> DCLab supports that team and the decision-makers they serve, as one assistant for both.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۱ · چشم‌انداز</p>
-      <p class="lead">DCLab یک پلتفرم مبتنی بر هوش مصنوعی است که شرکت‌ها را از داده‌ی خام به مدل‌های قابل اعتماد می‌رساند، و از مدل‌ها به تصمیم‌های بهتر.</p>
-      <p><b>برای دانشمندان داده و مهندسان یادگیری ماشین،</b> DCLab یک دستیار هوشمند است. یک عامل هوش مصنوعی (<bdi>AI agent</bdi>) اول مسئله را می‌فهمد، بعد خط لوله‌ی (<bdi>pipeline</bdi>) درست یادگیری ماشین را طراحی و اجرا می‌کند. قبل از این‌که مدلی از DCLab بیرون برود، بررسی می‌شود: بدون نشت داده، با نمره‌ی صادقانه، و همراه با کدی که دوباره آن را می‌سازد. برنامه‌نویس‌ها از همان نوت‌بوک خودشان کار می‌کنند و وقتشان را روی مسئله‌ی اصلی می‌گذارند، نه روی کارهای تکراری.</p>
-      <p><b>برای کسب‌وکارها،</b> DCLab یک قدم جلوتر می‌رود. به‌زودی هر شرکت مدل‌های زیادی خواهد داشت که هر کدام پیش‌بینی خودش را می‌کند. اما پیش‌بینی به‌تنهایی کافی نیست. شرکت‌ها کمک لازم دارند تا این پیش‌بینی‌ها را به بهترین تصمیم تبدیل کنند. DCLab به هر شرکت مدل تصمیم‌گیری مخصوص خودش را می‌دهد؛ ساخته‌شده روی داده‌ی خود شرکت، که همراه با شرکت و کسب‌وکارش رشد می‌کند.</p>
-      <p><b>هر روند تصمیم‌گیری در کسب‌وکار با یک تیم علم داده و یادگیری ماشین شروع می‌شود.</b> DCLab از این تیم، و از تصمیم‌گیرانی که این تیم برایشان کار می‌کند، پشتیبانی می‌کند؛ یک دستیار برای هر دو.</p>
-    </div>
-  </section>
+<h3>Contents</h3>
+<ol class="toc">
+  <li><a href="#vision">The vision</a></li>
+  <li><a href="#mission">Mission</a></li>
+  <li><a href="#problem">The problem we solve</a></li>
+  <li><a href="#who">Who we serve</a></li>
+  <li><a href="#what">What DCLab is: three layers</a></li>
+  <li><a href="#loop">The DCLab loop</a></li>
+  <li><a href="#principles">Principles</a></li>
+  <li><a href="#why">Why DCLab can win</a></li>
+  <li><a href="#today">Where we are today</a></li>
+  <li><a href="#success">What success looks like</a></li>
+  <li><a href="#words">Words we use</a></li>
+  <li><a href="#related">Related documents</a></li>
+</ol>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">2 · Where the world is going</p>
-      <h2>A prediction is not a decision</h2>
-      <p>A model says what will probably happen. A decision says what we do about it. Between the two sit costs, budgets, rules and other models.</p>
-      <p>More models make this harder. A fraud model, a churn model and a price model can each say something different about the same customer.</p>
-      <p class="example">A real DCLab example: the bank's term-deposit calls. The model says who will probably say yes. But say the bank can make only 200 calls a day. Who do we call first? A customer who will say yes anyway does not need a call. That choice is the decision, and the model alone does not make it.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۲ · دنیا به کجا می‌رود</p>
-      <h2>پیش‌بینی، تصمیم نیست</h2>
-      <p>یک مدل می‌گوید احتمالاً چه اتفاقی می‌افتد. یک تصمیم می‌گوید ما در برابرش چه کار می‌کنیم. بین این دو، هزینه‌ها، بودجه، قانون‌ها و مدل‌های دیگر قرار دارند.</p>
-      <p>هرچه مدل‌ها بیشتر شوند، کار سخت‌تر می‌شود. مدل تقلب، مدل ریزش مشتری و مدل قیمت ممکن است هر کدام درباره‌ی یک مشتری چیز متفاوتی بگویند.</p>
-      <p class="example">یک مثال واقعی از DCLab: تماس‌های بانک برای سپرده‌ی مدت‌دار. مدل می‌گوید چه کسی احتمالاً «بله» می‌گوید. اما فرض کنید بانک روزی فقط ۲۰۰ تماس می‌تواند بگیرد. اول به چه کسی زنگ بزنیم؟ مشتری‌ای که در هر حال «بله» می‌گوید، به تماس نیاز ندارد. این انتخاب همان تصمیم است، و مدل به‌تنهایی آن را نمی‌گیرد.</p>
-    </div>
-  </section>
+<h2 id="vision">1. The vision</h2>
+<p>DCLab is an AI-powered platform that takes companies from raw data to trusted models, and from models to better decisions.</p>
+<p><b>For data scientists and ML engineers,</b> DCLab is a smart assistant. An AI agent first understands the problem, then designs and runs the right ML pipeline. Before a model leaves DCLab, it is checked: no leakage, an honest score, and the code that rebuilds it. Developers work from their own notebooks and tools, and spend their time on the real problem instead of repetitive work.</p>
+<p><b>For businesses,</b> DCLab goes one step further. Soon every company will run many models, each making its own predictions. But predictions alone are not enough. Companies need help turning them into the best decisions. DCLab will give each company its own decision model, built on its own data, that grows together with the company and its business.</p>
+<p><b>Every business decision workflow starts with a data science and ML team.</b> DCLab supports that team and the decision-makers they serve, as one assistant for both.</p>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">3 · For data scientists and ML engineers</p>
-      <h2>An assistant that does the work right</h2>
-      <ul>
-        <li>It understands the problem first. It asks, and it writes down what it heard and where each fact came from.</li>
-        <li>It designs and runs the pipeline: the split, the leakage check, features, models and an honest evaluation.</li>
-        <li>It checks every model before export: no leakage, the final test used once, and code that rebuilds the same number.</li>
-        <li>It works where the team works: the notebook, the chat, and other tools through MCP.</li>
-      </ul>
-      <p class="example">A real DCLab example: a bank-marketing notebook printed accuracy 0.9689. It looked great. But it used the call's length, which is known only after the call ends. After DCLab's fixes, the honest score was ROC-AUC 0.7577. Lower, but true. Like a scale that finally shows your real weight.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۳ · برای دانشمندان داده و مهندسان یادگیری ماشین</p>
-      <h2>دستیاری که کار را درست انجام می‌دهد</h2>
-      <ul>
-        <li>اول مسئله را می‌فهمد. سؤال می‌پرسد، و آنچه شنیده را می‌نویسد، همراه با این‌که هر واقعیت از کجا آمده.</li>
-        <li>خط لوله را طراحی و اجرا می‌کند: تقسیم داده، بررسی نشت، ویژگی‌ها، مدل‌ها و ارزیابی صادقانه.</li>
-        <li>هر مدل را قبل از خروج بررسی می‌کند: بدون نشت داده، آزمون نهایی (<bdi>holdout</bdi>) فقط یک بار، و کدی که همان عدد را دوباره می‌سازد.</li>
-        <li>همان‌جایی کار می‌کند که تیم کار می‌کند: نوت‌بوک، چت، و ابزارهای دیگر از راه <bdi>MCP</bdi>.</li>
-      </ul>
-      <p class="example">یک مثال واقعی از DCLab: یک نوت‌بوک بازاریابی بانک دقت <bdi>0.9689</bdi> نشان می‌داد. عالی به نظر می‌رسید. اما از مدت تماس استفاده می‌کرد، که فقط بعد از پایان تماس معلوم است. بعد از اصلاحات DCLab، نمره‌ی صادقانه <bdi>ROC-AUC 0.7577</bdi> شد. پایین‌تر، اما درست. مثل ترازویی که بالاخره وزن واقعی‌تان را نشان می‌دهد.</p>
-    </div>
-  </section>
+<h2 id="mission">2. Mission</h2>
+<p>Our daily work, in one sentence:</p>
+<p class="box note"><b>Help every data team build models that are right, help every business turn those models into its best decisions, and keep learning from what happens next.</b></p>
+<p>The vision says where we are going. The mission says what we do every day to get there. Each of its three parts matches one layer of the product (section 5).</p>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">4 · For decision-makers</p>
-      <h2>Each company gets its own decision model</h2>
-      <ul>
-        <li>The decision model reads the company's predictions, costs and limits, and suggests the best action. It says why, and every number is traced to its source.</li>
-        <li>It is built on the company's own data. It is not one general model for everyone.</li>
-        <li>It grows with the company. Every decision, and what happened after it, teaches it. A new version replaces the old one only when it measured better.</li>
-      </ul>
-      <p class="example">Like a new employee. On day one, they know the job in general. After a year, they know your customers, your costs and your habits. DCLab's decision model should grow the same way.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۴ · برای تصمیم‌گیران</p>
-      <h2>هر شرکت مدل تصمیم‌گیری مخصوص خودش را می‌گیرد</h2>
-      <ul>
-        <li>مدل تصمیم‌گیری، پیش‌بینی‌ها، هزینه‌ها و محدودیت‌های شرکت را می‌خواند و بهترین اقدام را پیشنهاد می‌دهد. دلیلش را هم می‌گوید، و هر عددش به منبعش وصل است.</li>
-        <li>روی داده‌ی خود شرکت ساخته می‌شود. یک مدل عمومی برای همه نیست.</li>
-        <li>همراه شرکت رشد می‌کند. هر تصمیم، و اتفاقی که بعد از آن افتاد، به آن درس می‌دهد. نسخه‌ی تازه فقط وقتی جای نسخه‌ی قبلی را می‌گیرد که در اندازه‌گیری بهتر بوده باشد.</li>
-      </ul>
-      <p class="example">مثل یک کارمند تازه. روز اول، کار را به‌طور کلی بلد است. بعد از یک سال، مشتری‌ها، هزینه‌ها و عادت‌های شرکت شما را می‌شناسد. مدل تصمیم‌گیری DCLab هم باید همین‌طور رشد کند.</p>
-    </div>
-  </section>
+<h2 id="problem">3. The problem we solve</h2>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">5 · Why one assistant for both</p>
-      <h2>Every business decision starts with the data team</h2>
-      <p>The decision-maker asks the question. The data team builds the models that answer it. If the models are wrong, the decision is wrong too.</p>
-      <p>So DCLab helps both sides, on one shared record. The team sees how each number was made. The decision-maker sees what it means and what to do.</p>
-      <p class="example">Like building a house. The owner says what they need. The architect and the builders make it stand. A good assistant helps both, with one plan they can both read.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۵ · چرا یک دستیار برای هر دو</p>
-      <h2>هر تصمیم کسب‌وکار با تیم داده شروع می‌شود</h2>
-      <p>تصمیم‌گیر سؤال را می‌پرسد. تیم داده مدل‌هایی را می‌سازد که به آن جواب می‌دهند. اگر مدل‌ها اشتباه باشند، تصمیم هم اشتباه است.</p>
-      <p>پس DCLab به هر دو طرف کمک می‌کند، روی یک پرونده‌ی مشترک. تیم می‌بیند هر عدد چطور ساخته شده. تصمیم‌گیر می‌بیند آن عدد چه معنایی دارد و چه باید کرد.</p>
-      <p class="example">مثل ساختن یک خانه. صاحب‌خانه می‌گوید چه لازم دارد. معمار و بنّاها کاری می‌کنند که خانه سرپا بماند. یک دستیار خوب به هر دو کمک می‌کند، با یک نقشه که هر دو بتوانند بخوانند.</p>
-    </div>
-  </section>
+<h3>3.1 A prediction is not a decision</h3>
+<p>A model says what will probably happen. A decision says what we do about it. Between the two sit costs, budgets, capacity, rules and timing. Most tools stop at the prediction and leave the decision to a spreadsheet or to a feeling.</p>
+<p class="box example"><b>Example (from DCLab's own work).</b> A bank's term-deposit campaign. The model says who will probably say yes. Say the bank can make only 200 calls a day. Who is called first? A customer who will say yes anyway does not need a call; a customer who will never say yes wastes one. The best list is not "the highest scores". That choice is the decision, and the model alone does not make it.</p>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">6 · What DCLab promises</p>
-      <h2>Seven rules we keep</h2>
-      <ol>
-        <li>Understand before building.</li>
-        <li>No leakage: never use what is unknown at the moment of the decision.</li>
-        <li>The final test is used once. Every score comes with its uncertainty.</li>
-        <li>Every number is traced to the record that made it.</li>
-        <li>The AI suggests; code checks. Rules and gates have the last word.</li>
-        <li>A new model is used only after it measured better.</li>
-        <li>The company's data stays the company's. Nothing is used for training without its permission.</li>
-      </ol>
-      <p class="warn">What we do not promise: we never call a model production-ready from a test score alone.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۶ · قول‌های DCLab</p>
-      <h2>هفت قانونی که رعایت می‌کنیم</h2>
-      <ol>
-        <li>اول فهمیدن، بعد ساختن.</li>
-        <li>بدون نشت داده: هرگز از چیزی استفاده نمی‌کنیم که در لحظه‌ی تصمیم معلوم نیست.</li>
-        <li>آزمون نهایی فقط یک بار استفاده می‌شود. هر نمره همراه با میزان عدم قطعیتش گزارش می‌شود.</li>
-        <li>هر عدد به رکوردی که آن را ساخته وصل است.</li>
-        <li>هوش مصنوعی پیشنهاد می‌دهد؛ کد بررسی می‌کند. حرف آخر را قانون‌ها و دروازه‌های کنترل می‌زنند.</li>
-        <li>مدل تازه فقط وقتی به کار می‌رود که در اندازه‌گیری بهتر بوده باشد.</li>
-        <li>داده‌ی شرکت مال خود شرکت است. بدون اجازه‌اش، هیچ چیزی برای آموزش استفاده نمی‌شود.</li>
-      </ol>
-      <p class="warn">چیزی که قول نمی‌دهیم: هرگز فقط از روی نمره‌ی یک آزمون نمی‌گوییم مدلی برای استفاده‌ی واقعی (<bdi>production</bdi>) آماده است.</p>
-    </div>
-  </section>
+<h3>3.2 Many models, one customer</h3>
+<p>Companies already run several models, and the number grows each year. Each model is built by a different person, at a different time, for a different goal. They are rarely combined.</p>
+<p class="box example"><b>Example.</b> A telecom company. A churn model says who will leave. A value model says who is worth keeping. An uplift model says who an offer would actually change. The budget is 500 discounts a month. Who gets them? Each model alone gives a different list. The company needs one answer.</p>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">7 · Where we are today</p>
-      <h2>Half of this is built</h2>
-      <p><span class="tag good">Built</span></p>
-      <ul>
-        <li>An agent that understands first. On the first sealed exam of 40 written people it scored 0.85, against 0.62 for Claude alone. But the judge agreed with your own marks only 66% of the time (the bar was 70%), so this is not proven yet.</li>
-        <li>An engine for most kinds of problem: prediction, fraud and rare events, anomalies, forecasting, time to event, uplift, ranking, segmentation. Images still wait.</li>
-        <li>Leakage checks, the final test read once, and a code export that rebuilds the final number.</li>
-        <li>For one model, the decision pieces: the operating point from costs and the value of a case, a review list sized to the team's budget, uplift (who is worth contacting), a log of predictions, decisions and outcomes, monitoring, and retraining with champion and challenger. None of it has run inside a real company yet.</li>
-      </ul>
-      <p><span class="tag bad">Not built yet</span></p>
-      <ul>
-        <li><b>Many models, one decision:</b> several models' predictions, plus costs, budgets and rules, turned into one best action. This is the new heart of the vision, and it is not built.</li>
-        <li>A simple Python SDK for notebooks. Today there is the notebook companion, the notebook review from the command line, and the MCP tools.</li>
-        <li>Proof on real companies' decisions and what happened after them.</li>
-      </ul>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۷ · امروز کجا هستیم</p>
-      <h2>نیمی از این ساخته شده</h2>
-      <p><span class="tag good">ساخته شده</span></p>
-      <ul>
-        <li>دستیاری که اول می‌فهمد. در اولین امتحان مُهروموم‌شده با ۴۰ آدم خیالی، نمره‌اش <bdi>0.85</bdi> بود، در برابر <bdi>0.62</bdi> برای Claude تنها. اما داور فقط ۶۶٪ مواقع با نمره‌های خود شما هم‌نظر بود (حد قبولی ۷۰٪ بود)، پس هنوز ثابت نشده.</li>
-        <li>موتوری برای بیشتر انواع مسئله: پیش‌بینی، تقلب و رویدادهای نادر، ناهنجاری، پیش‌بینی سری زمانی، زمان تا رویداد، اثر افزایشی (<bdi>uplift</bdi>)، رتبه‌بندی، بخش‌بندی. تصویر هنوز مانده.</li>
-        <li>بررسی نشت داده، آزمون نهایی فقط یک بار، و خروجی کدی که عدد نهایی را دوباره می‌سازد.</li>
-        <li>برای یک مدل، تکه‌های تصمیم: نقطه‌ی کار از روی هزینه‌ها و ارزش هر مورد، فهرست بررسی به اندازه‌ی بودجه‌ی تیم، اثر افزایشی (با چه کسی تماس بگیریم ارزش دارد)، ثبت پیش‌بینی‌ها و تصمیم‌ها و نتیجه‌ها، پایش، و آموزش دوباره با «قهرمان و رقیب». هیچ‌کدام هنوز داخل یک شرکت واقعی اجرا نشده.</li>
-      </ul>
-      <p><span class="tag bad">هنوز ساخته نشده</span></p>
-      <ul>
-        <li><b>چند مدل، یک تصمیم:</b> پیش‌بینی‌های چند مدل، به‌علاوه‌ی هزینه‌ها، بودجه و قانون‌ها، که به یک بهترین اقدام تبدیل شوند. این قلب تازه‌ی چشم‌انداز است، و ساخته نشده.</li>
-        <li>یک <bdi>Python SDK</bdi> ساده برای نوت‌بوک. امروز همراه نوت‌بوک، بازبینی نوت‌بوک از خط فرمان، و ابزارهای <bdi>MCP</bdi> وجود دارند.</li>
-        <li>اثبات روی تصمیم‌های شرکت‌های واقعی و نتیجه‌ای که بعد از آن‌ها آمد.</li>
-      </ul>
-    </div>
-  </section>
+<h3>3.3 Models that look good but are wrong</h3>
+<p>The most common failure in applied machine learning is not a weak algorithm. It is a model that uses information it will not have at the moment of the decision (leakage), or that is scored on data it has already seen. Such a model looks excellent in the notebook and fails in use.</p>
+<p class="box example"><b>Example (measured in this repository).</b> A bank-marketing notebook printed an accuracy of 0.9689. It used the length of the call, which is known only after the call ends. After DCLab's review and fixes, the honest score was ROC-AUC 0.7577 (average precision 0.3454, on 9,043 test rows). Lower, but true.</p>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">8 · The order</p>
-      <h2>First the team, then the decisions</h2>
-      <ol>
-        <li>Win the data team first, with the assistant that builds models right. This is the door into each company.</li>
-        <li>Then add the decision layer, on top of the models the team built with DCLab.</li>
-        <li>Then let each company's decision model learn from its own decisions and their outcomes.</li>
-      </ol>
-      <p>Why this order: a decision model is only as good as the models under it. And it can learn only when the company records what it decided and what happened next. Those outcomes often arrive weeks later.</p>
-      <p class="example">Like a restaurant. First the kitchen must cook well. Only then does a good menu help.</p>
-      <p class="warn">Risk to watch: serving two kinds of customer at once can split a small team. Keep the data team first until it works.</p>
-      <p>The gaps and six phases to get there: <a href="plan.html">plan.html</a>.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۸ · ترتیب کار</p>
-      <h2>اول تیم، بعد تصمیم‌ها</h2>
-      <ol>
-        <li>اول تیم داده را به دست بیاوریم، با دستیاری که مدل‌ها را درست می‌سازد. این در ورود به هر شرکت است.</li>
-        <li>بعد لایه‌ی تصمیم را اضافه کنیم، روی مدل‌هایی که تیم با DCLab ساخته.</li>
-        <li>بعد بگذاریم مدل تصمیم‌گیری هر شرکت از تصمیم‌های خودش و نتیجه‌هایشان یاد بگیرد.</li>
-      </ol>
-      <p>چرا این ترتیب: یک مدل تصمیم‌گیری فقط به اندازه‌ی مدل‌های زیرش خوب است. و فقط وقتی می‌تواند یاد بگیرد که شرکت ثبت کند چه تصمیمی گرفت و بعدش چه شد. این نتیجه‌ها اغلب چند هفته بعد می‌رسند.</p>
-      <p class="example">مثل یک رستوران. اول آشپزخانه باید خوب آشپزی کند. فقط بعد از آن است که یک منوی خوب کمک می‌کند.</p>
-      <p class="warn">خطری که باید مراقبش بود: خدمت به دو نوع مشتری در یک زمان می‌تواند یک تیم کوچک را دو تکه کند. تا وقتی کار با تیم داده جا نیفتاده، آن را اول نگه داریم.</p>
-      <p>شکاف‌ها و شش فاز برای رسیدن به آن: <bdi><a href="plan.html">plan.html</a></bdi>.</p>
-    </div>
-  </section>
+<h3>3.4 Data teams lose their time to repetitive work</h3>
+<p>Data scientists spend much of their time on the same steps: reading the data, cleaning it, choosing a split, checking for leakage, trying model families, writing the report. These steps matter, but they repeat. The time left for the real question, "what should the business do?", is small.</p>
 
+<h3>3.5 Decisions do not learn</h3>
+<p>Few companies record what they decided, why, and what happened after. Without that record, the next decision cannot be better than the last one, and no model can learn the company's own way of working.</p>
+
+<h2 id="who">4. Who we serve</h2>
+<div class="tablebox"><table>
+  <thead><tr><th>Who</th><th>What they need</th><th>What DCLab gives them</th></tr></thead>
+  <tbody>
+    <tr><td><b>Data scientists and ML engineers</b></td><td>Build correct models fast; avoid leakage and false scores; less repetitive work; work in their own notebook and tools.</td><td>An agent that understands the problem, designs and runs the pipeline, checks every model before export, and gives back code that rebuilds the result. Available in the notebook, the chat, the DCLab studio and other tools through MCP.</td></tr>
+    <tr><td><b>Decision-makers</b> (managers, heads of operations, risk, marketing)</td><td>A clear action, not a score: who, what, how many, why, and what it will bring.</td><td>A decision card: the recommended actions, the expected gain with its range, the reasons with every number traced to its source, and what changes if the budget changes.</td></tr>
+    <tr><td><b>The company</b> (leadership, owners of the data)</td><td>Decisions that improve over time; control over its data; a lasting asset, not a one-off project.</td><td>Its own decision model, trained on its own decisions and outcomes, owned by the company, used for training only with its permission, replaced only by a version that measured better.</td></tr>
+  </tbody>
+</table></div>
+<p class="box note"><b>Why both groups.</b> The decision-maker asks the question. The data team builds the models that answer it. If the models are wrong, the decision is wrong too. So DCLab serves both, on one shared record: the team sees how each number was made; the decision-maker sees what it means and what to do. Like building a house: the owner says what they need, the architect makes it stand, and both read the same plan.</p>
+
+<h2 id="what">5. What DCLab is: three layers</h2>
+<div class="layers">
+  <div class="layer">
+    <h3>Layer 1 · Trusted models: the assistant for the data team</h3>
+    <ul>
+      <li><b>Understand first.</b> The agent asks questions, writes down what it heard and where each fact came from (the person, a calculation, or a guess), and writes the prediction contract before looking at any score.</li>
+      <li><b>Design and run the pipeline.</b> The split, the leakage audit, features, model families, tuning and an honest evaluation, across many kinds of problem: classification, regression, fraud and rare events, anomalies, forecasting, time to event, uplift, ranking, segmentation, related tables, streams, places and text.</li>
+      <li><b>Check before export.</b> No leakage, the final test read once, every score with its uncertainty, and exported code that rebuilds the same final number.</li>
+      <li><b>Work where the team works.</b> A Python SDK in the notebook, the DCLab studio, the chat, a developer app, and any tool that speaks MCP.</li>
+    </ul>
+  </div>
+  <div class="layer">
+    <h3>Layer 2 · Decisions: from predictions to actions</h3>
+    <ul>
+      <li><b>One model, one decision.</b> The operating point chosen from costs and value, a list sized to the team's capacity, and uplift (act only where the action changes the result).</li>
+      <li><b>Many models, one decision.</b> Several models' predictions about the same customer, order or case, combined under shared budgets, capacity and rules into one best action.</li>
+      <li><b>Explained.</b> Every recommendation says why, with every number traced to the record that made it, and shows what changes if a cost or a budget changes.</li>
+    </ul>
+  </div>
+  <div class="layer">
+    <h3>Layer 3 · Learning: the company decision model that grows</h3>
+    <ul>
+      <li><b>Record.</b> Every prediction, decision and outcome is logged, without copying the company's table values into the record.</li>
+      <li><b>Watch.</b> Monitoring raises an alert when new data stops looking like the data the model learned from.</li>
+      <li><b>Improve.</b> Retraining with champion and challenger: a new version replaces the old one only when it wins on the newest data.</li>
+      <li><b>Keep learning honestly.</b> A small, agreed share of cases gets a different action, so the model does not learn only from its own choices.</li>
+      <li><b>Become the company's own.</b> Over time, the company gets its own small models, trained on its own decisions and outcomes, with its consent.</li>
+    </ul>
+  </div>
 </div>
+
+<h2 id="loop">6. The DCLab loop</h2>
+<p>The three layers form one loop. Each turn of the loop makes the next decision better.</p>
+<div class="loop" role="img" aria-label="Data, then model, then decision, then outcome, then learning, which feeds back into the model and the decision">
+  <div class="step"><b>Data</b><span>the company's tables</span></div><span class="arrow">→</span>
+  <div class="step"><b>Model</b><span>trusted, checked</span></div><span class="arrow">→</span>
+  <div class="step"><b>Decision</b><span>the best action</span></div><span class="arrow">→</span>
+  <div class="step"><b>Outcome</b><span>what really happened</span></div><span class="arrow">→</span>
+  <div class="step"><b>Learning</b><span>a better next version</span></div>
+</div>
+<p class="loop-back">↺ Learning feeds back into the model and the decision.</p>
+<p class="box example">Like a new employee. On day one, they know the job in general. After a year, they know your customers, your costs and your habits, because they saw what worked and what did not. DCLab's decision model should grow the same way.</p>
+
+<h2 id="principles">7. Principles</h2>
+<p>These rules hold in every layer. They are already enforced in DCLab's code, and they do not change for speed or for a better-looking number.</p>
+<ol>
+  <li><b>Understand before building.</b> The problem, the decision and the moment of prediction are written down before any model is trained.</li>
+  <li><b>No leakage.</b> Nothing is used that is unknown at the moment of the decision.</li>
+  <li><b>The final test is read once.</b> Every score is reported with its uncertainty and its limits.</li>
+  <li><b>Every number is traced.</b> Each number in a report links to the run and the record that made it.</li>
+  <li><b>The AI suggests; code checks.</b> Splits, metrics and selection are owned by deterministic code. Rules, validators and gates have the last word.</li>
+  <li><b>Promote only what measured better.</b> A new model, rule or agent is used only after it beat the current one on data it had not seen.</li>
+  <li><b>The company's data stays the company's.</b> Nothing is used to train any model without the company's permission; table values never leave in records.</li>
+</ol>
+<p class="box caution"><b>What we do not promise.</b> We never call a model production-ready from a test score alone. A checked model is one that is free of the errors we can detect; its value in use must be measured in use.</p>
+
+<h2 id="why">8. Why DCLab can win</h2>
+<p>Many tools build models, and many chat assistants write code. DCLab's difference is that every step comes with proof, and every decision is recorded so that it can be learned from. These strengths are built; they still have to be proven with real companies.</p>
+<ul>
+  <li><b>Evidence behind the advice.</b> 579 recorded experiments on real public and project data, turned into rules, pitfalls and leakage precedents that the agent cites.</li>
+  <li><b>Leakage first.</b> Leakage review, train-only exploration and a single read of the final test are built into the workflow, not left to the user.</li>
+  <li><b>Traceable results.</b> Lineage links every reported number to its run; the code export rebuilds it in a clean environment.</li>
+  <li><b>A record of every decision.</b> A decision ledger of 45 decision points (28 technical, 17 workflow) records what was decided and why. This record is the raw material of each company's own decision model.</li>
+  <li><b>Measured, not assumed.</b> Agents and models are judged on sealed exams that are read once, and promoted only where they beat the current way.</li>
+  <li><b>Model freedom.</b> DCLab runs with Claude, with local open models, or with rules alone; its own small models take over a task only where they measured better.</li>
+</ul>
+
+<h2 id="today">9. Where we are today</h2>
+<p>An honest account, as of 1 November 2026.</p>
+<div class="tablebox"><table>
+  <thead><tr><th>Area</th><th>Status</th><th>Details</th></tr></thead>
+  <tbody>
+    <tr><td>Problem engine</td><td><span class="status s-built">Built</span></td><td>15 kinds of problem supported, 2 partial (metric change, embedded data); images not yet.</td></tr>
+    <tr><td>Leakage checks, single read of the final test, code export that rebuilds the number</td><td><span class="status s-built">Built</span></td><td>Checked for every engine kind by <code>make code-check</code>.</td></tr>
+    <tr><td>Agent that understands first (the lead agent)</td><td><span class="status s-part">Partly proven</span></td><td>Second sealed exam (19 written people): understanding 0.93 against 0.82 for Claude alone; 0 invented numbers against 139. It failed its gate on choosing the right route (0.79 against 1.00) and on traps. Fixes are in; a fresh sealed exam is next.</td></tr>
+    <tr><td>Decision pieces for one model</td><td><span class="status s-part">Built, not used in a company</span></td><td>Operating point from costs and value per case, review list sized to capacity, uplift, the prediction-decision-outcome log, monitoring, retraining with champion and challenger.</td></tr>
+    <tr><td>Open-source studio (<code>dclabai</code>) and the developer app (DCLab Code)</td><td><span class="status s-built">Built</span></td><td>The open core is public on GitHub; DCLab Code is private.</td></tr>
+    <tr><td>Python SDK for notebooks</td><td><span class="status s-not">Not built</span></td><td>Today: a notebook companion and a notebook review from the command line, and MCP tools.</td></tr>
+    <tr><td>Many models, one decision</td><td><span class="status s-not">Not built</span></td><td>The heart of the business vision.</td></tr>
+    <tr><td>Business view for decision-makers</td><td><span class="status s-not">Not built</span></td><td>Today's pages are made for data scientists.</td></tr>
+    <tr><td>Running inside a real company; company-owned models</td><td><span class="status s-not">Not yet</span></td><td>No real team uses DCLab weekly yet, and no company has sent outcomes back.</td></tr>
+  </tbody>
+</table></div>
+<p>The plan to close these gaps is in the companion document, <a href="plan.html">The Plan to Reach the Vision</a>.</p>
+
+<h2 id="success">10. What success looks like</h2>
+<p>Proposed measures, to be confirmed with the first real users. Each is measured, not estimated.</p>
+<div class="tablebox"><table>
+  <thead><tr><th>Layer</th><th>Measure</th></tr></thead>
+  <tbody>
+    <tr><td>Trusted models</td><td>Data teams using DCLab every week. Real leaks and flaws caught before export, confirmed by the team. Time from raw data to the first trusted model.</td></tr>
+    <tr><td>Decisions</td><td>Measured gain of decisions made with DCLab against the company's previous rule, with its range. Share of promised gains later confirmed by outcomes.</td></tr>
+    <tr><td>Learning</td><td>Companies whose own model beats the general one on new decisions, without losing what it knew before.</td></tr>
+    <tr><td>The company</td><td>Paying customers, and how long they stay.</td></tr>
+  </tbody>
+</table></div>
+<p class="box note"><b>North-star measure:</b> the measured value of the decisions made with DCLab.</p>
+
+<h2 id="words">11. Words we use</h2>
+<div class="tablebox"><table>
+  <thead><tr><th>Word</th><th>Meaning in this document</th></tr></thead>
+  <tbody>
+    <tr><td>Company decision model</td><td>The model that turns many predictions, plus the company's costs, budgets and rules, into one best action, and learns from outcomes. Not the same as the ledger's decision models below.</td></tr>
+    <tr><td>Decision points, decision models (ledger)</td><td>DCLab's own small models that answer its technical and workflow choices, such as a column's role or the next step. Internal tools.</td></tr>
+    <tr><td>Leakage</td><td>Using information that is not known at the moment of the prediction or decision.</td></tr>
+    <tr><td>Holdout (final test)</td><td>Data kept apart and read once, to give an honest final score.</td></tr>
+    <tr><td>Outcome</td><td>What really happened after a decision, often known weeks later.</td></tr>
+    <tr><td>Uplift</td><td>How much an action changes the result for a case, compared with doing nothing.</td></tr>
+    <tr><td>Champion and challenger</td><td>The model in use and the new candidate; the challenger replaces the champion only if it wins on the newest data.</td></tr>
+    <tr><td>Sealed exam</td><td>A test written by someone else and run once, so that its score cannot be tuned.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="related">12. Related documents</h2>
+<ul>
+  <li><a href="plan.html">The Plan to Reach the Vision</a>: the gaps and phases 14 to 19.</li>
+  <li><code>docs/vision/VISION.md</code>: the vision statement, short form.</li>
+  <li><code>docs/guides/THREE_MODELS.md</code>: DCLab's own models and the data each learns from.</li>
+  <li><code>docs/guides/ROADMAP.md</code>: the packages built so far, phase by phase.</li>
+</ul>
+
+</article>
 </body>
 </html>

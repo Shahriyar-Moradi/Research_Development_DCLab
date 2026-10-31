@@ -6,279 +6,338 @@
 <title>Vision Plan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700&family=Vazirmatn:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap">
 <style>
-/* One chapter per row: English on the left, Persian on the right (right to left); stacked on phones. */
 :root{
-  --bg:#f3f6fb; --card:#ffffff; --ink:#18263a; --muted:#56657a; --rule:#d9e1ec;
-  --accent:#2457a6; --accent-soft:#e3ecfa; --sun:#f2b630; --sun-soft:#fdf3d8; --good:#1f7a4d; --bad:#b4442c;
-  --en:"Lexend","Segoe UI",system-ui,sans-serif; --fa:"Vazirmatn","Tahoma",system-ui,sans-serif;
+  --bg:#f3f6fb; --paper:#ffffff; --ink:#18263a; --muted:#56657a; --rule:#d9e1ec;
+  --accent:#2457a6; --accent-soft:#e3ecfa; --sun-soft:#fdf3d8; --good:#1f7a4d; --warn:#9a5b00; --bad:#b4442c;
+  --font:"Lexend","Segoe UI",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0f1622; --card:#172131; --ink:#e7edf6; --muted:#a3b0c2; --rule:#2a3648;
-  --accent:#8fb4f2; --accent-soft:#1d2d47; --sun:#f2c45a; --sun-soft:#3a3016; --good:#6fd39d; --bad:#f08f78; color-scheme:dark}}
+  --bg:#0f1622; --paper:#172131; --ink:#e7edf6; --muted:#a3b0c2; --rule:#2a3648;
+  --accent:#8fb4f2; --accent-soft:#1d2d47; --sun-soft:#3a3016; --good:#6fd39d; --warn:#f2c45a; --bad:#f08f78; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0f1622; --card:#172131; --ink:#e7edf6; --muted:#a3b0c2; --rule:#2a3648;
-  --accent:#8fb4f2; --accent-soft:#1d2d47; --sun:#f2c45a; --sun-soft:#3a3016; --good:#6fd39d; --bad:#f08f78; color-scheme:dark}
+  --bg:#0f1622; --paper:#172131; --ink:#e7edf6; --muted:#a3b0c2; --rule:#2a3648;
+  --accent:#8fb4f2; --accent-soft:#1d2d47; --sun-soft:#3a3016; --good:#6fd39d; --warn:#f2c45a; --bad:#f08f78; color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 var(--en);
-  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:32px 72px}
-.wrap{max-width:1180px;margin:0 auto;display:grid;gap:22px}
-h1,h2{margin:0;line-height:1.2;text-wrap:balance;font-weight:700}
-h1{font-size:clamp(1.7rem,4vw,2.5rem)}
-h2{font-size:1.25rem}
-p,ul,ol{margin:0}
-.en{display:grid;gap:12px;align-content:start;min-width:0}
-.fa{display:grid;gap:12px;align-content:start;min-width:0;font-family:var(--fa);font-size:20px;line-height:2.1;direction:rtl;text-align:right}
-.fa h1,.fa h2{font-family:var(--fa);line-height:1.6}
-.fa h2{font-size:1.3rem}
-bdi{direction:ltr;unicode-bidi:isolate;font-family:var(--en);font-size:.88em}
-.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:22px 24px}
-.row.hero{background:transparent;border:0;padding:4px 0 8px}
-.row.key{border:2px solid var(--accent)}
-@media (max-width:860px){.row{grid-template-columns:minmax(0,1fr);gap:18px}.row .fa{border-top:1px dashed var(--rule);padding-top:16px}}
-.step{font:500 .74rem var(--en);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
-.fa .step{font-family:var(--fa);font-size:.9rem;letter-spacing:0;text-transform:none}
-.muted{color:var(--muted)}
-.lead{font-size:1.12em;font-weight:500}
-.example{background:var(--sun-soft);border-radius:10px;padding:10px 14px}
-.warn{background:color-mix(in srgb,var(--bad) 12%,transparent);border-radius:10px;padding:10px 14px}
-ul,ol{padding-inline-start:1.3em;display:grid;gap:6px}
-.phases{display:grid;gap:10px}
-.phase{border:1px solid var(--rule);border-inline-start:4px solid var(--accent);border-radius:10px;padding:10px 14px;display:grid;gap:4px}
-.phase b.n{color:var(--accent)}
-.phase .done{color:var(--muted);font-size:.95em}
-/* Print (PDF): landscape pages, English and Persian kept side by side */
-@page{size:A4 landscape;margin:11mm 12mm}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 var(--font);padding:32px 16px 72px}
+.doc{max-width:880px;margin:0 auto;background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:48px clamp(18px,5vw,56px)}
+h1,h2,h3{line-height:1.25;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.9rem,4.5vw,2.6rem);font-weight:700}
+h2{font-size:1.4rem;font-weight:700;margin-top:44px;padding-top:18px;border-top:1px solid var(--rule)}
+h3{font-size:1.08rem;font-weight:600;margin-top:24px}
+p,ul,ol,table,dl{margin:12px 0 0}
+ul,ol{padding-inline-start:1.4em}
+li{margin:5px 0}
+a{color:var(--accent)}
+code{font-size:.88em;background:var(--accent-soft);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.kicker{font-size:.78rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.meta{color:var(--muted);font-size:.92rem;margin-top:14px}
+.statement{font-size:1.2rem;font-weight:500;line-height:1.5;border-inline-start:4px solid var(--accent);padding:4px 0 4px 18px;margin-top:22px}
+.box{border-radius:10px;padding:12px 16px;margin-top:14px}
+.example{background:var(--sun-soft)}
+.note{background:var(--accent-soft)}
+.caution{background:color-mix(in srgb,var(--bad) 11%,transparent)}
+.toc{columns:2;column-gap:32px;padding-inline-start:1.2em;font-size:.95rem}
+@media (max-width:640px){.toc{columns:1}}
+.tablebox{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:.92rem;margin:0}
+th,td{border-bottom:1px solid var(--rule);padding:8px 10px;text-align:start;vertical-align:top}
+th{font-weight:600;background:var(--accent-soft)}
+.phase{border:1px solid var(--rule);border-inline-start:5px solid var(--accent);border-radius:12px;padding:16px 20px;margin-top:22px}
+.phase h3{margin:0;font-size:1.2rem}
+.phase .goal{font-weight:500;margin-top:6px}
+.phase dl{display:grid;grid-template-columns:9.5em minmax(0,1fr);gap:8px 16px}
+.phase dt{font-weight:600;color:var(--accent)}
+.phase dd{margin:0}
+.phase dd ul{margin:0}
+@media (max-width:640px){.phase dl{grid-template-columns:minmax(0,1fr)}.phase dt{margin-top:6px}}
+.size{display:inline-block;font-size:.8rem;font-weight:600;padding:1px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);margin-inline-start:8px;vertical-align:middle}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:14px}
+.chain span.p{border:1px solid var(--accent);background:var(--accent-soft);border-radius:8px;padding:6px 10px;font-weight:600;font-size:.9rem}
+.chain span.a{color:var(--accent);font-weight:700}
+@page{size:A4;margin:16mm 15mm}
 @media print{
-  :root{--bg:#ffffff;--card:#ffffff;color-scheme:light}
-  body{font-size:12.5px;line-height:1.55;padding:0;background:#fff}
-  .wrap{max-width:none;gap:10px}
-  .row,.row.hero{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:22px;padding:12px 16px;break-inside:auto}
-  .row .fa{border-top:0!important;padding-top:0!important}
-  .fa{font-size:15px;line-height:1.95}
-  h1{font-size:1.7rem} h2{font-size:1.05rem} .fa h2{font-size:1.1rem}
-  .example,.warn,.phase,li{break-inside:avoid}
+  :root{--bg:#fff;--paper:#fff;color-scheme:light}
+  html{font-size:12px}
+  body{padding:0;font-size:1rem;line-height:1.6;background:#fff}
+  .doc{border:0;padding:0;max-width:none}
+  h2{break-after:avoid;margin-top:26px}
+  h3{break-after:avoid}
+  .box,tr,.chain,.phase dl > *{break-inside:avoid}
+  a{color:inherit;text-decoration:none}
 }
 </style>
 </head>
 <body>
-<div class="wrap">
+<article class="doc">
 
-  <section class="row hero">
-    <div class="en">
-      <p class="step">From vision to plan</p>
-      <h1>The gaps, and six phases to reach the vision</h1>
-      <p class="muted">Written 1 November 2026, after the vision (<a href="vision.html">vision.html</a>). A plan to discuss, not code. English on the left, Persian on the right.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">از چشم‌انداز تا برنامه</p>
-      <h1>شکاف‌ها، و شش فاز برای رسیدن به چشم‌انداز</h1>
-      <p class="muted">نوشته‌شده در ۱ نوامبر ۲۰۲۶، بعد از چشم‌انداز (<bdi><a href="vision.html">vision.html</a></bdi>). برنامه‌ای برای گفتگو، نه کد. انگلیسی در سمت چپ، فارسی در سمت راست.</p>
-    </div>
-  </section>
+<p class="kicker">DCLab · Official document</p>
+<h1>The Plan to Reach the Vision</h1>
+<p class="statement">Six phases, from the first real data teams to each company's own decision model.</p>
+<p class="meta">Version 1.0 · 1 November 2026 · Owner: Shahriar Moradi · Status: proposed, waiting for the owner's decisions (section 10) · Companion document: <a href="vision.html">DCLab Vision</a></p>
 
-  <section class="row key">
-    <div class="en">
-      <p class="step">1 · The biggest gap</p>
-      <h2>Real users, not more code</h2>
-      <p class="lead">DCLab has built 13 phases, measured on written people and invented tables. No real data team uses it every week yet.</p>
-      <p>The vision is about real companies: their data, their decisions, their outcomes. So the plan must start there.</p>
-      <p class="example">Like a cook who has practised every recipe at home, many times. The next step is not one more recipe. It is opening the restaurant for a few real guests.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۱ · بزرگ‌ترین شکاف</p>
-      <h2>کاربر واقعی، نه کد بیشتر</h2>
-      <p class="lead">DCLab سیزده فاز ساخته، و آن‌ها را روی آدم‌های نوشته‌شده و جدول‌های ساختگی اندازه گرفته. هنوز هیچ تیم داده‌ی واقعی هر هفته از آن استفاده نمی‌کند.</p>
-      <p>چشم‌انداز درباره‌ی شرکت‌های واقعی است: داده‌شان، تصمیم‌هایشان، نتیجه‌هایشان. پس برنامه باید از همان‌جا شروع شود.</p>
-      <p class="example">مثل آشپزی که همه‌ی دستورها را بارها در خانه تمرین کرده. قدم بعدی یک دستور دیگر نیست. باز کردن رستوران برای چند مهمان واقعی است.</p>
-    </div>
-  </section>
+<h3>Contents</h3>
+<ol class="toc">
+  <li><a href="#summary">Summary</a></li>
+  <li><a href="#purpose">Purpose and scope</a></li>
+  <li><a href="#start">The starting point</a></li>
+  <li><a href="#gaps">Gap analysis</a></li>
+  <li><a href="#phases">The six phases</a></li>
+  <li><a href="#order">Order and dependencies</a></li>
+  <li><a href="#continue">What continues and what pauses</a></li>
+  <li><a href="#risks">Risks</a></li>
+  <li><a href="#scoreboard">Scoreboard</a></li>
+  <li><a href="#decisions">Decisions needed from the owner</a></li>
+  <li><a href="#related">Related documents</a></li>
+</ol>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">2 · What already exists</p>
-      <h2>For one model, many decision pieces are built</h2>
-      <ul>
-        <li>The operating point from costs: the value of a case found against the cost of a review.</li>
-        <li>A review list sized to the team's budget.</li>
-        <li>Uplift: who is worth contacting, because the action changes what they do.</li>
-        <li>A log of predictions, decisions and outcomes (<code>dclab_core/serving.py</code>).</li>
-        <li>Monitoring: an alert when new rows stop looking like the training rows.</li>
-        <li>Retraining with champion and challenger: the new model replaces the old one only when it wins on the latest window.</li>
-      </ul>
-      <p class="warn">What is missing: many models turned into one decision, and any of this running inside a real company.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۲ · آنچه از قبل هست</p>
-      <h2>برای یک مدل، خیلی از تکه‌های تصمیم ساخته شده</h2>
-      <ul>
-        <li>نقطه‌ی کار از روی هزینه‌ها: ارزش یک مورد پیدا‌شده در برابر هزینه‌ی یک بررسی.</li>
-        <li>فهرست بررسی به اندازه‌ی بودجه‌ی تیم.</li>
-        <li>اثر افزایشی (<bdi>uplift</bdi>): با چه کسی تماس گرفتن ارزش دارد، چون اقدام ما رفتارش را عوض می‌کند.</li>
-        <li>ثبت پیش‌بینی‌ها، تصمیم‌ها و نتیجه‌ها (<bdi>dclab_core/serving.py</bdi>).</li>
-        <li>پایش: هشدار وقتی ردیف‌های تازه دیگر شبیه ردیف‌های آموزش نیستند.</li>
-        <li>آموزش دوباره با «قهرمان و رقیب»: مدل تازه فقط وقتی جای قبلی را می‌گیرد که روی تازه‌ترین بازه برنده شود.</li>
-      </ul>
-      <p class="warn">آنچه کم است: تبدیل چند مدل به یک تصمیم، و اجرای هر کدام از این‌ها داخل یک شرکت واقعی.</p>
-    </div>
-  </section>
+<h2 id="summary">1. Summary</h2>
+<p>DCLab has built a strong base over thirteen phases: an engine for most kinds of problem, leakage checks, traceable results, a record of every decision, and agents measured on sealed exams. All of it was measured on written people and invented or public tables. <b>No real data team uses DCLab every week yet, and no company has sent real outcomes back.</b> The vision is about real companies, their decisions and their outcomes, so the plan starts there.</p>
+<div class="tablebox"><table>
+  <thead><tr><th>Phase</th><th>Goal</th><th>Done when</th></tr></thead>
+  <tbody>
+    <tr><td><b>14</b> Real data teams</td><td>A Python SDK and three to five real teams using DCLab on their own problems.</td><td>Three teams use it weekly for four weeks; caught flaws and time saved are measured.</td></tr>
+    <tr><td><b>15</b> One model, one decision</td><td>A decision card for managers, built from pieces that already exist.</td><td>On three real problems, the promised gain is later checked against the outcome.</td></tr>
+    <tr><td><b>16</b> The live loop</td><td>Models in use: decisions logged, outcomes collected, monitoring and retraining.</td><td>One company completes two cycles; the second model beats the first on newer data.</td></tr>
+    <tr><td><b>17</b> Many models, one decision</td><td>The company decision model: several models, shared budgets and rules, one action.</td><td>It beats each model's own rule in measured gain: on an invented table, then in one company.</td></tr>
+    <tr><td><b>18</b> Grows with each company</td><td>Company memory and the company's own small models.</td><td>The company's own model beats the general one on new decisions, without forgetting.</td></tr>
+    <tr><td><b>19</b> The service</td><td>Cloud for many companies, security, pricing and sales.</td><td>Paying customers.</td></tr>
+  </tbody>
+</table></div>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">3 · Gaps for the data team</p>
-      <h2>The door into each company</h2>
-      <ol>
-        <li><b>No Python SDK.</b> A data scientist cannot write <code>import dclab</code> in a notebook and check a model. The open-source <code>dclabai</code> is a whole studio app, not a small library.</li>
-        <li><b>No path to production.</b> The code export rebuilds the final score, but it does not run as a job or a service inside a company.</li>
-        <li><b>The lead agent is not proven.</b> It beat Claude alone, but the judge agreed with your own marks only 66% of the time (the bar was 70%).</li>
-      </ol>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۳ · شکاف‌ها برای تیم داده</p>
-      <h2>در ورود به هر شرکت</h2>
-      <ol>
-        <li><b><bdi>Python SDK</bdi> نداریم.</b> یک دانشمند داده نمی‌تواند در نوت‌بوکش <bdi>import dclab</bdi> بنویسد و مدلی را بررسی کند. <bdi>dclabai</bdi> متن‌باز یک برنامه‌ی کامل است، نه یک کتابخانه‌ی کوچک.</li>
-        <li><b>راهی به محیط واقعی (<bdi>production</bdi>) نداریم.</b> خروجی کد نمره‌ی نهایی را دوباره می‌سازد، اما به‌صورت یک کار زمان‌بندی‌شده یا یک سرویس داخل شرکت اجرا نمی‌شود.</li>
-        <li><b>دستیار اصلی هنوز ثابت نشده.</b> از Claude تنها بهتر بود، اما داور فقط ۶۶٪ مواقع با نمره‌های خود شما هم‌نظر بود (حد قبولی ۷۰٪ بود).</li>
-      </ol>
-    </div>
-  </section>
+<h2 id="purpose">2. Purpose and scope</h2>
+<p>This document turns the vision into an order of work. It says what is missing, which phase closes each gap, how each phase is judged, and what the owner must decide. It is a plan, not a design: each phase will get its own detailed plan with numbered packages (from 38.x onward), written when the phase starts, in the same way as phases 1 to 13.</p>
+<p>Phase numbers continue after phase 13 (Claude first, the lead agent). Every phase follows DCLab's usual method: a test that fails first, the change, the checks, an adversarial review, a development record, and a gate fixed before the measurement.</p>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">4 · Gaps for the decision-maker</p>
-      <h2>From many predictions to one action</h2>
-      <ol>
-        <li><b>One model, one action only.</b> Nothing combines several models with a shared budget.</li>
-        <li><b>No business view.</b> Today's pages are for data scientists. A manager needs: "Call these 200 people. The expected gain is X. Here is why."</li>
-      </ol>
-      <p class="example">A Telco example: a churn model says who will leave. A value model says who is worth keeping. Uplift says who an offer would change. The budget is 500 discounts a month. Who gets them? That answer is the company decision model.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۴ · شکاف‌ها برای تصمیم‌گیر</p>
-      <h2>از چند پیش‌بینی به یک اقدام</h2>
-      <ol>
-        <li><b>فقط یک مدل، یک اقدام.</b> هیچ چیزی چند مدل را با یک بودجه‌ی مشترک کنار هم نمی‌گذارد.</li>
-        <li><b>نمای کسب‌وکار نداریم.</b> صفحه‌های امروز برای دانشمند داده است. یک مدیر لازم دارد: «به این ۲۰۰ نفر زنگ بزنید. سود مورد انتظار <bdi>X</bdi> است. دلیلش این است.»</li>
-      </ol>
-      <p class="example">یک مثال از <bdi>Telco</bdi>: مدل ریزش می‌گوید چه کسی می‌رود. مدل ارزش می‌گوید نگه داشتن چه کسی می‌ارزد. اثر افزایشی می‌گوید پیشنهاد، رفتار چه کسی را عوض می‌کند. بودجه ماهی ۵۰۰ تخفیف است. تخفیف‌ها به چه کسانی برسد؟ جواب همین سؤال، مدل تصمیم‌گیری شرکت است.</p>
-    </div>
-  </section>
+<h2 id="start">3. The starting point</h2>
+<p>What already exists and will be reused. Paths are in this repository.</p>
+<div class="tablebox"><table>
+  <thead><tr><th>Capability</th><th>Where</th><th>State</th></tr></thead>
+  <tbody>
+    <tr><td>Problem engine: 15 kinds supported, 2 partial, images not yet</td><td><code>dclab_rnd/kinds/</code>, <code>dclab_rnd/studio/</code></td><td>Built</td></tr>
+    <tr><td>Leakage review, train-only exploration, the final test read once</td><td><code>studio/leakage_review.py</code>, workflow graph WF-01 to WF-10</td><td>Built</td></tr>
+    <tr><td>Code export that rebuilds the final number in a clean environment</td><td><code>studio/code.py</code>, <code>make code-check</code></td><td>Built</td></tr>
+    <tr><td>Lineage: every number traced to its run</td><td><code>dclab_core/lineage.py</code>, <code>studio/lineage.py</code></td><td>Built</td></tr>
+    <tr><td>Operating point from costs and value per case; cost matrix</td><td><code>dclab_core/report.py</code>, <code>solution_brief.py</code></td><td>Built, one model</td></tr>
+    <tr><td>List sized to the team's capacity; uplift</td><td><code>dclab_core/capacity.py</code>, <code>uplift.py</code>, <code>anomaly.py</code></td><td>Built, one model</td></tr>
+    <tr><td>Prediction, decision and outcome log</td><td><code>dclab_core/serving.py</code>, <code>outcomes.py</code></td><td>Record shapes built; never fed by a company</td></tr>
+    <tr><td>Monitoring and retraining (champion and challenger)</td><td><code>dclab_core/monitoring.py</code>, <code>retrain.py</code></td><td>Built; never run in use</td></tr>
+    <tr><td>Decision ledger (45 points), consent, redaction, storage</td><td><code>dclab_core/ledger.py</code>, <code>dclab_rnd/consent.py</code>, <code>store/</code></td><td>Built</td></tr>
+    <tr><td>Small decision models in shadow, promoted only when measured better</td><td><code>dclab_rnd/ledger/routing.py</code>, <code>model_version.py</code></td><td>Built</td></tr>
+    <tr><td>The lead agent (understands first)</td><td>Phase 13</td><td>Partly proven: understanding 0.93 against 0.82 for Claude alone; failed on route (0.79 against 1.00) and traps</td></tr>
+    <tr><td>Open-source studio <code>dclabai</code>; developer app DCLab Code; tester kit</td><td>public repository; private repository; <code>dclab_rnd/testers/</code></td><td>Built</td></tr>
+    <tr><td>Cloud deployment code (AWS, Google Cloud)</td><td><code>deploy/</code></td><td>Written; never applied</td></tr>
+  </tbody>
+</table></div>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">5 · Gaps for "grows with the company"</p>
-      <h2>Learning from what really happened</h2>
-      <ol>
-        <li><b>The outcome loop never ran for real.</b> The record shapes exist, but no company has sent real outcomes back. Outcomes also come late: churn is known only weeks later.</li>
-        <li><b>A hidden trap.</b> If you act only on the people the model picks, you never learn about the others. The model then learns only from its own choices. The usual fix: a small random share, about 5%, gets a different action, so learning never stops.</li>
-        <li><b>No company's own model yet.</b> Consent and storage exist, but no model trained on one company has beaten the general one.</li>
-      </ol>
-      <p class="example">Like a doctor who tests only the patients they already suspect. They never find the cases they miss.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۵ · شکاف‌ها برای «رشد همراه شرکت»</p>
-      <h2>یاد گرفتن از آنچه واقعاً اتفاق افتاد</h2>
-      <ol>
-        <li><b>چرخه‌ی نتیجه هرگز واقعاً اجرا نشده.</b> شکل رکوردها هست، اما هیچ شرکتی نتیجه‌ی واقعی را برنگردانده. نتیجه‌ها دیر هم می‌رسند: ریزش مشتری چند هفته بعد معلوم می‌شود.</li>
-        <li><b>یک تله‌ی پنهان.</b> اگر فقط روی کسانی اقدام کنید که مدل انتخاب کرده، هیچ‌وقت درباره‌ی بقیه چیزی یاد نمی‌گیرید. آن‌وقت مدل فقط از انتخاب‌های خودش یاد می‌گیرد. راه‌حل معمول: سهم کوچک و تصادفی، حدود ۵٪، اقدام متفاوتی می‌گیرد، تا یادگیری هیچ‌وقت متوقف نشود.</li>
-        <li><b>هنوز هیچ شرکتی مدل مخصوص خودش را ندارد.</b> رضایت و ذخیره‌سازی آماده است، اما هیچ مدلی که روی یک شرکت آموزش دیده، از مدل عمومی بهتر نشده.</li>
-      </ol>
-      <p class="example">مثل دکتری که فقط بیمارهایی را آزمایش می‌کند که از قبل به آن‌ها شک دارد. هیچ‌وقت موردهایی را که از دستش می‌روند پیدا نمی‌کند.</p>
-    </div>
-  </section>
+<h2 id="gaps">4. Gap analysis</h2>
+<p>Each gap is something the vision needs that does not exist or has not been proven. The last column says which phase closes it.</p>
+<div class="tablebox"><table>
+  <thead><tr><th>#</th><th>Gap</th><th>Why it matters</th><th>Closed in</th></tr></thead>
+  <tbody>
+    <tr><td>G1</td><td>No real team uses DCLab weekly.</td><td>Every later phase needs real data, real decisions and real outcomes. Without users, every measurement stays on invented cases.</td><td>14</td></tr>
+    <tr><td>G2</td><td>No Python SDK. A data scientist cannot write <code>import dclab</code> in a notebook. <code>dclabai</code> is a whole studio, not a small library.</td><td>The notebook is where data teams work. It is the easiest door into a company.</td><td>14</td></tr>
+    <tr><td>G3</td><td>The lead agent is not proven: it failed its sealed gate on choosing the route and on traps.</td><td>The first thing a new user meets is the agent. A wrong route loses trust on day one.</td><td>14</td></tr>
+    <tr><td>G4</td><td>No business view. Pages are made for data scientists.</td><td>The decision-maker needs actions, gains and reasons, not metrics.</td><td>15</td></tr>
+    <tr><td>G5</td><td>Promised gains are never checked against what happened.</td><td>Without this check, a decision card is an opinion, not evidence.</td><td>15</td></tr>
+    <tr><td>G6</td><td>No path to use. The export rebuilds the score but does not run as a scheduled job inside a company.</td><td>A model that is not used produces no decisions and no outcomes.</td><td>16</td></tr>
+    <tr><td>G7</td><td>The outcome loop never ran. Outcomes also arrive late (churn is known weeks later).</td><td>"Grows with the company" means learning from outcomes. No outcomes, no growth.</td><td>16</td></tr>
+    <tr><td>G8</td><td>Learning bias: acting only on the cases the model picks teaches it nothing about the others.</td><td>The model would learn only from its own choices and could never correct its blind spots.</td><td>16</td></tr>
+    <tr><td>G9</td><td>Many models are never combined into one decision.</td><td>This is the heart of the business vision.</td><td>17</td></tr>
+    <tr><td>G10</td><td>No way to share budgets, capacity and rules across models, or to settle models that disagree.</td><td>Real decisions are limited by shared resources.</td><td>17</td></tr>
+    <tr><td>G11</td><td>No company has its own trained model.</td><td>The company-owned model is the lasting asset the vision promises.</td><td>18</td></tr>
+    <tr><td>G12</td><td>No multi-company cloud, security review, pricing or sales.</td><td>Needed to become a business, not a research project.</td><td>19</td></tr>
+    <tr><td>G13</td><td>No decision on who buys first: data teams or business buyers.</td><td>Two buyers at once can split a small team.</td><td>Owner decision D2</td></tr>
+  </tbody>
+</table></div>
 
-  <section class="row">
-    <div class="en">
-      <p class="step">6 · Business gaps</p>
-      <h2>Proof of value, and who buys first</h2>
-      <ol>
-        <li><b>No paying user, and no measured value</b> yet: euros saved, hours saved.</li>
-        <li><b>Two buyers.</b> Data teams buy cheaply and quickly. Business buyers pay more but take longer to sell to. One must come first.</li>
-      </ol>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۶ · شکاف‌های کسب‌وکار</p>
-      <h2>اثبات ارزش، و این‌که اول چه کسی می‌خرد</h2>
-      <ol>
-        <li><b>هنوز کاربر پولی نداریم، و ارزش اندازه‌گیری‌شده هم نداریم:</b> یوروی صرفه‌جویی‌شده، ساعت صرفه‌جویی‌شده.</li>
-        <li><b>دو خریدار.</b> تیم‌های داده ارزان و سریع می‌خرند. خریداران کسب‌وکار بیشتر پول می‌دهند، اما فروش به آن‌ها طول می‌کشد. یکی باید اول باشد.</li>
-      </ol>
-    </div>
-  </section>
+<h2 id="phases">5. The six phases</h2>
+<p>Sizes are relative (S, M, L), not dates. Dates are set when each phase is planned in detail.</p>
 
-  <section class="row key">
-    <div class="en">
-      <p class="step">7 · The phases</p>
-      <h2>Six phases, each with a test that says it is done</h2>
-      <div class="phases">
-        <div class="phase"><b class="n">Phase 14 · Real data teams</b><span>A small SDK around the engine. Three to five real teams (the tester kit) on their own problems. Finish proving the lead agent.</span><span class="done">Done when: three teams use it weekly for a month; real leaks caught and time saved are measured.</span></div>
-        <div class="phase"><b class="n">Phase 15 · One model, one decision</b><span>A decision card from the existing pieces: who to act on, the expected gain with its range, and why. A simple page for managers.</span><span class="done">Done when: on three real problems, the promised gain is checked later against what happened.</span></div>
-        <div class="phase"><b class="n">Phase 16 · The live loop</b><span>Batch scoring first, not live. Log every decision, collect outcomes, monitor, retrain. Add the small random share.</span><span class="done">Done when: one company runs two cycles, and the second model beats the first on newer data.</span></div>
-        <div class="phase"><b class="n">Phase 17 · Many models, one decision</b><span>The company decision model: shared customers, budgets, capacity and rules; models that disagree are settled.</span><span class="done">Done when: it beats each model's own rule in measured gain, first on an invented table, then in one real company.</span></div>
-        <div class="phase"><b class="n">Phase 18 · Grows with each company</b><span>Company memory and the company's own small models, trained on its decisions and outcomes, with consent. Used only when measured better.</span><span class="done">Done when: after some months, the company's own model beats the general one on new decisions.</span></div>
-        <div class="phase"><b class="n">Phase 19 · The service</b><span>Cloud for many companies, security, pricing, sales.</span><span class="done">Done when: there are paying customers.</span></div>
-      </div>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۷ · فازها</p>
-      <h2>شش فاز، هر کدام با آزمونی که می‌گوید تمام شده</h2>
-      <div class="phases">
-        <div class="phase"><b class="n">فاز ۱۴ · تیم‌های داده‌ی واقعی</b><span>یک <bdi>SDK</bdi> کوچک دور موتور. سه تا پنج تیم واقعی (با کیت آزمایش‌کننده‌ها) روی مسئله‌های خودشان. تمام کردن اثبات دستیار اصلی.</span><span class="done">تمام است وقتی: سه تیم یک ماه، هر هفته از آن استفاده کنند؛ نشت‌های واقعی پیدا‌شده و وقت صرفه‌جویی‌شده اندازه گرفته شود.</span></div>
-        <div class="phase"><b class="n">فاز ۱۵ · یک مدل، یک تصمیم</b><span>یک «کارت تصمیم» از تکه‌های موجود: روی چه کسی اقدام کنیم، سود مورد انتظار با بازه‌اش، و دلیلش. یک صفحه‌ی ساده برای مدیرها.</span><span class="done">تمام است وقتی: روی سه مسئله‌ی واقعی، سود وعده‌داده‌شده بعداً با آنچه واقعاً شد مقایسه شود.</span></div>
-        <div class="phase"><b class="n">فاز ۱۶ · چرخه‌ی زنده</b><span>اول امتیازدهی دسته‌ای، نه لحظه‌ای. ثبت هر تصمیم، جمع کردن نتیجه‌ها، پایش، آموزش دوباره. اضافه کردن سهم کوچک تصادفی.</span><span class="done">تمام است وقتی: یک شرکت دو دور کامل اجرا کند، و مدل دوم روی داده‌ی تازه‌تر از مدل اول بهتر باشد.</span></div>
-        <div class="phase"><b class="n">فاز ۱۷ · چند مدل، یک تصمیم</b><span>مدل تصمیم‌گیری شرکت: مشتری‌های مشترک، بودجه، ظرفیت و قانون‌ها؛ و حل اختلاف مدل‌هایی که با هم موافق نیستند.</span><span class="done">تمام است وقتی: در سود اندازه‌گیری‌شده از قانون خودِ هر مدل بهتر باشد؛ اول روی یک جدول ساختگی، بعد در یک شرکت واقعی.</span></div>
-        <div class="phase"><b class="n">فاز ۱۸ · رشد همراه هر شرکت</b><span>حافظه‌ی شرکت و مدل‌های کوچک مخصوص خود شرکت، آموزش‌دیده روی تصمیم‌ها و نتیجه‌هایش، با رضایت. فقط وقتی به کار می‌رود که در اندازه‌گیری بهتر بوده باشد.</span><span class="done">تمام است وقتی: بعد از چند ماه، مدل خود شرکت روی تصمیم‌های تازه از مدل عمومی بهتر باشد.</span></div>
-        <div class="phase"><b class="n">فاز ۱۹ · سرویس</b><span>ابر برای شرکت‌های زیاد، امنیت، قیمت‌گذاری، فروش.</span><span class="done">تمام است وقتی: مشتری پولی داشته باشیم.</span></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="row">
-    <div class="en">
-      <p class="step">8 · Why this order</p>
-      <h2>Each phase needs the one before it</h2>
-      <ul>
-        <li>Phase 17 is the heart of the vision. But it needs Phase 16: a combined decision cannot be judged without real outcomes.</li>
-        <li>Phase 16 needs a real company. That comes from Phase 14.</li>
-        <li>Phase 15 is cheap, because its pieces exist. It is the first thing a manager can see.</li>
-      </ul>
-      <p class="warn">What to pause until Phase 14 has real users: new internal exams, more small student models, and more storage work. They are good tools, but they do not move DCLab toward the vision now.</p>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۸ · چرا این ترتیب</p>
-      <h2>هر فاز به فاز قبلی‌اش نیاز دارد</h2>
-      <ul>
-        <li>فاز ۱۷ قلب چشم‌انداز است. اما به فاز ۱۶ نیاز دارد: بدون نتیجه‌ی واقعی، نمی‌شود یک تصمیم ترکیبی را قضاوت کرد.</li>
-        <li>فاز ۱۶ به یک شرکت واقعی نیاز دارد. آن شرکت از فاز ۱۴ می‌آید.</li>
-        <li>فاز ۱۵ ارزان است، چون تکه‌هایش موجود است. اولین چیزی است که یک مدیر می‌تواند ببیند.</li>
-      </ul>
-      <p class="warn">آنچه تا وقتی فاز ۱۴ کاربر واقعی پیدا کند متوقف می‌شود: امتحان‌های داخلی تازه، مدل‌های کوچک «دانش‌آموز» بیشتر، و کار بیشتر روی ذخیره‌سازی. ابزارهای خوبی‌اند، اما الان DCLab را به چشم‌انداز نزدیک نمی‌کنند.</p>
-    </div>
-  </section>
-
-  <section class="row">
-    <div class="en">
-      <p class="step">9 · Your decisions</p>
-      <h2>Three choices only you can make</h2>
-      <ol>
-        <li>Which three to five real teams or companies come first? HyperAck is real company data: is it a possible first partner?</li>
-        <li>Who comes first: data teams or business buyers? The recommendation is data teams.</li>
-        <li>Is the SDK part of the open-source <code>dclabai</code>, or private?</li>
-      </ol>
-    </div>
-    <div class="fa" lang="fa">
-      <p class="step">۹ · تصمیم‌های شما</p>
-      <h2>سه انتخاب که فقط شما می‌توانید بکنید</h2>
-      <ol>
-        <li>کدام سه تا پنج تیم یا شرکت واقعی اول باشند؟ <bdi>HyperAck</bdi> داده‌ی یک شرکت واقعی است: آیا می‌تواند اولین شریک باشد؟</li>
-        <li>اول چه کسی: تیم‌های داده یا خریداران کسب‌وکار؟ پیشنهاد، تیم‌های داده است.</li>
-        <li><bdi>SDK</bdi> بخشی از <bdi>dclabai</bdi> متن‌باز باشد، یا خصوصی بماند؟</li>
-      </ol>
-    </div>
-  </section>
-
+<div class="phase" id="p14">
+  <h3>Phase 14 · Real data teams <span class="size">Size L</span></h3>
+  <p class="goal">Put DCLab in the hands of three to five real data teams, through a Python SDK in their own notebooks, and prove the lead agent.</p>
+  <dl>
+    <dt>Why now</dt><dd>Every other phase depends on real users (G1). This is also the cheapest phase to learn from.</dd>
+    <dt>Builds on</dt><dd>The engine, <code>dclab_core</code> (portable, installs as a wheel), the notebook companion, the tester kit, the open core <code>dclabai</code>, the lead agent of phase 13.</dd>
+    <dt>Work</dt><dd><ul>
+      <li><b>The SDK.</b> A small library over <code>dclab_core</code>: check a table or a notebook for leakage and split errors; build a model with the engine; export the code. Three or four calls, no server needed.</li>
+      <li><b>First teams.</b> Three to five teams on their own problems, running locally with the tester kit, so their data never leaves their machine. A short weekly check-in with each team.</li>
+      <li><b>Prove the lead agent.</b> Fix the route and trap failures on practice exams only, then one fresh sealed exam. Until it passes, Home keeps its rules.</li>
+      <li><b>Capture.</b> With each team's consent, record sessions, decisions and corrections, as every phase does.</li>
+    </ul></dd>
+    <dt>Out of scope</dt><dd>The decision layer, the cloud, pricing.</dd>
+    <dt>Done when</dt><dd>Three teams use DCLab every week for four weeks. In each team, at least one real flaw (leakage, a wrong split, a false score) is caught before export and confirmed by the team. Time from raw data to the first trusted model is measured. The lead agent passes a fresh sealed exam, or the result is recorded and Home stays on rules.</dd>
+    <dt>Risks</dt><dd>Finding teams willing to try it; privacy concerns (answered by running locally); the SDK growing too large (keep it to a few calls).</dd>
+    <dt>Owner decides</dt><dd>D1 (which teams), D3 (SDK open or private).</dd>
+  </dl>
 </div>
+
+<div class="phase" id="p15">
+  <h3>Phase 15 · One model, one decision <span class="size">Size M</span></h3>
+  <p class="goal">Turn one model's predictions into a decision card a manager can act on, and check its promise later.</p>
+  <dl>
+    <dt>Why now</dt><dd>The pieces exist, so it is cheap, and it is the first thing a decision-maker can see (G4, G5).</dd>
+    <dt>Builds on</dt><dd>The operating point from costs and value per case, the cost matrix, capacity-sized lists, uplift, the solution brief's success bar, outcomes linked to decisions.</dd>
+    <dt>Work</dt><dd><ul>
+      <li><b>The decision card.</b> Who to act on and how many; the expected gain with its range; the reasons, every number traced; what changes if a cost or a budget changes.</li>
+      <li><b>The manager's page.</b> One simple page with the card, separate from the data scientist's pages.</li>
+      <li><b>The promise as a record.</b> Each card stores its expected gain as a decision record, so the real result can be compared with it later.</li>
+    </ul></dd>
+    <dt>Out of scope</dt><dd>Several models together; automatic scheduling.</dd>
+    <dt>Done when</dt><dd>On three real problems from phase 14's teams, a decision card was used, and its promised gain was later compared with the observed result, whatever that result was.</dd>
+    <dt>Risks</dt><dd>Teams cannot state their costs (offer ranges and show how the decision changes across them); outcomes take long (choose problems with short feedback first).</dd>
+  </dl>
+</div>
+
+<div class="phase" id="p16">
+  <h3>Phase 16 · The live loop <span class="size">Size L</span></h3>
+  <p class="goal">Run a model in use inside one company: score, decide, log, collect outcomes, watch, and retrain.</p>
+  <dl>
+    <dt>Why now</dt><dd>Phases 17 and 18 cannot be judged without real outcomes (G6, G7, G8).</dd>
+    <dt>Builds on</dt><dd>The code export, the prediction-decision-outcome log, monitoring, the retrain policy with champion and challenger, lineage.</dd>
+    <dt>Work</dt><dd><ul>
+      <li><b>Batch scoring first.</b> The exported pipeline runs as a scheduled job (daily or weekly) inside the company. A live API comes later, only if needed.</li>
+      <li><b>Outcomes in.</b> A simple way to bring outcomes back: a file or a database table, matched to decisions by key.</li>
+      <li><b>Watch and retrain.</b> Monitoring alerts; retraining only when enough new labelled rows exist; the challenger replaces the champion only if it wins on the newest window.</li>
+      <li><b>A small exploration share.</b> About 5% of cases, agreed with the company, get a different action, so the model keeps learning about the cases it would not pick.</li>
+      <li><b>Promise against reality.</b> A regular report: what each decision card promised, and what happened.</li>
+    </ul></dd>
+    <dt>Out of scope</dt><dd>Real-time serving; many companies at once.</dd>
+    <dt>Done when</dt><dd>One company completes two full cycles (score, decide, outcome, retrain), and the second model beats the first on newer labelled data, with its range. The exploration share is in place and agreed.</dd>
+    <dt>Risks</dt><dd>Access to the company's systems; outcome delay; the exploration share has a cost (keep it small, agreed and visible).</dd>
+    <dt>Owner decides</dt><dd>D4 (exploration policy), D5 (the first company).</dd>
+  </dl>
+</div>
+
+<div class="phase" id="p17">
+  <h3>Phase 17 · Many models, one decision <span class="size">Size L</span></h3>
+  <p class="goal">Build the company decision model: several models about the same customer or case, under shared budgets, capacity and rules, turned into one best action.</p>
+  <dl>
+    <dt>Why now</dt><dd>It is the heart of the vision (G9, G10), and it can be judged only once phase 16 brings real outcomes.</dd>
+    <dt>Builds on</dt><dd>Entity tables (one row per customer at a cutoff), uplift, capacity, the composition of several leaves into one programme, the decision card.</dd>
+    <dt>Work</dt><dd><ul>
+      <li><b>One view per case.</b> Every model's prediction about the same customer or order in one place.</li>
+      <li><b>Constraints.</b> Budgets, capacity, business rules and minimums, written once and shared by all models.</li>
+      <li><b>Choosing.</b> An optimiser that picks the actions with the highest expected value under the constraints.</li>
+      <li><b>Disagreements.</b> Clear rules when models disagree, and the reason shown.</li>
+      <li><b>Invented table first.</b> A replica with planted truth (for example churn, value and uplift for a telecom company), so the right answer is known; then one real company.</li>
+    </ul></dd>
+    <dt>Done when</dt><dd>On the replica, it beats each model's own rule by a margin fixed before the run. In one real company, its measured gain beats the previous way of deciding, with its range.</dd>
+    <dt>Risks</dt><dd>Uplift needs history where actions varied (phase 16's exploration share provides it); too many constraints make results hard to explain (start with budget and capacity only).</dd>
+  </dl>
+</div>
+
+<div class="phase" id="p18">
+  <h3>Phase 18 · Grows with each company <span class="size">Size M</span></h3>
+  <p class="goal">Each company gets its own memory and its own small models, trained on its own decisions and outcomes.</p>
+  <dl>
+    <dt>Why now</dt><dd>This turns DCLab from a tool into the company's lasting asset (G11). It needs months of decisions and outcomes from phases 16 and 17.</dd>
+    <dt>Builds on</dt><dd>The agents' memory (phase 11), the small decision models in shadow and their routing (phase 7), versions with roll-back and the no-forgetting exam, consent.</dd>
+    <dt>Work</dt><dd><ul>
+      <li><b>Company memory.</b> Its costs, rules, corrections and past decisions, read by every agent.</li>
+      <li><b>Company models.</b> Small models trained on the company's own decisions and outcomes, run in shadow first.</li>
+      <li><b>Promotion.</b> A company model takes over a choice only after it measured better than the general one on the company's new decisions.</li>
+      <li><b>No forgetting.</b> A frozen exam per company, run before each new version is accepted.</li>
+    </ul></dd>
+    <dt>Done when</dt><dd>After several cycles, the company's own model beats the general one on its new decisions, and passes its no-forgetting exam.</dd>
+    <dt>Risks</dt><dd>Too little data per company (pool across companies only with consent, never their values); a model that fits the past too closely (judge only on newer data).</dd>
+  </dl>
+</div>
+
+<div class="phase" id="p19">
+  <h3>Phase 19 · The service <span class="size">Size L</span></h3>
+  <p class="goal">Offer DCLab to many companies, safely, at a price.</p>
+  <dl>
+    <dt>Why now</dt><dd>Only after phases 14 to 16 show value in real use (G12).</dd>
+    <dt>Builds on</dt><dd>The cloud code in <code>deploy/</code>, accounts and roles, usage limits, the audit trail, consent and retention.</dd>
+    <dt>Work</dt><dd>A multi-company cloud; a security review; where data lives; pricing (for example per data team for layer 1, and by decision value for layers 2 and 3); onboarding and support; the line between the open core and the paid service.</dd>
+    <dt>Done when</dt><dd>Paying customers, in a number the owner sets before the phase starts.</dd>
+    <dt>Risks</dt><dd>Selling to business buyers takes long; security reviews of large companies take long.</dd>
+  </dl>
+</div>
+
+<h2 id="order">6. Order and dependencies</h2>
+<div class="chain" role="img" aria-label="Phase 14, then 15, then 16, then 17, then 18, then 19">
+  <span class="p">14 Real teams</span><span class="a">→</span><span class="p">15 One decision</span><span class="a">→</span><span class="p">16 Live loop</span><span class="a">→</span><span class="p">17 Many models</span><span class="a">→</span><span class="p">18 Company models</span><span class="a">→</span><span class="p">19 Service</span>
+</div>
+<ul>
+  <li><b>17 needs 16.</b> A combined decision cannot be judged without real outcomes, and uplift needs the variety that the exploration share brings.</li>
+  <li><b>16 needs 14.</b> A live loop needs a real company, and the first company comes from the first teams.</li>
+  <li><b>15 can overlap 14.</b> Its pieces exist; it can start as soon as the first team has a model.</li>
+  <li><b>18 needs time.</b> It starts once a company has several cycles of decisions and outcomes.</li>
+  <li><b>19 can be prepared early</b> (security, pricing ideas), but selling waits for measured value.</li>
+</ul>
+<p class="box example"><b>Why this order, in one picture.</b> A restaurant: first the kitchen must cook well (14), then the menu must suit the guests (15), then guests must come back (16). Only then does a bigger menu (17), a chef who knows each regular guest (18), or a second restaurant (19) make sense.</p>
+
+<h2 id="continue">7. What continues and what pauses</h2>
+<h3>Continues in every phase</h3>
+<ul>
+  <li>Capture: every agent and process records its full data, with the model's thinking summary, for DCLab's own models.</li>
+  <li>The rules of honest measurement: gates fixed before runs, sealed exams read once, promotion only when measured better.</li>
+  <li>The lead agent's fixes, until it passes a fresh sealed exam (part of phase 14).</li>
+</ul>
+<h3>Pauses until phase 14 has real users (proposed)</h3>
+<ul>
+  <li>New internal exams beyond the lead agent's.</li>
+  <li>More small decision models ("students") for new decision points.</li>
+  <li>New storing and archive work beyond keeping what exists running.</li>
+  <li>Phase 9's learning loop, as a separate phase: its useful parts move into phases 16 and 18.</li>
+</ul>
+<p class="box caution">These are good tools, but they do not move DCLab toward the vision now. Real users do.</p>
+
+<h2 id="risks">8. Risks</h2>
+<div class="tablebox"><table>
+  <thead><tr><th>Risk</th><th>Effect</th><th>Response</th></tr></thead>
+  <tbody>
+    <tr><td>No team agrees to try DCLab</td><td>Phase 14 stalls, and so does everything after it.</td><td>Start with people the owner knows; run locally so data never leaves; offer the leakage check as a free first step.</td></tr>
+    <tr><td>Building infrastructure instead of meeting users</td><td>More phases, still no proof.</td><td>Each phase ends only on a real-use test; the pause list in section 7.</td></tr>
+    <tr><td>Two buyers at once</td><td>A small team split between two kinds of product.</td><td>Data teams first (recommended in D2).</td></tr>
+    <tr><td>Slow outcomes</td><td>Phases 16 to 18 take longer than planned.</td><td>Choose first problems with short feedback (days or weeks, not months).</td></tr>
+    <tr><td>Exploration share refused or too costly</td><td>The model learns only from its own picks.</td><td>Keep it small, agreed and visible; show what it teaches.</td></tr>
+    <tr><td>Results tuned on invented cases</td><td>Good scores that fail with real companies.</td><td>Invented replicas only for a first check; the real test is always a real company.</td></tr>
+    <tr><td>Company data concerns</td><td>Companies refuse to share.</td><td>Local runs, consent off by default, table values never in records, the audit trail.</td></tr>
+    <tr><td>Limited model spend</td><td>Fewer live tests than needed.</td><td>Small capped runs; local models and rules where they measured good enough.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="scoreboard">9. Scoreboard</h2>
+<p>The numbers to report at the end of each phase.</p>
+<div class="tablebox"><table>
+  <thead><tr><th>Phase</th><th>Main number</th><th>Also report</th></tr></thead>
+  <tbody>
+    <tr><td>14</td><td>Teams using DCLab weekly</td><td>Flaws caught and confirmed; time to first trusted model; the lead agent's sealed result</td></tr>
+    <tr><td>15</td><td>Decision cards used</td><td>Promised gain against observed result, per card</td></tr>
+    <tr><td>16</td><td>Full cycles completed</td><td>Second model against first on newer data; monitoring alerts; exploration share kept</td></tr>
+    <tr><td>17</td><td>Measured gain against each model's own rule</td><td>Result on the replica; result in the company, with its range</td></tr>
+    <tr><td>18</td><td>Companies whose own model beats the general one</td><td>No-forgetting exam results</td></tr>
+    <tr><td>19</td><td>Paying customers</td><td>How long they stay; the value of their decisions</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="decisions">10. Decisions needed from the owner</h2>
+<div class="tablebox"><table>
+  <thead><tr><th>#</th><th>Decision</th><th>Recommendation</th><th>Needed for</th></tr></thead>
+  <tbody>
+    <tr><td>D1</td><td>Which three to five real teams or companies come first?</td><td>People the owner knows, with problems that have short feedback.</td><td>Phase 14</td></tr>
+    <tr><td>D2</td><td>Who comes first: data teams or business buyers?</td><td>Data teams. They are the door into each company, and the decision layer needs their models.</td><td>Phase 14</td></tr>
+    <tr><td>D3</td><td>Is the SDK part of the open-source <code>dclabai</code>, or private?</td><td>Open: it makes the first step free and easy; the decision and learning layers stay private.</td><td>Phase 14</td></tr>
+    <tr><td>D4</td><td>The exploration policy: how large a share, and who approves it?</td><td>About 5%, agreed with each company and shown in every report.</td><td>Phase 16</td></tr>
+    <tr><td>D5</td><td>Is HyperAck a possible first company for the live loop?</td><td>Ask, since its data is already in the project (under its terms).</td><td>Phase 16</td></tr>
+    <tr><td>D6</td><td>Do you agree with the pause list in section 7?</td><td>Yes.</td><td>Now</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="related">11. Related documents</h2>
+<ul>
+  <li><a href="vision.html">DCLab Vision</a>: the goal this plan works toward.</li>
+  <li><code>docs/guides/ROADMAP.md</code>: phases 1 to 13, built.</li>
+  <li><code>docs/guides/THREE_MODELS.md</code>: DCLab's own models and their data.</li>
+  <li><code>docs/guides/PHASE9_LEARNING_LOOP_PLAN.md</code>: the learning loop plan, folded into phases 16 and 18 (proposed).</li>
+  <li><code>docs/guides/TESTERS.md</code>: the tester kit used in phase 14.</li>
+</ul>
+
+</article>
 </body>
 </html>

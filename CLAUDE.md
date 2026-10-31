@@ -4,7 +4,7 @@ This file gives every Claude Code session (cloud or local) the context it needs.
 
 ## What this repository is
 
-The research arm of DCLab. It measures how to build ML models that are *right* (leakage-safe, honestly evaluated) and turns the evidence into tools: an evidence index, a notebook copilot, agent tools, and SFT data for a future small model. The owner prefers answers in clear English **and** Persian.
+The research arm of DCLab. It measures how to build ML models that are *right* (leakage-safe, honestly evaluated) and turns the evidence into tools: an evidence index, a notebook copilot, agent tools, and SFT data for a future small model. The owner prefers answers in clear English; official documents (vision, plans, strategy) are English only, detailed and complete, and only technical explanations may also be in Persian.
 
 **The vision (the owner, 2026-11-01; the goal every plan works toward):** from raw data to trusted models, and from models to better decisions: an assistant for the data science and ML team, and each company's own decision model, built on its data, that grows with the business. `docs/vision/VISION.md`.
 
