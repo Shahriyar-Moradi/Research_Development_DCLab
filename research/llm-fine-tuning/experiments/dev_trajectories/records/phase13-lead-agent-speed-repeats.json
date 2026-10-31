@@ -39,9 +39,13 @@
   {
    "decision": "The judge is told that length is not understanding",
    "why": "on the owner's 7 papers the judge was kinder to the long lead agent; re-judged with the rule, agreement rose from 0.65 to 0.71 (EUR 0.04)"
+  },
+  {
+   "decision": "Fix the lead agent's route drift in code and test it against Claude alone with DCLab's safety layer",
+   "why": "sealed v2: Claude alone reached the right route for 19 of 19, the lead agent 15; it talked 4 to 8 turns and drifted into advice, the one kind of help allowed before the case was ready"
   }
  ],
- "change": "dclab_rnd/agents/case_agent.py (goes_ahead, CONFIRMS, the go-ahead refusal in ask, QUERIES_A_TURN, the code read of the table at turn start); dclab_rnd/agent_eval/conversation_exam/__init__.py (practice_effort); tests/test_case_agent.py (SpeedAndGoAheadTests, QueryCapTests), tests/test_conversation_exam.py (PracticeEffortTests); prompts case_agent.md (short messages) and exam_judge.md (length is not understanding)",
+ "change": "dclab_rnd/agents/case_agent.py (goes_ahead, CONFIRMS, the go-ahead refusal in ask, QUERIES_A_TURN, the code read of the table at turn start); dclab_rnd/agent_eval/conversation_exam/__init__.py (practice_effort); tests/test_case_agent.py (SpeedAndGoAheadTests, QueryCapTests), tests/test_conversation_exam.py (PracticeEffortTests); prompts case_agent.md (short messages) and exam_judge.md (length is not understanding); the advice door (data_work), the turn budget (budget_reached), the route check (route_check purpose, Haiku, the person's words and column names only), the SafeArm exam arm, conversation-exam routing rows for m7_routing",
  "findings": [
   {
    "id": "F1",
@@ -112,6 +116,56 @@
    "cause": "sentences with numbers nobody gave or code computed are dropped; when they are the answer, the rewrite can still fail and the leftover question is sent",
    "fix": "the rewrite names the numbers allowed (exactly as the tools returned them, or the person's own; otherwise words); a rewrite left with questions only or mostly cut gets one stricter try",
    "test": "tests/test_case_agent.py NumberCutTests"
+  },
+  {
+   "id": "F8",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The lead agent drifted into advice when work was needed",
+   "scenario": "sealed v2: 4 route errors ended as advice; practice: 6",
+   "cause": "advice was the only kind of help allowed before the case was ready (NO_DATA_WORK)",
+   "fix": "advice before readiness only when nothing asks for data work; a turn budget opens propose and start after 3 turns with the goal and the data known; a cheap second reading checks a start once",
+   "test": "tests/test_case_agent.py RouteDriftTests, RouteDriftReviewTests"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The first advice door blocked a real advice question",
+   "scenario": "practice d-40: a table shared and 'is tenure_months leaky? yes or no' refused advice until the case was ready",
+   "cause": "a shared table alone counted as data work, and the budget did not open advice",
+   "fix": "a table counts as data work only with a general request for help or no specific method question; the budget opens advice too",
+   "test": "tests/test_case_agent.py RouteDriftReviewTests.test_a_yes_or_no_method_question_with_a_table_still_gets_advice"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The turn budget never switched off",
+   "scenario": "after a start, every later question was refused, so declines went uncounted",
+   "cause": "budget_reached was recomputed without the route or the pick",
+   "fix": "off once work started or an option was picked",
+   "test": "tests/test_case_agent.py RouteDriftReviewTests.test_the_turn_budget_switches_off_once_work_has_started"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The SafeArm comparison checked the message but not the option cards",
+   "scenario": "an option 'reaches about 80% of churners' counted as an invented number against arm B",
+   "cause": "only the text went through the check",
+   "fix": "cards with numbers nobody gave are dropped (none shown if fewer than two remain)",
+   "test": "tests/test_conversation_exam.py SafeArmTests"
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The route check had no test that its thinking is stored",
+   "scenario": "rule 8: a new purpose needs one",
+   "cause": "only the thinking setting was tested",
+   "fix": "a scripted-gateway test asserts the stored exchange holds the thinking summary",
+   "test": "tests/test_thinking_everywhere.py test_route_check_keeps_its_thinking"
   }
  ],
  "measurements": [
@@ -161,6 +215,13 @@
    "name": "blind pairs by three Claude models (Opus, Sonnet, Haiku), run by the owner",
    "gate": "a human-free second view of lead agent vs Claude alone",
    "result": "all three agree on 6 of 8 pairs; by majority the lead agent wins 6 of 8, Claude alone 2 (one is the yes-after-yes bug, now fixed)",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "routing rows from the conversation exams",
+   "gate": "every exam conversation a routing example for m7_routing, sealed ones without words",
+   "result": "189 rows (182 labelled by the written truth), 356 readings: the lead agent 141, Claude alone 129, Home 86",
    "verdict": "pass",
    "cost_eur": 0.0
   }

@@ -34,6 +34,50 @@ TOOLS = ("read_table", "query", "check_leakage", "preview_step", "note", "add_un
 BUILDS = ("ml_project", "segmentation_project")  # what a build request starts: a project
 ENDS_TURN = ("ask",)  # a question ends the turn; after options or a start the agent writes its message (CEX-005: both came bare)
 NO_DATA_WORK = ("advice",)  # an answer with no data work starts without a ready case: nothing is built
+# 2026-11-01 (sealed v2: four route errors ended as advice): advice opens before the case is ready only when nothing points to
+# data work; with a table shared, or a list, report, model or cleaning asked for, it waits for readiness like the rest
+DATA_WORK = re.compile(r"\b(?:build|make|give|send|create|prepare|set up|get)\b[^.?!]{0,40}\b(?:list|report|dashboard|model|forecast|"
+                       r"chart|ranking|file)s?\b|\bclean (?:up )?(?:my|the|our|this)\b|\b(?:rank|segment|group) (?:my|our|the) \w+|"
+                       r"\bpredict (?:which|who|whether)\b|\bforecast (?:the|our|next)\b|\bdedup\w*|\bmerge (?:the|our|these|my)\b", re.I)
+JUST_ANSWER = re.compile(r"\b(?:no data work|just (?:the )?answer|quick q(?:uestion)?|in general|in theory)\b", re.I)
+HELP = re.compile(r"\b(?:can you help|help me|help us|what can you do|how can you help|i need help)\b", re.I)
+TURN_BUDGET = 3  # the person's turns after which, with the goal and the data known, the agent proposes or starts
+ROUTE_MODEL = "claude-haiku-5-5"  # the cheap second reading of the route
+
+
+def data_work(state: "CaseState") -> bool:
+    """Something in the case asks for work on data: the person asks for a list, report, model or cleaning; or a table is shared
+    and the person asks for help in general rather than a specific question about method (the review of 2026-11-01: a shared
+    table alone did not make d-40's yes-or-no leakage question data work)."""
+    words = " ".join(state.case.words)
+    if JUST_ANSWER.search(words):
+        return False
+    if DATA_WORK.search(words):
+        return True
+    if state.table is None:
+        return False
+    asks_method = "?" in words and bool(re.search(r"\b(?:leak\w*|metric|which|should (?:i|we)|is (?:it|this|that|\w+_\w+)|difference|versus|vs\.?|yes or no|how do i|why)\b", words, re.I))
+    return bool(HELP.search(words)) or not asks_method
+
+
+def route_reading(client: Any, state: "CaseState") -> Optional[str]:
+    """A second, cheap reading of which kind of help the person needs: the person's own words and the table's column names
+    only (never the assistant's messages, which may quote group names), answered with one track; None when it cannot."""
+    if client is None:
+        return None
+    cols = ", ".join(c["name"] for c in (state.table or {}).get("columns") or [])
+    words = "\n".join(f"- {w}" for w in state.case.words[-8:])
+    try:
+        if hasattr(client, "request_cells"):  # the person may repeat a group name the agent showed: then the request holds cells
+            client.request_cells = bool(state.group_names) and any(g in " ".join(state.case.words) for g in state.group_names)
+        out = client.complete([{"role": "system", "content": prompts.text("route_check")},
+                               {"role": "user", "content": f"The person's messages:\n{words}\n\nTheir table's columns: {cols or 'no table shared'}"}],
+                              None, max_tokens=1500)
+    except Exception:  # noqa: BLE001 - a second reading that fails never blocks the agent
+        return None
+    text = str((out or {}).get("content") or "").lower()
+    found = [t for t in C.TRACKS if re.search(rf"\b{t}\b", text)] if hasattr(C, "TRACKS") else []
+    return found[0] if len(found) == 1 else None
 DECLINES = re.compile(r"\b(?:not sure|no idea|don'?t know|do not know|can'?t say|rather not say|no clue)\b", re.I)
 WHOLE_DECLINE = re.compile(r"^\s*(?:pass|skip|skip it|next|no idea|dunno)\W*$", re.I)
 DECLINE_WORDS = 6  # the review: "I don't know who will leave, that is the problem" is an answer, not a pass
@@ -103,6 +147,9 @@ class CaseState:
     wants_options: bool = False  # the person asked, in this message, to see what DCLab can do
     go_ahead: bool = False  # the person told the agent, in this message, to go ahead: no confirmation question (2026-10-31)
     queries: int = 0  # the table queries in this turn (at most QUERIES_A_TURN)
+    budget_reached: bool = False  # 2026-11-01: three turns with the goal and the data known: propose or start, no more asking
+    route_client: Any = None  # 2026-11-01: the cheap second reading of the route (purpose route_check); None: no check
+    route_checked: bool = False  # the second reading asks once a case
     rewriting: bool = False  # the agent is rewriting dropped sentences: no move may run (the review: a question counted twice)
     trace: Any = None  # one tracer for the whole case, so its turns are one conversation in the record
     frame: Any = None  # the shared table itself (never sent to a model; the data tools read it)
@@ -283,6 +330,9 @@ def _confirm(state: CaseState, index: int, quote: str, reject: bool = False) -> 
 def _ask(state: CaseState, question: str) -> dict[str, Any]:
     if not str(question).strip():
         return {"error": "the question is empty"}
+    if state.budget_reached and not any(u.blocks == "all" for u in state.case.unknowns):
+        return {"error": f"after {TURN_BUDGET} turns you know the goal and the data: propose or start now, stating anything still "
+                         "open as an assumption the person can correct"}
     if state.go_ahead and CONFIRMS.search(str(question)):
         return {"error": "the person told you to go ahead: act now (start the work, or request_build if they said yes to building) "
                          "and tell them what you did; do not ask them to confirm again. Ask only about something the work cannot "
@@ -295,7 +345,7 @@ def _ask(state: CaseState, question: str) -> dict[str, Any]:
 
 def _propose(state: CaseState, options: list[dict[str, Any]]) -> dict[str, Any]:
     r = C.readiness(state.case)
-    if not r.may_propose and not state.case.chosen and not state.wants_options:
+    if not r.may_propose and not state.case.chosen and not state.wants_options and not state.budget_reached:
         return {"error": "not yet: " + "; ".join(r.reasons) + ". Ask about what is missing, or propose once the ceiling is reached."}
     try:
         offered = [C.CaseOption(**{k: v for k, v in o.items() if k in C.CaseOption.model_fields}) for o in options or []]
@@ -325,8 +375,17 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
         state.case = C.apply(state.case, "route", C.CaseRoute(track=track, tool=tool, by="person"), by="person", why=f"the person asked: {quote}")
         return {"started": f"{track}/{tool}", "next": "tell the person the work changed as they asked"}
     r = C.readiness(state.case)
-    if not state.case.chosen and not r.ready and track not in NO_DATA_WORK:
+    if track in NO_DATA_WORK and not state.case.chosen and not r.ready and not state.budget_reached and data_work(state):
+        return {"error": "the person's need points to data work (a shared table, or a list, report, model or cleaning): advice "
+                         "answers a question with no work on data. Propose or start the work their need calls for."}
+    if not state.case.chosen and not r.ready and not state.budget_reached and track not in NO_DATA_WORK:
         return {"error": "the person has not chosen and the case is not ready: " + "; ".join(r.reasons)}
+    if not state.case.chosen and state.route_client is not None and not state.route_checked:
+        state.route_checked = True
+        second = route_reading(state.route_client, state)
+        if second and second != track:
+            return {"error": f"a second reading of the person's own words points to {second}, not {track}. Read their words again; "
+                             f"start {second} unless their words clearly call for {track}."}
     state.case = C.apply(state.case, "route", C.CaseRoute(track=track, tool=tool, by="agent"), by="agent", why="work started")
     return {"started": f"{track}/{tool}", "next": "now tell the person in a few sentences what happens next, then stop"}
 
@@ -475,6 +534,9 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
         state.trace = tracer("case")
     state.turns.append({"role": "user", "content": str(words)})
     state.said, state.shown, state.asking = [], [], False
+    person_turns = sum(1 for t in state.turns if t.get("role") == "user")
+    state.budget_reached = (person_turns > TURN_BUDGET and C.known(state.case.goal) and C.known(state.case.data)
+                            and state.case.route is None and not state.case.chosen)  # the review: off once work started or was picked
     built = ctx.build(state.case, state.turns, state.table)
     messages = ctx.messages(prompts.text(PROMPT), built)
     start = len(messages)

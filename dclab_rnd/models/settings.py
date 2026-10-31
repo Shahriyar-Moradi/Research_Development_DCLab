@@ -149,6 +149,9 @@ PURPOSES: dict[str, Purpose] = {
                                                 "code computed that holds no group name (leakage findings in words, a step's counts); a group "
                                                 "name only when the lead agent's words or notes repeat one (then its request is marked "
                                                 "as holding cells and kept redacted); never a row", cell_values=40, keeps_text=True),
+    "route_check": Purpose("standard", 60, "2026-11-01: the lead agent's second reading of the route (served by Haiku 5.5): the person's "
+                                          "own messages and the shared table's column names; never the assistant's messages, a row or a "
+                                          "cell value", cell_values=0, keeps_text=True),
     "exam_plain": Purpose("standard", 180, "37.0: the conversation exam's Claude-alone arm: a written person's words (simulated, never a "
                                            "real person's) and, when they share an invented exam table, its column names, kinds and what "
                                            "DCLab noticed about each, its row count, and the same computed aggregates as the lead agent (at most 20 "

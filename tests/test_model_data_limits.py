@@ -680,12 +680,24 @@ class DataLimitTests(unittest.TestCase):
             reading.recall(None, "what is the target", chain, readers.from_project(project), embedder=emb)
         self.assertEqual(self.assertWithinLimit("memory_embedding"), set())
 
+    def test_route_check_sees_the_persons_words_and_column_names_never_values(self):
+        """2026-11-01: the lead agent's second reading of the route is shown the person's words and the column names only."""
+        from dclab_core import case as C
+        from dclab_rnd.agents import case_agent as A
+
+        t = marked_table()
+        view = [{"name": c, "kind": "category", "noticed": []} for c in t.columns]
+        s = A.CaseState(case=C.hear(C.new("dl-route"), "rank our customers by risk every week"), table=A.table_of("t.csv", view, len(t)), frame=t)
+        A.route_reading(gateway({"route_check": [{"content": "prediction", "tool_calls": [], "usage": {"input_tokens": 0, "output_tokens": 0},
+                                                 "assistant_message": {"role": "assistant", "content": "prediction"}}]}).client("route_check"), s)
+        self.assertEqual(self.assertWithinLimit("route_check"), set())
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "home_intent", "home_query", "home_business", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "routing_labeler", "home_understand", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
                   "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell",
-                  "home_orchestrator", "reflector", "memory_embedding", "case_agent", "case_specialist"}
+                  "home_orchestrator", "reflector", "memory_embedding", "case_agent", "case_specialist", "route_check"}
         no_user_data = {"campaign", "campaign_review", "embedding",  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
                         "journey_writer", "journey_checker",  # S8 B1 (below)
                         "exam_plain", "exam_person", "exam_judge"}  # 37.0: written, simulated people and invented exam tables' column views (tests/test_conversation_exam.py); S8 B1: invented replica tables' column names and written people, never a workspace's data (tests/test_people_writer.py)

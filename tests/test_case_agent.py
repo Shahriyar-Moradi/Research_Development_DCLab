@@ -692,3 +692,76 @@ class NumberCutTests(unittest.TestCase):
         self.assertIn("exactly as the tools returned", A.REWRITE)
         self.assertTrue(A.has_statement("Report PR-AUC. Does that cover it?"))
         self.assertFalse(A.has_statement("Does that cover what you need, or would you like help wording it?"))
+
+
+class RouteDriftTests(unittest.TestCase):
+    """2026-11-01 (sealed v2: the lead agent reached the right route for 15 of 19, Claude alone 19; it talked 4 to 8 turns and
+    drifted into advice): advice no longer opens before the case is ready when there is data work; after three turns with
+    the goal and the data known it must propose or start; a cheap second reading of the person's words checks a start once."""
+
+    def test_advice_before_the_case_is_ready_is_refused_when_a_table_is_shared(self):
+        s = state()
+        client = Script(("", [("start", {"track": "advice", "tool": "cited_answer"})]), ("", [("ask", {"question": "Who will use the list?"})]))
+        A.turn(s, client, "We lose customers. Can you help?")
+        refused = [m["content"] for m in client.seen[1] if m.get("role") == "tool"]
+        self.assertIn("data work", refused[0])
+        self.assertIsNone(s.case.route)
+
+    def test_advice_with_no_table_and_a_plain_question_still_starts(self):
+        s = state(table=False)
+        out = A.turn(s, Script(("Report PR-AUC.", [("start", {"track": "advice", "tool": "cited_answer"})])), "quick q: PR-AUC or ROC-AUC? no data work, just the answer")
+        self.assertEqual(s.case.route.track, "advice")
+        self.assertIn("PR-AUC", out["text"])
+
+    def test_after_three_turns_with_goal_and_data_known_asking_is_refused_and_starting_allowed(self):
+        s = state()
+        for i, w in enumerate(("We want to keep members.", "The table is all our members.", "Mostly the front desk.")):
+            A.turn(s, Script(("", [("ask", {"question": "And what else?"})])), w)
+            if i == 0:
+                s.case = C.apply(s.case, "goal", C.CaseFact(value="keep members", status="said", quote="keep members"), by="agent", why="t")
+        client = Script(("", [("ask", {"question": "Anything else?"})]), ("Starting a ranked list of members to call.", [("start", {"track": "prediction", "tool": "ml_project"})]))
+        out = A.turn(s, client, "That is all I know.")
+        refused = [m["content"] for m in client.seen[1] if m.get("role") == "tool"]
+        self.assertIn("propose or start", refused[0])
+        self.assertEqual(s.case.route.track, "prediction")
+
+    def test_a_start_the_second_reading_disagrees_with_is_refused_once(self):
+        s = state()
+        s.case = C.hear(s.case, "every Monday we want a weekly view of cancellations by destination")
+        s.budget_reached = True  # the turn budget lets the agent start on its best reading
+        s.route_client = Script(("reporting", []))
+        first = A._start(s, "analysis", "query")
+        self.assertIn("reporting", first.get("error", ""))
+        second = A._start(s, "analysis", "query")  # the agent may keep its pick: the check asks once
+        self.assertIn("started", second)
+
+    def test_the_route_check_sees_only_the_persons_words_and_column_names(self):
+        s = state()
+        s.case = C.hear(s.case, "we want a weekly dashboard of cancellations")
+        client = Script(("reporting", []))
+        self.assertEqual(A.route_reading(client, s), "reporting")
+        sent = json.dumps(client.seen[0])
+        self.assertIn("weekly dashboard", sent)
+        self.assertIn("churned_next_month", sent)
+
+
+class RouteDriftReviewTests(unittest.TestCase):
+    """The review of 2026-11-01: a real advice question with a table shared still gets advice; the turn budget switches off
+    once work has started."""
+
+    def test_a_yes_or_no_method_question_with_a_table_still_gets_advice(self):
+        s = state()
+        out = A.turn(s, Script(("Not on its own: tenure counts up to cancellation, so check when it was measured.", [("start", {"track": "advice", "tool": "cited_answer"})])),
+                     "is tenure_months leaky for churned_next_month? yes or no")
+        self.assertEqual(s.case.route.track, "advice")
+
+    def test_the_turn_budget_switches_off_once_work_has_started(self):
+        s = state()
+        for i, w in enumerate(("We want to keep members.", "The table is all our members.", "Mostly the front desk.")):
+            A.turn(s, Script(("", [("ask", {"question": "And?"})])), w)
+            if i == 0:
+                s.case = C.apply(s.case, "goal", C.CaseFact(value="keep members", status="said", quote="keep members"), by="agent", why="t")
+        A.turn(s, Script(("Starting.", [("start", {"track": "prediction", "tool": "ml_project"})])), "go")
+        A.turn(s, Script(("", [("ask", {"question": "Shall the list hold 200 names or fewer?"})])), "Can we change the list size?")
+        self.assertFalse(s.budget_reached)
+        self.assertTrue(s.asking)

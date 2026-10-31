@@ -85,6 +85,7 @@ MODEL_USES: dict[str, str] = {  # purpose -> why it is not an agent: one complet
     "decision_answer": "one decision answered from its state, beside the rule (22.5)",
     "decision_labeler": "one drawn decision labelled from its blind view, kept apart from a person's labels",
     "case_specialist": "37.7: a specialist the lead agent sends, one call with the case: its findings go into the case file",
+    "route_check": "2026-11-01: one short reading of which kind of help the person needs, checking the lead agent's start once",
     "exam_plain": "37.0: the conversation exam's Claude-alone arm, one turn of a simulated conversation (an evaluation arm, not a DCLab agent)",
     "exam_person": "37.0: the simulated person of the conversation exam, one reply from a written person's hidden truth",
     "exam_judge": "37.0: the conversation exam's judge, one blind judgment of a whole conversation",

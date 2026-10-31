@@ -613,9 +613,30 @@ class SealedV2GateTests(unittest.TestCase):
         from dclab_rnd.agent_eval.conversation_exam import gate as G
 
         self.assertEqual(G.gate_for("sealed_v1")["version"], "conversation_exam_gate_v2")
-        self.assertEqual(set(ce.SEALED_ARMS["sealed_v1"]), set(ce.ARMS))
+        self.assertEqual(set(ce.SEALED_ARMS["sealed_v1"]), {"home", "plain", "case"})
         self.assertEqual(set(ce.SEALED_ARMS["sealed_v2"]), {"plain", "case"})
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SafeArmTests(unittest.TestCase):
+    """2026-11-01: Claude alone with DCLab's safety layer: an invented number is cut and the message rewritten; a rewrite that
+    calls a tool gets its answer; an option card with an invented number is never shown."""
+
+    def test_an_invented_number_is_cut_and_the_rewrite_used(self):
+        a = arms.SafeArm(Script({"content": "About 37% of your customers leave each month. Who acts on the list?", "tool_calls": []},
+                                {"content": "Some of your customers leave each month. Who acts on the list?", "tool_calls": [call("start_work", track="prediction", tool="ml_project")]}))
+        out = a.open({"id": "p", "opening": "we lose customers", "upload": None})
+        self.assertNotIn("37%", out["text"])
+        self.assertIn("Some of your customers", out["text"])
+        self.assertEqual(a.messages[-1]["role"], "tool")  # the rewrite's tool call answered, never run
+
+    def test_an_option_card_with_an_invented_number_is_dropped(self):
+        opts = [{"title": "Rank customers", "what": "reaches about 80% of churners", "track": "prediction", "tool": "ml_project"},
+                {"title": "Compare plans", "what": "churn by plan", "track": "analysis", "tool": "query"},
+                {"title": "A weekly view", "what": "a dashboard", "track": "reporting", "tool": "dashboard"}]
+        a = arms.SafeArm(Script({"content": "Here are three ways.", "tool_calls": [call("offer_options", options=opts)]}, {"content": "Pick one.", "tool_calls": []}))
+        out = a.open({"id": "p", "opening": "we lose customers", "upload": None})
+        self.assertEqual([c["title"] for c in out["choices"]], ["Compare plans", "A weekly view"])

@@ -55,7 +55,7 @@ STYLES = ("vague", "detailed", "impatient")
 TRAPS = ("clear_request", "report_not_model", "real_prediction", "missing_column", "rows_request", "silent_drop", "no_outcome", "vague_goal")
 ROUTE_TRAPS = ("clear_request", "report_not_model", "real_prediction")  # a trap about the route needs the route right too
 TRUTH = ("situation", "goal", "decision", "user", "data", "knows", "constraints")
-ARMS = ("home", "plain", "case")
+ARMS = ("home", "plain", "case", "safe")  # safe: Claude alone with DCLab's safety layer (2026-11-01)
 READY_ARMS = ("home", "plain")  # the default arms; add case with --arms home,plain,case
 PURPOSES_CASE = "case_agent"
 PURPOSES = {"plain": "exam_plain", "person": "exam_person", "judge": "exam_judge"}
@@ -543,7 +543,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     load_dotenv(ROOT / ".env", override=False)
     from dclab_rnd.models.gateway import for_workspace
 
-    from .arms import CaseArm, HomeArm, PlainArm
+    from dclab_rnd.agents import case_agent as _case_agent
+
+    from .arms import CaseArm, HomeArm, PlainArm, SafeArm
     from .person import ModelPerson
 
     from dclab_rnd.models import settings as _settings
@@ -571,7 +573,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     arm_for = {"home": lambda pid, folder: HomeArm(folder, budget.view(f"{tag}home-{pid}")),
                "plain": lambda pid, folder: PlainArm(budget.client(f"{tag}plain-{pid}", PURPOSES["plain"])),
                "case": lambda pid, folder: CaseArm(budget.client(f"{tag}case-{pid}", PURPOSES_CASE),
-                                                   budget.client(f"{tag}case-{pid}", "case_specialist"), folder)}
+                                                   budget.client(f"{tag}case-{pid}", "case_specialist"), folder,
+                                                   budget.client(f"{tag}case-{pid}", "route_check", _case_agent.ROUTE_MODEL)),
+               "safe": lambda pid, folder: SafeArm(budget.client(f"{tag}safe-{pid}", PURPOSES["plain"]))}
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
     result = measure(people, {a: arm_for[a] for a in arms},
                      lambda key, p: ModelPerson(budget.client(f"{tag}person:{key}", PURPOSES["person"], MODELS["person"]), p),

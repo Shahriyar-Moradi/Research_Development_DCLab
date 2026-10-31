@@ -581,6 +581,60 @@ def _eval_rows(j: Joiner) -> list[RoutingExample]:
     return rows
 
 
+EXAM_ARMS = {"case": "exam_lead_agent", "plain": "exam_claude_alone", "home": "exam_home", "safe": "exam_claude_safe"}
+CONV_PREFIX = "campaigns/conversation_exam_v1/results/"
+CONV_KEPT = "the conversation's calls are kept whole in its live test workspace (practice) or the exam vault (sealed), by run"
+
+
+def _conversation_exam_rows(j: Joiner) -> list[RoutingExample]:
+    """2026-11-01 (the owner: routing data from every conversation test, exam and simulation): each conversation exam run's
+    people, one row per person and run: the person's opening words (a practice run's; a sealed run keeps no words), the right
+    route from the written person's truth (a written label), and every arm's route as a model's reading."""
+    from ...agent_eval.conversation_exam import HERE as EXAM_HERE
+
+    people: dict[str, dict[str, Any]] = {}
+    for f in sorted(EXAM_HERE.glob("people_*.json")):
+        try:
+            for p in json.loads(f.read_text(encoding="utf-8")):
+                people[str(p.get("id"))] = p
+        except (OSError, ValueError, TypeError):
+            continue
+    rows: list[RoutingExample] = []
+    for source, (doc, entry) in _kept(j.layout, CONV_PREFIX).items():
+        if not isinstance(doc, dict) or not isinstance(doc.get("scores"), dict) or "labels" in source:
+            continue
+        split_name, run = str(doc.get("split") or ""), str(doc.get("id") or source)
+        sealed = "sealed" in split_name or bool(doc.get("shape_only"))
+        by_person: dict[str, list[RoutingReading]] = defaultdict(list)
+        for arm, scored in doc["scores"].items():
+            if arm not in EXAM_ARMS or not isinstance(scored, list):
+                continue
+            for r in scored:
+                if not isinstance(r, dict) or r.get("unjudged"):
+                    continue
+                pid = str(r.get("id"))
+                value = r.get("route") if r.get("route") in TRACKS else None
+                by_person[pid].append(_model_reading(None, EXAM_ARMS[arm], value, used=False, why_none=EXAM if sealed else CONV_KEPT))
+        for pid, readings in sorted(by_person.items()):
+            p = people.get(pid) or {}
+            label = p.get("route") if p.get("route") in TRACKS else None
+            text = None if sealed else (str(p.get("opening") or "").strip() or None)
+            key = text_key(text) if text else None
+            group = f"request:{key}" if key else f"exam:{split_name}:{pid}"
+            try:
+                rows.append(RoutingExample(id=f"{MODEL_TYPE}:conversation_exam:{run}:{pid}"[:200], split="sealed" if sealed else split_of(group),
+                                           provenance=_entry_prov(entry), weight=WEIGHTS["written"] if label else 1.0, point="request.intent",
+                                           origin="eval", split_group=group, text=text,
+                                           no_text=None if text else ("a sealed exam's person: their shape only" if sealed else "the person is not in the people files"),
+                                           language="en" if text else None,
+                                           state={"has_data": bool(p.get("upload"))} if not sealed else {},
+                                           options=list(TRACKS), readings=readings, label=label, label_source="written" if label else None,
+                                           label_by="conversation_exam:people" if label else None, exam=f"conversation:{split_name}" if sealed else None))
+            except Exception as exc:  # noqa: BLE001
+                j.out[f"refused by its contract: {type(exc).__name__}"] += 1
+    return rows
+
+
 def collect(layout: Optional[Layout] = None, scripted: Optional[frozenset[str]] = None, home: Optional[Path] = None,
             results: Optional[Path] = None) -> tuple[list[RoutingExample], Counter]:
     """Every routing example the store's records give today, and what was kept out (with why)."""
@@ -590,6 +644,7 @@ def collect(layout: Optional[Layout] = None, scripted: Optional[frozenset[str]] 
     j = Joiner(layout, scripted_names() if scripted is None else scripted, home, results)
     rows = _written_rows(j)  # first: the written truths the ledger rows' words are matched against
     rows += _eval_rows(j)
+    rows += _conversation_exam_rows(j)  # every conversation exam's people, labelled by their written truth (2026-11-01)
     for (ws, _), r in sorted(j.decisions.items()):
         ex = _ledger_row(j, ws, r)
         if ex is not None:

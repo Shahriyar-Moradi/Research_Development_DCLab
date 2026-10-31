@@ -113,6 +113,16 @@ class GatewayKeeps(unittest.TestCase):
         self.assertIn("why 7", kept)  # the text, never only "thought: true"
         self.assertEqual(docs[0]["purpose"], "home_business")
 
+    def test_route_check_keeps_its_thinking(self):  # 2026-11-01: a new purpose's thinking is stored (rule 8), whole: it sees no cells
+        transport = Scripted([reply(9)])
+        with mock.patch.object(gw, "_transport", lambda tier, purpose: transport), \
+                mock.patch.dict(os.environ, {"DCLAB_AGENT_HOME": str(self.home)}), \
+                mock.patch.object(experience, "current_log", lambda: None):
+            gw.Gateway(transport=gw._transport).client("route_check").complete([{"role": "user", "content": "the person's words"}], None)
+        docs = exchanges(self.home)
+        self.assertEqual((len(docs), docs[0]["purpose"], docs[0]["whole"]), (1, "route_check", True))
+        self.assertIn("why 9", json.dumps(docs[0].get("thinking")))
+
     def test_each_exchange_says_what_thinking_its_request_asked_for(self):
         # live 2026-10-28 (HyperAck): home_agent and leakage_review kept `thinking: []`; the line could not tell "asked, the
         # model chose not to think" from "never asked". The setting the request carried is now on every line.

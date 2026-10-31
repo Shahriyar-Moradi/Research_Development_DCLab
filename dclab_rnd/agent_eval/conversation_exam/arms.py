@@ -178,6 +178,63 @@ class PlainArm:
         return {}
 
 
+class SafeArm(PlainArm):
+    """2026-11-01: Claude alone with DCLab's safety layer and nothing else: the plain arm's prompt and data tools, and the lead
+    agent's number check on every message (a sentence with a number nobody gave and no tool computed is cut, the message is
+    written again with the lead agent's own instructions, once, and once more strictly if only a fragment is left)."""
+
+    name = "safe"
+
+    def _allowed(self) -> list[str]:
+        from . import table_facts
+
+        words = [str(m.get("content") or "") for m in self.messages if m.get("role") == "user" and not str(m.get("content") or "").startswith("[DCLab's code]")]
+        return words + list(self.computed) + table_facts(self.upload)
+
+    @staticmethod
+    def _check(text: str, allowed: list[str]) -> tuple[str, list[str]]:
+        import re
+
+        from dclab_rnd import cited
+
+        kept, dropped = [], []
+        for sentence in re.split(r"(?<=[.?!])\s+", str(text or "").strip()):
+            if not sentence:
+                continue
+            unsaid = cited.unsaid(sentence, allowed)
+            (dropped.append(f"{sentence} (numbers nobody gave: {', '.join(unsaid)})") if unsaid else kept.append(sentence))
+        return " ".join(kept), dropped
+
+    def _again(self, instruction: str) -> str:
+        """One rewrite: the instruction, the model's message; a tool it calls is answered, never run."""
+        tools = PLAIN_TOOLS + DATA_TOOLS if self.upload else PLAIN_TOOLS[1:]
+        self.messages.append({"role": "user", "content": instruction})
+        out = self.client.complete(self.messages, tools, max_tokens=MAX_TOKENS)
+        self.messages.append(out.get("assistant_message") or {"role": "assistant", "content": out.get("content") or ""})
+        for c in out.get("tool_calls") or []:
+            self.messages.append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps({"error": "not run: write the message only"})})
+        return str(out.get("content") or "").strip()
+
+    def _turn(self) -> dict[str, Any]:
+        from dclab_rnd.agents import case_agent as A
+
+        out = super()._turn()
+        allowed = self._allowed()
+        kept, dropped = self._check(out["text"], allowed)
+        if dropped:
+            fixed, still = self._check(self._again(A.REWRITE.format(dropped="\n".join(f"- {d}" for d in dropped))), allowed)
+            if not A.has_statement(fixed) or still:
+                strict, _ = self._check(self._again(A.REWRITE_STRICT), allowed)
+                fixed = strict if A.has_statement(strict) else fixed
+            kept = fixed if A.has_statement(fixed) else kept
+        out["text"] = kept or "I want to give you only numbers that come from you or from your data. Could you tell me a little more about what you need?"
+        # the review: option cards are checked too (the exam scores their words, and the lead agent's check_options refuses them)
+        clean = [c for c in self.choices if not self._check(f"{c.get('title') or ''}. {c.get('what') or ''}.", allowed)[1]]
+        self.choices = clean if len(clean) >= 2 else []
+        out["choices"] = list(self.choices)
+        return out
+
+
 COMPUTED_KEYS = ("analysis", "data_card", "cleaning_log", "structure", "dashboard", "query", "business")
 CODE_KINDS = ("analysis", "answer", "table", "result", "query", "brief")  # messages code writes from computed facts
 
@@ -295,8 +352,8 @@ class CaseArm:
 
     name = "case"
 
-    def __init__(self, client: Any, specialist_client: Any = None, folder: Any = None):
-        self.client, self.specialist_client, self.folder = client, specialist_client, folder
+    def __init__(self, client: Any, specialist_client: Any = None, folder: Any = None, route_client: Any = None):
+        self.client, self.specialist_client, self.folder, self.route_client = client, specialist_client, folder, route_client
         self.state: Any = None
         self.choices: list[dict[str, Any]] = []
 
@@ -309,7 +366,7 @@ class CaseArm:
         upload = person.get("upload") or None
         table = A.table_of(f"{upload}.csv", table_view(upload), len(tables.build(upload))) if upload else None
         self.state = A.CaseState(case=C.new(f"exam-{person['id']}"), table=table, frame=tables.build(upload) if upload else None,
-                                 specialist_client=self.specialist_client,
+                                 specialist_client=self.specialist_client, route_client=self.route_client,
                                  checkpoint=(Path(self.folder) / "case_checkpoint.json") if self.folder else None)
         opening = str(person["opening"]) + (f"\n\n(I shared a table: {upload}.csv)" if upload else "")
         return self._out(A.turn(self.state, self.client, opening))

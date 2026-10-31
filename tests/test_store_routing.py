@@ -479,3 +479,27 @@ class RoutingKeeperAndHookTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ConversationExamRoutingTests(unittest.TestCase):
+    """2026-11-01 (the owner: routing data from every conversation test, exam and simulation): each conversation exam's
+    people become routing rows, the right route from the written truth, every arm's route a reading; a sealed run keeps
+    no words and sits in the sealed split."""
+
+    def test_practice_rows_keep_words_and_sealed_rows_never(self):
+        from unittest import mock
+
+        from dclab_rnd.store.sets import routing as R
+
+        entry = type("E", (), {"id": "tests:rnd:x", "sha256": "0" * 64, "source": "campaigns/conversation_exam_v1/results/x.json",
+                               "workspace": "rnd", "consent": "train", "captured_at": "2026-11-01T00:00:00+00:00"})()
+        dev = {"id": "CEX-T", "split": "dev", "scores": {"case": [{"id": "d-01", "route": "prediction"}], "plain": [{"id": "d-01", "route": "analysis"}]}}
+        sealed = {"id": "CEX-S", "split": "sealed_v2", "shape_only": "x", "scores": {"case": [{"id": "s2-01", "route": "business"}]}}
+        kept = {"campaigns/conversation_exam_v1/results/CEX-T_dev.json": (dev, entry), "campaigns/conversation_exam_v1/results/CEX-S_sealed_v2.json": (sealed, entry)}
+        j = type("J", (), {"layout": None, "out": __import__("collections").Counter()})()
+        with mock.patch.object(R, "_kept", lambda layout, prefix: kept):
+            rows = {r.id.split(":")[2]: r for r in R._conversation_exam_rows(j)}
+        d, s = rows["CEX-T"], rows["CEX-S"]
+        self.assertTrue(d.text and d.label in R.TRACKS and {x.answerer for x in d.readings} == {"exam_lead_agent", "exam_claude_alone"})
+        self.assertIsNone(s.text)
+        self.assertEqual((s.split, s.exam), ("sealed", "conversation:sealed_v2"))
