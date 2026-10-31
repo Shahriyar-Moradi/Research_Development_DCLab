@@ -313,13 +313,14 @@ def install(registry: Optional[dict[str, Keeper]] = None) -> dict[str, Keeper]:
     from .dclab_code import KEEPER as dclab_code_keeper  # a name the settings scan cannot take for a setting
     from .people import KEEPER as PEOPLE
     from .routing import KEEPER as ROUTING  # P8: the written requests and Home's eval runs, for m7_routing
+    from .campaigns import KEEPER as CAMPAIGNS  # every campaign's results and labels (2026-10-31): sealed ones as numbers only
 
     reg = REGISTRY if registry is None else registry
     walks = Keeper("walks", (Claim("workflows", "walks/"),), workflows.keeper_sources, ("m2_workflow_decisions", "m6_stepwise_decisions", "m4_workflow_llm"),
                    "each walk from a draft to a report as one workflow record (32.5)")
     fix = Keeper("fixes", (Claim("fixes", "fixes/"),), fixes.keeper_sources, ("m4_workflow_llm", "m5_solver_llm", "m7_judges"),
                  "a failing test, the run that passed it next, and the commits between (32.6)")
-    for keeper in KEEPERS + (TEST_RUNS_KEEPER, DATABASE, PEOPLE, AGENTS, dclab_code_keeper, COMMITS, walks, fix, ROUTING):
+    for keeper in KEEPERS + (TEST_RUNS_KEEPER, DATABASE, PEOPLE, AGENTS, dclab_code_keeper, COMMITS, walks, fix, ROUTING, CAMPAIGNS):
         if keeper.name not in reg:
             register(keeper, reg)
     return reg

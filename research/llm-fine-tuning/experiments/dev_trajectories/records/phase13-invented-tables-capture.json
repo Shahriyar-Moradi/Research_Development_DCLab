@@ -26,9 +26,13 @@
   {
    "decision": "Three older prompts drop their reason field; leakage_review and journey_checker keep theirs",
    "why": "the owner's rule: reasoning only from the thinking summary; nothing read those three reasons, while the other two are user-facing claims checked by code"
+  },
+  {
+   "decision": "Every campaign's result and label files go into the store; a sealed or test run keeps only numbers and labels",
+   "why": "the owner: the exam and test runs are costly, keep all of them for the seven models; the store held only Home's runs of 66 campaigns; an exam's words stay out of training"
   }
  ],
- "change": "dclab_rnd/models/gateway.py (_keep_exchange reads gateway.invented_tables, marks the line 'tables'); dclab_rnd/agent_eval/conversation_exam/__init__.py (mark_invented_tables for non-sealed splits); tests/test_thinking_capture.py; dclab_rnd/store/sets/cases.py (an exam found by its workspace) and store/sets/llm.py (reads the 'other' kind); tests/test_store_cases.py; dclab_rnd/store/keepers/standard.py (the vault judged on the path from the top folder); tests/test_conversation_exam.py; mark_invented_tables in the Home evals, journeys, programme journeys and decision compare; three prompts (base_audit, ai_first_home, store_curator) no longer ask for a reason field",
+ "change": "dclab_rnd/models/gateway.py (_keep_exchange reads gateway.invented_tables, marks the line 'tables'); dclab_rnd/agent_eval/conversation_exam/__init__.py (mark_invented_tables for non-sealed splits); tests/test_thinking_capture.py; dclab_rnd/store/sets/cases.py (an exam found by its workspace) and store/sets/llm.py (reads the 'other' kind); tests/test_store_cases.py; dclab_rnd/store/keepers/standard.py (the vault judged on the path from the top folder); tests/test_conversation_exam.py; mark_invented_tables in the Home evals, journeys, programme journeys and decision compare; three prompts (base_audit, ai_first_home, store_curator) no longer ask for a reason field; dclab_rnd/store/keepers/campaigns.py: every campaign's results and labels kept (sealed and test runs as numbers only)",
  "findings": [
   {
    "id": "F1",
@@ -117,6 +121,13 @@
    "name": "prompt gates after removing reason fields",
    "gate": "agent-eval and harness-eval pass on the changed prompts",
    "result": "agent-eval passed; harness 17 of 17 (HRN-096); prompt audit, prompt gate and harness gate tests pass",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "campaigns kept",
+   "gate": "every campaign's results and labels found; sealed and test runs shape only",
+   "result": "1,031 files from 66 campaigns (21 MB), 39 of them sealed or test; store tests 243 pass",
    "verdict": "pass",
    "cost_eur": 0.0
   }
