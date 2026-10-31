@@ -28,30 +28,35 @@
  },
  "costs": {
   "by_model_type": {
-   "m4_workflow_llm": 170.189776
+   "m4_workflow_llm": 218.21439
   },
   "by_purpose": {
    "ai_first": 18.406708,
-   "brief_checker": 0.016714,
-   "campaign": 0.437496,
+   "brief_checker": 0.023292,
+   "campaign": 1.147882,
    "campaign_review": 12.466256,
+   "case_agent": 23.530568,
+   "case_specialist": 0.016438,
    "conversation_reader": 14.700744,
-   "critic": 0.034334,
-   "data_investigator": 0.156928,
+   "critic": 0.069044,
+   "data_investigator": 0.172284,
    "data_need": 1.484072,
    "debate_judge": 0.043152,
    "decision_answer": 6.216808,
    "decision_labeler": 15.71885,
    "decomposer": 4.20616,
    "embedding": 0.00446,
-   "evidence_answer": 0.012102,
-   "feature_engineer": 0.065626,
-   "home_agent": 24.810027,
-   "home_business": 0.078992,
-   "home_intent": 4.812063,
+   "evidence_answer": 0.115634,
+   "exam_judge": 9.769056,
+   "exam_person": 0.420244,
+   "exam_plain": 6.341868,
+   "feature_engineer": 0.103984,
+   "home_agent": 29.692109,
+   "home_business": 0.091378,
+   "home_intent": 5.861301,
    "home_orchestrator": 0.402659,
-   "home_query": 0.0575,
-   "home_understand": 2.80109,
+   "home_query": 0.189188,
+   "home_understand": 3.599714,
    "intern": 36.987822,
    "journey_checker": 2.307328,
    "journey_writer": 7.305133,
@@ -60,49 +65,49 @@
    "metric_question": 0.526472,
    "notebook_cell": 0.188415,
    "parse_pattern": 0.002646,
-   "problem_analyst": 0.267378,
+   "problem_analyst": 0.280889,
    "project_answer": 0.132486,
    "reasoning_teacher": 0.00776,
    "reflector": 0.0851,
-   "reporter": 0.185836,
+   "reporter": 0.25734,
    "routing_labeler": 1.408134,
    "solution_challenger": 0.257164,
-   "solution_planner": 3.878962,
+   "solution_planner": 3.928848,
    "solution_router": 1.569544,
    "stage_notes": 4.71237,
    "store_curator": 0.81816,
-   "synthetic_schema": 0.431721,
+   "synthetic_schema": 0.460322,
    "understanding_critic": 6.803352,
    "workspace_chat": 0.02462
   },
-  "total_eur": 178.038778
+  "total_eur": 226.063392
  },
  "coverage": {
   "gaps": [
-   "m7_routing request.intent: 27 of 1434 model readings without their thinking summary and without a reason it cannot exist",
-   "m1_students: 27 of 248746 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
-   "m2_workflow_decisions: 27 of 21260 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
+   "m7_routing request.intent: 58 of 1544 model readings without their thinking summary and without a reason it cannot exist",
+   "m1_students: 27 of 252280 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
+   "m2_workflow_decisions: 27 of 22023 examples were made by a model or by someone the record does not name, and carry no reasoning and no note",
    "m3_ml_decisions: no example with recorded thinking",
-   "m6_stepwise_decisions: 3 of 4121 examples were made by a model or by someone the record does not name, and carry no reasoning and no note"
+   "m6_stepwise_decisions: 3 of 4226 examples were made by a model or by someone the record does not name, and carry no reasoning and no note"
   ],
   "model_types": {
    "m1_students": {
     "by_agent": {
      "(studio code)": {
-      "examples": 242947,
+      "examples": 245608,
       "lost": 8320,
-      "no_model": 234570,
+      "no_model": 237080,
       "none": 27,
-      "note": 8350,
-      "outcome": 11704
+      "note": 8501,
+      "outcome": 11768
      },
      "home": {
-      "examples": 5587,
+      "examples": 6460,
       "lost": 41,
-      "no_model": 5180,
-      "note": 125,
-      "outcome": 117,
-      "recorded": 282
+      "no_model": 5743,
+      "note": 310,
+      "outcome": 147,
+      "recorded": 407
      },
      "orchestra.walk": {
       "examples": 212,
@@ -112,94 +117,95 @@
     },
     "by_track": {
      "(no request)": {
-      "examples": 16701,
+      "examples": 17902,
       "lost": 100,
-      "no_model": 16574,
+      "no_model": 17765,
       "none": 27,
-      "note": 100,
-      "outcome": 827
+      "note": 107,
+      "outcome": 827,
+      "recorded": 3
      },
      "advice": {
-      "examples": 259,
+      "examples": 406,
       "lost": 2,
-      "no_model": 175,
-      "note": 40,
-      "recorded": 44
-     },
-     "analysis": {
-      "examples": 1460,
-      "lost": 30,
-      "no_model": 1338,
-      "note": 42,
-      "outcome": 25,
-      "recorded": 80
-     },
-     "business": {
-      "examples": 785,
-      "lost": 4,
-      "no_model": 739,
-      "note": 12,
-      "outcome": 15,
-      "recorded": 34
-     },
-     "prediction": {
-      "examples": 227954,
-      "lost": 8222,
-      "no_model": 219640,
-      "note": 8260,
-      "outcome": 10903,
+      "no_model": 276,
+      "note": 76,
       "recorded": 54
      },
+     "analysis": {
+      "examples": 2332,
+      "lost": 30,
+      "no_model": 2117,
+      "note": 100,
+      "outcome": 43,
+      "recorded": 115
+     },
+     "business": {
+      "examples": 892,
+      "lost": 4,
+      "no_model": 813,
+      "note": 30,
+      "outcome": 15,
+      "recorded": 49
+     },
+     "prediction": {
+      "examples": 228767,
+      "lost": 8222,
+      "no_model": 220242,
+      "note": 8437,
+      "outcome": 10967,
+      "recorded": 88
+     },
      "preparation": {
-      "examples": 789,
+      "examples": 1011,
       "lost": 3,
-      "no_model": 742,
-      "note": 11,
-      "outcome": 29,
-      "recorded": 36
+      "no_model": 921,
+      "note": 41,
+      "outcome": 36,
+      "recorded": 49
      },
      "reporting": {
-      "examples": 798,
-      "no_model": 754,
-      "note": 10,
-      "outcome": 25,
-      "recorded": 34
+      "examples": 970,
+      "no_model": 901,
+      "note": 20,
+      "outcome": 30,
+      "recorded": 49
      }
     },
     "en": 0,
-    "examples": 248746,
+    "examples": 252280,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 8361,
-    "no_model": 239962,
+    "no_model": 243035,
     "none": 27,
-    "note": 8475,
-    "outcome": 11824,
-    "recorded": 282,
+    "note": 8811,
+    "outcome": 11918,
+    "recorded": 407,
     "replayed": 0,
-    "sealed_not_read": 7071,
-    "sets": 77,
+    "sealed_not_read": 7095,
+    "sets": 80,
     "teacher": 0,
     "visible": 0
    },
    "m2_workflow_decisions": {
     "by_agent": {
      "(studio code)": {
-      "examples": 15973,
+      "examples": 16068,
       "lost": 1092,
-      "no_model": 14852,
+      "no_model": 14929,
       "none": 27,
-      "note": 1094,
+      "note": 1112,
       "outcome": 110
      },
      "home": {
-      "examples": 5075,
+      "examples": 5743,
       "lost": 35,
-      "no_model": 4857,
-      "note": 77,
-      "outcome": 115,
-      "recorded": 141
+      "no_model": 5322,
+      "note": 204,
+      "outcome": 143,
+      "recorded": 217
      },
      "orchestra.walk": {
       "examples": 212,
@@ -209,85 +215,86 @@
     },
     "by_track": {
      "(no request)": {
-      "examples": 2200,
+      "examples": 2307,
       "lost": 11,
-      "no_model": 2162,
+      "no_model": 2259,
       "none": 27,
-      "note": 11,
-      "outcome": 41
+      "note": 18,
+      "outcome": 41,
+      "recorded": 3
      },
      "advice": {
-      "examples": 151,
+      "examples": 239,
       "lost": 1,
-      "no_model": 109,
-      "note": 20,
-      "recorded": 22
-     },
-     "analysis": {
-      "examples": 163,
-      "lost": 25,
-      "no_model": 92,
-      "note": 31,
-      "outcome": 25,
-      "recorded": 40
-     },
-     "business": {
-      "examples": 62,
-      "lost": 4,
-      "no_model": 37,
-      "note": 8,
-      "outcome": 14,
-      "recorded": 17
-     },
-     "prediction": {
-      "examples": 18553,
-      "lost": 1083,
-      "no_model": 17437,
-      "note": 1089,
-      "outcome": 94,
+      "no_model": 172,
+      "note": 40,
       "recorded": 27
      },
+     "analysis": {
+      "examples": 354,
+      "lost": 25,
+      "no_model": 222,
+      "note": 73,
+      "outcome": 42,
+      "recorded": 59
+     },
+     "business": {
+      "examples": 115,
+      "lost": 4,
+      "no_model": 67,
+      "note": 21,
+      "outcome": 14,
+      "recorded": 27
+     },
+     "prediction": {
+      "examples": 18754,
+      "lost": 1083,
+      "no_model": 17578,
+      "note": 1127,
+      "outcome": 94,
+      "recorded": 49
+     },
      "preparation": {
-      "examples": 67,
+      "examples": 147,
       "lost": 3,
-      "no_model": 42,
-      "note": 7,
-      "outcome": 29,
-      "recorded": 18
+      "no_model": 96,
+      "note": 25,
+      "outcome": 36,
+      "recorded": 26
      },
      "reporting": {
-      "examples": 64,
-      "no_model": 42,
-      "note": 5,
-      "outcome": 25,
-      "recorded": 17
+      "examples": 107,
+      "no_model": 69,
+      "note": 12,
+      "outcome": 29,
+      "recorded": 26
      }
     },
     "en": 0,
-    "examples": 21260,
+    "examples": 22023,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 1127,
-    "no_model": 19921,
+    "no_model": 20463,
     "none": 27,
-    "note": 1171,
-    "outcome": 228,
-    "recorded": 141,
+    "note": 1316,
+    "outcome": 256,
+    "recorded": 217,
     "replayed": 0,
-    "sealed_not_read": 331,
-    "sets": 23,
+    "sealed_not_read": 349,
+    "sets": 25,
     "teacher": 0,
     "visible": 0
    },
    "m3_ml_decisions": {
     "by_agent": {
      "(studio code)": {
-      "examples": 193570,
+      "examples": 195039,
       "lost": 4892,
-      "no_model": 188650,
-      "note": 4920,
-      "outcome": 8787
+      "no_model": 190036,
+      "note": 5003,
+      "outcome": 8819
      },
      "home": {
       "examples": 3,
@@ -297,88 +304,103 @@
     },
     "by_track": {
      "(no request)": {
-      "examples": 11421,
+      "examples": 12022,
       "lost": 48,
-      "no_model": 11373,
+      "no_model": 11974,
       "note": 48,
       "outcome": 782
      },
      "advice": {
-      "examples": 36,
-      "no_model": 36
+      "examples": 64,
+      "no_model": 64
      },
      "analysis": {
-      "examples": 718,
-      "no_model": 718
+      "examples": 1075,
+      "no_model": 1074,
+      "note": 1
      },
      "business": {
-      "examples": 415,
-      "no_model": 415
+      "examples": 441,
+      "no_model": 441
      },
      "prediction": {
-      "examples": 180168,
+      "examples": 180488,
       "lost": 4844,
-      "no_model": 175296,
-      "note": 4872,
-      "outcome": 8006
+      "no_model": 175534,
+      "note": 4954,
+      "outcome": 8038
      },
      "preparation": {
-      "examples": 412,
-      "no_model": 412
+      "examples": 482,
+      "no_model": 482
      },
      "reporting": {
-      "examples": 403,
-      "no_model": 403
+      "examples": 470,
+      "no_model": 470
      }
     },
     "en": 0,
-    "examples": 193573,
+    "examples": 195042,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 4892,
-    "no_model": 188653,
+    "no_model": 190039,
     "none": 0,
-    "note": 4920,
-    "outcome": 8788,
+    "note": 5003,
+    "outcome": 8820,
     "recorded": 0,
     "replayed": 0,
-    "sealed_not_read": 8919,
-    "sets": 85,
+    "sealed_not_read": 8925,
+    "sets": 86,
     "teacher": 0,
     "visible": 0
    },
    "m4_workflow_llm": {
     "by_agent": {
      "(model uses)": {
-      "en": 1783,
-      "examples": 1930,
-      "exchanges": 2693,
+      "en": 2224,
+      "examples": 2371,
+      "exchanges": 4706,
       "fa": 147,
       "lost": 285,
       "note": 447,
-      "outcome": 1930,
-      "recorded": 1483
+      "outcome": 2371,
+      "recorded": 1924
      },
      "(roles)": {
-      "en": 52,
-      "examples": 52,
-      "exchanges": 45,
+      "en": 100,
+      "examples": 100,
+      "exchanges": 67,
       "lost": 7,
       "note": 7,
-      "outcome": 52,
-      "recorded": 45
+      "outcome": 100,
+      "recorded": 93
+     },
+     "campaign": {
+      "en": 24,
+      "examples": 24,
+      "exchanges": 8,
+      "outcome": 24,
+      "recorded": 24
+     },
+     "case": {
+      "en": 517,
+      "examples": 517,
+      "exchanges": 1581,
+      "outcome": 517,
+      "recorded": 517
      },
      "home": {
-      "en": 3132,
-      "examples": 3866,
-      "exchanges": 3156,
+      "en": 3401,
+      "examples": 4157,
+      "exchanges": 3627,
       "fa": 493,
-      "from_record": 1223,
+      "from_record": 1274,
       "lost": 297,
-      "note": 1048,
-      "outcome": 2632,
-      "recorded": 1594,
+      "note": 1061,
+      "outcome": 2866,
+      "recorded": 1821,
       "replayed": 1
      },
      "home.project": {
@@ -401,92 +423,92 @@
     },
     "by_track": {
      "(no request)": {
-      "en": 2834,
-      "examples": 3298,
-      "exchanges": 4674,
+      "en": 4071,
+      "examples": 4535,
+      "exchanges": 8759,
       "fa": 464,
       "lost": 480,
-      "note": 1317,
-      "outcome": 3298,
-      "recorded": 1981
+      "note": 1321,
+      "outcome": 4535,
+      "recorded": 3214
      },
      "advice": {
       "en": 38,
-      "examples": 68,
+      "examples": 76,
       "exchanges": 31,
       "fa": 26,
-      "from_record": 7,
-      "note": 4,
+      "from_record": 8,
+      "note": 11,
       "outcome": 61,
       "recorded": 57
      },
      "analysis": {
-      "en": 253,
-      "examples": 334,
-      "exchanges": 110,
+      "en": 272,
+      "examples": 364,
+      "exchanges": 113,
       "fa": 41,
-      "from_record": 80,
-      "note": 22,
-      "outcome": 258,
-      "recorded": 232
+      "from_record": 100,
+      "note": 23,
+      "outcome": 269,
+      "recorded": 241
      },
      "business": {
-      "en": 197,
-      "examples": 225,
+      "en": 199,
+      "examples": 227,
       "exchanges": 89,
       "fa": 11,
-      "from_record": 47,
+      "from_record": 49,
       "note": 9,
       "outcome": 178,
       "recorded": 169
      },
      "prediction": {
-      "en": 1521,
-      "examples": 1709,
+      "en": 1539,
+      "examples": 1727,
       "exchanges": 2838,
       "fa": 57,
-      "from_record": 996,
+      "from_record": 1013,
       "lost": 144,
-      "note": 168,
+      "note": 169,
       "outcome": 697,
       "recorded": 544,
       "replayed": 1
      },
      "preparation": {
-      "en": 100,
-      "examples": 145,
+      "en": 106,
+      "examples": 151,
       "exchanges": 52,
       "fa": 19,
-      "from_record": 45,
+      "from_record": 51,
       "note": 12,
-      "outcome": 101,
+      "outcome": 102,
       "recorded": 88
      },
      "reporting": {
-      "en": 59,
-      "examples": 104,
-      "exchanges": 29,
+      "en": 76,
+      "examples": 124,
+      "exchanges": 36,
       "fa": 22,
-      "from_record": 48,
+      "from_record": 53,
       "note": 5,
-      "outcome": 56,
-      "recorded": 51
+      "outcome": 71,
+      "recorded": 66
      }
     },
-    "en": 5002,
-    "examples": 5883,
-    "exchanges": 7823,
+    "en": 6301,
+    "examples": 7204,
+    "exchanges": 11918,
     "fa": 640,
-    "from_record": 1223,
+    "from_record": 1274,
     "lost": 624,
     "no_model": 0,
     "none": 0,
-    "note": 1537,
-    "outcome": 4649,
-    "recorded": 3122,
+    "note": 1550,
+    "outcome": 5913,
+    "recorded": 4379,
     "replayed": 1,
-    "sealed_not_read": 265,
-    "sets": 15,
+    "sealed_not_read": 507,
+    "sets": 16,
     "teacher": 0,
     "visible": 0
    },
@@ -504,19 +526,19 @@
       "outcome": 475
      },
      "(solver)": {
-      "examples": 1433,
+      "examples": 1443,
       "from_record": 1137,
-      "note": 219,
+      "note": 227,
       "outcome": 1164,
-      "recorded": 77
+      "recorded": 79
      }
     },
     "by_track": {
      "(no request)": {
       "en": 9,
-      "examples": 257,
-      "note": 191,
-      "recorded": 66
+      "examples": 267,
+      "note": 199,
+      "recorded": 68
      },
      "prediction": {
       "en": 475,
@@ -528,16 +550,16 @@
      }
     },
     "en": 484,
-    "examples": 1917,
+    "examples": 1927,
     "exchanges": 0,
     "fa": 0,
     "from_record": 1137,
     "lost": 0,
     "no_model": 0,
     "none": 0,
-    "note": 703,
+    "note": 711,
     "outcome": 1639,
-    "recorded": 77,
+    "recorded": 79,
     "replayed": 0,
     "sealed_not_read": 692,
     "sets": 8,
@@ -553,70 +575,70 @@
       "recorded": 37
      },
      "(studio code)": {
-      "examples": 2031,
-      "from_record": 1647,
-      "no_model": 174,
+      "examples": 2039,
+      "from_record": 1651,
+      "no_model": 178,
       "none": 3,
       "note": 207,
-      "outcome": 2031
+      "outcome": 2039
      },
      "orchestra.walk": {
-      "examples": 2034,
-      "no_model": 2034,
-      "outcome": 2034
+      "examples": 2131,
+      "no_model": 2131,
+      "outcome": 2131
      }
     },
     "by_track": {
      "(no request)": {
-      "examples": 3283,
-      "from_record": 1647,
-      "no_model": 1370,
+      "examples": 3294,
+      "from_record": 1651,
+      "no_model": 1377,
       "none": 3,
       "note": 226,
-      "outcome": 3282,
+      "outcome": 3293,
       "recorded": 37
      },
      "advice": {
-      "examples": 63,
-      "no_model": 63,
-      "outcome": 63
+      "examples": 84,
+      "no_model": 84,
+      "outcome": 84
      },
      "analysis": {
-      "examples": 57,
-      "no_model": 57,
-      "outcome": 57
+      "examples": 84,
+      "no_model": 84,
+      "outcome": 84
      },
      "business": {
-      "examples": 30,
-      "no_model": 30,
-      "outcome": 30
+      "examples": 40,
+      "no_model": 40,
+      "outcome": 40
      },
      "prediction": {
-      "examples": 627,
-      "no_model": 627,
-      "outcome": 627
+      "examples": 647,
+      "no_model": 647,
+      "outcome": 647
      },
      "preparation": {
-      "examples": 30,
-      "no_model": 30,
-      "outcome": 30
+      "examples": 37,
+      "no_model": 37,
+      "outcome": 37
      },
      "reporting": {
-      "examples": 31,
-      "no_model": 31,
-      "outcome": 31
+      "examples": 40,
+      "no_model": 40,
+      "outcome": 40
      }
     },
     "en": 0,
-    "examples": 4121,
+    "examples": 4226,
     "exchanges": 0,
     "fa": 0,
-    "from_record": 1647,
+    "from_record": 1651,
     "lost": 0,
-    "no_model": 2208,
+    "no_model": 2309,
     "none": 3,
     "note": 226,
-    "outcome": 4120,
+    "outcome": 4225,
     "recorded": 37,
     "replayed": 0,
     "sealed_not_read": 485,
@@ -626,6 +648,13 @@
    },
    "m7_judges": {
     "by_agent": {
+     "(model uses)": {
+      "en": 185,
+      "examples": 185,
+      "note": 1,
+      "outcome": 185,
+      "recorded": 184
+     },
      "(other: correction)": {
       "en": 7,
       "examples": 7,
@@ -633,146 +662,148 @@
       "outcome": 7
      },
      "(studio code)": {
-      "examples": 10362,
-      "no_model": 9825,
-      "note": 537,
-      "outcome": 10362
+      "examples": 10459,
+      "no_model": 9920,
+      "note": 539,
+      "outcome": 10459
      }
     },
     "by_track": {
      "(no request)": {
-      "examples": 8498,
-      "no_model": 7961,
-      "note": 537,
-      "outcome": 8498
+      "en": 185,
+      "examples": 8778,
+      "no_model": 8054,
+      "note": 540,
+      "outcome": 8778,
+      "recorded": 184
      },
      "prediction": {
       "en": 7,
-      "examples": 1871,
-      "no_model": 1864,
+      "examples": 1873,
+      "no_model": 1866,
       "note": 7,
-      "outcome": 1871
+      "outcome": 1873
      }
     },
-    "en": 7,
-    "examples": 10369,
+    "en": 192,
+    "examples": 10651,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 0,
-    "no_model": 9825,
+    "no_model": 9920,
     "none": 0,
-    "note": 544,
-    "outcome": 10369,
-    "recorded": 0,
+    "note": 547,
+    "outcome": 10651,
+    "recorded": 184,
     "replayed": 0,
-    "sealed_not_read": 1050,
-    "sets": 6,
+    "sealed_not_read": 1103,
+    "sets": 7,
     "teacher": 0,
     "visible": 0
    },
    "m7_routing": {
     "by_agent": {
      "home": {
-      "examples": 5794,
+      "examples": 6417,
       "lost": 100,
-      "no_model": 4342,
-      "note": 783,
-      "outcome": 1681,
-      "recorded": 669
+      "no_model": 4793,
+      "note": 874,
+      "outcome": 1947,
+      "recorded": 750
      }
     },
     "by_track": {
      "(no request)": {
-      "examples": 2964,
+      "examples": 3040,
       "lost": 100,
-      "no_model": 1924,
-      "note": 699,
-      "outcome": 1201,
-      "recorded": 341
+      "no_model": 1983,
+      "note": 707,
+      "outcome": 1219,
+      "recorded": 350
      },
      "advice": {
-      "examples": 171,
-      "no_model": 112,
-      "note": 22,
-      "outcome": 87,
-      "recorded": 37
+      "examples": 283,
+      "no_model": 193,
+      "note": 47,
+      "outcome": 168,
+      "recorded": 43
      },
      "analysis": {
-      "examples": 129,
-      "no_model": 73,
-      "note": 7,
-      "outcome": 87,
-      "recorded": 49
+      "examples": 244,
+      "no_model": 158,
+      "note": 24,
+      "outcome": 167,
+      "recorded": 62
      },
      "business": {
-      "examples": 76,
-      "no_model": 40,
-      "note": 7,
-      "outcome": 57,
-      "recorded": 29
+      "examples": 105,
+      "no_model": 58,
+      "note": 10,
+      "outcome": 61,
+      "recorded": 37
      },
      "prediction": {
-      "examples": 2308,
-      "no_model": 2111,
-      "note": 31,
-      "outcome": 110,
-      "recorded": 166
+      "examples": 2486,
+      "no_model": 2242,
+      "note": 50,
+      "outcome": 135,
+      "recorded": 194
      },
      "preparation": {
-      "examples": 70,
-      "no_model": 38,
-      "note": 7,
-      "outcome": 70,
-      "recorded": 25
+      "examples": 148,
+      "no_model": 91,
+      "note": 23,
+      "outcome": 123,
+      "recorded": 34
      },
      "reporting": {
-      "examples": 76,
-      "no_model": 44,
-      "note": 10,
-      "outcome": 69,
-      "recorded": 22
+      "examples": 111,
+      "no_model": 68,
+      "note": 13,
+      "outcome": 74,
+      "recorded": 30
      }
     },
     "en": 0,
-    "examples": 5794,
+    "examples": 6417,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 100,
-    "no_model": 4342,
+    "no_model": 4793,
     "none": 0,
-    "note": 783,
-    "outcome": 1681,
-    "recorded": 669,
+    "note": 874,
+    "outcome": 1947,
+    "recorded": 750,
     "replayed": 0,
-    "sealed_not_read": 1736,
-    "sets": 6,
+    "sealed_not_read": 1811,
+    "sets": 8,
     "teacher": 0,
     "visible": 0
    },
    "m8_retrieval": {
     "by_agent": {
      "(evidence search)": {
-      "en": 9,
-      "examples": 9,
-      "no_model": 9
+      "en": 27,
+      "examples": 27,
+      "no_model": 27
      }
     },
     "by_track": {
      "(no request)": {
-      "en": 9,
-      "examples": 9,
-      "no_model": 9
+      "en": 27,
+      "examples": 27,
+      "no_model": 27
      }
     },
-    "en": 9,
-    "examples": 9,
+    "en": 27,
+    "examples": 27,
     "exchanges": 0,
     "fa": 0,
     "from_record": 0,
     "lost": 0,
-    "no_model": 9,
+    "no_model": 27,
     "none": 0,
     "note": 0,
     "outcome": 0,
@@ -786,118 +817,167 @@
   },
   "routing": {
    "problem.pack": {
-    "en": 626,
+    "en": 648,
     "explained": 0,
     "fa": 0,
     "label": {
-     "none": 547,
+     "none": 569,
      "silver": 89
     },
     "label_thinking": 84,
     "mixed": 6,
-    "model_readings": 2,
+    "model_readings": 3,
     "origin": {
      "real": 60,
-     "scripted": 576
+     "scripted": 598
     },
     "own_model": 0,
-    "rows": 636,
+    "rows": 658,
     "sealed_not_read": 227,
-    "text": 632,
+    "text": 654,
     "thinking": 0
    },
    "request.exit": {
-    "en": 220,
+    "en": 330,
     "explained": 0,
     "fa": 42,
     "label": {
-     "none": 150,
-     "real": 2,
+     "none": 236,
+     "real": 3,
      "silver": 31,
-     "written": 106
+     "written": 129
     },
     "label_thinking": 26,
     "mixed": 23,
     "model_readings": 0,
     "origin": {
-     "real": 9,
-     "scripted": 280
+     "real": 11,
+     "scripted": 388
     },
     "own_model": 0,
-    "rows": 289,
+    "rows": 399,
     "sealed_not_read": 19,
-    "text": 285,
+    "text": 395,
     "thinking": 0
    },
    "request.intent": {
-    "en": 1053,
-    "explained": 989,
+    "en": 1163,
+    "explained": 1023,
     "fa": 255,
     "label": {
-     "none": 7,
-     "real": 1,
+     "none": 82,
+     "real": 3,
      "silver": 36,
-     "written": 1397
+     "written": 1430
     },
     "label_thinking": 10,
     "mixed": 129,
-    "model_readings": 1434,
+    "model_readings": 1544,
     "origin": {
      "eval": 452,
-     "real": 12,
-     "scripted": 284,
+     "real": 14,
+     "scripted": 392,
      "written": 693
     },
-    "own_model": 198,
-    "rows": 1441,
+    "own_model": 308,
+    "rows": 1551,
     "sealed_not_read": 198,
-    "text": 1437,
-    "thinking": 418
+    "text": 1547,
+    "thinking": 463
+   },
+   "request.options": {
+    "en": 17,
+    "explained": 7,
+    "fa": 0,
+    "label": {
+     "real": 1,
+     "written": 16
+    },
+    "label_thinking": 0,
+    "mixed": 0,
+    "model_readings": 17,
+    "origin": {
+     "real": 1,
+     "scripted": 16
+    },
+    "own_model": 0,
+    "rows": 17,
+    "sealed_not_read": 5,
+    "text": 17,
+    "thinking": 10
    },
    "request.suggestion": {
-    "en": 12,
+    "en": 125,
     "explained": 0,
     "fa": 0,
     "label": {
-     "none": 12
+     "none": 124,
+     "real": 1
     },
     "label_thinking": 0,
     "mixed": 0,
     "model_readings": 0,
     "origin": {
-     "scripted": 12
+     "real": 2,
+     "scripted": 123
     },
     "own_model": 0,
-    "rows": 12,
-    "sealed_not_read": 0,
-    "text": 12,
+    "rows": 125,
+    "sealed_not_read": 30,
+    "text": 125,
     "thinking": 0
    },
    "request.tool": {
-    "en": 12,
+    "en": 121,
     "explained": 0,
     "fa": 0,
     "label": {
-     "none": 12
+     "none": 102,
+     "real": 2,
+     "written": 17
     },
     "label_thinking": 0,
     "mixed": 0,
     "model_readings": 0,
     "origin": {
-     "scripted": 12
+     "real": 2,
+     "scripted": 119
     },
     "own_model": 0,
-    "rows": 12,
-    "sealed_not_read": 0,
-    "text": 12,
+    "rows": 121,
+    "sealed_not_read": 25,
+    "text": 121,
     "thinking": 0
    },
+   "request.understand_turn": {
+    "en": 44,
+    "explained": 18,
+    "fa": 0,
+    "label": {
+     "none": 32,
+     "real": 1,
+     "silver": 1,
+     "written": 10
+    },
+    "label_thinking": 0,
+    "mixed": 0,
+    "model_readings": 44,
+    "origin": {
+     "real": 2,
+     "scripted": 42
+    },
+    "own_model": 0,
+    "rows": 44,
+    "sealed_not_read": 15,
+    "text": 44,
+    "thinking": 26
+   },
    "workflow.next_question": {
-    "en": 3386,
+    "en": 3437,
     "explained": 0,
     "fa": 0,
     "label": {
-     "none": 3385,
+     "none": 3483,
      "silver": 19
     },
     "label_thinking": 0,
@@ -905,12 +985,12 @@
     "model_readings": 0,
     "origin": {
      "real": 130,
-     "scripted": 3274
+     "scripted": 3372
     },
-    "own_model": 189,
-    "rows": 3404,
+    "own_model": 287,
+    "rows": 3502,
     "sealed_not_read": 1292,
-    "text": 3395,
+    "text": 3446,
     "thinking": 0
    }
   },
@@ -918,17 +998,17 @@
   "sources": {
    "by_agent": {
     "(model uses)": {
-     "calls": 8127,
-     "en": 1430,
-     "exchanges": 2955,
+     "calls": 10133,
+     "en": 2624,
+     "exchanges": 4962,
      "fa": 73,
-     "thinking": 1288,
-     "thinking_redacted": 3,
+     "thinking": 2328,
+     "thinking_redacted": 4,
      "thought_lost": 706,
-     "whole": 1503
+     "whole": 2697
     },
     "(roles)": {
-     "calls": 2550,
+     "calls": 2572,
      "en": 47,
      "exchanges": 75,
      "thinking": 55,
@@ -937,28 +1017,37 @@
      "whole": 47
     },
     "campaign": {
-     "calls": 16,
+     "calls": 24,
      "en": 8,
      "exchanges": 8,
-     "runs": 4,
+     "runs": 7,
      "thinking": 8,
      "whole": 8
     },
+    "case": {
+     "calls": 1581,
+     "en": 659,
+     "exchanges": 1581,
+     "runs": 725,
+     "thinking": 539,
+     "thinking_redacted": 264,
+     "whole": 659
+    },
     "conductor": {
-     "runs": 169
+     "runs": 172
     },
     "coordinator": {
      "runs": 2437
     },
     "home": {
-     "calls": 3262,
-     "en": 1619,
-     "exchanges": 3156,
+     "calls": 3730,
+     "en": 1872,
+     "exchanges": 3627,
      "fa": 347,
-     "runs": 130,
-     "thinking": 803,
+     "runs": 295,
+     "thinking": 999,
      "thought_lost": 772,
-     "whole": 1966
+     "whole": 2219
     },
     "home.project": {
      "calls": 91,
@@ -972,7 +1061,7 @@
      "runs": 12
     },
     "home.script": {
-     "runs": 5884
+     "runs": 5906
     },
     "intern": {
      "calls": 3797,
@@ -1001,7 +1090,7 @@
      "runs": 72
     },
     "team": {
-     "runs": 3
+     "runs": 6
     },
     "tutor": {
      "runs": 5
@@ -1028,14 +1117,14 @@
      "thought_lost": 8
     },
     "brief_checker": {
-     "calls": 29,
+     "calls": 32,
      "en": 6,
      "exchanges": 6,
      "thinking": 6,
      "whole": 6
     },
     "campaign": {
-     "calls": 16,
+     "calls": 24,
      "en": 8,
      "exchanges": 8,
      "thinking": 8,
@@ -1044,18 +1133,30 @@
     "campaign_review": {
      "calls": 83
     },
+    "case_agent": {
+     "calls": 1581,
+     "en": 659,
+     "exchanges": 1581,
+     "thinking": 539,
+     "thinking_redacted": 264,
+     "whole": 659
+    },
+    "case_specialist": {
+     "calls": 1,
+     "exchanges": 1
+    },
     "conversation_reader": {
      "calls": 997
     },
     "critic": {
-     "calls": 12,
+     "calls": 16,
      "en": 8,
      "exchanges": 8,
      "thinking": 8,
      "whole": 8
     },
     "data_investigator": {
-     "calls": 326,
+     "calls": 329,
      "en": 6,
      "exchanges": 6,
      "thinking": 6,
@@ -1093,37 +1194,62 @@
      "whole": 4
     },
     "evidence_answer": {
-     "calls": 2
+     "calls": 11,
+     "en": 5,
+     "exchanges": 9,
+     "thinking": 5,
+     "whole": 5
+    },
+    "exam_judge": {
+     "calls": 360,
+     "en": 238,
+     "exchanges": 360,
+     "thinking": 237,
+     "whole": 238
+    },
+    "exam_person": {
+     "calls": 836,
+     "en": 505,
+     "exchanges": 836,
+     "thinking": 503,
+     "whole": 505
+    },
+    "exam_plain": {
+     "calls": 622,
+     "en": 349,
+     "exchanges": 622,
+     "thinking": 199,
+     "whole": 349
     },
     "feature_engineer": {
-     "calls": 14,
+     "calls": 17,
      "en": 6,
      "exchanges": 6,
      "thinking": 6,
      "whole": 6
     },
     "home_agent": {
-     "calls": 3262,
-     "en": 1619,
-     "exchanges": 3156,
+     "calls": 3730,
+     "en": 1872,
+     "exchanges": 3627,
      "fa": 347,
-     "thinking": 803,
+     "thinking": 999,
      "thought_lost": 772,
-     "whole": 1966
+     "whole": 2219
     },
     "home_business": {
-     "calls": 6,
-     "exchanges": 6,
-     "thinking_redacted": 3
+     "calls": 7,
+     "exchanges": 7,
+     "thinking_redacted": 4
     },
     "home_intent": {
-     "calls": 517,
-     "en": 266,
-     "exchanges": 521,
+     "calls": 615,
+     "en": 324,
+     "exchanges": 619,
      "fa": 71,
-     "thinking": 280,
+     "thinking": 338,
      "thought_lost": 179,
-     "whole": 337
+     "whole": 395
     },
     "home_orchestrator": {
      "calls": 91,
@@ -1133,19 +1259,19 @@
      "whole": 35
     },
     "home_query": {
-     "calls": 8,
-     "en": 8,
-     "exchanges": 8,
-     "thinking": 2,
-     "whole": 8
+     "calls": 26,
+     "en": 19,
+     "exchanges": 27,
+     "thinking": 12,
+     "whole": 19
     },
     "home_understand": {
-     "calls": 257,
-     "en": 196,
-     "exchanges": 261,
-     "thinking": 196,
+     "calls": 318,
+     "en": 223,
+     "exchanges": 321,
+     "thinking": 223,
      "thought_lost": 65,
-     "whole": 196
+     "whole": 223
     },
     "intern": {
      "calls": 3797,
@@ -1199,7 +1325,7 @@
      "calls": 1
     },
     "problem_analyst": {
-     "calls": 227,
+     "calls": 230,
      "en": 6,
      "exchanges": 14,
      "thinking": 14,
@@ -1227,7 +1353,7 @@
      "whole": 4
     },
     "reporter": {
-     "calls": 16,
+     "calls": 19,
      "exchanges": 12,
      "thinking_redacted": 6
     },
@@ -1242,7 +1368,7 @@
      "calls": 130
     },
     "solution_planner": {
-     "calls": 239,
+     "calls": 242,
      "en": 6,
      "exchanges": 6,
      "thinking": 6,
@@ -1266,10 +1392,10 @@
     },
     "synthetic_schema": {
      "calls": 14,
-     "en": 14,
-     "exchanges": 14,
-     "thinking": 5,
-     "whole": 14
+     "en": 15,
+     "exchanges": 15,
+     "thinking": 6,
+     "whole": 15
     },
     "understanding_critic": {
      "calls": 190,
@@ -1286,15 +1412,15 @@
    },
    "by_track": {
     "(no request)": {
-     "calls": 12660,
-     "en": 2416,
-     "exchanges": 4710,
+     "calls": 16745,
+     "en": 4512,
+     "exchanges": 8759,
      "fa": 342,
-     "runs": 7425,
-     "thinking": 1336,
-     "thinking_redacted": 10,
+     "runs": 8167,
+     "thinking": 3102,
+     "thinking_redacted": 275,
      "thought_lost": 1096,
-     "whole": 2758
+     "whole": 4854
     },
     "advice": {
      "calls": 31,
@@ -1306,18 +1432,19 @@
     },
     "analysis": {
      "calls": 110,
-     "en": 92,
-     "exchanges": 110,
+     "en": 95,
+     "exchanges": 113,
      "fa": 18,
-     "thinking": 82,
-     "whole": 110
+     "runs": 48,
+     "thinking": 85,
+     "whole": 113
     },
     "business": {
      "calls": 84,
      "en": 79,
      "exchanges": 89,
      "fa": 6,
-     "runs": 3,
+     "runs": 13,
      "thinking": 61,
      "thinking_redacted": 2,
      "whole": 85
@@ -1327,7 +1454,7 @@
      "en": 468,
      "exchanges": 2838,
      "fa": 26,
-     "runs": 3113,
+     "runs": 3206,
      "thinking": 341,
      "thinking_redacted": 306,
      "thought_lost": 660,
@@ -1338,26 +1465,28 @@
      "en": 44,
      "exchanges": 52,
      "fa": 8,
+     "runs": 23,
      "thinking": 32,
      "whole": 52
     },
     "reporting": {
      "calls": 29,
-     "en": 19,
-     "exchanges": 29,
+     "en": 26,
+     "exchanges": 36,
      "fa": 10,
-     "thinking": 22,
-     "whole": 29
+     "runs": 5,
+     "thinking": 28,
+     "whole": 36
     }
    }
   }
  },
  "kinds": {
   "actions": {
-   "bytes": 21671846,
-   "entries": 1833,
-   "last": "2026-10-30T06:58:14+00:00",
-   "sources": 1443,
+   "bytes": 23569711,
+   "entries": 2164,
+   "last": "2026-10-31T11:09:18+00:00",
+   "sources": 1743,
    "what": "agent steps and tool calls",
    "workspaces": [
     "dev",
@@ -2621,7 +2750,286 @@
     "live_tests__2026-10-28-dclab-code-hyperack-rerun__workspace_known",
     "live_tests__2026-10-28-rnd-hyperack-live__workspace_recommend",
     "live_tests__2026-10-30-capture__workspace_chat",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-001__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-001__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-002__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-002__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-007__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-007__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__owner-telco",
+    "live_tests__2026-10-30-home-eval__dev-081518__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-083603__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-093030__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-100609__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-112934__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-114221__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-154336__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-161751__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-164443__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-201522__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-211143__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-214245__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-224301__model__d-v1",
     "live_tests__2026-10-30-team__063024",
+    "live_tests__2026-10-30-team__110834",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-40",
+    "live_tests__2026-10-31-home-eval__dev-003551__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-010445__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-014123__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-091327__model__d-v1",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-100832-215130__workflow",
     "twin__runs__20261016-112025-a15b8e__ai_first",
@@ -2693,19 +3101,19 @@
    ]
   },
   "agents": {
-   "bytes": 1513234301,
-   "entries": 2716,
-   "last": "2026-10-30T07:12:54+00:00",
-   "sources": 2356,
+   "bytes": 1639725313,
+   "entries": 2832,
+   "last": "2026-10-31T11:24:08+00:00",
+   "sources": 2450,
    "what": "other agents' sessions: Claude Code (the main checkout and its worktrees), testers'",
    "workspaces": [
     "rnd"
    ]
   },
   "audit": {
-   "bytes": 1612018,
-   "entries": 289,
-   "last": "2026-10-30T06:58:14+00:00",
+   "bytes": 1641673,
+   "entries": 303,
+   "last": "2026-10-31T11:09:19+00:00",
    "sources": 128,
    "what": "the audit trail",
    "workspaces": [
@@ -2838,10 +3246,10 @@
    ]
   },
   "conversations": {
-   "bytes": 378346090,
-   "entries": 7687,
-   "last": "2026-10-30T06:59:46+00:00",
-   "sources": 7549,
+   "bytes": 381544600,
+   "entries": 7879,
+   "last": "2026-10-31T09:42:08+00:00",
+   "sources": 7739,
    "what": "Home, the intern, the workspace chat, the twin, MCP",
    "workspaces": [
     "dev",
@@ -5403,6 +5811,81 @@
     "live_tests__2026-10-29-home-eval__dev-192309__model__d-v1",
     "live_tests__2026-10-29-home-eval__dev-195648__model__d-v1",
     "live_tests__2026-10-30-capture__workspace_chat",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__owner-telco",
+    "live_tests__2026-10-30-home-conversation__dev-080549__p-03",
+    "live_tests__2026-10-30-home-eval__dev-080311__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-081518__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-083603__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-093030__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-100609__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-112934__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-114221__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-154336__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-161751__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-164443__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-201522__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-211143__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-214245__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-224301__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-003551__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-010445__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-014123__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-091327__model__d-v1",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -5478,20 +5961,20 @@
    ]
   },
   "curation": {
-   "bytes": 1218912538,
-   "entries": 68,
-   "last": "2026-10-30T07:23:55+00:00",
-   "sources": 68,
+   "bytes": 1251660521,
+   "entries": 73,
+   "last": "2026-10-31T11:32:55+00:00",
+   "sources": 73,
    "what": "every curator's choice: where each record went, its quality, why, and its failed answers",
    "workspaces": [
     "rnd"
    ]
   },
   "decisions": {
-   "bytes": 402400149,
-   "entries": 8960,
-   "last": "2026-10-30T06:57:05+00:00",
-   "sources": 8816,
+   "bytes": 407223497,
+   "entries": 9181,
+   "last": "2026-10-31T11:07:44+00:00",
+   "sources": 9035,
    "what": "the decision ledger: records, labels and outcomes",
    "workspaces": [
     "dev",
@@ -7091,7 +7574,201 @@
     "live_tests__2026-10-29-home-eval__dev-192309__model__d-v1",
     "live_tests__2026-10-29-home-eval__dev-195648__model__d-v1",
     "live_tests__2026-10-30-capture__workspace_chat",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-001__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-002__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-007__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-007__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__owner-telco",
+    "live_tests__2026-10-30-home-conversation__dev-080549__p-03",
+    "live_tests__2026-10-30-home-eval__dev-080311__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-081518__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-083603__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-093030__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-100609__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-112934__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-114221__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-154336__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-161751__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-164443__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-201522__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-211143__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-214245__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-224301__model__d-v1",
     "live_tests__2026-10-30-team__063024",
+    "live_tests__2026-10-30-team__110834",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-40",
+    "live_tests__2026-10-31-home-eval__dev-003551__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-010445__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-014123__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-091327__model__d-v1",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -9285,10 +9962,10 @@
    ]
   },
   "deletions": {
-   "bytes": 45961,
-   "entries": 189,
-   "last": "2026-10-29T15:45:21+00:00",
-   "sources": 186,
+   "bytes": 46448,
+   "entries": 191,
+   "last": "2026-10-30T18:03:45+00:00",
+   "sources": 188,
    "what": "each deletion in the product, recorded beside what it removed",
    "workspaces": [
     "dev",
@@ -9299,20 +9976,20 @@
    ]
   },
   "fixes": {
-   "bytes": 131759157,
-   "entries": 1428,
-   "last": "2026-10-30T07:17:31+00:00",
-   "sources": 1388,
+   "bytes": 138837091,
+   "entries": 1515,
+   "last": "2026-10-31T11:24:22+00:00",
+   "sources": 1474,
    "what": "a failing test, the passing run after it, and the commits between",
    "workspaces": [
     "rnd"
    ]
   },
   "model_requests": {
-   "bytes": 126493064,
-   "entries": 273,
-   "last": "2026-10-30T06:58:31+00:00",
-   "sources": 98,
+   "bytes": 190403042,
+   "entries": 295,
+   "last": "2026-10-31T11:09:54+00:00",
+   "sources": 99,
    "what": "every model request with its shadows and checks",
    "workspaces": [
     "dev",
@@ -9386,10 +10063,10 @@
    ]
   },
   "other": {
-   "bytes": 532347332,
-   "entries": 14299,
-   "last": "2026-10-30T07:04:35+00:00",
-   "sources": 13800,
+   "bytes": 541398722,
+   "entries": 14912,
+   "last": "2026-10-31T11:16:46+00:00",
+   "sources": 14271,
    "what": "anything else a workspace holds (logs, results, designs, transcripts, settings), so nothing is left out",
    "workspaces": [
     "dev",
@@ -11673,7 +12350,268 @@
     "live_tests__2026-10-29-home-conversation__dev-195744__p-19",
     "live_tests__2026-10-29-home-conversation__dev-195744__p-20",
     "live_tests__2026-10-30-capture__workspace_chat",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-001__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-001__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-002__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-002__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-007__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-007__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__owner-telco",
     "live_tests__2026-10-30-team__063024",
+    "live_tests__2026-10-30-team__110834",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-40",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -12090,10 +13028,10 @@
    ]
   },
   "sessions": {
-   "bytes": 307540837,
-   "entries": 3152,
-   "last": "2026-10-30T06:56:14+00:00",
-   "sources": 2778,
+   "bytes": 338813870,
+   "entries": 3461,
+   "last": "2026-10-31T11:06:35+00:00",
+   "sources": 3058,
    "what": "the experience log's events",
    "workspaces": [
     "dev",
@@ -13428,7 +14366,286 @@
     "live_tests__2026-10-28-dclab-code-hyperack-rerun__workspace_known",
     "live_tests__2026-10-28-rnd-hyperack-live__workspace_recommend",
     "live_tests__2026-10-30-capture__workspace_chat",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-001__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-001__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-002__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-002__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__plain__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-004__plain__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-005__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-006__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-007__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-007__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-008__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-009__case__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-009__plain__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-010__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-011__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-012__case__owner-telco",
+    "live_tests__2026-10-30-home-eval__dev-081518__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-083603__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-093030__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-100609__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-112934__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-114221__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-154336__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-161751__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-164443__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-201522__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-211143__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-214245__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-224301__model__d-v1",
     "live_tests__2026-10-30-team__063024",
+    "live_tests__2026-10-30-team__110834",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-014__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__d-40",
+    "live_tests__2026-10-31-home-eval__dev-003551__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-010445__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-014123__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-091327__model__d-v1",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -13822,10 +15039,10 @@
    ]
   },
   "students": {
-   "bytes": 52380709,
-   "entries": 321,
-   "last": "2026-10-30T08:03:03+00:00",
-   "sources": 222,
+   "bytes": 52463257,
+   "entries": 342,
+   "last": "2026-10-31T12:07:23+00:00",
+   "sources": 236,
    "what": "every student version, whole: the fitted model, its training snapshot, card, measurements, shadow answers",
    "workspaces": [
     "dev",
@@ -13846,9 +15063,9 @@
    ]
   },
   "tasks": {
-   "bytes": 3874509,
-   "entries": 401,
-   "last": "2026-10-29T16:47:06+00:00",
+   "bytes": 3915737,
+   "entries": 405,
+   "last": "2026-10-31T02:48:28+00:00",
    "sources": 65,
    "what": "every job's state changes; the development sessions' task lists",
    "workspaces": [
@@ -13908,10 +15125,10 @@
    ]
   },
   "tests": {
-   "bytes": 324826992,
-   "entries": 12818,
-   "last": "2026-10-30T07:04:54+00:00",
-   "sources": 12558,
+   "bytes": 348256931,
+   "entries": 14035,
+   "last": "2026-10-31T11:27:34+00:00",
+   "sources": 13769,
    "what": "test runs and gates",
    "workspaces": [
     "dev",
@@ -13921,10 +15138,10 @@
    ]
   },
   "workflows": {
-   "bytes": 375685304,
-   "entries": 15301,
-   "last": "2026-10-30T07:17:27+00:00",
-   "sources": 15144,
+   "bytes": 381472452,
+   "entries": 15408,
+   "last": "2026-10-31T10:03:32+00:00",
+   "sources": 15250,
    "what": "each walk from a draft to a report; team and orchestra boards, walks and interrupts",
    "workspaces": [
     "dev",
@@ -16491,7 +17708,83 @@
     "live_tests__2026-10-29-home-eval__dev-192309__model__d-v1",
     "live_tests__2026-10-29-home-eval__dev-195648__model__d-v1",
     "live_tests__2026-10-30-capture__workspace_chat",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-001__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-003__home__owner-telco",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-01",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-02",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-03",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-04",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-05",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-06",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-07",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-08",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-09",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-10",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-11",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-12",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-13",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-14",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-15",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-16",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-17",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-18",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-19",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-20",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-21",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-22",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-23",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-24",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-25",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-26",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-27",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-28",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-29",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-30",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-31",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-32",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-33",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-34",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-35",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-36",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-37",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-38",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-39",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__d-40",
+    "live_tests__2026-10-30-conversation-exam__cex-004__home__owner-telco",
+    "live_tests__2026-10-30-home-conversation__dev-080549__p-03",
+    "live_tests__2026-10-30-home-eval__dev-080311__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-081518__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-083603__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-093030__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-100609__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-112934__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-114221__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-154336__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-161751__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-164443__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-201522__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-211143__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-214245__model__d-v1",
+    "live_tests__2026-10-30-home-eval__dev-224301__model__d-v1",
     "live_tests__2026-10-30-team__063024",
+    "live_tests__2026-10-30-team__110834",
+    "live_tests__2026-10-31-home-eval__dev-003551__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-010445__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-014123__model__d-v1",
+    "live_tests__2026-10-31-home-eval__dev-091327__model__d-v1",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -16572,117 +17865,121 @@
    "sets": [
     {
      "counts": {
-      "dev": 224,
+      "dev": 227,
       "sealed": 7,
-      "sealed_pending": 259,
+      "sealed_pending": 260,
       "train": 653
      },
      "name": "column.category_code/pairs",
      "path": "sets/m1_students/column.category_code/pairs/v1",
      "reasoning": {
-      "no_model": 1143
+      "no_model": 1147
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 799,
+      "dev": 802,
       "sealed": 7,
-      "sealed_pending": 940,
+      "sealed_pending": 941,
       "train": 2305
      },
      "name": "column.category_code",
      "path": "sets/m1_students/column.category_code/v1",
      "reasoning": {
-      "no_model": 4051
+      "no_model": 4055
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 13,
+      "dev": 14,
       "sealed": 2,
-      "sealed_pending": 20,
+      "sealed_pending": 21,
       "train": 46
      },
      "name": "column.group/pairs",
      "path": "sets/m1_students/column.group/pairs/v1",
      "reasoning": {
-      "missing": 9,
-      "no_model": 70
+      "lost": 9,
+      "no_model": 70,
+      "none": 2
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 62,
+      "dev": 63,
       "sealed": 26,
-      "sealed_pending": 29,
+      "sealed_pending": 30,
       "train": 162
      },
      "name": "column.group",
      "path": "sets/m1_students/column.group/v1",
      "reasoning": {
-      "missing": 18,
-      "no_model": 261
+      "lost": 18,
+      "no_model": 261,
+      "none": 2
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 2137,
+      "dev": 2160,
       "sealed": 34,
-      "sealed_pending": 2435,
+      "sealed_pending": 2445,
       "train": 7112
      },
      "name": "column.is_identifier/pairs",
      "path": "sets/m1_students/column.is_identifier/pairs/v1",
      "reasoning": {
-      "missing": 1503,
-      "no_model": 10215
+      "lost": 1503,
+      "no_model": 10215,
+      "none": 33
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 10489,
+      "dev": 10512,
       "sealed": 34,
-      "sealed_pending": 11112,
+      "sealed_pending": 11122,
       "train": 33073
      },
      "name": "column.is_identifier",
      "path": "sets/m1_students/column.is_identifier/v1",
      "reasoning": {
-      "missing": 2661,
-      "no_model": 52047
+      "lost": 2661,
+      "no_model": 52047,
+      "none": 33
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1370,
+      "dev": 1393,
       "sealed": 34,
-      "sealed_pending": 1453,
+      "sealed_pending": 1463,
       "train": 9033
      },
      "name": "column.semantic_role/pairs",
      "path": "sets/m1_students/column.semantic_role/pairs/v1",
      "reasoning": {
-      "no_model": 11890
+      "no_model": 11923
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 4113,
+      "dev": 4136,
       "sealed": 34,
-      "sealed_pending": 4474,
+      "sealed_pending": 4484,
       "train": 16499
      },
      "name": "column.semantic_role",
      "path": "sets/m1_students/column.semantic_role/v1",
      "reasoning": {
-      "no_model": 25120
+      "no_model": 25153
      },
      "version": "v1"
     },
@@ -16702,7 +17999,7 @@
     },
     {
      "counts": {
-      "dev": 49,
+      "dev": 50,
       "sealed": 1,
       "sealed_pending": 42,
       "train": 163
@@ -16710,14 +18007,15 @@
      "name": "column.time/pairs",
      "path": "sets/m1_students/column.time/pairs/v1",
      "reasoning": {
-      "missing": 43,
-      "no_model": 212
+      "lost": 43,
+      "no_model": 212,
+      "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 333,
+      "dev": 334,
       "sealed": 1,
       "sealed_pending": 346,
       "train": 1081
@@ -16725,8 +18023,9 @@
      "name": "column.time",
      "path": "sets/m1_students/column.time/v1",
      "reasoning": {
-      "missing": 63,
-      "no_model": 1698
+      "lost": 63,
+      "no_model": 1698,
+      "none": 1
      },
      "version": "v1"
     },
@@ -16746,71 +18045,71 @@
     },
     {
      "counts": {
-      "dev": 75,
+      "dev": 93,
       "sealed": 1,
-      "sealed_pending": 56,
-      "train": 167
+      "sealed_pending": 74,
+      "train": 232
      },
      "name": "data.cases_table/pairs",
      "path": "sets/m1_students/data.cases_table/pairs/v1",
      "reasoning": {
-      "no_model": 299
+      "no_model": 400
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 233,
+      "dev": 251,
       "sealed": 2,
-      "sealed_pending": 206,
-      "train": 560
+      "sealed_pending": 224,
+      "train": 625
      },
      "name": "data.cases_table",
      "path": "sets/m1_students/data.cases_table/v1",
      "reasoning": {
-      "no_model": 1001
+      "no_model": 1102
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 328,
+      "dev": 355,
       "sealed": 7,
-      "sealed_pending": 303,
-      "train": 798
+      "sealed_pending": 330,
+      "train": 897
      },
      "name": "data.cleaning_keep",
      "path": "sets/m1_students/data.cleaning_keep/v1",
      "reasoning": {
-      "no_model": 1436
+      "no_model": 1589
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 790,
+      "dev": 964,
       "sealed": 5,
-      "sealed_pending": 613,
-      "train": 1792
+      "sealed_pending": 775,
+      "train": 2405
      },
      "name": "data.cleaning_step/pairs",
      "path": "sets/m1_students/data.cleaning_step/pairs/v1",
      "reasoning": {
-      "no_model": 3200
+      "no_model": 4149
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 2458,
+      "dev": 2634,
       "sealed": 8,
-      "sealed_pending": 2415,
-      "train": 5858
+      "sealed_pending": 2583,
+      "train": 6490
      },
      "name": "data.cleaning_step",
      "path": "sets/m1_students/data.cleaning_step/v1",
      "reasoning": {
-      "no_model": 10739
+      "no_model": 11715
      },
      "version": "v1"
     },
@@ -16844,29 +18143,29 @@
     },
     {
      "counts": {
-      "dev": 515,
+      "dev": 517,
       "sealed": 2,
-      "sealed_pending": 544,
+      "sealed_pending": 545,
       "train": 1542
      },
      "name": "data.sampling",
      "path": "sets/m1_students/data.sampling/v1",
      "reasoning": {
-      "no_model": 2603
+      "no_model": 2606
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 237,
+      "dev": 255,
       "sealed": 1,
-      "sealed_pending": 218,
-      "train": 577
+      "sealed_pending": 236,
+      "train": 642
      },
      "name": "data.structure_format",
      "path": "sets/m1_students/data.structure_format/v1",
      "reasoning": {
-      "no_model": 1033
+      "no_model": 1134
      },
      "version": "v1"
     },
@@ -16875,13 +18174,14 @@
       "dev": 8,
       "sealed": 1,
       "sealed_pending": 8,
-      "train": 21
+      "train": 22
      },
      "name": "data.synthetic_shape",
      "path": "sets/m1_students/data.synthetic_shape/v1",
      "reasoning": {
-      "missing": 14,
-      "no_model": 24
+      "lost": 13,
+      "no_model": 24,
+      "none": 2
      },
      "version": "v1"
     },
@@ -16901,15 +18201,29 @@
     },
     {
      "counts": {
+      "dev": 5,
+      "sealed": 6,
+      "sealed_pending": 1,
+      "train": 7
+     },
+     "name": "evidence.records",
+     "path": "sets/m1_students/evidence.records/v1",
+     "reasoning": {
+      "no_model": 19
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
       "dev": 99,
       "sealed": 88,
-      "sealed_pending": 41,
+      "sealed_pending": 42,
       "train": 323
      },
      "name": "experiment.accept",
      "path": "sets/m1_students/experiment.accept/v1",
      "reasoning": {
-      "no_model": 551
+      "no_model": 552
      },
      "version": "v1"
     },
@@ -16917,59 +18231,62 @@
      "counts": {
       "dev": 99,
       "sealed": 88,
-      "sealed_pending": 41,
+      "sealed_pending": 42,
       "train": 323
      },
      "name": "experiment.next",
      "path": "sets/m1_students/experiment.next/v1",
      "reasoning": {
-      "missing": 1,
-      "no_model": 550
+      "lost": 1,
+      "no_model": 550,
+      "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 2377,
+      "dev": 2401,
       "sealed": 37,
-      "sealed_pending": 2678,
+      "sealed_pending": 2690,
       "train": 7855
      },
      "name": "feature.leakage_suspect/pairs",
      "path": "sets/m1_students/feature.leakage_suspect/pairs/v1",
      "reasoning": {
-      "missing": 1503,
-      "no_model": 11444
+      "lost": 1503,
+      "no_model": 11447,
+      "none": 33
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 11124,
+      "dev": 11148,
       "sealed": 37,
-      "sealed_pending": 11729,
+      "sealed_pending": 11741,
       "train": 34925
      },
      "name": "feature.leakage_suspect",
      "path": "sets/m1_students/feature.leakage_suspect/v1",
      "reasoning": {
-      "missing": 2661,
-      "no_model": 55154
+      "lost": 2661,
+      "no_model": 55157,
+      "none": 33
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 514,
+      "dev": 516,
       "sealed": 3,
-      "sealed_pending": 540,
+      "sealed_pending": 541,
       "train": 1537
      },
      "name": "features.recipe",
      "path": "sets/m1_students/features.recipe/v1",
      "reasoning": {
-      "missing": 4,
-      "no_model": 2590
+      "lost": 4,
+      "no_model": 2593
      },
      "version": "v1"
     },
@@ -16983,8 +18300,8 @@
      "name": "holdout.reuse",
      "path": "sets/m1_students/holdout.reuse/v1",
      "reasoning": {
-      "missing": 2,
-      "no_model": 1
+      "no_model": 1,
+      "none": 2
      },
      "version": "v1"
     },
@@ -17032,7 +18349,7 @@
     },
     {
      "counts": {
-      "dev": 65,
+      "dev": 66,
       "sealed": 26,
       "sealed_pending": 43,
       "train": 173
@@ -17040,7 +18357,7 @@
      "name": "labels.join_key",
      "path": "sets/m1_students/labels.join_key/v1",
      "reasoning": {
-      "no_model": 307
+      "no_model": 308
      },
      "version": "v1"
     },
@@ -17074,44 +18391,44 @@
     },
     {
      "counts": {
-      "dev": 515,
+      "dev": 517,
       "sealed": 2,
-      "sealed_pending": 544,
+      "sealed_pending": 545,
       "train": 1542
      },
      "name": "metric.primary",
      "path": "sets/m1_students/metric.primary/v1",
      "reasoning": {
-      "no_model": 2603
+      "no_model": 2606
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 514,
+      "dev": 516,
       "sealed": 2,
-      "sealed_pending": 539,
+      "sealed_pending": 540,
       "train": 1531
      },
      "name": "model.family",
      "path": "sets/m1_students/model.family/v1",
      "reasoning": {
-      "missing": 4,
-      "no_model": 2582
+      "lost": 4,
+      "no_model": 2585
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 214,
+      "dev": 216,
       "sealed": 53,
-      "sealed_pending": 174,
+      "sealed_pending": 175,
       "train": 632
      },
      "name": "model.first",
      "path": "sets/m1_students/model.first/v1",
      "reasoning": {
-      "no_model": 1073
+      "no_model": 1076
      },
      "version": "v1"
     },
@@ -17133,13 +18450,13 @@
      "counts": {
       "dev": 78,
       "sealed": 74,
-      "sealed_pending": 29,
+      "sealed_pending": 30,
       "train": 250
      },
      "name": "model.review",
      "path": "sets/m1_students/model.review/v1",
      "reasoning": {
-      "no_model": 431
+      "no_model": 432
      },
      "version": "v1"
     },
@@ -17153,7 +18470,7 @@
      "name": "modifier.groups",
      "path": "sets/m1_students/modifier.groups/v1",
      "reasoning": {
-      "missing": 136,
+      "lost": 136,
       "no_model": 3606
      },
      "version": "v1"
@@ -17168,7 +18485,7 @@
      "name": "modifier.noisy_labels",
      "path": "sets/m1_students/modifier.noisy_labels/v1",
      "reasoning": {
-      "missing": 136,
+      "lost": 136,
       "no_model": 3331
      },
      "version": "v1"
@@ -17183,7 +18500,7 @@
      "name": "modifier.rare_positives",
      "path": "sets/m1_students/modifier.rare_positives/v1",
      "reasoning": {
-      "missing": 136,
+      "lost": 136,
       "no_model": 3606
      },
      "version": "v1"
@@ -17198,7 +18515,7 @@
      "name": "modifier.review_capacity",
      "path": "sets/m1_students/modifier.review_capacity/v1",
      "reasoning": {
-      "missing": 136,
+      "lost": 136,
       "no_model": 3331
      },
      "version": "v1"
@@ -17213,7 +18530,7 @@
      "name": "modifier.time_order",
      "path": "sets/m1_students/modifier.time_order/v1",
      "reasoning": {
-      "missing": 136,
+      "lost": 136,
       "no_model": 3606
      },
      "version": "v1"
@@ -17248,16 +18565,17 @@
     },
     {
      "counts": {
-      "dev": 199,
+      "dev": 201,
       "sealed": 2,
-      "sealed_pending": 185,
-      "train": 497
+      "sealed_pending": 189,
+      "train": 512
      },
      "name": "problem.pack",
      "path": "sets/m1_students/problem.pack/v1",
      "reasoning": {
-      "missing": 2,
-      "no_model": 881
+      "lost": 2,
+      "no_model": 901,
+      "none": 1
      },
      "version": "v1"
     },
@@ -17291,16 +18609,17 @@
     },
     {
      "counts": {
-      "dev": 9,
+      "dev": 13,
       "sealed": 2,
-      "sealed_pending": 1,
-      "train": 18
+      "sealed_pending": 8,
+      "train": 24
      },
      "name": "query.plan",
      "path": "sets/m1_students/query.plan/v1",
      "reasoning": {
-      "missing": 15,
-      "no_model": 15
+      "lost": 15,
+      "no_model": 17,
+      "none": 15
      },
      "version": "v1"
     },
@@ -17309,98 +18628,132 @@
       "dev": 1,
       "sealed": 1,
       "sealed_pending": 2,
-      "train": 6
+      "train": 7
      },
      "name": "recipe.step",
      "path": "sets/m1_students/recipe.step/v1",
      "reasoning": {
-      "no_model": 10
+      "no_model": 11
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 48,
+      "dev": 78,
       "sealed": 15,
-      "sealed_pending": 33,
+      "sealed_pending": 47,
       "train": 45
      },
      "name": "report.claim",
      "path": "sets/m1_students/report.claim/v1",
      "reasoning": {
-      "missing": 141
+      "lost": 100,
+      "none": 85
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 90,
+      "dev": 110,
       "sealed": 6,
-      "sealed_pending": 48,
-      "train": 200
+      "sealed_pending": 67,
+      "train": 253
      },
      "name": "request.exit",
      "path": "sets/m1_students/request.exit/v1",
      "reasoning": {
-      "no_model": 344
+      "no_model": 436
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 67,
+      "dev": 85,
       "sealed": 21,
-      "sealed_pending": 17,
-      "train": 124
+      "sealed_pending": 35,
+      "train": 174
      },
      "name": "request.intent/pairs",
      "path": "sets/m1_students/request.intent/pairs/v1",
      "reasoning": {
-      "missing": 227,
-      "no_model": 2
+      "lost": 6,
+      "no_model": 2,
+      "none": 79,
+      "recorded": 228
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 93,
+      "dev": 111,
       "sealed": 9,
-      "sealed_pending": 49,
-      "train": 202
+      "sealed_pending": 67,
+      "train": 252
      },
      "name": "request.intent",
      "path": "sets/m1_students/request.intent/v1",
      "reasoning": {
-      "missing": 242,
-      "no_model": 111
+      "lost": 21,
+      "no_model": 111,
+      "none": 79,
+      "recorded": 228
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 3,
-      "sealed": 1,
+      "dev": 2,
+      "sealed": 3,
       "sealed_pending": 0,
-      "train": 8
+      "train": 6
+     },
+     "name": "request.options",
+     "path": "sets/m1_students/request.options/v1",
+     "reasoning": {
+      "recorded": 11
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 23,
+      "sealed": 1,
+      "sealed_pending": 20,
+      "train": 61
      },
      "name": "request.suggestion",
      "path": "sets/m1_students/request.suggestion/v1",
      "reasoning": {
-      "no_model": 12
+      "no_model": 105
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 22,
       "sealed": 1,
-      "sealed_pending": 0,
-      "train": 8
+      "sealed_pending": 19,
+      "train": 58
      },
      "name": "request.tool",
      "path": "sets/m1_students/request.tool/v1",
      "reasoning": {
-      "no_model": 12
+      "no_model": 100
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 5,
+      "sealed": 7,
+      "sealed_pending": 0,
+      "train": 17
+     },
+     "name": "request.understand_turn",
+     "path": "sets/m1_students/request.understand_turn/v1",
+     "reasoning": {
+      "none": 4,
+      "recorded": 25
      },
      "version": "v1"
     },
@@ -17448,88 +18801,91 @@
     },
     {
      "counts": {
-      "dev": 515,
+      "dev": 517,
       "sealed": 2,
-      "sealed_pending": 544,
+      "sealed_pending": 545,
       "train": 1542
      },
      "name": "split.folds",
      "path": "sets/m1_students/split.folds/v1",
      "reasoning": {
-      "no_model": 2603
+      "no_model": 2606
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 147,
+      "dev": 149,
       "sealed": 1,
-      "sealed_pending": 174,
+      "sealed_pending": 175,
       "train": 443
      },
      "name": "split.strategy/pairs",
      "path": "sets/m1_students/split.strategy/pairs/v1",
      "reasoning": {
-      "no_model": 765
+      "no_model": 768
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 372,
+      "dev": 374,
       "sealed": 2,
-      "sealed_pending": 415,
+      "sealed_pending": 416,
       "train": 1106
      },
      "name": "split.strategy",
      "path": "sets/m1_students/split.strategy/v1",
      "reasoning": {
-      "no_model": 1895
+      "no_model": 1898
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 789,
+      "dev": 791,
       "sealed": 2,
-      "sealed_pending": 824,
+      "sealed_pending": 825,
       "train": 2411
      },
      "name": "target.column",
      "path": "sets/m1_students/target.column/v1",
      "reasoning": {
-      "missing": 153,
-      "no_model": 3873
+      "lost": 153,
+      "no_model": 3873,
+      "none": 3
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 290,
+      "dev": 292,
       "sealed": 1,
-      "sealed_pending": 328,
+      "sealed_pending": 329,
       "train": 955
      },
      "name": "task.framing/pairs",
      "path": "sets/m1_students/task.framing/pairs/v1",
      "reasoning": {
-      "missing": 78,
-      "no_model": 1496
+      "lost": 78,
+      "no_model": 1496,
+      "none": 3
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 792,
+      "dev": 794,
       "sealed": 2,
-      "sealed_pending": 826,
+      "sealed_pending": 827,
       "train": 2418
      },
      "name": "task.framing",
      "path": "sets/m1_students/task.framing/v1",
      "reasoning": {
-      "missing": 153,
-      "no_model": 3885
+      "lost": 153,
+      "no_model": 3885,
+      "none": 3
      },
      "version": "v1"
     },
@@ -17549,7 +18905,7 @@
     },
     {
      "counts": {
-      "dev": 628,
+      "dev": 630,
       "sealed": 1,
       "sealed_pending": 266,
       "train": 1179
@@ -17557,78 +18913,79 @@
      "name": "threshold.operating_point",
      "path": "sets/m1_students/threshold.operating_point/v1",
      "reasoning": {
-      "no_model": 2074
+      "no_model": 2076
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 511,
+      "dev": 513,
       "sealed": 2,
-      "sealed_pending": 536,
+      "sealed_pending": 537,
       "train": 1526
      },
      "name": "tuning.accept",
      "path": "sets/m1_students/tuning.accept/v1",
      "reasoning": {
-      "no_model": 2575
+      "no_model": 2578
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 469,
+      "dev": 471,
       "sealed": 1,
-      "sealed_pending": 497,
+      "sealed_pending": 498,
       "train": 1402
      },
      "name": "workflow.g4",
      "path": "sets/m1_students/workflow.g4/v1",
      "reasoning": {
-      "no_model": 2369
+      "no_model": 2372
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 2865,
+      "dev": 2886,
       "sealed": 21,
-      "sealed_pending": 3023,
+      "sealed_pending": 3033,
       "train": 8474
      },
      "name": "workflow.move",
      "path": "sets/m1_students/workflow.move/v1",
      "reasoning": {
-      "missing": 1272,
-      "no_model": 13111
+      "lost": 1269,
+      "no_model": 13118,
+      "none": 27
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 94,
+      "dev": 112,
       "sealed": 1,
-      "sealed_pending": 79,
-      "train": 224
+      "sealed_pending": 105,
+      "train": 297
      },
      "name": "workflow.next_question/pairs",
      "path": "sets/m1_students/workflow.next_question/pairs/v1",
      "reasoning": {
-      "no_model": 398
+      "no_model": 515
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1095,
+      "dev": 1113,
       "sealed": 2,
-      "sealed_pending": 1003,
-      "train": 2643
+      "sealed_pending": 1029,
+      "train": 2716
      },
      "name": "workflow.next_question",
      "path": "sets/m1_students/workflow.next_question/v1",
      "reasoning": {
-      "no_model": 4743
+      "no_model": 4860
      },
      "version": "v1"
     },
@@ -17642,7 +18999,7 @@
      "name": "workflow.revisit",
      "path": "sets/m1_students/workflow.revisit/v1",
      "reasoning": {
-      "missing": 1,
+      "lost": 1,
       "no_model": 1
      },
      "version": "v1"
@@ -17657,23 +19014,23 @@
      "name": "workflow.stage_approval",
      "path": "sets/m1_students/workflow.stage_approval/v1",
      "reasoning": {
-      "missing": 155,
+      "lost": 155,
       "no_model": 6
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 204,
+      "dev": 216,
       "sealed": 3,
-      "sealed_pending": 185,
-      "train": 513
+      "sealed_pending": 200,
+      "train": 567
      },
      "name": "workflow.template",
      "path": "sets/m1_students/workflow.template/v1",
      "reasoning": {
-      "missing": 22,
-      "no_model": 883
+      "lost": 22,
+      "no_model": 964
      },
      "version": "v1"
     }
@@ -17729,15 +19086,15 @@
     },
     {
      "counts": {
-      "dev": 469,
+      "dev": 471,
       "sealed": 1,
-      "sealed_pending": 497,
+      "sealed_pending": 498,
       "train": 1402
      },
      "name": "internal/workflow.g4",
      "path": "sets/m2_workflow_decisions/internal/workflow.g4/v1",
      "reasoning": {
-      "no_model": 2369
+      "no_model": 2372
      },
      "version": "v1"
     },
@@ -17745,14 +19102,15 @@
      "counts": {
       "dev": 99,
       "sealed": 88,
-      "sealed_pending": 41,
+      "sealed_pending": 42,
       "train": 323
      },
      "name": "rnd/experiment.next",
      "path": "sets/m2_workflow_decisions/rnd/experiment.next/v1",
      "reasoning": {
-      "missing": 1,
-      "no_model": 550
+      "lost": 1,
+      "no_model": 550,
+      "none": 1
      },
      "version": "v1"
     },
@@ -17800,16 +19158,17 @@
     },
     {
      "counts": {
-      "dev": 199,
+      "dev": 201,
       "sealed": 2,
-      "sealed_pending": 185,
-      "train": 497
+      "sealed_pending": 189,
+      "train": 512
      },
      "name": "rnd/problem.pack",
      "path": "sets/m2_workflow_decisions/rnd/problem.pack/v1",
      "reasoning": {
-      "missing": 2,
-      "no_model": 881
+      "lost": 2,
+      "no_model": 901,
+      "none": 1
      },
      "version": "v1"
     },
@@ -17829,16 +19188,17 @@
     },
     {
      "counts": {
-      "dev": 9,
+      "dev": 13,
       "sealed": 2,
-      "sealed_pending": 1,
-      "train": 18
+      "sealed_pending": 8,
+      "train": 24
      },
      "name": "rnd/query.plan",
      "path": "sets/m2_workflow_decisions/rnd/query.plan/v1",
      "reasoning": {
-      "missing": 15,
-      "no_model": 15
+      "lost": 15,
+      "no_model": 17,
+      "none": 15
      },
      "version": "v1"
     },
@@ -17847,69 +19207,100 @@
       "dev": 1,
       "sealed": 1,
       "sealed_pending": 2,
-      "train": 6
+      "train": 7
      },
      "name": "rnd/recipe.step",
      "path": "sets/m2_workflow_decisions/rnd/recipe.step/v1",
      "reasoning": {
-      "no_model": 10
+      "no_model": 11
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 90,
+      "dev": 110,
       "sealed": 6,
-      "sealed_pending": 48,
-      "train": 200
+      "sealed_pending": 67,
+      "train": 253
      },
      "name": "rnd/request.exit",
      "path": "sets/m2_workflow_decisions/rnd/request.exit/v1",
      "reasoning": {
-      "no_model": 344
+      "no_model": 436
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 93,
+      "dev": 111,
       "sealed": 9,
-      "sealed_pending": 49,
-      "train": 202
+      "sealed_pending": 67,
+      "train": 252
      },
      "name": "rnd/request.intent",
      "path": "sets/m2_workflow_decisions/rnd/request.intent/v1",
      "reasoning": {
-      "missing": 242,
-      "no_model": 111
+      "lost": 21,
+      "no_model": 111,
+      "none": 79,
+      "recorded": 228
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 3,
-      "sealed": 1,
+      "dev": 2,
+      "sealed": 3,
       "sealed_pending": 0,
-      "train": 8
+      "train": 6
+     },
+     "name": "rnd/request.options",
+     "path": "sets/m2_workflow_decisions/rnd/request.options/v1",
+     "reasoning": {
+      "recorded": 11
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 23,
+      "sealed": 1,
+      "sealed_pending": 20,
+      "train": 61
      },
      "name": "rnd/request.suggestion",
      "path": "sets/m2_workflow_decisions/rnd/request.suggestion/v1",
      "reasoning": {
-      "no_model": 12
+      "no_model": 105
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 22,
       "sealed": 1,
-      "sealed_pending": 0,
-      "train": 8
+      "sealed_pending": 19,
+      "train": 58
      },
      "name": "rnd/request.tool",
      "path": "sets/m2_workflow_decisions/rnd/request.tool/v1",
      "reasoning": {
-      "no_model": 12
+      "no_model": 100
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 5,
+      "sealed": 7,
+      "sealed_pending": 0,
+      "train": 17
+     },
+     "name": "rnd/request.understand_turn",
+     "path": "sets/m2_workflow_decisions/rnd/request.understand_turn/v1",
+     "reasoning": {
+      "none": 4,
+      "recorded": 25
      },
      "version": "v1"
     },
@@ -17943,30 +19334,31 @@
     },
     {
      "counts": {
-      "dev": 2865,
+      "dev": 2886,
       "sealed": 21,
-      "sealed_pending": 3023,
+      "sealed_pending": 3033,
       "train": 8474
      },
      "name": "rnd/workflow.move",
      "path": "sets/m2_workflow_decisions/rnd/workflow.move/v1",
      "reasoning": {
-      "missing": 1272,
-      "no_model": 13111
+      "lost": 1269,
+      "no_model": 13118,
+      "none": 27
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1095,
+      "dev": 1113,
       "sealed": 2,
-      "sealed_pending": 1003,
-      "train": 2643
+      "sealed_pending": 1029,
+      "train": 2716
      },
      "name": "rnd/workflow.next_question",
      "path": "sets/m2_workflow_decisions/rnd/workflow.next_question/v1",
      "reasoning": {
-      "no_model": 4743
+      "no_model": 4860
      },
      "version": "v1"
     },
@@ -17980,7 +19372,7 @@
      "name": "rnd/workflow.revisit",
      "path": "sets/m2_workflow_decisions/rnd/workflow.revisit/v1",
      "reasoning": {
-      "missing": 1,
+      "lost": 1,
       "no_model": 1
      },
      "version": "v1"
@@ -17995,23 +19387,23 @@
      "name": "rnd/workflow.stage_approval",
      "path": "sets/m2_workflow_decisions/rnd/workflow.stage_approval/v1",
      "reasoning": {
-      "missing": 155,
+      "lost": 155,
       "no_model": 6
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 204,
+      "dev": 216,
       "sealed": 3,
-      "sealed_pending": 185,
-      "train": 513
+      "sealed_pending": 200,
+      "train": 567
      },
      "name": "rnd/workflow.template",
      "path": "sets/m2_workflow_decisions/rnd/workflow.template/v1",
      "reasoning": {
-      "missing": 22,
-      "no_model": 883
+      "lost": 22,
+      "no_model": 964
      },
      "version": "v1"
     }
@@ -18067,7 +19459,7 @@
     },
     {
      "counts": {
-      "dev": 7933,
+      "dev": 7956,
       "sealed": 17,
       "sealed_pending": 8360,
       "train": 24917
@@ -18075,14 +19467,15 @@
      "name": "binary_classification/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/binary_classification/feature.leakage_suspect/v1",
      "reasoning": {
-      "missing": 2337,
-      "no_model": 38890
+      "lost": 2337,
+      "no_model": 38890,
+      "none": 23
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 173,
+      "dev": 175,
       "sealed": 41,
       "sealed_pending": 137,
       "train": 479
@@ -18090,7 +19483,7 @@
      "name": "binary_classification/model.first",
      "path": "sets/m3_ml_decisions/binary_classification/model.first/v1",
      "reasoning": {
-      "no_model": 830
+      "no_model": 832
      },
      "version": "v1"
     },
@@ -18104,7 +19497,7 @@
      "name": "binary_classification/modifier.groups",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.groups/v1",
      "reasoning": {
-      "missing": 113,
+      "lost": 113,
       "no_model": 2211
      },
      "version": "v1"
@@ -18119,7 +19512,7 @@
      "name": "binary_classification/modifier.noisy_labels",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.noisy_labels/v1",
      "reasoning": {
-      "missing": 113,
+      "lost": 113,
       "no_model": 2095
      },
      "version": "v1"
@@ -18134,7 +19527,7 @@
      "name": "binary_classification/modifier.rare_positives",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.rare_positives/v1",
      "reasoning": {
-      "missing": 113,
+      "lost": 113,
       "no_model": 2211
      },
      "version": "v1"
@@ -18149,7 +19542,7 @@
      "name": "binary_classification/modifier.review_capacity",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.review_capacity/v1",
      "reasoning": {
-      "missing": 113,
+      "lost": 113,
       "no_model": 2095
      },
      "version": "v1"
@@ -18164,14 +19557,14 @@
      "name": "binary_classification/modifier.time_order",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.time_order/v1",
      "reasoning": {
-      "missing": 113,
+      "lost": 113,
       "no_model": 2211
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 419,
+      "dev": 433,
       "sealed": 162,
       "sealed_pending": 408,
       "train": 1153
@@ -18179,7 +19572,7 @@
      "name": "experiments/binary",
      "path": "sets/m3_ml_decisions/experiments/binary/v1",
      "reasoning": {
-      "no_field": 1980
+      "no_field": 1994
      },
      "version": "v1"
     },
@@ -18215,13 +19608,13 @@
      "counts": {
       "dev": 110,
       "sealed": 85,
-      "sealed_pending": 165,
+      "sealed_pending": 170,
       "train": 505
      },
      "name": "experiments/regression",
      "path": "sets/m3_ml_decisions/experiments/regression/v1",
      "reasoning": {
-      "no_field": 780
+      "no_field": 785
      },
      "version": "v1"
     },
@@ -18255,7 +19648,7 @@
     },
     {
      "counts": {
-      "dev": 24,
+      "dev": 25,
       "sealed": 26,
       "sealed_pending": 3,
       "train": 84
@@ -18263,65 +19656,67 @@
      "name": "extra_trees/tuning.accept",
      "path": "sets/m3_ml_decisions/extra_trees/tuning.accept/v1",
      "reasoning": {
-      "no_model": 137
+      "no_model": 138
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 799,
+      "dev": 802,
       "sealed": 7,
-      "sealed_pending": 940,
+      "sealed_pending": 941,
       "train": 2305
      },
      "name": "general/column.category_code",
      "path": "sets/m3_ml_decisions/general/column.category_code/v1",
      "reasoning": {
-      "no_model": 4051
+      "no_model": 4055
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 62,
+      "dev": 63,
       "sealed": 26,
-      "sealed_pending": 29,
+      "sealed_pending": 30,
       "train": 162
      },
      "name": "general/column.group",
      "path": "sets/m3_ml_decisions/general/column.group/v1",
      "reasoning": {
-      "missing": 18,
-      "no_model": 261
+      "lost": 18,
+      "no_model": 261,
+      "none": 2
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 10489,
+      "dev": 10512,
       "sealed": 34,
-      "sealed_pending": 11112,
+      "sealed_pending": 11122,
       "train": 33073
      },
      "name": "general/column.is_identifier",
      "path": "sets/m3_ml_decisions/general/column.is_identifier/v1",
      "reasoning": {
-      "missing": 2661,
-      "no_model": 52047
+      "lost": 2661,
+      "no_model": 52047,
+      "none": 33
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 4113,
+      "dev": 4136,
       "sealed": 34,
-      "sealed_pending": 4474,
+      "sealed_pending": 4484,
       "train": 16499
      },
      "name": "general/column.semantic_role",
      "path": "sets/m3_ml_decisions/general/column.semantic_role/v1",
      "reasoning": {
-      "no_model": 25120
+      "no_model": 25153
      },
      "version": "v1"
     },
@@ -18341,7 +19736,7 @@
     },
     {
      "counts": {
-      "dev": 333,
+      "dev": 334,
       "sealed": 1,
       "sealed_pending": 346,
       "train": 1081
@@ -18349,50 +19744,51 @@
      "name": "general/column.time",
      "path": "sets/m3_ml_decisions/general/column.time/v1",
      "reasoning": {
-      "missing": 63,
-      "no_model": 1698
+      "lost": 63,
+      "no_model": 1698,
+      "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 233,
+      "dev": 251,
       "sealed": 2,
-      "sealed_pending": 206,
-      "train": 560
+      "sealed_pending": 224,
+      "train": 625
      },
      "name": "general/data.cases_table",
      "path": "sets/m3_ml_decisions/general/data.cases_table/v1",
      "reasoning": {
-      "no_model": 1001
+      "no_model": 1102
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 328,
+      "dev": 355,
       "sealed": 7,
-      "sealed_pending": 303,
-      "train": 798
+      "sealed_pending": 330,
+      "train": 897
      },
      "name": "general/data.cleaning_keep",
      "path": "sets/m3_ml_decisions/general/data.cleaning_keep/v1",
      "reasoning": {
-      "no_model": 1436
+      "no_model": 1589
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 2458,
+      "dev": 2634,
       "sealed": 8,
-      "sealed_pending": 2415,
-      "train": 5858
+      "sealed_pending": 2583,
+      "train": 6490
      },
      "name": "general/data.cleaning_step",
      "path": "sets/m3_ml_decisions/general/data.cleaning_step/v1",
      "reasoning": {
-      "no_model": 10739
+      "no_model": 11715
      },
      "version": "v1"
     },
@@ -18412,29 +19808,29 @@
     },
     {
      "counts": {
-      "dev": 489,
+      "dev": 491,
       "sealed": 2,
-      "sealed_pending": 504,
+      "sealed_pending": 505,
       "train": 1457
      },
      "name": "general/data.sampling",
      "path": "sets/m3_ml_decisions/general/data.sampling/v1",
      "reasoning": {
-      "no_model": 2452
+      "no_model": 2455
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 237,
+      "dev": 255,
       "sealed": 1,
-      "sealed_pending": 218,
-      "train": 577
+      "sealed_pending": 236,
+      "train": 642
      },
      "name": "general/data.structure_format",
      "path": "sets/m3_ml_decisions/general/data.structure_format/v1",
      "reasoning": {
-      "no_model": 1033
+      "no_model": 1134
      },
      "version": "v1"
     },
@@ -18443,42 +19839,57 @@
       "dev": 8,
       "sealed": 1,
       "sealed_pending": 8,
-      "train": 21
+      "train": 22
      },
      "name": "general/data.synthetic_shape",
      "path": "sets/m3_ml_decisions/general/data.synthetic_shape/v1",
      "reasoning": {
-      "missing": 14,
-      "no_model": 24
+      "lost": 13,
+      "no_model": 24,
+      "none": 2
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 569,
+      "dev": 5,
+      "sealed": 6,
+      "sealed_pending": 1,
+      "train": 7
+     },
+     "name": "general/evidence.records",
+     "path": "sets/m3_ml_decisions/general/evidence.records/v1",
+     "reasoning": {
+      "no_model": 19
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 570,
       "sealed": 3,
-      "sealed_pending": 550,
+      "sealed_pending": 552,
       "train": 1725
      },
      "name": "general/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/general/feature.leakage_suspect/v1",
      "reasoning": {
-      "no_model": 2847
+      "no_model": 2850
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 488,
+      "dev": 490,
       "sealed": 3,
-      "sealed_pending": 500,
+      "sealed_pending": 501,
       "train": 1453
      },
      "name": "general/features.recipe",
      "path": "sets/m3_ml_decisions/general/features.recipe/v1",
      "reasoning": {
-      "missing": 4,
-      "no_model": 2440
+      "lost": 4,
+      "no_model": 2443
      },
      "version": "v1"
     },
@@ -18492,8 +19903,8 @@
      "name": "general/holdout.reuse",
      "path": "sets/m3_ml_decisions/general/holdout.reuse/v1",
      "reasoning": {
-      "missing": 2,
-      "no_model": 1
+      "no_model": 1,
+      "none": 2
      },
      "version": "v1"
     },
@@ -18541,7 +19952,7 @@
     },
     {
      "counts": {
-      "dev": 65,
+      "dev": 66,
       "sealed": 26,
       "sealed_pending": 43,
       "train": 173
@@ -18549,36 +19960,36 @@
      "name": "general/labels.join_key",
      "path": "sets/m3_ml_decisions/general/labels.join_key/v1",
      "reasoning": {
-      "no_model": 307
+      "no_model": 308
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 489,
+      "dev": 491,
       "sealed": 2,
-      "sealed_pending": 504,
+      "sealed_pending": 505,
       "train": 1457
      },
      "name": "general/metric.primary",
      "path": "sets/m3_ml_decisions/general/metric.primary/v1",
      "reasoning": {
-      "no_model": 2452
+      "no_model": 2455
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 488,
+      "dev": 490,
       "sealed": 2,
-      "sealed_pending": 499,
+      "sealed_pending": 500,
       "train": 1447
      },
      "name": "general/model.family",
      "path": "sets/m3_ml_decisions/general/model.family/v1",
      "reasoning": {
-      "missing": 4,
-      "no_model": 2432
+      "lost": 4,
+      "no_model": 2435
      },
      "version": "v1"
     },
@@ -18600,91 +20011,94 @@
      "counts": {
       "dev": 57,
       "sealed": 44,
-      "sealed_pending": 23,
+      "sealed_pending": 24,
       "train": 184
      },
      "name": "general/model.review",
      "path": "sets/m3_ml_decisions/general/model.review/v1",
      "reasoning": {
-      "no_model": 308
+      "no_model": 309
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 48,
+      "dev": 78,
       "sealed": 15,
-      "sealed_pending": 33,
+      "sealed_pending": 47,
       "train": 45
      },
      "name": "general/report.claim",
      "path": "sets/m3_ml_decisions/general/report.claim/v1",
      "reasoning": {
-      "missing": 141
+      "lost": 100,
+      "none": 85
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 489,
+      "dev": 491,
       "sealed": 2,
-      "sealed_pending": 504,
+      "sealed_pending": 505,
       "train": 1457
      },
      "name": "general/split.folds",
      "path": "sets/m3_ml_decisions/general/split.folds/v1",
      "reasoning": {
-      "no_model": 2452
+      "no_model": 2455
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 346,
+      "dev": 348,
       "sealed": 2,
-      "sealed_pending": 375,
+      "sealed_pending": 376,
       "train": 1021
      },
      "name": "general/split.strategy",
      "path": "sets/m3_ml_decisions/general/split.strategy/v1",
      "reasoning": {
-      "no_model": 1744
+      "no_model": 1747
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 789,
+      "dev": 791,
       "sealed": 2,
-      "sealed_pending": 824,
+      "sealed_pending": 825,
       "train": 2411
      },
      "name": "general/target.column",
      "path": "sets/m3_ml_decisions/general/target.column/v1",
      "reasoning": {
-      "missing": 153,
-      "no_model": 3873
+      "lost": 153,
+      "no_model": 3873,
+      "none": 3
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 792,
+      "dev": 794,
       "sealed": 2,
-      "sealed_pending": 826,
+      "sealed_pending": 827,
       "train": 2418
      },
      "name": "general/task.framing",
      "path": "sets/m3_ml_decisions/general/task.framing/v1",
      "reasoning": {
-      "missing": 153,
-      "no_model": 3885
+      "lost": 153,
+      "no_model": 3885,
+      "none": 3
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 260,
+      "dev": 262,
       "sealed": 1,
       "sealed_pending": 266,
       "train": 739
@@ -18692,7 +20106,7 @@
      "name": "general/threshold.operating_point",
      "path": "sets/m3_ml_decisions/general/threshold.operating_point/v1",
      "reasoning": {
-      "no_model": 1266
+      "no_model": 1268
      },
      "version": "v1"
     },
@@ -18768,7 +20182,7 @@
     },
     {
      "counts": {
-      "dev": 82,
+      "dev": 83,
       "sealed": 2,
       "sealed_pending": 79,
       "train": 223
@@ -18776,7 +20190,7 @@
      "name": "logistic_regression/tuning.accept",
      "path": "sets/m3_ml_decisions/logistic_regression/tuning.accept/v1",
      "reasoning": {
-      "no_model": 386
+      "no_model": 387
      },
      "version": "v1"
     },
@@ -18784,13 +20198,13 @@
      "counts": {
       "dev": 40,
       "sealed": 38,
-      "sealed_pending": 16,
+      "sealed_pending": 17,
       "train": 142
      },
      "name": "loss.median/experiment.accept",
      "path": "sets/m3_ml_decisions/loss.median/experiment.accept/v1",
      "reasoning": {
-      "no_model": 236
+      "no_model": 237
      },
      "version": "v1"
     },
@@ -18832,7 +20246,7 @@
      "name": "multiclass_classification/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/multiclass_classification/feature.leakage_suspect/v1",
      "reasoning": {
-      "missing": 40,
+      "lost": 40,
       "no_model": 5151
      },
      "version": "v1"
@@ -18917,7 +20331,7 @@
      "name": "multiclass_classification/modifier.groups",
      "path": "sets/m3_ml_decisions/multiclass_classification/modifier.groups/v1",
      "reasoning": {
-      "missing": 3,
+      "lost": 3,
       "no_model": 267
      },
      "version": "v1"
@@ -18932,7 +20346,7 @@
      "name": "multiclass_classification/modifier.noisy_labels",
      "path": "sets/m3_ml_decisions/multiclass_classification/modifier.noisy_labels/v1",
      "reasoning": {
-      "missing": 3,
+      "lost": 3,
       "no_model": 227
      },
      "version": "v1"
@@ -18947,7 +20361,7 @@
      "name": "multiclass_classification/modifier.rare_positives",
      "path": "sets/m3_ml_decisions/multiclass_classification/modifier.rare_positives/v1",
      "reasoning": {
-      "missing": 3,
+      "lost": 3,
       "no_model": 267
      },
      "version": "v1"
@@ -18962,7 +20376,7 @@
      "name": "multiclass_classification/modifier.review_capacity",
      "path": "sets/m3_ml_decisions/multiclass_classification/modifier.review_capacity/v1",
      "reasoning": {
-      "missing": 3,
+      "lost": 3,
       "no_model": 227
      },
      "version": "v1"
@@ -18977,7 +20391,7 @@
      "name": "multiclass_classification/modifier.time_order",
      "path": "sets/m3_ml_decisions/multiclass_classification/modifier.time_order/v1",
      "reasoning": {
-      "missing": 3,
+      "lost": 3,
       "no_model": 267
      },
      "version": "v1"
@@ -19084,14 +20498,15 @@
      "counts": {
       "dev": 1675,
       "sealed": 17,
-      "sealed_pending": 1620,
+      "sealed_pending": 1630,
       "train": 5238
      },
      "name": "regression/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/regression/feature.leakage_suspect/v1",
      "reasoning": {
-      "missing": 284,
-      "no_model": 8266
+      "lost": 284,
+      "no_model": 8266,
+      "none": 10
      },
      "version": "v1"
     },
@@ -19099,13 +20514,13 @@
      "counts": {
       "dev": 25,
       "sealed": 20,
-      "sealed_pending": 7,
+      "sealed_pending": 8,
       "train": 86
      },
      "name": "regression/model.first",
      "path": "sets/m3_ml_decisions/regression/model.first/v1",
      "reasoning": {
-      "no_model": 138
+      "no_model": 139
      },
      "version": "v1"
     },
@@ -19133,7 +20548,7 @@
      "name": "regression/modifier.groups",
      "path": "sets/m3_ml_decisions/regression/modifier.groups/v1",
      "reasoning": {
-      "missing": 20,
+      "lost": 20,
       "no_model": 1128
      },
      "version": "v1"
@@ -19148,7 +20563,7 @@
      "name": "regression/modifier.noisy_labels",
      "path": "sets/m3_ml_decisions/regression/modifier.noisy_labels/v1",
      "reasoning": {
-      "missing": 20,
+      "lost": 20,
       "no_model": 1009
      },
      "version": "v1"
@@ -19163,7 +20578,7 @@
      "name": "regression/modifier.rare_positives",
      "path": "sets/m3_ml_decisions/regression/modifier.rare_positives/v1",
      "reasoning": {
-      "missing": 20,
+      "lost": 20,
       "no_model": 1128
      },
      "version": "v1"
@@ -19178,7 +20593,7 @@
      "name": "regression/modifier.review_capacity",
      "path": "sets/m3_ml_decisions/regression/modifier.review_capacity/v1",
      "reasoning": {
-      "missing": 20,
+      "lost": 20,
       "no_model": 1009
      },
      "version": "v1"
@@ -19193,7 +20608,7 @@
      "name": "regression/modifier.time_order",
      "path": "sets/m3_ml_decisions/regression/modifier.time_order/v1",
      "reasoning": {
-      "missing": 20,
+      "lost": 20,
       "no_model": 1128
      },
      "version": "v1"
@@ -19202,13 +20617,13 @@
      "counts": {
       "dev": 3,
       "sealed": 1,
-      "sealed_pending": 4,
+      "sealed_pending": 5,
       "train": 19
      },
      "name": "ridge/tuning.accept",
      "path": "sets/m3_ml_decisions/ridge/tuning.accept/v1",
      "reasoning": {
-      "no_model": 27
+      "no_model": 28
      },
      "version": "v1"
     },
@@ -19251,6 +20666,20 @@
    "sets": [
     {
      "counts": {
+      "dev": 31,
+      "sealed": 17,
+      "sealed_pending": 5,
+      "train": 50
+     },
+     "name": "case_files",
+     "path": "sets/m4_workflow_llm/case_files/v1",
+     "reasoning": {
+      "none": 103
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
       "dev": 0,
       "sealed": 4,
       "sealed_pending": 0,
@@ -19268,44 +20697,59 @@
      "counts": {
       "dev": 35,
       "sealed": 30,
-      "sealed_pending": 2,
-      "train": 94
+      "sealed_pending": 3,
+      "train": 99
      },
      "name": "design_solution",
      "path": "sets/m4_workflow_llm/design_solution/v2",
      "reasoning": {
       "lost": 155,
-      "recorded": 6
+      "recorded": 12
      },
      "version": "v2"
     },
     {
      "counts": {
-      "dev": 2,
-      "sealed": 1,
-      "sealed_pending": 0,
-      "train": 5
+      "dev": 275,
+      "sealed": 242,
+      "sealed_pending": 104,
+      "train": 989
      },
-     "name": "home_advice",
-     "path": "sets/m4_workflow_llm/home_advice/v1",
+     "name": "exam_simulation",
+     "path": "sets/m4_workflow_llm/exam_simulation/v1",
      "reasoning": {
-      "from_record": 15,
-      "none": 11
+      "none": 3665,
+      "recorded": 2767
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 23,
+      "dev": 4,
+      "sealed": 1,
+      "sealed_pending": 7,
+      "train": 8
+     },
+     "name": "home_advice",
+     "path": "sets/m4_workflow_llm/home_advice/v1",
+     "reasoning": {
+      "from_record": 16,
+      "none": 35
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 26,
       "sealed": 11,
-      "sealed_pending": 0,
-      "train": 57
+      "sealed_pending": 1,
+      "train": 64
      },
      "name": "home_analysis",
      "path": "sets/m4_workflow_llm/home_analysis/v1",
      "reasoning": {
-      "from_record": 161,
-      "none": 227
+      "from_record": 175,
+      "none": 258
      },
      "version": "v1"
     },
@@ -19313,44 +20757,44 @@
      "counts": {
       "dev": 9,
       "sealed": 2,
-      "sealed_pending": 10,
-      "train": 38
+      "sealed_pending": 11,
+      "train": 39
      },
      "name": "home_business",
      "path": "sets/m4_workflow_llm/home_business/v1",
      "reasoning": {
-      "from_record": 108,
-      "none": 142
+      "from_record": 111,
+      "none": 158
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 13,
+      "dev": 15,
       "sealed": 2,
-      "sealed_pending": 12,
-      "train": 32
+      "sealed_pending": 13,
+      "train": 35
      },
      "name": "home_preparation",
      "path": "sets/m4_workflow_llm/home_preparation/v1",
      "reasoning": {
-      "from_record": 93,
-      "none": 143
+      "from_record": 104,
+      "none": 190
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 14,
+      "dev": 15,
       "sealed": 2,
       "sealed_pending": 7,
-      "train": 34
+      "train": 37
      },
      "name": "home_reporting",
      "path": "sets/m4_workflow_llm/home_reporting/v1",
      "reasoning": {
-      "from_record": 90,
-      "none": 110
+      "from_record": 95,
+      "none": 122
      },
      "version": "v1"
     },
@@ -19368,16 +20812,17 @@
     },
     {
      "counts": {
-      "dev": 1,
+      "dev": 2,
       "sealed": 2,
       "sealed_pending": 1,
-      "train": 41
+      "train": 48
      },
      "name": "plan",
      "path": "sets/m4_workflow_llm/plan/v2",
      "reasoning": {
       "lost": 35,
-      "none": 166
+      "none": 166,
+      "recorded": 8
      },
      "version": "v2"
     },
@@ -19398,30 +20843,30 @@
     },
     {
      "counts": {
-      "dev": 433,
+      "dev": 443,
       "sealed": 6,
-      "sealed_pending": 427,
-      "train": 693
+      "sealed_pending": 169,
+      "train": 749
      },
      "name": "reasoning/final_turn_silver_frontier",
      "path": "sets/m4_workflow_llm/reasoning/final_turn_silver_frontier/v1",
      "reasoning": {
-      "none": 1312,
-      "recorded": 1780
+      "none": 1328,
+      "recorded": 1598
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 326,
+      "dev": 332,
       "sealed": 1,
-      "sealed_pending": 370,
-      "train": 449
+      "sealed_pending": 112,
+      "train": 501
      },
      "name": "reasoning/silver_frontier",
      "path": "sets/m4_workflow_llm/reasoning/silver_frontier/v1",
      "reasoning": {
-      "recorded": 1155
+      "recorded": 964
      },
      "version": "v1"
     },
@@ -19441,33 +20886,33 @@
     },
     {
      "counts": {
-      "dev": 47,
+      "dev": 48,
       "sealed": 21,
-      "sealed_pending": 326,
-      "train": 173
+      "sealed_pending": 22,
+      "train": 175
      },
      "name": "report",
      "path": "sets/m4_workflow_llm/report/v2",
      "reasoning": {
       "lost": 108,
-      "none": 58,
-      "recorded": 402
+      "none": 24,
+      "recorded": 135
      },
      "version": "v2"
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 5,
       "sealed": 6,
-      "sealed_pending": 0,
-      "train": 24
+      "sealed_pending": 1,
+      "train": 26
      },
      "name": "understand_data",
      "path": "sets/m4_workflow_llm/understand_data/v2",
      "reasoning": {
       "lost": 14,
       "none": 12,
-      "recorded": 7
+      "recorded": 12
      },
      "version": "v2"
     },
@@ -19485,18 +20930,18 @@
     },
     {
      "counts": {
-      "dev": 1088,
+      "dev": 1097,
       "sealed": 177,
-      "sealed_pending": 672,
-      "train": 2236
+      "sealed_pending": 690,
+      "train": 2298
      },
      "name": "understand_problem",
      "path": "sets/m4_workflow_llm/understand_problem/v2",
      "reasoning": {
-      "from_record": 7936,
+      "from_record": 8002,
       "lost": 3785,
-      "none": 4564,
-      "recorded": 1541,
+      "none": 4705,
+      "recorded": 1629,
       "replayed": 1
      },
      "version": "v2"
@@ -19541,13 +20986,13 @@
       "dev": 24,
       "sealed": 306,
       "sealed_pending": 56,
-      "train": 223
+      "train": 235
      },
      "name": "trajectories/development",
      "path": "sets/m5_solver_llm/trajectories/development/v2",
      "reasoning": {
-      "none": 38990,
-      "recorded": 2202
+      "none": 39880,
+      "recorded": 2277
      },
      "version": "v2"
     },
@@ -19686,22 +21131,23 @@
      "name": "dclab_code",
      "path": "sets/m6_stepwise_decisions/dclab_code/v1",
      "reasoning": {
-      "missing": 487
+      "none": 325,
+      "recorded": 162
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 248,
+      "dev": 250,
       "sealed": 146,
-      "sealed_pending": 155,
+      "sealed_pending": 156,
       "train": 776
      },
      "name": "graph",
      "path": "sets/m6_stepwise_decisions/graph/v1",
      "reasoning": {
-      "from_record": 5629,
-      "missing": 1325
+      "from_record": 5657,
+      "none": 1328
      },
      "version": "v1"
     },
@@ -19710,27 +21156,27 @@
       "dev": 46,
       "sealed": 1,
       "sealed_pending": 43,
-      "train": 122
+      "train": 126
      },
      "name": "job",
      "path": "sets/m6_stepwise_decisions/job/v1",
      "reasoning": {
-      "no_model": 872
+      "no_model": 890
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 197,
+      "dev": 199,
       "sealed": 145,
-      "sealed_pending": 75,
+      "sealed_pending": 76,
       "train": 562
      },
      "name": "stages",
      "path": "sets/m6_stepwise_decisions/stages/v1",
      "reasoning": {
-      "from_record": 2882,
-      "no_model": 1955
+      "from_record": 2891,
+      "no_model": 1961
      },
      "version": "v1"
     },
@@ -19766,15 +21212,15 @@
     },
     {
      "counts": {
-      "dev": 498,
+      "dev": 515,
       "sealed": 175,
-      "sealed_pending": 354,
-      "train": 1536
+      "sealed_pending": 371,
+      "train": 1583
      },
      "name": "walk",
      "path": "sets/m6_stepwise_decisions/walk/v1",
      "reasoning": {
-      "no_model": 158375
+      "no_model": 162213
      },
      "version": "v1"
     }
@@ -19788,29 +21234,29 @@
    "sets": [
     {
      "counts": {
-      "dev": 61,
+      "dev": 64,
       "sealed": 15,
-      "sealed_pending": 91,
-      "train": 198
+      "sealed_pending": 110,
+      "train": 218
      },
      "name": "code",
      "path": "sets/m7_judges/code/v1",
      "reasoning": {
-      "no_field": 365
+      "no_field": 407
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1417,
+      "dev": 1420,
       "sealed": 914,
-      "sealed_pending": 486,
-      "train": 4289
+      "sealed_pending": 494,
+      "train": 4309
      },
      "name": "correction",
      "path": "sets/m7_judges/correction/v1",
      "reasoning": {
-      "no_field": 7106
+      "no_field": 7137
      },
      "version": "v1"
     },
@@ -19830,6 +21276,21 @@
     },
     {
      "counts": {
+      "dev": 46,
+      "sealed": 53,
+      "sealed_pending": 8,
+      "train": 152
+     },
+     "name": "exam_judgments",
+     "path": "sets/m7_judges/exam_judgments/v1",
+     "reasoning": {
+      "none": 2,
+      "recorded": 257
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
       "dev": 1,
       "sealed": 1,
       "sealed_pending": 2,
@@ -19844,22 +21305,37 @@
     },
     {
      "counts": {
-      "dev": 465,
+      "dev": 467,
       "sealed": 1,
-      "sealed_pending": 494,
+      "sealed_pending": 495,
       "train": 1392
      },
      "name": "result",
      "path": "sets/m7_judges/result/v1",
      "reasoning": {
-      "no_field": 2351
+      "no_field": 2354
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 131,
+      "sealed": 119,
+      "sealed_pending": 0,
+      "train": 2433
+     },
+     "name": "review_findings",
+     "path": "sets/m7_judges/review_findings/v1",
+     "reasoning": {
+      "no_field": 2683
      },
      "version": "v1"
     }
    ],
    "shapes": [
     "judged_example",
-    "preference_pair"
+    "preference_pair",
+    "chat_example"
    ],
    "what": "A judge or reward model: scores a plan, a solution, a report, a step or code"
   },
@@ -19867,85 +21343,113 @@
    "sets": [
     {
      "counts": {
-      "dev": 147,
+      "dev": 151,
       "sealed": 227,
-      "sealed_pending": 22,
-      "train": 489
+      "sealed_pending": 29,
+      "train": 499
      },
      "name": "problem.pack",
      "path": "sets/m7_routing/problem.pack/v1",
      "reasoning": {
-      "no_field": 885
+      "no_field": 906
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 47,
+      "dev": 66,
       "sealed": 19,
-      "sealed_pending": 35,
-      "train": 242
+      "sealed_pending": 58,
+      "train": 292
      },
      "name": "request.exit",
      "path": "sets/m7_routing/request.exit/v1",
      "reasoning": {
-      "no_field": 343
+      "no_field": 435
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 308,
+      "dev": 327,
       "sealed": 198,
-      "sealed_pending": 325,
-      "train": 1133
+      "sealed_pending": 344,
+      "train": 1183
      },
      "name": "request.intent",
      "path": "sets/m7_routing/request.intent/v1",
      "reasoning": {
-      "no_field": 1964
+      "no_field": 2052
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 0,
-      "sealed": 0,
+      "dev": 5,
+      "sealed": 1,
       "sealed_pending": 0,
-      "train": 12
+      "train": 5
+     },
+     "name": "request.options",
+     "path": "sets/m7_routing/request.options/v1",
+     "reasoning": {
+      "no_field": 11
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 19,
+      "sealed": 23,
+      "sealed_pending": 0,
+      "train": 63
      },
      "name": "request.suggestion",
      "path": "sets/m7_routing/request.suggestion/v1",
      "reasoning": {
-      "no_field": 12
+      "no_field": 105
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 0,
-      "sealed": 0,
+      "dev": 19,
+      "sealed": 19,
       "sealed_pending": 0,
-      "train": 12
+      "train": 62
      },
      "name": "request.tool",
      "path": "sets/m7_routing/request.tool/v1",
      "reasoning": {
-      "no_field": 12
+      "no_field": 100
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 839,
+      "dev": 12,
+      "sealed": 3,
+      "sealed_pending": 0,
+      "train": 14
+     },
+     "name": "request.understand_turn",
+     "path": "sets/m7_routing/request.understand_turn/v1",
+     "reasoning": {
+      "no_field": 29
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 859,
       "sealed": 1292,
-      "sealed_pending": 45,
-      "train": 2565
+      "sealed_pending": 68,
+      "train": 2639
      },
      "name": "workflow.next_question",
      "path": "sets/m7_routing/workflow.next_question/v1",
      "reasoning": {
-      "no_field": 4741
+      "no_field": 4858
      },
      "version": "v1"
     }
@@ -19959,15 +21463,15 @@
    "sets": [
     {
      "counts": {
-      "dev": 2,
+      "dev": 8,
       "sealed": 2,
-      "sealed_pending": 0,
-      "train": 7
+      "sealed_pending": 4,
+      "train": 16
      },
      "name": "evidence",
      "path": "sets/m8_retrieval/evidence/v1",
      "reasoning": {
-      "no_field": 11
+      "no_field": 30
      },
      "version": "v1"
     }
@@ -19980,8 +21484,8 @@
  },
  "quarantine": {
   ".DS_Store": 0,
-  "a_duplicate_of_a_record_already_placed": 58,
-  "broken": 30,
+  "a_duplicate_of_a_record_already_placed": 63,
+  "broken": 34,
   "the_record_s_consent_improve_does_not_allow_training": 1
  },
  "root": "the store's root (dclab-records, owner/main)",
