@@ -586,5 +586,36 @@ class PracticeEffortTests(unittest.TestCase):
         self.assertEqual(ac.thinking_param("adaptive")["display"], "summarized")  # the summary is still asked for and kept
 
 
+
+
+class SealedV2GateTests(unittest.TestCase):
+    """2026-10-31: the smaller sealed run compares the lead agent with Claude alone only; its gate (v3) was fixed before it."""
+
+    def row(self, pid, arm, understanding, trap_pass, fit=None):
+        return {"id": pid, "arm": arm, "understanding": understanding, "options_fit": fit, "route_reached": True, "safety_failures": 0,
+                "trap": "vague_goal", "trap_pass": trap_pass, "unjudged": False}
+
+    def test_two_arms_are_complete_and_traps_are_compared_with_claude_alone(self):
+        from dclab_rnd.agent_eval.conversation_exam import gate as G
+
+        case = [self.row(f"s{i}", "case", 0.9, True, 5) for i in range(8)]
+        plain = [self.row(f"s{i}", "plain", 0.5, False, 3) for i in range(8)]
+        v = G.verdict({"case": case, "plain": plain}, lead="case", gate=G.gate_for("sealed_v2"))
+        self.assertEqual(v["gate"], "conversation_exam_gate_v3")
+        self.assertTrue(v["checks"]["complete"] and v["checks"]["traps"] and v["checks"]["options_fit"])
+        self.assertEqual(v["status"], "pending_owner_labels")
+        worse = [self.row(f"s{i}", "case", 0.9, False, 5) for i in range(8)]
+        better_plain = [self.row(f"s{i}", "plain", 0.5, True, 3) for i in range(8)]
+        self.assertFalse(G.verdict({"case": worse, "plain": better_plain}, lead="case", gate=G.gate_for("sealed_v2"))["checks"]["traps"])
+
+    def test_the_old_sealed_set_keeps_its_own_gate_and_arms(self):
+        from dclab_rnd.agent_eval import conversation_exam as ce
+        from dclab_rnd.agent_eval.conversation_exam import gate as G
+
+        self.assertEqual(G.gate_for("sealed_v1")["version"], "conversation_exam_gate_v2")
+        self.assertEqual(set(ce.SEALED_ARMS["sealed_v1"]), set(ce.ARMS))
+        self.assertEqual(set(ce.SEALED_ARMS["sealed_v2"]), {"plain", "case"})
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -42,8 +42,10 @@ from .judge import judge as _judge
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 PEOPLE = HERE / "people_dev.json"
-SPLITS = {"dev": PEOPLE, "sealed_v1": HERE / "people_sealed_v1.json"}  # sealed: 40 people by an agent shown the format alone
-SEALED = {"sealed_v1": HERE / "people_sealed_v1.sha256"}  # pinned before its one run (37.10)
+SPLITS = {"dev": PEOPLE, "sealed_v1": HERE / "people_sealed_v1.json",  # sealed: 40 people by an agent shown the format alone
+          "sealed_v2": HERE / "people_sealed_v2.json"}  # 20 more by an independent writer, the short lead agent against Claude alone
+SEALED = {"sealed_v1": HERE / "people_sealed_v1.sha256", "sealed_v2": HERE / "people_sealed_v2.sha256"}  # pinned before its one run
+SEALED_ARMS = {"sealed_v1": ("home", "plain", "case"), "sealed_v2": ("plain", "case")}  # the arms each sealed gate compares
 CAMPAIGN = ROOT / "evidence" / "campaigns" / "conversation_exam_v1"
 RESULTS = CAMPAIGN / "results"
 LABELS = CAMPAIGN / "labels"
@@ -491,7 +493,7 @@ ESTIMATE_EUR = {"home": 0.08, "plain": 0.10, "person": 0.01, "judge": 0.08}  # p
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--split", default="dev", help="dev, or sealed_v1 (run once, every arm, kept in the exam vault)")
+    parser.add_argument("--split", default="dev", help="dev, sealed_v1 or sealed_v2 (a sealed set: run once, with the arms its gate compares, kept in the exam vault)")
     parser.add_argument("--arms", default=",".join(READY_ARMS))
     parser.add_argument("--only", default=None, help="a comma list of person ids")
     parser.add_argument("--yes", action="store_true")
@@ -510,8 +512,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         if args.only:
             print("refused: a sealed set is run once, whole: no --only", file=sys.stderr)
             return 2
-        if set(arms) != set(ARMS):
-            print(f"refused: the sealed run compares every arm ({', '.join(ARMS)})", file=sys.stderr)
+        if set(arms) != set(SEALED_ARMS[args.split]):
+            print(f"refused: the sealed run compares every arm ({', '.join(SEALED_ARMS[args.split])})", file=sys.stderr)
             return 2
         if hashlib.sha256(SPLITS[args.split].read_bytes()).hexdigest() != SEALED[args.split].read_text(encoding="utf-8").strip():
             print("refused: the sealed set does not match its pinned fingerprint", file=sys.stderr)
@@ -529,7 +531,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 2
     per = sum(ESTIMATE_EUR.get(a, 0.15) + ESTIMATE_EUR["person"] + ESTIMATE_EUR["judge"] for a in arms)
     print(json.dumps({"people": len(people), "arms": arms, "models": {"arms": "the product's (Sonnet 5.5)", **MODELS},
-                      "estimate_eur": round(len(people) * per, 2), "gate_for_37_10": _gate.GATE["version"]}, indent=1))
+                      "estimate_eur": round(len(people) * per, 2), "gate_for_37_10": _gate.gate_for(args.split)["version"]}, indent=1))
     if not args.yes:
         print("nothing was sent: add --yes and --cap-eur")
         return 0
@@ -579,10 +581,10 @@ def main(argv: Optional[list[str]] = None) -> int:
                                                  "judge": budget.spent_eur(f"{tag}judge:{arm}-{pid}")})
     kept_at = str(keep.relative_to(ROOT)) if keep.is_relative_to(ROOT) else f"<workspace>/exam_vault/{run}_{args.split}/conversations"
     record = {"id": run, "split": args.split, "at": started, "arms": arms, "models": {"arms": "claude-sonnet-5-5 (the product's)", **MODELS},
-              "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur, "kept": kept_at, "gate_for_37_10": _gate.GATE, **result}
+              "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur, "kept": kept_at, "gate_for_37_10": _gate.gate_for(args.split), **result}
     if sealed:  # the verdict, read once; the conversations stay in the vault (never in a file a set could read)
         record.pop("conversations", None)
-        record["verdict"] = _gate.verdict(result["scores"], lead="case", agreement=None)
+        record["verdict"] = _gate.verdict(result["scores"], lead="case", agreement=None, gate=_gate.gate_for(args.split))
     RESULTS.mkdir(parents=True, exist_ok=True)
     path = RESULTS / f"{run}_{args.split}.json"
     path.write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")

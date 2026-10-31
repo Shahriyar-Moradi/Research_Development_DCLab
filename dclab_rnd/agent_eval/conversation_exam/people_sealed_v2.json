@@ -1,0 +1,554 @@
+[
+ {
+  "id": "s2-01",
+  "level": "business_owner",
+  "style": "vague",
+  "opening": "I run a small tile and ceramics business near Porto. This year just feels slower and I honestly don't know where to start. [shares sales.csv]",
+  "upload": "sales",
+  "truth": {
+   "situation": "I own a family ceramics wholesaler in Portugal with 14 staff. We sell through our own shop, a web store and a big online marketplace that takes a 15% commission.",
+   "goal": "I want to know whether the marketplace is still worth it, or whether I should put that money into my own web store instead.",
+   "decision": "Whether to stop selling on the marketplace next year, or keep it only for some product categories.",
+   "user": "Me and my brother, who co-owns the business. Our accountant will see the summary.",
+   "data": "The sales export from our system: order date, region, channel, product category, amount, status and customer id for about two years.",
+   "knows": "I know the marketplace commission rate. I do not know how much of our revenue and how many repeat customers come from it, or whether those customers later buy from us directly.",
+   "constraints": "The marketplace contract renews in January, so I need an answer within a month. No budget for consultants."
+  },
+  "must_understand": [
+   "The real question is whether to keep the marketplace channel, not a general 'why are sales slow'.",
+   "The decision is due before the contract renews in January.",
+   "The marketplace takes a 15% commission, which is not in the table.",
+   "Repeat buying by the same customer across channels matters to the answer."
+  ],
+  "route": "business",
+  "tool": "business_brief",
+  "also_right": [
+   "analysis"
+  ],
+  "trap": "vague_goal",
+  "trap_check": "Asks what decision is behind the worry before proposing any work, and finds that the goal is whether to keep the marketplace channel."
+ },
+ {
+  "id": "s2-02",
+  "level": "data_scientist",
+  "style": "detailed",
+  "opening": "I'm the only data scientist at a chain of 22 climbing gyms in Australia. I want a model that scores every member at the start of each month for the risk of leaving next month, so our front-desk staff can call the top 50 per gym. I've attached the member table; churned_next_month is the label. [shares customers.csv]",
+  "upload": "customers",
+  "truth": {
+   "situation": "I work for a climbing gym chain in Australia with monthly memberships. Retention calls by front-desk staff worked well in a pilot at two gyms.",
+   "goal": "A monthly risk score for every active member, so each gym calls the 50 members most likely to leave.",
+   "decision": "Which members each gym calls in the first week of each month.",
+   "user": "Gym managers and front-desk staff, through a simple list per gym.",
+   "data": "The member table: signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and whether they left the next month.",
+   "knows": "I know how to build a classifier. I'm unsure how to judge it for a 'call the top 50' use and whether support tickets are counted before or after the cancellation request.",
+   "constraints": "First scores are needed for next month's calls; staff can make only about 50 calls per gym per month."
+  },
+  "must_understand": [
+   "This is a real prediction for future members, scored every month.",
+   "Success is about the top of the list (about 50 calls per gym), not overall accuracy.",
+   "The support ticket count must be from before the prediction moment, or it may leak the answer.",
+   "The output is a ranked list per gym for staff."
+  ],
+  "route": "prediction",
+  "tool": "ml_project",
+  "also_right": [],
+  "trap": "real_prediction",
+  "trap_check": "Leads to a churn prediction project scored on future months and judged on the top of the list, instead of only describing who left in the past."
+ },
+ {
+  "id": "s2-03",
+  "level": "analyst",
+  "style": "impatient",
+  "opening": "My director wants a model predicting cancellations by nationality for last summer, for Thursday's meeting. Can you just do it? [shares bookings.csv]",
+  "upload": "bookings",
+  "truth": {
+   "situation": "I'm a junior analyst at a tour operator in Antalya. The director is presenting last season's results to the owners on Thursday.",
+   "goal": "Show how cancellations differed by nationality and booking channel last summer, and whether free cancellation made a difference.",
+   "decision": "Whether to keep offering free cancellation to all markets next season, which the owners will discuss on Thursday.",
+   "user": "My director, who will put 3 or 4 charts in her slides for the owners.",
+   "data": "The bookings table: booking and travel dates, destination, nationality, channel, lead time, price, free cancellation flag, cancelled flag and customer id.",
+   "knows": "I know the director said 'model', but she really wants to see what happened last summer. I don't know which nationalities had the highest cancellation rates.",
+   "constraints": "Due Thursday morning, two days from now. It must be simple charts, not a technical model."
+  },
+  "must_understand": [
+   "The request says 'predict' but the need is a description of last summer's cancellations.",
+   "The breakdown is by nationality and channel, and by free cancellation.",
+   "It is for slides on Thursday, so it must be quick and simple.",
+   "Last summer means filtering on travel date, not booking date."
+  ],
+  "route": "analysis",
+  "tool": "query",
+  "also_right": [
+   "reporting"
+  ],
+  "trap": "report_not_model",
+  "trap_check": "Notices that a past-season breakdown is needed rather than a model, says so briefly, and offers cancellation rates by nationality, channel and free cancellation for last summer."
+ },
+ {
+  "id": "s2-04",
+  "level": "business_owner",
+  "style": "impatient",
+  "opening": "Which of my product categories makes me the most profit? I need to know which ones to cut. [shares sales.csv]",
+  "upload": "sales",
+  "truth": {
+   "situation": "I own an online shop for outdoor and camping gear in Poland. We have too many product lines and our warehouse is full.",
+   "goal": "Find the categories that earn the least so I can stop stocking two or three of them.",
+   "decision": "Which two or three product categories to stop buying for next season.",
+   "user": "Me, and my purchasing manager who places the orders.",
+   "data": "The sales table: order id, date, region, channel, product category, amount, status and customer id. Our purchase costs are in a separate spreadsheet from suppliers that I did not share.",
+   "knows": "I know revenue by category roughly. I do not have cost or margin in this file, and I have not thought about returns or cancelled orders.",
+   "constraints": "The purchasing manager places next season's orders in three weeks."
+  },
+  "must_understand": [
+   "The question is about profit, but the table has only sales amounts, no cost or margin.",
+   "The decision is which categories to drop from next season's orders.",
+   "Cancelled or returned orders (status) should not count as sales.",
+   "Supplier costs exist in another spreadsheet that could be added."
+  ],
+  "route": "analysis",
+  "tool": "query",
+  "also_right": [],
+  "trap": "missing_column",
+  "trap_check": "Says plainly that the table has no cost or margin so profit cannot be computed, offers revenue, order counts and cancellations by category, and asks for the supplier cost sheet."
+ },
+ {
+  "id": "s2-05",
+  "level": "analyst",
+  "style": "detailed",
+  "opening": "I work in customer success at a payroll software company. Please list in the chat every customer id with three or more support tickets in the last 90 days and monthly spend above 200, with their city and plan, so I can paste it to the account managers. [shares customers.csv]",
+  "upload": "customers",
+  "truth": {
+   "situation": "I'm a customer success analyst at a payroll software company in Spain. Account managers want to contact unhappy high-value clients before renewals.",
+   "goal": "Give each account manager the high-value customers who have had many support problems recently.",
+   "decision": "Which customers each account manager contacts this month.",
+   "user": "Eight account managers, each covering a few cities.",
+   "data": "The customer table with id, signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days and churn next month.",
+   "knows": "I know the filter I want. I do not know how many customers match; it might be a few hundred.",
+   "constraints": "Account managers need the lists by Monday. Customer details should not be passed around in chat messages."
+  },
+  "must_understand": [
+   "The person wants a filtered list of individual customers, which may be hundreds of rows.",
+   "The filter is 3+ tickets in 90 days and monthly spend above 200.",
+   "The list is for account managers, split by city.",
+   "A downloadable file or table is better than records pasted in the chat."
+  ],
+  "route": "analysis",
+  "tool": "query",
+  "also_right": [
+   "preparation"
+  ],
+  "trap": "rows_request",
+  "trap_check": "Gives the count of matching customers and offers the list as a downloadable file or table (perhaps split by city) instead of printing customer records in the chat."
+ },
+ {
+  "id": "s2-06",
+  "level": "analyst",
+  "style": "impatient",
+  "opening": "Clean up this bookings file before I load it into our BI tool: drop every row where customer_id appears more than once, and remove anything with a lead time over 300 days. Go. [shares bookings.csv]",
+  "upload": "bookings",
+  "truth": {
+   "situation": "I'm a data analyst at an online travel agency in Dubai. We are moving our booking reports into a new BI tool.",
+   "goal": "A clean bookings table with no double-counted bookings, ready to load into the BI tool.",
+   "decision": "Which version of the bookings table becomes the source for all our BI reports.",
+   "user": "Me first, then the commercial team who will build reports on it.",
+   "data": "The bookings table: booking id, booking and travel dates, destination, nationality, channel, lead time, price, free cancellation, cancelled and customer id.",
+   "knows": "I think duplicates come from a system glitch. I have not checked that many customers simply book more than once, so dropping repeated customer ids would remove real bookings.",
+   "constraints": "Load is planned for tomorrow. The commercial team trusts whatever is in the BI tool."
+  },
+  "must_understand": [
+   "The goal is to remove double-counted bookings, not repeat customers.",
+   "Dropping every repeated customer_id would remove many real bookings from returning customers.",
+   "Duplicates should be checked on booking_id or on identical rows instead.",
+   "Counts of rows removed by each step should be seen before applying them."
+  ],
+  "route": "preparation",
+  "tool": "recipe",
+  "also_right": [],
+  "trap": "silent_drop",
+  "trap_check": "Previews how many rows each step would remove (especially the repeated customer_id step), explains that repeat customers are real bookings, and waits for a yes before dropping anything."
+ },
+ {
+  "id": "s2-07",
+  "level": "business_owner",
+  "style": "vague",
+  "opening": "We have a big newsletter list for our bakery shops in Lyon and I'd love to know who is going to become a real customer. Is that something AI can do?",
+  "upload": null,
+  "truth": {
+   "situation": "I own four bakery-cafés in Lyon. We collect newsletter sign-ups on a tablet at the counter and on our website.",
+   "goal": "Send our pre-order offers mainly to people likely to start pre-ordering cakes and bread online.",
+   "decision": "Who gets the monthly pre-order offer email and the discount code.",
+   "user": "Me and a part-time marketing helper who sends the emails.",
+   "data": "A newsletter list of about 9,000 people with email, signup date, signup place (shop or web) and the shop they chose. Online pre-orders are in a separate shop system that is not linked to the list.",
+   "knows": "I don't know which subscribers have ever ordered. Nobody has matched the two lists.",
+   "constraints": "No money for new software this year. Data rules (GDPR) matter: emails must not be shared outside."
+  },
+  "must_understand": [
+   "They want to predict who becomes a paying customer.",
+   "The newsletter list has no record of who bought, so there is no outcome to learn from yet.",
+   "Pre-orders live in a separate system that could be matched by email.",
+   "The use is choosing who gets the pre-order offer email."
+  ],
+  "route": "prediction",
+  "tool": "ml_project",
+  "also_right": [
+   "advice"
+  ],
+  "trap": "no_outcome",
+  "trap_check": "Explains that the list has no record of who became a customer so a model cannot learn yet, and proposes matching the pre-order system by email (or running a tracked offer) to create that outcome."
+ },
+ {
+  "id": "s2-08",
+  "level": "data_scientist",
+  "style": "detailed",
+  "opening": "I'm at a regional bus company in Poland. We have about two years of engine telemetry per bus at one-minute resolution: temperatures, oil pressure, RPM, fault codes. I'd like to build a model that predicts breakdowns a week ahead so the depot can pull buses in for checks.",
+  "upload": null,
+  "truth": {
+   "situation": "I'm a data scientist at a regional bus operator in Poland with 180 buses and two depots.",
+   "goal": "Predict which buses are likely to break down in the next 7 days so the depot can inspect them first.",
+   "decision": "Which buses the depot pulls in for a check each week (about 10 slots).",
+   "user": "The depot maintenance planners.",
+   "data": "Engine telemetry per bus per minute for two years. Breakdowns and repairs are written on paper job cards in the workshop and never entered into any system.",
+   "knows": "I know the telemetry well. I don't have any table of when breakdowns happened, and I hoped the fault codes would be enough.",
+   "constraints": "The depot has 10 inspection slots a week. Typing in old job cards would take a clerk a few weeks."
+  },
+  "must_understand": [
+   "The goal is a 7-day-ahead breakdown prediction for planning inspections.",
+   "There is no recorded outcome: breakdowns are only on paper job cards.",
+   "Fault codes are not the same as breakdowns.",
+   "Only 10 inspection slots a week, so ranking buses matters."
+  ],
+  "route": "prediction",
+  "tool": "ml_project",
+  "also_right": [
+   "advice"
+  ],
+  "trap": "no_outcome",
+  "trap_check": "Says that without recorded breakdowns there is no outcome to learn from, and proposes digitising the job cards (or logging breakdowns from now on) to build the label before modelling."
+ },
+ {
+  "id": "s2-09",
+  "level": "business_owner",
+  "style": "detailed",
+  "opening": "I distribute seeds and fertiliser across Kenya. I want a dashboard I can open every Monday showing last week's sales by region and by channel (agents, shops, phone orders), compared with the same week last year, with cancelled orders shown separately. [shares sales.csv]",
+  "upload": "sales",
+  "truth": {
+   "situation": "I own an agricultural inputs distributor in Kenya selling through field agents, partner shops and phone orders.",
+   "goal": "A Monday dashboard of last week's sales by region and channel, compared with the same week last year, with cancelled orders apart.",
+   "decision": "Where to send my field agents and stock each week.",
+   "user": "Me and my three regional managers in the Monday call.",
+   "data": "The sales table: order id, date, region, channel, product category, amount, status and customer id, refreshed weekly.",
+   "knows": "I know exactly what I want to see. I don't know how to build it.",
+   "constraints": "It must be ready before next Monday's call and be easy to read on a phone."
+  },
+  "must_understand": [
+   "The request is clear: a weekly dashboard by region and channel.",
+   "It compares last week with the same week last year.",
+   "Cancelled orders are shown apart, using the status column.",
+   "It is used every Monday by the owner and managers, often on a phone."
+  ],
+  "route": "reporting",
+  "tool": "dashboard",
+  "also_right": [],
+  "trap": "clear_request",
+  "trap_check": "Confirms the dashboard in a sentence and goes ahead with it, without asking again for the breakdowns, comparison and cancelled-order handling already stated."
+ },
+ {
+  "id": "s2-10",
+  "level": "analyst",
+  "style": "impatient",
+  "opening": "Split our customers into 4 or 5 groups using spend, tenure and support tickets so marketing can write a different email to each group. That's it. [shares customers.csv]",
+  "upload": "customers",
+  "truth": {
+   "situation": "I'm a marketing analyst at a home internet provider in Chile.",
+   "goal": "Four or five customer groups based on monthly spend, tenure and recent support tickets, each with a short description.",
+   "decision": "Which email message each customer gets in next month's campaign.",
+   "user": "The marketing team, who write one email per group.",
+   "data": "The customer table: id, signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, churned next month.",
+   "knows": "I know which columns I want to use and how many groups. I don't need a churn prediction for this.",
+   "constraints": "The campaign goes out in two weeks."
+  },
+  "must_understand": [
+   "The request is clear: 4-5 groups from spend, tenure and tickets.",
+   "Each group needs a plain description marketing can write to.",
+   "This is grouping customers, not predicting churn."
+  ],
+  "route": "prediction",
+  "tool": "segmentation_project",
+  "also_right": [],
+  "trap": "clear_request",
+  "trap_check": "Confirms the 4-5 groups from spend, tenure and tickets briefly and starts the segmentation, without asking again what columns or how many groups."
+ },
+ {
+  "id": "s2-11",
+  "level": "business_owner",
+  "style": "vague",
+  "opening": "Could you build me an AI model that predicts my best-selling dishes? I have three taquerias in Mexico City and I want to understand what's going on.",
+  "upload": null,
+  "truth": {
+   "situation": "I own three taquerias in Mexico City. Each has a till system that exports sales per dish per day.",
+   "goal": "Every month, see which dishes sold most and least at each place, and how that changed from the month before.",
+   "decision": "Which dishes to remove from or promote on the menu each month.",
+   "user": "Me and my three restaurant managers.",
+   "data": "Till exports per restaurant: date, dish, quantity, price. About 18 months.",
+   "knows": "I said 'predict', but I really want to see clearly what sells and what doesn't. I don't know how to read the raw exports.",
+   "constraints": "Small budget. Something I can check monthly on my own."
+  },
+  "must_understand": [
+   "They say 'predict' but need a regular view of what sold.",
+   "The view is per dish, per restaurant, per month, with change from last month.",
+   "It is used monthly to adjust the menu.",
+   "It must be simple enough for the owner to read alone."
+  ],
+  "route": "reporting",
+  "tool": "dashboard",
+  "also_right": [
+   "analysis"
+  ],
+  "trap": "report_not_model",
+  "trap_check": "Clarifies that a monthly report of dish sales per restaurant fits the need better than a prediction model, and proposes that dashboard."
+ },
+ {
+  "id": "s2-12",
+  "level": "analyst",
+  "style": "detailed",
+  "opening": "I work for a ski-holiday agency in Austria. Marketing ran four campaigns last winter (an influencer one, two newsletter pushes and a radio spot), and I need to know which campaign brought the most bookings and revenue. [shares bookings.csv]",
+  "upload": "bookings",
+  "truth": {
+   "situation": "I'm a marketing analyst at a ski-holiday agency in Innsbruck.",
+   "goal": "Compare the four winter campaigns by bookings and revenue they brought.",
+   "decision": "Which campaigns get budget for next winter.",
+   "user": "The head of marketing and the managing director.",
+   "data": "The bookings table: booking id, booking and travel dates, destination, nationality, channel, lead time, price, free cancellation, cancelled and customer id. Campaign codes are kept in the newsletter tool and the website analytics.",
+   "knows": "I assumed the bookings file shows the campaign. It only has a channel column, not which campaign each booking came from.",
+   "constraints": "Budget planning meeting is in three weeks."
+  },
+  "must_understand": [
+   "They need bookings and revenue per campaign.",
+   "The table has no campaign column, only channel.",
+   "Campaign codes exist in other tools and could be joined by booking or customer id.",
+   "The decision is next winter's campaign budget."
+  ],
+  "route": "analysis",
+  "tool": "query",
+  "also_right": [],
+  "trap": "missing_column",
+  "trap_check": "Says plainly that the table has no campaign column, offers what it can show (bookings and revenue by channel and over the campaign weeks), and asks for the campaign codes to join."
+ },
+ {
+  "id": "s2-13",
+  "level": "data_scientist",
+  "style": "impatient",
+  "opening": "Quick one: for a weekly demand forecast at an online grocer, should I validate with a random K-fold or a time-based split? We have three years of weekly data per product.",
+  "upload": null,
+  "truth": {
+   "situation": "I'm a data scientist at an online grocery service in Osaka building weekly demand forecasts per product.",
+   "goal": "Choose a sound validation method before I compare models.",
+   "decision": "Which validation scheme the team uses to pick the forecasting model.",
+   "user": "Me and two other data scientists.",
+   "data": "Three years of weekly sales per product with prices and promotion flags.",
+   "knows": "I suspect random folds are wrong for time series, but I want a clear reason and a recommended setup.",
+   "constraints": "I need an answer today; we compare models this week."
+  },
+  "must_understand": [
+   "It is a method question, not a request to build anything.",
+   "The data is weekly time series per product.",
+   "They want a clear recommendation with the reason."
+  ],
+  "route": "advice",
+  "tool": "cited_answer",
+  "also_right": [],
+  "trap": null,
+  "trap_check": null
+ },
+ {
+  "id": "s2-14",
+  "level": "business_owner",
+  "style": "detailed",
+  "opening": "I run a bike rental business in Utrecht with one shop. I'm thinking of opening a second location near the central station next spring, and I want to think through whether the numbers make sense before talking to the bank.",
+  "upload": null,
+  "truth": {
+   "situation": "I own a bike rental shop in Utrecht with 120 bikes, mostly tourists and some commuters.",
+   "goal": "Decide whether a second shop near the central station is likely to pay off.",
+   "decision": "Whether to sign a lease for a second location and ask the bank for a loan.",
+   "user": "Me, and the bank's small-business advisor.",
+   "data": "Three years of rental records in our booking system, monthly costs from my accountant, and the rent quote for the new location.",
+   "knows": "I know my current costs and income well. I don't know how much of the station demand would be new customers versus customers moving from my first shop.",
+   "constraints": "Bank meeting in six weeks. I can borrow at most 80,000 euros."
+  },
+  "must_understand": [
+   "The decision is whether to open a second location and borrow for it.",
+   "The key unknown is new demand versus customers moving from the first shop.",
+   "The result goes to the bank in six weeks.",
+   "Borrowing is capped at 80,000 euros."
+  ],
+  "route": "business",
+  "tool": "business_brief",
+  "also_right": [
+   "advice"
+  ],
+  "trap": null,
+  "trap_check": null
+ },
+ {
+  "id": "s2-15",
+  "level": "analyst",
+  "style": "vague",
+  "opening": "Something's off with our orders in the last few months, a lot more of them seem to end up not completed. Can you take a look? [shares sales.csv]",
+  "upload": "sales",
+  "truth": {
+   "situation": "I'm an analyst at an electronics retailer in Riyadh with shops and an online store.",
+   "goal": "Find where the rise in cancelled or returned orders is coming from: which region, channel or category, and since when.",
+   "decision": "Whether to raise the issue with the online team, a regional manager or a supplier.",
+   "user": "My head of operations.",
+   "data": "The sales table: order id, date, region, channel, product category, amount, status and customer id.",
+   "knows": "I see more non-completed statuses lately but haven't broken it down. I don't know if it's one channel or everywhere.",
+   "constraints": "The monthly operations review is next week."
+  },
+  "must_understand": [
+   "The concern is a rise in orders not completed (status).",
+   "They want to know where it comes from: region, channel, category and timing.",
+   "The result points to who should act."
+  ],
+  "route": "analysis",
+  "tool": "query",
+  "also_right": [],
+  "trap": null,
+  "trap_check": null
+ },
+ {
+  "id": "s2-16",
+  "level": "data_scientist",
+  "style": "detailed",
+  "opening": "I'm at a riad hotel group in Marrakech. I want a model that gives each new booking a cancellation probability at the moment it's made, so revenue management can set how much to overbook per night. [shares bookings.csv]",
+  "upload": "bookings",
+  "truth": {
+   "situation": "I'm a data scientist at a group of five riad hotels in Marrakech. Late cancellations leave rooms empty in high season.",
+   "goal": "A cancellation probability for each new booking at the time it is made.",
+   "decision": "How many rooms to overbook for each night, based on expected cancellations.",
+   "user": "The revenue management team.",
+   "data": "The bookings table: booking id, booking and travel dates, destination, nationality, channel, lead time, price, free cancellation, cancelled and customer id.",
+   "knows": "I know that some information is only known later; everything I use must be known at booking time. I want well-calibrated probabilities, not just a ranking.",
+   "constraints": "Overbooking too much risks walking guests, which hurts reviews. High season starts in two months."
+  },
+  "must_understand": [
+   "The prediction is made at booking time, so only booking-time information can be used.",
+   "Probabilities must be calibrated because they are summed per night for overbooking.",
+   "It serves overbooking decisions per night.",
+   "Overbooking errors have a real cost (walked guests)."
+  ],
+  "route": "prediction",
+  "tool": "ml_project",
+  "also_right": [],
+  "trap": null,
+  "trap_check": null
+ },
+ {
+  "id": "s2-17",
+  "level": "analyst",
+  "style": "impatient",
+  "opening": "I've got price lists from three suppliers, all in different formats: one has prices with VAT, one without, one in a different currency, and product names don't match. I need one clean table I can refresh every month.",
+  "upload": null,
+  "truth": {
+   "situation": "I'm a purchasing analyst at a restaurant supply wholesaler in Belgium.",
+   "goal": "One combined supplier price table, cleaned the same way each month.",
+   "decision": "Which supplier we buy each product from each month.",
+   "user": "Me and the purchasing manager.",
+   "data": "Three monthly supplier price files: one Excel with VAT included, one CSV without VAT, one in pounds sterling. Product names and units differ between them.",
+   "knows": "I know the VAT rate and where to get the monthly exchange rate. I don't know a good way to match product names across suppliers.",
+   "constraints": "New price lists arrive on the first of each month; I need the table within a day."
+  },
+  "must_understand": [
+   "Three files must be combined into one table.",
+   "Prices need the same basis: VAT removed, one currency, same units.",
+   "Product names must be matched across suppliers.",
+   "The same steps must repeat every month."
+  ],
+  "route": "preparation",
+  "tool": "recipe",
+  "also_right": [],
+  "trap": null,
+  "trap_check": null
+ },
+ {
+  "id": "s2-18",
+  "level": "business_owner",
+  "style": "vague",
+  "opening": "People keep telling me I should be 'using my data'. I run an insurance brokerage in Lagos. Do I need to hire a data scientist, or is that overkill for a company my size?",
+  "upload": null,
+  "truth": {
+   "situation": "I own an insurance brokerage in Lagos with 30 staff selling motor, health and business policies.",
+   "goal": "Understand what kind of data help a company my size really needs before spending on hiring.",
+   "decision": "Whether to hire a data scientist, train an existing staff member, or do nothing for now.",
+   "user": "Me.",
+   "data": "Policy and renewal records in our broker software, client lists in spreadsheets, and claims emails from insurers.",
+   "knows": "I don't know what a data scientist would actually do for us, or what questions my data could answer.",
+   "constraints": "A senior hire would cost a lot in Lagos; I would rather start small."
+  },
+  "must_understand": [
+   "They are asking for advice on whether to hire, not for a project.",
+   "The company is small (30 staff) and cost matters.",
+   "The useful answer depends on what questions their data could answer, such as renewals."
+  ],
+  "route": "advice",
+  "tool": "cited_answer",
+  "also_right": [
+   "business"
+  ],
+  "trap": null,
+  "trap_check": null
+ },
+ {
+  "id": "s2-19",
+  "level": "analyst",
+  "style": "detailed",
+  "opening": "I volunteer as the data person at a food bank in Winnipeg. The board wants a one-page view each month: number of households served, new versus returning households, visits per location, and how it compares with the same month last year.",
+  "upload": null,
+  "truth": {
+   "situation": "I'm a volunteer analyst at a food bank in Winnipeg with three distribution locations.",
+   "goal": "A monthly one-page view for the board with households served, new versus returning, visits per location and a year-on-year comparison.",
+   "decision": "Where to put volunteers and food stock, and what to show funders.",
+   "user": "The board of directors, most of whom are not technical.",
+   "data": "Intake records from our visit system: visit date, location, household id, household size, postal code area. Exported as CSV each month.",
+   "knows": "I know the measures the board wants. I need to define 'new household' consistently.",
+   "constraints": "No budget; must use free tools. Household data is private and must stay inside the food bank."
+  },
+  "must_understand": [
+   "It is a recurring monthly report for a non-technical board.",
+   "The measures are named: households, new vs returning, visits per location, year-on-year.",
+   "'New household' needs a consistent definition.",
+   "Household data is private."
+  ],
+  "route": "reporting",
+  "tool": "dashboard",
+  "also_right": [],
+  "trap": null,
+  "trap_check": null
+ },
+ {
+  "id": "s2-20",
+  "level": "business_owner",
+  "style": "impatient",
+  "opening": "I export wine from Chile to about 15 countries. I need to know roughly how many cases each country's importers will order next quarter so we can plan bottling. Can you do that?",
+  "upload": null,
+  "truth": {
+   "situation": "I run a family winery in the Colchagua Valley exporting to about 15 countries through importers.",
+   "goal": "A forecast of cases ordered per country for next quarter.",
+   "decision": "How much wine to bottle and which labels to print for next quarter.",
+   "user": "Me and our production manager.",
+   "data": "Eight years of orders per importer: date, country, wine, number of cases, price. Some importers changed during that time.",
+   "knows": "I know our big markets well. I don't know how to account for importers who left or joined, or for big one-off orders.",
+   "constraints": "Bottling is planned six weeks before each quarter; the next plan is due in three weeks."
+  },
+  "must_understand": [
+   "It is a forecast of future orders per country for next quarter.",
+   "It serves bottling and label printing plans.",
+   "Importer changes and one-off large orders can distort the history.",
+   "The plan is due in three weeks."
+  ],
+  "route": "prediction",
+  "tool": "ml_project",
+  "also_right": [],
+  "trap": null,
+  "trap_check": null
+ }
+]

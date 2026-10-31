@@ -39,6 +39,20 @@ GATE_V1 = {
 GATE_V2 = {**GATE_V1, "version": "conversation_exam_gate_v2", "fixed": "2026-10-31",
            "route": {"against": "plain", "rule": "the right route offered or taken, not below Claude alone's"}}
 GATE = GATE_V2  # the gate of the sealed run (37.10)
+# 2026-10-31 (the owner, $13 left): a smaller sealed run, sealed_v2, of the short lead agent against Claude alone only (Home
+# is measured already, and behind); the judge told that length is not understanding; traps compared with Claude alone. Fixed
+# before the run, as every gate.
+GATE_V3 = {**GATE_V2, "version": "conversation_exam_gate_v3", "fixed": "2026-10-31",
+           "for": "sealed_v2: the short lead agent (arm case) against Claude alone (plain), 20 people by an independent writer",
+           "options_fit": {**GATE_V2["options_fit"], "min_shown": 6, "min_paired": 6},
+           "traps": {"against": "plain", "rule": "every trap kind's pass rate not below Claude alone's"},
+           "judge_owner_agreement": {"min": 0.70, "owner_labels": 6}}
+GATES = {"sealed_v1": GATE_V2, "sealed_v2": GATE_V3}
+
+
+def gate_for(split: str) -> dict:
+    """The gate a sealed split is read against (fixed before its run); dev runs preview the newest."""
+    return GATES.get(split, GATE_V3)
 
 
 def _paired(lead: list[Mapping[str, Any]], other: list[Mapping[str, Any]], key: str) -> list[tuple[float, float]]:
