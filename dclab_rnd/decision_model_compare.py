@@ -84,6 +84,8 @@ def local_gateway(model: str | None, tuned: bool, cap_eur: float | None = None) 
         raise SystemExit(f"the {tier} tier is not local ({info.get('base_url')}): give --cap-eur for a remote tuned model, or ask a local one")
     os.environ.pop("DCLAB_NO_LIVE_MODELS", None)
     gateway = Gateway()
+    from dclab_rnd.models.gateway import mark_invented_tables
+    mark_invented_tables(gateway, "decision sets (generated tables)")  # every table here is invented by code
     if tuned:  # the purpose served by the tuned tier for this run only, as an approved routing would serve it
         from types import SimpleNamespace
 

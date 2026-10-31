@@ -303,7 +303,9 @@ def _client(purpose: str, limit: float) -> Any:
     from dclab_rnd.models.gateway import for_workspace
     from dclab_rnd.models.prices import price_of
 
-    client = for_workspace().client(purpose)
+    from dclab_rnd.models.gateway import mark_invented_tables
+    _gateway = mark_invented_tables(for_workspace(), "home intent requests")  # every table here is invented by code
+    client = _gateway.client(purpose)
     model = str(getattr(client, "model", "") or "")
     if client is None or not model.startswith("claude") or price_of(model) is None:
         raise SystemExit(f"{purpose} must be served by a priced Claude model here (it is {model or 'no model'}): nothing sent")

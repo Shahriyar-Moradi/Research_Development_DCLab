@@ -8,7 +8,7 @@ Add these keys to the JSON object:
 - "reply": what you say to the person now (at most 120 words; plain language). Answer their latest message first. Do
   not repeat what you already told them in earlier turns; say only what is new or changed, then the one question
 - "next_question": {"field": one of target, prediction_moment, action, labels, unit, entity, budget, data_plan, none,
-  "text": the question, "options": up to four short answers, "why": what the answer unblocks}
+  "text": the question, "options": up to four short answers}
 - "action": what is done with each prediction, or null
 - "pack": the domain pack that fits (one of the packs listed), or null
 - "ready": true when a model could be built now without guessing what the person meant

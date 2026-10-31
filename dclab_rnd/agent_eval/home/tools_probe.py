@@ -81,6 +81,8 @@ def main(argv: list[str] | None = None) -> int:
     from dclab_rnd.models.gateway import for_workspace
 
     gateway = for_workspace()
+    from dclab_rnd.models.gateway import mark_invented_tables
+    mark_invented_tables(gateway, "home tools probe")  # every table here is invented by code
     gateway.shadows = None
     clients: list[Any] = []
 

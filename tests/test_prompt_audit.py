@@ -16,12 +16,9 @@ from dclab_rnd import prompts  # noqa: E402
 ASKS_REASONING = re.compile(
     r"(?:explain|show|give|write|include|state|list)[a-z ]{0,12}(?:your |the )?(?:reasoning|thought process|chain of thought|thinking)"
     r"|<thinking>|\"(?:reasoning|rationale|reason|why)\"\s*:|step by step", re.I)
-BEFORE_THE_RULE = {  # prompt -> what it asks; the owner decides (2026-10-31 night): each removed when its reader no longer needs it
-    "base_audit": "a one-sentence reason beside each forbidden column",
-    "ai_first_home": "a why beside each question (what its answer unblocks)",
-    "journey_checker": "a short why beside each check",
-    "leakage_review": "a reason quoting the moment beside each verdict",
-    "store_curator": "a short reason beside each curation",
+BEFORE_THE_RULE = {  # prompt -> why it may still ask; the list may only shrink (the owner, 2026-10-31: reasoning from the thinking summary)
+    "leakage_review": "a user-facing claim, not reasoning: each verdict's reason must quote the prediction moment and code checks it",
+    "journey_checker": "a user-facing claim, not reasoning: the failed check shown to the owner when a written person is flagged",
     "reasoning_teacher": "teacher-written reasoning (the owner cancelled that backfill on 2026-10-28; the prompt is unused)",
 }
 

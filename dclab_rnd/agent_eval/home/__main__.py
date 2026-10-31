@@ -122,6 +122,8 @@ def main(argv: list[str] | None = None) -> int:
     from dclab_rnd.models.gateway import for_workspace
 
     gateway = for_workspace()
+    from dclab_rnd.models.gateway import mark_invented_tables
+    mark_invented_tables(gateway, "home eval")  # every table here is invented by code
     the_plan = plan(gateway, cases, MAX_TOKENS)
     if not args.yes:
         if args.split == "dev":  # the sealed set's scores are read only in its one run

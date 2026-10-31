@@ -539,6 +539,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     from dclab_rnd.models.gateway import for_workspace
 
     gateway = for_workspace()
+    from dclab_rnd.models.gateway import mark_invented_tables
+    mark_invented_tables(gateway, "programme journeys (replicas)")  # every table here is invented by code
     gateway.shadows = None  # measurement traffic stays out of the shadow log
     for purpose in ("decomposer", "map_reviewer", "data_need", "solution_router"):
         if not gateway.available(purpose):

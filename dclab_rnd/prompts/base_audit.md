@@ -8,4 +8,4 @@ difference that contains it, a value that exists only when the outcome happened.
 in time. Fourth, the one column that names the entity several rows belong to, if there is one.
 Keep out only a column you have a reason for: a column known at that moment must stay usable, even if its name sounds
 like an outcome. Use only column names from the table. Answer with JSON only:
-{"forbidden": [{"column": "...", "reason": "one sentence"}], "identifiers": ["..."], "time_column": null, "group_column": null}
+{"forbidden": [{"column": "..."}], "identifiers": ["..."], "time_column": null, "group_column": null}

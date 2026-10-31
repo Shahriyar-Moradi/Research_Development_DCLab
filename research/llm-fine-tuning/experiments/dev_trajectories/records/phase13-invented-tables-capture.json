@@ -22,9 +22,13 @@
   {
    "decision": "A sealed run is never marked",
    "why": "it is kept whole in the exam vault only, outside every training set, so it stays a fair test"
+  },
+  {
+   "decision": "Three older prompts drop their reason field; leakage_review and journey_checker keep theirs",
+   "why": "the owner's rule: reasoning only from the thinking summary; nothing read those three reasons, while the other two are user-facing claims checked by code"
   }
  ],
- "change": "dclab_rnd/models/gateway.py (_keep_exchange reads gateway.invented_tables, marks the line 'tables'); dclab_rnd/agent_eval/conversation_exam/__init__.py (mark_invented_tables for non-sealed splits); tests/test_thinking_capture.py; dclab_rnd/store/sets/cases.py (an exam found by its workspace) and store/sets/llm.py (reads the 'other' kind); tests/test_store_cases.py; dclab_rnd/store/keepers/standard.py (the vault judged on the path from the top folder); tests/test_conversation_exam.py",
+ "change": "dclab_rnd/models/gateway.py (_keep_exchange reads gateway.invented_tables, marks the line 'tables'); dclab_rnd/agent_eval/conversation_exam/__init__.py (mark_invented_tables for non-sealed splits); tests/test_thinking_capture.py; dclab_rnd/store/sets/cases.py (an exam found by its workspace) and store/sets/llm.py (reads the 'other' kind); tests/test_store_cases.py; dclab_rnd/store/keepers/standard.py (the vault judged on the path from the top folder); tests/test_conversation_exam.py; mark_invented_tables in the Home evals, journeys, programme journeys and decision compare; three prompts (base_audit, ai_first_home, store_curator) no longer ask for a reason field",
  "findings": [
   {
    "id": "F1",
@@ -75,6 +79,16 @@
    "cause": "each sealed person's folder in the vault holds drafts/, so discovery made it a workspace of its own; the vault check read the path relative to that workspace, where it no longer starts with exam_vault",
    "fix": "the vault is judged on the path from the top folder; the store's copies (1,046 folders, 6,239 lines, 683 entries) moved into the vault's removed_from_store folder, nothing deleted; sets rebuilt; the store commit undone before any push",
    "test": "tests/test_conversation_exam.py RunTests.test_a_workspace_inside_the_vault_is_counted_never_kept (a workspace nested in the vault is counted, never kept; the workspace's own drafts are kept)"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The investigator was marked as invented tables though it reads scikit-learn's real public sets",
+   "scenario": "investigator --split dev: breast-cancer calls labelled 'invented' in kept exchanges",
+   "cause": "the runner list was chosen by table source without opening the investigator's replicas",
+   "fix": "the mark removed there (its purpose is shown no cells, so nothing is lost); the helper skips sealed runs; the server test scans every product folder",
+   "test": "tests/test_thinking_capture.py InventedTablesRunnersTest"
   }
  ],
  "measurements": [
@@ -96,6 +110,13 @@
    "name": "case-file set on the real store",
    "gate": "the stored practice cases become examples",
    "result": "82 case-file examples (44 train, 21 dev, 17 held out) from 357 stored conversation files",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "prompt gates after removing reason fields",
+   "gate": "agent-eval and harness-eval pass on the changed prompts",
+   "result": "agent-eval passed; harness 17 of 17 (HRN-096); prompt audit, prompt gate and harness gate tests pass",
    "verdict": "pass",
    "cost_eur": 0.0
   }

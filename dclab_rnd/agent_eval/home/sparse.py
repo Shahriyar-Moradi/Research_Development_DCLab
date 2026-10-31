@@ -170,6 +170,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     from dclab_rnd.models.gateway import for_workspace
 
     gateway = for_workspace()
+    from dclab_rnd.models.gateway import mark_invented_tables
+    mark_invented_tables(gateway, "home sparse eval")  # every table here is invented by code
     gateway.shadows = None
     clients: list[Any] = []
 

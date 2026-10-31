@@ -234,6 +234,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     from .__main__ import Budget
 
     gateway = for_workspace()
+    from dclab_rnd.models.gateway import mark_invented_tables
+    mark_invented_tables(gateway, "home conversation eval")  # every table here is invented by code
     gateway.shadows = None
     budget = Budget(gateway, args.cap_eur)
     keep = None if args.split in SEALED else \

@@ -153,3 +153,35 @@ class CellsThinkingTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class InventedTablesRunnersTest(unittest.TestCase):
+    """2026-10-31 (the owner: all data captured, thinking included): every runner whose tables are all invented by code marks
+    its gateway, so the calls that saw cells keep their words and thinking. A runner that may read a person's table (the
+    studio, the intern on projects, twin runs on samples) is never on this list."""
+
+    RUNNERS = ("agent_eval/home/__main__.py", "agent_eval/home/conversation.py", "agent_eval/home/sparse.py",
+               "agent_eval/home/tools_probe.py", "agent_eval/home/intent_requests.py", "agent_eval/journeys/__main__.py",
+               "agent_eval/journeys/programme.py", "decision_model_compare.py",
+               "agent_eval/conversation_exam/__init__.py")
+
+    def test_each_invented_table_runner_marks_its_gateway(self):
+        for rel in self.RUNNERS:
+            text = (ROOT / "dclab_rnd" / rel).read_text(encoding="utf-8")
+            self.assertIn("mark_invented_tables(", text, rel)
+
+    def test_the_mark_is_never_set_by_the_server_or_the_twin(self):
+        roots = ["agentic", "draft", "studio", "intern", "twin", "jobs", "agent_eval/investigator"]
+        files = [p for r in roots for p in (ROOT / "dclab_rnd" / r).rglob("*.py")] + [ROOT / "dclab_rnd" / "worker.py"]
+        self.assertTrue(len(files) > 20)
+        for path in files:
+            self.assertNotIn("invented_tables", path.read_text(encoding="utf-8"), str(path.relative_to(ROOT)))
+
+    def test_the_helper_marks_the_gateway(self):
+        g = gw.Gateway()
+        self.assertIs(gw.mark_invented_tables(g, "home eval"), g)
+        self.assertEqual(g.invented_tables, "home eval")
+        sealed = gw.Gateway()
+        with mock.patch.dict(os.environ, {"DCLAB_SEALED_RUN": "sealed_v1"}):
+            gw.mark_invented_tables(sealed, "home eval")
+        self.assertFalse(hasattr(sealed, "invented_tables"))  # a sealed run is never marked

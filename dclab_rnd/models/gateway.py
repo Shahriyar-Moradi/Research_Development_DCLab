@@ -709,3 +709,13 @@ def for_workspace(home=None) -> Gateway:
 
     home = Path(home or os.environ.get("DCLAB_AGENT_HOME") or default_home())  # the repository's agent_runs, or ~/.dclabai when installed
     return Gateway(open_usage(home), routing=open_routing(home), shadows=open_shadows(home))  # the same routing as the server
+
+
+def mark_invented_tables(gateway: Any, what: str) -> Any:
+    """A runner whose every table is invented by code (seeded replicas, the Home eval's tables, generated benchmarks) says
+    so on its own gateway, so the calls that saw cells are kept whole with their thinking (2026-10-31: practice runs had
+    kept no words of such calls). Never a setting: the server that reads people's tables can never turn it on."""
+    if os.environ.get("DCLAB_SEALED_RUN"):  # a sealed run is kept by shape here and whole only in its vault: never marked
+        return gateway
+    gateway.invented_tables = str(what)
+    return gateway

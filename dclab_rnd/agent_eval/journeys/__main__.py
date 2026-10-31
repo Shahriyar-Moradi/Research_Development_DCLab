@@ -125,7 +125,8 @@ def _reader_arm(args, seed: int) -> int:
 
     load_dotenv(ROOT / ".env", override=False)  # the provider and its key, as the server reads them
 
-    read = reader(for_workspace(), cap_eur=args.cap_eur, force=True, prebuild=True)
+    from dclab_rnd.models.gateway import mark_invented_tables
+    read = reader(mark_invented_tables(for_workspace(), "journeys (replicas)"), cap_eur=args.cap_eur, force=True, prebuild=True)
     if read is None:
         print("No model serves conversation_reader: set the provider's key (and leave DCLAB_NO_LIVE_MODELS unset).")
         return 2
@@ -200,6 +201,8 @@ def _debate_seats(args):
 
     os.environ.setdefault("DCLAB_TIER_CHEAP_MODEL", "claude-haiku-5-5")
     gateway = for_workspace()
+    from dclab_rnd.models.gateway import mark_invented_tables
+    mark_invented_tables(gateway, "journeys (replicas)")  # every table here is invented by code
     designer = _Shared(GatewayAdvisor(gateway, cap_eur=args.cap_eur * 0.6, max_tokens=1500))
     # the first run (void: four requests failed) cut three challengers at 1,500 tokens and a judge at 900: Haiku writes at length
     challenger = _Counted(GatewayAdvisor(gateway, cap_eur=args.cap_eur * 0.25, max_tokens=4000))
@@ -257,6 +260,8 @@ def _pattern(args) -> int:
         lives = {"baseline": {"designer": designer}, "arm": {"designer": designer, "challenger": challenger, "judge": judge}}
     else:
         gateway = for_workspace()
+        from dclab_rnd.models.gateway import mark_invented_tables
+        mark_invented_tables(gateway, "journeys (replicas)")  # every table here is invented by code
         shared = reader(gateway, cap_eur=args.cap_eur, force=True, prebuild=True)
         if shared is None:
             print("No model serves conversation_reader: set the provider's key (and leave DCLAB_NO_LIVE_MODELS unset).")
@@ -330,6 +335,8 @@ def _team_arms(args, seed: int) -> int:
 
     load_dotenv(ROOT_ / ".env", override=False)  # the provider and its key, as the server reads them
     gateway = for_workspace()
+    from dclab_rnd.models.gateway import mark_invented_tables
+    mark_invented_tables(gateway, "journeys (replicas)")  # every table here is invented by code
     single = reader(gateway, cap_eur=args.cap_eur / 3, force=True, prebuild=True)
     team_reader = reader(gateway, cap_eur=args.cap_eur / 3, force=True, prebuild=True)
     critic = _Counted(GatewayAdvisor(gateway, cap_eur=args.cap_eur / 3, max_tokens=1200))
@@ -405,6 +412,8 @@ def _live_arms(args, seed: int) -> int:
     spent, models, incomplete = 0.0, {}, []
     for name, doc in routed.items():
         gateway = Gateway()
+        from dclab_rnd.models.gateway import mark_invented_tables
+        mark_invented_tables(gateway, "journeys (replicas)")  # every table here is invented by code
         client = gateway.client("home_agent")
         if client is None:
             print("no model can serve the Home agent here (no key, or DCLAB_NO_LIVE_MODELS): nothing live to run")
