@@ -2,7 +2,8 @@
 
 The owner's vision, 1 November 2026: **the goal DCLab must go for.** Every plan, phase and package should say how it
 moves DCLab toward it. The full page, English and Persian side by side, with examples, today's state and the order of
-work, is [`vision.html`](vision.html).
+work, is [`vision.html`](vision.html). The gaps and the six phases to reach it (14 to 19, real data teams first) are
+[`plan.html`](plan.html).
 
 ## English
 

@@ -216,11 +216,11 @@ ul,ol{padding-inline-start:1.3em;display:grid;gap:6px}
         <li>An agent that understands first. On the first sealed exam of 40 written people it scored 0.85, against 0.62 for Claude alone. But the judge agreed with your own marks only 66% of the time (the bar was 70%), so this is not proven yet.</li>
         <li>An engine for most kinds of problem: prediction, fraud and rare events, anomalies, forecasting, time to event, uplift, ranking, segmentation. Images still wait.</li>
         <li>Leakage checks, the final test read once, and a code export that rebuilds the final number.</li>
-        <li>Small seeds of decisions: an anomaly review list sized to the team's budget, uplift (who is worth contacting), and the decision brief.</li>
+        <li>For one model, the decision pieces: the operating point from costs and the value of a case, a review list sized to the team's budget, uplift (who is worth contacting), a log of predictions, decisions and outcomes, monitoring, and retraining with champion and challenger. None of it has run inside a real company yet.</li>
       </ul>
       <p><span class="tag bad">Not built yet</span></p>
       <ul>
-        <li><b>The business decision model itself:</b> many models' predictions, plus costs and limits, turned into one best action. This is the new heart of the vision, and it is mostly not built.</li>
+        <li><b>Many models, one decision:</b> several models' predictions, plus costs, budgets and rules, turned into one best action. This is the new heart of the vision, and it is not built.</li>
         <li>A simple Python SDK for notebooks. Today there is the notebook companion, the notebook review from the command line, and the MCP tools.</li>
         <li>Proof on real companies' decisions and what happened after them.</li>
       </ul>
@@ -233,11 +233,11 @@ ul,ol{padding-inline-start:1.3em;display:grid;gap:6px}
         <li>دستیاری که اول می‌فهمد. در اولین امتحان مُهروموم‌شده با ۴۰ آدم خیالی، نمره‌اش <bdi>0.85</bdi> بود، در برابر <bdi>0.62</bdi> برای Claude تنها. اما داور فقط ۶۶٪ مواقع با نمره‌های خود شما هم‌نظر بود (حد قبولی ۷۰٪ بود)، پس هنوز ثابت نشده.</li>
         <li>موتوری برای بیشتر انواع مسئله: پیش‌بینی، تقلب و رویدادهای نادر، ناهنجاری، پیش‌بینی سری زمانی، زمان تا رویداد، اثر افزایشی (<bdi>uplift</bdi>)، رتبه‌بندی، بخش‌بندی. تصویر هنوز مانده.</li>
         <li>بررسی نشت داده، آزمون نهایی فقط یک بار، و خروجی کدی که عدد نهایی را دوباره می‌سازد.</li>
-        <li>بذرهای کوچکِ تصمیم: فهرست بررسی ناهنجاری به اندازه‌ی بودجه‌ی تیم، اثر افزایشی (با چه کسی تماس بگیریم ارزش دارد)، و خلاصه‌ی تصمیم (<bdi>decision brief</bdi>).</li>
+        <li>برای یک مدل، تکه‌های تصمیم: نقطه‌ی کار از روی هزینه‌ها و ارزش هر مورد، فهرست بررسی به اندازه‌ی بودجه‌ی تیم، اثر افزایشی (با چه کسی تماس بگیریم ارزش دارد)، ثبت پیش‌بینی‌ها و تصمیم‌ها و نتیجه‌ها، پایش، و آموزش دوباره با «قهرمان و رقیب». هیچ‌کدام هنوز داخل یک شرکت واقعی اجرا نشده.</li>
       </ul>
       <p><span class="tag bad">هنوز ساخته نشده</span></p>
       <ul>
-        <li><b>خودِ مدل تصمیم‌گیری کسب‌وکار:</b> پیش‌بینی‌های چند مدل، به‌علاوه‌ی هزینه‌ها و محدودیت‌ها، که به یک بهترین اقدام تبدیل شوند. این قلب تازه‌ی چشم‌انداز است، و بیشترش هنوز ساخته نشده.</li>
+        <li><b>چند مدل، یک تصمیم:</b> پیش‌بینی‌های چند مدل، به‌علاوه‌ی هزینه‌ها، بودجه و قانون‌ها، که به یک بهترین اقدام تبدیل شوند. این قلب تازه‌ی چشم‌انداز است، و ساخته نشده.</li>
         <li>یک <bdi>Python SDK</bdi> ساده برای نوت‌بوک. امروز همراه نوت‌بوک، بازبینی نوت‌بوک از خط فرمان، و ابزارهای <bdi>MCP</bdi> وجود دارند.</li>
         <li>اثبات روی تصمیم‌های شرکت‌های واقعی و نتیجه‌ای که بعد از آن‌ها آمد.</li>
       </ul>
@@ -256,6 +256,7 @@ ul,ol{padding-inline-start:1.3em;display:grid;gap:6px}
       <p>Why this order: a decision model is only as good as the models under it. And it can learn only when the company records what it decided and what happened next. Those outcomes often arrive weeks later.</p>
       <p class="example">Like a restaurant. First the kitchen must cook well. Only then does a good menu help.</p>
       <p class="warn">Risk to watch: serving two kinds of customer at once can split a small team. Keep the data team first until it works.</p>
+      <p>The gaps and six phases to get there: <a href="plan.html">plan.html</a>.</p>
     </div>
     <div class="fa" lang="fa">
       <p class="step">۸ · ترتیب کار</p>
@@ -268,6 +269,7 @@ ul,ol{padding-inline-start:1.3em;display:grid;gap:6px}
       <p>چرا این ترتیب: یک مدل تصمیم‌گیری فقط به اندازه‌ی مدل‌های زیرش خوب است. و فقط وقتی می‌تواند یاد بگیرد که شرکت ثبت کند چه تصمیمی گرفت و بعدش چه شد. این نتیجه‌ها اغلب چند هفته بعد می‌رسند.</p>
       <p class="example">مثل یک رستوران. اول آشپزخانه باید خوب آشپزی کند. فقط بعد از آن است که یک منوی خوب کمک می‌کند.</p>
       <p class="warn">خطری که باید مراقبش بود: خدمت به دو نوع مشتری در یک زمان می‌تواند یک تیم کوچک را دو تکه کند. تا وقتی کار با تیم داده جا نیفتاده، آن را اول نگه داریم.</p>
+      <p>شکاف‌ها و شش فاز برای رسیدن به آن: <bdi><a href="plan.html">plan.html</a></bdi>.</p>
     </div>
   </section>
 
