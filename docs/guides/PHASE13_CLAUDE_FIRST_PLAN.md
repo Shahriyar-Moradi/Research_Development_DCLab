@@ -351,6 +351,7 @@ override the text above where they differ.
 | 37.7 | done, unused live | five specialists behind triggers and a budget of three per case, findings into the case file (v2); the agent sent none on dev |
 | 37.8 | done | a checkpoint after every turn, resume with nothing lost, a soft cap (DCLAB_CASE_CAP_EUR, 5) that stops and asks |
 | 37.9 | done, browser test owed | Home led by the lead agent behind DCLAB_CASE_AGENT: option cards and the case-file panel; make browser-test waits for Chromium (a download) |
+| 37.10 | done, pending owner labels (CEX-013) | sealed, run once (40 people, three arms, EUR 19.65 of a 22 cap): lead agent understanding 0.85 (Claude alone 0.62, Home 0.43; gain over Claude alone +0.23, 90% interval +0.16 to +0.31), option fit 4.25 (+1.6 over Claude alone where both showed options), route reached 0.90 (= Claude alone), 0 safety failures, every planted trap caught; every gate v2 check passes; the judge-owner agreement waits for 10 owner labels |
 | 37.12 | done | every case change a case.changed event (experience v17); a case rebuilds from its events |
 | 37.13 | done | the capture map holds the lead agent's events and specialists; make capture-coverage |
 | 37.14 | done, six prompts open | no new prompt may ask for reasoning; six earlier prompts that ask for a reason are listed for the owner |
