@@ -268,6 +268,57 @@ def judge_lessons(layout: Layout, choices: Optional[dict] = None) -> list[ChatEx
     return out
 
 
+HUMAN = 1.0  # a person's labels: gold, full weight
+
+
+def human_labels(root: Optional[Any] = None) -> list[ChatExample]:
+    """2026-10-31 (the owner: keep every costly run for the seven models): a person's marks on practice exam conversations
+    as gold lessons for a judge: the rule (RUBRIC.md), the person's hidden truth, the points and the conversation in, the
+    person's marks out. Only practice runs: a sealed run's labels stay in its vault. The labels are a person's, so no
+    reasoning is claimed (no_reasoning says so)."""
+    import hashlib
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    from dclab_core.store import Provenance
+
+    from ..layout import ROOT
+
+    base = Path(root) if root else ROOT / "evidence" / "campaigns" / "conversation_exam_v1" / "labels"
+    rubric_path = ROOT / "dclab_rnd" / "agent_eval" / "conversation_exam" / "RUBRIC.md"
+    rubric = rubric_path.read_text(encoding="utf-8") if rubric_path.exists() else ""
+    out: list[ChatExample] = []
+    for labels in sorted(base.glob("*_owner_labels.json")) if base.is_dir() else []:
+        run = labels.name[: -len("_owner_labels.json")]
+        if "sealed" in run.lower():
+            continue
+        items_dir = base / f"{run}_items"
+        doc = json.loads(labels.read_text(encoding="utf-8"))
+        raw = labels.read_bytes()
+        for entry in doc.get("entries") or []:
+            item_path = items_dir / f"{entry.get('ref')}.json"
+            if not item_path.exists():
+                continue
+            item = json.loads(item_path.read_text(encoding="utf-8"))
+            person = item.get("person") or {}
+            case = {"truth": person.get("truth"), "points": person.get("must_understand"), "trap": person.get("trap_check") or person.get("trap"),
+                    "conversation": [{"role": t.get("role"), "text": t.get("text"), "choices": t.get("choices") or []} for t in item.get("transcript") or []]}
+            marks = {k: (entry.get("owner") or {}).get(k) for k in ("understood", "options_fit", "options_differ", "trap_handled")}
+            prov = Provenance(entry=f"human_labels:{run}:{entry.get('ref')}"[:200], sha256=hashlib.sha256(raw).hexdigest(),
+                              source=f"campaigns/conversation_exam_v1/labels/{labels.name}", workspace="rnd", by=str(doc.get("by") or "the owner")[:120],
+                              consent="train", at=str(doc.get("at") or datetime.now(timezone.utc).isoformat(timespec="seconds")))
+            try:
+                out.append(ChatExample(id=f"m7_judges:human:{run}:{entry.get('ref')}"[:200], model_type="m7_judges", split=split_of(f"{run}:{entry.get('ref')}"),
+                                       provenance=prov, task="judge_conversation", stage="human_labels", weight=HUMAN,
+                                       messages=[Message(role="system", content="Judge the conversation by this rule, from what it shows.\n\n" + rubric),
+                                                 Message(role="user", content=json.dumps(case, ensure_ascii=False)),
+                                                 Message(role="assistant", content=json.dumps(marks), no_reasoning="a person's marks: no reasoning recorded")],
+                                       check={"run": run, "labeller": "human", "gold": True}))
+            except Exception:  # noqa: BLE001 - an entry the contract refuses never enters the set
+                continue
+    return out
+
+
 def preferences(layout: Layout, choices: Optional[dict] = None, scripted: Optional[frozenset[str]] = None) -> list[PreferencePair]:
     """32.19: each correction as a preference pair: what the person made it (chosen) over what DCLab proposed (rejected);
     never a scripted person's (S8)."""
@@ -352,6 +403,8 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         groups[("m7_judges", "review_findings")].append(j)
     for c in judge_lessons(layout, choices):
         groups[("m7_judges", "exam_judgments")].append(c)
+    for c in human_labels():
+        groups[("m7_judges", "human_labels")].append(c)
     for x in retrievals(layout, choices):
         groups[("m8_retrieval", x.corpus)].append(x)
     abouts = {"m6_stepwise_decisions": "Processes decided step by step: each step's state, action and outcome, the episode's outcome from its record.",
@@ -364,4 +417,4 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
     return report
 
 
-__all__ = ["build", "episodes", "judge_lessons", "judged", "preferences", "retrievals", "review_findings"]
+__all__ = ["build", "episodes", "human_labels", "judge_lessons", "judged", "preferences", "retrievals", "review_findings"]

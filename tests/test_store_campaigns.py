@@ -51,5 +51,23 @@ class CampaignsKeeperTests(unittest.TestCase):
         self.assertIn("campaigns", standard.install({}))
 
 
+class HumanLabelsTests(unittest.TestCase):
+    def test_a_persons_marks_on_practice_papers_become_gold_judge_lessons_and_sealed_ones_never(self):
+        from dclab_rnd.store.sets import others
+
+        base = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, base, True)
+        for run in ("CEX-cal-1", "CEX-013_sealed_v1"):
+            (base / f"{run}_items").mkdir()
+            (base / f"{run}_items" / "r1.json").write_text(json.dumps({"ref": "r1", "person": {"truth": {"goal": "keep members"}, "must_understand": ["the goal"]},
+                                                                       "transcript": [{"role": "person", "text": "we lose members"}, {"role": "assistant", "text": "So you want to keep members?"}]}))
+            (base / f"{run}_owner_labels.json").write_text(json.dumps({"by": "the owner", "entries": [{"ref": "r1", "owner": {"understood": [True], "options_fit": None,
+                                                                                                                             "options_differ": None, "trap_handled": None}}]}))
+        out = others.human_labels(base)
+        self.assertEqual([e.check["run"] for e in out], ["CEX-cal-1"])
+        self.assertEqual((out[0].weight, out[0].stage, json.loads(out[0].messages[-1].content)["understood"]), (1.0, "human_labels", [True]))
+        self.assertTrue(out[0].messages[-1].no_reasoning)
+
+
 if __name__ == "__main__":
     unittest.main()
