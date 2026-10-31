@@ -52,7 +52,9 @@ def from_records(records: Iterable[Any]) -> list[ChatExample]:
     for r in records:
         b = r.body if isinstance(getattr(r, "body", None), dict) else {}
         source = str(getattr(r.provenance, "source", ""))
-        if source.endswith("conversation.json") and "conversation-exam" in source and (b.get("notes") or {}).get("case_file"):
+        # the store keeps an exam's file under a workspace named after its folder, its source only the file's name
+        where = f"{getattr(r.provenance, 'workspace', '') or ''}/{source}"
+        if source.endswith("conversation.json") and "conversation-exam" in where and (b.get("notes") or {}).get("case_file"):
             ex = example(r.id, b.get("transcript") or [], b["notes"]["case_file"], r.provenance, "simulated", f"exam:{b.get('id')}")
         elif (b.get("case_state") or {}).get("case"):
             ex = example(r.id, b["case_state"].get("turns") or [], b["case_state"]["case"], r.provenance, "real", f"draft:{b.get('id')}")

@@ -866,7 +866,8 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
 
     from . import cases  # 37.17: finished cases (the exam's kept conversations, drafts with a case) as case-file examples, with their source
 
-    found_cases = [r for kind in ("tests", "conversations") for r in shapers.records(layout, kind) if allowed(r, "m4_workflow_llm", choices)]
+    found_cases = [r for kind in ("tests", "conversations", "other") for r in shapers.records(layout, kind)  # an exam's conversation is kept as "other"
+                   if allowed(r, "m4_workflow_llm", choices)]
     for ex in cases.from_records(found_cases):
         add("m4_workflow_llm", cases.FOLDER, ex)
     for r in shapers.records(layout, "conversations"):

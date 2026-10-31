@@ -1,27 +1,103 @@
 {
  "package": "37.14-fix",
- "title": "Practice exams keep the lead agent's calls whole: invented tables hide no one",
+ "title": "Practice exams keep the lead agent's calls whole, and the case-file set finally reads the exams",
  "date": "2026-10-31",
  "request": "The owner: make sure every conversation, exam and sealed run is captured and stored, with all seven models' training data.",
  "spec": "Audit what the exams kept; close any capture gap without loosening the privacy rule for people's tables.",
- "plan": ["Count kept calls and thinking per purpose in the sealed vault and the workspace log", "Explain every call kept without words", "Fix the gap with a failing test first", "Review, then rebuild the store"],
- "decisions": [
-  {"decision": "A call that saw cells of a practice exam's tables is kept whole", "why": "the tables are seeded by code and never a real file, so keeping their cells exposes no one; 306 lead-agent calls on dev had lost their words"},
-  {"decision": "The mark is an attribute of the exam's own gateway, never an environment setting", "why": "the reviewer: a setting copied into .env would be read by the server and the worker and keep real people's cells whole"},
-  {"decision": "A sealed run is never marked", "why": "it is kept whole in the exam vault only, outside every training set, so it stays a fair test"}
+ "plan": [
+  "Count kept calls and thinking per purpose in the sealed vault and the workspace log",
+  "Explain every call kept without words",
+  "Fix the gap with a failing test first",
+  "Review, then rebuild the store"
  ],
- "change": "dclab_rnd/models/gateway.py (_keep_exchange reads gateway.invented_tables, marks the line 'tables'); dclab_rnd/agent_eval/conversation_exam/__init__.py (mark_invented_tables for non-sealed splits); tests/test_thinking_capture.py",
+ "decisions": [
+  {
+   "decision": "A call that saw cells of a practice exam's tables is kept whole",
+   "why": "the tables are seeded by code and never a real file, so keeping their cells exposes no one; 306 lead-agent calls on dev had lost their words"
+  },
+  {
+   "decision": "The mark is an attribute of the exam's own gateway, never an environment setting",
+   "why": "the reviewer: a setting copied into .env would be read by the server and the worker and keep real people's cells whole"
+  },
+  {
+   "decision": "A sealed run is never marked",
+   "why": "it is kept whole in the exam vault only, outside every training set, so it stays a fair test"
+  }
+ ],
+ "change": "dclab_rnd/models/gateway.py (_keep_exchange reads gateway.invented_tables, marks the line 'tables'); dclab_rnd/agent_eval/conversation_exam/__init__.py (mark_invented_tables for non-sealed splits); tests/test_thinking_capture.py; dclab_rnd/store/sets/cases.py (an exam found by its workspace) and store/sets/llm.py (reads the 'other' kind); tests/test_store_cases.py",
  "findings": [
-  {"id": "F1", "source": "measurement", "severity": "gap", "defect": "Practice-exam lead-agent calls kept no words", "scenario": "CEX-009 to CEX-012: 306 case_agent calls whole=false with only thinking_redacted", "cause": "the gateway treats any call shown cells as private, even cells of invented tables", "fix": "the exam's gateway marks its tables invented; such calls are kept whole and labelled", "test": "tests/test_thinking_capture.py CellsThinkingTest.test_cells_of_invented_tables_keep_the_exchange_whole"},
-  {"id": "F2", "source": "reviewer", "severity": "privacy", "defect": "The first fix used an environment variable that .env could set", "scenario": "DCLAB_INVENTED_TABLES=1 in .env, make notebook: a real person's case_agent call kept whole and may_leave true, pushed by the store", "cause": "a process-wide setting loosened a privacy rule, and the server loads .env", "fix": "an attribute of the one gateway the exam builds; the .env.example line removed", "test": "the same test: a fresh gateway with the variable set still keeps whole=false"},
-  {"id": "F3", "source": "measurement", "severity": "latent", "defect": "Thinking looked absent in every kept call", "scenario": "a count read the key 'thinking' inside each block", "cause": "blocks hold their summary under 'text'", "fix": "counted by 'text': the sealed vault keeps thinking text on 1,458 of 1,646 calls; the rest returned no thinking (adaptive)", "test": "none: a counting mistake, not a defect"}
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "Practice-exam lead-agent calls kept no words",
+   "scenario": "CEX-009 to CEX-012: 306 case_agent calls whole=false with only thinking_redacted",
+   "cause": "the gateway treats any call shown cells as private, even cells of invented tables",
+   "fix": "the exam's gateway marks its tables invented; such calls are kept whole and labelled",
+   "test": "tests/test_thinking_capture.py CellsThinkingTest.test_cells_of_invented_tables_keep_the_exchange_whole"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The first fix used an environment variable that .env could set",
+   "scenario": "DCLAB_INVENTED_TABLES=1 in .env, make notebook: a real person's case_agent call kept whole and may_leave true, pushed by the store",
+   "cause": "a process-wide setting loosened a privacy rule, and the server loads .env",
+   "fix": "an attribute of the one gateway the exam builds; the .env.example line removed",
+   "test": "the same test: a fresh gateway with the variable set still keeps whole=false"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "latent",
+   "defect": "Thinking looked absent in every kept call",
+   "scenario": "a count read the key 'thinking' inside each block",
+   "cause": "blocks hold their summary under 'text'",
+   "fix": "counted by 'text': the sealed vault keeps thinking text on 1,458 of 1,646 calls; the rest returned no thinking (adaptive)",
+   "test": "none: a counting mistake, not a defect"
+  },
+  {
+   "id": "F4",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The case-file set (37.17) built no example from any exam",
+   "scenario": "after the store run, m4_workflow_llm had no case_files folder although 75 practice cases were stored",
+   "cause": "the store keeps an exam's conversation as an 'other' record whose source is only 'conversation.json' and whose workspace names the exam folder; the builder read only tests and conversations and looked for the folder in the source; its test had used an invented path",
+   "fix": "read the 'other' kind and find the exam folder in the workspace and the source together",
+   "test": "tests/test_store_cases.py CaseSetTests.test_an_exam_case_as_the_store_really_keeps_it (the real stored shape, and a stray conversation.json refused)"
+  }
  ],
  "measurements": [
-  {"name": "capture audit", "gate": "every exam call kept; thinking summaries kept whole where returned; sealed only in the vault", "result": "sealed vault 1,646 calls whole; workspace shape-only lines are the sealed run's slim copies or calls shown cells", "verdict": "pass", "cost_eur": 0.0},
-  {"name": "affected tests", "gate": "every affected test passes", "result": "126 tests in 6 files pass", "verdict": "pass", "cost_eur": 0.0}
+  {
+   "name": "capture audit",
+   "gate": "every exam call kept; thinking summaries kept whole where returned; sealed only in the vault",
+   "result": "sealed vault 1,646 calls whole; workspace shape-only lines are the sealed run's slim copies or calls shown cells",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "affected tests",
+   "gate": "every affected test passes",
+   "result": "126 tests in 6 files pass",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "case-file set on the real store",
+   "gate": "the stored practice cases become examples",
+   "result": "82 case-file examples (44 train, 21 dev, 17 held out) from 357 stored conversation files",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  }
  ],
  "outcome": "Future practice exams keep every lead-agent call whole, labelled as invented tables; people's tables keep the old rule; the sealed vault is unchanged. Past calls are not rebuilt (the owner cancelled backfills).",
- "lessons": ["A switch that loosens a privacy rule must live on the object that knows the data, never in a setting a server can read", "Check the shape of a field before concluding data is lost"],
- "risks": ["Other runners on invented tables (journeys, home eval, twin) still lose words on calls shown cells until they mark their gateway too"],
+ "lessons": [
+  "A switch that loosens a privacy rule must live on the object that knows the data, never in a setting a server can read",
+  "Check the shape of a field before concluding data is lost",
+  "Test a set builder on the shape the store really writes, not on a path written by hand"
+ ],
+ "risks": [
+  "Other runners on invented tables (journeys, home eval, twin) still lose words on calls shown cells until they mark their gateway too"
+ ],
  "commits": []
 }

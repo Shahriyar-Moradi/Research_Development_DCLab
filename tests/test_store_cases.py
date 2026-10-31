@@ -35,6 +35,19 @@ class CaseSetTests(unittest.TestCase):
         self.assertTrue(out[0].messages[-1].no_reasoning)  # a record built by code: no reasoning claimed
         self.assertEqual(out[0].provenance.source, exam.provenance.source)
 
+    def test_an_exam_case_as_the_store_really_keeps_it(self):
+        """2026-10-31: the store keeps an exam's conversation as an 'other' record whose source is only 'conversation.json'
+        and whose workspace names the exam folder; the set found none of the 75 practice cases."""
+        body = {"id": "d-40", "arm": "case", "transcript": [{"role": "person", "text": "we lose members"}, {"role": "assistant", "text": "Who acts?"}],
+                "notes": {"case_file": CASE}}
+        real = SimpleNamespace(id="other:live_tests__2026-10-30-conversation-exam__cex-012__case__d-40:d8:v1#0", kind="other",
+                               provenance=Provenance(source="conversation.json", **{**PROV, "workspace": "live_tests__2026-10-30-conversation-exam__cex-012__case__d-40"}),
+                               body=body)
+        out = cases.from_records([real])
+        self.assertEqual([(e.check["origin"], e.weight) for e in out], [("simulated", 0.5)])
+        stray = SimpleNamespace(id="x", kind="other", provenance=Provenance(source="conversation.json", **{**PROV, "workspace": "some_project"}), body=body)
+        self.assertEqual(cases.from_records([stray]), [])  # a conversation.json from elsewhere is not an exam's
+
 
 if __name__ == "__main__":
     unittest.main()
