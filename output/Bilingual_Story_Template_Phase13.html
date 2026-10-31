@@ -1,0 +1,356 @@
+<title>Phase 13 Story</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700&family=Vazirmatn:wght@400;600;700&display=swap">
+<style>
+/* Layout: one chapter per row; English on the left, Persian on the right (right to left); stacked on phones. */
+:root{
+  --bg:#f3f6fb; --card:#ffffff; --ink:#18263a; --muted:#56657a; --rule:#d9e1ec;
+  --accent:#2457a6; --accent-soft:#e3ecfa; --sun:#f2b630; --sun-soft:#fdf3d8; --good:#1f7a4d; --bad:#b4442c;
+  --en:"Lexend","Segoe UI",system-ui,sans-serif; --fa:"Vazirmatn","Tahoma",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1622; --card:#172131; --ink:#e7edf6; --muted:#a3b0c2; --rule:#2a3648;
+  --accent:#8fb4f2; --accent-soft:#1d2d47; --sun:#f2c45a; --sun-soft:#3a3016; --good:#6fd39d; --bad:#f08f78; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1622; --card:#172131; --ink:#e7edf6; --muted:#a3b0c2; --rule:#2a3648;
+  --accent:#8fb4f2; --accent-soft:#1d2d47; --sun:#f2c45a; --sun-soft:#3a3016; --good:#6fd39d; --bad:#f08f78; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:17px/1.65 var(--en);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:32px 72px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:22px}
+h1,h2{margin:0;line-height:1.2;text-wrap:balance;font-weight:700}
+h1{font-size:clamp(1.7rem,4vw,2.5rem)}
+h2{font-size:1.25rem}
+p,ul,ol{margin:0}
+.en{display:grid;gap:12px;align-content:start;min-width:0}
+.fa{display:grid;gap:12px;align-content:start;min-width:0;font-family:var(--fa);font-size:20px;line-height:2.1;direction:rtl;text-align:right}
+.fa h1,.fa h2{font-family:var(--fa);line-height:1.6}
+.fa h2{font-size:1.3rem}
+bdi{direction:ltr;unicode-bidi:isolate;font-family:var(--en);font-size:.88em}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:22px 24px}
+.row.hero{background:transparent;border:0;padding:4px 0 8px}
+@media (max-width:860px){.row{grid-template-columns:minmax(0,1fr);gap:18px}.row .fa{border-top:1px dashed var(--rule);padding-top:16px}}
+.step{font:500 .74rem var(--en);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.fa .step{font-family:var(--fa);font-size:.9rem;letter-spacing:0;text-transform:none}
+.muted{color:var(--muted)}
+.example{background:var(--sun-soft);border-radius:10px;padding:10px 14px}
+ul,ol{padding-inline-start:1.3em;display:grid;gap:6px}
+.scores{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:8.5em minmax(0,1fr) 3em;gap:10px;align-items:center;font-variant-numeric:tabular-nums}
+.fa .bar{grid-template-columns:7.5em minmax(0,1fr) 3em}
+.track{height:14px;background:var(--accent-soft);border-radius:7px;overflow:hidden}
+.fill{height:100%;background:var(--accent);border-radius:7px}
+.fill.alt{background:var(--sun)}
+.num{font:600 .95rem var(--en);text-align:end}
+.verdict{display:inline-block;font-weight:700;padding:2px 10px;border-radius:999px}
+.verdict.good{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.verdict.bad{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--rule);text-align:start}
+.tablebox{overflow-x:auto}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.key{display:inline-block;width:12px;height:12px;border-radius:3px;margin-inline-end:6px;vertical-align:-1px}
+/* Print (PDF): landscape pages, English and Persian kept side by side */
+@page{size:A4 landscape;margin:11mm 12mm}
+@media print{
+  :root{--bg:#ffffff;--card:#ffffff;color-scheme:light}
+  body{font-size:12.5px;line-height:1.55;padding:0;background:#fff}
+  .wrap{max-width:none;gap:10px}
+  .row,.row.hero{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:22px;padding:12px 16px;break-inside:auto}
+  .row .fa{border-top:0!important;padding-top:0!important}
+  .fa{font-size:15px;line-height:1.95}
+  h1{font-size:1.7rem} h2{font-size:1.05rem} .fa h2{font-size:1.1rem}
+  .example,.tablebox,.scores,li{break-inside:avoid}
+}
+</style>
+
+<div class="wrap">
+
+  <section class="row hero">
+    <div class="en">
+      <p class="step">Phase 13, explained simply</p>
+      <h1>What we built, why, and what the exam told us</h1>
+      <p class="muted">Each part below has the English on the left and the same text in Persian on the right.</p>
+    </div>
+    <div class="fa" lang="fa">
+      <p class="step">فاز ۱۳، به زبان ساده</p>
+      <h1>چه ساختیم، چرا ساختیم، و آزمون به ما چه گفت</h1>
+      <p class="muted">هر بخش در سمت چپ انگلیسی است و در سمت راست همان متن به فارسی.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="en">
+      <p class="step">1 · The goal</p>
+      <h2>DCLab must understand people first</h2>
+      <p>DCLab helps people who have data. Someone comes and says: "Help me with my customers."</p>
+      <p>Before DCLab can help, it must understand what that person really needs.</p>
+      <p class="example">Think of a good doctor. A good doctor asks questions first. Only then does the doctor give medicine.</p>
+    </div>
+    <div class="fa" lang="fa">
+      <p class="step">۱ · هدف</p>
+      <h2>DCLab اول باید آدم‌ها را بفهمد</h2>
+      <p>DCLab به آدم‌هایی کمک می‌کند که داده دارند. یک نفر می‌آید و می‌گوید: «در مورد مشتری‌هایم کمکم کن.»</p>
+      <p>DCLab قبل از کمک کردن، باید بفهمد آن آدم واقعاً چه می‌خواهد.</p>
+      <p class="example">یک دکتر خوب را تصور کنید. دکتر خوب اول سؤال می‌پرسد. بعد دارو می‌دهد.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="en">
+      <p class="step">2 · The problem</p>
+      <h2>The old Home did not listen</h2>
+      <p>You tested Home with your Telco customer table. It went badly:</p>
+      <ul>
+        <li>It showed six buttons right away, before any talk.</li>
+        <li>It asked strange things, like using "SeniorCitizen" as a success measure.</li>
+        <li>It asked for dates your table did not have.</li>
+        <li>Once, it said nothing at all.</li>
+      </ul>
+      <p class="example">Like a shop assistant who hands you a form before saying hello.</p>
+    </div>
+    <div class="fa" lang="fa">
+      <p class="step">۲ · مشکل</p>
+      <h2>Home قدیمی گوش نمی‌داد</h2>
+      <p>شما Home را با جدول مشتری‌های <bdi>Telco</bdi> امتحان کردید. خوب پیش نرفت:</p>
+      <ul>
+        <li>همان اول، قبل از هر صحبتی، شش دکمه نشان داد.</li>
+        <li>سؤال‌های عجیب پرسید؛ مثلاً <bdi>SeniorCitizen</bdi> را معیار موفقیت پیشنهاد داد.</li>
+        <li>تاریخ‌هایی خواست که جدول شما اصلاً نداشت.</li>
+        <li>یک بار هم هیچ جوابی نداد.</li>
+      </ul>
+      <p class="example">مثل فروشنده‌ای که قبل از سلام کردن، یک فرم دستتان می‌دهد.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="en">
+      <p class="step">3 · What we built</p>
+      <h2>A new helper that listens first: the lead agent</h2>
+      <ul>
+        <li>It says back what it heard, in your words.</li>
+        <li>It asks one question at a time.</li>
+        <li>It looks at your table by itself.</li>
+        <li>Only then does it offer two or three choices made for you.</li>
+      </ul>
+      <p><b>Its notebook is called the case file.</b> It writes down every fact and where the fact came from:</p>
+      <ul>
+        <li>"you said it",</li>
+        <li>"the computer calculated it", or</li>
+        <li>"I guessed it".</li>
+      </ul>
+      <p class="example">Example: "Goal: keep customers. Source: you said it." Because every fact has a source, the helper cannot quietly invent things.</p>
+    </div>
+    <div class="fa" lang="fa">
+      <p class="step">۳ · چه ساختیم</p>
+      <h2>یک دستیار تازه که اول گوش می‌دهد: «دستیار اصلی»</h2>
+      <ul>
+        <li>آنچه شنیده را با کلمات خود شما تکرار می‌کند.</li>
+        <li>هر بار فقط یک سؤال می‌پرسد.</li>
+        <li>خودش جدول شما را نگاه می‌کند.</li>
+        <li>فقط بعد از این‌ها، دو یا سه گزینه پیشنهاد می‌دهد که مخصوص شماست.</li>
+      </ul>
+      <p><b>دفترچه‌اش «پرونده» نام دارد.</b> هر واقعیت را می‌نویسد و کنارش می‌نویسد از کجا آمده:</p>
+      <ul>
+        <li>«خودتان گفتید»،</li>
+        <li>«کامپیوتر حساب کرد»، یا</li>
+        <li>«حدس زدم».</li>
+      </ul>
+      <p class="example">مثال: «هدف: نگه داشتن مشتری‌ها. منبع: خودتان گفتید.» چون هر واقعیت منبع دارد، دستیار نمی‌تواند پنهانی چیزی از خودش بسازد.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="en">
+      <p class="step">4 · How do we know it is better?</p>
+      <h2>We gave it an exam</h2>
+      <p>We wrote <b>40 pretend people</b>. Each has a secret story: their real goal, their data, what they will decide. They are like actors with a script.</p>
+      <p><b>Three students</b> talk with every pretend person:</p>
+      <ol>
+        <li>the old Home,</li>
+        <li>Claude alone, with no DCLab tools around it,</li>
+        <li>the new lead agent.</li>
+      </ol>
+      <p>A small Claude (Haiku) plays the pretend person. A big Claude (Opus) is the <b>teacher</b> who marks the answers.</p>
+      <p class="example">The teacher does not know which student wrote which answer. It is like an exam where the papers have no names, so the marking is fair.</p>
+    </div>
+    <div class="fa" lang="fa">
+      <p class="step">۴ · از کجا بفهمیم بهتر است؟</p>
+      <h2>از آن امتحان گرفتیم</h2>
+      <p><b>۴۰ آدم خیالی</b> نوشتیم. هر کدام یک داستان مخفی دارد: هدف واقعی‌اش، داده‌اش، و تصمیمی که می‌خواهد بگیرد. مثل بازیگرهایی که فیلم‌نامه دارند.</p>
+      <p><b>سه دانش‌آموز</b> با هر آدم خیالی صحبت می‌کنند:</p>
+      <ol>
+        <li>Home قدیمی،</li>
+        <li>Claude تنها، بدون ابزارهای DCLab،</li>
+        <li>دستیار اصلی تازه.</li>
+      </ol>
+      <p>یک Claude کوچک (<bdi>Haiku</bdi>) نقش آدم خیالی را بازی می‌کند. یک Claude بزرگ (<bdi>Opus</bdi>) <b>معلم</b> است و نمره می‌دهد.</p>
+      <p class="example">معلم نمی‌داند کدام جواب مال کدام دانش‌آموز است. مثل امتحانی که روی برگه‌ها اسم نیست، پس نمره‌دادن منصفانه است.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="en">
+      <p class="step">5 · Two kinds of exam</p>
+      <h2>Practice exams and the sealed exam</h2>
+      <p><b>Practice exam:</b> we can take it again and again. We look at the mistakes and fix them. Like practice tests at home.</p>
+      <p><b>Sealed exam:</b> a final exam in a locked envelope. Someone else wrote it. We open it only once.</p>
+      <p class="example">Why only once? If we peeked or took it twice, we could learn its answers, and the score would lie. That is why I never read the sealed conversations myself, not even to translate them. A separate helper translated them.</p>
+    </div>
+    <div class="fa" lang="fa">
+      <p class="step">۵ · دو نوع امتحان</p>
+      <h2>امتحان تمرینی و امتحان مُهروموم‌شده</h2>
+      <p><b>امتحان تمرینی:</b> می‌توانیم بارها و بارها بدهیم. اشتباه‌ها را می‌بینیم و درستشان می‌کنیم. مثل امتحان‌های تمرینی در خانه.</p>
+      <p><b>امتحان مُهروموم‌شده:</b> امتحان پایانی در یک پاکت قفل‌شده. کس دیگری آن را نوشته. فقط یک بار بازش می‌کنیم.</p>
+      <p class="example">چرا فقط یک بار؟ اگر یواشکی نگاه کنیم یا دو بار امتحان بدهیم، جواب‌ها را یاد می‌گیریم و نمره دروغ می‌گوید. برای همین من خودم هیچ‌وقت گفتگوهای مُهروموم‌شده را نخواندم، حتی برای ترجمه. یک دستیار جداگانه آن‌ها را ترجمه کرد.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="en">
+      <p class="step">6 · What the teacher said</p>
+      <h2>The lead agent got the best marks</h2>
+      <p>The teacher's mark for understanding, from 0 to 1, on the 40 sealed people:</p>
+      <div class="scores" role="img" aria-label="Understanding: old Home 0.43, Claude alone 0.62, lead agent 0.85">
+        <div class="bar"><span>Old Home</span><span class="track"><span class="fill" style="display:block;width:43%"></span></span><span class="num">0.43</span></div>
+        <div class="bar"><span>Claude alone</span><span class="track"><span class="fill" style="display:block;width:62%"></span></span><span class="num">0.62</span></div>
+        <div class="bar"><span>Lead agent</span><span class="track"><span class="fill" style="display:block;width:85%"></span></span><span class="num">0.85</span></div>
+      </div>
+      <p>Also, the lead agent never made up a number, and it caught all 8 kinds of trap. Computer code checked those two things, not the teacher, so we can trust them.</p>
+    </div>
+    <div class="fa" lang="fa">
+      <p class="step">۶ · معلم چه گفت</p>
+      <h2>دستیار اصلی بهترین نمره را گرفت</h2>
+      <p>نمره‌ی معلم برای «فهمیدن»، از ۰ تا ۱، روی ۴۰ آدم امتحان مُهروموم‌شده:</p>
+      <div class="scores" role="img" aria-label="فهمیدن: Home قدیمی ۰٫۴۳، Claude تنها ۰٫۶۲، دستیار اصلی ۰٫۸۵">
+        <div class="bar"><span>Home قدیمی</span><span class="track"><span class="fill" style="display:block;width:43%;margin-inline-start:auto"></span></span><span class="num">0.43</span></div>
+        <div class="bar"><span>Claude تنها</span><span class="track"><span class="fill" style="display:block;width:62%;margin-inline-start:auto"></span></span><span class="num">0.62</span></div>
+        <div class="bar"><span>دستیار اصلی</span><span class="track"><span class="fill" style="display:block;width:85%;margin-inline-start:auto"></span></span><span class="num">0.85</span></div>
+      </div>
+      <p>همچنین دستیار اصلی هیچ‌وقت عددی از خودش نساخت و هر ۸ نوع تله را تشخیص داد. این دو را کد کامپیوتر بررسی کرد، نه معلم؛ پس می‌شود به آن‌ها اعتماد کرد.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="en">
+      <p class="step">7 · Who checks the teacher?</p>
+      <h2>You did, and the teacher did not pass</h2>
+      <p>A teacher can mark wrongly. So you marked 10 papers yourself, without knowing which student wrote them. Then we compared your marks with the teacher's.</p>
+      <p>The rule, written <b>before</b> the exam: the teacher must agree with you at least 70% of the time.</p>
+      <p>The teacher agreed with you <b>66%</b> of the time. Close, but below 70%. <span class="verdict bad">Result: fail</span></p>
+      <p>Where you disagreed: on "did it understand each point?". The teacher was much stricter with the old Home and with Claude alone than you were.</p>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>In your 10 papers</th><th>Your mark</th><th>Teacher's mark</th></tr></thead>
+          <tbody>
+            <tr><td>Old Home (3)</td><td>0.75</td><td>0.17</td></tr>
+            <tr><td>Claude alone (3)</td><td>0.92</td><td>0.67</td></tr>
+            <tr><td>Lead agent (4)</td><td>0.80</td><td>0.87</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="example">So the ruler we measured with is bent. "Fail" here does not mean "the lead agent is bad". It means "we cannot prove yet that it is better". With only 10 papers, and with you not fully sure, this is a warning light, not a final judgement.</p>
+    </div>
+    <div class="fa" lang="fa">
+      <p class="step">۷ · چه کسی معلم را بررسی می‌کند؟</p>
+      <h2>شما بررسی کردید، و معلم قبول نشد</h2>
+      <p>معلم هم ممکن است اشتباه نمره بدهد. برای همین شما خودتان ۱۰ برگه را نمره دادید، بدون این‌که بدانید مال کدام دانش‌آموز است. بعد نمره‌های شما را با نمره‌های معلم مقایسه کردیم.</p>
+      <p>قانونی که <b>قبل</b> از امتحان نوشتیم: معلم باید دست‌کم ۷۰٪ مواقع با شما هم‌نظر باشد.</p>
+      <p>معلم <b>۶۶٪</b> مواقع با شما هم‌نظر بود. نزدیک، ولی کمتر از ۷۰٪. <span class="verdict bad">نتیجه: رد</span></p>
+      <p>جایی که اختلاف داشتید: سؤال «آیا هر نکته را فهمید؟». معلم با Home قدیمی و Claude تنها خیلی سخت‌گیرتر از شما بود.</p>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>در ۱۰ برگه‌ی شما</th><th>نمره‌ی شما</th><th>نمره‌ی معلم</th></tr></thead>
+          <tbody>
+            <tr><td>Home قدیمی (۳)</td><td><bdi>0.75</bdi></td><td><bdi>0.17</bdi></td></tr>
+            <tr><td>Claude تنها (۳)</td><td><bdi>0.92</bdi></td><td><bdi>0.67</bdi></td></tr>
+            <tr><td>دستیار اصلی (۴)</td><td><bdi>0.80</bdi></td><td><bdi>0.87</bdi></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="example">پس خط‌کشی که با آن اندازه گرفتیم کج است. «رد» این‌جا یعنی «دستیار اصلی بد است» نیست؛ یعنی «هنوز نمی‌توانیم ثابت کنیم بهتر است». با فقط ۱۰ برگه، و این‌که شما کاملاً مطمئن نبودید، این یک چراغ هشدار است، نه حکم نهایی.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="en">
+      <p class="step">8 · Why we store everything</p>
+      <h2>So DCLab can teach its own models</h2>
+      <p>Later, DCLab wants its own smaller models, so it does not always need to pay for Claude. A model learns from examples.</p>
+      <p>Every conversation, every decision and every teacher's mark is an example.</p>
+      <p class="example">Like keeping all the homework and the teacher's red-pen notes, so a new student can study them.</p>
+      <p><b>Thinking summaries.</b> When Claude answers, the system also gives a short summary of how it thought. We keep that too, like the "show your work" part of a math answer. We never ask Claude to write its thinking inside the answer; we read the summary the system gives.</p>
+      <p><b>The seven models</b>, each a student for one job:</p>
+      <ol>
+        <li>little helpers for small choices,</li>
+        <li>workflow choices: which step comes next,</li>
+        <li>machine-learning choices: which method, how to split the data,</li>
+        <li>the talker and planner, who understands people,</li>
+        <li>the solver, who solves a whole problem by itself,</li>
+        <li>the step-by-step decider,</li>
+        <li>the judge, and the router who sends each request to the right place.</li>
+      </ol>
+      <p class="example">Sealed exam papers go into a locked drawer (we call it the vault). They are kept, but never used for teaching. Otherwise the next final exam would be spoiled.</p>
+    </div>
+    <div class="fa" lang="fa">
+      <p class="step">۸ · چرا همه‌چیز را نگه می‌داریم</p>
+      <h2>تا DCLab بتواند مدل‌های خودش را آموزش دهد</h2>
+      <p>DCLab بعداً مدل‌های کوچک‌تر خودش را می‌خواهد، تا همیشه مجبور نباشد برای Claude پول بدهد. یک مدل از روی مثال‌ها یاد می‌گیرد.</p>
+      <p>هر گفتگو، هر تصمیم و هر نمره‌ی معلم یک مثال است.</p>
+      <p class="example">مثل نگه داشتن همه‌ی تکلیف‌ها و یادداشت‌های قرمز معلم، تا یک دانش‌آموز تازه بتواند از رویشان درس بخواند.</p>
+      <p><b>خلاصه‌ی فکر.</b> وقتی Claude جواب می‌دهد، سیستم یک خلاصه‌ی کوتاه هم می‌دهد از این‌که چطور فکر کرده. آن را هم نگه می‌داریم؛ مثل بخش «راه‌حل را بنویس» در جواب ریاضی. هیچ‌وقت از Claude نمی‌خواهیم فکرش را داخل جواب بنویسد؛ همان خلاصه‌ای را می‌خوانیم که سیستم می‌دهد.</p>
+      <p><b>هفت مدل</b>، هر کدام دانش‌آموز یک کار:</p>
+      <ol>
+        <li>کمک‌کارهای کوچک برای انتخاب‌های کوچک،</li>
+        <li>انتخاب‌های روند کار: قدم بعدی چیست،</li>
+        <li>انتخاب‌های یادگیری ماشین: کدام روش، داده را چطور تقسیم کنیم،</li>
+        <li>گفتگوکننده و برنامه‌ریز، که آدم‌ها را می‌فهمد،</li>
+        <li>حل‌کننده، که یک مسئله‌ی کامل را خودش حل می‌کند،</li>
+        <li>تصمیم‌گیر قدم‌به‌قدم،</li>
+        <li>داور، و مسیریاب که هر درخواست را به جای درستش می‌فرستد.</li>
+      </ol>
+      <p class="example">برگه‌های امتحان مُهروموم‌شده در یک کشوی قفل‌دار می‌روند (اسمش را «گاوصندوق» گذاشته‌ایم). نگه داشته می‌شوند، ولی هیچ‌وقت برای آموزش استفاده نمی‌شوند؛ وگرنه امتحان پایانی بعدی خراب می‌شود.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="en">
+      <p class="step">9 · Two holes found today</p>
+      <h2>Two leaks in the storing, both fixed</h2>
+      <p><b>Hole 1.</b> In practice exams, the lead agent's words were thrown away whenever it looked at numbers from a table. A privacy rule thought those numbers were private. But our own code had invented those tables. Now these words are kept. Real customers' tables still follow the strict rule. A reviewer found a risk in my first fix, and I fixed that too.</p>
+      <p><b>Hole 2.</b> The case-file notebooks were not reaching the talker's training set. It had 0 examples, because the code looked in the wrong place. Now it has 82.</p>
+    </div>
+    <div class="fa" lang="fa">
+      <p class="step">۹ · دو سوراخی که امروز پیدا شد</p>
+      <h2>دو نشتی در ذخیره‌سازی، هر دو تعمیر شد</h2>
+      <p><b>سوراخ ۱.</b> در امتحان‌های تمرینی، هر بار که دستیار اصلی به عددهای یک جدول نگاه می‌کرد، حرف‌هایش دور ریخته می‌شد. یک قانون حریم خصوصی فکر می‌کرد آن عددها خصوصی‌اند. اما آن جدول‌ها را کد خودمان ساخته بود. حالا این حرف‌ها نگه داشته می‌شوند. جدول مشتری‌های واقعی هنوز همان قانون سخت را دارند. یک بازبین در اولین تعمیر من یک خطر پیدا کرد و آن را هم درست کردم.</p>
+      <p><b>سوراخ ۲.</b> دفترچه‌های «پرونده» به مجموعه‌ی آموزشی گفتگوکننده نمی‌رسیدند. صفر مثال داشت، چون کد در جای اشتباه دنبالشان می‌گشت. حالا ۸۲ مثال دارد.</p>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="en">
+      <p class="step">10 · What comes next</p>
+      <h2>Fix the teacher, then a new sealed exam</h2>
+      <ol>
+        <li>Send the stored records to your private records repository. This is paused until you say go.</li>
+        <li>Fix the teacher: you mark about 20 practice papers, and I adjust the teacher until it agrees with you, on practice papers only.</li>
+        <li>A new sealed envelope, written by someone else, opened once.</li>
+        <li>Only if that passes: the lead agent becomes the real Home.</li>
+      </ol>
+    </div>
+    <div class="fa" lang="fa">
+      <p class="step">۱۰ · قدم‌های بعدی</p>
+      <h2>اول معلم را درست کنیم، بعد یک امتحان مُهروموم‌شده‌ی تازه</h2>
+      <ol>
+        <li>فرستادن داده‌های ذخیره‌شده به مخزن خصوصی شما. تا شما نگویید، متوقف است.</li>
+        <li>درست کردن معلم: شما حدود ۲۰ برگه‌ی تمرینی را نمره می‌دهید و من معلم را تنظیم می‌کنم تا با شما هم‌نظر شود؛ فقط روی برگه‌های تمرینی.</li>
+        <li>یک پاکت مُهروموم‌شده‌ی تازه، نوشته‌ی کس دیگر، که فقط یک بار باز می‌شود.</li>
+        <li>فقط اگر آن قبول شد: دستیار اصلی، Home واقعی می‌شود.</li>
+      </ol>
+    </div>
+  </section>
+
+</div>
