@@ -475,6 +475,28 @@ class RunTests(unittest.TestCase):
         from dclab_rnd.store.keepers import standard
         self.assertTrue(standard.in_vault("exam_vault/CEX-T/model_exchanges/2026/10/31.jsonl"))  # counted only, never kept as content
 
+    def test_a_workspace_inside_the_vault_is_counted_never_kept(self):
+        """2026-10-31: the sealed run kept each person's conversation folder in the vault; each holds drafts/, so the store
+        took it for a workspace of its own, read its files relative to it, and kept the sealed conversations whole (683
+        files, reaching m1 and m6 sets) before a push was stopped."""
+        from dclab_rnd.store.keepers import standard
+
+        base = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, base, True)
+        (base / ".dclab_workspace").write_text("dev")
+        person = base / "exam_vault" / "CEX-T_sealed_v1" / "conversations" / "home" / "s-01"
+        (person / "drafts" / "d1").mkdir(parents=True)
+        (person / "drafts" / "d1" / "draft.json").write_text("{}")
+        (person / "conversation.json").write_text("{}")
+        (person / "agent_steps.jsonl").write_text("{}\n")
+        (base / "drafts" / "d2").mkdir(parents=True)
+        (base / "drafts" / "d2" / "draft.json").write_text("{}")
+        items = standard.inventory({"agent_runs": str(base), "selfplay": None})
+        sealed = [i for i in items if "exam_vault" in i.path.as_posix()]
+        self.assertTrue(sealed)
+        self.assertTrue(all(i.counted and "vault" in i.counted for i in sealed), [(i.rel, i.counted) for i in sealed])
+        self.assertTrue(any(i.rel == "drafts/d2/draft.json" and not i.counted for i in items))  # the workspace's own drafts are kept
+
     def test_the_cap_stops_the_run_and_marks_it_incomplete(self):  # round 2: no fake failures after the cap
         keep = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, keep, True)

@@ -1,6 +1,6 @@
 {
  "package": "37.14-fix",
- "title": "Practice exams keep the lead agent's calls whole, and the case-file set finally reads the exams",
+ "title": "Practice exams kept whole, the case-file set reads the exams, and the sealed run kept out of the store",
  "date": "2026-10-31",
  "request": "The owner: make sure every conversation, exam and sealed run is captured and stored, with all seven models' training data.",
  "spec": "Audit what the exams kept; close any capture gap without loosening the privacy rule for people's tables.",
@@ -24,7 +24,7 @@
    "why": "it is kept whole in the exam vault only, outside every training set, so it stays a fair test"
   }
  ],
- "change": "dclab_rnd/models/gateway.py (_keep_exchange reads gateway.invented_tables, marks the line 'tables'); dclab_rnd/agent_eval/conversation_exam/__init__.py (mark_invented_tables for non-sealed splits); tests/test_thinking_capture.py; dclab_rnd/store/sets/cases.py (an exam found by its workspace) and store/sets/llm.py (reads the 'other' kind); tests/test_store_cases.py",
+ "change": "dclab_rnd/models/gateway.py (_keep_exchange reads gateway.invented_tables, marks the line 'tables'); dclab_rnd/agent_eval/conversation_exam/__init__.py (mark_invented_tables for non-sealed splits); tests/test_thinking_capture.py; dclab_rnd/store/sets/cases.py (an exam found by its workspace) and store/sets/llm.py (reads the 'other' kind); tests/test_store_cases.py; dclab_rnd/store/keepers/standard.py (the vault judged on the path from the top folder); tests/test_conversation_exam.py",
  "findings": [
   {
    "id": "F1",
@@ -65,6 +65,16 @@
    "cause": "the store keeps an exam's conversation as an 'other' record whose source is only 'conversation.json' and whose workspace names the exam folder; the builder read only tests and conversations and looked for the folder in the source; its test had used an invented path",
    "fix": "read the 'other' kind and find the exam folder in the workspace and the source together",
    "test": "tests/test_store_cases.py CaseSetTests.test_an_exam_case_as_the_store_really_keeps_it (the real stored shape, and a stray conversation.json refused)"
+  },
+  {
+   "id": "F5",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "The store kept the sealed run's conversations whole and placed them in training sets",
+   "scenario": "before pushing the store, 683 staged paths named exam_vault: raw and records for 523 per-person folders, and rows in m1, m2, m3, m4, m6, m7 routing and m8 sets",
+   "cause": "each sealed person's folder in the vault holds drafts/, so discovery made it a workspace of its own; the vault check read the path relative to that workspace, where it no longer starts with exam_vault",
+   "fix": "the vault is judged on the path from the top folder; the store's copies (1,046 folders, 6,239 lines, 683 entries) moved into the vault's removed_from_store folder, nothing deleted; sets rebuilt; the store commit undone before any push",
+   "test": "tests/test_conversation_exam.py RunTests.test_a_workspace_inside_the_vault_is_counted_never_kept (a workspace nested in the vault is counted, never kept; the workspace's own drafts are kept)"
   }
  ],
  "measurements": [
@@ -94,7 +104,8 @@
  "lessons": [
   "A switch that loosens a privacy rule must live on the object that knows the data, never in a setting a server can read",
   "Check the shape of a field before concluding data is lost",
-  "Test a set builder on the shape the store really writes, not on a path written by hand"
+  "Test a set builder on the shape the store really writes, not on a path written by hand",
+  "Search what is about to be pushed for the sealed marks before every push; a guard tested on one path shape can miss a nested one"
  ],
  "risks": [
   "Other runners on invented tables (journeys, home eval, twin) still lose words on calls shown cells until they mark their gateway too"

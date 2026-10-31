@@ -183,7 +183,10 @@ def inventory(env: Any) -> list[Item]:
                 rel = "ledger/" + rel  # a self-play solve's ledger, filed as any workspace's
             kind, prefix = classify(rel)
             table = TABLE_DIRS.search(rel) or (TABLE_FILES.search(rel) and not NOT_TABLES.search(rel))
-            counted = ("a sealed exam's vault: kept whole there for evaluation, never as the store's content" if in_vault(rel) else
+            # the vault is judged on the path from the top folder: a sealed run's per-person folders look like workspaces of
+            # their own (they hold drafts/), and inside one the path no longer starts with exam_vault (2026-10-31)
+            sealed = in_vault(rel) or "exam_vault" in resolved.relative_to(base.resolve()).parts
+            counted = ("a sealed exam's vault: kept whole there for evaluation, never as the store's content" if sealed else
                        "a table's rows: kept only where a person said yes" if table else
                        "a secret's file name" if _secret(rel) else
                        "this workspace's consent does not allow keeping its content" if ws.consent == "operate" else None)
