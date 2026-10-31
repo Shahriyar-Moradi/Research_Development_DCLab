@@ -1,0 +1,30 @@
+{
+ "id": "CEX-013",
+ "split": "sealed_v1",
+ "what": "a second labeller on the same ten blind conversations: another Opus agent run by the owner (2026-10-31), its answers rebuilt from the owner's pasted comparison (16 points differ from the owner, 23 agree; options and traps alike)",
+ "agreement": {
+  "judge_owner": 0.6556,
+  "judge_second": 0.8875,
+  "owner_second": 0.6931,
+  "judge_owner_if_two_misclicks_fixed": 0.6792
+ },
+ "understood_by_arm_in_the_ten": {
+  "case": {
+   "owner": 0.8,
+   "second": 0.87,
+   "judge": 0.87
+  },
+  "home": {
+   "owner": 0.75,
+   "second": 0.08,
+   "judge": 0.17
+  },
+  "plain": {
+   "owner": 0.92,
+   "second": 0.67,
+   "judge": 0.67
+  }
+ },
+ "reading": "The two Opus readers agree with each other (0.89) far more than either agrees with the owner (0.66 and 0.69): the judge is consistent, and the gap is a different standard for 'understood' (the owner credits the gist; both models want it shown). The gate's reference is the owner, fixed before the run, so the verdict stays fail; two models of one family can share a bias, so their agreement does not make them right.",
+ "verdict_unchanged": "fail (judge_owner_agreement 0.66 < 0.70; 0.68 even with the owner's two possible misclicks fixed)"
+}
