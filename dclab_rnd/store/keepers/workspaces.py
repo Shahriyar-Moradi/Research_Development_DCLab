@@ -42,7 +42,8 @@ def scripted_names(base: Optional[Path] = None) -> frozenset[str]:
     return frozenset(w.name for w in discover(base) if scripted(w.root, base))
 MARKS = ("experience", "ledger", "projects", "drafts", "audit.jsonl", "agent_steps.jsonl", "model_requests.jsonl", "jobs.json",
          "jobs_history.jsonl", "intern", "orchestra", "students", ".dclab_workspace", "consent.json")
-SKIP = {"node_modules", ".git", "__pycache__", "studio_assets", "embeddings", "clean_exports", "catalog", "data"}
+SKIP = {"node_modules", ".git", "__pycache__", "studio_assets", "embeddings", "clean_exports", "catalog", "data",
+        "exam_vault"}  # a sealed exam's vault holds no workspace of its own: every keeper only counts it (2026-10-31)
 
 
 @dataclass(frozen=True)

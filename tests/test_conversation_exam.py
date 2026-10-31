@@ -496,6 +496,12 @@ class RunTests(unittest.TestCase):
         self.assertTrue(sealed)
         self.assertTrue(all(i.counted and "vault" in i.counted for i in sealed), [(i.rel, i.counted) for i in sealed])
         self.assertTrue(any(i.rel == "drafts/d2/draft.json" and not i.counted for i in items))  # the workspace's own drafts are kept
+        from dclab_rnd.store.keepers import workspaces
+        from dclab_rnd.store import workflows
+
+        self.assertFalse([w for w in workspaces.discover(base) if "exam_vault" in w.root.as_posix()])  # no keeper sees a vault folder
+        walked = [s.workspace for s in workflows._folder_sources({"agent_runs": str(base)})]
+        self.assertFalse([w for w in walked if "exam_vault" in w])  # the walks keeper (37.15 leak, 2026-10-31) keeps none of it
 
     def test_the_cap_stops_the_run_and_marks_it_incomplete(self):  # round 2: no fake failures after the cap
         keep = Path(tempfile.mkdtemp())

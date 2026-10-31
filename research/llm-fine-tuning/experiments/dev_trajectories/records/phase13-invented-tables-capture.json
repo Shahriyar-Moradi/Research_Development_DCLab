@@ -93,6 +93,16 @@
    "cause": "the runner list was chosen by table source without opening the investigator's replicas",
    "fix": "the mark removed there (its purpose is shown no cells, so nothing is lost); the helper skips sealed runs; the server test scans every product folder",
    "test": "tests/test_thinking_capture.py InventedTablesRunnersTest"
+  },
+  {
+   "id": "F7",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "The walks keeper kept the sealed people's Home steps",
+   "scenario": "after the capture's store step: 40 walk records of exam_vault workspaces in raw/workflows",
+   "cause": "workspace discovery entered exam_vault and made each sealed person's folder a workspace; the walks keeper uses discovery, not the standard keeper's vault check",
+   "fix": "discovery never enters exam_vault (every keeper only counts it); the copies moved back into the vault",
+   "test": "tests/test_conversation_exam.py RunTests.test_a_workspace_inside_the_vault_is_counted_never_kept (no discovered workspace and no walk from a vault)"
   }
  ],
  "measurements": [
@@ -137,7 +147,9 @@
   "A switch that loosens a privacy rule must live on the object that knows the data, never in a setting a server can read",
   "Check the shape of a field before concluding data is lost",
   "Test a set builder on the shape the store really writes, not on a path written by hand",
-  "Search what is about to be pushed for the sealed marks before every push; a guard tested on one path shape can miss a nested one"
+  "Search what is about to be pushed for the sealed marks before every push; a guard tested on one path shape can miss a nested one",
+  "Fix a privacy leak where every reader passes (discovery), not in one reader",
+  "Never run the test suite beside the store's run on an 8 GB Mac: memory runs out and macOS swap fills the disk"
  ],
  "risks": [
   "Other runners on invented tables (journeys, home eval, twin) still lose words on calls shown cells until they mark their gateway too"
