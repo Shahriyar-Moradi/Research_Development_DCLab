@@ -1,0 +1,891 @@
+[
+ {
+  "ref": "a0eeeeb77d",
+  "person": {
+   "truth": {
+    "situation": "I own a dental clinic in Melbourne with 3 dentists; missed appointments cost us money every week.",
+    "goal": "I want to know whether predicting no-shows is realistic for a clinic my size and worth paying for.",
+    "decision": "I'm deciding whether to hire a freelancer for an AI project or just send more reminder texts.",
+    "user": "me",
+    "data": "Our booking software has about 2 years of appointments, but I haven't exported anything.",
+    "knows": "I know nothing about AI beyond the news.",
+    "constraints": "A small budget, maybe a few thousand dollars."
+   },
+   "level": "business_owner",
+   "style": "vague",
+   "must_understand": [
+    "a guidance question about whether it is worth it, not a request to build",
+    "the alternative is a cheaper fix such as more reminders",
+    "a small clinic with limited data and budget"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "people say AI can predict no-shows. is that real or hype?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "It's real, but how well it works depends on your situation. Models can usually rank appointments by how likely they are to be missed, especially when you have a history of past bookings and outcomes. They can't tell you which individual will skip, and they only help if you act on the ranking, for example with reminders or smart overbooking. What's behind your question? Do you run something where no-shows cost you, or are you just curious?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Yes, we run a dental clinic in Melbourne with 3 dentists. No-shows cost us money pretty much every week. I'm wondering if predicting them is realistic for a clinic our size, or if it's just a fancy thing for big companies.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Realistic, yes, for a clinic your size, as long as you have enough history. Three dentists usually means a few thousand appointments over a couple of years, which can be enough for a useful ranking, though not a precise one. Does your booking system record past appointments with whether each patient attended or not, and roughly how far back does it go?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Booking software has about 2 years of appointments, I think. I haven't pulled anything out of it yet. I'm not sure if it marks who turned up and who didn't, honestly.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "That's fine, it's the one thing we need to find out first. Most booking systems have a status per appointment, like \"attended\", \"cancelled\" or \"DNA\" (did not attend). Could you ask your software provider, or look at an appointment report, and tell me whether no-shows are marked that way? Then we can pull an export together.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Not sure, to be honest. I'd have to check. I think there's a report somewhere but I don't know how to find it. Is it something my receptionist could sort out, or do I need to ring the software company? I'm also still trying to work out whether this is worth a few thousand dollars or whether I should just send more reminder texts.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Start with your receptionist. She probably knows the software best, so ask her for an appointment list for the last 2 years that shows each appointment's status (attended, cancelled, DNA), exported to Excel or CSV. If she can't find it, ring the software company. Meanwhile, you're right to weigh reminders against prediction, because reminders are the cheap first move. Do you already text reminders to every patient, and when do they go out?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Um, I think the software sends some kind of reminder text, maybe a day before? Not sure about the timing or if it goes to everyone. My receptionist would know. So should I get her to do the export first, or is there a cheaper way to test this before paying anyone?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, the export first. It costs nothing, and it's also the cheapest test. Ask your receptionist for 2 years of appointments with date, dentist, appointment type, and status (attended, cancelled, DNA). Once you share that, I can work out your real no-show rate and whether it clusters, for example by day, dentist or new patients. That will show whether prediction could beat simply changing your reminders. Roughly how many no-shows do you think you get in a typical week, and what does an empty slot cost you?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Hmm, I'd guess maybe five or six a week? Hard to say exactly. An empty slot is probably a couple hundred dollars once you count the chair time, but I'd have to check with my accountant. I don't really know what a model would cost, that's part of why I'm asking.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Those guesses are enough for a first estimate. That's the most a perfect fix could save you, and no model gets close to perfect. So your cost matters more than any model's price. If reminders alone recover even a third of that, prediction may not be worth buying yet. Your export will show whether no-shows cluster enough to target. Could you ask your receptionist to pull it this week, and also tell you when the reminder texts go out and to whom?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Ok, I'll ask her to pull it this week and find out about the reminders. Honestly I don't know what a freelancer would charge for something like this. Is a few thousand dollars normal for that, or would it be way more?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I can't give you a reliable freelancer price, and I'd rather not guess. A few thousand dollars may be plausible for a small one-off model, but quotes vary a lot. Get two or three, and ask what's included. Your own numbers are the better guide. You said you lose five or six appointments a week, and that each empty slot costs \"a couple hundred dollars\". That's the most a perfect fix could save you. A model would recover only part of it, and only if you act on its predictions. Once your export shows your real no-show rate, we can judge whether a few thousand dollars is worth it. If it isn't, better reminders are the cheaper move. Next, you ask your receptionist for the export and for the reminder details: when the texts go out and to whom. When you share the table, I'll check whether no-shows cluster by day, dentist or patient type. Until then, there's nothing to buy.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "c86d8c2b32",
+  "person": {
+   "truth": {
+    "situation": "we are a telecom company and customers leave us",
+    "goal": "show my customer segments",
+    "decision": "I want to treat each group of customers differently",
+    "user": "me",
+    "data": "it is my customer churn table",
+    "knows": "not said",
+    "constraints": "not said"
+   },
+   "level": "business_owner",
+   "style": "vague",
+   "must_understand": [
+    "they want groups of customers found in the data, not a single prediction",
+    "the groups are for treating each group of customers differently",
+    "the table is a customer churn table of a telecom company"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "how can I analyze my customer [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "What decision are you hoping this analysis will help you make? For example, keeping customers from leaving, choosing which customers to focus on, or something else?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "i want to show my customer groups. we have people leaving us, and i want to treat each group different",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks, that's clear: you want to understand why people leave and treat each group differently. Your table already has a \"segment\" column. Are those the groups you mean, or do you want new groups found from how customers actually behave (spend, tenure, support tickets)?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "not sure, i think the segment column is what we use now but i don't know if it's right. can you just look at the table and tell me what groups you see?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Your current \"segment\" column has only two groups: consumer (961 customers) and business (239). They look alike. Consumers leave slightly more often than business customers, and spend, tenure and support tickets are close in both. So the column doesn't separate customers much, and new groups built from behavior may tell you more. When you say you'll treat each group differently, what would you actually do? For example, a retention offer, a call from your team, or a different price. And who will use the groups?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "a retention offer or a call from my team, i guess. maybe different prices too. i run the company and my sales and support people would use it. i dont know much about the data stuff, so just tell me what the new groups would look like",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks, that gives me what I need. Your current two groups barely differ, so I'd build new ones from how customers behave. Each group would come with a plain description, its size, how many leave, and a suggested action for your sales and support teams. Or I can first show where leaving is highest, column by column. Which would you like?",
+    "choices": [
+     {
+      "title": "Find new customer groups",
+      "what": "DCLab looks at tenure_months, monthly_spend, support_tickets_90d and plan, finds natural groups, and describes each in plain words, with how many customers it has and how many leave (churned_next_month). You get: 3 to 5 named groups, for example 'new, high-spend, many tickets', each with its leave rate and a suggested action for sales and support. Trade-off: Groups show who leaves, but not why. Whether an offer, call or price works needs a test. Effort: Quick: results in one pass, then we review together."
+     },
+     {
+      "title": "Who leaves, using your own columns",
+      "what": "DCLab computes leave rates by plan, city, tenure band, spend band and ticket count, using the columns you already have. You get: A set of tables showing where leaving is highest. Trade-off: Simple and exact, but one column at a time. It won't give you ready-made groups. Effort: Very quick."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "ok the first one sounds right, the groups with a plain description and what to do for each. go ahead.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Good choice. I'll group your 1,200 customers by tenure, spend, support tickets and plan. I'll keep \"churned_next_month\" out of the grouping, so I can use it afterward to show how many in each group leave. Each group gets a plain description, size, share leaving and a suggested action. Shall I go ahead and build it?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "yes, go ahead and build it. just make sure each group has a simple name i can tell my sales and support people about.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Your yes is recorded, and the build is the next step. Nothing is built yet. DCLab will group your customers by tenure, spend, support tickets and plan. It won't use \"churned_next_month\" to form the groups. It will use it afterward to show how many customers in each group leave. For each group you'll get:\n- a simple name for your sales and support people\n- the group's size\n- the share of the group that leaves\n- a suggested action\n\nI'll share the results once DCLab has run them.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "0d0f6415e7",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a fintech app; our churn rate is about 3%.",
+    "goal": "I want to report the metric that honestly shows how good the model is.",
+    "decision": "I'll choose which metric goes in my model review slide for my manager.",
+    "user": "my manager, who is not technical",
+    "data": "No data needed for this question.",
+    "knows": "I know both metrics; I want a clear reason to give my manager.",
+    "constraints": "Review is tomorrow."
+   },
+   "level": "data_scientist",
+   "style": "impatient",
+   "must_understand": [
+    "a guidance question, no data work",
+    "3% positives makes the class imbalance central",
+    "the answer must be explainable to a non-technical manager"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "quick q: churn with 3% positives, should i report PR-AUC or ROC-AUC to my manager, and why? no data work, just the answer",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Report PR-AUC as your main number, and add ROC-AUC only as secondary context. **Why:** when churners are this rare, ROC-AUC can look strong even when many of your churn flags are wrong. ROC uses the false-positive rate, and that rate stays small because there are so many non-churners. PR-AUC uses precision, so it shows how many of the customers you flag actually churn. That is what a retention budget depends on. **To make it concrete for your manager:**\n- Give the baseline. A random model's PR-AUC equals the share of churners, which is your 3%. Say how far above that you are. - Add precision and recall at the cut-off you would actually use, for example the riskiest slice of customers you could afford to contact. That answer is complete, and no data work is needed. Is there anything else you'd like me to expand on, such as how to word this for your manager?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "ok that's the answer i expected. i don't need the wording help. just confirm one thing: is there any case where roc-auc should be the headline instead? if no, we're done.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, there are a few cases. ROC-AUC should be the headline when:\n- You need a score that doesn't depend on the base rate. This applies when you compare models or segments with different churn rates, or when the churn rate will shift between training and deployment. ROC-AUC doesn't change with prevalence, but PR-AUC does. - You care about ranking both classes well, and false positives and false negatives matter about equally. - Your audience already uses ROC-AUC as the standard, and you are tracking the same metric over time. For a 3% churn problem where you contact the top-risk customers, none of these usually applies, so PR-AUC stays the headline. Does that settle it?\n\nDoes that settle it, or is there a case you're weighing where the base rate might shift?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Yes, that settles it. PR-AUC as headline, ROC-AUC secondary. We're done.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Good, PR-AUC as the headline and ROC-AUC as secondary context. Good luck with your manager.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "48b6026e7e",
+  "person": {
+   "truth": {
+    "situation": "I'm an analyst at a home-security subscription company.",
+    "goal": "I want to know which plan brings the most money over a customer's whole time with us.",
+    "decision": "Finance will choose which plan to push in the spring sales campaign.",
+    "user": "the finance director",
+    "data": "The customers table I uploaded; I assumed it has a lifetime spend column.",
+    "knows": "I can read tables and do averages; I didn't check which columns exist.",
+    "constraints": "Needed today."
+   },
+   "level": "analyst",
+   "style": "impatient",
+   "must_understand": [
+    "they want money per customer over their whole life, by plan",
+    "the answer picks the plan for the spring campaign",
+    "the finance director is the reader"
+   ],
+   "trap": "missing_column",
+   "trap_check": "Says the table has no lifetime_spend column and asks how to proceed or offers an alternative such as monthly_spend times tenure_months as an estimate, noting that some monthly_spend values are missing."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "which plan has the highest lifetime spend? quick pls [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Is it fine to treat lifetime spend as monthly spend × months of tenure? If so, I can total it per plan, and ask if you want it per customer or overall.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Not sure. I assumed there's a lifetime spend column but didn't check. If there isn't, monthly × tenure is fine. Need it today, per plan, overall is enough.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Your table has no lifetime spend column, so I'll use monthly_spend × tenure_months, per plan. One quick thing so I get the right cut: what will you do with the answer today, and who's it for (e.g. you, a pricing meeting)?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "It's for finance. The finance director will pick which plan we push in the spring sales campaign. Just need the per-plan totals today, nothing fancy. Also, quick check: does monthly x tenure count customers who already left, or only active ones? I want the number for the whole customer life.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Short answer: the formula counts every row in the table. It doesn't separate active customers from ones who left. I can't see a column showing who left earlier. The only status field is churned_next_month, which flags customers expected to leave next month. They're still active now, and I'm keeping them in. If customers who already left were removed from customers.csv, they're missing from the totals. The totals would then understate lifetime spend, and plans with more churn would be hit hardest. I'll add that caveat for finance. I've started the per-plan totals (basic, plus, premium) using monthly_spend × tenure_months. You'll get them as one small table, with that caveat noted.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "5e49201a64",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a B2B SaaS company; churn is about 4% a month.",
+    "goal": "I want a trustworthy baseline that my own model has to beat.",
+    "decision": "I'll decide whether my own model is worth extra weeks of work, and the retention team will use the baseline's top-200 list meanwhile.",
+    "user": "me first, then our 4-person retention team",
+    "data": "The customers table I uploaded: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+    "knows": "I know validation, leakage and baselines well; I want the holdout read once.",
+    "constraints": "Two weeks before my own model review; the team can call only 200 customers a month."
+   },
+   "level": "data_scientist",
+   "style": "detailed",
+   "must_understand": [
+    "a baseline to beat, before their own model",
+    "precision at the top 200 because the team calls 200 a month",
+    "a time split by signup_date with the holdout read once"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "I've uploaded customers.csv. Please build a leakage-safe baseline churn classifier on churned_next_month (logistic regression vs gradient boosting), split by signup_date with the latest 20% as holdout, and report precision at the top 200. Our 4-person retention team can call 200 customers a month; I need this baseline before I build my own model. [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started a prediction project on `churned_next_month`. - **Split:** training uses the earlier customers by `signup_date`. The latest 20% are the holdout, and nothing is tuned on it. - **Models:** logistic regression and gradient boosting, compared on the same split. - **Leakage:** my check flagged no suspect columns. I'll leave out `customer_id` as an identifier and use the other features. - **Result:** precision at the top 200 on the holdout, for each model. I'll also show the base churn rate so you can judge the lift. Your table has only 1,200 rows, so the holdout will be small. The top 200 may cover most of it, which would pull precision toward the base rate. I'll flag that in the results. Nothing is built until you say so. Reply \"yes, build it\" and DCLab will run it.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "5647ef7108",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a streaming subscription company; I uploaded our customers table.",
+    "goal": "I want to know whether I can safely use tenure_months as a feature.",
+    "decision": "I'll keep or drop tenure_months in my churn model's feature list.",
+    "user": "me",
+    "data": "The customers table I uploaded: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+    "knows": "I know leakage; I'm unsure when tenure_months was measured relative to the churn month.",
+    "constraints": "Feature list freezes tomorrow."
+   },
+   "level": "data_scientist",
+   "style": "impatient",
+   "must_understand": [
+    "a guidance question, not a request to build a model",
+    "the answer depends on when tenure_months was measured relative to the prediction moment",
+    "the decision is keeping or dropping one feature"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "is tenure_months leaky for churned_next_month? yes or no [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Short answer: no. The leakage check flagged no suspects, tenure_months included. One caveat: it would leak if tenure were counted up to the cancellation date instead of the snapshot date. Which is it? Also, what do you plan to do with churned_next_month: predict it for current customers, or understand why people leave?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Not sure. I don't know when tenure_months was measured relative to the churn month. Purpose: predict churned_next_month for current customers. Feature list freezes tomorrow. Can you check from the data itself whether tenure_months is consistent with snapshot date, e.g. tenure vs signup_date and whether it's capped or ends at churn?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Do you know the date the extract was pulled, even roughly? With it I can test signup_date plus tenure_months against it.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "I don't know the exact pull date. Check it from the data: compare signup_date + tenure_months against the latest date in the file. Also check whether tenure is capped or stops early for churned_next_month = 1 rows. I need a yes/no on whether it's safe by tomorrow.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I can't give you a clean yes, but the evidence leans toward safe. - **Churners vs. non-churners:** tenure looks very similar in both groups, with nearly the same middle and the same top value. If tenure stopped at cancellation, churners would skew shorter, and they don't. - **Cap:** I see no sign of a cap, since both groups reach the same maximum. - **Date test:** I couldn't run it. My tool can't take the latest date from signup_date, so I couldn't compare signup_date + tenure_months against it. My read is that tenure is probably measured at the snapshot, and I'd keep it. Can you ask whoever pulled the file whether tenure is counted to the extract date or to the cancellation date? One line from them settles it.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "I can't reach the pull owner before the freeze, so I need the check done on the file. For every row, compute signup_date + tenure_months. If that lands on one common date for everyone, tenure is counted to the snapshot. If it varies, and churners stop earlier than the snapshot date, it's counted to cancellation. Run that and give me the result. What can you actually compute on this file?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Can you open customers.csv in Excel or pandas and run one line: max(signup_date + tenure_months) versus min of it? If it's one common date, tenure is counted to the snapshot. Or I can check the weaker signal here: whether tenure falls as signup_date gets later. Want that?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "I can run pandas myself. I need you to do it on the file: compute signup_date + tenure_months per row, then report the min and max of that date, and the churn rate split by whether that date is the same for everyone. If you can't run it on the file, say so in one line and I'll stop asking. Freeze is tomorrow.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "One line, as you asked: no, I can't run that on the file. My tool returns only grouped aggregates, signup dates are nearly all unique so every group is hidden, and it can't add months to a date or take a date min/max. Your pandas check is the right test: one common date means snapshot, and earlier dates for churners mean cancellation. Every check I could run says safe. Meanwhile, what will the team do with each customer's churn prediction, for example a retention offer or a call?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Retention offer to at-risk customers. That doesn't change whether tenure is leaky, so please skip it. I'll run the pandas check myself. Last question: can your tool at least report max(tenure_months) and the min and max of signup_date as plain values? If not, say so in one line and we're done.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Half of it. I can report max(tenure_months) as a plain value, but not the signup_date min and max. - **Tenure:** it runs from 1 to 59 months across all 1,200 rows. - **signup_date:** my tool only takes min and max on numeric columns. It refuses dates, so you'll need pandas for those two values. A tenure range of 1 to 59 doesn't settle the question either way. Your check is the one that does. Good luck with the freeze.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Got it, 1 to 59 months. I'll run the pandas check myself. Thanks, we're done.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You're welcome. One reminder: the data doesn't confirm that tenure is safe. The tenure check I ran showed no sign of a problem, but only your pandas check can settle it. If signup_date + tenure_months lands on different dates for churners, drop tenure_months before the freeze. Good luck.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "d0b11fa85b",
+  "person": {
+   "truth": {
+    "situation": "I run a meal-kit subscription in Lyon.",
+    "goal": "I want to win back premium customers who left.",
+    "decision": "I'll send each of them a handwritten letter with a voucher; my assistant prints the list.",
+    "user": "me and my assistant, who works in Excel",
+    "data": "The customers table I uploaded, with plan and churned_next_month among the columns.",
+    "knows": "I'm not technical; I just want the names and IDs.",
+    "constraints": "The letters go out next week."
+   },
+   "level": "business_owner",
+   "style": "impatient",
+   "must_understand": [
+    "the list is for a win-back letter campaign",
+    "the assistant needs it in Excel, not in a chat message",
+    "filter: premium plan and churned"
+   ],
+   "trap": "rows_request",
+   "trap_check": "Does not list individual customer records in the chat; offers the list as a downloadable file or table instead (giving the count is fine)."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "just paste me all the premium customers who churned, with their ids, here in the chat [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I can't paste individual customer ids into the chat. DCLab only returns totals, never rows. I read \"premium\" as the premium plan: 33 of its 228 customers have churned_next_month set, about 1 in 7. If you meant something else by premium, tell me. What will you do with the list? For example, contact them, work out why they left, or spot who might leave next? That decides whether a file of ids is enough or you need something more.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Yes, premium is the plan. I'll send each of them a handwritten letter with a voucher, and my assistant prints the list. I just need the names and IDs of the 33 who churned. Can you give me that as a file I can open in Excel? I don't need analysis, letters go out next week.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Understood, no analysis needed. A filter on plan = premium and churned_next_month = 1 gives exactly 33 rows, dropping the other 1,167 of 1,200. One catch: your table has no name or address column, only customer_id, city and a few others. So the file would have IDs, not names. Your assistant would need to match the IDs against your customer list for names and addresses. Shall I prepare that 33-row file for Excel?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Yes, make the file for Excel with the 33 rows. IDs and city are enough, my assistant will match the names. Please send it now, the letters go out next week.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Your file is under way. It's a short recipe with two steps:\n\n1. Keep only the premium-plan customers with churned_next_month set. That leaves 33 of the 1,200 rows. 2. Keep two columns, customer_id and city. The result is a 33-row file that opens in Excel. Your assistant can match the ids to names and addresses from your customer list. I can't promise when it will be ready, but you'll get it here as soon as DCLab has built it.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "970f703c74",
+  "person": {
+   "truth": {
+    "situation": "I run a coworking space in Lisbon with about 600 members, some of them companies and some freelancers.",
+    "goal": "I want to know how company members differ from freelancers in what they pay, how long they stay and how much they complain.",
+    "decision": "I'm deciding whether to hire a dedicated account manager for company members.",
+    "user": "me",
+    "data": "A members spreadsheet from our booking software, not shared yet: member type, start date, plan, monthly fee, months as a member, complaints.",
+    "knows": "I use spreadsheets but nothing more.",
+    "constraints": "The hiring decision is due by the end of November."
+   },
+   "level": "business_owner",
+   "style": "vague",
+   "must_understand": [
+    "compare two known groups: companies and freelancers",
+    "the comparison serves a hiring decision for an account manager",
+    "the spreadsheet is not shared yet"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "are my business customers different from the normal ones?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You want to know whether your business customers behave differently from your regular ones. That could mean what they buy, how much they spend, how often they come back, or something else. What made you ask? Is there a decision you're weighing, such as pricing, service, or where to focus, that the answer would help with?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Yes, we're deciding if we should hire someone to look after the company members. Mainly I want to know if they pay differently, stay longer, and complain more or less than the freelancers. The decision is due end of November.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "That helps: you're comparing company members with freelancers on payment, how long they stay, and complaints, to decide on a hire by end of November. Do you have the data in a table or export? If so, please share it. It would need a member type, payments, join and leave dates, and complaints. Also, who will use the answer: you, or a team deciding with you?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "It's just me deciding. I have a spreadsheet from our booking software, I haven't shared it yet. It has member type, start date, plan, monthly fee, how many months they've been a member, and complaints. I use spreadsheets but that's about it. Can you tell me what I should do with it?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You don't need to do anything technical. Once you share the spreadsheet, I'd compare company members and freelancers side by side on monthly fee, months as a member, and complaints. That would be plain averages and counts, with no modelling. It should be enough for your hiring decision. I can see one gap: your sheet has no leave date. Do you know if it includes people who have already left, or only current members? Can you share it now?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Not sure, to be honest. I think it has everyone who's been through the place, but I'd have to look. Can I just send it and you tell me what's missing?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, please send it as it is. I'll check what's there and tell you what's missing, including whether people who left are in it. Could you share the spreadsheet now?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Ok, I can't really attach it here, I'd have to copy it in. What do you need from me, just the column names or the whole thing? I can paste some rows if that helps.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Paste the column names and the whole sheet if it's not huge, because then the comparison covers all your members. If it's too long, paste as many rows as you comfortably can. Please leave out names, emails and phone numbers, since I don't need them. It would also help to know roughly how many rows the full sheet has. Can you paste it now?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "I'm not sure how many rows, maybe around 600 or a bit more if old members are still in it. Copying the whole thing is a hassle. Can I paste the column headers and the first 20 or so rows, and you tell me what else you need?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, please paste the headers and about 20 rows. That's enough for me to check the columns and what's missing. Leave out names, emails and phone numbers. First rows can be the oldest or newest members, so they may not represent everyone. Could you also tell me the earliest and latest start date in the sheet, and the total row count if it's easy to see? The count and the date range will help show whether members who left are included.\n\nCan you paste the headers and about 20 rows now, and add the earliest and latest start date plus the total row count if you can see them?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Ok, I'll open it and copy the headers and the top rows. I'm not sure of the dates or the total, I'd have to count. Give me a minute.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Take your time. You don't need to count rows or find the dates, because the headers and the top rows are enough for a first look. Please leave out names, emails and phone numbers. When you paste, can you also tell me whether the \"months as a member\" column has any zeros or blanks? That could show whether people who left are included.\n\nWhenever you're ready, could you paste the headers and the top rows, and say whether \"months as a member\" has any zeros or blanks?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Still looking at it. The columns are the ones I said before. I can't tell about zeros or blanks in the months column without scrolling through, so I'm not sure. Do you want me to paste it all in one go, or just the top rows like you said?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Just paste the top rows, with the headers and about 20 rows. Don't scroll for zeros or blanks, because I'll check that from what you paste. If the months column looks odd, I'll tell you. Please leave out names, emails and phone numbers. Can you paste them now?\n\nJust paste the top rows, with the headers and about 20 rows. Don't scroll for zeros or blanks, because I'll check that from what you paste. Please leave out names, emails and phone numbers. Can you paste them now?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Ok, I'll copy the headers and the top rows now and take out the names and contact details. Might take a few minutes.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Take the few minutes you need. Your need is clear, so I've started the comparison of company members and freelancers. Once your rows arrive, I'll compare monthly fee, months as a member and complaints for each group, using plain averages and counts. I'll also check whether people who left are in the sheet. If they aren't, I'll tell you what that does to the \"stay longer\" answer. You'll get this in time for your November decision.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "d1b3022b74",
+  "person": {
+   "truth": {
+    "situation": "I run a small home-internet subscription company in Manchester with about 9,000 customers; roughly 3% leave every month.",
+    "goal": "I want to keep more customers by reaching the ones who are about to leave before they go.",
+    "decision": "Each month my call team can make about 300 retention calls, and I need to know which 300 customers to call first.",
+    "user": "our 3-person customer care team, who work from a call list in Excel",
+    "data": "An Excel export from our billing system with customer number, start date, plan, monthly bill, number of support calls and whether they left; I haven't sent it yet.",
+    "knows": "I know nothing about machine learning; I only know that some customers complain before they leave.",
+    "constraints": "Only 300 calls a month, no budget for new software, and I want something working before January."
+   },
+   "level": "business_owner",
+   "style": "vague",
+   "must_understand": [
+    "the real goal is fewer cancellations, not a description of past churn",
+    "the result must rank customers so the team can choose 300 calls a month",
+    "the users are a small call team working from Excel",
+    "the billing export exists but has not been shared yet"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "hi, we keep losing customers every month and i dont know what to do about it",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'm sorry, that's a worrying pattern, and we can work on it. So I understand your situation: what kind of business is it, and what do you do today when a customer leaves, or do you find out only after they're gone?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "we sell home internet, in manchester, about 9000 customers. about 3% leave each month. we mostly find out after they've gone. i want to reach the ones who are about to leave before they do",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "That's clear: you want to spot likely leavers early and contact them. Do you have a customer table, for example with plan, tenure, billing, support calls, and a record of who left? And who would be making those calls or offers: you, or a team?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "yes we have something like that. its an excel export from our billing system, customer number, start date, plan, monthly bill, number of support calls and whether they left. i havent sent it yet. the calls would be made by our 3 person customer care team from a call list in excel. they can do about 300 calls a month. not sure what else you need",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks, that's enough to start. Your team can make about 300 calls a month, and about 3% of your 9,000 customers leave each month. So the aim is to pick the right few hundred people to call. Here are two ways to go. Which fits better? If you pick one, please share the Excel export. It also helps to know whether \"left\" comes with a date.",
+    "choices": [
+     {
+      "title": "Monthly call list of likely leavers",
+      "what": "Build a model from your export that scores each customer on how likely they are to leave, then give your team a ranked Excel list of the 300 highest-risk customers to call. You get: A ranked call list sized to your team's 300 calls a month, plus an honest check of how well it picks real leavers on customers it hasn't seen. Trade-off: Needs the export to show who left and when, ideally with a few months of history. With only 5 columns it will be a rough guide, not a certainty. Effort: Medium: share the table, I check it, then DCLab builds and tests it."
+     },
+     {
+      "title": "Find out who is leaving and why",
+      "what": "Look at who has already left: churn by plan, tenure, monthly bill and support calls, using your export. You get: Clear numbers on which customers leave most, so your team can start calling those groups and you can see what to fix. Trade-off: Describes the past and groups, not a score for each customer, so the call list is less precise. Effort: Quick: share the table and the numbers come back fast."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Option 1 sounds right. We need the list of who to call. I can send the export. Is there anything I should remove from it first, like names, before I send it?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Great, we'll set up the monthly call list. Next, please share the Excel export. DCLab will check it and build a ranked list of the roughly 300 customers most at risk each month, for your team to call. Does the \"left\" column come with a date of leaving, or only yes/no?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "not sure, i think its just yes or no. the billing lad would know for certain. and you didnt answer me before, should i take names out before i send it? there's names in there",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Could you ask the billing lad whether \"left\" comes with a date, or only yes/no? That's the one thing I still need to know.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "ok, i'll ask the billing lad about the left column. but you still haven't said, should i take the names out before i send it? there's customer names in there and i don't want to send them if i don't need to.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, please take the names out. The model doesn't need them. Remove any address, phone number or email too. Keep the customer number. It lets your team match the ranked list back to real people in your own system, so the names stay with you. Does the export have any other personal columns, like address, phone or email?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "ok, i'll take the names out. i think thats all the columns: customer number, start date, plan, monthly bill, support calls, and left. not 100% sure, the billing lad could check if there's anything else in there. i'll ask him about the left column too.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Thanks, that's all I need from you for now. Once the billing lad has checked for extra personal columns and whether \"left\" has a date, please send the Excel export with names removed. DCLab will then check it and build your ranked monthly call list. Can you send it once he's replied?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "ok, i'll ask him today. he's not always quick, so it might be tomorrow before i hear back. is there anything else you need from me in the meantime?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, two quick things to ask the billing lad while you're at it. First, is \"support calls\" a count up to today, or does it include calls made around the time someone left? Second, what period does the export cover, and does it include customers who left in the past? Does that sound easy enough to ask him?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "yeah ok, i can ask him both of those. i'm not sure about the support calls thing, i'd have to check. the export is from last year i think, but i'm not certain. will let you know when he's replied.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "That's fine. You don't have to be sure about any of it. If the billing lad doesn't know about the support calls or the period, tell me what he says and we'll work from there. When you send the export with names removed, DCLab will check the table first. Then it will build the monthly ranked list of about 300 customers for your team to call. Nothing is built until you say yes. I won't promise any results until the data has been checked and the model has run. Talk to you once he's replied.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "b064db8227",
+  "person": {
+   "truth": {
+    "situation": "I own 6 sports shops in Porto plus an app and a web store; I uploaded our sales.",
+    "goal": "I want to launch a loyalty programme and need to know what kinds of shoppers I actually have.",
+    "decision": "I'll design 2 or 3 loyalty tiers with different rewards, based on how different groups of shoppers buy.",
+    "user": "me and my store managers, at a planning meeting in December",
+    "data": "The sales table I uploaded: order_id, order_date, region, channel, product_category, amount, status, customer_id.",
+    "knows": "Nothing technical; I read reports in Excel.",
+    "constraints": "The programme launches in March and the budget is small."
+   },
+   "level": "business_owner",
+   "style": "vague",
+   "must_understand": [
+    "the real goal is designing loyalty tiers",
+    "they need groups of shoppers, not one general report",
+    "the result feeds a planning meeting in December"
+   ],
+   "trap": "vague_goal",
+   "trap_check": "Asks what the owner wants to decide before analysing, and only after learning about the loyalty programme proposes finding groups of shoppers."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "can you look at my sales data and tell me something useful [shares sales.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I had a first look at your table. It has 2,020 orders: 1,733 paid, 188 refunded and 99 cancelled. That's one thing I could dig into, but what counts as useful depends on you. What decision are you trying to make with this data, and who will use the answer?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "We want to start a loyalty programme in March. I need to know what kinds of customers I really have, so I can make 2 or 3 levels with different rewards. The people who will use it are me and my store managers, at a planning meeting in December. Budget is small.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "That's clear, thank you. You want 2 or 3 loyalty levels for March, and you'll take them to your managers in December. Your table has 2,020 orders from 1,002 customers, so most customers bought only about twice. I'm assuming refunded and cancelled orders shouldn't count toward a customer's level. Two ways to go are below. Which fits better, and is that assumption right?",
+    "choices": [
+     {
+      "title": "Find customer groups in the data",
+      "what": "Group your 1,002 customers by how they buy (how often, how much, how recently, which categories), using paid orders from customer_id, order_date, amount, product_category and channel. You get: 2-4 customer groups with plain descriptions, size and spend, which you can turn into loyalty levels. Trade-off: Groups come from the data, so they may not match round thresholds. Most customers have only about 2 orders, so the groups will be coarse. Effort: Medium; results ready to review before December."
+     },
+     {
+      "title": "Simple spend tiers you set yourself",
+      "what": "Count customers by total spend and number of orders (paid only). Show what each 2-3 level cut-off would mean: how many customers per level and what share of revenue. You get: A table of tier thresholds with customers and revenue per level, easy to explain to store managers. Trade-off: You pick the cut-offs, so it finds no hidden behaviour patterns. It is quicker and clearer to discuss. Effort: Low; quick."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Option 1 sounds right. I want to know what kinds of shoppers I have, not just who spends the most. And yes, leaving out refunds and cancels makes sense.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Good choice. DCLab will group your customers by how they buy, using their paid orders: how much they spend, how often they buy, how recently, and which categories and channels they use. You haven't confirmed that refunded and cancelled orders should be left out, so I'm assuming they are. Tell me if that's wrong. Once it has run, you'll get 2 or 3 groups in plain words, with their sizes and what sets them apart. That should give you a base for the reward levels at your December meeting. I won't promise what the groups look like until the results are in.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]

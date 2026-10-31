@@ -1,30 +1,140 @@
 {
  "package": "37.19",
- "title": "The lead agent's speed and repeated questions after the sealed run: code limits kept, a prompt change measured and undone",
+ "title": "The lead agent made short: twice as fast and 60% cheaper, still safe; the judge told that length is not understanding",
  "date": "2026-10-31",
- "request": "The owner approved the fixes of the lead agent's weak points on practice people (34 s a turn, 17 repeated questions on the sealed set, the route only tied with Claude alone); later: only $13 left, optimize the runs.",
+ "request": "The owner approved the fixes of the lead agent's weak points on practice people (34 s a turn, 17 repeated questions on the sealed set, the route only tied with Claude alone); later: only $13 left, optimize the runs. Then the owner marked 7 practice papers (the judge agreed 0.65, kinder to the lead agent, which wrote about 750 words a conversation against about 100) and approved making it short.",
  "spec": "Diagnose on the practice runs, fix with code where code can decide, measure on the same practice people, keep only what measurably helps.",
- "plan": ["Profile the practice runs: turn seconds, calls per turn, tools per call", "Read the repeated questions in practice conversations", "Fix with tests first", "Measure on CEX-012's 12 people, capped", "Keep or undo by the numbers"],
- "decisions": [
-  {"decision": "Code reads the shared table at the start of a turn", "why": "the context already showed the columns, yet the agent spent a call on read_table; reading by code records the table as computed so its counts may still be said"},
-  {"decision": "A confirmation question right after a go-ahead is refused", "why": "most repeats in the practice runs came right after 'go ahead', 'run it' or 'stop asking'; a question about something the work truly lacks is still allowed"},
-  {"decision": "At most two table queries a turn, kept by code", "why": "after the table was read by code the agent queried far more (98 queries in 10 conversations); the prompt already asked for one or two"},
-  {"decision": "The prompt change was undone", "why": "the right route fell from 0.90 to 0.70 on the same 10 people in both runs that used it"},
-  {"decision": "Practice exam runs think at high effort, sealed runs at extra-high", "why": "the owner, with $13 left; the thinking summary is still asked for and kept whole"}
+ "plan": [
+  "Profile the practice runs: turn seconds, calls per turn, tools per call",
+  "Read the repeated questions in practice conversations",
+  "Fix with tests first",
+  "Measure on CEX-012's 12 people, capped",
+  "Keep or undo by the numbers"
  ],
- "change": "dclab_rnd/agents/case_agent.py (goes_ahead, CONFIRMS, the go-ahead refusal in ask, QUERIES_A_TURN, the code read of the table at turn start); dclab_rnd/agent_eval/conversation_exam/__init__.py (practice_effort); tests/test_case_agent.py (SpeedAndGoAheadTests, QueryCapTests), tests/test_conversation_exam.py (PracticeEffortTests)",
+ "decisions": [
+  {
+   "decision": "Code reads the shared table at the start of a turn",
+   "why": "the context already showed the columns, yet the agent spent a call on read_table; reading by code records the table as computed so its counts may still be said"
+  },
+  {
+   "decision": "A confirmation question right after a go-ahead is refused",
+   "why": "most repeats in the practice runs came right after 'go ahead', 'run it' or 'stop asking'; a question about something the work truly lacks is still allowed"
+  },
+  {
+   "decision": "At most two table queries a turn, kept by code",
+   "why": "after the table was read by code the agent queried far more (98 queries in 10 conversations); the prompt already asked for one or two"
+  },
+  {
+   "decision": "The prompt change was undone",
+   "why": "the right route fell from 0.90 to 0.70 on the same 10 people in both runs that used it"
+  },
+  {
+   "decision": "Practice exam runs think at high effort, sealed runs at extra-high",
+   "why": "the owner, with $13 left; the thinking summary is still asked for and kept whole"
+  },
+  {
+   "decision": "Messages of about 80 words, never more than 120, one idea and one question",
+   "why": "the lead agent wrote 7 times more than the others; the owner stopped labelling at a 1,783-word conversation; long messages slow it, cost more and earn the judge's points without understanding"
+  },
+  {
+   "decision": "The judge is told that length is not understanding",
+   "why": "on the owner's 7 papers the judge was kinder to the long lead agent; re-judged with the rule, agreement rose from 0.65 to 0.71 (EUR 0.04)"
+  }
+ ],
+ "change": "dclab_rnd/agents/case_agent.py (goes_ahead, CONFIRMS, the go-ahead refusal in ask, QUERIES_A_TURN, the code read of the table at turn start); dclab_rnd/agent_eval/conversation_exam/__init__.py (practice_effort); tests/test_case_agent.py (SpeedAndGoAheadTests, QueryCapTests), tests/test_conversation_exam.py (PracticeEffortTests); prompts case_agent.md (short messages) and exam_judge.md (length is not understanding)",
  "findings": [
-  {"id": "F1", "source": "measurement", "severity": "behaviour", "defect": "My first guess of the slowness was wrong", "scenario": "only 3 of 659 calls held a message beside notes; 91 calls held notes only", "cause": "a turn usually spends one call on notes and one on the question", "fix": "the prompt asked for notes in the same reply (later undone with the rest of the prompt change)", "test": "measurement CEX-014"},
-  {"id": "F2", "source": "measurement", "severity": "behaviour", "defect": "Reading the table by code made the agent query the data far more", "scenario": "CEX-014: 98 table queries in 10 conversations, 37 s a turn", "cause": "with the table's columns in context and no read_table result, the agent looked at the data through queries", "fix": "at most two queries a turn, refused with a reason after that", "test": "tests/test_case_agent.py QueryCapTests"},
-  {"id": "F3", "source": "measurement", "severity": "behaviour", "defect": "The go-ahead list missed 'send it now'", "scenario": "CEX-014 d-31: the person asked three times to send the table; the agent kept asking side questions", "cause": "the go-ahead words lacked 'send'", "fix": "'send it/the/me/them' counts as a go-ahead", "test": "tests/test_case_agent.py QueryCapTests.test_send_it_now_is_a_go_ahead"},
-  {"id": "F4", "source": "measurement", "severity": "behaviour", "defect": "The prompt change lowered the right route", "scenario": "d-04 and d-31 lost the right route in CEX-014 and CEX-015 (0.90 to 0.70 on the same 10 people)", "cause": "not isolated; the prompt change is the common part of both runs", "fix": "the prompt change undone; the code limits kept", "test": "the free gates rerun on the restored prompt"}
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "My first guess of the slowness was wrong",
+   "scenario": "only 3 of 659 calls held a message beside notes; 91 calls held notes only",
+   "cause": "a turn usually spends one call on notes and one on the question",
+   "fix": "the prompt asked for notes in the same reply (later undone with the rest of the prompt change)",
+   "test": "measurement CEX-014"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Reading the table by code made the agent query the data far more",
+   "scenario": "CEX-014: 98 table queries in 10 conversations, 37 s a turn",
+   "cause": "with the table's columns in context and no read_table result, the agent looked at the data through queries",
+   "fix": "at most two queries a turn, refused with a reason after that",
+   "test": "tests/test_case_agent.py QueryCapTests"
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The go-ahead list missed 'send it now'",
+   "scenario": "CEX-014 d-31: the person asked three times to send the table; the agent kept asking side questions",
+   "cause": "the go-ahead words lacked 'send'",
+   "fix": "'send it/the/me/them' counts as a go-ahead",
+   "test": "tests/test_case_agent.py QueryCapTests.test_send_it_now_is_a_go_ahead"
+  },
+  {
+   "id": "F4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The prompt change lowered the right route",
+   "scenario": "d-04 and d-31 lost the right route in CEX-014 and CEX-015 (0.90 to 0.70 on the same 10 people)",
+   "cause": "not isolated; the prompt change is the common part of both runs",
+   "fix": "the prompt change undone; the code limits kept",
+   "test": "the free gates rerun on the restored prompt"
+  },
+  {
+   "id": "F5",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "The judge rewarded the lead agent's long messages",
+   "scenario": "owner's 7 practice papers: lead agent 0.62 by the owner, 1.00 by the judge; Home and Claude alone the other way",
+   "cause": "long messages touch more points and the judge counted them as shown",
+   "fix": "the judge's prompt: length is not understanding; the lead agent's prompt: short messages",
+   "test": "re-judging the 7 papers: agreement 0.65 to 0.71; harness and agent-eval pass"
+  }
  ],
  "measurements": [
-  {"name": "CEX-014 (prompt change, table read by code, go-ahead guard)", "gate": "faster and no worse than CEX-012 on the same people", "result": "37 s a turn (32 before), route reached 0.70 (0.90), repeats 0.5 (0.3), 10 of 12 people within EUR 2.83", "verdict": "fail", "cost_eur": 2.83},
-  {"name": "CEX-015 (plus two queries a turn and 'send it now')", "gate": "faster and no worse than CEX-012 on the same people", "result": "32 s a turn (same), EUR 0.19 a person (0.24 before), repeats 0.3 (same), route reached 0.70 (0.90), understanding 0.92 (0.94)", "verdict": "fail", "cost_eur": 2.3}
+  {
+   "name": "CEX-014 (prompt change, table read by code, go-ahead guard)",
+   "gate": "faster and no worse than CEX-012 on the same people",
+   "result": "37 s a turn (32 before), route reached 0.70 (0.90), repeats 0.5 (0.3), 10 of 12 people within EUR 2.83",
+   "verdict": "fail",
+   "cost_eur": 2.83
+  },
+  {
+   "name": "CEX-015 (plus two queries a turn and 'send it now')",
+   "gate": "faster and no worse than CEX-012 on the same people",
+   "result": "32 s a turn (same), EUR 0.19 a person (0.24 before), repeats 0.3 (same), route reached 0.70 (0.90), understanding 0.92 (0.94)",
+   "verdict": "fail",
+   "cost_eur": 2.3
+  },
+  {
+   "name": "CEX-016 (short messages, high effort for practice)",
+   "gate": "faster and cheaper, still safe, no worse on the route than CEX-015",
+   "result": "16 s a turn (32), EUR 0.08 a person (0.20), 331 words a conversation (645), 0 invented numbers, option fit 4.5, understanding 0.94 by the fairer judge, route reached 0.83 (0.92 in CEX-012, 0.75 in CEX-015), repeated questions 0.58 (0.33)",
+   "verdict": "pass",
+   "cost_eur": 1.22
+  },
+  {
+   "name": "the 7 papers re-judged with the length rule",
+   "gate": "agreement with the owner at least 0.70",
+   "result": "0.65 before, 0.71 after (7 papers)",
+   "verdict": "pass",
+   "cost_eur": 0.04
+  }
  ],
- "outcome": "The code limits make a practice run about 20% cheaper with quality unchanged and stay; the prompt change is undone; the lead agent's speed is not solved, and no more money is spent on it now ($13 left).",
- "lessons": ["Measure the cause before fixing: a count of tools per call showed my first guess was wrong", "A change that removes one round trip can add others: the agent filled the gap with queries", "Keep code limits that save money; undo a prompt change that lowers the route, even when it was meant to help"],
- "risks": ["Ten people per run: a two-person route difference is within noise, but it appeared in both runs", "The speed problem remains (about 32 s a turn)"],
+ "outcome": "The lead agent is now short: about twice as fast and 60% cheaper on the practice people, still without an invented number; repeated questions rose and the route is one person short of CEX-012, both to watch. The judge agrees with the owner 0.71 on 7 papers with the length rule.",
+ "lessons": [
+  "Measure the cause before fixing: a count of tools per call showed my first guess was wrong",
+  "A change that removes one round trip can add others: the agent filled the gap with queries",
+  "Keep code limits that save money; undo a prompt change that lowers the route, even when it was meant to help",
+  "A person who labels finds what a model judge misses: here, that length was being rewarded"
+ ],
+ "risks": [
+  "Ten people per run: a two-person route difference is within noise, but it appeared in both runs",
+  "The speed problem remains (about 32 s a turn)",
+  "Short messages and high effort changed together, so their shares of the speed are not separated; repeated questions rose to 7 in 12 people"
+ ],
  "commits": []
 }

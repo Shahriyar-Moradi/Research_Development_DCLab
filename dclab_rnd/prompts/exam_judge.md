@@ -14,4 +14,5 @@ Answer with one JSON object and nothing else:
  "options_differ": true when the options differ in kind, false when they are wordings of one plan, or null when none,
  "trap_handled": true or false, whether the assistant did what the trap check says, or null when there is no trap}
 
-Be strict: a point counts as understood only when the conversation shows it.
+Be strict: a point counts as understood only when the conversation shows it. Length is not understanding: a long
+message that lists many possibilities does not show a point unless a sentence ties it to this person's situation.
