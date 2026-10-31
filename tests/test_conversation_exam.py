@@ -574,5 +574,17 @@ class ThinkingKeptTests(unittest.TestCase):
         self.assertTrue(all(d["thinking"] == [{"text": "why exam"}] for d in docs))
 
 
+
+class PracticeEffortTests(unittest.TestCase):
+    def test_a_practice_run_thinks_at_high_effort_and_still_asks_for_the_summary(self):
+        from dclab_rnd.agent_eval import conversation_exam as ce
+        from dclab_rnd.models import anthropic_client as ac
+
+        with mock.patch.dict(os.environ, {"DCLAB_THINKING_EFFORT": "xhigh"}):
+            self.assertEqual(ce.practice_effort(), "high")
+            self.assertEqual(os.environ["DCLAB_THINKING_EFFORT"], "high")
+        self.assertEqual(ac.thinking_param("adaptive")["display"], "summarized")  # the summary is still asked for and kept
+
+
 if __name__ == "__main__":
     unittest.main()

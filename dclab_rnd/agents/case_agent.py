@@ -46,6 +46,21 @@ YES_BUILD = re.compile(r"\b(?:yes|yeah|yep|go ahead|build it|please build|do it|
 NOT_NOW = re.compile(r"\b(?:no|not|don'?t|do not|wait|hold|later|stop|never|cancel)\b", re.I)
 
 
+# 2026-10-31 (the sealed run: 17 questions about what the person had said, most right after "go ahead" or "run it")
+GO_AHEAD = re.compile(r"\b(?:go ahead|send (?:it|the|me|them)|run (?:it|the|this|that)|do it|just do|stop asking|proceed|build it|start (?:it|now|the)|"
+                      r"let'?s go|yes,? please|now,? please)\b", re.I)
+HOLD = re.compile(r"\b(?:don'?t|do not|not yet|wait|hold on|hold off|later|never)\b", re.I)
+CONFIRMS = re.compile(r"\b(?:does (?:that|this|it) (?:match|sound|work|fit)|can you confirm|could you confirm|do you want me to|"
+                      r"would you like me to|want me to|shall i|should i|is (?:that|this) (?:right|ok|okay|correct|what you)|"
+                      r"sound good|are you happy|ready (?:for me )?to|okay to|ok to)\b", re.I)
+
+
+def goes_ahead(words: str) -> bool:
+    """The person tells the agent to act now: a go-ahead with no hold in the same message ("stop asking" counts)."""
+    w = str(words or "")
+    return bool(GO_AHEAD.search(w)) and not HOLD.search(w)
+
+
 def says_yes(words: str) -> bool:
     """The person's yes to building: a yes word and no refusal or delay in the same message (the review of 37.6)."""
     return bool(YES_BUILD.search(str(words or ""))) and not NOT_NOW.search(str(words or ""))
@@ -73,6 +88,8 @@ class CaseState:
     shown: list[C.CaseOption] = field(default_factory=list)  # this turn's options, after code's checks
     asking: bool = False  # the last turn ended on a question
     wants_options: bool = False  # the person asked, in this message, to see what DCLab can do
+    go_ahead: bool = False  # the person told the agent, in this message, to go ahead: no confirmation question (2026-10-31)
+    queries: int = 0  # the table queries in this turn (at most QUERIES_A_TURN)
     rewriting: bool = False  # the agent is rewriting dropped sentences: no move may run (the review: a question counted twice)
     trace: Any = None  # one tracer for the whole case, so its turns are one conversation in the record
     frame: Any = None  # the shared table itself (never sent to a model; the data tools read it)
@@ -134,6 +151,9 @@ def _read_table(state: CaseState) -> dict[str, Any]:
     return out
 
 
+QUERIES_A_TURN = 2  # the prompt's "one or two questions of the table", kept by code
+
+
 def _data(state: CaseState, name: str, **arguments: Any) -> dict[str, Any]:
     """37.6: one of the guard layer's data tools on the shared table; what it computes may be said to the person."""
     import json
@@ -143,6 +163,10 @@ def _data(state: CaseState, name: str, **arguments: Any) -> dict[str, Any]:
     if state.frame is None:
         return {"error": "No table has been shared: ask the person to share it, or work without numbers."}
     if name == "query":
+        if state.queries >= QUERIES_A_TURN:  # CEX-014: queries took over the turns once the table was read by code
+            return {"error": f"you have asked the table twice this turn: write to the person now with what you found, and ask "
+                             f"more of the table next turn if it is still needed"}
+        state.queries += 1
         arguments["seen"] = state.group_names
     out = data_tools.TOOLS[name](state.frame, **arguments)
     if "error" not in out:
@@ -246,6 +270,10 @@ def _confirm(state: CaseState, index: int, quote: str, reject: bool = False) -> 
 def _ask(state: CaseState, question: str) -> dict[str, Any]:
     if not str(question).strip():
         return {"error": "the question is empty"}
+    if state.go_ahead and CONFIRMS.search(str(question)):
+        return {"error": "the person told you to go ahead: act now (start the work, or request_build if they said yes to building) "
+                         "and tell them what you did; do not ask them to confirm again. Ask only about something the work cannot "
+                         "start without."}
     state.case = C.asked(state.case)
     state.said.append(str(question).strip())
     state.asking = True
@@ -407,6 +435,10 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
         state.case = C.declined(state.case)
     state.case = C.hear(state.case, words)
     state.wants_options = bool(WANTS_OPTIONS.search(str(words)))  # this message only (the review: it stayed on for the case)
+    state.go_ahead = goes_ahead(str(words))  # this message only
+    state.queries = 0
+    if state.table and not any(str(c).startswith('{"table": ') for c in state.computed):  # 2026-10-31: code reads the shared
+        _read_table(state)  # table (again after a restore), so no model call is spent on it and its counts may be said
     if state.trace is None:
         from .harness import tracer
 

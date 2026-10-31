@@ -24,6 +24,8 @@ offered or taken; traps the mean of the planted traps' rates; seconds per turn t
 | CEX-013 | sealed_v1 | Home today | 40 | 0.43 | 3.36 | 0.82 | 56 | 6 | 0.44 | 16.3 | 3.17 |  |
 | CEX-013 | sealed_v1 | Claude alone | 40 | 0.62 | 2.79 | 0.90 | 4 | 618 | 0.56 | 26.2 | 4.66 |  |
 | CEX-013 | sealed_v1 | lead agent | 40 | 0.85 | 4.25 | 0.90 | 17 | 0 | 1.00 | 33.5 | 8.09 | fail |
+| CEX-014 | dev | lead agent | 10 | 0.93 | 4.25 | 0.70 | 5 | 0 | 0.70 | 36.6 | 1.89 |  |
+| CEX-015 | dev | lead agent | 12 | 0.93 | 4.25 | 0.75 | 3 | 0 | 0.80 | 31.7 | 1.93 |  |
 
 ## The judge against the people who labelled
 
@@ -39,10 +41,10 @@ thinking on (adaptive) with display 'summarized' for every purpose; the summary 
 
 | where | purpose | calls | kept whole | with thinking |
 |---|---|---|---|---|
-| workspace log (every use of the purpose) | case_agent | 1581 | 659 | 803 |
+| workspace log (every use of the purpose) | case_agent | 1918 | 996 | 1087 |
 | workspace log (every use of the purpose) | case_specialist | 1 | 0 | 0 |
-| workspace log (every use of the purpose) | exam_judge | 360 | 238 | 237 |
-| workspace log (every use of the purpose) | exam_person | 836 | 505 | 503 |
+| workspace log (every use of the purpose) | exam_judge | 383 | 261 | 259 |
+| workspace log (every use of the purpose) | exam_person | 923 | 592 | 590 |
 | workspace log (every use of the purpose) | exam_plain | 622 | 349 | 199 |
 | workspace log (every use of the purpose) | home_agent | 3574 | 2166 | 841 |
 | workspace log (every use of the purpose) | home_intent | 619 | 395 | 338 |

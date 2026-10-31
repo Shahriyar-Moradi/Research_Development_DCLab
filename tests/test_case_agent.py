@@ -588,3 +588,61 @@ class NeverSilentTests(unittest.TestCase):
         out = A.turn(s, client, "help me with my customers")
         self.assertIn("Who will act on the list?", out["text"])
         self.assertEqual(s.case.asked, 0)  # the forced message ran no move
+
+
+class SpeedAndGoAheadTests(unittest.TestCase):
+    """2026-10-31 (the sealed run: 34 s a turn, 17 repeated questions): the table is read by code before the agent's first
+    call, so the agent does not spend a call on read_table; a confirmation question right after the person said go ahead is
+    refused, so the agent acts."""
+
+    def test_code_reads_the_shared_table_before_the_first_model_call(self):
+        s = state()
+        client = Script(("Your table has 1200 rows. Who will act on the list?", [("ask", {"question": "Who will act on the list?"})]))
+        out = A.turn(s, client, "help me with my customers")
+        self.assertIsNotNone(s.case.data)  # the data fact is code's, without a read_table call
+        self.assertEqual(s.case.data.status, "computed")
+        self.assertIn("1200 rows", out["text"])  # the row count may be said: code computed it
+        self.assertEqual(len(client.seen), 1)  # one model call for the whole turn
+
+    def test_a_confirmation_after_go_ahead_is_refused_and_the_agent_acts(self):
+        s = state()
+        A.turn(s, Script(("", [("ask", {"question": "Should I rank customers by risk?"})])), "help me keep customers")
+        client = Script(("", [("ask", {"question": "Does that match what you need?"})]),
+                        ("Starting now: DCLab will rank your customers by risk.", [("start", {"track": "prediction", "tool": "ml_project", "quote": "go ahead"})]))
+        out = A.turn(s, client, "Yes, go ahead with it.")
+        refused = [m for m in client.seen[1] if m.get("role") == "tool"]
+        self.assertIn("go ahead", refused[0]["content"])
+        self.assertNotIn("Does that match", out["text"])
+
+    def test_after_go_ahead_a_question_about_something_missing_is_still_allowed(self):
+        s = state()
+        A.turn(s, Script(("", [("ask", {"question": "What is your goal?"})])), "help me")
+        out = A.turn(s, Script(("", [("ask", {"question": "Which column says a customer left?"})])), "go ahead")
+        self.assertIn("Which column says a customer left?", out["text"])
+
+    def test_stop_asking_counts_as_go_ahead(self):
+        self.assertTrue(A.goes_ahead("Stop asking me for the export date. Run the check now."))
+        self.assertTrue(A.goes_ahead("Go ahead with the build."))
+        self.assertFalse(A.goes_ahead("Don't go ahead yet, wait for my manager."))
+        self.assertFalse(A.goes_ahead("We want to keep members."))
+
+
+class QueryCapTests(unittest.TestCase):
+    """2026-10-31 (CEX-014: 98 table queries in 10 conversations once the table was read by code): at most two queries a
+    turn, as the prompt asks; a third is refused and the agent writes to the person."""
+
+    def test_a_third_query_in_one_turn_is_refused(self):
+        s = state()
+        s.frame = __import__("pandas").DataFrame({"customer_id": ["a", "b", "c", "d", "e", "f"], "plan": ["x", "x", "x", "y", "y", "y"],
+                                                 "churned_next_month": [1, 0, 0, 1, 1, 0]})
+        q = ("query", {"group_by": ["plan"], "measures": [{"name": "customers", "op": "count"}]})
+        client = Script(("", [q, q, q]), ("Plans x and y each have 3 customers. Who acts on this?", [("ask", {"question": "Who acts on this?"})]))
+        A.turn(s, client, "how do my plans compare?")
+        results = [m["content"] for m in client.seen[1] if m.get("role") == "tool"]
+        self.assertNotIn("error", results[0])
+        self.assertIn("twice this turn", results[2])
+        A.turn(s, Script(("", [q]), ("ok", [("ask", {"question": "Next?"})])), "and now?")  # a new turn may query again
+        self.assertEqual(s.queries, 1)
+
+    def test_send_it_now_is_a_go_ahead(self):
+        self.assertTrue(A.goes_ahead("You still haven't sent the table I asked for. Send it now."))

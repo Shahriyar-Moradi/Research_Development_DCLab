@@ -460,6 +460,16 @@ class _GatewayView:
         return getattr(self.budget.gateway, name)
 
 
+PRACTICE_EFFORT = "high"  # the owner (2026-10-31, $13 left): practice runs think at high effort, sealed runs keep extra-high
+
+
+def practice_effort() -> str:
+    """A practice run's thinking effort: high, cheaper than extra-high; the thinking summary is still asked for and kept
+    whole. A sealed run never calls this, so it keeps the workspace's setting."""
+    os.environ["DCLAB_THINKING_EFFORT"] = PRACTICE_EFFORT
+    return PRACTICE_EFFORT
+
+
 def mark_invented_tables(gateway: Any, split: str) -> None:
     """A practice (dev) run's tables are invented by code (``home.tables``: seeded, never a real file), so this run's gateway
     keeps its model calls whole even where they saw cells. A sealed run is never marked: it is kept whole in the exam vault
@@ -548,6 +558,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         _experience.sealed_run(args.split, vault=vault)  # its calls: shape in the log, whole in the vault
     else:
         mark_invented_tables(gateway, args.split)
+        practice_effort()
     standard = str((_settings.tier("standard") or {}).get("model") or "")
     if not standard.startswith("claude"):
         print(f"refused: the exam's arms run on the product's Claude model; the standard tier serves {standard!r}", file=sys.stderr)
