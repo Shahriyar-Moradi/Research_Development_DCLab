@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import statistics
 import sys
@@ -459,6 +460,14 @@ class _GatewayView:
         return getattr(self.budget.gateway, name)
 
 
+def mark_invented_tables(gateway: Any, split: str) -> None:
+    """A practice (dev) run's tables are invented by code (``home.tables``: seeded, never a real file), so this run's gateway
+    keeps its model calls whole even where they saw cells. A sealed run is never marked: it is kept whole in the exam vault
+    only, outside every training set."""
+    if "sealed" not in str(split).lower() and str(split).lower() != "test":
+        gateway.invented_tables = f"conversation exam {split}"
+
+
 def next_id() -> str:
     """The next run's id, past every stored result and every kept folder (a run stopped early stores no result: reusing its id
     overwrote two of its conversations, 2026-10-30)."""
@@ -537,6 +546,8 @@ def main(argv: Optional[list[str]] = None) -> int:
 
         vault = Path(Settings().agent_home) / "exam_vault" / f"{run}_{args.split}"  # outside every folder the store reads
         _experience.sealed_run(args.split, vault=vault)  # its calls: shape in the log, whole in the vault
+    else:
+        mark_invented_tables(gateway, args.split)
     standard = str((_settings.tier("standard") or {}).get("model") or "")
     if not standard.startswith("claude"):
         print(f"refused: the exam's arms run on the product's Claude model; the standard tier serves {standard!r}", file=sys.stderr)

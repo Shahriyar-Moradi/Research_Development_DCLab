@@ -542,6 +542,11 @@ class Bound:
                 return
             flag = self.request_cells if cells is ... else cells
             shown_cells = flag if flag is not None else int(getattr(self.p, "cell_values", 0) or 0) > 0
+            # 2026-10-31: cells of tables code invented (a practice exam's) hide no one, so the call is kept whole. An attribute
+            # of the one gateway that made those tables, never a setting: no .env can turn it on for the server or the worker
+            invented = str(getattr(self.gateway, "invented_tables", "") or "").strip()
+            if invented and shown_cells:
+                shown_cells = False
             # the owner (2026-10-28): every model call keeps its thinking for training. Kept here, in the workspace, whole for
             # every purpose shown no cell values; whether it may leave the workspace is still the purpose's keeps_text
             # (consent.py, 23.10), written on the line as ``may_leave``. Measured that night: about 730 calls had thought and
@@ -563,6 +568,8 @@ class Bound:
             if asked is ...:  # the served call: its own transport's setting
                 asked = _asked_of(getattr(self, "_transport", None))
             doc["thinking_asked"] = asked
+            if invented:
+                doc["tables"] = f"invented: {invented}"
             from .anthropic_client import NO_THINKING_MODELS
 
             if asked and not thinking and str(doc["model"]) in NO_THINKING_MODELS:  # sent without: said, never hidden (a reply with thinking was sent with it)

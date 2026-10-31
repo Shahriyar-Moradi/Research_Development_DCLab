@@ -76,6 +76,47 @@ class CellsThinkingTest(unittest.TestCase):
         self.assertNotIn("ann@example.com", json.dumps(line["thinking_redacted"]))
         self.assertIn("looks odd", line["thinking_redacted"][0]["text"])
 
+    def test_cells_of_invented_tables_keep_the_exchange_whole(self):
+        """2026-10-31: the practice exams' lead agent saw cells of tables code invented, so 306 of its calls kept only a
+        redacted thinking and no words. An invented table hides no one: the exam's own gateway says so and the call is kept
+        whole. The review: never a setting, so no .env can loosen the rule for the server that reads people's tables."""
+        import json
+        import tempfile
+
+        def kept(gateway_attr, env):
+            home = Path(tempfile.mkdtemp())
+            g = gw.Gateway()
+            if gateway_attr:
+                g.invented_tables = gateway_attr
+            g.transport = lambda tier, p: Transport()
+            bound = gw.Bound(g, "case_agent", settings.purpose("case_agent"), {"name": "standard", "model": "m"}, None, None)
+            bound.request_cells = True
+            out = {"content": "done", "thinking": [{"text": "Plan basic churns more.", "signature": "s"}]}
+            with mock.patch.object(gw, "_exchange_home", lambda gateway, live=False: home), \
+                    mock.patch.dict(os.environ, {"DCLAB_LOG_PROMPTS": "1", **env}):
+                bound._keep_exchange("r1", [{"role": "user", "content": "rows"}], out, "ok")
+            return json.loads(next((home / "model_exchanges").rglob("*.jsonl")).read_text().splitlines()[0])
+
+        line = kept("conversation exam dev", {})
+        self.assertTrue(line["whole"])
+        self.assertEqual((line["messages"][0]["content"], line["thinking"][0]["text"]), ("rows", "Plan basic churns more."))
+        self.assertEqual(line["tables"], "invented: conversation exam dev")
+        self.assertFalse(kept(None, {})["whole"])  # today's rule without the mark: words not kept
+        self.assertFalse(kept(None, {"DCLAB_INVENTED_TABLES": "1"})["whole"])  # a setting never turns it on
+
+    def test_the_exam_marks_only_a_practice_runs_gateway(self):
+        from dclab_rnd.agent_eval import conversation_exam as ce
+
+        class G:
+            pass
+
+        dev, sealed, test = G(), G(), G()
+        ce.mark_invented_tables(dev, "dev")
+        ce.mark_invented_tables(sealed, "sealed_v1")  # kept whole in the vault, never in the workspace
+        ce.mark_invented_tables(test, "test")
+        self.assertEqual(dev.invented_tables, "conversation exam dev")
+        self.assertFalse(hasattr(sealed, "invented_tables") or hasattr(test, "invented_tables"))
+
     def test_an_exams_shape_only_exchange_says_so_and_is_never_counted_as_lost_thinking(self):
         """2026-10-30: 1,020 shape-only exchanges since 28 Oct were all sealed exams' (shape only by the owner's rule), but
         each said the same vague reason and the coverage counted them as thinking lost."""
