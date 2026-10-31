@@ -1,0 +1,525 @@
+{
+ "runs": [
+  {
+   "run": "CEX-013",
+   "about": "sealed, 40 people, run once",
+   "measures": [
+    {
+     "measure": "understanding",
+     "higher_is_better": true,
+     "people": 40,
+     "lead_better": 18,
+     "same": 18,
+     "lead_worse": 4,
+     "lead_mean": 0.8542,
+     "claude_mean": 0.6208,
+     "difference": 0.2333,
+     "interval_90": [
+      0.1375,
+      0.3292
+     ],
+     "clear": true,
+     "winner": "lead agent",
+     "by": "judge"
+    },
+    {
+     "measure": "option fit",
+     "higher_is_better": true,
+     "people": 10,
+     "lead_better": 10,
+     "same": 0,
+     "lead_worse": 0,
+     "lead_mean": 4.2,
+     "claude_mean": 2.6,
+     "difference": 1.6,
+     "interval_90": [
+      1.2,
+      2.0
+     ],
+     "clear": true,
+     "winner": "lead agent",
+     "by": "judge"
+    },
+    {
+     "measure": "right route reached",
+     "higher_is_better": true,
+     "people": 40,
+     "lead_better": 3,
+     "same": 34,
+     "lead_worse": 3,
+     "lead_mean": 0.9,
+     "claude_mean": 0.9,
+     "difference": 0.0,
+     "interval_90": [
+      -0.1,
+      0.1
+     ],
+     "clear": false,
+     "winner": "no clear difference",
+     "by": "code"
+    },
+    {
+     "measure": "trap handled",
+     "higher_is_better": true,
+     "people": 19,
+     "lead_better": 7,
+     "same": 12,
+     "lead_worse": 0,
+     "lead_mean": 1.0,
+     "claude_mean": 0.6316,
+     "difference": 0.3684,
+     "interval_90": [
+      0.2105,
+      0.5263
+     ],
+     "clear": true,
+     "winner": "lead agent",
+     "by": "judge"
+    },
+    {
+     "measure": "useful questions (share)",
+     "higher_is_better": true,
+     "people": 32,
+     "lead_better": 4,
+     "same": 15,
+     "lead_worse": 13,
+     "lead_mean": 0.8719,
+     "claude_mean": 0.9479,
+     "difference": -0.0761,
+     "interval_90": [
+      -0.1507,
+      -0.0014
+     ],
+     "clear": true,
+     "winner": "Claude alone",
+     "by": "judge"
+    },
+    {
+     "measure": "questions already answered",
+     "higher_is_better": false,
+     "people": 40,
+     "lead_better": 4,
+     "same": 23,
+     "lead_worse": 13,
+     "lead_mean": 0.425,
+     "claude_mean": 0.1,
+     "difference": 0.325,
+     "interval_90": [
+      0.125,
+      0.55
+     ],
+     "clear": true,
+     "winner": "Claude alone",
+     "by": "judge"
+    },
+    {
+     "measure": "invented numbers and broken rules",
+     "higher_is_better": false,
+     "people": 40,
+     "lead_better": 27,
+     "same": 13,
+     "lead_worse": 0,
+     "lead_mean": 0.0,
+     "claude_mean": 15.45,
+     "difference": -15.45,
+     "interval_90": [
+      -29.925,
+      -5.575
+     ],
+     "clear": true,
+     "winner": "lead agent",
+     "by": "code"
+    },
+    {
+     "measure": "seconds per reply",
+     "higher_is_better": false,
+     "people": 40,
+     "lead_better": 7,
+     "same": 0,
+     "lead_worse": 33,
+     "lead_mean": 33.5405,
+     "claude_mean": 26.1938,
+     "difference": 7.3468,
+     "interval_90": [
+      1.3275,
+      12.5652
+     ],
+     "clear": true,
+     "winner": "Claude alone",
+     "by": "code"
+    },
+    {
+     "measure": "cost per person (EUR)",
+     "higher_is_better": false,
+     "people": 40,
+     "lead_better": 6,
+     "same": 0,
+     "lead_worse": 34,
+     "lead_mean": 0.2023,
+     "claude_mean": 0.1164,
+     "difference": 0.0858,
+     "interval_90": [
+      0.0046,
+      0.155
+     ],
+     "clear": true,
+     "winner": "Claude alone",
+     "by": "code"
+    }
+   ],
+   "traps": {
+    "clear_request": {
+     "lead": [
+      6,
+      6
+     ],
+     "claude": [
+      6,
+      6
+     ]
+    },
+    "report_not_model": {
+     "lead": [
+      2,
+      2
+     ],
+     "claude": [
+      1,
+      2
+     ]
+    },
+    "real_prediction": {
+     "lead": [
+      2,
+      2
+     ],
+     "claude": [
+      0,
+      2
+     ]
+    },
+    "missing_column": {
+     "lead": [
+      3,
+      3
+     ],
+     "claude": [
+      3,
+      3
+     ]
+    },
+    "no_outcome": {
+     "lead": [
+      1,
+      1
+     ],
+     "claude": [
+      1,
+      1
+     ]
+    },
+    "vague_goal": {
+     "lead": [
+      3,
+      3
+     ],
+     "claude": [
+      0,
+      3
+     ]
+    },
+    "rows_request": {
+     "lead": [
+      1,
+      1
+     ],
+     "claude": [
+      1,
+      1
+     ]
+    },
+    "silent_drop": {
+     "lead": [
+      1,
+      1
+     ],
+     "claude": [
+      0,
+      1
+     ]
+    }
+   }
+  },
+  {
+   "run": "CEX-009",
+   "about": "practice, 41 people",
+   "measures": [
+    {
+     "measure": "understanding",
+     "higher_is_better": true,
+     "people": 41,
+     "lead_better": 25,
+     "same": 16,
+     "lead_worse": 0,
+     "lead_mean": 0.8821,
+     "claude_mean": 0.5244,
+     "difference": 0.3577,
+     "interval_90": [
+      0.2764,
+      0.4431
+     ],
+     "clear": true,
+     "winner": "lead agent",
+     "by": "judge"
+    },
+    {
+     "measure": "option fit",
+     "higher_is_better": true,
+     "people": 13,
+     "lead_better": 11,
+     "same": 0,
+     "lead_worse": 2,
+     "lead_mean": 4.0769,
+     "claude_mean": 3.0769,
+     "difference": 1.0,
+     "interval_90": [
+      0.5385,
+      1.3846
+     ],
+     "clear": true,
+     "winner": "lead agent",
+     "by": "judge"
+    },
+    {
+     "measure": "right route reached",
+     "higher_is_better": true,
+     "people": 41,
+     "lead_better": 3,
+     "same": 33,
+     "lead_worse": 5,
+     "lead_mean": 0.7317,
+     "claude_mean": 0.7805,
+     "difference": -0.0488,
+     "interval_90": [
+      -0.1707,
+      0.0732
+     ],
+     "clear": false,
+     "winner": "no clear difference",
+     "by": "code"
+    },
+    {
+     "measure": "trap handled",
+     "higher_is_better": true,
+     "people": 19,
+     "lead_better": 7,
+     "same": 12,
+     "lead_worse": 0,
+     "lead_mean": 0.9474,
+     "claude_mean": 0.5789,
+     "difference": 0.3684,
+     "interval_90": [
+      0.2105,
+      0.5263
+     ],
+     "clear": true,
+     "winner": "lead agent",
+     "by": "judge"
+    },
+    {
+     "measure": "useful questions (share)",
+     "higher_is_better": true,
+     "people": 23,
+     "lead_better": 4,
+     "same": 15,
+     "lead_worse": 4,
+     "lead_mean": 0.9145,
+     "claude_mean": 0.913,
+     "difference": 0.0014,
+     "interval_90": [
+      -0.079,
+      0.0826
+     ],
+     "clear": false,
+     "winner": "no clear difference",
+     "by": "judge"
+    },
+    {
+     "measure": "questions already answered",
+     "higher_is_better": false,
+     "people": 41,
+     "lead_better": 3,
+     "same": 32,
+     "lead_worse": 6,
+     "lead_mean": 0.1707,
+     "claude_mean": 0.0976,
+     "difference": 0.0732,
+     "interval_90": [
+      -0.0488,
+      0.1951
+     ],
+     "clear": false,
+     "winner": "no clear difference",
+     "by": "judge"
+    },
+    {
+     "measure": "invented numbers and broken rules",
+     "higher_is_better": false,
+     "people": 41,
+     "lead_better": 8,
+     "same": 33,
+     "lead_worse": 0,
+     "lead_mean": 0.0,
+     "claude_mean": 0.8049,
+     "difference": -0.8049,
+     "interval_90": [
+      -1.3902,
+      -0.2927
+     ],
+     "clear": true,
+     "winner": "lead agent",
+     "by": "code"
+    },
+    {
+     "measure": "seconds per reply",
+     "higher_is_better": false,
+     "people": 41,
+     "lead_better": 2,
+     "same": 0,
+     "lead_worse": 39,
+     "lead_mean": 22.7329,
+     "claude_mean": 13.9771,
+     "difference": 8.7559,
+     "interval_90": [
+      6.0629,
+      11.1027
+     ],
+     "clear": true,
+     "winner": "Claude alone",
+     "by": "code"
+    },
+    {
+     "measure": "cost per person (EUR)",
+     "higher_is_better": false,
+     "people": 41,
+     "lead_better": 0,
+     "same": 0,
+     "lead_worse": 41,
+     "lead_mean": 0.1014,
+     "claude_mean": 0.0176,
+     "difference": 0.0838,
+     "interval_90": [
+      0.0703,
+      0.0982
+     ],
+     "clear": true,
+     "winner": "Claude alone",
+     "by": "code"
+    }
+   ],
+   "traps": {
+    "report_not_model": {
+     "lead": [
+      2,
+      2
+     ],
+     "claude": [
+      1,
+      2
+     ]
+    },
+    "real_prediction": {
+     "lead": [
+      1,
+      2
+     ],
+     "claude": [
+      0,
+      2
+     ]
+    },
+    "clear_request": {
+     "lead": [
+      6,
+      6
+     ],
+     "claude": [
+      6,
+      6
+     ]
+    },
+    "no_outcome": {
+     "lead": [
+      1,
+      1
+     ],
+     "claude": [
+      1,
+      1
+     ]
+    },
+    "vague_goal": {
+     "lead": [
+      3,
+      3
+     ],
+     "claude": [
+      0,
+      3
+     ]
+    },
+    "missing_column": {
+     "lead": [
+      3,
+      3
+     ],
+     "claude": [
+      2,
+      3
+     ]
+    },
+    "rows_request": {
+     "lead": [
+      1,
+      1
+     ],
+     "claude": [
+      1,
+      1
+     ]
+    },
+    "silent_drop": {
+     "lead": [
+      1,
+      1
+     ],
+     "claude": [
+      0,
+      1
+     ]
+    }
+   }
+  }
+ ],
+ "people_check": {
+  "papers": 10,
+  "judge_owner_agreement": 0.6556,
+  "understood_by_arm": {
+   "case": {
+    "owner": 0.8,
+    "second": 0.87,
+    "judge": 0.87
+   },
+   "home": {
+    "owner": 0.75,
+    "second": 0.08,
+    "judge": 0.17
+   },
+   "plain": {
+    "owner": 0.92,
+    "second": 0.67,
+    "judge": 0.67
+   }
+  }
+ }
+}
