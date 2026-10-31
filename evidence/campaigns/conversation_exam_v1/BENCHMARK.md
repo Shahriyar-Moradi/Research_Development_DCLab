@@ -27,6 +27,8 @@ offered or taken; traps the mean of the planted traps' rates; seconds per turn t
 | CEX-014 | dev | lead agent | 10 | 0.93 | 4.25 | 0.70 | 5 | 0 | 0.70 | 36.6 | 1.89 |  |
 | CEX-015 | dev | lead agent | 12 | 0.93 | 4.25 | 0.75 | 3 | 0 | 0.80 | 31.7 | 1.93 |  |
 | CEX-016 | dev | lead agent | 12 | 0.94 | 4.50 | 0.83 | 7 | 0 | 0.70 | 15.6 | 0.94 |  |
+| CEX-017 | sealed_v2 | Claude alone | 19 | 0.82 | 3.44 | 1.00 | 1 | 139 | 0.69 | 23.6 | 1.50 |  |
+| CEX-017 | sealed_v2 | lead agent | 19 | 0.93 | 4.42 | 0.79 | 6 | 0 | 0.56 | 22.1 | 2.70 | fail |
 
 ## The judge against the people who labelled
 
@@ -42,11 +44,11 @@ thinking on (adaptive) with display 'summarized' for every purpose; the summary 
 
 | where | purpose | calls | kept whole | with thinking |
 |---|---|---|---|---|
-| workspace log (every use of the purpose) | case_agent | 2074 | 1152 | 1189 |
+| workspace log (every use of the purpose) | case_agent | 2345 | 1152 | 1189 |
 | workspace log (every use of the purpose) | case_specialist | 1 | 0 | 0 |
-| workspace log (every use of the purpose) | exam_judge | 403 | 281 | 271 |
-| workspace log (every use of the purpose) | exam_person | 970 | 639 | 620 |
-| workspace log (every use of the purpose) | exam_plain | 622 | 349 | 199 |
+| workspace log (every use of the purpose) | exam_judge | 448 | 285 | 271 |
+| workspace log (every use of the purpose) | exam_person | 1089 | 639 | 620 |
+| workspace log (every use of the purpose) | exam_plain | 756 | 349 | 199 |
 | workspace log (every use of the purpose) | home_agent | 3574 | 2166 | 841 |
 | workspace log (every use of the purpose) | home_intent | 619 | 395 | 338 |
 | workspace log (every use of the purpose) | home_query | 27 | 19 | 12 |
@@ -60,6 +62,10 @@ thinking on (adaptive) with display 'summarized' for every purpose; the summary 
 | vault CEX-013_sealed_v1 | home_intent | 40 | 40 | 40 |
 | vault CEX-013_sealed_v1 | home_query | 8 | 8 | 8 |
 | vault CEX-013_sealed_v1 | home_understand | 33 | 33 | 33 |
+| vault CEX-017_sealed_v2 | case_agent | 271 | 271 | 225 |
+| vault CEX-017_sealed_v2 | exam_judge | 41 | 41 | 40 |
+| vault CEX-017_sealed_v2 | exam_person | 119 | 119 | 119 |
+| vault CEX-017_sealed_v2 | exam_plain | 134 | 134 | 100 |
 
 In the workspace log a sealed run's calls are kept by shape only (whole only in its vault), and before 2026-10-31
 a practice call that saw table cells kept a redacted thinking without its words; a call can also return no thinking

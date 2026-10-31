@@ -1,6 +1,256 @@
 {
  "runs": [
   {
+   "run": "CEX-017",
+   "about": "sealed v2, the short lead agent, 19 people, run once",
+   "measures": [
+    {
+     "measure": "understanding",
+     "higher_is_better": true,
+     "people": 19,
+     "lead_better": 7,
+     "same": 11,
+     "lead_worse": 1,
+     "lead_mean": 0.9342,
+     "claude_mean": 0.8158,
+     "difference": 0.1184,
+     "interval_90": [
+      0.0395,
+      0.2105
+     ],
+     "clear": true,
+     "winner": "lead agent",
+     "by": "judge"
+    },
+    {
+     "measure": "option fit",
+     "higher_is_better": true,
+     "people": 6,
+     "lead_better": 4,
+     "same": 2,
+     "lead_worse": 0,
+     "lead_mean": 4.1667,
+     "claude_mean": 3.3333,
+     "difference": 0.8333,
+     "interval_90": [
+      0.3333,
+      1.3333
+     ],
+     "clear": true,
+     "winner": "lead agent",
+     "by": "judge"
+    },
+    {
+     "measure": "right route reached",
+     "higher_is_better": true,
+     "people": 19,
+     "lead_better": 0,
+     "same": 15,
+     "lead_worse": 4,
+     "lead_mean": 0.7895,
+     "claude_mean": 1.0,
+     "difference": -0.2105,
+     "interval_90": [
+      -0.3684,
+      -0.0526
+     ],
+     "clear": true,
+     "winner": "Claude alone",
+     "by": "code"
+    },
+    {
+     "measure": "trap handled",
+     "higher_is_better": true,
+     "people": 12,
+     "lead_better": 4,
+     "same": 3,
+     "lead_worse": 5,
+     "lead_mean": 0.5833,
+     "claude_mean": 0.6667,
+     "difference": -0.0833,
+     "interval_90": [
+      -0.5,
+      0.3333
+     ],
+     "clear": false,
+     "winner": "no clear difference",
+     "by": "judge"
+    },
+    {
+     "measure": "useful questions (share)",
+     "higher_is_better": true,
+     "people": 17,
+     "lead_better": 0,
+     "same": 13,
+     "lead_worse": 4,
+     "lead_mean": 0.936,
+     "claude_mean": 1.0,
+     "difference": -0.064,
+     "interval_90": [
+      -0.1165,
+      -0.0147
+     ],
+     "clear": true,
+     "winner": "Claude alone",
+     "by": "judge"
+    },
+    {
+     "measure": "questions already answered",
+     "higher_is_better": false,
+     "people": 19,
+     "lead_better": 0,
+     "same": 14,
+     "lead_worse": 5,
+     "lead_mean": 0.3158,
+     "claude_mean": 0.0526,
+     "difference": 0.2632,
+     "interval_90": [
+      0.1053,
+      0.4211
+     ],
+     "clear": true,
+     "winner": "Claude alone",
+     "by": "judge"
+    },
+    {
+     "measure": "invented numbers and broken rules",
+     "higher_is_better": false,
+     "people": 19,
+     "lead_better": 12,
+     "same": 7,
+     "lead_worse": 0,
+     "lead_mean": 0.0,
+     "claude_mean": 7.3158,
+     "difference": -7.3158,
+     "interval_90": [
+      -12.4211,
+      -3.0526
+     ],
+     "clear": true,
+     "winner": "lead agent",
+     "by": "code"
+    },
+    {
+     "measure": "seconds per reply",
+     "higher_is_better": false,
+     "people": 19,
+     "lead_better": 11,
+     "same": 0,
+     "lead_worse": 8,
+     "lead_mean": 22.0932,
+     "claude_mean": 23.5926,
+     "difference": -1.4995,
+     "interval_90": [
+      -6.6074,
+      3.0779
+     ],
+     "clear": false,
+     "winner": "no clear difference",
+     "by": "code"
+    },
+    {
+     "measure": "cost per person (EUR)",
+     "higher_is_better": false,
+     "people": 19,
+     "lead_better": 4,
+     "same": 0,
+     "lead_worse": 15,
+     "lead_mean": 0.1421,
+     "claude_mean": 0.0789,
+     "difference": 0.0632,
+     "interval_90": [
+      0.0292,
+      0.0965
+     ],
+     "clear": true,
+     "winner": "Claude alone",
+     "by": "code"
+    }
+   ],
+   "traps": {
+    "vague_goal": {
+     "lead": [
+      1,
+      1
+     ],
+     "claude": [
+      0,
+      1
+     ]
+    },
+    "real_prediction": {
+     "lead": [
+      0,
+      1
+     ],
+     "claude": [
+      1,
+      1
+     ]
+    },
+    "report_not_model": {
+     "lead": [
+      2,
+      2
+     ],
+     "claude": [
+      0,
+      2
+     ]
+    },
+    "missing_column": {
+     "lead": [
+      1,
+      2
+     ],
+     "claude": [
+      1,
+      2
+     ]
+    },
+    "rows_request": {
+     "lead": [
+      1,
+      1
+     ],
+     "claude": [
+      1,
+      1
+     ]
+    },
+    "silent_drop": {
+     "lead": [
+      0,
+      1
+     ],
+     "claude": [
+      1,
+      1
+     ]
+    },
+    "no_outcome": {
+     "lead": [
+      2,
+      2
+     ],
+     "claude": [
+      2,
+      2
+     ]
+    },
+    "clear_request": {
+     "lead": [
+      0,
+      2
+     ],
+     "claude": [
+      2,
+      2
+     ]
+    }
+   }
+  },
+  {
    "run": "CEX-013",
    "about": "sealed, 40 people, run once",
    "measures": [

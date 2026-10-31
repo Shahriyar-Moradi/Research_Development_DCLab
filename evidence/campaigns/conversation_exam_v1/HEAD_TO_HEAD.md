@@ -4,6 +4,31 @@ Rebuilt by `python -m dclab_rnd.agent_eval.conversation_exam.headtohead`; do not
 people; 'better/same/worse' counts people for the lead agent; the interval is the paired difference's 90% bootstrap
 range; 'clear' means the whole range is on one side of zero.
 
+## CEX-017 (sealed v2, the short lead agent, 19 people, run once)
+
+| measure | by | lead better | same | lead worse | lead agent | Claude alone | difference | 90% range | winner |
+|---|---|---|---|---|---|---|---|---|---|
+| understanding | judge | 7 | 11 | 1 | 0.93 | 0.82 | +0.12 | +0.04 to +0.21 | lead agent |
+| option fit | judge | 4 | 2 | 0 | 4.17 | 3.33 | +0.83 | +0.33 to +1.33 | lead agent |
+| right route reached | code | 0 | 15 | 4 | 0.79 | 1.00 | -0.21 | -0.37 to -0.05 | Claude alone |
+| trap handled | judge | 4 | 3 | 5 | 0.58 | 0.67 | -0.08 | -0.50 to +0.33 | no clear difference |
+| useful questions (share) | judge | 0 | 13 | 4 | 0.94 | 1.00 | -0.06 | -0.12 to -0.01 | Claude alone |
+| questions already answered | judge | 0 | 14 | 5 | 0.32 | 0.05 | +0.26 | +0.11 to +0.42 | Claude alone |
+| invented numbers and broken rules | code | 12 | 7 | 0 | 0.00 | 7.32 | -7.32 | -12.42 to -3.05 | lead agent |
+| seconds per reply | code | 11 | 0 | 8 | 22.09 | 23.59 | -1.50 | -6.61 to +3.08 | no clear difference |
+| cost per person (EUR) | code | 4 | 0 | 15 | 0.14 | 0.08 | +0.06 | +0.03 to +0.10 | Claude alone |
+
+| trap | lead agent | Claude alone |
+|---|---|---|
+| clear_request | 0 of 2 | 2 of 2 |
+| missing_column | 1 of 2 | 1 of 2 |
+| no_outcome | 2 of 2 | 2 of 2 |
+| real_prediction | 0 of 1 | 1 of 1 |
+| report_not_model | 2 of 2 | 0 of 2 |
+| rows_request | 1 of 1 | 1 of 1 |
+| silent_drop | 0 of 1 | 1 of 1 |
+| vague_goal | 1 of 1 | 0 of 1 |
+
 ## CEX-013 (sealed, 40 people, run once)
 
 | measure | by | lead better | same | lead worse | lead agent | Claude alone | difference | 90% range | winner |

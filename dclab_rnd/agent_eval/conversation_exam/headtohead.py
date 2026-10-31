@@ -19,7 +19,8 @@ from typing import Any, Callable, Mapping, Optional
 from . import CAMPAIGN
 from .gate import GATE_V1
 
-RUNS = (("CEX-013_sealed_v1", "sealed, 40 people, run once"), ("CEX-009_dev", "practice, 41 people"))
+RUNS = (("CEX-017_sealed_v2", "sealed v2, the short lead agent, 19 people, run once"), ("CEX-013_sealed_v1", "sealed, 40 people, run once"),
+        ("CEX-009_dev", "practice, 41 people"))
 JUDGED = {"understanding", "option fit", "trap handled", "useful questions (share)", "questions already answered"}  # by the judge
 # name, how to read it from a person's score, higher is better
 MEASURES: tuple[tuple[str, Callable[[Mapping[str, Any]], Optional[float]], bool], ...] = (
