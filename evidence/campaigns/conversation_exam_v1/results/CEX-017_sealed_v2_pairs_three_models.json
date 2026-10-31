@@ -1,0 +1,140 @@
+{
+ "id": "CEX-017",
+ "split": "sealed_v2",
+ "what": "blind pair picks on the 8 shortest sealed v2 pairs by three separate Claude agents (Opus, Sonnet, Haiku) run by the owner (2026-11-01); sides shuffled, key in the vault; numbers only",
+ "at": "2026-10-31T20:47:00+00:00",
+ "by_model": {
+  "opus": {
+   "rows": [
+    {
+     "pair": "pair-01",
+     "winner": "Claude alone"
+    },
+    {
+     "pair": "pair-02",
+     "winner": "Claude alone"
+    },
+    {
+     "pair": "pair-03",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-04",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-05",
+     "winner": "Claude alone"
+    },
+    {
+     "pair": "pair-06",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-07",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-08",
+     "winner": "lead agent"
+    }
+   ],
+   "lead": 5,
+   "claude": 3,
+   "same": 0
+  },
+  "sonnet": {
+   "rows": [
+    {
+     "pair": "pair-01",
+     "winner": "Claude alone"
+    },
+    {
+     "pair": "pair-02",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-03",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-04",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-05",
+     "winner": "same"
+    },
+    {
+     "pair": "pair-06",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-07",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-08",
+     "winner": "lead agent"
+    }
+   ],
+   "lead": 6,
+   "claude": 1,
+   "same": 1
+  },
+  "haiku": {
+   "rows": [
+    {
+     "pair": "pair-01",
+     "winner": "Claude alone"
+    },
+    {
+     "pair": "pair-02",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-03",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-04",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-05",
+     "winner": "Claude alone"
+    },
+    {
+     "pair": "pair-06",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-07",
+     "winner": "lead agent"
+    },
+    {
+     "pair": "pair-08",
+     "winner": "lead agent"
+    }
+   ],
+   "lead": 6,
+   "claude": 2,
+   "same": 0
+  }
+ },
+ "majority": {
+  "rows": [
+   "Claude alone",
+   "lead agent",
+   "lead agent",
+   "lead agent",
+   "Claude alone",
+   "lead agent",
+   "lead agent",
+   "lead agent"
+  ],
+  "lead": 6,
+  "claude": 2
+ },
+ "agreement_between_models": "all three agree on 6 of 8 pairs"
+}
