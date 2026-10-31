@@ -92,6 +92,26 @@
    "cause": "long messages touch more points and the judge counted them as shown",
    "fix": "the judge's prompt: length is not understanding; the lead agent's prompt: short messages",
    "test": "re-judging the 7 papers: agreement 0.65 to 0.71; harness and agent-eval pass"
+  },
+  {
+   "id": "F6",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The lead agent asked for a yes after the person had said yes",
+   "scenario": "practice d-06 (CEX-012): four 'give me one plain yes' turns before the build; sealed v2 clear requests 0 of 2; blind pairs and a second labeller named it",
+   "cause": "says_yes refused any message holding a delay word anywhere ('hold the holdout until ...'), so request_build was refused and the agent asked again; it also wrote 'Shall I build now?' in its text after a go-ahead",
+   "fix": "a leading yes or the build named counts unless a refusal is aimed at building; after a go-ahead, confirmation questions are dropped from the message (kept when they were the whole message)",
+   "test": "tests/test_case_agent.py YesAfterYesTests"
+  },
+  {
+   "id": "F7",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The number check cut the heart of an answer and left a fragment",
+   "scenario": "CEX-018 d-36: only 'Does that cover what you need?' reached the person; d-15: the table was dropped and the next turn apologised",
+   "cause": "sentences with numbers nobody gave or code computed are dropped; when they are the answer, the rewrite can still fail and the leftover question is sent",
+   "fix": "not yet: when most of a message is dropped, the agent should write the whole answer again with the computed numbers",
+   "test": "open"
   }
  ],
  "measurements": [
@@ -122,6 +142,13 @@
    "result": "0.65 before, 0.71 after (7 papers)",
    "verdict": "pass",
    "cost_eur": 0.04
+  },
+  {
+   "name": "CEX-018 (the yes fix) on 8 practice people",
+   "gate": "fewer yes-after-yes turns; clear requests passed",
+   "result": "d-06: build recorded after 2 turns (7 before), 1 yes request (4 before); route 7 of 8; clear requests 4 of 6 (the two misses from the number check, F7); 0 invented numbers",
+   "verdict": "pass",
+   "cost_eur": 0.59
   }
  ],
  "outcome": "The lead agent is now short: about twice as fast and 60% cheaper on the practice people, still without an invented number; repeated questions rose and the route is one person short of CEX-012, both to watch. The judge agrees with the owner 0.71 on 7 papers with the length rule.",

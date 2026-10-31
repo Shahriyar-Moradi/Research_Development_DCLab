@@ -646,3 +646,28 @@ class QueryCapTests(unittest.TestCase):
 
     def test_send_it_now_is_a_go_ahead(self):
         self.assertTrue(A.goes_ahead("You still haven't sent the table I asked for. Send it now."))
+
+
+class YesAfterYesTests(unittest.TestCase):
+    """2026-11-01 (sealed v2, blind pairs, a second labeller): the lead agent asked for a yes after the person said yes. A
+    long yes ("Yes, start the build ... hold the holdout until ...") failed the yes check on the word "hold", so the build
+    request was refused and the agent asked again; and it wrote "Shall I build now?" in its text after a go-ahead."""
+
+    def test_a_long_yes_with_conditions_counts(self):
+        for w in ("Yes, start the build. Begin with the holdout churner count, and hold the holdout until we have locked the margin.",
+                  "Yes, build it that way. Three things before you start. Go ahead with the build on the extract for now.",
+                  "Go ahead: start with the churner count. Keep the holdout closed until the build is done.",
+                  "Sure, build it."):
+            self.assertTrue(A.says_yes(w), w)
+
+    def test_a_refusal_still_refuses(self):
+        for w in ("No, do not build yet.", "Wait, not yet.", "Yes, but don't build it until Monday.", "Please hold off on the build.",
+                  "Sure, but wait until my manager agrees before you start."):
+            self.assertFalse(A.says_yes(w), w)
+
+    def test_a_confirmation_question_in_the_text_after_a_go_ahead_is_dropped(self):
+        s = state()
+        A.turn(s, Script(("", [("ask", {"question": "Should I rank customers by risk?"})])), "help me keep customers")
+        out = A.turn(s, Script(("Your yes is noted: DCLab starts ranking customers by risk now. Shall I build now?", [])), "Yes, go ahead and build it.")
+        self.assertIn("starts ranking", out["text"])
+        self.assertNotIn("Shall I build", out["text"])

@@ -61,9 +61,22 @@ def goes_ahead(words: str) -> bool:
     return bool(GO_AHEAD.search(w)) and not HOLD.search(w)
 
 
+# 2026-11-01: a long yes with conditions ("Yes, start the build ... hold the holdout until ...") failed on a word such as "hold"
+# or "not" anywhere in it, so the build was refused and the agent asked for a yes again. A yes now leads the message or names
+# the build; only a refusal aimed at building (or a leading no or wait) still refuses.
+LEADING_YES = re.compile(r"^\W*(?:yes|yeah|yep|sure|ok(?:ay)?|go ahead|please (?:build|start|go ahead))\b", re.I)
+BUILD_YES = re.compile(r"\b(?:start the build|go ahead with the build|build it|start building|build now|start it now)\b", re.I)
+REFUSE_BUILD = re.compile(r"\b(?:don'?t|do not|not yet|wait|hold off|later|never|cancel)\b[^.!?]{0,40}\b(?:build|start|go ahead)|"
+                          r"\bhold off\b|^\W*(?:no|not yet|wait)\b", re.I)
+
+
 def says_yes(words: str) -> bool:
-    """The person's yes to building: a yes word and no refusal or delay in the same message (the review of 37.6)."""
-    return bool(YES_BUILD.search(str(words or ""))) and not NOT_NOW.search(str(words or ""))
+    """The person's yes to building: a leading yes, or the build named, or a yes word with no delay in the message; never a
+    refusal aimed at building (the review of 37.6; 2026-11-01)."""
+    w = str(words or "")
+    if REFUSE_BUILD.search(w):
+        return False
+    return bool(LEADING_YES.search(w) or BUILD_YES.search(w)) or (bool(YES_BUILD.search(w)) and not NOT_NOW.search(w))
 
 
 def declines(words: str) -> bool:
@@ -386,6 +399,13 @@ TOOL_NAMES = tuple(f"case_{t}" for t in TOOLS)
 POLICY = Policy(name="case", system="", tools=TOOL_NAMES, max_steps=14, max_replies=8, stop_after=tuple(f"case_{t}" for t in ENDS_TURN))
 
 
+def unconfirmed(text: str) -> str:
+    """A message without its sentences that ask the person to confirm again (said after they told the agent to go ahead)."""
+    parts = re.split(r"(?<=[.?!])\s+", str(text or "").strip())
+    kept = [p for p in parts if not (p.rstrip().endswith("?") and CONFIRMS.search(p)) and not re.search(r"\ba plain yes\b", p, re.I)]
+    return " ".join(kept) if kept else ""
+
+
 def checked(text: str, state: CaseState, dropped: Optional[list[str]] = None) -> str:
     """A message to the person with every sentence holding a number nobody gave or code computed dropped (and listed in
     ``dropped``, so the agent can be told and write it again). The rule is cited.unsaid, the conversation exam's own."""
@@ -464,6 +484,10 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
         texts = [str(m.get("content") or "").strip() for m in result.messages[again_from + 1:] if m.get("role") == "assistant" and str(m.get("content") or "").strip()]
     dropped: list[str] = []
     words_out = _unique([checked(t, state, dropped) for t in texts] + [checked(q, state, dropped) for q in state.said])
+    if state.go_ahead or says_yes(str(words)):  # 2026-11-01: after a go-ahead, no question asking the person to confirm again
+        trimmed = [unconfirmed(w) for w in words_out]
+        if any(trimmed):  # a message that was only the question is kept rather than replaced by code's fallback line
+            words_out = trimmed
     if dropped:  # a refusal comes back to the agent so it can write again (the plan's rule), once: never a silent turn
         again_from = len(result.messages)
         result.messages.append({"role": "user", "content": REWRITE.format(dropped="\n".join(f"- {d}" for d in dropped))})

@@ -29,6 +29,7 @@ offered or taken; traps the mean of the planted traps' rates; seconds per turn t
 | CEX-016 | dev | lead agent | 12 | 0.94 | 4.50 | 0.83 | 7 | 0 | 0.70 | 15.6 | 0.94 |  |
 | CEX-017 | sealed_v2 | Claude alone | 19 | 0.82 | 3.44 | 1.00 | 1 | 139 | 0.69 | 23.6 | 1.50 |  |
 | CEX-017 | sealed_v2 | lead agent | 19 | 0.93 | 4.42 | 0.79 | 6 | 0 | 0.56 | 22.1 | 2.70 | fail |
+| CEX-018 | dev | lead agent | 8 | 0.93 | 4.00 | 0.88 | 2 | 0 | 0.56 | 31.9 | 0.44 |  |
 
 ## The judge against the people who labelled
 
@@ -37,6 +38,8 @@ offered or taken; traps the mean of the planted traps' rates; seconds per turn t
 | CEX-013 | judge and the owner | 0.66 | 10 | fail |
 | CEX-013 | judge and a second Opus labeller | 0.89 | 10 |  |
 | CEX-013 | the owner and a second Opus labeller | 0.69 | 10 |  |
+| CEX-017 | judge and a second Opus labeller | – | 10 |  |
+| CEX-017 | the owner and a second Opus labeller | – | 10 |  |
 
 ## Kept with the thinking summary
 
@@ -44,10 +47,10 @@ thinking on (adaptive) with display 'summarized' for every purpose; the summary 
 
 | where | purpose | calls | kept whole | with thinking |
 |---|---|---|---|---|
-| workspace log (every use of the purpose) | case_agent | 2345 | 1152 | 1189 |
+| workspace log (every use of the purpose) | case_agent | 2419 | 1226 | 1236 |
 | workspace log (every use of the purpose) | case_specialist | 1 | 0 | 0 |
-| workspace log (every use of the purpose) | exam_judge | 448 | 285 | 271 |
-| workspace log (every use of the purpose) | exam_person | 1089 | 639 | 620 |
+| workspace log (every use of the purpose) | exam_judge | 456 | 293 | 279 |
+| workspace log (every use of the purpose) | exam_person | 1101 | 651 | 629 |
 | workspace log (every use of the purpose) | exam_plain | 756 | 349 | 199 |
 | workspace log (every use of the purpose) | home_agent | 3574 | 2166 | 841 |
 | workspace log (every use of the purpose) | home_intent | 619 | 395 | 338 |
