@@ -579,7 +579,7 @@
    "verdict": null
   },
   {
-   "run": "CEX-025",
+   "run": "CEX-025 (in CEX-030)",
    "split": "dev_route",
    "at": "2026-11-01",
    "arm": "plain",
@@ -596,7 +596,7 @@
    "verdict": "incomplete: the others never ran"
   },
   {
-   "run": "CEX-025",
+   "run": "CEX-025 (in CEX-030)",
    "split": "dev_route",
    "at": "2026-11-01",
    "arm": "case",
@@ -613,7 +613,7 @@
    "verdict": "incomplete: the others never ran"
   },
   {
-   "run": "CEX-026",
+   "run": "CEX-026 (in CEX-030)",
    "split": "dev_route",
    "at": "2026-11-01",
    "arm": "plain",
@@ -630,7 +630,7 @@
    "verdict": "incomplete: stopped (cap reached)"
   },
   {
-   "run": "CEX-026",
+   "run": "CEX-026 (in CEX-030)",
    "split": "dev_route",
    "at": "2026-11-01",
    "arm": "case",
@@ -647,7 +647,7 @@
    "verdict": "incomplete: stopped (cap reached)"
   },
   {
-   "run": "CEX-027",
+   "run": "CEX-027 (in CEX-030)",
    "split": "dev_route",
    "at": "2026-11-01",
    "arm": "plain",
@@ -664,7 +664,7 @@
    "verdict": null
   },
   {
-   "run": "CEX-027",
+   "run": "CEX-027 (in CEX-030)",
    "split": "dev_route",
    "at": "2026-11-01",
    "arm": "case",
@@ -678,6 +678,74 @@
    "silent": 0,
    "seconds_per_turn": 14.155,
    "spent_eur": 0.1873,
+   "verdict": null
+  },
+  {
+   "run": "CEX-029 (in CEX-030)",
+   "split": "dev_route",
+   "at": "2026-11-01",
+   "arm": "plain",
+   "people": 2,
+   "understanding": 0.6666,
+   "options_fit": 3.0,
+   "route_reached": 1.0,
+   "already_answered": 0,
+   "safety_failures": 22,
+   "traps": null,
+   "silent": 0,
+   "seconds_per_turn": 41.485,
+   "spent_eur": 0.2693,
+   "verdict": null
+  },
+  {
+   "run": "CEX-029 (in CEX-030)",
+   "split": "dev_route",
+   "at": "2026-11-01",
+   "arm": "case",
+   "people": 2,
+   "understanding": 1.0,
+   "options_fit": null,
+   "route_reached": 1.0,
+   "already_answered": 0,
+   "safety_failures": 0,
+   "traps": null,
+   "silent": 0,
+   "seconds_per_turn": 18.21,
+   "spent_eur": 0.2567,
+   "verdict": null
+  },
+  {
+   "run": "CEX-030 (joined: CEX-025, CEX-026, CEX-027, CEX-029)",
+   "split": "dev_route",
+   "at": "2026-11-01",
+   "arm": "plain",
+   "people": 10,
+   "understanding": 0.7,
+   "options_fit": 3.3333,
+   "route_reached": 0.7,
+   "already_answered": 1,
+   "safety_failures": 57,
+   "traps": 0.5,
+   "silent": 0,
+   "seconds_per_turn": 19.708,
+   "spent_eur": 0.5624,
+   "verdict": null
+  },
+  {
+   "run": "CEX-030 (joined: CEX-025, CEX-026, CEX-027, CEX-029)",
+   "split": "dev_route",
+   "at": "2026-11-01",
+   "arm": "case",
+   "people": 10,
+   "understanding": 0.9333,
+   "options_fit": 4.0,
+   "route_reached": 1.0,
+   "already_answered": 5,
+   "safety_failures": 0,
+   "traps": 0.917,
+   "silent": 0,
+   "seconds_per_turn": 21.092,
+   "spent_eur": 0.9612,
    "verdict": null
   }
  ],
@@ -741,24 +809,24 @@
     "thinking": 223
    },
    "exam_person": {
-    "calls": 1276,
-    "whole": 826,
-    "thinking": 775
+    "calls": 1290,
+    "whole": 840,
+    "thinking": 787
    },
    "exam_judge": {
-    "calls": 513,
-    "whole": 350,
-    "thinking": 333
+    "calls": 517,
+    "whole": 354,
+    "thinking": 337
    },
    "exam_plain": {
-    "calls": 984,
-    "whole": 577,
-    "thinking": 335
+    "calls": 992,
+    "whole": 585,
+    "thinking": 339
    },
    "case_agent": {
-    "calls": 2811,
-    "whole": 1618,
-    "thinking": 1510
+    "calls": 2835,
+    "whole": 1642,
+    "thinking": 1524
    },
    "case_specialist": {
     "calls": 1,

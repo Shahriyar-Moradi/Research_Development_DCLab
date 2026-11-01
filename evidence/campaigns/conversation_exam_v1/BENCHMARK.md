@@ -40,12 +40,16 @@ offered or taken; traps the mean of the planted traps' rates; seconds per turn t
 | CEX-024 (in CEX-020) | dev | Claude alone | 1 | 1.00 | – | 0.00 | 1 | 4 | – | 10.5 | 0.07 |  |
 | CEX-024 (in CEX-020) | dev | Claude alone + DCLab safety | 1 | 1.00 | – | 0.00 | 0 | 0 | – | 25.2 | 0.23 |  |
 | CEX-024 (in CEX-020) | dev | lead agent | 1 | 1.00 | – | 1.00 | 0 | 0 | – | 16.2 | 0.18 |  |
-| CEX-025 | dev_route | Claude alone | 5 of 10 | 0.27 | 1.71 | 0.30 | 1 | 26 | 0.17 | 13.8 | 0.15 | incomplete: the others never ran |
-| CEX-025 | dev_route | lead agent | 5 of 10 | 0.48 | 2.38 | 0.50 | 3 | 0 | 0.80 | 17.9 | 0.49 | incomplete: the others never ran |
-| CEX-026 | dev_route | Claude alone | 1 | 1.00 | – | 0.00 | 0 | 7 | 1.00 | 25.2 | 0.08 | incomplete: stopped (cap reached) |
-| CEX-026 | dev_route | lead agent | 1 | 1.00 | – | 1.00 | 0 | 0 | 1.00 | 56.8 | 0.12 | incomplete: stopped (cap reached) |
-| CEX-027 | dev_route | Claude alone | 2 | 1.00 | – | 1.00 | 0 | 2 | 1.00 | 10.0 | 0.07 |  |
-| CEX-027 | dev_route | lead agent | 2 | 1.00 | 4.50 | 1.00 | 2 | 0 | 0.50 | 14.2 | 0.19 |  |
+| CEX-025 (in CEX-030) | dev_route | Claude alone | 5 of 10 | 0.27 | 1.71 | 0.30 | 1 | 26 | 0.17 | 13.8 | 0.15 | incomplete: the others never ran |
+| CEX-025 (in CEX-030) | dev_route | lead agent | 5 of 10 | 0.48 | 2.38 | 0.50 | 3 | 0 | 0.80 | 17.9 | 0.49 | incomplete: the others never ran |
+| CEX-026 (in CEX-030) | dev_route | Claude alone | 1 | 1.00 | – | 0.00 | 0 | 7 | 1.00 | 25.2 | 0.08 | incomplete: stopped (cap reached) |
+| CEX-026 (in CEX-030) | dev_route | lead agent | 1 | 1.00 | – | 1.00 | 0 | 0 | 1.00 | 56.8 | 0.12 | incomplete: stopped (cap reached) |
+| CEX-027 (in CEX-030) | dev_route | Claude alone | 2 | 1.00 | – | 1.00 | 0 | 2 | 1.00 | 10.0 | 0.07 |  |
+| CEX-027 (in CEX-030) | dev_route | lead agent | 2 | 1.00 | 4.50 | 1.00 | 2 | 0 | 0.50 | 14.2 | 0.19 |  |
+| CEX-029 (in CEX-030) | dev_route | Claude alone | 2 | 0.67 | 3.00 | 1.00 | 0 | 22 | – | 41.5 | 0.27 |  |
+| CEX-029 (in CEX-030) | dev_route | lead agent | 2 | 1.00 | – | 1.00 | 0 | 0 | – | 18.2 | 0.26 |  |
+| CEX-030 (joined: CEX-025, CEX-026, CEX-027, CEX-029) | dev_route | Claude alone | 10 | 0.70 | 3.33 | 0.70 | 1 | 57 | 0.50 | 19.7 | 0.56 |  |
+| CEX-030 (joined: CEX-025, CEX-026, CEX-027, CEX-029) | dev_route | lead agent | 10 | 0.93 | 4.00 | 1.00 | 5 | 0 | 0.92 | 21.1 | 0.96 |  |
 
 ## The judge against the people who labelled
 
@@ -63,11 +67,11 @@ thinking on (adaptive) with display 'summarized' for every purpose; the summary 
 
 | where | purpose | calls | kept whole | with thinking |
 |---|---|---|---|---|
-| workspace log (every use of the purpose) | case_agent | 2811 | 1618 | 1510 |
+| workspace log (every use of the purpose) | case_agent | 2835 | 1642 | 1524 |
 | workspace log (every use of the purpose) | case_specialist | 1 | 0 | 0 |
-| workspace log (every use of the purpose) | exam_judge | 513 | 350 | 333 |
-| workspace log (every use of the purpose) | exam_person | 1276 | 826 | 775 |
-| workspace log (every use of the purpose) | exam_plain | 984 | 577 | 335 |
+| workspace log (every use of the purpose) | exam_judge | 517 | 354 | 337 |
+| workspace log (every use of the purpose) | exam_person | 1290 | 840 | 787 |
+| workspace log (every use of the purpose) | exam_plain | 992 | 585 | 339 |
 | workspace log (every use of the purpose) | home_agent | 3574 | 2166 | 841 |
 | workspace log (every use of the purpose) | home_intent | 619 | 395 | 338 |
 | workspace log (every use of the purpose) | home_query | 27 | 19 | 12 |

@@ -1,0 +1,330 @@
+[
+ {
+  "ref": "b157664b4c",
+  "person": {
+   "truth": {
+    "situation": "I'm a junior data scientist at an energy retailer in Dublin. Only about 3% of customers churn in a month. I built a model on our customer table and it predicts almost nobody as a churner.",
+    "goal": "To understand why accuracy looks great while the model is useless, and which measure I should look at instead, so I can explain it to my lead and fix it myself.",
+    "decision": "Which metric I report to my lead and how I pick the threshold.",
+    "user": "Me, and then my team lead.",
+    "data": "Our customer table with plan, tenure, spend, tickets and a churned-next-month flag; I'm not uploading it, I'll do the work myself.",
+    "knows": "I know what accuracy, precision and recall are in theory. I don't see how they apply here.",
+    "constraints": "I want an explanation, not someone redoing my model."
+   },
+   "level": "data_scientist",
+   "style": "vague",
+   "must_understand": [
+    "with 3% churn, predicting nobody gives 97% accuracy",
+    "they want an explanation of metrics and thresholds, not a new model",
+    "data is mentioned but not shared"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "my churn model gets 97% accuracy on our customer data but marketing says the list it gives them is useless. what am i doing wrong",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "That pattern is common: if only a few customers churn, a model can hit 97% accuracy by almost never flagging anyone, which makes the list useless. Can you tell me roughly what share of customers actually churn, and what marketing does with the list (an offer, a call, a limited budget)?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "about 3% a month churn. marketing does a retention offer and can only call a few thousand people. so they want the top of the list to be people who actually leave.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "That makes it clear: with 3% churn, accuracy hides everything, and what matters is how many real leavers sit in the top few thousand names. To check your model properly, I need to see the data. Could you share the customer table, including the column that says who churned and the model's scores if you have them?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "I'd rather not upload the table, I'll run the checks myself. What I need is to understand why accuracy looks fine here and which number I should report to my lead instead.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Understood, you can run this yourself. Here's why it happens and what to report. **Why:** at 3% churn, predicting \"nobody leaves\" is already 97% accurate. Accuracy rewards that, but marketing needs a ranking, not a yes/no. **What to report:** measure the top of the list at marketing's real call capacity, K (a few thousand). - **Precision@K:** of the K people called, what share actually left. - **Recall@K:** what share of all leavers are in the top K. - **Lift@K:** precision@K divided by 3%. Compute these on a holdout from a later period. Lead with precision@K and lift. What is K exactly, so you can pick the cutoff?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Not sure of the exact number. Marketing said a few thousand, maybe around 3,000, but it depends on how many agents they have. Is there a way to pick the cutoff from that, or do I set it from the budget?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Set it from capacity, not from the model. K is roughly the number of agents × calls per agent per day × working days in the campaign window. Ask marketing for those three figures instead of a vague \"few thousand\". Since K is still fuzzy, report precision@K and lift@K at a few values around the 3,000 marketing mentioned, one lower and one higher. Your lead then sees how much the result moves if capacity changes. If marketing has a cost per call and a value per saved customer, you can also pick the K where extra calls stop paying for themselves. Can you get the agent count and calls per agent from marketing?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "I can ask them tomorrow, not sure they'll have calls per agent though. So the threshold is just the score at rank K, right? Not a fixed probability?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes. Sort customers by score each month and take the top K. The threshold is whatever score sits at rank K, and it will move from month to month. That's fine, because marketing only needs the ranking. Two cautions:\n- Break ties in scores deliberately, for example by random order. Otherwise a block of identical scores at rank K can skew the list. - If you later want expected savings per call, you'll need calibrated probabilities. For picking the top K, you don't. If marketing can't give calls per agent, ask for the total number of customers they can realistically contact in the campaign window. That is K. Would that number be easy for them to give you?\n\nIf marketing can't give calls per agent, ask for the total customers they can realistically contact in the campaign window, which is K. Would that number be easy for them to give you?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Probably, yes. I'll ask them for the total they can reach in the window. Ok so the threshold moves each month and I just take the top K. Do I still need to report accuracy at all, or drop it completely?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Don't lead with it, but you can keep it as a footnote. Always put it next to the \"predict nobody leaves\" baseline, which scores about 97% at your churn rate. Otherwise your lead will read 97% as good. On its own, accuracy tells marketing nothing. Your headline should be precision@K and lift@K at a few values of K. For a single number that covers the whole ranking, add PR-AUC. It's much more honest than accuracy at 3% churn.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "ok that makes sense. i'll get the capacity number from marketing and compute precision and lift at a few K values on a holdout. is PR-AUC worth reporting too, or is precision@K enough for my lead?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Precision@K and lift@K are enough for your lead. They match the decision marketing makes, which is who gets called. PR-AUC is worth computing for yourself, because it compares models without fixing K. It's also a useful backup if capacity changes. If you include it in the report, give it one line and show its baseline, which is the churn rate of about 3%. A random model scores that, not the usual coin-flip level you may know from ROC-AUC. Without the baseline, a modest-looking PR-AUC can hide a model that is many times better than random. Is your lead more of a business reader or a technical one? That decides whether PR-AUC goes in the main report or a footnote.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Not really sure, I'd have to ask him. I'll put PR-AUC in a footnote to be safe. I think I have enough to start now, thanks.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You're set. Get the capacity number from marketing, report precision@K and lift@K at a few values of K on a later-period holdout, and put PR-AUC and accuracy in a footnote next to their baselines. Good luck with it, and come back if you want help reading the results.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "80a75aadc4",
+  "person": {
+   "truth": {
+    "situation": "I'm a junior data scientist at an energy retailer in Dublin. Only about 3% of customers churn in a month. I built a model on our customer table and it predicts almost nobody as a churner.",
+    "goal": "To understand why accuracy looks great while the model is useless, and which measure I should look at instead, so I can explain it to my lead and fix it myself.",
+    "decision": "Which metric I report to my lead and how I pick the threshold.",
+    "user": "Me, and then my team lead.",
+    "data": "Our customer table with plan, tenure, spend, tickets and a churned-next-month flag; I'm not uploading it, I'll do the work myself.",
+    "knows": "I know what accuracy, precision and recall are in theory. I don't see how they apply here.",
+    "constraints": "I want an explanation, not someone redoing my model."
+   },
+   "level": "data_scientist",
+   "style": "vague",
+   "must_understand": [
+    "with 3% churn, predicting nobody gives 97% accuracy",
+    "they want an explanation of metrics and thresholds, not a new model",
+    "data is mentioned but not shared"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "my churn model gets 97% accuracy on our customer data but marketing says the list it gives them is useless. what am i doing wrong",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "97% accuracy with a useless list usually means one of two things.\n\n**1. Class imbalance.** If only about 3% of customers churn, a model that predicts \"nobody churns\" is already 97% accurate. It would also give marketing nothing. Accuracy hides this. What matters is how many of the real churners the model finds (recall) and how many of the people it flags actually churn (precision).\n\n**2. Leakage.** Some columns may reveal the outcome, such as a cancellation date, \"account closed\" status, or a final-month usage of zero. The model looks great on past data. It can't spot anyone before they leave, so the list is useless in practice.\n\nOther common causes:\n- The list is a yes/no label, not a ranked risk score. Marketing can't choose the top 500 to contact.\n- The model is judged on random splits, not on a \"train on the past, test on the future\" split.\n- It predicts churn too late for anyone to act on it.\n\nI can help in a few ways, depending on what's most useful:\n\nPick whichever fits. If you tell me roughly what share of your customers churn, I can say how likely it is that imbalance is the cause.",
+    "choices": [
+     {
+      "title": "Explain how to fix a misleading churn model",
+      "what": "A plain-language guide to better metrics, handling rare churners, and giving marketing a ranked list they can use. You get: Clear steps to diagnose and fix the problem. Trade-off: General guidance, not based on your data. Effort: Quick."
+     },
+     {
+      "title": "Rebuild the churn model properly",
+      "what": "Build a new churn prediction on your customer table. It checks for leaking columns and judges the model on how well it finds churners. It gives each customer a risk score. You get: A ranked list of at-risk customers and honest performance numbers. Trade-off: Needs your customer table shared. Effort: Moderate."
+     },
+     {
+      "title": "Look at who actually churned",
+      "what": "Measure your real churn rate and compare churners with other customers, for example by plan, tenure or region. You get: The churn rate and the patterns behind it. Trade-off: Describes the past and doesn't predict anything. Effort: Quick."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "ok so with 3% churn the dumb 'nobody leaves' model wins on accuracy, that makes sense. i know what precision and recall are in theory, just not how they apply here. which one do i report to my lead, and how do i pick the cutoff? i want to understand it so i can fix it myself, not have someone redo it.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started the explanation. It will cover these steps:\n\n1. **Check your churn rate.** If few customers churn, 97% accuracy tells you very little.\n2. **Switch the metrics.** Use recall, precision and a ranking measure such as precision at the top 5% of the list. Stop using accuracy.\n3. **Hunt for leakage.** Look for columns that are only known after a customer leaves, such as cancellation fields or usage that drops to zero at the end.\n4. **Split by time.** Train on older data and test on newer data, which is how the model will be used.\n5. **Give marketing a ranked score.** Marketing needs a risk score for each customer and a cutoff that fits their budget, not a yes/no label.\n6. **Predict early enough.** Make sure the model flags people while there's still time to act.\n\nWhen it's ready, you can compare your setup against this list. If you'd like me to rebuild the model on your customer table, just ask.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "ec1bdc85a3",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a payments start-up in Manchester. A colleague's notebook applies SMOTE to the whole dataset before splitting and reports a very high recall.",
+    "goal": "To understand whether resampling helps at all here, and the correct way to do it if it does, so I can argue with my colleague using sources.",
+    "decision": "Whether our team's standard pipeline uses SMOTE, class weights, or neither.",
+    "user": "Me and the two other data scientists on the fraud team.",
+    "data": "I'm not sharing data; it's card transactions under PCI rules.",
+    "knows": "I know SMOTE creates synthetic minority rows and that class weights change the loss. I suspect resampling before the split leaks, but I want it explained properly.",
+    "constraints": "No data leaves our systems. I want an answer with references, not code run on our data."
+   },
+   "level": "data_scientist",
+   "style": "detailed",
+   "must_understand": [
+    "a method question with no data shared",
+    "the colleague resamples before splitting, which leaks",
+    "they want an explanation with sources to settle a team practice"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "I'm building a card-fraud classifier with a 1.8% positive rate. Is SMOTE worth it compared with class weights, and if I use it, where exactly does it go relative to cross-validation?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Start with class weights, plus threshold tuning. On tabular fraud data, SMOTE often adds little over weighting, especially with gradient boosting. It also distorts predicted probabilities, so you'd need to recalibrate them. If you do try SMOTE, resample inside each training fold only. An imblearn `Pipeline` (SMOTE, then model) passed to the cross-validator does this. Never resample before splitting. Leave the validation folds at the natural 1.8%, and judge by PR-AUC or recall at a fixed precision, not accuracy or ROC-AUC. Since fraud drifts over time, are your folds time-ordered?\n\nStart with class weights and threshold tuning. On tabular fraud data, SMOTE often adds little over weighting, especially with gradient boosting. It also distorts predicted probabilities, so you'd need to recalibrate them. If you do try SMOTE, resample inside each training fold only. An imblearn `Pipeline` (SMOTE, then model) passed to the cross-validator does this. Never resample before splitting. Leave the validation folds at the natural 1.8%. Judge the results by PR-AUC, or by recall at a fixed precision. Accuracy and ROC-AUC will mislead you here. Fraud also drifts over time, so time-ordered folds are safer than random ones. Does that answer your question, or should I go deeper on any part?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Thanks, that's useful, though the answer repeated itself, so I'm working from one version. Two things I need before I can argue this with my colleague. First, the mechanism: if SMOTE runs before the split, the synthetic minority points are interpolated between real minority rows that later land in validation. So the validation fold has near-copies of its own positives in training. Is that the leak you'd point to, and does it inflate recall specifically, or does it also distort precision and PR-AUC? Second, sources. I need citable references, ideally: Chawla et al. 2002 (original SMOTE), a survey on imbalanced learning such as Branco et al. 2016, Elkan 2001 on cost-sensitive learning, Saito & Rehmsmeier 2015 on PR plots versus ROC for imbalanced data, and anything on card-fraud resampling specifically (Dal Pozzolo et al. on undersampling and calibration would be ideal). Please tell me which of these actually support the leakage claim and which only support 'resampling sometimes helps.' I'm not sure whether our current pipeline splits by time or randomly, so I can't yet say whether our CV is leak-free on that axis either. I'll check that myself rather than guess.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, that's the leak. Pre-split SMOTE puts near-copies of validation positives in training, and synthetic positives into validation. Recall inflates most. Precision and PR-AUC inflate too, because validation prevalence rises and the positives get easier. ROC-AUC is least affected. I'm citing these from memory, so check the details. Chawla 2002, Elkan 2001, Saito & Rehmsmeier 2015 and Dal Pozzolo et al. on calibration under undersampling don't address this leak. In that order, they support SMOTE itself, weighting and thresholds, PR over ROC, and recalibration. Branco 2016 is a survey, and I don't recall it covering the leak. Santos et al., on cross-validation for imbalanced data in IEEE Computational Intelligence Magazine, is closer. The leakage argument is mostly first principles. Do you want a short note you can hand your colleague?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Yes, please write the note for my colleague, but keep the mechanism separate from the citations. Before I use anything, I need to know which references I can actually cite.\n\nOn the mechanism, I'm still not sure why precision and PR-AUC would rise, not just recall. My reasoning: synthetic positives interpolated from training positives can land in validation, which raises the validation positive rate and makes those points easier to rank. Is that the right account? If so, I'd like the note to say that the inflation is an empirical effect and to give a diagnostic I can run without sharing data: score the same pipeline with SMOTE before the split and inside each fold, then compare recall, precision and PR-AUC, and check the validation positive rate in each case.\n\nOn sources, you said you were citing from memory. Please mark which ones you're confident exist and say what they claim. Specifically: is the Santos et al. cross-validation paper real, and does it discuss resampling before splitting? Also, I don't think Dal Pozzolo et al. address the leak. I'll cite them only for calibration under undersampling. If you're not sure of a citation, say so and I'll check it myself.\n\nI'll check our split strategy myself, as I said. For the note, I'll need one sentence on whether the leak mainly affects recall or also PR-AUC, so my colleague can't dismiss it as a minor effect.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Your account is right, with one addition. Here is the note, with the mechanism and the citations kept separate. **Note: mechanism (reasoning, not a citation)**\n- If SMOTE runs before the split, synthetic positives are interpolated between real positives. Some land in validation, while their parent points sit in training. These validation positives are near-copies of training points, so they are easy to classify and rank. - It also raises the validation positive rate above 1.8%. Precision and PR-AUC depend on prevalence, so they rise even if nothing else changed. - **Recall is inflated, and so are precision and PR-AUC, through two separate effects: easier positives and a higher prevalence.** The size of the inflation is empirical. - Diagnostic that needs no shared data: score the same pipeline with SMOTE before the split and inside each fold. Compare recall, precision, PR-AUC and validation positive rate. As a control, score the pre-split version only on original rows. That separates near-copy leakage from the prevalence shift. **Citations**\n- Confident they exist: Chawla et al. 2002 (JAIR), which introduces SMOTE. Elkan 2001 (IJCAI), on cost-sensitive learning. Saito & Rehmsmeier 2015 (PLoS ONE), on PR versus ROC. Branco, Torgo & Ribeiro 2016 (ACM Computing Surveys), a survey. None of these covers the leak, as far as I recall. - Fairly confident: Dal Pozzolo et al. 2015, on calibration under undersampling. Cite it only for that, as you planned. - Verify first:\n  - Santos et al. It is about cross-validation for imbalanced data. I can't confirm it discusses resampling before splitting, so I withdraw \"closer.\"\n  - Vandewiele et al.\n\nDo you want the diagnostic written as a short code snippet (imblearn pipeline versus pre-split, with the control), or is the description enough?\n\n(That is the short version. Ask me about any part and I will go deeper.)\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Before I write this up, I need two corrections on the mechanism. If SMOTE balances the full dataset before the split, the validation fold's positive rate is no longer just 'raised' from 1.8%. It could sit near 50%, depending on the ratio. Is the prevalence effect you described the same thing, or is it a separate effect? Also, a pre-split model scored only on original rows is still trained on leaked synthetic points, so I doubt that control isolates prevalence from near-copy leakage. Can you say what would separate them?\n\nOn citations: your reply ends at 'Vandewiele et al.' and then stops. Did you mean to give a reference, or should I drop it? I'd rather not put an unverified source in front of my colleague.\n\nThe description is enough for now. Please don't write code against our data. If there's a public card-fraud dataset, like the ULB creditcard set, I could reproduce the pre-split versus in-fold comparison on that instead, so my colleague can see the effect without us sharing anything. Is that allowed under our PCI rules, or would it need sign-off first?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "**Prevalence.** It's the same effect, and \"raised\" understated it. SMOTE to 1:1 before the split puts validation near 50%, which lifts precision and PR-AUC mechanically. **Control.** You're right that scoring only original rows leaves the training contamination in place. Three scores separate the effects:\n- **In-fold SMOTE:** the clean baseline. - **Pre-split, scored on original rows:** the gap from the baseline is near-copy leakage alone, at 1.8% prevalence. - **Clean in-fold model, with validation negatives downsampled to match the pre-split positive rate:** the gap from the baseline is the prevalence effect alone. **Vandewiele.** The reply was cut off. I think it's Vandewiele et al. I'm fairly sure it exists, but verify it or drop it. **PCI.** I don't know your policies. Your internal rules on external data and licences may still need a security sign-off. Do you know who would approve that?\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Thanks, the prevalence point is clear now. I have two more questions before I draft the note.\n\nFirst, the third control. Downsampling validation negatives to match the pre-split positive rate changes the actual counts, so precision at a fixed threshold isn't comparable without also rescaling. Would it be cleaner to keep all validation rows and weight the negatives by the ratio of prevalences? That gives a precision at matched prevalence and avoids changing the sample. Is that what you meant?\n\nSecond, the pre-split control still has a confound. Even without leakage, training on a 1:1 synthetic set changes the model's score distribution, so the same threshold gives different precision and recall. Scoring on original rows at 1.8% would show that shift as leakage. Would it be better to pick thresholds on a held-out set for each arm, or to compare on threshold-free metrics only (PR-AUC after the prevalence correction) and report the threshold effect separately? I want the note to avoid a result my colleague can attack on this point.\n\nOn citations: I'll drop Vandewiele et al. unless you can confirm it. I'll cite Chawla 2002, Elkan 2001, Saito & Rehmsmeier 2015, Branco 2016 and Dal Pozzolo 2015 (calibration only), and I'll check the Santos et al. cross-validation paper myself for whether it covers resampling before splitting.\n\nOn PCI, I'll ask our security team whether a public dataset comparison needs sign-off. I won't run anything on our data until they reply. Please send the note once you have the control design settled.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "**Control 3.** Yes, reweighting is cleaner. Keep every validation row and weight each negative by P(1−π)/(Nπ), where P and N are the validation positive and negative counts and π is the target prevalence. Use the same weights for precision and PR-AUC. Reweight every arm to 1.8%. The prevalence effect then becomes each arm's native-prevalence score minus its reweighted score, so you don't need a third model. **Threshold confound.** You're right. Two points settle it:\n- The in-fold baseline also trains on 1:1 data, so the score shift is shared and mostly cancels in the comparison. - Report PR-AUC at 1.8% prevalence as the main result, because ranking ignores monotone score shifts. Then fix each arm's threshold on a separate held-out set, split off before any SMOTE and at natural prevalence, and report recall at a fixed precision or alert rate as a second result. **Note, mechanism:** Pre-split SMOTE places synthetic positives in validation, with parents in training. This raises prevalence (possibly near 50%) and makes positives easy to rank. Isolate the effects as above. The size is empirical. **Note, citations:** Cite Chawla 2002, Elkan 2001, Saito & Rehmsmeier 2015, Branco 2016 and Dal Pozzolo 2015 (calibration only). I can't confirm Vandewiele, so drop it. Check Santos yourself. None of these establishes the leak, which rests on first principles plus your diagnostic.\n\nHere is the settled control design, written as the note for your colleague. **Note: control design (mechanism, not a citation)**\n1. **In-fold SMOTE.** This is the clean baseline. It trains on 1:1 data and is validated on original rows at 1.8%. 2. **Pre-split SMOTE, scored on original rows only.** Compare it with the baseline. Both train on 1:1 data, so the score shift is shared.\n\n(That is the short version. Ask me about any part and I will go deeper.)",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "c0eef7531c",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a payments start-up in Manchester. A colleague's notebook applies SMOTE to the whole dataset before splitting and reports a very high recall.",
+    "goal": "To understand whether resampling helps at all here, and the correct way to do it if it does, so I can argue with my colleague using sources.",
+    "decision": "Whether our team's standard pipeline uses SMOTE, class weights, or neither.",
+    "user": "Me and the two other data scientists on the fraud team.",
+    "data": "I'm not sharing data; it's card transactions under PCI rules.",
+    "knows": "I know SMOTE creates synthetic minority rows and that class weights change the loss. I suspect resampling before the split leaks, but I want it explained properly.",
+    "constraints": "No data leaves our systems. I want an answer with references, not code run on our data."
+   },
+   "level": "data_scientist",
+   "style": "detailed",
+   "must_understand": [
+    "a method question with no data shared",
+    "the colleague resamples before splitting, which leaks",
+    "they want an explanation with sources to settle a team practice"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "I'm building a card-fraud classifier with a 1.8% positive rate. Is SMOTE worth it compared with class weights, and if I use it, where exactly does it go relative to cross-validation?",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started a sourced answer to your question. Here's the short version while it runs.\n\n**SMOTE or class weights?**\n- **Start with class weights.** Use `class_weight` or `scale_pos_weight`, or just tune the decision threshold. They cost nothing, add no synthetic data, and work well with gradient-boosted trees and logistic regression. At 1.8% positives (a moderate imbalance) they usually match or beat SMOTE.\n- **SMOTE often adds little.** It interpolates between nearby fraud cases. Fraud is often several distinct patterns, so it can generate unrealistic points between them. It also tends to hurt probability calibration. It's harder to justify with categorical or high-cardinality features, which card data usually has.\n- **Try it only as an experiment.** It's worth a test if your model is weak on the minority class, such as a small neural net or a k-NN. Compare it against class weights and plain undersampling of the majority class on the same folds.\n- **Judge by the right metrics.** Use PR-AUC, or recall at a fixed precision or review budget. Don't use accuracy or ROC-AUC, which look good at 1.8% regardless.\n\n**Where SMOTE goes relative to cross-validation**\n- **It goes inside each training fold only.** Resample after the split, and never touch the validation fold. If you oversample first and then split, synthetic copies of the same fraud case end up on both sides. That leaks information and inflates your scores a lot.\n- **Use a pipeline.** With imbalanced-learn, put `SMOTE` and the model in an `imblearn.pipeline.Pipeline`. Pass that to `cross_val_score` or `GridSearchCV`. The scikit-learn `Pipeline` doesn't handle resamplers correctly.\n- **Keep any tuning inside the loop too.** That includes scaling, encoding, and the SMOTE parameters such as `k_neighbors`.\n- **Leave the validation and test data at the real 1.8% rate.** Use stratified folds so every fold has enough fraud cases.\n- **Split card data by time or by card.** For fraud, a time-based split or `GroupKFold` on card or account is usually more honest than random folds. Otherwise the same card appears in both train and validation.\n- **Set the threshold on unresampled validation data.** Resampling shifts the predicted probabilities, so a threshold chosen on resampled data won't carry over.\n\nIf you share your table, I can check it for leakage columns and help set up the split.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Thanks, that's useful. I'm not going to share the table, since it's card data under PCI rules, so I'd like to work from general principles and sources instead.\n\nThe main thing I need to argue with my colleague is why resampling before the split inflates recall, and not just that it does. My understanding is that SMOTE on the full dataset creates synthetic minority points from validation fraud cases, using their real neighbours in the training set. So the model is scored on points that are near-duplicates of what it trained on. Is that the right mechanism, and is there a clean way to show it, for example by comparing fold recall with and without the leak on a public dataset like the ULB credit card set?\n\nI'd also like to know whether resampling helps at all with gradient-boosted trees at about 1.8% positives, or whether it's mainly useful for models that can't take class weights. For the team's standard pipeline, I need to choose between SMOTE, class weights, or neither, and I want to justify that choice with references.\n\nCould you give me the key sources, with a line on what each one shows? I'm thinking of Chawla et al. 2002 for SMOTE, Elkan 2001 for cost-sensitive learning, Dal Pozzolo et al. on undersampling for card fraud, and Branco et al. or similar surveys on resampling. Any work that directly compares SMOTE against class weights on tree ensembles would be especially helpful. I'm also interested in whether resampling distorts the probabilities enough to matter, since our fraud team uses scores to set a review queue.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Your mechanism is right, with one refinement. I haven't run anything here, and I'm citing from memory, so check the details against the papers before you quote them to your colleague.\n\n## Why resampling before the split inflates recall\n\nSMOTE builds each synthetic point on the line segment between a real fraud case and one of its k nearest fraud neighbours. If you run it on the full dataset and then split, the leak goes in two directions:\n\n1. **Validation fraud leaks into training.** Synthetic points built from a validation fraud case sit near it, and many land in the training folds. The model is then trained on points next to the case it will be scored on.\n2. **Training information leaks into validation.** Synthetic points that land in the validation fold are interpolations that involve training-fold fraud cases. They are near-duplicates of what the model already saw, so they are easy to catch.\n\nBoth effects push recall up. A third effect hits precision and PR-AUC. If you balance to 1:1 before the split, the validation folds are about 50% fraud instead of 1.8%, so precision is meaningless. Part of the inflated recall is the model recognising near-copies, and part of the inflated precision is the changed base rate. Keep those two apart when you argue it.\n\nA framing that tends to work with colleagues: random oversampling with duplicates is the obvious version of this bug, because exact copies straddle the folds. SMOTE is the same bug with the copies jittered.\n\nHigh-capacity, local models such as deep trees, boosted trees and k-NN will exploit the leak most. Heavily regularised linear models will show less of it.\n\n## A clean demonstration on the ULB data\n\nThe ULB set has 284,807 transactions and 492 frauds, which is 0.17% positive. To match your 1.8%, keep all the frauds and sample about 26,800 legitimate transactions.\n\n1. **Hold out a final test set first.** Make it untouched, at the real prevalence, and ideally the latest in time. This is your ground truth.\n2. **Run three arms on identical folds, model and seeds.**\n   - **Correct:** an `imblearn` Pipeline with SMOTE inside each training fold.\n   - **Leaky:** SMOTE on all the development data, then CV.\n   - **Baseline:** class weights, or no resampling.\n3. **Report the gap between each arm's CV estimate and its score on the held-out test.** Use recall at a fixed threshold, average precision, and recall at a fixed top-k. The correct arm should land close to its test score. The leaky arm should overshoot it badly.\n4. **Add a diagnostic.** For each validation fraud case, compute the distance to the nearest training-fold point in the leaky and correct arms. In the leaky arm the distances collapse.\n5. **Repeat over 10 or more seeds and report mean and spread.** One seed is anecdotal.\n\nI haven't run this, so I can't give you numbers. The ULB features are PCA-transformed, which makes SMOTE interpolation more benign than it would be on raw categorical card data. If the leak shows up there, it will be worse on your real features.\n\n## Does resampling help gradient-boosted trees?\n\nThe evidence is empirical, not a theorem, so treat it as a strong prior and not a proof. The usual finding is that resampling helps weak learners most, and strong learners such as GBMs gain little. They gain little because they can already be reweighted, and because threshold tuning gets most of the benefit. Resampling is mainly useful for models that can't take sample weights.\n\nYour fraud team's use of scores matters more than discrimination here, which leads to calibration.\n\n## Calibration and the review queue\n\n- **If the queue is \"top N per day\" (fixed capacity):** only ranking matters. Weighting and undersampling are close to monotone transforms in theory, so they barely matter here.\n- **If the queue uses a score cutoff, or ranks by expected loss (probability × amount):** calibration matters a lot. Resampling and weighting inflate the scores, and a cutoff chosen on those scores won't mean what you think.\n- **Corrections differ by method:**\n  - For class weight `w` on positives, true odds ≈ model odds / `w`.\n  - For undersampling, there is a closed-form correction (Dal Pozzolo 2015, below).\n  - For SMOTE there's no clean formula, because synthetic points aren't a pure prior shift. You have to recalibrate empirically with isotonic or Platt scaling on untouched, later-in-time, real-prevalence data.\n\nWhichever method you choose, recalibrate on real-prevalence data before setting queue thresholds.\n\n## Key sources\n\n**Core references**\n- **Chawla, Bowyer, Hall, Kegelmeyer (2002), \"SMOTE,\" *JAIR* 16.** Introduces SMOTE, combined with majority undersampling. It was evaluated with C4.5, Ripper and Naive Bayes using ROC analysis. It predates modern boosted trees and doesn't compare against class weights. It is the citation for how SMOTE works, not for whether it's worth using now.\n- **Elkan (2001), \"The Foundations of Cost-Sensitive Learning,\" *IJCAI*.** Shows that changing class proportions is equivalent to moving the decision threshold for a given cost ratio, and gives the formulas for adjusting proportions to match costs. As I remember it, he also notes that rebalancing has little effect on standard decision-tree learners. This is the best theoretical argument for \"just set the threshold.\"\n- **Dal Pozzolo et al. (2015), \"Calibrating Probability with Undersampling for Unbalanced Classification,\" *IEEE SSCI*.** Shows undersampling biases probabilities and gives the correction `p = βp_s / (βp_s − p_s + 1)`, where β is the fraction of negatives kept. The ULB dataset comes from this line of work.\n- **Dal Pozzolo et al. (2014), \"Learned lessons in credit card fraud detection from a practitioner perspective,\" *Expert Systems with Applications* 41.** Covers undersampling, evaluation choices and drift for card fraud.\n- **Dal Pozzolo et al. (2018), \"Credit card fraud detection: a realistic modeling and a novel learning strategy,\" *IEEE TNNLS* 29.** Argues for time-ordered evaluation, precision on the top-ranked alerts, and delayed labels. It supports your split-by-time point.\n\n**Surveys**\n- **Branco, Torgo, Ribeiro (2016), \"A Survey of Predictive Modelling under Imbalanced Distributions,\" *ACM Computing Surveys*.** Broad taxonomy of resampling, cost-sensitive and algorithm-level methods.\n- **Fernández et al. (2018), \"SMOTE for Learning from Imbalanced Data: Progress and Challenges,\" *JAIR* 61.** Covers SMOTE's known weaknesses and variants.\n- **Galar et al. (2012), \"A Review on Ensembles for the Class Imbalance Problem,\" *IEEE TSMC-C*.** Compares SMOTEBoost, RUSBoost and related methods.\n\n**Closest to your question**\n- **Elor & Averbuch-Elor (2022), \"To SMOTE, or not to SMOTE?\" (arXiv).** Benchmarks oversampling across many datasets and classifiers. As I recall, it finds little benefit for strong classifiers, mostly for weak ones, and that results depend on the metric and on tuning. This is your best direct comparison.\n- **van den Goorbergh et al. (2022), \"The harm of class imbalance corrections for risk prediction models,\" *JAMIA*.** Shows that SMOTE, random oversampling, undersampling and weighting did not improve discrimination in their simulations, and that they damaged calibration. It uses logistic regression, so it doesn't speak to trees directly. It is the clearest evidence on calibration.\n- **Weiss & Provost (2003), *JAIR* 19.** Studies how class distribution affects tree induction. It is a useful counterweight, because it shows the natural distribution isn't always best for trees.\n\nI'm not aware of a definitive study of SMOTE against `scale_pos_weight` on XGBoost or LightGBM for card fraud specifically. Elor & Averbuch-Elor is the closest. Search for more recent benchmarks before you claim the gap in the literature.\n\n## What I'd put in the standard pipeline\n\n1. **Default to class weights, or no resampling, plus threshold tuning and recalibration on untouched data.** This is the simplest option and has the best theoretical and empirical support for GBMs.\n2. **Treat SMOTE as an experimental arm.** Run it inside the pipeline, against the default, on a time-based outer split.\n3. **Compare the arms on:**\n   - average precision;\n   - recall at your review capacity;\n   - expected cost;\n   - log loss, Brier score and a calibration curve.\n4. **Adopt SMOTE only if it wins on your data after recalibration.** A win on raw CV recall doesn't count.\n\nI can draft the ULB experiment as a code skeleton if that would help.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "This is useful, and I think the leakage argument is solid. Before I take it to my colleague I need to pin down a few things.\n\n1. Citations: you said you were working from memory, so please mark which claims you are confident in and which I should check. In particular I want to confirm the Elkan 2001 point about rebalancing having little effect on decision trees, and the exact findings of Elor & Averbuch-Elor and van den Goorbergh et al. I'll look up the papers myself, but I'd like to know where your memory is weakest.\n\n2. The ranking claim. You said weighting and undersampling are close to monotone transforms, so they barely matter for a fixed-capacity queue. I'm not convinced that holds for boosted trees. Class weights change the gradients and hessians, so they change the split gains and the leaf values, and the ranking can shift, not just the scale. Is that right, or does the monotone argument only hold for the calibrated probability and not for the fitted model? I want to get this right before I say it to the team.\n\n3. The ULB experiment. Please give me the code skeleton. Include the three arms, the nearest-neighbour distance diagnostic, and the held-out test. Keep it on public data only, and make sure the leaky arm is written so it's obvious where the leak happens. I'll run it on the ULB set myself, not on our data.\n\n4. For the team write-up, I want one table: the arm, the CV estimate, the held-out estimate, and the calibration numbers. Which metrics should be in it, and how many seeds do you think are enough for a fraud-scale difference?",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]
