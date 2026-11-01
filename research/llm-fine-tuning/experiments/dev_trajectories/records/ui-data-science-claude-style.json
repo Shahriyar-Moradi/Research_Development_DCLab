@@ -85,6 +85,46 @@
       "cause": "the mark's text kept the light theme's white",
       "fix": "the mark's text uses the brand's own on-colour",
       "test": "screenshot in the dark theme"
+    },
+    {
+      "id": "F6",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The project switcher on project pages was a blank white button",
+      "scenario": "Data science, the notebook page: the 'Project: Churn' chip drawn white text on white",
+      "cause": "the general white-button rule replaced its green ground while its text stayed white",
+      "fix": "the switcher drawn as a quiet chip with dark text",
+      "test": "screenshot of the notebook page"
+    },
+    {
+      "id": "F7",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The top bar scrolled away and text showed above the sticky tabs",
+      "scenario": "a long page scrolled down: no top bar, the page's text visible in the gap above the tabs",
+      "cause": "the top bar is static (in Developer too) while the tabs stick below its height",
+      "fix": "in Data science the top bar is pinned, as Claude's; Developer unchanged",
+      "test": "screenshot of the notebook scrolled"
+    },
+    {
+      "id": "F8",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "A new conversation did not appear in Recents until a page change",
+      "scenario": "a fresh workspace: start a chat on Home; Recents still says your conversations appear here",
+      "cause": "Recents refreshed only on a page change or a project change",
+      "fix": "Recents refreshes when Home's conversation opens",
+      "test": "scripts/browser_e2e.py check_ds_mode on a fresh workspace"
+    },
+    {
+      "id": "F9",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The clean version's cells touched their card's edge",
+      "scenario": "Notebook, Clean version: the file name and cells flush with the card's border",
+      "cause": "the toolbar and cells lost their padding with the overview's flat column",
+      "fix": "padding inside the cards of the other tabs",
+      "test": "screenshot of the Clean version tab"
     }
   ],
   "measurements": [
@@ -105,7 +145,8 @@
   "lessons": [
     "Before redoing a design that missed, screenshot it beside its target and ask which target, how much and which colours",
     "A second look over the same pages keeps the functionality the same; a copied page would not",
-    "Draw only controls the product has: a picker that does nothing is worse than none"
+    "Draw only controls the product has: a picker that does nothing is worse than none",
+    "Run the browser check on a fresh workspace too: lists that already had items hid that a new item never appeared"
   ],
   "risks": [
     "Pages other than Home and the notebook are restyled, not re-laid-out: they read calmer but keep Developer's arrangement",

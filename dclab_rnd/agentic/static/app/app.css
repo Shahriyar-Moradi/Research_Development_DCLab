@@ -7650,7 +7650,7 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 
 /* the top bar: back and forward, "DCLab / the page", then search, the side panel and settings */
 [data-mode="ds"] .main { padding: 0; gap: 0; }
-[data-mode="ds"] .topbar { height: var(--top-h); padding: 0 14px; gap: 6px; border-bottom: 1px solid var(--ts-border); background: var(--ts-surface-sunken); backdrop-filter: none; -webkit-backdrop-filter: none; }
+[data-mode="ds"] .topbar { position: sticky; top: 0; height: var(--top-h); padding: 0 14px; gap: 6px; border-bottom: 1px solid var(--ts-border); background: var(--ts-surface-sunken); backdrop-filter: none; -webkit-backdrop-filter: none; }
 [data-mode="ds"] .icon-btn { border-radius: 8px; }
 [data-mode="ds"] .topbar .icon-btn, [data-mode="ds"] .ds-account .icon-btn { width: 32px; height: 32px; min-width: 0; padding: 0; border: 0; background: transparent; box-shadow: none; color: var(--ts-text-muted); }
 [data-mode="ds"] .topbar .icon-btn:hover, [data-mode="ds"] .ds-account .icon-btn:hover { background: var(--ts-surface-hover); color: var(--ts-text); }
@@ -7694,6 +7694,11 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 [data-mode="ds"] .btn.primary { background: var(--ts-brand-deep); border-color: var(--ts-brand-deep); color: var(--ts-on-brand); }
 [data-mode="ds"] .btn.primary:hover { background: var(--ts-brand-deep-hover); border-color: var(--ts-brand-deep-hover); }
 [data-mode="ds"] .btn:not(.primary):not(.ghost) { background: var(--ts-surface); border-color: var(--ts-border-strong); }
+/* the project every page follows: a quiet chip, as Claude names the project above a chat (it was white on white) */
+[data-mode="ds"] .btn.proj-switch { background: var(--ts-surface); border-color: var(--ts-border-strong); color: var(--ts-text); }
+[data-mode="ds"] .btn.proj-switch:hover { background: var(--ts-surface-hover); border-color: var(--ts-border-strong); color: var(--ts-text); }
+[data-mode="ds"] .btn.proj-switch[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--ts-accent-soft); }
+[data-mode="ds"] .proj-switch .ps-label { color: var(--ts-text-muted); opacity: 1; }
 [data-mode="ds"] .chip { border-radius: 999px; background: var(--ts-surface); border-color: var(--ts-border); color: var(--ts-text-secondary); }
 [data-mode="ds"] .chip:hover { background: var(--ts-surface-hover); color: var(--ts-text); }
 [data-mode="ds"] .pill { border-radius: 6px; }
@@ -7862,6 +7867,12 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 [data-mode="ds"] .finding .ev-chip { border-radius: 6px; font-size: 11.5px; }
 [data-mode="ds"] .finding > .row:last-child .btn:first-child { background: var(--ts-brand-deep); border-color: var(--ts-brand-deep); color: var(--ts-on-brand); }
 [data-mode="ds"] .finding > .row:last-child .btn:first-child:hover { background: var(--ts-brand-deep-hover); }
+/* the clean version and the stage cells: their cells inside a card, kept off its edge */
+[data-mode="ds"] #view-notebook .pane:not([data-pane="overview"]) .panel > .nb-toolbar { padding: 12px 18px; border-bottom: 1px solid var(--ts-border); }
+[data-mode="ds"] #view-notebook .pane:not([data-pane="overview"]) .panel > .cells { padding: 14px 18px 18px; }
+/* a cell's own fix, in clay like the review's main action (Studio's "Fix in cell") */
+[data-mode="ds"] .cells .btn.proof, [data-mode="ds"] .finding .btn.proof { background: var(--ts-surface); border-color: color-mix(in srgb, var(--ts-brand-deep) 45%, var(--ts-border)); color: var(--ts-brand-deep); }
+[data-mode="ds"] .cells .btn.proof:hover, [data-mode="ds"] .finding .btn.proof:hover { background: var(--ts-brand-deep); border-color: var(--ts-brand-deep); color: var(--ts-on-brand); }
 @media (max-width: 1100px) { [data-mode="ds"] #view-notebook .g-side { grid-template-columns: minmax(0, 1fr); } }
 
 /* ================= Settings and the command list ================= */

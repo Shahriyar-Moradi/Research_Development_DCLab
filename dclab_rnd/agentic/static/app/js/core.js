@@ -779,6 +779,9 @@
       this.pages(pages, false);
       if (rail) this.rail(rail === 'open', false);
       document.addEventListener('dclab:project', () => this.recents());
+      // a conversation that opens on Home (a new draft, or one reopened) joins Recents at once, not on the next page change
+      const chat = $('#home-chat');
+      if (chat && window.MutationObserver) new MutationObserver(() => { if (!chat.hidden) this.recents(); }).observe(chat, { attributes: true, attributeFilter: ['hidden'] });
       let last = 0;
       window.addEventListener('hashchange', () => { if (Date.now() - last > 15000) { last = Date.now(); this.recents(); } this.paint(); });
       this.recents();
