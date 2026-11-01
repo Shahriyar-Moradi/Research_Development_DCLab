@@ -742,8 +742,113 @@
     document.documentElement.dataset.mode = ds ? 'ds' : 'dev';
     $$('.mode-switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === (ds ? 'ds' : 'dev'))));
     placeRail(ds);
+    if (ds) dsFrame.init();
+    dsFrame.paint();
     if (save) { try { localStorage.setItem('dclab-mode', ds ? 'ds' : 'dev'); } catch (e) { /* storage blocked: this visit only */ } }
   }
+
+  /* The Data science frame (the owner, 2026-11-01: "Claude's style, beside the old one"): drawn like the Claude desktop app.
+     A sidebar with New session, Recents (Home's conversations and the projects) and the pages folded under Pages; a slim
+     top bar with back and forward, the side panel's toggle and Settings; a settings window holding only the product's own
+     switches (look, theme, view as, the pages, the blueprint layer, tours). Every control calls what Developer calls. */
+  const dsFrame = {
+    ready: false,
+    init() {
+      if (this.ready) return;
+      this.ready = true;
+      const on = (sel, ev, fn) => { const n = $(sel); if (n) n.addEventListener(ev, fn); };
+      on('#ds-back', 'click', () => history.back());
+      on('#ds-fwd', 'click', () => history.forward());
+      $$('[data-ds-settings]').forEach(b => b.addEventListener('click', () => this.settings(true)));
+      on('#ds-settings-close', 'click', () => this.settings(false));
+      on('#ds-settings', 'click', e => { if (e.target.id === 'ds-settings') this.settings(false); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#ds-settings').hidden) this.settings(false); });
+      $$('[data-ds-look]').forEach(b => b.addEventListener('click', () => { setMode(b.dataset.dsLook, true); if (b.dataset.dsLook !== 'ds') this.settings(false); }));
+      $$('[data-ds-theme]').forEach(b => b.addEventListener('click', () => this.theme(b.dataset.dsTheme)));
+      on('#ds-role', 'change', e => setRole(e.target.value));
+      on('#ds-pages-open', 'change', e => this.pages(e.target.value === 'open', true));
+      on('#ds-pages-toggle', 'click', () => this.pages($('#ds-pages-toggle').getAttribute('aria-expanded') !== 'true', true));
+      on('#ds-bp', 'change', e => { if (typeof setBlueprint === 'function') setBlueprint(e.target.checked); });
+      on('#ds-tours', 'click', () => { this.settings(false); const t = $('#side-tours'); if (t) t.click(); });
+      on('#ds-rail-btn', 'click', () => {  // the panel as it is on screen (a conversation shows it unless closed), then the other way
+        const rail = $('#ds-rail');
+        this.rail(!(rail && getComputedStyle(rail).display !== 'none'), true);
+      });
+      let pages = true, rail = '';
+      try { pages = localStorage.getItem('dclab-ds-pages') !== 'closed'; rail = localStorage.getItem('dclab-ds-rail') || ''; } catch (e) { /* storage blocked */ }
+      this.pages(pages, false);
+      if (rail) this.rail(rail === 'open', false);
+      document.addEventListener('dclab:project', () => this.recents());
+      let last = 0;
+      window.addEventListener('hashchange', () => { if (Date.now() - last > 15000) { last = Date.now(); this.recents(); } this.paint(); });
+      this.recents();
+    },
+    paint() {  // the switches show the state they control, whichever mode changed it
+      const root = document.documentElement;
+      $$('[data-ds-look]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dsLook === (root.dataset.mode === 'ds' ? 'ds' : 'dev'))));
+      const theme = root.dataset.theme || 'system';
+      $$('[data-ds-theme]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dsTheme === theme)));
+      const role = $('#ds-role'); if (role) role.value = state.role;
+      const bp = $('#ds-bp'); if (bp) bp.checked = !!state.bp;
+      $$('#ds-recent-list [data-recent]').forEach(a => a.classList.toggle('active', a.dataset.recent === this.here()));
+    },
+    here() { return state.view === 'home' ? 'd:' + ((() => { try { return localStorage.getItem('dclab-home-draft') || ''; } catch (e) { return ''; } })()) : (typeof state.project === 'string' && state.project.startsWith('p:') ? state.project : ''); },
+    settings(open) {
+      const box = $('#ds-settings');
+      if (!box) return;
+      box.hidden = !open;
+      if (open) { this.paint(); const first = $('button, select, input', box); if (first) first.focus(); }
+    },
+    theme(choice) {  // the same switch as the top bar's: light, dark, or the system's
+      const root = document.documentElement;
+      if (choice === 'system') { delete root.dataset.theme; delete root.dataset.tsTheme; }
+      else { root.dataset.theme = choice; root.dataset.tsTheme = choice; }
+      const dark = choice === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : choice === 'dark';
+      const btn = $('#theme-btn'); if (btn) btn.innerHTML = icon(dark ? 'sun' : 'moon');
+      this.paint();
+    },
+    pages(open, save) {
+      const t = $('#ds-pages-toggle'); if (t) t.setAttribute('aria-expanded', String(open));
+      document.documentElement.dataset.dsPages = open ? 'open' : 'closed';
+      const sel = $('#ds-pages-open'); if (sel) sel.value = open ? 'open' : 'closed';
+      if (save) { try { localStorage.setItem('dclab-ds-pages', open ? 'open' : 'closed'); } catch (e) { /* storage blocked */ } }
+    },
+    rail(open, save) {  // the side panel: shown in a conversation unless closed; a person's choice is kept
+      document.documentElement.dataset.dsRail = open ? 'open' : 'closed';
+      const b = $('#ds-rail-btn'); if (b) b.setAttribute('aria-pressed', String(open));
+      if (save) { try { localStorage.setItem('dclab-ds-rail', open ? 'open' : 'closed'); } catch (e) { /* storage blocked */ } }
+    },
+    async recents() {  // Home's conversations and the projects, newest first: the same lists Admin and the project menu read
+      const box = $('#ds-recent-list');
+      if (!box || !window.DC || !DC.client || document.documentElement.dataset.mode !== 'ds') return;
+      const [drafts, projects] = await Promise.all([
+        DC.client.listDrafts({ quiet: true }).catch(() => []), DC.client.listProjects({ quiet: true }).catch(() => [])]);
+      const when = x => String(x.updated || x.updated_at || x.created || x.created_at || '');
+      const items = [
+        ...(drafts || []).filter(d => !d.project_id && d.problem).map(d => ({ key: 'd:' + d.id, id: d.id, kind: 'chat', title: d.problem, at: when(d) })),
+        ...(projects || []).map(p => ({ key: 'p:' + p.id, id: p.id, kind: 'project', title: p.name || p.id, at: when(p) })),
+      ].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 14);
+      box.innerHTML = items.length ? items.map(i => `<button type="button" class="ds-recent" data-recent="${esc(i.key)}" data-kind="${i.kind}" title="${esc(i.title)}">`
+        + `<span class="ds-recent-title">${esc(i.title)}</span>${i.kind === 'project' ? '<span class="ds-recent-tag">project</span>' : ''}</button>`).join('')
+        : '<div class="ds-recent-empty">Your conversations and projects appear here.</div>';
+      $$('[data-recent]', box).forEach(b => b.addEventListener('click', () => {
+        const [kind, id] = [b.dataset.recent.slice(0, 1), b.dataset.recent.slice(2)];
+        if (kind === 'd') {  // the way Admin's Sessions reopens a conversation: Home's enter reads it
+          state.resumeDraft = id;
+          if (location.hash !== '#home') location.hash = '#home'; else show('home');
+        } else {
+          if ((projectSwitch.list || []).some(p => p.id === id)) projectSwitch.select(id);
+          else {  // the project menu has not read its list yet: choose it the way the menu does
+            state.project = 'p:' + id; state.projectId = null; currentProject.clear();
+            try { localStorage.setItem('dclab-project', id); } catch (e) { /* storage blocked */ }
+          }
+          location.hash = '#project';
+        }
+        document.body.classList.remove('nav-open');
+      }));
+      this.paint();
+    },
+  };
 
   /* ---------------- tours ---------------- */
   const TOURS = DEMO.tours || {};
@@ -792,6 +897,16 @@
       if (!m || p === all.find(x => x.closest('.view') === p.closest('.view'))) return;
       items.push({ group: 'Sections', label: `${m.label} › ${p.dataset.label || p.dataset.pane}`, hint: (m.crumbs || []).join(' / '), run: () => { location.hash = v + '/' + p.dataset.pane; } });
     });
+    if (document.documentElement.dataset.mode === 'ds') {  // the Data science frame's commands first, as Claude's command list has them
+      const go = sel => () => { const n = $(sel); if (n) n.click(); };
+      const first = items.length;
+      items.push({ group: 'Commands', label: 'New session', hint: 'a new problem on Home', run: go('#ds-new-chat') });
+      items.push({ group: 'Commands', label: 'Settings', hint: 'look, theme, view as', run: () => dsFrame.settings(true) });
+      items.push({ group: 'Commands', label: 'Show or hide the side panel', hint: 'panel', run: go('#ds-rail-btn') });
+      ['light', 'dark', 'system'].forEach(t => items.push({ group: 'Commands', label: 'Theme: ' + t, hint: 'theme', run: () => dsFrame.theme(t) }));
+      items.push({ group: 'Commands', label: 'Switch to the Developer look', hint: 'look', run: () => setMode('dev', true) });
+      items.unshift(...items.splice(first));  // before the pages
+    }
     items.push({ group: 'Actions', label: 'Start a new project', hint: 'N', run: () => { location.hash = 'new'; } });
     // dclab:closed-begin  (the blueprint layer: the full edition's)
     items.push({ group: 'Actions', label: state.bp ? 'Hide the blueprint layer' : 'Show the blueprint layer', hint: 'B', run: () => setBlueprint(!state.bp) });

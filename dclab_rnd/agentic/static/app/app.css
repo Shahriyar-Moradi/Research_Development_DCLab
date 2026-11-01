@@ -7522,8 +7522,8 @@ ul.plain { margin: 0; padding-left: var(--ts-space-6); display: grid; gap: var(-
 .msg-body > p + p { margin-top: var(--ts-space-3); }
 
 /* ===== ds.css ===== */
-/* Data science mode (the owner, 2026-11-01): the same product, pages, scripts and API, drawn the way Claude Code draws
-   a working session. Developer mode is the product as it is and is never touched: every rule here is scoped to
+/* Data science mode (the owner, 2026-11-01: "Claude's style, beside the old one"): the same product, pages, scripts and
+   API, drawn the way the Claude desktop app draws a working session. Developer mode is the product as it is and is never touched: every rule here is scoped to
    html[data-mode="ds"] (set by core.js setMode), except the one that hides Data-science-only controls in Developer.
    What it changes:
    - the kit's tokens: warm off-white grounds, near-black text, one clay colour for actions and marks, system fonts,
@@ -7598,116 +7598,302 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 .side .mode-switch { display: flex; margin: 10px 0 12px; }
 .side .mode-switch button { flex: 1; white-space: nowrap; justify-content: center; }
 
-/* ---------- frame: edge to edge, a quiet sidebar, a slim top bar ---------- */
-[data-mode="ds"] body { background: var(--ts-surface-sunken); }
-[data-mode="ds"] .app { background: var(--ts-surface-sunken); }
-[data-mode="ds"] .side { background: var(--ts-ground); border-right: 1px solid var(--ts-border); padding: 14px 10px; }
-[data-mode="ds"] .side .brand { margin-bottom: 14px; }
-[data-mode="ds"] .brand-mark { background: var(--ts-brand-deep); color: var(--ts-on-brand); border-radius: 8px; }
-[data-mode="ds"] .brand-name { font-size: 16px; font-weight: 600; }
-[data-mode="ds"] .brand-tag, [data-mode="ds"] .demo-pill { display: none; }
-[data-mode="ds"] .ws-switch { border-radius: 10px; box-shadow: none; }
-[data-mode="ds"] .nav-label { font-size: 12px; letter-spacing: 0; text-transform: none; font-weight: 500; color: var(--ts-text-muted); }
-[data-mode="ds"] .nav-item { border-radius: 8px; font-size: 14px; color: var(--ts-text); }
-[data-mode="ds"] .nav-item svg { color: var(--ts-text-secondary); }
-[data-mode="ds"] .nav-item.active { background: var(--ts-surface-hover); box-shadow: none; font-weight: 500; }
-[data-mode="ds"] .nav-item.active::before { display: none; }
-[data-mode="ds"] .nav-item.active svg { color: var(--ts-text); }
-[data-mode="ds"] .nav-item .count { background: transparent; color: var(--ts-text-muted); }
-[data-mode="ds"] .ds-new { width: auto; margin: 0 0 10px; border: 1px solid var(--ts-border-strong); background: var(--ts-surface); font-weight: 500; }
+/* Only in Developer: a part Data science draws in its own way */
+[data-mode="ds"] .ds-hide { display: none !important; }
+
+/* ================= the frame: the Claude desktop app's ================= */
+[data-mode="ds"] body, [data-mode="ds"] .app { background: var(--ts-surface-sunken); }
+[data-mode="ds"] { --side-w: 264px; --top-h: 52px; }
+
+/* the sidebar: New session, Recents, the pages folded under Pages, the account at the foot */
+[data-mode="ds"] .side { background: var(--ts-ground); border-right: 1px solid var(--ts-border); padding: 12px 10px 10px; gap: 4px; }
+[data-mode="ds"] .side > * { flex-shrink: 0; }  /* the sidebar scrolls; its sections never squeeze into each other */
+[data-mode="ds"] .side .brand { padding: 2px 6px 8px; }
+[data-mode="ds"] .brand-mark { width: 26px; height: 26px; border-radius: 7px; font-size: 11px; background: var(--ts-brand-deep); color: var(--ts-on-brand); box-shadow: none; }
+[data-mode="ds"] .brand-name { font-family: var(--ds-serif); font-weight: 500; font-size: 18px; letter-spacing: -.01em; }
+[data-mode="ds"] .brand-tag, [data-mode="ds"] .demo-pill, [data-mode="ds"] .ws-switch, [data-mode="ds"] .role-pick, [data-mode="ds"] #side-tours,
+[data-mode="ds"] .side-foot > .nav-label, [data-mode="ds"] .side-foot .switch-item { display: none !important; }
+[data-mode="ds"] .side .mode-switch { order: 90; margin: 6px 4px 4px; }
+[data-mode="ds"] .ds-new { order: 1; width: 100%; margin: 2px 0 6px; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent;
+  font-weight: 500; color: var(--ts-text); gap: 10px; }
+[data-mode="ds"] .ds-new svg { width: 18px; height: 18px; padding: 2px; border-radius: 999px; background: var(--ts-brand-deep); color: var(--ts-on-brand); stroke-width: 2.4; opacity: 1; }
 [data-mode="ds"] .ds-new:hover { background: var(--ts-surface-hover); }
+[data-mode="ds"] .ds-sec { font-size: 12px; font-weight: 500; color: var(--ts-text-muted); padding: 10px 10px 4px; letter-spacing: 0; text-transform: none; }
+[data-mode="ds"] .ds-recents { order: 3; display: flex; flex-direction: column; min-height: 0; }
+[data-mode="ds"] .ds-recent-list { display: flex; flex-direction: column; gap: 1px; }
+[data-mode="ds"] .ds-recent { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px; border-radius: 8px; text-align: left;
+  font-size: 13.5px; color: var(--ts-text); background: none; border: 0; }
+[data-mode="ds"] .ds-recent:hover { background: var(--ts-surface-hover); }
+[data-mode="ds"] .ds-recent.active { background: var(--ts-surface-hover); font-weight: 500; }
+[data-mode="ds"] .ds-recent-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+[data-mode="ds"] .ds-recent-tag { flex: none; font-size: 11px; color: var(--ts-text-muted); }
+[data-mode="ds"] .ds-recent-empty { font-size: 12.5px; color: var(--ts-text-faint); padding: 4px 10px 8px; line-height: 1.45; }
+[data-mode="ds"] .ds-pages-toggle { order: 4; display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: 0; cursor: pointer; margin-top: 6px; }
+[data-mode="ds"] .ds-pages-toggle svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform .15s; }
+[data-mode="ds"] .ds-pages-toggle[aria-expanded="false"] svg { transform: rotate(-90deg); }
+[data-mode="ds"] #nav { order: 5; gap: 8px; }
+[data-mode="ds"][data-ds-pages="closed"] #nav { display: none; }
+[data-mode="ds"] .nav-group { gap: 0; }
+[data-mode="ds"] .nav-label { font-family: var(--ts-font-body); font-size: 11.5px; letter-spacing: 0; text-transform: none; font-weight: 500; color: var(--ts-text-faint); padding: 6px 10px 2px; }
+[data-mode="ds"] .nav-item { padding: 5px 10px; border-radius: 8px; font-size: 13.5px; color: var(--ts-text-secondary); gap: 9px; }
+[data-mode="ds"] .nav-item svg { width: 15px; height: 15px; opacity: .7; }
+[data-mode="ds"] .nav-item:hover { background: var(--ts-surface-hover); color: var(--ts-text); }
+[data-mode="ds"] .nav-item.active { background: var(--ts-surface-hover); color: var(--ts-text); font-weight: 500; box-shadow: none; }
+[data-mode="ds"] .nav-item.active::before { display: none; }
+[data-mode="ds"] .nav-item .count { background: transparent; color: var(--ts-text-faint); font-size: 11px; }
+[data-mode="ds"] .nav-item.active .count { background: transparent; color: var(--ts-text-muted); }
+[data-mode="ds"] .side-foot { order: 99; border-top: 1px solid var(--ts-border); padding-top: 8px; gap: 0; }
+[data-mode="ds"] .ds-account { display: flex; align-items: center; gap: 10px; padding: 6px 6px 2px; }
+[data-mode="ds"] .ds-account .avatar { width: 30px; height: 30px; font-size: 11px; background: var(--ts-text); color: var(--ts-surface); border-radius: 999px; }
+[data-mode="ds"] .ds-account-name { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 13.5px; font-weight: 500; line-height: 1.25; }
+[data-mode="ds"] .ds-account-name small { font-size: 11.5px; font-weight: 400; color: var(--ts-text-muted); }
 
+/* the top bar: back and forward, "DCLab / the page", then search, the side panel and settings */
 [data-mode="ds"] .main { padding: 0; gap: 0; }
-[data-mode="ds"] .topbar { padding: 10px 20px; border-bottom: 1px solid var(--ts-border); background: var(--ts-surface-sunken); min-height: 56px; }
-[data-mode="ds"] .search-btn { border-radius: 10px; background: var(--ts-surface); box-shadow: none; max-width: 360px; }
-[data-mode="ds"] .content { border-radius: 0; background: var(--ts-surface-sunken); padding: 28px clamp(16px, 3vw, 40px) 96px; }
+[data-mode="ds"] .topbar { height: var(--top-h); padding: 0 14px; gap: 6px; border-bottom: 1px solid var(--ts-border); background: var(--ts-surface-sunken); backdrop-filter: none; -webkit-backdrop-filter: none; }
+[data-mode="ds"] .icon-btn { border-radius: 8px; }
+[data-mode="ds"] .topbar .icon-btn, [data-mode="ds"] .ds-account .icon-btn { width: 32px; height: 32px; min-width: 0; padding: 0; border: 0; background: transparent; box-shadow: none; color: var(--ts-text-muted); }
+[data-mode="ds"] .topbar .icon-btn:hover, [data-mode="ds"] .ds-account .icon-btn:hover { background: var(--ts-surface-hover); color: var(--ts-text); }
+[data-mode="ds"] .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+[data-mode="ds"] .ds-arrows { display: inline-flex; gap: 0; color: var(--ts-text-muted); }
+[data-mode="ds"] .ds-home-crumb { font-size: 14px; color: var(--ts-text-muted); margin-left: 6px; }
+[data-mode="ds"] .ds-home-crumb::after { content: "/"; margin: 0 8px; color: var(--ts-text-faint); }
+[data-mode="ds"] .crumbs { font-size: 14px; max-width: 50%; }
+[data-mode="ds"] .crumbs > span { display: none; }  /* "DCLab / the page", as Claude shows "project / chat" */
+[data-mode="ds"] .crumbs b { font-weight: 500; }
+[data-mode="ds"] .search-btn { flex: 0 0 auto; width: auto; height: 34px; padding: 0 10px; margin-left: auto; border-radius: 9px; border-color: transparent; background: transparent; box-shadow: none; }
+[data-mode="ds"] .search-btn:hover { background: var(--ts-surface-hover); border-color: transparent; }
+[data-mode="ds"] .search-btn > span { display: none; }
+[data-mode="ds"] .search-btn kbd { margin: 0; border: 0; background: var(--ts-surface-muted); }
+[data-mode="ds"] .top-actions { margin-left: 0; gap: 2px; }
+[data-mode="ds"] .top-avatar { display: none; }
+[data-mode="ds"] #ds-rail-btn[aria-pressed="true"] { background: var(--ts-surface-hover); color: var(--ts-text); }
+[data-mode="ds"] .content { max-width: none; border-radius: 0; background: var(--ts-surface-sunken); padding: 28px clamp(16px, 4vw, 56px) 110px; }
+[data-mode="ds"] .content > .view { max-width: 1180px; margin: 0 auto; }
 
-/* ---------- cards and controls: flat, thin lines, smaller radii ---------- */
-[data-mode="ds"] .panel, [data-mode="ds"] .stat { box-shadow: none; border-radius: 12px; }
-[data-mode="ds"] .panel.raised { box-shadow: none; }
-[data-mode="ds"] .btn { border-radius: 10px; box-shadow: none; }
-[data-mode="ds"] .chip, [data-mode="ds"] .pill { border-radius: 8px; }
-[data-mode="ds"] .seg { border-radius: 10px; }
-[data-mode="ds"] .seg button { border-radius: 8px; }
-[data-mode="ds"] .vh h1 { font-weight: 600; letter-spacing: -.01em; }
+/* ================= every page: Claude's calm surfaces ================= */
+[data-mode="ds"] .vh { margin-bottom: 18px; align-items: flex-end; }
+[data-mode="ds"] .vh h1 { font-family: var(--ds-serif); font-weight: 400; font-size: 30px; letter-spacing: -.005em; line-height: 1.2; }
+[data-mode="ds"] .vh .eyebrow { font-size: 12px; letter-spacing: 0; text-transform: none; color: var(--ts-text-muted); font-weight: 500; }
+[data-mode="ds"] .vh .lede { font-size: 15px; color: var(--ts-text-secondary); line-height: 1.6; }
 [data-mode="ds"] .eyebrow { letter-spacing: .02em; }
-
-/* Numbers read as data: one monospace face, lined up on the right; a quiet table header */
-[data-mode="ds"] td.num, [data-mode="ds"] th.num, [data-mode="ds"] .score { font-family: var(--font-mono); font-size: .92em; }
-[data-mode="ds"] table.data thead th { background: var(--ts-surface-muted); color: var(--ts-text-secondary); font-weight: 600; }
+[data-mode="ds"] h2, [data-mode="ds"] .panel-title h2, [data-mode="ds"] .panel-title h3 { letter-spacing: -.005em; }
+[data-mode="ds"] .panel-title h2 { font-size: 16px; font-weight: 600; }
+[data-mode="ds"] .ptabs { top: var(--top-h); background: var(--ts-surface-sunken); margin: -4px 0 20px; gap: 2px; }
+[data-mode="ds"] .ptab { padding: 9px 12px 8px; font-size: 13.5px; }
+[data-mode="ds"] .ptab[aria-selected="true"] { border-bottom-color: var(--ts-text); font-weight: 500; }
+[data-mode="ds"] .ptab[aria-selected="true"] .n { background: var(--ts-surface-muted); color: var(--ts-text); }
+[data-mode="ds"] .panel, [data-mode="ds"] .stat, [data-mode="ds"] .inset, [data-mode="ds"] .list-item, [data-mode="ds"] .pack-card { box-shadow: none; }
+[data-mode="ds"] .panel { border-radius: 14px; border-color: var(--ts-border); background: var(--ts-surface); }
+[data-mode="ds"] .panel.raised { box-shadow: none; }
+[data-mode="ds"] .panel-head { border-bottom-color: var(--ts-border); }
+[data-mode="ds"] .stat { border-radius: 12px; background: var(--ts-surface); }
+[data-mode="ds"] .stat .v { font-family: var(--font-mono); font-weight: 500; letter-spacing: -.01em; }
+[data-mode="ds"] .inset { background: var(--ts-surface-sunken); border-color: var(--ts-border); border-radius: 12px; }
+[data-mode="ds"] .btn { border-radius: 9px; box-shadow: none; font-weight: 500; }
+[data-mode="ds"] .btn.primary { background: var(--ts-brand-deep); border-color: var(--ts-brand-deep); color: var(--ts-on-brand); }
+[data-mode="ds"] .btn.primary:hover { background: var(--ts-brand-deep-hover); border-color: var(--ts-brand-deep-hover); }
+[data-mode="ds"] .btn:not(.primary):not(.ghost) { background: var(--ts-surface); border-color: var(--ts-border-strong); }
+[data-mode="ds"] .chip { border-radius: 999px; background: var(--ts-surface); border-color: var(--ts-border); color: var(--ts-text-secondary); }
+[data-mode="ds"] .chip:hover { background: var(--ts-surface-hover); color: var(--ts-text); }
+[data-mode="ds"] .pill { border-radius: 6px; }
+[data-mode="ds"] .seg { border-radius: 10px; background: var(--ts-surface-muted); }
+[data-mode="ds"] .seg button { border-radius: 8px; }
+[data-mode="ds"] .seg button[aria-pressed="true"] { background: var(--ts-surface); color: var(--ts-text); }
+[data-mode="ds"] .callout { border-radius: 12px; }
+[data-mode="ds"] input:not([type="checkbox"]):not([type="radio"]), [data-mode="ds"] select, [data-mode="ds"] textarea { border-radius: 9px; }
+[data-mode="ds"] code, [data-mode="ds"] kbd { border-radius: 5px; }
+/* numbers read as data: one monospace face, lined up; a quiet table */
+[data-mode="ds"] td.num, [data-mode="ds"] th.num, [data-mode="ds"] .score, [data-mode="ds"] td.mono { font-family: var(--font-mono); font-size: .9em; }
+[data-mode="ds"] table.data thead th { background: transparent; color: var(--ts-text-muted); font-weight: 500; font-size: 12px; text-transform: none; letter-spacing: 0; border-bottom: 1px solid var(--ts-border-strong); }
 [data-mode="ds"] table.data td, [data-mode="ds"] table.data th { border-color: var(--ts-border); }
+[data-mode="ds"] table.data tbody tr:hover td { background: var(--ts-surface-row-hover); }
 
-/* ---------- Home: the conversation is the page, its context on the right ---------- */
-[data-mode="ds"] #view-home .vh { margin-bottom: 18px; }
-[data-mode="ds"] #view-home .vh h1 { font-family: var(--ds-serif); font-weight: 400; font-size: 34px; letter-spacing: -.005em; }
-[data-mode="ds"] #view-home .vh .eyebrow, [data-mode="ds"] #view-home .vh .lede { display: none; }
-[data-mode="ds"] #view-home .vh { align-items: center; }
-[data-mode="ds"] #view-home .vh-actions .btn { height: auto; padding: 8px 14px; }
-/* the workflow map: in the conversation's column, as wide as it is, scrolling only on a narrow screen */
-[data-mode="ds"] #home-sol-graph .graph-svg { min-width: 620px; }
-[data-mode="ds"] #view-home [data-pane="overview"]:not([hidden]) {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 0 28px; align-items: start;
-}
+/* ================= Home: a new session, then the conversation ================= */
+/* the start: "What are we working on?" over one big box, as a new Claude session opens */
+[data-mode="ds"] #view-home .vh { flex-direction: column; align-items: center; text-align: center; margin: 7vh auto 22px; max-width: var(--ds-col); }
+[data-mode="ds"] #view-home .vh-text { align-items: center; max-width: none; }
+[data-mode="ds"] #view-home .vh .eyebrow, [data-mode="ds"] #view-home .vh .lede, [data-mode="ds"] #view-home .vh-actions { display: none; }
+[data-mode="ds"] .ds-hello { font-family: var(--ds-serif); font-weight: 400 !important; font-size: 34px !important; }
+[data-mode="ds"] .ds-hello-sub { color: var(--ts-text-muted); font-size: 15px; margin: 2px 0 0; }
+[data-mode="ds"] #view-home > .ptabs { justify-content: center; border-bottom: 0; margin-bottom: 8px; }
+[data-mode="ds"] #view-home > .ptabs .ptab { border-bottom: 0; border-radius: 8px; padding: 6px 12px; color: var(--ts-text-muted); }
+[data-mode="ds"] #view-home > .ptabs .ptab[aria-selected="true"] { background: var(--ts-surface-muted); color: var(--ts-text); }
+[data-mode="ds"] #view-home [data-pane="overview"]:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; align-items: start; }
 [data-mode="ds"] #view-home [data-pane="overview"] > :not(.ds-rail) { grid-column: 1; min-width: 0; max-width: var(--ds-col); width: 100%; justify-self: center; }
-/* spacing between the column's parts by margins: a row gap would repeat across every row the rail spans */
-[data-mode="ds"] #view-home [data-pane="overview"] > :not(.ds-rail) + :not(.ds-rail) { margin-top: 18px; }
-[data-mode="ds"] #view-home [data-pane="overview"] > .g-3-1,
-[data-mode="ds"] #view-home [data-pane="overview"] > .g-chat { grid-template-columns: minmax(0, 1fr); }
-[data-mode="ds"] .ds-rail {
-  grid-column: 2; grid-row: 1 / span 40; position: sticky; top: 16px; align-self: start;
-  display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 32px); overflow: auto; padding-bottom: 8px;
-}
-[data-mode="ds"] .ds-rail::before { content: "This workspace"; font-size: 12px; font-weight: 500; color: var(--ts-text-muted); padding: 2px 2px 0; }
-[data-mode="ds"] .ds-rail .panel-head { padding: 14px 16px 0; }
-[data-mode="ds"] .ds-rail .panel-head h2 { font-size: 14px; }
-[data-mode="ds"] .ds-rail .panel-body { padding: 10px 16px 14px; }
-[data-mode="ds"] .ds-rail .panel-foot { padding: 10px 16px; }
-[data-mode="ds"] .ds-rail .grid.g2 { grid-template-columns: minmax(0, 1fr); }  /* one fact per line in a narrow column */
-/* the workspace numbers as a small 2 x 2 card */
-[data-mode="ds"] .ds-rail .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border: 1px solid var(--ts-border); border-radius: 12px; background: var(--ts-surface); overflow: hidden; }
-[data-mode="ds"] .ds-rail .stat { border: 0; border-radius: 0; padding: 12px 14px; background: none; gap: 2px; }
-[data-mode="ds"] .ds-rail .stat:nth-child(odd) { border-right: 1px solid var(--ts-border); }
-[data-mode="ds"] .ds-rail .stat:nth-child(n+3) { border-top: 1px solid var(--ts-border); }
-[data-mode="ds"] .ds-rail .stat .v { font-size: 22px; font-family: var(--font-mono); font-weight: 500; letter-spacing: 0; }
-[data-mode="ds"] .ds-rail .stat .l { font-size: 12px; line-height: 1.4; }
-[data-mode="ds"] .ds-rail .stat .row { display: none; }  /* the spark line needs the wide tile */
-
-/* the start: one big box, like a new Claude Code session */
+[data-mode="ds"] #view-home [data-pane="overview"] > :not(.ds-rail) + :not(.ds-rail) { margin-top: 16px; }
+[data-mode="ds"] #view-home [data-pane="overview"] > .g-3-1, [data-mode="ds"] #view-home [data-pane="overview"] > .g-chat { grid-template-columns: minmax(0, 1fr); }
+[data-mode="ds"] #home-sol-graph .graph-svg { min-width: 620px; }
+/* the box: borderless text, its controls under it as small chips, Send as a round arrow */
 [data-mode="ds"] #view-home [data-f="home.composer"] { border: 0; background: none; }
-[data-mode="ds"] #view-home [data-f="home.composer"] > .panel-body { padding: 0; }
-[data-mode="ds"] #view-home [data-f="home.composer"] .composer,
-[data-mode="ds"] #home-chat .composer { border-radius: 18px; border-color: var(--ts-border-strong); background: var(--ts-surface);
-  box-shadow: 0 1px 2px #1f1e1c0a, 0 6px 20px -10px #1f1e1c24; }
-[data-mode="ds"] .composer textarea { font-size: 16px; line-height: 1.5; }
-[data-mode="ds"] .composer:focus-within { outline: none; border-color: var(--ts-text-faint); }
-[data-mode="ds"] .composer-bar { border-top: 0; padding: 6px 10px 10px; }
-[data-mode="ds"] .composer-bar .send { border-radius: 10px; }
-
-/* the chat: no card around it, the reading column, your words in a soft bubble on the right */
+[data-mode="ds"] #view-home [data-f="home.composer"] > .panel-body { padding: 0; gap: 14px; }
+[data-mode="ds"] #view-home [data-f="home.composer"] > .panel-body > .spread { display: none; }
+[data-mode="ds"] #view-home .composer { border: 1px solid var(--ts-border-strong); border-radius: 20px; background: var(--ts-surface);
+  box-shadow: 0 1px 2px #1f1e1c08, 0 8px 28px -14px #1f1e1c30; overflow: hidden; }
+[data-mode="ds"] #view-home .composer:focus-within { border-color: var(--ts-text-faint); outline: none; }
+[data-mode="ds"] #view-home .composer textarea { border: 0; background: transparent; box-shadow: none; font-size: 16px; line-height: 1.55; padding: 16px 18px 6px; min-height: 64px; resize: none; }
+[data-mode="ds"] #view-home .composer textarea:focus { outline: none; box-shadow: none; }
+[data-mode="ds"] #view-home .composer-bar { border-top: 0; padding: 6px 10px 10px; gap: 6px; background: transparent; }
+[data-mode="ds"] #view-home .composer-bar .btn.ghost, [data-mode="ds"] #view-home .composer-bar .link-btn { border-radius: 999px; color: var(--ts-text-secondary); }
+[data-mode="ds"] #view-home .composer-bar select { height: 32px; border-radius: 999px; border-color: var(--ts-border); background-color: transparent; font-size: 12.5px; color: var(--ts-text-secondary); }
+[data-mode="ds"] #view-home .composer-bar .seg { background: transparent; border: 1px solid var(--ts-border); border-radius: 999px; padding: 2px; }
+[data-mode="ds"] #view-home .composer-bar .seg button { border-radius: 999px; font-size: 12.5px; padding: 4px 10px; }
+[data-mode="ds"] #view-home .composer-bar .send { margin-left: auto; border-radius: 999px; font-size: 13.5px; padding: 0 14px; height: 34px; }
+[data-mode="ds"] #view-home [data-f="home.quickstarts"], [data-mode="ds"] #view-home [data-f="home.pack"] { justify-content: center; }
+[data-mode="ds"] #view-home [data-f="home.quickstarts"] > span:first-child { display: none; }
+[data-mode="ds"] #view-home [data-f="home.quickstarts"] .chips { justify-content: center; }
+[data-mode="ds"] #view-home [data-f="home.pack"] { color: var(--ts-text-faint); }
+/* once a conversation is open it is the page: the greeting and the start box step aside (but for the domain pack, which
+   can still change); the reply box sits at the bottom of the window */
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) > .vh,
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) > .ptabs { display: none; }
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-f="home.composer"] > .panel-body > :not([data-f="home.pack"]):not(#home-packs) { display: none; }
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-f="home.pack"] { justify-content: flex-start; }
 [data-mode="ds"] #home-chat { border: 0; background: none; }
-[data-mode="ds"] #home-chat > .panel-head { padding: 4px 0 10px; border-bottom: 1px solid var(--ts-border); }
-[data-mode="ds"] #home-chat > .panel-head h2 { font-size: 15px; }
-[data-mode="ds"] #home-chat > .panel-body { padding: 18px 0 8px; }
-[data-mode="ds"] #home-chat > .panel-foot { border-top: 0; padding: 8px 0; }
-[data-mode="ds"] #home-chat > .panel-foot:last-child { position: sticky; bottom: 0; padding: 10px 0 16px; z-index: 2;
-  background: linear-gradient(to bottom, transparent, var(--ts-surface-sunken) 24px); }
-[data-mode="ds"] #home-chat .thread { gap: 22px; }
-[data-mode="ds"] #home-chat .msg { grid-template-columns: minmax(0, 1fr); }
-[data-mode="ds"] #home-chat .msg > .avatar { display: none; }
-[data-mode="ds"] #home-chat .msg-body { font-size: 15.5px; line-height: 1.7; }
-[data-mode="ds"] #home-chat .msg-body .who { font-size: 12px; font-weight: 500; color: var(--ts-text-muted); }
-[data-mode="ds"] #home-chat .msg.user .msg-body { align-items: flex-end; }
-[data-mode="ds"] #home-chat .msg.user .bubble { border: 0; background: var(--ts-surface-muted); border-radius: 16px; padding: 10px 16px; max-width: 85%; font-size: 15.5px; }
-/* once a chat is open, the start box steps aside but for its domain pack (the reply box and its Connect data take over); New chat brings it back */
-[data-mode="ds"] #view-home [data-pane="overview"]:has(#home-chat:not([hidden])) [data-f="home.composer"] > .panel-body > :not([data-f="home.pack"]):not(#home-packs) { display: none; }
-/* what stays is the domain pack: the open draft's pack can still be changed, as in Developer */
+[data-mode="ds"] #home-chat > .panel-head { padding: 0 0 12px; border-bottom: 0; }
+[data-mode="ds"] #home-chat > .panel-head h2 { font-family: var(--ds-serif); font-weight: 400; font-size: 22px; }
+[data-mode="ds"] #home-chat > .panel-head .sub { font-size: 13px; }
+[data-mode="ds"] #home-chat > .panel-body { padding: 8px 0; }
+[data-mode="ds"] #home-chat > .panel-foot { border-top: 0; padding: 6px 0; background: none; }
+[data-mode="ds"] #home-chat > .panel-foot:last-child { position: sticky; bottom: 0; padding: 12px 0 18px; z-index: 5;
+  background: linear-gradient(to bottom, transparent, var(--ts-surface-sunken) 22px); }
+[data-mode="ds"] #home-chat > .panel-foot:last-child::after { content: "DCLab's code checks every number and step; the model can still be wrong."; display: block; text-align: center; font-size: 11.5px; color: var(--ts-text-faint); margin-top: 8px; }
+/* messages: your words in a soft bubble on the right; DCLab's as plain text, no avatar */
+[data-mode="ds"] .thread { gap: 26px; }
+[data-mode="ds"] .msg { grid-template-columns: minmax(0, 1fr); }
+[data-mode="ds"] .msg > .avatar { display: none; }
+[data-mode="ds"] .msg-body { font-size: 15.5px; line-height: 1.7; color: var(--ts-text); }
+[data-mode="ds"] .msg-body .who { font-size: 12px; font-weight: 500; color: var(--ts-text-faint); }
+[data-mode="ds"] .msg:not(.user):not(.me) .msg-body .who { display: none; }
+[data-mode="ds"] .msg.user, [data-mode="ds"] .msg.me { justify-items: end; }
+[data-mode="ds"] .msg.user .msg-body, [data-mode="ds"] .msg.me .msg-body { align-items: flex-end; max-width: 85%; justify-self: end; }
+[data-mode="ds"] .msg.user .msg-body .who, [data-mode="ds"] .msg.me .msg-body .who { display: none; }
+[data-mode="ds"] .msg.user .bubble, [data-mode="ds"] .msg.me .msg-body > p { border: 0; background: var(--ts-surface-muted); border-radius: 18px; padding: 10px 16px; font-size: 15.5px; color: var(--ts-text); }
+[data-mode="ds"] .msg .ask-card { border-radius: 14px; border-color: var(--ts-border); background: var(--ts-surface); }
+[data-mode="ds"] .msg .ask-option { border-radius: 999px; }
+/* the folded steps ("Reading the table ▸"): status lines read as Claude's tool steps */
+[data-mode="ds"] .msg .typing { font-size: 14px; color: var(--ts-text-muted); }
+[data-mode="ds"] .msg details > summary { color: var(--ts-text-muted); cursor: pointer; }
 
+/* the side panel: what needs you, the workspace, what DCLab understood, the team: Claude's right panel. Shown in a
+   conversation unless closed; on the start page only when opened */
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr) 320px; gap: 0 32px; }
+[data-mode="ds"][data-ds-rail="open"] #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr) 320px; gap: 0 32px; }
+[data-mode="ds"] .ds-rail { display: none; }
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) .ds-rail, [data-mode="ds"][data-ds-rail="open"] .ds-rail {
+  display: flex; flex-direction: column; gap: 4px; grid-column: 2; grid-row: 1 / span 40; position: sticky; top: calc(var(--top-h) + 12px); align-self: start;
+  max-height: calc(100vh - var(--top-h) - 24px); overflow: auto; padding: 0 0 8px 20px; border-left: 1px solid var(--ts-border); }
+[data-mode="ds"][data-ds-rail="closed"] #view-home .ds-rail { display: none !important; }
+[data-mode="ds"][data-ds-rail="closed"] #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
+[data-mode="ds"] .ds-rail::before { content: "This session"; font-size: 14px; font-weight: 500; color: var(--ts-text); padding: 4px 0 8px; }
+[data-mode="ds"] .ds-rail .panel { border: 0; border-radius: 0; background: none; border-bottom: 1px solid var(--ts-border); padding-bottom: 6px; }
+[data-mode="ds"] .ds-rail .panel-head { padding: 10px 0 0; border: 0; }
+[data-mode="ds"] .ds-rail .panel-head h2, [data-mode="ds"] .ds-rail .panel-head h3 { font-size: 14px; font-weight: 500; }
+[data-mode="ds"] .ds-rail .panel-head .sub { font-size: 12px; }
+[data-mode="ds"] .ds-rail .panel-body { padding: 8px 0 10px; }
+[data-mode="ds"] .ds-rail .panel-foot { padding: 8px 0; border: 0; background: none; }
+[data-mode="ds"] .ds-rail .grid.g2 { grid-template-columns: minmax(0, 1fr); }
+[data-mode="ds"] .ds-rail .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 6px 0 10px; }
+[data-mode="ds"] .ds-rail .stat { border: 1px solid var(--ts-border); border-radius: 10px; padding: 10px 12px; background: var(--ts-surface); gap: 2px; }
+[data-mode="ds"] .ds-rail .stat .v { font-size: 19px; }
+[data-mode="ds"] .ds-rail .stat .l { font-size: 11.5px; line-height: 1.4; }
+[data-mode="ds"] .ds-rail .stat .row { display: none; }
+[data-mode="ds"] .ds-rail .list-item { border: 0; padding: 6px 0; background: none; }
+
+/* ================= the notebook: DCLab Studio's review, in Claude's colours (the owner, 2026-11-01) =================
+   The review on top as one card (the banner: "Notebook review", its verdict as the headline), plain text tools, each cell
+   a card with its [n] strip, the code on a soft ground and its outputs as tiles; beside them the findings as Studio's
+   cards (severity, a bold title, the reason, the evidence, the main action in clay). Only drawing: the review is the
+   product's own, nothing is added to it. */
+[data-mode="ds"] { --syn-kw: #a8452a; --syn-str: #4f7a3a; --syn-num: #a35a00; --syn-fn: #2f5f8f; --syn-com: #8c897f; }
+:root[data-mode="ds"][data-ts-theme="dark"] { --syn-kw: #e58f6d; --syn-str: #9bc27f; --syn-num: #e2b26a; --syn-fn: #8fb7e0; --syn-com: #85827a; }
+@media (prefers-color-scheme: dark) { :root[data-mode="ds"]:not([data-ts-theme="light"]) { --syn-kw: #e58f6d; --syn-str: #9bc27f; --syn-num: #e2b26a; --syn-fn: #8fb7e0; --syn-com: #85827a; } }
+[data-mode="ds"] #view-notebook .stats { gap: 12px; }
+[data-mode="ds"] #view-notebook .stat { background: var(--ts-surface-muted); border: 0; border-radius: 12px; padding: 14px 16px; }
+[data-mode="ds"] #view-notebook .stat .v { font-size: 26px; }
+[data-mode="ds"] #view-notebook .g-side { gap: 24px; grid-template-columns: minmax(0, 1fr) 380px; }
+[data-mode="ds"] #view-notebook .g-side > :first-child { display: flex; flex-direction: column; gap: 14px; border: 0; background: none; box-shadow: none; padding: 0; }
+/* the review card: "Notebook review", the verdict as the headline, the reason under it */
+[data-mode="ds"] #nb-banner { order: -1; margin: 0 !important; display: block; padding: 22px 26px; border-radius: 18px; border: 1px solid var(--ts-border);
+  background: var(--ts-surface); color: var(--ts-text-secondary); font-size: 15px; line-height: 1.65; }
+[data-mode="ds"] #nb-banner .ic { display: none; }
+[data-mode="ds"] #nb-banner::before { content: "Notebook review"; display: block; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ts-brand-deep); margin-bottom: 8px; }
+[data-mode="ds"] #nb-banner b:first-child { display: block; font-size: 23px; line-height: 1.3; font-weight: 600; color: var(--ts-text); letter-spacing: -.01em; margin-bottom: 6px; }
+[data-mode="ds"] #nb-banner.callout.bad { box-shadow: inset 4px 0 0 var(--ts-danger, #b42318); }
+[data-mode="ds"] #nb-banner.callout.warn { box-shadow: inset 4px 0 0 var(--ts-warning, #b54708); }
+[data-mode="ds"] #nb-banner.callout.ok { box-shadow: inset 4px 0 0 var(--ts-success, #067647); }
+/* the tools as plain words: Run all, Restart kernel, who drives, the kernel's state */
+[data-mode="ds"] .nb-toolbar { background: none; border: 0; padding: 2px 0; gap: 6px; flex-wrap: wrap; align-items: center; }
+[data-mode="ds"] .nb-toolbar .btn { background: transparent !important; border-color: transparent !important; color: var(--ts-text-secondary); padding: 0 8px; }
+[data-mode="ds"] .nb-toolbar .btn:hover { background: var(--ts-surface-hover) !important; color: var(--ts-text); }
+[data-mode="ds"] .nb-toolbar .btn svg { width: 12px; height: 12px; fill: currentColor; stroke: none; }
+[data-mode="ds"] .nb-toolbar .kernel { margin-left: auto; }
+[data-mode="ds"] .kernel { border-radius: 999px; background: var(--ts-surface-muted); padding: 4px 12px; font-size: 12.5px; color: var(--ts-text-secondary); }
+/* the cells */
+[data-mode="ds"] .cells { gap: 16px; padding: 0; }
+[data-mode="ds"] .cell { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0; border: 1px solid var(--ts-border); border-radius: 16px; background: var(--ts-surface); overflow: hidden; }
+[data-mode="ds"] .cell:has(> .cell-md) { border: 0; background: none; border-radius: 0; overflow: visible; }  /* a text cell is the section's heading */
+[data-mode="ds"] .cell:has(> .cell-md) > .cell-gutter { display: none; }
+[data-mode="ds"] .cell-md { padding: 6px 2px 0; font-size: 14.5px; color: var(--ts-text-secondary); }
+[data-mode="ds"] .cell-md h3 { font-family: var(--ts-font-body); font-size: 19px; font-weight: 600; color: var(--ts-text); }
+[data-mode="ds"] .cell-gutter { flex-direction: row; justify-content: flex-start; align-items: center; gap: 10px; padding: 10px 18px; border-bottom: 1px solid var(--ts-border);
+  font-size: 13px; color: var(--ts-text-faint); background: var(--ts-surface); }
+[data-mode="ds"] .cell-flag { border-radius: 6px; width: 20px; height: 20px; }
+[data-mode="ds"] .cell-body { padding: 0; gap: 0; }
+[data-mode="ds"] .cell-body pre.code, [data-mode="ds"] .cells pre.code { margin: 0; border: 0; border-radius: 0; background: var(--ts-surface-sunken); padding: 16px 22px; font-size: 13.5px; line-height: 1.8; }
+[data-mode="ds"] .cell-tools { padding: 10px 18px; border-top: 1px solid var(--ts-border); font-size: 12.5px; }
+[data-mode="ds"] .cell-out { margin: 12px 18px; border-left: 0; border-radius: 12px; background: var(--ts-surface-muted); padding: 12px 16px; font-size: 13px; }
+[data-mode="ds"] .cell-body > .callout, [data-mode="ds"] .cell-body > .row, [data-mode="ds"] .cell-body > .stack { margin: 10px 18px; }
+/* the findings beside them */
+[data-mode="ds"] .companion { top: calc(var(--top-h) + 16px); max-height: calc(100vh - var(--top-h) - 32px); gap: 14px; }
+[data-mode="ds"] .companion > .panel { border: 0; background: none; }
+[data-mode="ds"] .companion > .panel > .panel-head { border: 1px solid var(--ts-border); border-radius: 16px; background: var(--ts-surface); padding: 16px 18px; margin-bottom: 14px; }
+[data-mode="ds"] .companion > .panel > .panel-head h3 { font-size: 15px; font-weight: 600; }
+[data-mode="ds"] .companion > .panel > .panel-body { padding: 0; gap: 14px; }
+[data-mode="ds"] .finding { border-radius: 16px; border: 1px solid var(--ts-border); padding: 16px 18px; gap: 10px; background: var(--ts-surface); box-shadow: none; }
+[data-mode="ds"] .finding.high { border-color: color-mix(in srgb, var(--ts-danger, #b42318) 30%, var(--ts-border)); }
+[data-mode="ds"] .finding.fixed { opacity: .8; }
+[data-mode="ds"] .finding .sev { border-radius: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; padding: 2px 8px; text-transform: capitalize; }
+[data-mode="ds"] .finding .sev.high { background: color-mix(in srgb, var(--ts-danger, #b42318) 12%, var(--ts-surface)); color: var(--ts-danger, #b42318); }
+[data-mode="ds"] .finding .tag { font-family: var(--font-mono); font-size: 11.5px; color: var(--ts-text-muted); background: transparent; border: 0; }
+[data-mode="ds"] .finding .f-title { font-size: 15.5px; font-weight: 600; line-height: 1.35; }
+[data-mode="ds"] .finding .f-msg { font-size: 14px; line-height: 1.6; color: var(--ts-text-secondary); }
+[data-mode="ds"] .finding .f-fix { border-radius: 12px; background: var(--ts-surface-sunken); padding: 10px 12px; font-size: 13.5px; }
+[data-mode="ds"] .finding .ev-chip { border-radius: 6px; font-size: 11.5px; }
+[data-mode="ds"] .finding > .row:last-child .btn:first-child { background: var(--ts-brand-deep); border-color: var(--ts-brand-deep); color: var(--ts-on-brand); }
+[data-mode="ds"] .finding > .row:last-child .btn:first-child:hover { background: var(--ts-brand-deep-hover); }
+@media (max-width: 1100px) { [data-mode="ds"] #view-notebook .g-side { grid-template-columns: minmax(0, 1fr); } }
+
+/* ================= Settings and the command list ================= */
+.ds-settings-wrap[hidden] { display: none !important; }
+[data-mode="ds"] .ds-settings-wrap { position: fixed; inset: 0; z-index: 120; display: flex; align-items: flex-start; justify-content: center; padding: 12vh 16px 16px; background: color-mix(in srgb, #1f1e1c 28%, transparent); backdrop-filter: blur(3px); }
+[data-mode="ds"] .ds-settings { width: min(560px, 100%); background: var(--ts-surface); border: 1px solid var(--ts-border); border-radius: 18px; padding: 18px 22px 16px; box-shadow: 0 24px 64px -24px #1f1e1c66; }
+[data-mode="ds"] .ds-settings-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+[data-mode="ds"] .ds-settings-head h2 { font-family: var(--ds-serif); font-weight: 400; font-size: 22px; }
+[data-mode="ds"] .ds-set-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--ts-border); font-size: 14px; }
+[data-mode="ds"] .ds-set-row > label { color: var(--ts-text); }
+[data-mode="ds"] .ds-set-row select { width: 220px; }
+[data-mode="ds"] .ds-set-note { font-size: 12.5px; color: var(--ts-text-muted); margin: 8px 0 0; padding-top: 10px; border-top: 1px solid var(--ts-border); }
+[data-mode="ds"] .palette { background: color-mix(in srgb, #1f1e1c 28%, transparent); backdrop-filter: blur(3px); }
+[data-mode="ds"] .palette-box { border-radius: 16px; border-color: var(--ts-border); box-shadow: 0 24px 64px -24px #1f1e1c66; }
+[data-mode="ds"] .palette-box input { font-size: 15px; padding: 16px 18px; }
+[data-mode="ds"] .palette-group { font-size: 11.5px; letter-spacing: 0; text-transform: none; color: var(--ts-text-faint); }
+[data-mode="ds"] .palette-item { border-radius: 9px; font-size: 14px; color: var(--ts-text); padding: 9px 12px; }
+[data-mode="ds"] .palette-item.active, [data-mode="ds"] .palette-item:hover { background: var(--ts-surface-muted); }
+[data-mode="ds"] .palette-item .pk { color: var(--ts-text-faint); }
+[data-mode="ds"] .drawer, [data-mode="ds"] .modal { border-radius: 16px; }
+
+/* ================= narrow windows ================= */
 @media (max-width: 1100px) {
-  [data-mode="ds"] #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
-  [data-mode="ds"] .ds-rail { grid-column: 1; grid-row: auto; position: static; max-height: none; overflow: visible; }
+  [data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-pane="overview"]:not([hidden]),
+  [data-mode="ds"][data-ds-rail="open"] #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
+  [data-mode="ds"] #view-home:has(#home-chat:not([hidden])) .ds-rail, [data-mode="ds"][data-ds-rail="open"] .ds-rail {
+    grid-column: 1; grid-row: auto; position: static; max-height: none; overflow: visible; padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--ts-border); }
 }
 @media (max-width: 960px) {
-  [data-mode="ds"] .topbar { padding: 8px 12px; }
-  [data-mode="ds"] .mode-switch button { padding-left: 8px; padding-right: 8px; }
-  [data-mode="ds"] #view-home .vh h1 { font-size: 28px; }
+  [data-mode="ds"] .topbar { padding: 0 8px; }
+  [data-mode="ds"] .ds-arrows, [data-mode="ds"] .ds-home-crumb { display: none; }
+  [data-mode="ds"] .ds-hello { font-size: 27px !important; }
+  [data-mode="ds"] #view-home .vh { margin-top: 3vh; }
+  [data-mode="ds"] .content { padding: 18px 16px 100px; }
 }

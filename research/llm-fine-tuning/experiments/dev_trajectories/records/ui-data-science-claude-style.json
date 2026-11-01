@@ -1,0 +1,116 @@
+{
+  "package": "ui-ds-claude",
+  "title": "The Data science mode redrawn as the Claude desktop app beside the untouched Developer mode, with the notebook as DCLab Studio's review in Claude's colours",
+  "date": "2026-11-01",
+  "request": "The owner: keep DCLab's UI as the Developer mode as it is now, and add a Data science mode with the same functionality but very similar to Claude Code, more data-science friendly, with a switch between them; the first attempt was a mistake (the result was the same page recoloured). With screenshots of their dclab code app, DCLab Studio's notebook review and the Claude desktop app; answers: both looks combined, every page at once, Claude's colours; then: I really like Claude's style more, beside the old one; and for the notebook DCLab Studio's style in Claude's theme and colours.",
+  "spec": "One set of pages, two frames: html[data-mode=ds] draws the Claude desktop app's frame (New chat, Recents of drafts and projects, the pages folded under Pages, account and Settings at the foot; back and forward, DCLab / page, search, the side panel's toggle, Settings), Home as a new session (What are we working on?, one box with its chips) then the conversation with your words in bubbles and the context in a side panel, every shared part in Claude's calm style, the notebook as DCLab Studio's review; Developer never changes; Settings holds only switches the product has.",
+  "plan": [
+    "Screenshot the first attempt beside Developer to see the mistake",
+    "Ask which screenshot, how much and which colours before building",
+    "Read the shell, Home's composer and messages, the notebook's cells and findings, the list endpoints",
+    "Add the frame's parts to the shell (Data science only) and dsFrame in core.js calling the product's own functions",
+    "Rewrite ds.css on the kept Claude tokens: frame, every page, Home, conversation, side panel, notebook, Settings, command list",
+    "Screenshot light, dark and 375 px; extend the browser check; run the browser checks, the web tests and rd-gates"
+  ],
+  "decisions": [
+    {
+      "decision": "Same pages, a second frame: no page copied for Data science",
+      "why": "the owner asked for the same functionality; 930 KB of pages copied would drift from Developer and break"
+    },
+    {
+      "decision": "Settings shows only switches the product has (look, theme, view as, pages, blueprint, tours); models and budgets point to Admin",
+      "why": "the dclab code screenshot showed model, effort and cap pickers the studio's Home does not have; drawing them would be controls that do nothing"
+    },
+    {
+      "decision": "No Review gate card on the notebook",
+      "why": "DCLab Studio's numbered fix order has no source in the product's review yet; the companion's severity counts sit there instead of an invented order"
+    },
+    {
+      "decision": "Recents reopens a conversation the way Admin's Sessions does (state.resumeDraft, then Home)",
+      "why": "one path to reopen a draft, already tested"
+    },
+    {
+      "decision": "The side panel shows in a conversation unless closed; its toggle reads what is on screen",
+      "why": "Claude shows its panel in a session and not on a new one; a toggle that only read the saved choice opened an already open panel"
+    }
+  ],
+  "change": "dclab_rnd/agentic/web/src/shell.html (Recents, Pages toggle, account, back/forward, DCLab crumb, side panel and Settings buttons, the Settings window); src/core.js (dsFrame: recents, settings, theme, pages, side panel; Commands first in the palette); src/ds.css (rewritten on the kept tokens); src/views/home.html (What are we working on?); scripts/browser_e2e.py (dsmode extended); tests/test_web_client.py (dsmode in the checks' list); CLAUDE.md; dclab_rnd/agentic/static/app (make web)",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "The first Data science mode was the Developer page recoloured",
+      "scenario": "the owner switches to Data science and sees the same Home, tabs, cards and navigation in cream and orange, nothing like Claude Code",
+      "cause": "it changed tokens and moved Home's cards to a column, but kept the frame (workspace card, big search, role picker) and every page's structure",
+      "fix": "a Claude desktop frame of its own, Home as a new session, the conversation in bubbles with a side panel, Studio's notebook review",
+      "test": "scripts/browser_e2e.py check_ds_mode"
+    },
+    {
+      "id": "F2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The sidebar's Recents, Pages and Workspace labels overlapped",
+      "scenario": "Data science at 1440 x 900: the three headings drawn on top of each other",
+      "cause": "the sidebar is a scrolling flex column and its new sections shrank to zero height",
+      "fix": "the sidebar's children never shrink in Data science",
+      "test": "screenshot at 1440 px; scripts/browser_e2e.py check_ds_mode clicks Pages and Recents"
+    },
+    {
+      "id": "F3",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The side panel's toggle opened a panel already open",
+      "scenario": "in a conversation the panel shows; the first click on its toggle left it showing",
+      "cause": "the toggle read the saved choice, empty in a first visit, not the panel on screen",
+      "fix": "the toggle reads the panel's display and sets the other way",
+      "test": "scripts/browser_e2e.py check_ds_mode: the side panel closes and opens"
+    },
+    {
+      "id": "F4",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The list of browser checks a test expects did not name dsmode",
+      "scenario": "tests/test_web_client.py failed on the committed code: the first Data science commit added the check, not the list",
+      "cause": "the check was added without its test's list",
+      "fix": "dsmode named in the list",
+      "test": "tests/test_web_client.py test_the_browser_tests_visit_every_page_the_app_has"
+    },
+    {
+      "id": "F5",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The logo's letters were unreadable in the dark theme",
+      "scenario": "Data science, dark: white DC on the light clay square",
+      "cause": "the mark's text kept the light theme's white",
+      "fix": "the mark's text uses the brand's own on-colour",
+      "test": "screenshot in the dark theme"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "browser checks on a local server (no model): dsmode, pages, mobile, ui, flow",
+      "gate": "all pass; Developer unchanged at 1150 to 1366 px; 21 pages without an error and within 375 px in Data science",
+      "fixed_before_run": true,
+      "result": "all pass; Developer's Home screenshot identical to before the change",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "headless Chromium in a cloud sandbox, not the owner's Mac browsers",
+        "a fresh workspace with one built project and a few drafts"
+      ]
+    }
+  ],
+  "outcome": "Data science is now its own Claude-style frame over the same pages, with Home as a session and conversation, a side panel, Settings and Commands, every page in Claude's style and the notebook as DCLab Studio's review; Developer is unchanged.",
+  "lessons": [
+    "Before redoing a design that missed, screenshot it beside its target and ask which target, how much and which colours",
+    "A second look over the same pages keeps the functionality the same; a copied page would not",
+    "Draw only controls the product has: a picker that does nothing is worse than none"
+  ],
+  "risks": [
+    "Pages other than Home and the notebook are restyled, not re-laid-out: they read calmer but keep Developer's arrangement",
+    "The look relies on :has(), supported by current Chrome, Safari and Firefox, not by old browsers",
+    "Recents lists at most 14 items and refreshes on a page change at most every 15 seconds"
+  ],
+  "commits": []
+}

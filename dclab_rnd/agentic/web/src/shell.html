@@ -16,12 +16,15 @@
     </button>
     <div class="seg mode-switch" id="mode-switch" role="group" aria-label="Look of the app"><button type="button" data-mode="dev" data-action="mode-dev" aria-pressed="true" title="The product as it is: dashboards and panels">Developer</button><button type="button" data-mode="ds" data-action="mode-ds" aria-pressed="false" title="The same product as a conversation, in Claude Code's calm style">Data science</button></div>
     <button type="button" class="nav-item ds-only ds-new" id="ds-new-chat" title="Start a new problem: describe it, DCLab asks a few questions, then builds it"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New chat</span></button>
+    <div class="ds-only ds-recents" id="ds-recents"><div class="ds-sec">Recents</div><div class="ds-recent-list" id="ds-recent-list"><div class="ds-recent-empty">Your conversations and projects appear here.</div></div></div>
+    <button type="button" class="ds-only ds-sec ds-pages-toggle" id="ds-pages-toggle" aria-expanded="true" aria-controls="nav">Pages<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
     <nav id="nav" aria-label="Main"></nav>
     <div class="side-foot">
       <div class="nav-label">Preview</div>
       <!-- dclab:closed-begin  (the blueprint layer: the full edition's planning view) -->
       <label class="nav-item switch-item" title="Outline every feature as built, partial, to build or research"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span>Blueprint layer</span><span class="switch"><input type="checkbox" id="bp-switch"><span class="track"></span></span></label>
       <!-- dclab:closed-end -->
+      <div class="ds-only ds-account"><span class="avatar">SM</span><span class="ds-account-name">Shahriyar<small>Owner · this machine</small></span><button type="button" class="icon-btn" data-ds-settings="1" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
       <button type="button" class="nav-item" id="side-tours"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 10 4l4 10 2-4 4 10"/></svg><span>Guided tours</span></button>
     </div>
   </aside>
@@ -29,11 +32,15 @@
   <div class="main">
     <header class="topbar">
       <button type="button" class="icon-btn menu-btn" id="menu-btn" aria-label="Open navigation"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <span class="ds-only ds-arrows"><button type="button" class="icon-btn" id="ds-back" aria-label="Back" title="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button><button type="button" class="icon-btn" id="ds-fwd" aria-label="Forward" title="Forward"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></span>
+      <span class="ds-only ds-home-crumb">DCLab</span>
       <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
       <button type="button" class="search-btn" id="search-btn" aria-label="Search pages, actions and evidence"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search this workspace or jump to…</span><kbd>⌘K</kbd></button>
       <div class="top-actions">
         <label class="role-pick" title="See the product as another user would"><span class="sr-only">View as</span><span class="dot accent"></span><select class="role-select" id="role-select"><option value="developer">Developer view</option><option value="business">Business view</option><option value="researcher">Researcher view</option><option value="admin">Admin view</option></select></label>
         <span class="demo-pill" title="Sample data, except where a record chip such as EXP-007 cites the repository">Sample data · Demo</span>
+        <button type="button" class="icon-btn ds-only" id="ds-rail-btn" aria-label="Show or hide the side panel" title="Side panel" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+        <button type="button" class="icon-btn ds-only" data-ds-settings="1" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
         <button type="button" class="icon-btn" id="theme-btn" aria-label="Switch light or dark theme"></button>
         <span class="avatar top-avatar" title="Shahriyar · owner">SM</span>
       </div>
@@ -87,6 +94,21 @@
     <div class="modal-head"><div id="modal-eyebrow"></div><h2 id="modal-title"></h2></div>
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-foot"><button type="button" class="btn" id="modal-cancel">Cancel</button><button type="button" class="btn primary" id="modal-confirm">Confirm</button></div>
+  </div>
+</div>
+<!-- the Data science mode's settings (2026-11-01): only controls the product has, each the same switch as in Developer -->
+<div class="ds-settings-wrap" id="ds-settings" hidden>
+  <div class="ds-settings" role="dialog" aria-modal="true" aria-labelledby="ds-settings-title">
+    <div class="ds-settings-head"><h2 id="ds-settings-title">Settings</h2><button type="button" class="icon-btn" id="ds-settings-close" aria-label="Close settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="ds-set-row"><label>Look</label><div class="seg" role="group" aria-label="Look of the app"><button type="button" data-ds-look="dev" aria-pressed="false">Developer</button><button type="button" data-ds-look="ds" aria-pressed="true">Data science</button></div></div>
+    <div class="ds-set-row"><label>Theme</label><div class="seg" role="group" aria-label="Theme"><button type="button" data-ds-theme="light" aria-pressed="false">Light</button><button type="button" data-ds-theme="dark" aria-pressed="false">Dark</button><button type="button" data-ds-theme="system" aria-pressed="true">System</button></div></div>
+    <div class="ds-set-row"><label for="ds-role">View as</label><select id="ds-role"><option value="developer">Developer</option><option value="business">Business</option><option value="researcher">Researcher</option><option value="admin">Admin</option></select></div>
+    <div class="ds-set-row"><label for="ds-pages-open">Pages in the sidebar</label><select id="ds-pages-open"><option value="open">Shown</option><option value="closed">Folded</option></select></div>
+    <!-- dclab:closed-begin  (the blueprint layer: the full edition's planning view) -->
+    <div class="ds-set-row"><label for="ds-bp">Blueprint layer</label><span class="switch"><input type="checkbox" id="ds-bp"><span class="track"></span></span></div>
+    <!-- dclab:closed-end -->
+    <div class="ds-set-row"><label>Guided tours</label><button type="button" class="btn sm" id="ds-tours">Start a tour</button></div>
+    <p class="ds-set-note">Models, budgets and who may do what are set by the workspace owner on the Admin page.</p>
   </div>
 </div>
 <div class="palette" id="palette" hidden>
