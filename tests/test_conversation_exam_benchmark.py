@@ -52,6 +52,15 @@ class BenchmarkTests(unittest.TestCase):
         self.assertIn("CEX-022 (in CEX-020)", runs)
         self.assertFalse(any(r.startswith("CEX-023") for r in runs))
 
+    def test_a_run_with_conversations_that_never_ran_is_marked_incomplete_not_printed_as_ten_people(self):
+        """CEX-025: the account ran out of credit after five of ten people; the page printed ten people and a low average."""
+        arm = {"people": 10, "judged": 5, "failed": 5, "understanding": 0.48}
+        (self.results / "CEX-025_dev_route.json").write_text(json.dumps({"id": "CEX-025", "split": "dev_route", "summary": {"case": arm, "plain": arm}}))
+        rows = {r["arm"]: r for r in benchmark.runs(self.results) if r["run"] == "CEX-025"}
+        self.assertEqual(rows["case"]["people"], "5 of 10")
+        self.assertIn("incomplete", rows["case"]["verdict"])
+        self.assertIn("incomplete", rows["plain"]["verdict"])
+
     def test_every_arm_has_a_row_and_the_owners_verdict_replaces_pending(self):
         rows = {(r["run"], r["arm"]): r for r in self.doc["runs"]}
         self.assertEqual(set(rows), {("CEX-013", "case"), ("CEX-013", "plain")})

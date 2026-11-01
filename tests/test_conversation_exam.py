@@ -539,6 +539,26 @@ class RunTests(unittest.TestCase):
         self.assertEqual(len(result["scores"]["plain"]), 1)  # the person in play when the cap was reached is left out
         self.assertTrue((keep / "scripted.json").exists())
 
+    def test_a_model_account_out_of_credit_stops_the_run_and_never_scores_a_failed_agent(self):
+        """CEX-025: with no credit left every call failed and five people were scored as zero understanding."""
+        keep = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, keep, True)
+
+        class Dry:
+            def complete(self, *a, **k):
+                raise RuntimeError("ModelPaused: the model account has no credit left")
+
+        judge_ok = {"understood": [True], "questions": [], "options_fit": None, "options_differ": None, "trap_handled": None}
+        people = [{**PERSON, "id": f"t-{i}", "upload": None} for i in range(4)]
+        result = X.measure(people, {"plain": lambda pid, folder: arms.PlainArm(Dry())}, lambda k, p: person.ModelPerson(Script(), p),
+                           lambda pid, arm: Script(judge_ok), keep=keep)
+        self.assertEqual(result["incomplete"], "model account out of credit")
+        self.assertEqual(result["scores"]["plain"], [])  # nobody counted as a failed agent
+        self.assertEqual(len([p for p in (keep / "plain").iterdir()]), 1)  # the run stopped at the first person
+        self.assertEqual(X._run_stopped(RuntimeError("Your credit balance is too low to access the Anthropic API")), "model account out of credit")
+        self.assertEqual(X._run_stopped(RuntimeError("BudgetExceeded: this run has used its budget")), "cap reached")
+        self.assertIsNone(X._run_stopped(RuntimeError("a model said something odd")))
+
     def test_a_scripted_run_plays_judges_and_keeps_every_conversation(self):
         keep = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, keep, True)

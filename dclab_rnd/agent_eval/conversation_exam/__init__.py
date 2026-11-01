@@ -198,6 +198,20 @@ def _budget_refused(error: BaseException) -> bool:
     return "BudgetExceeded" in str(error)
 
 
+# the model account itself ran dry (CEX-025, 2026-11-01: five of ten people were scored as zero understanding because every call
+# failed): a run stops there like at its cap, and the person in play is left out of the scores, never counted as a failed agent
+NO_CREDIT = ("no credit left", "credit balance is too low", "ModelPaused")
+
+
+def _run_stopped(error: BaseException) -> str | None:
+    """Why a run cannot go on, from an error of a conversation: its cap, or the model account out of credit; None otherwise."""
+    if _budget_refused(error):
+        return "cap reached"
+    if any(marker in str(error) for marker in NO_CREDIT):
+        return "model account out of credit"
+    return None
+
+
 def asks(turn: Mapping[str, Any]) -> bool:
     """Whether a turn waits for the person: choices shown, a question pending, or a question in its words."""
     return bool(turn.get("choices")) or bool(turn.get("waiting")) or "?" in str(turn.get("text") or "")
@@ -364,19 +378,16 @@ def measure(people: list[Mapping[str, Any]], arm_for: Mapping[str, Callable[[str
                     conv = play(p, make(str(p["id"]), folder), person_for(f"{arm_name}-{p['id']}", p))
                 except PersonFailed as error:
                     conv = {**broken, "ended": "person_error", "error": str(error)[:400]}
-                    if _budget_refused(error):
-                        incomplete = "cap reached"
+                    incomplete = _run_stopped(error) or incomplete
                 except Exception as error:  # the arm broke: recorded as broken, never dropped
                     conv = {**broken, "ended": "error", "error": f"{type(error).__name__}: {error}"[:400]}
-                    if _budget_refused(error):
-                        incomplete = "cap reached"
+                    incomplete = _run_stopped(error) or incomplete
                 if conv["transcript"] and incomplete is None:
                     try:
                         conv["judged"] = _judged(judge_for(str(p["id"]), arm_name), p, conv["transcript"])
                     except Exception as error:
                         conv["judged"] = {"valid": False, "problems": [f"{type(error).__name__}: {error}"[:400]]}
-                        if _budget_refused(error):
-                            incomplete = "cap reached"
+                        incomplete = _run_stopped(error) or incomplete
                 else:
                     conv.setdefault("judged", {"valid": False, "problems": ["no conversation"]})
                 costs = spent_for(str(p["id"]), arm_name) if spent_for else None

@@ -1,0 +1,102 @@
+{
+ "package": "37.11d",
+ "title": "The first route test of the lead agent stopped when the model account ran out of credit; the exam now stops there instead of scoring broken people as zero",
+ "date": "2026-11-01",
+ "request": "The owner picked the smaller practice budget (about EUR 1.7, later: you may use $2) for step 1 of the lead-agent fix plan: does the route check and the named-kind-of-help rule make the lead agent's route at least as good as Claude alone's on unseen practice people, without losing its wins.",
+ "spec": "Play ten of the twenty new practice people, chosen by a fixed rule before any result, with the lead agent and Claude alone; read the result against a gate written before the run; keep every conversation.",
+ "plan": [
+  "Pull main, run the free tests on the changed code",
+  "Fix the gate and the choice of people in a file before the run",
+  "Run the ten people with both students under a cap",
+  "Read the result against the gate, person by person"
+ ],
+ "decisions": [
+  {
+   "decision": "Ten of the twenty new people, every other person within each kind of help, fixed before the run",
+   "why": "the budget buys about half the set; a fixed rule keeps the choice from following any result, and the other half stays unseen for a later check"
+  },
+  {
+   "decision": "The run cap was set above the budget figure",
+   "why": "the code's own estimate priced the judge at an old rate; measured cost per person was lower, but a cap cut in the last person would waste that person's cost and leave the run incomplete"
+  },
+  {
+   "decision": "Stop a run when the model account is out of credit, and leave the person in play out of the scores",
+   "why": "a conversation that failed because no model answered says nothing about the agent; the summary had counted five of them as no understanding"
+  },
+  {
+   "decision": "Do not read the half that ran as the verdict",
+   "why": "the gate needs every person scored, and the five that never ran are the hard kinds of help (advice, preparation, reporting, a request for rows), the confusions step 1 targets"
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/conversation_exam/__init__.py (_run_stopped: a run stops at an out-of-credit error like at its cap); dclab_rnd/agent_eval/conversation_exam/benchmark.py (a run with fewer judged than listed people is marked incomplete); tests/test_conversation_exam.py, tests/test_conversation_exam_benchmark.py; tests/test_models_gateway.py (the rules-first Home pinned in a test that counts its model uses); evidence/campaigns/conversation_exam_v1 (CEX-025 result and BENCHMARK); scripts/offload_snapshots.py (copy, verify, index and free the Mac of old snapshots)",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A run on an empty model account scored five people as no understanding",
+   "scenario": "CEX-025: after the fifth person every call failed with no credit left; the summary averaged those five as zero, so the lead agent showed under half the understanding its five real conversations earned",
+   "cause": "only a reached cap stopped a run; a missing-credit error was recorded as a broken agent and the run went on",
+   "fix": "the run stops at the first out-of-credit error and the person in play is left out of the scores, as at the cap",
+   "test": "tests/test_conversation_exam.py test_a_model_account_out_of_credit_stops_the_run_and_never_scores_a_failed_agent"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The benchmark page printed ten people for a run in which five conversations never ran",
+   "scenario": "BENCHMARK.md after CEX-025 listed ten people and a low average with no sign that half had failed",
+   "cause": "runs() read the listed people and ignored the judged count the result file already holds",
+   "fix": "a row with fewer judged than listed people shows both and is marked incomplete",
+   "test": "tests/test_conversation_exam_benchmark.py test_a_run_with_conversations_that_never_ran_is_marked_incomplete_not_printed_as_ten_people"
+  },
+  {
+   "id": "F3",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A gateway test counting the rules-first Home's model uses saw the lead agent's",
+   "scenario": "make rd-check after the lead agent became the default: the test expected home_intent and home_agent and found case_agent",
+   "cause": "the default flipped in 37.11 and the full check had not been run on main since",
+   "fix": "the test's setup pins DCLAB_CASE_AGENT to off, as the exam's home arm asks for the rules-first Home by name",
+   "test": "tests/test_models_gateway.py test_the_home_flow_and_the_evidence_answers_are_counted_by_purpose"
+  },
+  {
+   "id": "F4",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The run order put the hard kinds of help last, so the account ran dry before they were played",
+   "scenario": "people are played in id order and the ten chosen began with prediction, analysis and business; advice, preparation, reporting and a request for rows came after the break",
+   "cause": "the fixed rule chose which people but not their order",
+   "fix": "the five that never ran are the next run, played first; nothing is tuned on the five that finished",
+   "test": "none: a plan, read in the next run"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "route test, step 1: ten of the twenty new practice people, the lead agent against Claude alone (CEX-025, five people complete)",
+   "gate": "written before the run in the run folder: route offered not below Claude alone's, understanding at least 0.90, no safety failure, option fit at least 4.0, no trap kind worse than Claude alone's",
+   "fixed_before_run": true,
+   "result": "incomplete: the model account ran out of credit after five people. On those five the lead agent offered the right route for all five and Claude alone for three; understanding 0.87 against 0.53; safety failures 0 against 26; the four planted traps handled by the lead agent and one by Claude alone; the route check ran in one of five conversations (by design it runs only when the person's own words name no kind of help). The other five people never ran. Cost EUR 0.89",
+   "verdict": "not scored",
+   "cost_eur": 0.89,
+   "next": "run the five that never ran, with credit, join the two runs as CEX-020 was joined, then read the gate",
+   "limits": [
+    "half the people never ran and they are the hard kinds of help",
+    "five people give wide intervals; the understanding mean sits just under its bar on this few",
+    "the new route check was almost idle, so this run says little about whether it helps"
+   ]
+  }
+ ],
+ "outcome": "Not a verdict. The five complete people favour the lead agent on route, safety and traps, with understanding just under its bar on so few; the half that tests the route fix did not run because the model account was empty. The exam now stops at that error, and its page marks incomplete runs.",
+ "lessons": [
+  "Check the model account's credit before a paid run, and stop the run at the first out-of-credit error",
+  "Order a run so that the people that test the claim are played first",
+  "A summary must show how many conversations were judged, not only how many were listed",
+  "Run the full check after changing a default: the test that counted the old path's calls only failed there"
+ ],
+ "risks": [
+  "The lead agent is Home's default with a route fix that is not yet measured on the hard kinds of help",
+  "The route check's second reading is rarely used, so the route rests on the agent and the word rule"
+ ],
+ "commits": []
+}
