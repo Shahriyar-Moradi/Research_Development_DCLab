@@ -79,6 +79,86 @@
       "cause": "the plan priced runs of about 10 people; CEX-016 and CEX-020 show the real cost a conversation, the runner's estimate is about 2.5 times higher still",
       "fix": "the owner chooses: a smaller gate, a larger budget, or both in stages",
       "test": "none: a cost read from CEX-016 and CEX-020"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "A person naming two kinds of help could have the wrong one started before the case was ready",
+      "scenario": "\"can you make me a dashboard of the bookings that are going to get cancelled? go ahead\": the agent's start of a dashboard was accepted and the route locked, a report-not-model trap",
+      "cause": "the clear start allowed any named track, and a doubt is never told when the track is among the named",
+      "fix": "a clear start only when the one kind of help named is the one started",
+      "test": "tests/test_case_agent.py test_two_kinds_of_help_named_never_start_before_the_case_is_ready"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The business words matched method questions",
+      "scenario": "\"Should I drop the duplicate rows\", \"decide whether to use SMOTE\", \"why is the model accuracy so high\": read as a business decision, the case file told the agent to propose now and a not-ready business start was accepted",
+      "cause": "decide whether, why is/did and should I with any object counted",
+      "fix": "decide and why removed; should we and what do we do exclude method objects",
+      "test": "tests/test_case_agent.py test_method_questions_and_relative_clauses_name_no_kind_of_help"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The prediction words matched relative clauses",
+      "scenario": "\"My manager, who will present it to the board, wants last month's churn\": options without prediction were refused, nudging a model onto a report request",
+      "cause": "who will and which X will counted with any verb",
+      "fix": "they count only before an outcome verb (leave, churn, cancel, buy, renew...)",
+      "test": "tests/test_case_agent.py test_method_questions_and_relative_clauses_name_no_kind_of_help"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The second reading pushed its kind of help when the named one was already offered",
+      "scenario": "r-10, a rows request: analysis offered, the reading said prediction, the options were refused with include prediction",
+      "cause": "the reading was compared even when the person's own words were covered",
+      "fix": "the person's named help outranks the reading: covered, nothing is told and the reading is not asked",
+      "test": "tests/test_case_agent.py test_the_second_reading_never_pushes_another_kind_of_help_when_the_named_one_is_offered"
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A table value could reach the usage log through the route check, now with real people's words",
+      "scenario": "the person repeats a group name the agent showed; route_check (cell_values 0) keeps the prompt in usage.jsonl, ignoring request_cells",
+      "cause": "a gateway path keeps prompts of purposes with no cell values; Home now sends real words through it",
+      "fix": "the route check is not asked when the words repeat a shown table value",
+      "test": "tests/test_case_agent.py test_the_route_check_is_not_asked_when_the_words_repeat_a_shown_table_value"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The route check's spend was outside the case's cap",
+      "scenario": "every turn with a propose or a start adds a Haiku call not counted in spent_eur",
+      "cause": "turn counted the agent's and the specialists' clients only",
+      "fix": "the route client's spend is counted too",
+      "test": "none: one line beside the existing cap count"
+    },
+    {
+      "id": "F11",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "One move could be refused several times in a turn",
+      "scenario": "named business and analysis with a reading of reporting: a propose refused twice and the start once",
+      "cause": "the told key was the set of points, which changes as the options change",
+      "fix": "once a move for what the person has said so far",
+      "test": "tests/test_case_agent.py test_a_doubt_is_told_once_a_move_for_what_was_said_however_the_options_change"
+    },
+    {
+      "id": "F12",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "\"how many rows have\" was read as a request for an analysis",
+      "scenario": "d-20, a preparation person, asks a count in passing",
+      "cause": "a count question was taken as naming the help",
+      "fix": "the count phrase is no longer read as naming any kind of help",
+      "test": "the measurement on openings and truth sentences"
     }
   ],
   "measurements": [
@@ -94,6 +174,18 @@
         "the rule was narrowed after seeing the new 20, so they are no longer unseen for it; they stay unseen for the agent",
         "silent on most people: the main effect must come from the second reading, measured only in a live run"
       ]
+    },
+    {
+      "name": "the narrowed rule after review, on the openings and on every truth sentence of the 60 practice people (no model)",
+      "gate": "no person read as a kind of help their route rules out",
+      "fixed_before_run": true,
+      "result": "old 40: 10 read rightly, none wrongly after dropping the count phrase (d-20 had been read as analysis); new 20: 12 rightly, none wrongly",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "a reading of written words, not of live conversations",
+        "silent on about half: the second reading carries the rest, unmeasured"
+      ]
     }
   ],
   "outcome": "Built and tested with scripted models; not measured live (no key in the cloud session). The route doubt adds the named or second-read kind of help to the options once, Home now runs the route check, a clear person may be proposed to at once, and 20 pinned practice people are ready as the split dev_route.",
@@ -101,7 +193,9 @@
     "Check that what the exam measures is what the product runs: the route check lived only in the exam's arm",
     "Measure a word rule on openings before any live run: it is free and it found three misreadings",
     "A word that names a thing is not a request for it",
-    "Price a gate from past runs' real spend, not from the plan's round number"
+    "Price a gate from past runs' real spend, not from the plan's round number",
+    "A rule that tells the agent to act sooner (propose now, start now) needs a narrower trigger than one that only adds an option",
+    "Test a word rule on the sentences people say later in a conversation, not only on their first message"
   ],
   "risks": [
     "Unmeasured: the doubt could still nudge an option onto a report-not-model or rows trap person when the second reading is wrong",

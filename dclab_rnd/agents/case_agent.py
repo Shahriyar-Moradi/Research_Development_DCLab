@@ -61,11 +61,14 @@ def route_doubt(state: "CaseState", move: str, tracks: set[str]) -> Optional[str
     (code) and the cheap second reading (route_check) are compared with what the agent chose; a kind of help missing from it
     is told once a move, with the person's words quoted, and the agent decides again (AI first, the check second)."""
     named = C.named_tracks(state.case.words)
-    missing_named = {} if set(named) & tracks else named
-    second = route_now(state)
-    points = {**missing_named, **({second: ""} if second and second not in tracks else {})}
-    key = f"{move}:" + ",".join(sorted(points))
-    if not points or key in state.route_told:
+    key = f"{move}:{len(state.case.words)}"  # once a move for what the person has said so far (the review: not once per set of points)
+    if key in state.route_told:
+        return None
+    if set(named) & tracks:  # the review: what their words name is covered; the second reading may not push a model onto a rows request
+        return None
+    second = None if named else route_now(state)  # their own words outrank the second reading
+    points = {**named, **({second: ""} if second and second not in tracks else {})}
+    if not points:
         return None
     state.route_told.append(key)
     latest = state.case.words[-1] if state.case.words else ""
@@ -98,6 +101,8 @@ def route_reading(client: Any, state: "CaseState") -> Optional[str]:
     only (never the assistant's messages, which may quote group names), answered with one track; None when it cannot."""
     if client is None:
         return None
+    if state.group_names and any(g in " ".join(state.case.words) for g in state.group_names):
+        return None  # the review of step 1: their words repeat a table value the case was shown; route_check holds no cell value
     cols = ", ".join(c["name"] for c in (state.table or {}).get("columns") or [])
     words = "\n".join(f"- {w}" for w in state.case.words[-8:])
     try:
@@ -429,7 +434,9 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     if track in NO_DATA_WORK and not state.case.chosen and not r.ready and not state.budget_reached and data_work(state):
         return {"error": "the person's need points to data work (a shared table, or a list, report, model or cleaning): advice "
                          "answers a question with no work on data. Propose or start the work their need calls for."}
-    clear_go = r.may_propose and state.go_ahead and track in C.named_tracks(state.case.words)  # clear, named, and told to go ahead
+    # clear, told to go ahead, and this the one kind of help named ("a dashboard of the bookings going to get cancelled" names two:
+    # never started before the case is ready; the review of step 1, a report-not-model trap)
+    clear_go = r.may_propose and state.go_ahead and set(C.named_tracks(state.case.words)) == {track}
     if not state.case.chosen and not r.ready and not state.budget_reached and track not in NO_DATA_WORK and not clear_go:
         return {"error": "the person has not chosen and the case is not ready: " + "; ".join(r.reasons)}
     doubt = None if state.case.chosen else route_doubt(state, "start", {track})
@@ -589,7 +596,7 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     built = ctx.build(state.case, state.turns, state.table)
     messages = ctx.messages(prompts.text(PROMPT), built)
     start = len(messages)
-    before = _spent(client) + _spent(state.specialist_client)
+    before = _spent(client) + _spent(state.specialist_client) + _spent(state.route_client)  # the review: the route check counts too
     client = _Cells(client, state)  # 37.6: a request holds cell values only when a query's answer is in it
     result = run_policy(POLICY, client, registry, messages, context=state, trace=state.trace)
     texts = [str(m.get("content") or "").strip() for m in result.messages[start:] if m.get("role") == "assistant" and str(m.get("content") or "").strip()]
@@ -638,7 +645,7 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     if not any(words_out):  # never a silent turn (the review): code's own line, and the question if one was asked
         words_out = [FALLBACK_NUMBERS if dropped else FALLBACK] + ([q for q in (checked(q, state) for q in state.said) if q] or [])
     text = "\n\n".join(w for w in words_out if w)
-    state.spent_eur += max(0.0, _spent(client) + _spent(state.specialist_client) - before)  # 37.8: what this turn cost
+    state.spent_eur += max(0.0, _spent(client) + _spent(state.specialist_client) + _spent(state.route_client) - before)  # 37.8: what this turn cost
     state.turns.append({"role": "assistant", "content": text + ("\n(Options: " + "; ".join(o.title for o in state.shown) + ")" if state.shown else "")})
     if state.checkpoint:  # 37.8: saved after every turn, so a stop or a crash loses nothing
         case_session.save(state, state.checkpoint)

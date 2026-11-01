@@ -52,20 +52,24 @@ READY_NEEDS = ("goal", "decision", "user", "data")
 # analysis when unsure). A reading of the person's words only, never of the agent's: code makes sure such a kind of help is
 # offered, and a clear person (the goal said and the kind of help named) may be proposed to at once. Kept general on purpose:
 # a phrase here must name the deliverable in any business, not fit one written person.
+OUTCOME = r"(?:leave|churn|cancel\w*|quit|buy|default|return|stop|lapse|renew|pay|come back|show up)"  # what a prediction is about
 NAMED = {
     # a request about cases not yet known; a bare "prediction" or "forecast" is not one ("a churn prediction for the board" wanted
     # past rates, "is an AI forecast worth it" advice: the 20 route practice people, 2026-11-01)
-    "prediction": re.compile(r"\b(?:predict (?:which|who|whether|if|how many|when)|forecast (?:the|our|next|how|which)|who (?:will|is going to|"
-                             r"is likely to|might)|which \w+(?: \w+)? (?:will|are likely to|is likely to|are going to|might)|(?:likely|about|going) to "
-                             r"(?:get |be )?(?:leave|churn|cancel\w*|quit|buy|default|return|stop|lapse)|"
-                             r"before (?:they|it) (?:leave|churn|cancel|stop|quit|happen))\b", re.I),
+    "prediction": re.compile(r"\b(?:predict (?:which|who|whether|if|how many|when)|forecast (?:the|our|next|how|which)|(?:who|which \w+(?: \w+)?) "
+                             r"(?:will|is going to|are going to|is likely to|are likely to|might) (?:get |be )?" + OUTCOME + r"|(?:likely|about|going) to "
+                             r"(?:get |be )?" + OUTCOME + r"|before (?:they|it) (?:churn|cancel|stop buying|quit|lapse))\b", re.I),
+    # a business decision about the business, never about a method: "should I drop the duplicate rows", "decide whether to use
+    # SMOTE" and "why is the accuracy so high" are method questions (the review of step 1)
     "business": re.compile(r"\bshould (?:we|i) (?:drop|cut|keep|close|open|raise|lower|increase|reduce|invest|hire|stop|launch|expand|"
-                           r"move|cancel|discontinue|switch|sell|buy|outsource)\b|\bwhat (?:should|do) (?:we|i) do\b|\bdecide (?:whether|which|if|between)\b|"
-                           r"\b(?:drop|cut|close|discontinue|stop selling|stop offering|get rid of|keep)\b[^.?!]{0,30}\b(?:worst|weakest|least|"
-                           r"bottom|lowest|best)\b|\bwhy (?:did|are|is|have|has) (?:our|my|the) \w+", re.I),
+                           r"move|cancel|discontinue|switch|sell|buy|outsource)\b(?!\s+(?:the\s+|our\s+|my\s+|these\s+|this\s+)?(?:duplicate|rows?|"
+                           r"thresholds?|outliers?|models?|features?|columns?|nulls?|missing|learning rate|epochs?|samples?|weights?|classifier|split))|"
+                           r"\bwhat (?:should|do) (?:we|i) do\b(?! about (?:the )?(?:leak\w*|missing|nulls?|outliers?|duplicates?|imbalance|overfit\w*|"
+                           r"the model|my model))|\b(?:drop|cut|close|discontinue|stop selling|stop offering|get rid of)\b[^.?!]{0,30}\b(?:worst|weakest|"
+                           r"least|bottom|lowest)\b", re.I),
     "analysis": re.compile(r"\b(?:paste|list|send|give|show|pull|export|get)(?: me| us)? (?:all |the |a list of |every )?(?:\w+ ){0,3}"
                            r"(?:customers|members|users|clients|orders|bookings|rows|records|accounts|ids)\b[^.?!]{0,60}\b(?:who|that|which|with)\b|"
-                           r"\bwith their (?:ids|emails|names|numbers)\b|\bhow many \w+ (?:did|were|have|had)\b", re.I),
+                           r"\bwith their (?:ids|emails|names|numbers)\b", re.I),
     "reporting": re.compile(r"\b(?:every|each) (?:week|month|monday|morning|quarter|day)\b[^.?!]{0,40}\b(?:report|dashboard|list|view|update|email|"
                             r"summary|numbers|figures)\b|\b(?:report|dashboard|list|view|update|email|summary)\b[^.?!]{0,30}\b(?:every|each) (?:week|month|"
                             r"monday|morning|quarter|day)\b|\b(?:weekly|monthly|daily|quarterly) (?:report|dashboard|view|update|email|summary)\b|"

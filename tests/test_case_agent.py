@@ -839,6 +839,54 @@ class RouteStepOneTests(unittest.TestCase):
         s2.case = s.case.model_copy(update={"route": None})
         self.assertIn("error", A._start(s2, "prediction", "ml_project"))  # no go-ahead in this message: not yet
 
+    def test_method_questions_and_relative_clauses_name_no_kind_of_help(self):
+        """The review of step 1: these were read as business or prediction."""
+        for words in ("Should I drop the duplicate rows before training?", "Should I raise the threshold to 0.7",
+                      "What should I do about leakage in my features", "Why is the model accuracy so high?",
+                      "I have to decide whether to use SMOTE or class weights", "My manager, who will present it to the board, wants last month's churn by plan",
+                      "which threshold will work best", "the customers who will receive the email", "before they leave town"):
+            self.assertEqual(C.named_tracks([words]), {}, words)
+        for words, track in (("which customers will churn next quarter", "prediction"), ("who is likely to cancel", "prediction"),
+                             ("should we close the Leeds store", "business"), ("what do i do about falling sales", "business")):
+            self.assertIn(track, C.named_tracks([words]), words)
+
+    def test_two_kinds_of_help_named_never_start_before_the_case_is_ready(self):
+        """The review of step 1: "a dashboard of the bookings going to get cancelled, go ahead" started a dashboard (a trap)."""
+        s = state()
+        s.case = C.hear(s.case, "can you make me a dashboard of the bookings that are going to get cancelled? go ahead")
+        s.case = C.apply(s.case, "goal", C.CaseFact(value="the bookings going to get cancelled", status="said", quote="going to get cancelled"), by="agent", why="t")
+        s.go_ahead = True
+        self.assertIn("error", A._start(s, "reporting", "dashboard"))
+        self.assertIsNone(s.case.route)
+
+    def test_the_second_reading_never_pushes_another_kind_of_help_when_the_named_one_is_offered(self):
+        """The review of step 1 (r-10, a rows request): named analysis offered, the reading said prediction, the options refused."""
+        s = state()
+        s.case = C.hear(s.case, "send me the customer ids on the premium plan with 3+ tickets")
+        s.case = C.apply(s.case, "goal", C.CaseFact(value="the customer ids on the premium plan", status="said", quote="customer ids"), by="agent", why="t")
+        s.route_client = Counting("prediction")
+        rows = [dict(OPTIONS[1]), dict(OPTIONS[0], title="A weekly view", track="reporting", tool="dashboard", columns=[])]
+        self.assertIn("shown", A._propose(s, rows))
+        self.assertEqual(s.route_client.calls, 0)  # their own words outrank the second reading: no call
+
+    def test_a_doubt_is_told_once_a_move_for_what_was_said_however_the_options_change(self):
+        s = state()
+        s.case = C.hear(s.case, "every Monday the team needs the cancellations by plan")
+        s.route_client = Counting("prediction")
+        s.budget_reached = True
+        s.case = C.apply(s.case, "goal", C.CaseFact(value="every Monday the cancellations", status="said", quote="every Monday"), by="agent", why="t")
+        self.assertIn("error", A._propose(s, [dict(OPTIONS[1]), dict(OPTIONS[0], title="Clean", track="preparation", tool="recipe", columns=[])]))
+        self.assertIn("shown", A._propose(s, [dict(OPTIONS[1]), dict(OPTIONS[0], title="Groups", tool="segmentation_project", columns=[])]))
+
+    def test_the_route_check_is_not_asked_when_the_words_repeat_a_shown_table_value(self):
+        """The review of step 1: route_check holds no cell value, but a repeated group name reached its usage log."""
+        s = state()
+        s.group_names = {"Gold Plus"}
+        s.case = C.hear(s.case, "the Gold Plus customers, which of them will churn?")
+        client = Counting("prediction")
+        self.assertIsNone(A.route_reading(client, s))
+        self.assertEqual(client.calls, 0)
+
     def test_home_gives_the_lead_agent_the_route_check(self):
         from dclab_rnd.draft.case_home import CaseHome
         from dclab_rnd.draft.store import DraftStore
