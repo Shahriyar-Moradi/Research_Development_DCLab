@@ -695,6 +695,56 @@
     document.dispatchEvent(new CustomEvent('rolechange', { detail: role }));
   }
 
+  /* ---------------- look: Developer or Data science (the owner, 2026-11-01) ----------------
+     Developer is the product as it is. Data science is the same pages, scripts and API drawn like Claude Code (ds.css,
+     every rule scoped to html[data-mode="ds"]): on Home the conversation is the page and its context (what needs you,
+     the workspace's numbers, what DCLab understood, the team, Claude beside DCLab) sits in a column on the right. It only moves and
+     restyles: no control is removed, and Developer gets every part back where it was. Kept in this browser. */
+  // The workflow map stays in the conversation's column: it is a wide drawing, unreadable in a narrow one
+  const RAIL = ['#home-inbox', '#view-home [data-f="home.kpis"]', '#home-case', '#home-understand', '#home-team', '#home-twin'];
+  // Stateless on purpose: each part and the comment marking its place are looked up live every time, so a page that
+  // redraws its parts can never leave a stale copy to be put back (found in testing: starting in Data science, then
+  // switching to Developer, lost the cards the rail held).
+  function railMark(sel) {
+    const home = $('#view-home');
+    if (!home) return null;
+    const walk = document.createTreeWalker(home, NodeFilter.SHOW_COMMENT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.data === 'ds-rail ' + sel) return n;
+    return null;
+  }
+  function placeRail(ds) {
+    const pane = $('#view-home [data-pane="overview"]');
+    if (!pane) return;
+    let rail = $('#ds-rail');
+    if (ds && !rail) {
+      rail = document.createElement('aside');
+      rail.id = 'ds-rail'; rail.className = 'ds-rail'; rail.setAttribute('aria-label', 'This conversation');
+      pane.appendChild(rail);
+    }
+    for (const sel of RAIL) {
+      const node = $(sel);
+      if (!node) continue;
+      const mark = railMark(sel);
+      if (ds && !rail.contains(node)) {
+        if (!mark) node.before(document.createComment('ds-rail ' + sel));  // where the part goes back in Developer
+        rail.appendChild(node);
+      } else if (!ds && mark) {
+        mark.replaceWith(node);
+      }
+    }
+    if (!ds && rail) {
+      if (rail.children.length) return;  // never drop a part: one with no place to go back stays in the rail
+      rail.remove();
+    }
+  }
+  function setMode(mode, save) {
+    const ds = mode === 'ds';
+    document.documentElement.dataset.mode = ds ? 'ds' : 'dev';
+    $$('.mode-switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === (ds ? 'ds' : 'dev'))));
+    placeRail(ds);
+    if (save) { try { localStorage.setItem('dclab-mode', ds ? 'ds' : 'dev'); } catch (e) { /* storage blocked: this visit only */ } }
+  }
+
   /* ---------------- tours ---------------- */
   const TOURS = DEMO.tours || {};
   function startTour(key) {
@@ -1261,10 +1311,21 @@
     let bpOn = false;
     try { bpOn = localStorage.getItem('dclab-demo-bp') === '1'; } catch (e) { /* ignore */ }
     setRole('developer');
+    $$('.mode-switch button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode, true)));
+    $('#ds-new-chat').addEventListener('click', () => {  // Home's own "New project from chat": the open chat is kept under Projects
+      if (location.hash !== '#home') location.hash = '#home';
+      show('home');
+      const go = $('#view-home [data-new-chat]');
+      if (go) go.click();
+    });
     window.addEventListener('hashchange', () => { const h = parseHash(); show(h.view, h.pane); });
     projectSwitch.wire();
     const h0 = parseHash();
     show(h0.view, h0.pane);
+    let mode0 = 'dev';  // the look kept in this browser, applied once the first page is up
+    try { mode0 = localStorage.getItem('dclab-mode') === 'ds' ? 'ds' : 'dev'; } catch (e) { /* storage blocked */ }
+    setMode(mode0, false);
+    if (mode0 === 'ds') ui.note('ui.action', { view: state.view || 'home', name: 'mode-ds', target: 'saved' });  // a visit that starts in the kept mode is recorded too
     // dclab:closed-begin  (the blueprint layer: the full edition's)
     if (bpOn) setBlueprint(true);
     // dclab:closed-end

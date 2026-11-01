@@ -1,0 +1,189 @@
+/* Data science mode (the owner, 2026-11-01): the same product, pages, scripts and API, drawn the way Claude Code draws
+   a working session. Developer mode is the product as it is and is never touched: every rule here is scoped to
+   html[data-mode="ds"] (set by core.js setMode), except the one that hides Data-science-only controls in Developer.
+   What it changes:
+   - the kit's tokens: warm off-white grounds, near-black text, one clay colour for actions and marks, system fonts,
+     flat cards with thin lines (the page's own aliases in styles.css follow, since both live on :root);
+   - the frame: no rounded canvas inset, a quiet sidebar with a New chat row, a slim top bar;
+   - Home: the conversation is the page (a greeting and one big box, then the chat with its reply box pinned at the
+     bottom), and its context sits in a column on the right (core.js placeRail moves the parts there and back);
+   - data: numbers in tables line up in a monospace face, tables get a quiet header. */
+
+html:not([data-mode="ds"]) .ds-only { display: none !important; }
+
+/* ---------- tokens ---------- */
+:root[data-mode="ds"] {
+  --ts-ground: #f3f2ec;            /* the sidebar */
+  --ts-surface: #ffffff;           /* cards, the message box */
+  --ts-surface-sunken: #faf9f5;    /* the page */
+  --ts-surface-muted: #efede5;     /* your messages, wells */
+  --ts-surface-hover: #e9e6dc;
+  --ts-surface-input: #ffffff;
+  --ts-surface-row-hover: #f5f3ec;
+  --ts-scrollbar-thumb: #d6d2c6;
+  --ts-text: #1f1e1c;
+  --ts-text-secondary: #4f4d47;
+  --ts-text-muted: #6b6963;        /* 5.2:1 on the page */
+  --ts-text-faint: #8c897f;
+  --ts-border: #e7e4da;
+  --ts-border-strong: #d6d2c6;
+  --ts-brand: #c4643f;
+  --ts-brand-deep: #b5532e;        /* Send, Draft, Build: white on it is 4.9:1 */
+  --ts-brand-deep-hover: #9c4524;
+  --ts-on-brand: #ffffff;
+  --ts-accent: #d97757;            /* marks: focus, the active row, the chosen series */
+  --ts-accent-hover: #c4643f;
+  --ts-accent-soft: #f6e8e0;
+  --ts-accent-ink: #7a3417;
+  --ts-on-accent: #ffffff;
+  --ts-chart-1: #b5532e;
+  --ts-shadow-card: none;
+  --ts-shadow-nav-active: none;
+  --ts-shadow-segment-active: 0 1px 2px #1f1e1c14;
+  --ts-shadow-toast: 0 1px 2px #1f1e1c0a, 0 8px 24px -12px #1f1e1c29;
+  --ts-focus-ring: 2px solid #d97757;
+  --ts-font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --ts-font-display: var(--ts-font-body);
+  --ds-serif: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+  --ds-col: 780px;                 /* the reading column */
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-mode="ds"]:not([data-ts-theme="light"]) {
+    --ts-ground: #1f1e1d; --ts-surface: #30302e; --ts-surface-sunken: #262624; --ts-surface-muted: #393836;
+    --ts-surface-hover: #43423f; --ts-surface-input: #30302e; --ts-surface-row-hover: #2c2b29; --ts-scrollbar-thumb: #4b4a46;
+    --ts-text: #f4f3ee; --ts-text-secondary: #cdcac0; --ts-text-muted: #a8a59c; --ts-text-faint: #85827a;
+    --ts-border: #3b3a37; --ts-border-strong: #4b4a46;
+    --ts-brand: #d97757; --ts-brand-deep: #e08a68; --ts-brand-deep-hover: #eba183; --ts-on-brand: #1a1918;
+    --ts-accent: #d97757; --ts-accent-hover: #e08a68; --ts-accent-soft: #40302a; --ts-accent-ink: #f2c4ad; --ts-on-accent: #1a1918;
+    --ts-chart-1: #e58f6d; --ts-focus-ring: 2px solid #e08a68;
+  }
+}
+:root[data-mode="ds"][data-ts-theme="dark"] {
+  --ts-ground: #1f1e1d; --ts-surface: #30302e; --ts-surface-sunken: #262624; --ts-surface-muted: #393836;
+  --ts-surface-hover: #43423f; --ts-surface-input: #30302e; --ts-surface-row-hover: #2c2b29; --ts-scrollbar-thumb: #4b4a46;
+  --ts-text: #f4f3ee; --ts-text-secondary: #cdcac0; --ts-text-muted: #a8a59c; --ts-text-faint: #85827a;
+  --ts-border: #3b3a37; --ts-border-strong: #4b4a46;
+  --ts-brand: #d97757; --ts-brand-deep: #e08a68; --ts-brand-deep-hover: #eba183; --ts-on-brand: #1a1918;
+  --ts-accent: #d97757; --ts-accent-hover: #e08a68; --ts-accent-soft: #40302a; --ts-accent-ink: #f2c4ad; --ts-on-accent: #1a1918;
+  --ts-chart-1: #e58f6d; --ts-focus-ring: 2px solid #e08a68;
+}
+
+/* ---------- the switch itself (both modes) ---------- */
+/* In the sidebar, under the workspace, at every width: the top bar stays the product's own (a switch there made it
+   wider than the window at 1150-1400 px, in Developer too) */
+.side .mode-switch { display: flex; margin: 10px 0 12px; }
+.side .mode-switch button { flex: 1; white-space: nowrap; justify-content: center; }
+
+/* ---------- frame: edge to edge, a quiet sidebar, a slim top bar ---------- */
+[data-mode="ds"] body { background: var(--ts-surface-sunken); }
+[data-mode="ds"] .app { background: var(--ts-surface-sunken); }
+[data-mode="ds"] .side { background: var(--ts-ground); border-right: 1px solid var(--ts-border); padding: 14px 10px; }
+[data-mode="ds"] .side .brand { margin-bottom: 14px; }
+[data-mode="ds"] .brand-mark { background: var(--ts-brand-deep); color: var(--ts-on-brand); border-radius: 8px; }
+[data-mode="ds"] .brand-name { font-size: 16px; font-weight: 600; }
+[data-mode="ds"] .brand-tag, [data-mode="ds"] .demo-pill { display: none; }
+[data-mode="ds"] .ws-switch { border-radius: 10px; box-shadow: none; }
+[data-mode="ds"] .nav-label { font-size: 12px; letter-spacing: 0; text-transform: none; font-weight: 500; color: var(--ts-text-muted); }
+[data-mode="ds"] .nav-item { border-radius: 8px; font-size: 14px; color: var(--ts-text); }
+[data-mode="ds"] .nav-item svg { color: var(--ts-text-secondary); }
+[data-mode="ds"] .nav-item.active { background: var(--ts-surface-hover); box-shadow: none; font-weight: 500; }
+[data-mode="ds"] .nav-item.active::before { display: none; }
+[data-mode="ds"] .nav-item.active svg { color: var(--ts-text); }
+[data-mode="ds"] .nav-item .count { background: transparent; color: var(--ts-text-muted); }
+[data-mode="ds"] .ds-new { width: auto; margin: 0 0 10px; border: 1px solid var(--ts-border-strong); background: var(--ts-surface); font-weight: 500; }
+[data-mode="ds"] .ds-new:hover { background: var(--ts-surface-hover); }
+
+[data-mode="ds"] .main { padding: 0; gap: 0; }
+[data-mode="ds"] .topbar { padding: 10px 20px; border-bottom: 1px solid var(--ts-border); background: var(--ts-surface-sunken); min-height: 56px; }
+[data-mode="ds"] .search-btn { border-radius: 10px; background: var(--ts-surface); box-shadow: none; max-width: 360px; }
+[data-mode="ds"] .content { border-radius: 0; background: var(--ts-surface-sunken); padding: 28px clamp(16px, 3vw, 40px) 96px; }
+
+/* ---------- cards and controls: flat, thin lines, smaller radii ---------- */
+[data-mode="ds"] .panel, [data-mode="ds"] .stat { box-shadow: none; border-radius: 12px; }
+[data-mode="ds"] .panel.raised { box-shadow: none; }
+[data-mode="ds"] .btn { border-radius: 10px; box-shadow: none; }
+[data-mode="ds"] .chip, [data-mode="ds"] .pill { border-radius: 8px; }
+[data-mode="ds"] .seg { border-radius: 10px; }
+[data-mode="ds"] .seg button { border-radius: 8px; }
+[data-mode="ds"] .vh h1 { font-weight: 600; letter-spacing: -.01em; }
+[data-mode="ds"] .eyebrow { letter-spacing: .02em; }
+
+/* Numbers read as data: one monospace face, lined up on the right; a quiet table header */
+[data-mode="ds"] td.num, [data-mode="ds"] th.num, [data-mode="ds"] .score { font-family: var(--font-mono); font-size: .92em; }
+[data-mode="ds"] table.data thead th { background: var(--ts-surface-muted); color: var(--ts-text-secondary); font-weight: 600; }
+[data-mode="ds"] table.data td, [data-mode="ds"] table.data th { border-color: var(--ts-border); }
+
+/* ---------- Home: the conversation is the page, its context on the right ---------- */
+[data-mode="ds"] #view-home .vh { margin-bottom: 18px; }
+[data-mode="ds"] #view-home .vh h1 { font-family: var(--ds-serif); font-weight: 400; font-size: 34px; letter-spacing: -.005em; }
+[data-mode="ds"] #view-home .vh .eyebrow, [data-mode="ds"] #view-home .vh .lede { display: none; }
+[data-mode="ds"] #view-home .vh { align-items: center; }
+[data-mode="ds"] #view-home .vh-actions .btn { height: auto; padding: 8px 14px; }
+/* the workflow map: in the conversation's column, as wide as it is, scrolling only on a narrow screen */
+[data-mode="ds"] #home-sol-graph .graph-svg { min-width: 620px; }
+[data-mode="ds"] #view-home [data-pane="overview"]:not([hidden]) {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 0 28px; align-items: start;
+}
+[data-mode="ds"] #view-home [data-pane="overview"] > :not(.ds-rail) { grid-column: 1; min-width: 0; max-width: var(--ds-col); width: 100%; justify-self: center; }
+/* spacing between the column's parts by margins: a row gap would repeat across every row the rail spans */
+[data-mode="ds"] #view-home [data-pane="overview"] > :not(.ds-rail) + :not(.ds-rail) { margin-top: 18px; }
+[data-mode="ds"] #view-home [data-pane="overview"] > .g-3-1,
+[data-mode="ds"] #view-home [data-pane="overview"] > .g-chat { grid-template-columns: minmax(0, 1fr); }
+[data-mode="ds"] .ds-rail {
+  grid-column: 2; grid-row: 1 / span 40; position: sticky; top: 16px; align-self: start;
+  display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 32px); overflow: auto; padding-bottom: 8px;
+}
+[data-mode="ds"] .ds-rail::before { content: "This workspace"; font-size: 12px; font-weight: 500; color: var(--ts-text-muted); padding: 2px 2px 0; }
+[data-mode="ds"] .ds-rail .panel-head { padding: 14px 16px 0; }
+[data-mode="ds"] .ds-rail .panel-head h2 { font-size: 14px; }
+[data-mode="ds"] .ds-rail .panel-body { padding: 10px 16px 14px; }
+[data-mode="ds"] .ds-rail .panel-foot { padding: 10px 16px; }
+[data-mode="ds"] .ds-rail .grid.g2 { grid-template-columns: minmax(0, 1fr); }  /* one fact per line in a narrow column */
+/* the workspace numbers as a small 2 x 2 card */
+[data-mode="ds"] .ds-rail .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border: 1px solid var(--ts-border); border-radius: 12px; background: var(--ts-surface); overflow: hidden; }
+[data-mode="ds"] .ds-rail .stat { border: 0; border-radius: 0; padding: 12px 14px; background: none; gap: 2px; }
+[data-mode="ds"] .ds-rail .stat:nth-child(odd) { border-right: 1px solid var(--ts-border); }
+[data-mode="ds"] .ds-rail .stat:nth-child(n+3) { border-top: 1px solid var(--ts-border); }
+[data-mode="ds"] .ds-rail .stat .v { font-size: 22px; font-family: var(--font-mono); font-weight: 500; letter-spacing: 0; }
+[data-mode="ds"] .ds-rail .stat .l { font-size: 12px; line-height: 1.4; }
+[data-mode="ds"] .ds-rail .stat .row { display: none; }  /* the spark line needs the wide tile */
+
+/* the start: one big box, like a new Claude Code session */
+[data-mode="ds"] #view-home [data-f="home.composer"] { border: 0; background: none; }
+[data-mode="ds"] #view-home [data-f="home.composer"] > .panel-body { padding: 0; }
+[data-mode="ds"] #view-home [data-f="home.composer"] .composer,
+[data-mode="ds"] #home-chat .composer { border-radius: 18px; border-color: var(--ts-border-strong); background: var(--ts-surface);
+  box-shadow: 0 1px 2px #1f1e1c0a, 0 6px 20px -10px #1f1e1c24; }
+[data-mode="ds"] .composer textarea { font-size: 16px; line-height: 1.5; }
+[data-mode="ds"] .composer:focus-within { outline: none; border-color: var(--ts-text-faint); }
+[data-mode="ds"] .composer-bar { border-top: 0; padding: 6px 10px 10px; }
+[data-mode="ds"] .composer-bar .send { border-radius: 10px; }
+
+/* the chat: no card around it, the reading column, your words in a soft bubble on the right */
+[data-mode="ds"] #home-chat { border: 0; background: none; }
+[data-mode="ds"] #home-chat > .panel-head { padding: 4px 0 10px; border-bottom: 1px solid var(--ts-border); }
+[data-mode="ds"] #home-chat > .panel-head h2 { font-size: 15px; }
+[data-mode="ds"] #home-chat > .panel-body { padding: 18px 0 8px; }
+[data-mode="ds"] #home-chat > .panel-foot { border-top: 0; padding: 8px 0; }
+[data-mode="ds"] #home-chat > .panel-foot:last-child { position: sticky; bottom: 0; padding: 10px 0 16px; z-index: 2;
+  background: linear-gradient(to bottom, transparent, var(--ts-surface-sunken) 24px); }
+[data-mode="ds"] #home-chat .thread { gap: 22px; }
+[data-mode="ds"] #home-chat .msg { grid-template-columns: minmax(0, 1fr); }
+[data-mode="ds"] #home-chat .msg > .avatar { display: none; }
+[data-mode="ds"] #home-chat .msg-body { font-size: 15.5px; line-height: 1.7; }
+[data-mode="ds"] #home-chat .msg-body .who { font-size: 12px; font-weight: 500; color: var(--ts-text-muted); }
+[data-mode="ds"] #home-chat .msg.user .msg-body { align-items: flex-end; }
+[data-mode="ds"] #home-chat .msg.user .bubble { border: 0; background: var(--ts-surface-muted); border-radius: 16px; padding: 10px 16px; max-width: 85%; font-size: 15.5px; }
+/* once a chat is open, the start box steps aside but for its domain pack (the reply box and its Connect data take over); New chat brings it back */
+[data-mode="ds"] #view-home [data-pane="overview"]:has(#home-chat:not([hidden])) [data-f="home.composer"] > .panel-body > :not([data-f="home.pack"]):not(#home-packs) { display: none; }
+/* what stays is the domain pack: the open draft's pack can still be changed, as in Developer */
+
+@media (max-width: 1100px) {
+  [data-mode="ds"] #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
+  [data-mode="ds"] .ds-rail { grid-column: 1; grid-row: auto; position: static; max-height: none; overflow: visible; }
+}
+@media (max-width: 960px) {
+  [data-mode="ds"] .topbar { padding: 8px 12px; }
+  [data-mode="ds"] .mode-switch button { padding-left: 8px; padding-right: 8px; }
+  [data-mode="ds"] #view-home .vh h1 { font-size: 28px; }
+}

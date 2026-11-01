@@ -513,6 +513,68 @@ def check_mobile(b: Browser) -> str:
     return f"{len(VIEWS)} pages fit 375 px without sideways scroll"
 
 
+def check_ds_mode(b: Browser) -> str:
+    """The Data science mode (the owner, 2026-11-01): the same pages drawn like Claude Code. Every page loads in it without
+    an error; Home's context cards move to the right column and back to their own places, each one exactly once (found
+    in testing: starting in this mode and switching back lost them); a chat keeps the domain pack chooser, shows its
+    context and leaves no empty space; New chat brings the box back; Developer fits laptop widths (the review found the
+    switch in the top bar made it scroll sideways at 1150-1400 px); and every page fits 375 px in it."""
+    page = b.page
+    page.wait_for_function("() => window.DC && !DC.loading.current", timeout=60_000)
+    over = "() => document.documentElement.scrollWidth - document.documentElement.clientWidth"
+    for width in (1150, 1280, 1366):  # Developer stays the product as it was: no sideways scroll at laptop widths (review)
+        page.set_viewport_size({"width": width, "height": 900})
+        b.view("home", settle=0.4)
+        check(page.evaluate(over) <= 1, f"Developer at {width} px scrolls sideways by {page.evaluate(over)} px ({page.evaluate(CULPRIT)})")
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.evaluate("() => { try { localStorage.setItem('dclab-mode', 'ds'); } catch (e) {} }")
+    page.reload()  # start in the mode, as a person who chose it before does
+    b.view("home", settle=0.8)
+    check(page.evaluate("() => document.documentElement.dataset.mode") == "ds", "the kept mode was not applied")
+    cards = "['home-inbox', 'home-case', 'home-understand', 'home-team', 'home-twin'].map(i => document.querySelectorAll('#' + i).length).join('')"
+    check(page.evaluate(f"() => {cards}") == "11111", "a context card is missing or doubled")
+    check(page.evaluate("() => !!document.querySelector('#ds-rail #home-inbox')"), "Needs you is not in the right column")
+    for _ in range(2):
+        page.click("#mode-switch [data-mode=dev]")
+        back = page.evaluate(f"() => ({{cards: {cards}, rail: !!document.getElementById('ds-rail'), inbox: document.getElementById('home-inbox').parentElement.classList.contains('g-3-1')}})")
+        check(back == {"cards": "11111", "rail": False, "inbox": True}, f"Developer did not get its cards back: {back}")
+        page.click("#mode-switch [data-mode=ds]")
+        check(page.evaluate(f"() => {cards}") == "11111", "a context card is missing or doubled after switching")
+    # A chat in Data science: the start box steps aside but for its domain pack, the context cards show in the rail,
+    # nothing scrolls sideways, and New chat brings the start box back with the cursor in it
+    page.fill("#home-task", "Rank telecom customers by their risk of churn next month so the retention team can call them.")
+    page.click("#home-start")
+    page.wait_for_selector("#home-chat:not([hidden])")
+    check(page.locator("#view-home .composer:has(#home-task)").is_hidden(), "the start box stayed beside an open chat")
+    check(page.locator('#view-home [data-f="home.pack"]').is_visible(), "the domain pack chooser is gone while a chat is open")
+    shown = page.evaluate("() => [...document.querySelectorAll('#ds-rail > .panel:not([hidden]), #ds-rail > details')].length")
+    check(shown >= 2, f"the right column shows {shown} card(s) during a chat")
+    gap = page.evaluate("""() => { const p = document.querySelector('#view-home [data-pane="overview"]').getBoundingClientRect();
+      const last = Math.max(...[...document.querySelectorAll('#view-home [data-pane="overview"] > *')].map(e => e.getBoundingClientRect().bottom));
+      return Math.round(p.bottom - last); }""")
+    check(gap <= 40, f"{gap} px of empty space below Home's conversation")
+    check(page.evaluate(over) <= 1, f"Data science at 1280 px scrolls sideways by {page.evaluate(over)} px")
+    page.click("#ds-new-chat")
+    page.wait_for_selector("#home-task", state="visible")
+    check(page.evaluate("() => document.activeElement && document.activeElement.id") == "home-task", "New chat did not put the cursor in the box")
+    before = len(b.problems())
+    for name in VIEWS:
+        b.view(name)
+        check(not b.problems()[before:], f"#{name} in Data science: {b.problems()[before:][:3]}")
+    page.set_viewport_size({"width": 375, "height": 812})
+    wide = []
+    for name in VIEWS:
+        b.view(name, settle=0.6)
+        over = page.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        if over > 1:
+            wide.append(f"#{name} (+{over}px, {page.evaluate(CULPRIT)})")
+    check(not wide, "wider than 375 px in Data science: " + "; ".join(wide))
+    check(page.evaluate("() => getComputedStyle(document.getElementById('mode-switch')).display") != "none", "no switch in the menu on a phone")
+    page.evaluate("() => { try { localStorage.setItem('dclab-mode', 'dev'); } catch (e) {} }")
+    return (f"Developer fits 1150-1366 px; {len(VIEWS)} pages in Data science without an error and within 375 px; Home's cards moved "
+            "and came back twice; a chat keeps its pack chooser and context; New chat brings the box back")
+
+
 def check_memory(b: Browser) -> str:
     """35.7: a project's Memory tab lists what its agents remember; a correction made there replaces the line, at 1280 and 375 px."""
     from product_e2e import Api
@@ -663,7 +725,7 @@ def check_understand(b: Browser) -> str:
     return "a vague request is asked openly with six kinds of help and no ML panel; segments get their two ways"
 
 
-CHECKS = {"flow": (check_flow, 1280), "understand": (check_understand, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "memory": (check_memory, 1280), "review": (check_review, 1280), "failures": (check_failures, 1280), "mobile": (check_mobile, 375)}
+CHECKS = {"flow": (check_flow, 1280), "understand": (check_understand, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "memory": (check_memory, 1280), "review": (check_review, 1280), "failures": (check_failures, 1280), "mobile": (check_mobile, 375), "dsmode": (check_ds_mode, 1280)}
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -37,7 +37,7 @@ make dev              # local development on PostgreSQL: dclab_dev created and m
 make notebook         # the web UI (DCLab notebook, intern, research map, knowledge) + the MCP endpoint /mcp
 make chat-ui          # Hugging Face Chat UI locally with DCLab as an MCP server (make chat-ui-intern: ML Intern mode)
 make product-demo     # rebuild docs/product-demo/index.html: demo v1, the frozen UI reference (tag demo-v1; do not change it)
-make web              # rebuild the product frontend (agentic/web/src → agentic/static/app): demo v1's pages and words in the TripsSource design kit's look (web/src/kit/, copied unchanged; look.css draws the product's classes with --ts-* tokens only), wired to the API
+make web              # rebuild the product frontend (agentic/web/src → agentic/static/app): demo v1's pages and words in the TripsSource design kit's look (web/src/kit/, copied unchanged; look.css draws the product's classes with --ts-* tokens only), wired to the API; a Developer | Data science switch in the sidebar: Data science is the same pages drawn like Claude Code (ds.css, every rule under html[data-mode="ds"]; core.js setMode/placeRail move Home's context cards to a right column and back)
 make test-pg          # the whole suite on PostgreSQL (the local dclab_test database, emptied by the tests)
 make agent-eval       # the scripted judgment suite: planted traps, the standard plan and reference policies (stores an AEV result)
 make agent-eval-live  # the same suite with the configured model: prints the plan; ARGS="--yes --cap-eur 2" runs it with caps and repeats

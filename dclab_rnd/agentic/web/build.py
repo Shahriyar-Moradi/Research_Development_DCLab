@@ -6,7 +6,7 @@
 
 Sources live in dclab_rnd/agentic/web/src/, copied from demo v1 (docs/product-demo/src, frozen):
 shell.html (layout), kit/ (the TripsSource design kit, unchanged), styles.css (the design system on the kit's tokens),
-look.css (the product's components the kit's way), core.js (router, page tabs, server API, charts), api.js (the API
+look.css (the product's components the kit's way), ds.css (the Data science mode), core.js (router, page tabs, server API, charts), api.js (the API
 client, generated from the server's OpenAPI schema by client.py: never edited),
 data.js and features.js (sample data and the blueprint registry), data/*.json (records extracted from
 the repository), fonts/ (copied as they are) and views/*.html (one per page). Unlike the demo build, nothing is inlined: the page
@@ -37,7 +37,8 @@ HEAD = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
 # (styles.css), then the product's components drawn the kit's way (look.css)
 KIT = ("kit/ts-tokens.css", "kit/ts-theme-blue.css", "kit/ts-components.css")
 OPEN_THEME = ("theme/dc-tokens.css",)  # the open-source edition's own tokens (the kit is not part of it)
-CSS = (KIT if (Path(__file__).resolve().parent / "src" / "kit").is_dir() else OPEN_THEME) + ("styles.css", "look.css")
+# ds.css last: the Data science mode (Claude Code's style), every rule scoped to html[data-mode="ds"]
+CSS = (KIT if (Path(__file__).resolve().parent / "src" / "kit").is_dir() else OPEN_THEME) + ("styles.css", "look.css", "ds.css")
 INLINE_STYLE = re.compile(r'(?<![-\w])style\s*=\s*["\']', re.I)
 
 
