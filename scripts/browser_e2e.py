@@ -65,6 +65,22 @@ def number(text: str) -> float:
     return float(found.group(0).replace(",", ""))
 
 
+MODE = ""  # --mode: the look every check starts in
+
+
+def new_chat_button(page):
+    """Home's way to a new project from a chat: its button in Developer, the sidebar's New chat in Data science (both run the same action)."""
+    own = page.locator("#view-home [data-new-chat]")
+    return own if own.is_visible() or not page.locator("#ds-new-chat").is_visible() else page.locator("#ds-new-chat")
+
+
+def connect_data(page) -> None:
+    """Open Home's "Bring the data" panel with the Connect data button that is on screen: the start box's in Developer, which
+    Data science puts away once a chat is open (the chat's own button opens the same panel)."""
+    own = page.locator("#home-connect")
+    (own if own.is_visible() else page.locator('#home-chat [data-open-bring="1"]').first).click()
+
+
 class Browser:
     def __init__(self, playwright, base: str, out: Path, width: int = 1280, height: int = 900):
         self.base, self.out = base.rstrip("/"), out
@@ -74,6 +90,8 @@ class Browser:
         self.context = self.browser.new_context(viewport={"width": width, "height": height}, accept_downloads=True,
                                                 **({"extra_http_headers": {"Authorization": f"Bearer {token}"}} if token else {}))
         self.context.add_init_script(WATCH)
+        if MODE:  # --mode ds: every check runs in the Data science look, so the two looks are shown to do the same (2026-11-01)
+            self.context.add_init_script(f"try {{ if (!sessionStorage.getItem('dclab-e2e-mode')) {{ localStorage.setItem('dclab-mode', '{MODE}'); sessionStorage.setItem('dclab-e2e-mode', '1'); }} }} catch (e) {{}}")
         self.page = self.context.new_page()
         self.console: list[str] = []
         self.page.on("console", lambda m: self.console.append(m.text) if m.type == "error" else None)
@@ -113,7 +131,7 @@ def check_flow(b: Browser) -> str:
     page.fill("#home-task", "Rank telecom customers by their risk of churn next month so the retention team can call them.")
     page.click("#home-start")
     page.wait_for_selector("#home-chat:not([hidden])")
-    page.click("#home-connect")
+    connect_data(page)
     page.set_input_files("#home-file", str(TELCO))
     page.wait_for_selector("#home-thread [data-asset-state].ok", timeout=180_000)  # read, cleaned and described
     answered = 0
@@ -128,7 +146,7 @@ def check_flow(b: Browser) -> str:
     check(answered >= 1, "the chat asked no question with options")
 
     check(page.locator("#home-create").is_visible(), "no Build this chat as a project button in the conversation, or no New project from chat button on Home")  # 25.13: the one-step build
-    check(page.locator("[data-new-chat]").is_visible(), "no New project from chat button on Home")
+    check(new_chat_button(page).is_visible(), "no New project from chat button on Home (or New chat in the sidebar)")
     page.click("#side-toggle")  # 25.13: hide the menu for room, remembered, and bring it back from the top bar
     check(not page.locator("#side").is_visible() and page.locator("#menu-btn").is_visible(), "the menu did not hide")
     page.click("#menu-btn")
@@ -250,7 +268,7 @@ def check_team(b: Browser) -> str:
         if "completed" in text:
             break
         if not uploaded:  # the walk waits for the data: the person gives the rides and the known cases, then walks on
-            page.click("#home-connect")
+            connect_data(page)
             for path in (files["rides"], files["sample"]):
                 page.set_input_files("#home-file", str(path))
                 page.wait_for_function("n => document.querySelectorAll('#home-thread [data-asset-state].ok').length >= n",
@@ -727,8 +745,8 @@ def check_understand(b: Browser) -> str:
 
     def new_chat(text: str) -> None:
         b.view("home", settle=1)
-        if page.locator("[data-new-chat]").is_visible():
-            page.click("[data-new-chat]")
+        if new_chat_button(page).is_visible():
+            new_chat_button(page).click()
         page.fill("#home-task", text)
         page.click("#home-start")
         page.wait_for_selector("#home-chat:not([hidden])")
@@ -760,8 +778,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--base", help="URL of a running server; without it the script starts its own (no model, an empty workspace)")
     parser.add_argument("--only", choices=list(CHECKS), action="append", help="run only this check (repeatable)")
+    parser.add_argument("--mode", choices=("dev", "ds"), default=None, help="start every check in this look (Developer or Data science); default: the app's own")
     parser.add_argument("--out", type=Path, default=Path(tempfile.gettempdir()) / "dclab-browser", help="where a failing check's screenshot goes")
     args = parser.parse_args(argv)
+    global MODE
+    MODE = args.mode or ""
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
@@ -787,7 +808,7 @@ def main(argv: list[str] | None = None) -> int:
                 except Exception as error:  # noqa: BLE001 — a Playwright timeout is a failure of the check too
                     failed += 1
                     where = b.shot(name) if b is not None else None
-                    print(f"FAIL  {name:<7} {str(error).splitlines()[0][:400]}" + (f"  (screenshot: {where})" if where else ""), flush=True)
+                    print(f"FAIL  {name:<7} {' | '.join(l.strip() for l in str(error).splitlines()[:4])[:600]}" + (f"  (screenshot: {where})" if where else ""), flush=True)
                 finally:
                     if b is not None:
                         b.close()

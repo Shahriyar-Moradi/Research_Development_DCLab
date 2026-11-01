@@ -7620,7 +7620,7 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 [data-mode="ds"] .ds-new:hover { background: var(--ts-surface-hover); }
 [data-mode="ds"] .ds-sec { font-size: 12px; font-weight: 500; color: var(--ts-text-muted); padding: 10px 10px 4px; letter-spacing: 0; text-transform: none; }
 [data-mode="ds"] .ds-recents { order: 3; display: flex; flex-direction: column; min-height: 0; }
-[data-mode="ds"] .ds-recent-list { display: flex; flex-direction: column; gap: 1px; }
+[data-mode="ds"] .ds-recent-list { display: flex; flex-direction: column; gap: 1px; max-height: 260px; overflow-y: auto; scrollbar-width: thin; }
 [data-mode="ds"] .ds-recent { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px; border-radius: 8px; text-align: left;
   font-size: 13.5px; color: var(--ts-text); background: none; border: 0; }
 [data-mode="ds"] .ds-recent:hover { background: var(--ts-surface-hover); }
@@ -7718,7 +7718,11 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 /* the start: "What are we working on?" over one big box, as a new Claude session opens */
 [data-mode="ds"] #view-home .vh { flex-direction: column; align-items: center; text-align: center; margin: 7vh auto 22px; max-width: var(--ds-col); }
 [data-mode="ds"] #view-home .vh-text { align-items: center; max-width: none; }
-[data-mode="ds"] #view-home .vh .eyebrow, [data-mode="ds"] #view-home .vh .lede, [data-mode="ds"] #view-home .vh-actions { display: none; }
+[data-mode="ds"] #view-home .vh .eyebrow, [data-mode="ds"] #view-home .vh .lede { display: none; }
+/* the project every page follows stays on Home (a control must not go); the two buttons the sidebar's New chat replaces step aside
+   (their action still runs from there) */
+[data-mode="ds"] #view-home .vh-actions { justify-content: center; }
+[data-mode="ds"] #view-home .vh-actions > [data-new-chat] { display: none; }
 [data-mode="ds"] .ds-hello { font-family: var(--ds-serif); font-weight: 400 !important; font-size: 34px !important; }
 [data-mode="ds"] .ds-hello-sub { color: var(--ts-text-muted); font-size: 15px; margin: 2px 0 0; }
 [data-mode="ds"] #view-home > .ptabs { justify-content: center; border-bottom: 0; margin-bottom: 8px; }
@@ -7750,8 +7754,14 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 [data-mode="ds"] #view-home [data-f="home.pack"] { color: var(--ts-text-faint); }
 /* once a conversation is open it is the page: the greeting and the start box step aside (but for the domain pack, which
    can still change); the reply box sits at the bottom of the window */
-[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) > .vh,
-[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) > .ptabs { display: none; }
+/* the conversation comes first (the workflow drawing and the rest follow it): the same parts in a different order, as Claude
+   keeps the chat on top; the domain pack row stays above it */
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-pane="overview"] > .g-3-1 { order: -2; }
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-pane="overview"] > #home-lanes { order: -1; }
+/* Home's tabs (Overview, Projects, Activity) stay reachable beside an open conversation */
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) > .ptabs { margin-bottom: 14px; }
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) > .vh { margin: 0 auto 6px; max-width: var(--ds-col); flex-direction: row; justify-content: flex-start; }
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) > .vh .vh-text { display: none; }
 [data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-f="home.composer"] > .panel-body > :not([data-f="home.pack"]):not(#home-packs) { display: none; }
 [data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-f="home.pack"] { justify-content: flex-start; }
 [data-mode="ds"] #home-chat { border: 0; background: none; }
@@ -7783,9 +7793,10 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 /* the side panel: what needs you, the workspace, what DCLab understood, the team: Claude's right panel. Shown in a
    conversation unless closed; on the start page only when opened */
 [data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr) 320px; gap: 0 32px; }
-[data-mode="ds"][data-ds-rail="open"] #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr) 320px; gap: 0 32px; }
+[data-mode="ds"][data-ds-rail="open"] #view-home [data-pane="overview"]:not([hidden]),
+[data-mode="ds"][data-ds-needs="1"]:not([data-ds-rail="closed"]) #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr) 320px; gap: 0 32px; }
 [data-mode="ds"] .ds-rail { display: none; }
-[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) .ds-rail, [data-mode="ds"][data-ds-rail="open"] .ds-rail {
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) .ds-rail, [data-mode="ds"][data-ds-rail="open"] .ds-rail, [data-mode="ds"][data-ds-needs="1"]:not([data-ds-rail="closed"]) #view-home .ds-rail {
   display: flex; flex-direction: column; gap: 4px; grid-column: 2; grid-row: 1 / span 40; position: sticky; top: calc(var(--top-h) + 12px); align-self: start;
   max-height: calc(100vh - var(--top-h) - 24px); overflow: auto; padding: 0 0 8px 20px; border-left: 1px solid var(--ts-border); }
 [data-mode="ds"][data-ds-rail="closed"] #view-home .ds-rail { display: none !important; }
@@ -7897,8 +7908,8 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 /* ================= narrow windows ================= */
 @media (max-width: 1100px) {
   [data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-pane="overview"]:not([hidden]),
-  [data-mode="ds"][data-ds-rail="open"] #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
-  [data-mode="ds"] #view-home:has(#home-chat:not([hidden])) .ds-rail, [data-mode="ds"][data-ds-rail="open"] .ds-rail {
+  [data-mode="ds"][data-ds-rail="open"] #view-home [data-pane="overview"]:not([hidden]), [data-mode="ds"][data-ds-needs="1"]:not([data-ds-rail="closed"]) #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
+  [data-mode="ds"] #view-home:has(#home-chat:not([hidden])) .ds-rail, [data-mode="ds"][data-ds-rail="open"] .ds-rail, [data-mode="ds"][data-ds-needs="1"]:not([data-ds-rail="closed"]) #view-home .ds-rail {
     grid-column: 1; grid-row: auto; position: static; max-height: none; overflow: visible; padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--ts-border); }
 }
 @media (max-width: 960px) {

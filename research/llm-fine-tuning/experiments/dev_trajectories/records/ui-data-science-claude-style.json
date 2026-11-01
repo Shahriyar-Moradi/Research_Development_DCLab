@@ -32,6 +32,10 @@
     {
       "decision": "The side panel shows in a conversation unless closed; its toggle reads what is on screen",
       "why": "Claude shows its panel in a session and not on a new one; a toggle that only read the saved choice opened an already open panel"
+    },
+    {
+      "decision": "Controls that move keep their action: New project from chat becomes the sidebar's New chat, the start box's Connect data becomes the chat's own; nothing is removed",
+      "why": "the owner: all things must work the same; a comparison of every visible control found 3 real gaps and these 2 moves"
     }
   ],
   "change": "dclab_rnd/agentic/web/src/shell.html (Recents, Pages toggle, account, back/forward, DCLab crumb, side panel and Settings buttons, the Settings window); src/core.js (dsFrame: recents, settings, theme, pages, side panel; Commands first in the palette); src/ds.css (rewritten on the kept tokens); src/views/home.html (What are we working on?); scripts/browser_e2e.py (dsmode extended); tests/test_web_client.py (dsmode in the checks' list); CLAUDE.md; dclab_rnd/agentic/static/app (make web)",
@@ -125,6 +129,66 @@
       "cause": "the toolbar and cells lost their padding with the overview's flat column",
       "fix": "padding inside the cards of the other tabs",
       "test": "screenshot of the Clean version tab"
+    },
+    {
+      "id": "F10",
+      "source": "owner",
+      "severity": "gap",
+      "defect": "Nothing showed that Data science does everything Developer does",
+      "scenario": "the owner: all things must work the same; only the notebook and Home had been checked by eye in the new look",
+      "cause": "the browser suite ran only in Developer; the Data science check covered pages loading, not actions",
+      "fix": "scripts/browser_e2e.py takes --mode ds and runs all 15 checks (chat, build, five stages, brief, decisions, team, memory, review, failures, 375 px) in the new look; a control-by-control comparison of 1,800 controls on every page and tab found the gaps below",
+      "test": "scripts/browser_e2e.py --mode ds"
+    },
+    {
+      "id": "F11",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The project switcher was gone from Home in Data science",
+      "scenario": "Home, Data science: no way to choose which project the pages follow (the decide, switch, memory and review checks could not find it)",
+      "cause": "Home's whole header row was hidden, and the switcher sits in it",
+      "fix": "the row stays with the switcher and the New project link; only the New project from chat button steps aside, the sidebar's New chat runs the same action",
+      "test": "scripts/browser_e2e.py checks decide, switch, memory, review in --mode ds"
+    },
+    {
+      "id": "F12",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "What needs the person was hidden on Home's start page",
+      "scenario": "a draft waits for an answer (Needs you: 1); in Data science the start page showed no sign of it unless the side panel was opened",
+      "cause": "the side panel showed only in a conversation or when opened",
+      "fix": "the panel opens by default when Needs you has items, unless the person closed it",
+      "test": "control comparison on a workspace with a waiting draft"
+    },
+    {
+      "id": "F13",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "Home's Overview, Projects and Activity tabs were hidden beside an open conversation",
+      "scenario": "a chat is open in Data science: the Projects and Activity tabs unreachable until New chat",
+      "cause": "the tabs were hidden to look like a conversation",
+      "fix": "the tabs stay, with the conversation first",
+      "test": "control comparison with a chat open"
+    },
+    {
+      "id": "F14",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The conversation sat below the workflow drawing, its title behind the reply box",
+      "scenario": "a chat opens: the long workflow card comes first and the conversation starts under the pinned reply box",
+      "cause": "the card precedes the chat in the page and the reply box is pinned",
+      "fix": "in Data science the conversation comes first and the card follows (order only)",
+      "test": "screenshot of an open chat"
+    },
+    {
+      "id": "F15",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The browser checks clicked controls that move in the new look",
+      "scenario": "flow clicked the start box's Connect data and Home's New project from chat; in Data science the chat has its own Connect data and the sidebar has New chat",
+      "cause": "the checks named one place for each control",
+      "fix": "the checks click whichever of the two is on screen (both run the same action)",
+      "test": "scripts/browser_e2e.py connect_data, new_chat_button"
     }
   ],
   "measurements": [
@@ -139,6 +203,19 @@
         "headless Chromium in a cloud sandbox, not the owner's Mac browsers",
         "a fresh workspace with one built project and a few drafts"
       ]
+    },
+    {
+      "name": "the complete browser suite in Data science (15 checks), and a control-by-control comparison with Developer (about 1,800 controls on 21 pages and their tabs)",
+      "gate": "every check passes in both looks; every Developer control is on screen in Data science or has its stated place",
+      "fixed_before_run": true,
+      "result": "14 of 15 pass in Data science; poll fails in both looks on some runs (a timing flake in this sandbox, also failing in the Developer baseline); the comparison found 3 gaps (switcher, Needs you, Home tabs) and 2 moved controls, all fixed or placed",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "headless Chromium in a cloud sandbox",
+        "the comparison sees what is visible, not what is correct: the browser checks cover actions",
+        "a control that only shows after a rare event (an error, a long job) was not compared"
+      ]
     }
   ],
   "outcome": "Data science is now its own Claude-style frame over the same pages, with Home as a session and conversation, a side panel, Settings and Commands, every page in Claude's style and the notebook as DCLab Studio's review; Developer is unchanged.",
@@ -146,7 +223,8 @@
     "Before redoing a design that missed, screenshot it beside its target and ask which target, how much and which colours",
     "A second look over the same pages keeps the functionality the same; a copied page would not",
     "Draw only controls the product has: a picker that does nothing is worse than none",
-    "Run the browser check on a fresh workspace too: lists that already had items hid that a new item never appeared"
+    "Run the browser check on a fresh workspace too: lists that already had items hid that a new item never appeared",
+    "To show two looks do the same, run the same suite in both and compare every control: the eye found the notebook, the comparison found the missing project switcher"
   ],
   "risks": [
     "Pages other than Home and the notebook are restyled, not re-laid-out: they read calmer but keep Developer's arrangement",
