@@ -14,8 +14,8 @@ from typing import Any, Iterable, Mapping, Optional
 
 from . import CAMPAIGN
 
-ARMS = ("home", "plain", "case")
-NAMES = {"home": "Home today", "plain": "Claude alone", "case": "lead agent"}
+ARMS = ("home", "plain", "safe", "case")  # safe: Claude alone with DCLab's safety layer (its rows were missing, 2026-11-01)
+NAMES = {"home": "Home today", "plain": "Claude alone", "safe": "Claude alone + DCLab safety", "case": "lead agent"}
 EXAM_PURPOSES = ("case_agent", "case_specialist", "exam_plain", "exam_person", "exam_judge", "home_agent", "home_intent",
                  "home_understand", "home_query")
 
@@ -28,16 +28,24 @@ def _trap_mean(traps: Mapping[str, Any]) -> Optional[float]:
 def runs(results: Path) -> list[dict[str, Any]]:
     """One row per run and arm, from each run's own result file (the label files are read by ``labels_rows``)."""
     rows = []
-    for path in sorted(results.glob("CEX-*.json")):
-        doc = json.loads(path.read_text(encoding="utf-8"))
+    docs = [(path, json.loads(path.read_text(encoding="utf-8"))) for path in sorted(results.glob("CEX-*.json"))]
+    # a joined result (a run finished by later runs) holds those runs' conversations: each is marked, so no person is read
+    # twice (the review of 2026-11-01)
+    inside = {r: doc.get("id") for _, doc in docs for r in ((doc.get("joined") or {}).get("runs") or []) if r != doc.get("id")}
+    for path, doc in docs:
         summary = doc.get("summary")
         if not isinstance(summary, dict) or not summary:
             continue
+        if not any((s or {}).get("people") for s in summary.values()):
+            continue  # a run cut before any person was scored (its conversations are kept on disk and in the store)
+        rid = doc.get("id") or path.stem.split("_")[0]
+        label = (f"{rid} (joined: {', '.join(r for r in doc['joined']['runs'] if r != rid)})" if doc.get("joined")
+                 else f"{rid} (in {inside[rid]})" if rid in inside else rid)
         for arm in ARMS:
             s = summary.get(arm)
             if not s:
                 continue
-            rows.append({"run": doc.get("id") or path.stem.split("_")[0], "split": doc.get("split"), "at": str(doc.get("at") or "")[:10],
+            rows.append({"run": label, "split": doc.get("split"), "at": str(doc.get("at") or "")[:10],
                          "arm": arm, "people": s.get("people"), "understanding": s.get("understanding"), "options_fit": s.get("options_fit"),
                          "route_reached": s.get("route_reached", s.get("route_accuracy")), "already_answered": s.get("already_answered"),
                          "safety_failures": s.get("safety_failures"), "traps": _trap_mean(s.get("traps") or {}), "silent": s.get("silent"),

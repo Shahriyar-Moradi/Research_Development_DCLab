@@ -28,14 +28,14 @@
  },
  "costs": {
   "by_model_type": {
-   "m4_workflow_llm": 218.21439
+   "m4_workflow_llm": 229.794827
   },
   "by_purpose": {
    "ai_first": 18.406708,
    "brief_checker": 0.023292,
    "campaign": 1.147882,
    "campaign_review": 12.466256,
-   "case_agent": 23.530568,
+   "case_agent": 29.611426,
    "case_specialist": 0.016438,
    "conversation_reader": 14.700744,
    "critic": 0.069044,
@@ -47,9 +47,9 @@
    "decomposer": 4.20616,
    "embedding": 0.00446,
    "evidence_answer": 0.115634,
-   "exam_judge": 9.769056,
-   "exam_person": 0.420244,
-   "exam_plain": 6.341868,
+   "exam_judge": 12.438178,
+   "exam_person": 0.537675,
+   "exam_plain": 9.053886,
    "feature_engineer": 0.103984,
    "home_agent": 29.692109,
    "home_business": 0.091378,
@@ -70,6 +70,7 @@
    "reasoning_teacher": 0.00776,
    "reflector": 0.0851,
    "reporter": 0.25734,
+   "route_check": 0.001008,
    "routing_labeler": 1.408134,
    "solution_challenger": 0.257164,
    "solution_planner": 3.928848,
@@ -80,7 +81,7 @@
    "understanding_critic": 6.803352,
    "workspace_chat": 0.02462
   },
-  "total_eur": 226.063392
+  "total_eur": 237.643829
  },
  "coverage": {
   "gaps": [
@@ -1483,10 +1484,10 @@
  },
  "kinds": {
   "actions": {
-   "bytes": 23569711,
-   "entries": 2164,
-   "last": "2026-10-31T11:09:18+00:00",
-   "sources": 1743,
+   "bytes": 24160915,
+   "entries": 2257,
+   "last": "2026-11-01T01:21:57+00:00",
+   "sources": 1809,
    "what": "agent steps and tool calls",
    "workspaces": [
     "dev",
@@ -3026,6 +3027,72 @@
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-36",
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-37",
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__owner-telco",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__owner-telco",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-09",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-15",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-21",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-26",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-15",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-08",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-20",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-25",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-08",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-20",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-25",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-08",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-20",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-25",
+    "live_tests__2026-10-31-conversation-exam__cex-021__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-021__case__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-021__plain__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-021__safe__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-023__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-023__plain__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-023__safe__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-024__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-024__plain__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-024__safe__d-40",
     "live_tests__2026-10-31-home-eval__dev-003551__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-010445__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-014123__model__d-v1",
@@ -3101,19 +3168,19 @@
    ]
   },
   "agents": {
-   "bytes": 1639725313,
-   "entries": 2832,
-   "last": "2026-10-31T11:24:08+00:00",
-   "sources": 2450,
+   "bytes": 1672234044,
+   "entries": 2876,
+   "last": "2026-11-01T01:35:51+00:00",
+   "sources": 2473,
    "what": "other agents' sessions: Claude Code (the main checkout and its worktrees), testers'",
    "workspaces": [
     "rnd"
    ]
   },
   "audit": {
-   "bytes": 1641673,
-   "entries": 303,
-   "last": "2026-10-31T11:09:19+00:00",
+   "bytes": 1665289,
+   "entries": 315,
+   "last": "2026-11-01T01:21:58+00:00",
    "sources": 128,
    "what": "the audit trail",
    "workspaces": [
@@ -3246,9 +3313,9 @@
    ]
   },
   "conversations": {
-   "bytes": 381544600,
-   "entries": 7879,
-   "last": "2026-10-31T09:42:08+00:00",
+   "bytes": 384085627,
+   "entries": 7880,
+   "last": "2026-10-31T22:38:20+00:00",
    "sources": 7739,
    "what": "Home, the intern, the workspace chat, the twin, MCP",
    "workspaces": [
@@ -5961,20 +6028,20 @@
    ]
   },
   "curation": {
-   "bytes": 1251660521,
-   "entries": 73,
-   "last": "2026-10-31T11:32:55+00:00",
-   "sources": 73,
+   "bytes": 1257425654,
+   "entries": 77,
+   "last": "2026-11-01T01:43:14+00:00",
+   "sources": 77,
    "what": "every curator's choice: where each record went, its quality, why, and its failed answers",
    "workspaces": [
     "rnd"
    ]
   },
   "decisions": {
-   "bytes": 407223497,
-   "entries": 9181,
-   "last": "2026-10-31T11:07:44+00:00",
-   "sources": 9035,
+   "bytes": 408282777,
+   "entries": 9222,
+   "last": "2026-10-31T23:35:59+00:00",
+   "sources": 9075,
    "what": "the decision ledger: records, labels and outcomes",
    "workspaces": [
     "dev",
@@ -7765,6 +7832,46 @@
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-36",
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-37",
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__owner-telco",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__owner-telco",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-09",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-15",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-21",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-26",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-15",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-08",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-20",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-25",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-021__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-021__case__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-023__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-024__case__d-40",
     "live_tests__2026-10-31-home-eval__dev-003551__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-010445__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-014123__model__d-v1",
@@ -9962,10 +10069,10 @@
    ]
   },
   "deletions": {
-   "bytes": 46448,
-   "entries": 191,
-   "last": "2026-10-30T18:03:45+00:00",
-   "sources": 188,
+   "bytes": 46690,
+   "entries": 192,
+   "last": "2026-10-31T22:31:19+00:00",
+   "sources": 189,
    "what": "each deletion in the product, recorded beside what it removed",
    "workspaces": [
     "dev",
@@ -9976,19 +10083,19 @@
    ]
   },
   "fixes": {
-   "bytes": 138837091,
-   "entries": 1515,
-   "last": "2026-10-31T11:24:22+00:00",
-   "sources": 1474,
+   "bytes": 140157333,
+   "entries": 1537,
+   "last": "2026-10-31T23:52:01+00:00",
+   "sources": 1496,
    "what": "a failing test, the passing run after it, and the commits between",
    "workspaces": [
     "rnd"
    ]
   },
   "model_requests": {
-   "bytes": 190403042,
-   "entries": 295,
-   "last": "2026-10-31T11:09:54+00:00",
+   "bytes": 210571371,
+   "entries": 304,
+   "last": "2026-10-31T23:38:05+00:00",
    "sources": 99,
    "what": "every model request with its shadows and checks",
    "workspaces": [
@@ -10063,10 +10170,10 @@
    ]
   },
   "other": {
-   "bytes": 541398722,
-   "entries": 14912,
-   "last": "2026-10-31T11:16:46+00:00",
-   "sources": 14271,
+   "bytes": 548881286,
+   "entries": 15162,
+   "last": "2026-11-01T01:27:14+00:00",
+   "sources": 14376,
    "what": "anything else a workspace holds (logs, results, designs, transcripts, settings), so nothing is left out",
    "workspaces": [
     "dev",
@@ -12612,6 +12719,72 @@
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-36",
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-37",
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__owner-telco",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__owner-telco",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-09",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-15",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-21",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-26",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-15",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-08",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-20",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-25",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-08",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-20",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-25",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-08",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-20",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-25",
+    "live_tests__2026-10-31-conversation-exam__cex-021__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-021__case__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-021__plain__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-021__safe__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-023__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-023__plain__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-023__safe__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-024__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-024__plain__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-024__safe__d-40",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -13028,10 +13201,10 @@
    ]
   },
   "sessions": {
-   "bytes": 338813870,
-   "entries": 3461,
-   "last": "2026-10-31T11:06:35+00:00",
-   "sources": 3058,
+   "bytes": 347594552,
+   "entries": 3554,
+   "last": "2026-11-01T01:19:17+00:00",
+   "sources": 3125,
    "what": "the experience log's events",
    "workspaces": [
     "dev",
@@ -14642,6 +14815,72 @@
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-36",
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-37",
     "live_tests__2026-10-31-conversation-exam__cex-015__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-015__case__owner-telco",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-01",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-10",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-13",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-016__case__owner-telco",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-06",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-09",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-15",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-21",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-26",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-018__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-15",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-31",
+    "live_tests__2026-10-31-conversation-exam__cex-019__case__d-36",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-08",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-20",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-25",
+    "live_tests__2026-10-31-conversation-exam__cex-020__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-08",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-20",
+    "live_tests__2026-10-31-conversation-exam__cex-020__plain__d-25",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-04",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-08",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-14",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-19",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-20",
+    "live_tests__2026-10-31-conversation-exam__cex-020__safe__d-25",
+    "live_tests__2026-10-31-conversation-exam__cex-021__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-021__case__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-021__plain__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-021__safe__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-022__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-022__plain__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-28",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-35",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-37",
+    "live_tests__2026-10-31-conversation-exam__cex-022__safe__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-023__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-023__plain__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-023__safe__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-024__case__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-024__plain__d-40",
+    "live_tests__2026-10-31-conversation-exam__cex-024__safe__d-40",
     "live_tests__2026-10-31-home-eval__dev-003551__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-010445__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-014123__model__d-v1",
@@ -15063,9 +15302,9 @@
    ]
   },
   "tasks": {
-   "bytes": 3915737,
-   "entries": 405,
-   "last": "2026-10-31T02:48:28+00:00",
+   "bytes": 4049167,
+   "entries": 409,
+   "last": "2026-10-31T23:40:26+00:00",
    "sources": 65,
    "what": "every job's state changes; the development sessions' task lists",
    "workspaces": [
@@ -15125,10 +15364,10 @@
    ]
   },
   "tests": {
-   "bytes": 348256931,
-   "entries": 14035,
-   "last": "2026-10-31T11:27:34+00:00",
-   "sources": 13769,
+   "bytes": 349696097,
+   "entries": 14088,
+   "last": "2026-11-01T01:38:51+00:00",
+   "sources": 13817,
    "what": "test runs and gates",
    "workspaces": [
     "dev",
@@ -18045,71 +18284,71 @@
     },
     {
      "counts": {
-      "dev": 93,
+      "dev": 98,
       "sealed": 1,
-      "sealed_pending": 74,
-      "train": 232
+      "sealed_pending": 76,
+      "train": 245
      },
      "name": "data.cases_table/pairs",
      "path": "sets/m1_students/data.cases_table/pairs/v1",
      "reasoning": {
-      "no_model": 400
+      "no_model": 420
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 251,
+      "dev": 257,
       "sealed": 2,
-      "sealed_pending": 224,
-      "train": 625
+      "sealed_pending": 228,
+      "train": 641
      },
      "name": "data.cases_table",
      "path": "sets/m1_students/data.cases_table/v1",
      "reasoning": {
-      "no_model": 1102
+      "no_model": 1128
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 355,
+      "dev": 366,
       "sealed": 7,
-      "sealed_pending": 330,
-      "train": 897
+      "sealed_pending": 335,
+      "train": 921
      },
      "name": "data.cleaning_keep",
      "path": "sets/m1_students/data.cleaning_keep/v1",
      "reasoning": {
-      "no_model": 1589
+      "no_model": 1629
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 964,
+      "dev": 1010,
       "sealed": 5,
-      "sealed_pending": 775,
-      "train": 2405
+      "sealed_pending": 792,
+      "train": 2526
      },
      "name": "data.cleaning_step/pairs",
      "path": "sets/m1_students/data.cleaning_step/pairs/v1",
      "reasoning": {
-      "no_model": 4149
+      "no_model": 4333
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 2634,
+      "dev": 2692,
       "sealed": 8,
-      "sealed_pending": 2583,
-      "train": 6490
+      "sealed_pending": 2619,
+      "train": 6642
      },
      "name": "data.cleaning_step",
      "path": "sets/m1_students/data.cleaning_step/v1",
      "reasoning": {
-      "no_model": 11715
+      "no_model": 11961
      },
      "version": "v1"
     },
@@ -18157,15 +18396,15 @@
     },
     {
      "counts": {
-      "dev": 255,
+      "dev": 261,
       "sealed": 1,
-      "sealed_pending": 236,
-      "train": 642
+      "sealed_pending": 240,
+      "train": 658
      },
      "name": "data.structure_format",
      "path": "sets/m1_students/data.structure_format/v1",
      "reasoning": {
-      "no_model": 1134
+      "no_model": 1160
      },
      "version": "v1"
     },
@@ -18963,29 +19202,29 @@
     },
     {
      "counts": {
-      "dev": 112,
+      "dev": 117,
       "sealed": 1,
-      "sealed_pending": 105,
-      "train": 297
+      "sealed_pending": 107,
+      "train": 310
      },
      "name": "workflow.next_question/pairs",
      "path": "sets/m1_students/workflow.next_question/pairs/v1",
      "reasoning": {
-      "no_model": 515
+      "no_model": 535
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1113,
+      "dev": 1119,
       "sealed": 2,
-      "sealed_pending": 1029,
-      "train": 2716
+      "sealed_pending": 1033,
+      "train": 2732
      },
      "name": "workflow.next_question",
      "path": "sets/m1_students/workflow.next_question/v1",
      "reasoning": {
-      "no_model": 4860
+      "no_model": 4886
      },
      "version": "v1"
     },
@@ -19021,16 +19260,16 @@
     },
     {
      "counts": {
-      "dev": 216,
+      "dev": 222,
       "sealed": 3,
-      "sealed_pending": 200,
-      "train": 567
+      "sealed_pending": 204,
+      "train": 583
      },
      "name": "workflow.template",
      "path": "sets/m1_students/workflow.template/v1",
      "reasoning": {
       "lost": 22,
-      "no_model": 964
+      "no_model": 990
      },
      "version": "v1"
     }
@@ -19350,15 +19589,15 @@
     },
     {
      "counts": {
-      "dev": 1113,
+      "dev": 1119,
       "sealed": 2,
-      "sealed_pending": 1029,
-      "train": 2716
+      "sealed_pending": 1033,
+      "train": 2732
      },
      "name": "rnd/workflow.next_question",
      "path": "sets/m2_workflow_decisions/rnd/workflow.next_question/v1",
      "reasoning": {
-      "no_model": 4860
+      "no_model": 4886
      },
      "version": "v1"
     },
@@ -19394,16 +19633,16 @@
     },
     {
      "counts": {
-      "dev": 216,
+      "dev": 222,
       "sealed": 3,
-      "sealed_pending": 200,
-      "train": 567
+      "sealed_pending": 204,
+      "train": 583
      },
      "name": "rnd/workflow.template",
      "path": "sets/m2_workflow_decisions/rnd/workflow.template/v1",
      "reasoning": {
       "lost": 22,
-      "no_model": 964
+      "no_model": 990
      },
      "version": "v1"
     }
@@ -19752,43 +19991,43 @@
     },
     {
      "counts": {
-      "dev": 251,
+      "dev": 257,
       "sealed": 2,
-      "sealed_pending": 224,
-      "train": 625
+      "sealed_pending": 228,
+      "train": 641
      },
      "name": "general/data.cases_table",
      "path": "sets/m3_ml_decisions/general/data.cases_table/v1",
      "reasoning": {
-      "no_model": 1102
+      "no_model": 1128
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 355,
+      "dev": 366,
       "sealed": 7,
-      "sealed_pending": 330,
-      "train": 897
+      "sealed_pending": 335,
+      "train": 921
      },
      "name": "general/data.cleaning_keep",
      "path": "sets/m3_ml_decisions/general/data.cleaning_keep/v1",
      "reasoning": {
-      "no_model": 1589
+      "no_model": 1629
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 2634,
+      "dev": 2692,
       "sealed": 8,
-      "sealed_pending": 2583,
-      "train": 6490
+      "sealed_pending": 2619,
+      "train": 6642
      },
      "name": "general/data.cleaning_step",
      "path": "sets/m3_ml_decisions/general/data.cleaning_step/v1",
      "reasoning": {
-      "no_model": 11715
+      "no_model": 11961
      },
      "version": "v1"
     },
@@ -19822,15 +20061,15 @@
     },
     {
      "counts": {
-      "dev": 255,
+      "dev": 261,
       "sealed": 1,
-      "sealed_pending": 236,
-      "train": 642
+      "sealed_pending": 240,
+      "train": 658
      },
      "name": "general/data.structure_format",
      "path": "sets/m3_ml_decisions/general/data.structure_format/v1",
      "reasoning": {
-      "no_model": 1134
+      "no_model": 1160
      },
      "version": "v1"
     },
@@ -20666,15 +20905,15 @@
    "sets": [
     {
      "counts": {
-      "dev": 31,
+      "dev": 44,
       "sealed": 17,
-      "sealed_pending": 5,
-      "train": 50
+      "sealed_pending": 14,
+      "train": 67
      },
      "name": "case_files",
      "path": "sets/m4_workflow_llm/case_files/v1",
      "reasoning": {
-      "none": 103
+      "none": 142
      },
      "version": "v1"
     },
@@ -20710,16 +20949,16 @@
     },
     {
      "counts": {
-      "dev": 275,
+      "dev": 353,
       "sealed": 242,
-      "sealed_pending": 104,
-      "train": 989
+      "sealed_pending": 200,
+      "train": 1455
      },
      "name": "exam_simulation",
      "path": "sets/m4_workflow_llm/exam_simulation/v1",
      "reasoning": {
-      "none": 3665,
-      "recorded": 2767
+      "none": 5064,
+      "recorded": 4136
      },
      "version": "v1"
     },
@@ -20985,14 +21224,14 @@
      "counts": {
       "dev": 24,
       "sealed": 306,
-      "sealed_pending": 56,
-      "train": 235
+      "sealed_pending": 57,
+      "train": 239
      },
      "name": "trajectories/development",
      "path": "sets/m5_solver_llm/trajectories/development/v2",
      "reasoning": {
-      "none": 39880,
-      "recorded": 2277
+      "none": 40231,
+      "recorded": 2293
      },
      "version": "v2"
     },
@@ -21153,15 +21392,15 @@
     },
     {
      "counts": {
-      "dev": 46,
+      "dev": 51,
       "sealed": 1,
-      "sealed_pending": 43,
-      "train": 126
+      "sealed_pending": 46,
+      "train": 140
      },
      "name": "job",
      "path": "sets/m6_stepwise_decisions/job/v1",
      "reasoning": {
-      "no_model": 890
+      "no_model": 955
      },
      "version": "v1"
     },
@@ -21276,16 +21515,30 @@
     },
     {
      "counts": {
-      "dev": 46,
+      "dev": 62,
       "sealed": 53,
-      "sealed_pending": 8,
-      "train": 152
+      "sealed_pending": 24,
+      "train": 194
      },
      "name": "exam_judgments",
      "path": "sets/m7_judges/exam_judgments/v1",
      "reasoning": {
-      "none": 2,
-      "recorded": 257
+      "none": 16,
+      "recorded": 317
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 2,
+      "sealed": 2,
+      "sealed_pending": 0,
+      "train": 7
+     },
+     "name": "human_labels",
+     "path": "sets/m7_judges/human_labels/v1",
+     "reasoning": {
+      "none": 11
      },
      "version": "v1"
     },
@@ -21322,12 +21575,12 @@
       "dev": 131,
       "sealed": 119,
       "sealed_pending": 0,
-      "train": 2433
+      "train": 2437
      },
      "name": "review_findings",
      "path": "sets/m7_judges/review_findings/v1",
      "reasoning": {
-      "no_field": 2683
+      "no_field": 2687
      },
      "version": "v1"
     }
@@ -21371,15 +21624,15 @@
     },
     {
      "counts": {
-      "dev": 327,
+      "dev": 392,
       "sealed": 198,
-      "sealed_pending": 344,
-      "train": 1183
+      "sealed_pending": 437,
+      "train": 1271
      },
      "name": "request.intent",
      "path": "sets/m7_routing/request.intent/v1",
      "reasoning": {
-      "no_field": 2052
+      "no_field": 2298
      },
      "version": "v1"
     },
@@ -21441,15 +21694,15 @@
     },
     {
      "counts": {
-      "dev": 859,
+      "dev": 865,
       "sealed": 1292,
-      "sealed_pending": 68,
-      "train": 2639
+      "sealed_pending": 71,
+      "train": 2656
      },
      "name": "workflow.next_question",
      "path": "sets/m7_routing/workflow.next_question/v1",
      "reasoning": {
-      "no_field": 4858
+      "no_field": 4884
      },
      "version": "v1"
     }
@@ -21484,8 +21737,8 @@
  },
  "quarantine": {
   ".DS_Store": 0,
-  "a_duplicate_of_a_record_already_placed": 63,
-  "broken": 34,
+  "a_duplicate_of_a_record_already_placed": 67,
+  "broken": 36,
   "the_record_s_consent_improve_does_not_allow_training": 1
  },
  "root": "the store's root (dclab-records, owner/main)",

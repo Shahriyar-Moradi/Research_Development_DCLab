@@ -34,6 +34,24 @@ class BenchmarkTests(unittest.TestCase):
                                                     "messages": [{"content": "SEALED WORDS"}]}) + "\n")
         self.doc = benchmark.build(self.results, work)
 
+    def test_the_safety_arm_gets_its_own_row(self):
+        arm = {"people": 10, "understanding": 0.68, "safety_failures": 0}
+        (self.results / "CEX-020_dev.json").write_text(json.dumps({"id": "CEX-020", "split": "dev", "summary": {"case": arm, "safe": arm, "plain": arm}}))
+        rows = {(r["run"], r["arm"]) for r in benchmark.runs(self.results)}
+        self.assertTrue({("CEX-020", "case"), ("CEX-020", "safe"), ("CEX-020", "plain")} <= rows)
+        self.assertIn("Claude alone + DCLab safety", benchmark.render(benchmark.build(self.results, self.home / "ws")))
+
+    def test_a_joined_run_and_the_runs_inside_it_are_marked_and_an_empty_run_is_left_out(self):
+        arm = {"people": 10, "understanding": 0.9}
+        (self.results / "CEX-020_dev.json").write_text(json.dumps({"id": "CEX-020", "split": "dev", "summary": {"case": arm},
+                                                                   "joined": {"runs": ["CEX-020", "CEX-022"]}}))
+        (self.results / "CEX-022_dev.json").write_text(json.dumps({"id": "CEX-022", "split": "dev", "summary": {"case": {**arm, "people": 3}}}))
+        (self.results / "CEX-023_dev.json").write_text(json.dumps({"id": "CEX-023", "split": "dev", "summary": {"case": {"people": 0}}}))
+        runs = {r["run"] for r in benchmark.runs(self.results)}
+        self.assertIn("CEX-020 (joined: CEX-022)", runs)
+        self.assertIn("CEX-022 (in CEX-020)", runs)
+        self.assertFalse(any(r.startswith("CEX-023") for r in runs))
+
     def test_every_arm_has_a_row_and_the_owners_verdict_replaces_pending(self):
         rows = {(r["run"], r["arm"]): r for r in self.doc["runs"]}
         self.assertEqual(set(rows), {("CEX-013", "case"), ("CEX-013", "plain")})

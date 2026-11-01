@@ -170,6 +170,22 @@ class LlmSetsTest(unittest.TestCase):
         critic = {**q, "source": "critic"}
         self.assertIn("no_reasoning", llm.home_turn(turn, {"q1": critic}, {}, "2026-10-20"))
 
+    def test_case_records_are_streamed_not_listed(self):
+        """2026-11-01: a list of every tests, conversations and other record filled the 8 GB Mac's disk with swap during the
+        store's whole run; the builder hands cases.from_records a one-pass iterator instead."""
+        from dclab_rnd.store.sets import cases, llm
+
+        seen = []
+        real = cases.from_records
+
+        def spy(records):
+            seen.append(isinstance(records, list))
+            return real(records)
+
+        with mock.patch.object(cases, "from_records", spy):
+            llm.build(self.layout)
+        self.assertEqual(seen, [False])
+
     def test_every_purpose_but_embedding_has_a_stage(self):
         from dclab_rnd.models import settings
         from dclab_rnd.store.sets import llm
