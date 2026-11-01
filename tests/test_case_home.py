@@ -262,6 +262,31 @@ class CaseHomeTests(unittest.TestCase):
             self.assertEqual((draft.get("build_waiting"), draft.get("moment_said")), ("confirm moment", "at signup"), words)
             self.assertIn("not sure that is a yes", draft["messages"][-1]["text"], words)
 
+    def test_a_trailing_but_or_a_question_without_its_mark_never_builds(self):
+        """The re-review of 37.11b: "Yes, but..." built before the correction was typed; "Is that right" built."""
+        for words in ("Yes, but...", "Okay, but", "Correct. But", "Yes — but"):
+            draft, calls, agent = self._confirm(words)
+            self.assertEqual((calls, agent), ([], False), words)
+            self.assertEqual((draft.get("build_waiting"), draft.get("moment_said")), ("confirm moment", "at signup"), words)
+        for words in ("Is that right", "should it be later"):
+            draft, calls, agent = self._confirm(words)
+            self.assertEqual((calls, agent), ([], True), words)
+            self.assertNotIn("prediction_moment", draft.get("understanding") or {}, words)
+
+    def test_curly_apostrophes_from_a_phone_keyboard_read_as_plain_ones(self):
+        for words in ("Yes, that’s correct, go ahead", "That’s right", "It’s fine"):
+            draft, calls, _ = self._confirm(words)
+            self.assertEqual(calls, ["build"], words)
+        draft, calls, agent = self._confirm("Don’t build it yet")
+        self.assertEqual((calls, agent), ([], True))
+
+    def test_at_once_or_at_all_is_not_a_moment(self):
+        draft, calls, _ = self._confirm("Yes, build it at once")
+        self.assertEqual(calls, ["build"])
+        draft, calls, agent = self._confirm("Not at all")
+        self.assertEqual(calls, [])
+        self.assertNotEqual(draft.get("moment_said"), "at all")
+
     def test_plain_approval_in_many_words_builds(self):
         for words in ("No problem, go ahead", "Actually yes, build it", "Yes, nothing else to add but go ahead", "sure, no problem",
                       "That sounds right"):

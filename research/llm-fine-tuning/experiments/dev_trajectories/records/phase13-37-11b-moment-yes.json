@@ -30,7 +30,7 @@
       "why": "the person said not now"
     }
   ],
-  "change": "dclab_rnd/draft/case_home.py (CORRECTION replaced by HOLD_BUILD, APPROVAL, YES_WORD, TIME_WORDS, LEADING_ANSWER and _say_moment_back; the confirm-moment branch); tests/test_case_home.py (six tests)",
+  "change": "dclab_rnd/draft/case_home.py (CORRECTION replaced by HOLD_BUILD, APPROVAL, YES_WORD, TIME_WORDS, LEADING_ANSWER, ASKS and _say_moment_back; curly apostrophes normalised; the confirm-moment branch); tests/test_case_home.py (nine tests)",
   "findings": [
     {
       "id": "F1",
@@ -71,6 +71,46 @@
       "cause": "HOLD_BUILD matched only a delay word before build",
       "fix": "HOLD_BUILD also matches build/start followed by later/yet/tomorrow/next week, and hold on",
       "test": "tests/test_case_home.py test_a_hold_on_the_build_or_other_words_go_to_the_agent_and_build_nothing"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "A trailing \"but\" built the old moment",
+      "scenario": "the person types \"Yes, but...\" meaning to correct the moment next; the build starts at once on the old moment",
+      "cause": "\"but\" was in the approval words and the trailing dots were stripped",
+      "fix": "\"but\" is approval only before a go-ahead (\"but go ahead\", \"but build it\"); a trailing but is asked again",
+      "test": "tests/test_case_home.py test_a_trailing_but_or_a_question_without_its_mark_never_builds"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Curly apostrophes from phone and Mac keyboards brought the loop back",
+      "scenario": "\"That’s right\" left a stray \"s\" after the approval words, so Home asked \"I am not sure that is a yes\" every time",
+      "cause": "the patterns know only the straight apostrophe",
+      "fix": "curly apostrophes are read as straight ones before any rule",
+      "test": "tests/test_case_home.py test_curly_apostrophes_from_a_phone_keyboard_read_as_plain_ones"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A question typed without its question mark built",
+      "scenario": "\"Is that right\" is all approval words, so it built",
+      "cause": "only \"?\" marked a question",
+      "fix": "a message starting with is/does/should/can/what/how and the like is a question: the agent reads it",
+      "test": "tests/test_case_home.py test_a_trailing_but_or_a_question_without_its_mark_never_builds"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "\"at all\" and \"at once\" were read as a moment",
+      "scenario": "\"Not at all\" was said back as \"So the prediction is made at all\"",
+      "cause": "\"at\" counted as a time word in any phrase",
+      "fix": "at once, at all and at the moment (not followed by of) are not time words; at once and right away are approval",
+      "test": "tests/test_case_home.py test_at_once_or_at_all_is_not_a_moment"
     }
   ],
   "measurements": [],
@@ -79,7 +119,8 @@
     "A rule that reads a person's words needs probing with natural answers, not only the ones its tests were written from",
     "Length is a weak signal for meaning: a long yes is still a yes",
     "When a misread is costly (here the prediction contract), whitelist what may act and let everything else ask again; a blacklist of corrections fails open",
-    "Fixing a loop by accepting more is a trade: check what the wider acceptance now lets through before pushing"
+    "Fixing a loop by accepting more is a trade: check what the wider acceptance now lets through before pushing",
+    "Review again after a rework: the second pass found a trailing \"but\" that still built, and phone keyboards' apostrophes that brought the loop back"
   ],
   "risks": [
     "The moment question still takes any non-question of three or more words as the moment; the said-back step keeps it safe, but it reads oddly",

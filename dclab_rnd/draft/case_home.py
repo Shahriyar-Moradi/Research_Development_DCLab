@@ -123,12 +123,15 @@ class CaseHome(HomeAgent):
     #   sentences looped.)
     HOLD_BUILD = re.compile(r"\bhold (?:off|on)\b|\b(?:don'?t|do not|not yet|wait|later|never|cancel)\b[^.!?]{0,40}\b(?:build|start|go ahead)|"
                             r"\b(?:build|start)\w*\b[^.!?]{0,20}\b(?:later|tomorrow|next week|yet)\b", re.IGNORECASE)
-    APPROVAL = re.compile(r"\b(?:no problem|no other changes?|no changes?|nothing else(?: to add)?|go ahead|build it|do it|let'?s go|"
+    # "but" is approval only before a go-ahead: a trailing "Yes, but..." is a correction still being typed (the re-review)
+    APPROVAL = re.compile(r"\b(?:but (?:go ahead|build it|do it|please)|at once|right away|right now|no problem|no other changes?|no changes?|"
+                          r"nothing else(?: to add)?|go ahead|build it|do it|let'?s go|"
                           r"yes|yeah|yep|yup|sure|ok|okay|correct|right|exactly|perfect|great|good|fine|true|that'?s|that|this|it'?s|it|is|"
-                          r"sounds|looks|seems|all|to|me|please|now|then|so|and|but|actually|build|start|proceed|with)\b", re.IGNORECASE)
+                          r"sounds|looks|seems|all|to|me|please|now|then|so|and|actually|build|start|proceed|with)\b", re.IGNORECASE)
+    ASKS = re.compile(r"^\W*(?:is|are|was|does|do|did|should|shall|can|could|would|will|what|why|how|which)\b", re.IGNORECASE)
     YES_WORD = re.compile(r"\b(?:no problem|yes|yeah|yep|yup|sure|ok|okay|correct|right|exactly|perfect|fine|true|go ahead|build|proceed|do it|let'?s go)\b",
                           re.IGNORECASE)
-    TIME_WORDS = re.compile(r"(?<!look )(?<!looking )\bat\b|\b(?:when|after|before|once|upon|during|moment|time|day|days|week|weeks|month|months|hour|hours)\b",
+    TIME_WORDS = re.compile(r"(?<!look )(?<!looking )\bat\b(?! once\b| all\b| the moment\b(?! of))|\b(?:when|after|before|once|upon|during|moment|time|day|days|week|weeks|month|months|hour|hours)\b",
                             re.IGNORECASE)
     LEADING_ANSWER = re.compile(r"^\W*(?:(?:yes|yeah|yep|ok(?:ay)?|sure|no|nope|not(?: quite)?|wait|actually|sorry|rather|instead)\b\W*)*"
                                 r"(?:but\b\W*)?", re.IGNORECASE)
@@ -150,8 +153,8 @@ class CaseHome(HomeAgent):
         - the prediction moment: a sentence with no question in it is said back, and the build runs only on the person's
           yes to it (a moment is the prediction contract: never taken from words that only look like one)."""
         draft = self.store.get(draft_id)
-        need, said = draft.get("build_waiting"), text.strip()
-        if "?" in said:
+        need, said = draft.get("build_waiting"), text.strip().replace("’", "'").replace("‘", "'")  # phone keyboards' apostrophes
+        if "?" in said or self.ASKS.match(said):  # "Is that right" is a question without its mark: the agent reads it
             return False
         if need == "outcome column":
             columns = {str(c.get("name")).casefold(): str(c.get("name")) for c in (draft.get("analysis") or {}).get("columns") or [] if c.get("name")}
