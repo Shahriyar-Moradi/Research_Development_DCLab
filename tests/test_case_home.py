@@ -196,6 +196,40 @@ class CaseHomeTests(unittest.TestCase):
         self.assertIn("checkout", draft["moment_said"])
         self.assertNotIn("prediction_moment", draft.get("understanding") or {})
 
+    def test_a_long_yes_to_the_moment_builds_and_is_never_said_back_as_a_new_moment(self):
+        """The review of 37.11 in a cloud session: "Yes, that is correct, go ahead" was said back as the moment
+        ("So the prediction is made that is correct, go ahead"), and a person answering in full sentences looped."""
+        from dclab_rnd.agents import case_agent as A
+
+        for words in ("Yes, that is correct, go ahead", "Yes that's right, build it now please", "Yes, no other changes"):
+            d = self.store.create("predict which orders are returned")
+            self.store.update(d["id"], lambda x: x.update(build_waiting="confirm moment", moment_said="at checkout"))
+            home, calls = self._home_with_builds()
+            with mock.patch.object(A, "turn", side_effect=AssertionError("the agent must not read it")):
+                home.reply(d["id"], words)
+            draft = self.store.get(d["id"])
+            self.assertEqual(calls, ["build"], words)
+            self.assertEqual(draft["understanding"]["prediction_moment"], "at checkout", words)
+
+    def test_a_no_with_a_new_moment_is_said_back_and_a_hold_builds_nothing(self):
+        from dclab_rnd.agents import case_agent as A
+
+        d = self.store.create("predict which orders are returned")
+        self.store.update(d["id"], lambda x: x.update(build_waiting="confirm moment", moment_said="at signup"))
+        home, calls = self._home_with_builds()
+        with mock.patch.object(A, "turn", side_effect=AssertionError("the agent must not read it")):
+            home.reply(d["id"], "No, it is at checkout")
+        draft = self.store.get(d["id"])
+        self.assertEqual((calls, draft.get("build_waiting")), ([], "confirm moment"))
+        self.assertIn("checkout", draft["moment_said"])
+        with mock.patch.object(A, "turn", return_value={"text": "Of course, tell me when."}) as turn:
+            home.reply(d["id"], "Yes that's right, but hold off on the build for now")
+        self.assertTrue(turn.called)
+        draft = self.store.get(d["id"])
+        self.assertEqual(calls, [])
+        self.assertIsNone(draft.get("build_waiting"))
+        self.assertNotIn("prediction_moment", draft.get("understanding") or {})
+
     def test_groups_then_a_prediction_asks_for_the_outcome_again(self):
         from dclab_core import case as C
         from dclab_rnd.agents import case_agent as A

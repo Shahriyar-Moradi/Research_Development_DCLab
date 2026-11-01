@@ -1,0 +1,52 @@
+{
+  "package": "37.11b",
+  "title": "A long yes to the said-back prediction moment builds, instead of being said back as a new moment",
+  "date": "2026-11-01",
+  "request": "The owner, in a cloud session: review the repository after 37.11 (the lead agent as Home's default) and track the approved plan (build path, route, speed, final test, cost).",
+  "spec": "Step 0 of the plan says the build path must work end to end with no trade allowed. When Home says the prediction moment back, any yes builds; a correction (but, instead, rather, actually, a leading no) is said back again; a hold on the build builds nothing.",
+  "plan": [
+    "Read the 37.11 diff against the plan's step 0",
+    "Probe the confirm-moment step with natural answers outside the tests",
+    "Write failing tests for the answers that loop",
+    "Narrow the correction words, add the hold, keep the said-back correction",
+    "Run the affected tests, record, rebuild the dev SFT set"
+  ],
+  "decisions": [
+    {
+      "decision": "A yes of any length builds; the length rule (more than four words means a correction) is removed",
+      "why": "full-sentence yeses are common (\"Yes, that is correct, go ahead\") and were said back as the moment, so the person looped"
+    },
+    {
+      "decision": "Only but, instead, rather, actually or a leading no/nope/not mark a correction",
+      "why": "a no or not later in a yes (\"Yes, no other changes\") is not a new moment"
+    },
+    {
+      "decision": "A hold on the build (\"hold off\", \"not yet ... build\") drops the question and the agent reads the words",
+      "why": "with \"but\" now a correction, \"yes, but hold off\" would otherwise be said back as a moment"
+    }
+  ],
+  "change": "dclab_rnd/draft/case_home.py (CORRECTION narrowed, HOLD_BUILD and LEADING_ANSWER added, the confirm-moment branch); tests/test_case_home.py (two tests)",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "A long yes to the said-back moment was taken as a new moment",
+      "scenario": "Home: \"So the prediction is made at checkout ... Shall I build with that?\" Person: \"Yes, that is correct, go ahead\". Home: \"So the prediction is made that is correct, go ahead, using only what is known then. Shall I build with that?\" and again on every full-sentence yes",
+      "cause": "the confirm step treated any yes longer than four words as a correction, stripped the leading yes and said the rest back as the moment; a bare \"no\" or \"not\" anywhere also counted as a correction",
+      "fix": "a correction only on but/instead/rather/actually or a leading no; a hold builds nothing; any other yes builds",
+      "test": "tests/test_case_home.py test_a_long_yes_to_the_moment_builds_and_is_never_said_back_as_a_new_moment, test_a_no_with_a_new_moment_is_said_back_and_a_hold_builds_nothing"
+    }
+  ],
+  "measurements": [],
+  "outcome": "The build path's last step no longer loops on a full-sentence yes. Not measured live: the 37.11 live check never reached the build's moment question.",
+  "lessons": [
+    "A rule that reads a person's words needs probing with natural answers, not only the ones its tests were written from",
+    "Length is a weak signal for meaning: a long yes is still a yes"
+  ],
+  "risks": [
+    "The moment question still takes any non-question of three or more words as the moment (\"Let me check with my team\" is said back); the said-back step keeps it safe, but it reads oddly",
+    "A yes in words the yes patterns do not know (\"That sounds right\") drops the moment and the agent reads it; the build may then ask for the moment again"
+  ],
+  "commits": []
+}

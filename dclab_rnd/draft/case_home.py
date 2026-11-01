@@ -114,7 +114,13 @@ class CaseHome(HomeAgent):
         self.store.update(draft_id, lambda d: d.update(build_waiting=rule) if rule in self.BUILD_NEEDS else d.pop("build_waiting", None))
         self.built(draft_id, done)
 
-    CORRECTION = re.compile(r"\b(?:but|not|instead|rather|actually|no)\b", re.IGNORECASE)
+    # A new moment in the answer: "but", "instead", "rather", "actually", or a leading "no". A bare "not" or "no" later in a yes
+    # ("Yes, no other changes") is no correction, and a yes of any length builds (the cloud review of 37.11: "Yes, that is
+    # correct, go ahead" was said back as the moment, so a person answering in full sentences looped).
+    CORRECTION = re.compile(r"\b(?:but|instead|rather|actually)\b|^\W*(?:no|nope|not)\b", re.IGNORECASE)
+    HOLD_BUILD = re.compile(r"\bhold off\b|\b(?:don'?t|do not|not yet|wait|later|never|cancel)\b[^.!?]{0,40}\b(?:build|start|go ahead)",
+                            re.IGNORECASE)  # "yes, but hold off on the build": nothing is built and the agent reads it
+    LEADING_ANSWER = re.compile(r"^\W*(?:(?:yes|yeah|yep|ok(?:ay)?|sure|no|nope|not)\b\W*)?(?:but\b\W*)?", re.IGNORECASE)
     OUTCOME_SAID = re.compile(r"^\s*(?:(?:the\s+)?(?:outcome|target|label|answer)(?:\s+column)?\s*(?:is|=|:)\s*)?[`'\"]?([\w.\- ]+?)[`'\"]?\s*[.!]?\s*$",
                               re.IGNORECASE)
 
@@ -147,10 +153,13 @@ class CaseHome(HomeAgent):
                                "Say yes, or tell me the moment again.", kind="text", by="case_agent")
             return True
         if need == "confirm moment":
-            if self.CORRECTION.search(said) or (A.says_yes(said) and len(said.split()) > 4):
+            if self.HOLD_BUILD.search(said):
+                self.store.update(draft_id, lambda d: (d.pop("build_waiting", None), d.pop("moment_said", None)))
+                return False
+            if self.CORRECTION.search(said):
                 # "Yes, but it is at checkout": a correction is said back again, never a yes to the old moment (the review)
                 self.store.update(draft_id, lambda d: d.update(build_waiting="prediction moment"))
-                return self._build_answer(draft_id, re.sub(r"^\W*(?:yes|yeah|yep|ok(?:ay)?|sure)\W+(?:but\W+)?", "", said, flags=re.IGNORECASE))
+                return self._build_answer(draft_id, self.LEADING_ANSWER.sub("", said, count=1))
             if not A.says_yes(said):
                 self.store.update(draft_id, lambda d: (d.pop("build_waiting", None), d.pop("moment_said", None)))
                 return False
