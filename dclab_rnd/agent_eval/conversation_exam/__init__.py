@@ -519,6 +519,21 @@ def next_id() -> str:
 ESTIMATE_EUR = {"home": 0.08, "plain": 0.05, "case": 0.10, "safe": 0.06, "person": 0.005, "judge": 0.025}
 
 
+def seal_after_run(vault: Path, run: str, split: str, arms: list[str], spent: float, cap: Optional[float], incomplete: Optional[str]) -> Optional[dict[str, Any]]:
+    """Seal and list a sealed run's vault (``vault.seal``). A failure never takes the run's result with it: it says how to seal afterwards."""
+    from . import vault as _vault
+
+    try:
+        manifest = _vault.seal(vault, run, split, {"commit": _vault.head(), "arms": list(arms), "spent_eur": round(spent, 4), "cap_eur": cap,
+                                                  "incomplete": incomplete, "thinking_effort": os.environ.get("DCLAB_THINKING_EFFORT") or "the workspace's",
+                                                  "pinned_sha256": SEALED[split].read_text(encoding="utf-8").strip()})
+        print(f"vault sealed: {manifest['counts']}", file=sys.stderr)
+        return manifest
+    except Exception as error:  # noqa: BLE001
+        print(f"the vault could not be sealed now ({type(error).__name__}: {error}); run python -m dclab_rnd.agent_eval.conversation_exam.vault all", file=sys.stderr)
+        return None
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--split", default="dev", help="dev, dev_route (practice), sealed_v1, sealed_v2 or sealed_v3 (a sealed set: run once, with the arms its gate compares, kept in the exam vault)")
@@ -624,6 +639,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     labels_dir.mkdir(parents=True, exist_ok=True)
     todo = _labels.todo(result["conversations"], {p["id"]: p for p in people})
     (labels_dir / f"{run}_owner_todo.json").write_text(_labels.dumps(todo), encoding="utf-8")
+    if sealed:  # the vault is sealed and listed (counts and hashes; a manifest beside what the archive keeps whole): even a run that ended early
+        seal_after_run(vault, run, args.split, arms, budget.spent_eur(), args.cap_eur, result["incomplete"])
     if result["incomplete"]:
         print(f"INCOMPLETE ({result['incomplete']}): {len(result['scores'][arms[0]])} of {len(people)} people scored", file=sys.stderr)
     print(json.dumps(result["summary"], indent=1))
