@@ -114,13 +114,30 @@ class CaseHome(HomeAgent):
         self.store.update(draft_id, lambda d: d.update(build_waiting=rule) if rule in self.BUILD_NEEDS else d.pop("build_waiting", None))
         self.built(draft_id, done)
 
-    # A new moment in the answer: "but", "instead", "rather", "actually", or a leading "no". A bare "not" or "no" later in a yes
-    # ("Yes, no other changes") is no correction, and a yes of any length builds (the cloud review of 37.11: "Yes, that is
-    # correct, go ahead" was said back as the moment, so a person answering in full sentences looped).
-    CORRECTION = re.compile(r"\b(?:but|instead|rather|actually)\b|^\W*(?:no|nope|not)\b", re.IGNORECASE)
-    HOLD_BUILD = re.compile(r"\bhold off\b|\b(?:don'?t|do not|not yet|wait|later|never|cancel)\b[^.!?]{0,40}\b(?:build|start|go ahead)",
-                            re.IGNORECASE)  # "yes, but hold off on the build": nothing is built and the agent reads it
-    LEADING_ANSWER = re.compile(r"^\W*(?:(?:yes|yeah|yep|ok(?:ay)?|sure|no|nope|not)\b\W*)?(?:but\b\W*)?", re.IGNORECASE)
+    # The answer to the said-back moment (37.11b; the moment is the prediction contract, so it is built only on a plain yes):
+    # - a hold on the build builds nothing and the agent reads the words;
+    # - every word plain approval ("Yes, that is correct, go ahead", "No problem", "Yes, no other changes"): it builds;
+    # - anything else is never built: words naming a time ("Yes, it is at checkout, not at signup") are said back as the new
+    #   moment, and any other words get the question again. (The first fix built any yes, so a yes naming another moment
+    #   built the old one; before it, any yes over four words was said back as a moment and a person answering in
+    #   sentences looped.)
+    HOLD_BUILD = re.compile(r"\bhold (?:off|on)\b|\b(?:don'?t|do not|not yet|wait|later|never|cancel)\b[^.!?]{0,40}\b(?:build|start|go ahead)|"
+                            r"\b(?:build|start)\w*\b[^.!?]{0,20}\b(?:later|tomorrow|next week|yet)\b", re.IGNORECASE)
+    APPROVAL = re.compile(r"\b(?:no problem|no other changes?|no changes?|nothing else(?: to add)?|go ahead|build it|do it|let'?s go|"
+                          r"yes|yeah|yep|yup|sure|ok|okay|correct|right|exactly|perfect|great|good|fine|true|that'?s|that|this|it'?s|it|is|"
+                          r"sounds|looks|seems|all|to|me|please|now|then|so|and|but|actually|build|start|proceed|with)\b", re.IGNORECASE)
+    YES_WORD = re.compile(r"\b(?:no problem|yes|yeah|yep|yup|sure|ok|okay|correct|right|exactly|perfect|fine|true|go ahead|build|proceed|do it|let'?s go)\b",
+                          re.IGNORECASE)
+    TIME_WORDS = re.compile(r"(?<!look )(?<!looking )\bat\b|\b(?:when|after|before|once|upon|during|moment|time|day|days|week|weeks|month|months|hour|hours)\b",
+                            re.IGNORECASE)
+    LEADING_ANSWER = re.compile(r"^\W*(?:(?:yes|yeah|yep|ok(?:ay)?|sure|no|nope|not(?: quite)?|wait|actually|sorry|rather|instead)\b\W*)*"
+                                r"(?:but\b\W*)?", re.IGNORECASE)
+
+    def _say_moment_back(self, draft_id: str, moment: str) -> None:
+        moment = moment.strip()[:400]
+        self.store.update(draft_id, lambda d: d.update(build_waiting="confirm moment", moment_said=moment))
+        self.say(draft_id, f"So the prediction is made {moment.rstrip('.')}, using only what is known then. Shall I build with that? "
+                           "Say yes, or tell me the moment again.", kind="text", by="case_agent")
     OUTCOME_SAID = re.compile(r"^\s*(?:(?:the\s+)?(?:outcome|target|label|answer)(?:\s+column)?\s*(?:is|=|:)\s*)?[`'\"]?([\w.\- ]+?)[`'\"]?\s*[.!]?\s*$",
                               re.IGNORECASE)
 
@@ -148,21 +165,27 @@ class CaseHome(HomeAgent):
         if need == "prediction moment":
             if len(said.split()) < 3:
                 return False
-            self.store.update(draft_id, lambda d: d.update(build_waiting="confirm moment", moment_said=said[:400]))
-            self.say(draft_id, f"So the prediction is made {said[:400].rstrip('.')}, using only what is known then. Shall I build with that? "
-                               "Say yes, or tell me the moment again.", kind="text", by="case_agent")
+            self._say_moment_back(draft_id, said)
             return True
         if need == "confirm moment":
             if self.HOLD_BUILD.search(said):
                 self.store.update(draft_id, lambda d: (d.pop("build_waiting", None), d.pop("moment_said", None)))
                 return False
-            if self.CORRECTION.search(said):
-                # "Yes, but it is at checkout": a correction is said back again, never a yes to the old moment (the review)
-                self.store.update(draft_id, lambda d: d.update(build_waiting="prediction moment"))
-                return self._build_answer(draft_id, self.LEADING_ANSWER.sub("", said, count=1))
-            if not A.says_yes(said):
-                self.store.update(draft_id, lambda d: (d.pop("build_waiting", None), d.pop("moment_said", None)))
-                return False
+            left = re.sub(r"[\W_]+", " ", self.APPROVAL.sub(" ", said)).strip()
+            if left or not self.YES_WORD.search(said):
+                # not a plain yes: never built. A time named is the new moment, said back ("Yes, but it is at checkout");
+                # other words get the question again, with the moment kept
+                moment = self.LEADING_ANSWER.sub("", said, count=1)
+                if self.TIME_WORDS.search(moment) and len(moment.split()) >= 2:
+                    self._say_moment_back(draft_id, moment)
+                elif not self.YES_WORD.search(said):  # no yes and no moment ("let us look at groups instead"): the agent reads it
+                    self.store.update(draft_id, lambda d: (d.pop("build_waiting", None), d.pop("moment_said", None)))
+                    return False
+                else:
+                    self.say(draft_id, f"I am not sure that is a yes. Shall I build with the prediction made "
+                                       f"{str(draft.get('moment_said') or '').rstrip('.')}? Say yes, or tell me the moment again.",
+                             kind="text", by="case_agent")
+                return True
             moment = str(draft.get("moment_said") or "")
             self.store.update(draft_id, lambda d: (d.setdefault("understanding", {}).update(prediction_moment=moment),
                                                    d.pop("build_waiting", None), d.pop("moment_said", None)))

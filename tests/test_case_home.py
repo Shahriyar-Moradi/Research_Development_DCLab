@@ -1,6 +1,7 @@
 """Package 37.9 (docs/guides/PHASE13_CLAUDE_FIRST_PLAN.md): Home, conversation first. With DCLAB_CASE_AGENT on, the lead agent
 leads Home's draft conversation; with it off, or with no model, the rules-first Home does. Scripted models only."""
 import json
+import re
 import os
 import shutil
 import sys
@@ -229,6 +230,51 @@ class CaseHomeTests(unittest.TestCase):
         self.assertEqual(calls, [])
         self.assertIsNone(draft.get("build_waiting"))
         self.assertNotIn("prediction_moment", draft.get("understanding") or {})
+
+    def _confirm(self, words, moment="at signup", agent_text="Let us look at that."):
+        from dclab_rnd.agents import case_agent as A
+
+        d = self.store.create("predict which orders are returned")
+        self.store.update(d["id"], lambda x: x.update(build_waiting="confirm moment", moment_said=moment))
+        home, calls = self._home_with_builds()
+        with mock.patch.object(A, "turn", return_value={"text": agent_text}) as turn:
+            home.reply(d["id"], words)
+        return self.store.get(d["id"]), calls, turn.called
+
+    def test_a_yes_naming_another_moment_never_builds_the_old_one(self):
+        """The reviewer of 37.11b: the first fix built any yes, so "Yes, it is at checkout, not at signup" built at signup."""
+        for words in ("Yes, it is at checkout, not at signup", "Yes - wait, not at signup, at checkout", "Yes, wait no, at checkout",
+                      "Sure, it should be at checkout after payment", "Okay, I think it is when the order ships",
+                      "Not quite, it's at checkout", "Yes, at checkout"):
+            draft, calls, _ = self._confirm(words)
+            self.assertEqual(calls, [], words)
+            self.assertNotIn("prediction_moment", draft.get("understanding") or {}, words)
+            self.assertEqual(draft.get("build_waiting"), "confirm moment", words)
+            self.assertIn("checkout" if "checkout" in words else "ships", draft["moment_said"], words)
+            self.assertFalse(re.match(r"^\W*(?:quite|wait|no|not)\b", draft["moment_said"], re.I), draft["moment_said"])
+
+    def test_a_yes_with_words_that_are_not_a_moment_is_asked_again_and_never_said_back(self):
+        """The reviewer of 37.11b: "Yes, the moment is checkout, not signup" and "Actually yes, but I'll explain" must not
+        become the moment; they are asked again with the old moment kept, and nothing is built."""
+        for words in ("Yes, the plan is checkout, not signup", "Yes, but my colleague disagrees"):
+            draft, calls, agent = self._confirm(words)
+            self.assertEqual((calls, agent), ([], False), words)
+            self.assertEqual((draft.get("build_waiting"), draft.get("moment_said")), ("confirm moment", "at signup"), words)
+            self.assertIn("not sure that is a yes", draft["messages"][-1]["text"], words)
+
+    def test_plain_approval_in_many_words_builds(self):
+        for words in ("No problem, go ahead", "Actually yes, build it", "Yes, nothing else to add but go ahead", "sure, no problem",
+                      "That sounds right"):
+            draft, calls, agent = self._confirm(words)
+            self.assertEqual((calls, agent), (["build"], False), words)
+            self.assertEqual(draft["understanding"]["prediction_moment"], "at signup", words)
+
+    def test_a_hold_on_the_build_or_other_words_go_to_the_agent_and_build_nothing(self):
+        for words in ("Yes that's right, but I'll build later", "Don't build it yet", "Let us look at groups instead"):
+            draft, calls, agent = self._confirm(words)
+            self.assertEqual((calls, agent), ([], True), words)
+            self.assertIsNone(draft.get("build_waiting"), words)
+            self.assertNotIn("prediction_moment", draft.get("understanding") or {}, words)
 
     def test_groups_then_a_prediction_asks_for_the_outcome_again(self):
         from dclab_core import case as C
