@@ -1,0 +1,91 @@
+{
+ "package": "37.11e",
+ "title": "A technical advice request no longer costs most of a run: the length of a message and the rewrites of a long reply are capped, the number check is unchanged",
+ "date": "2026-11-01",
+ "request": "The owner chose to cap rewrites and length (not to weaken the number check) after the route test showed one data-science advice conversation costing seven times a normal one and ending without the code the person asked for.",
+ "spec": "A message to the person holds a bounded number of words; a long reply that loses sentences to the number check is not written again at full length; the same sentences are withheld as before.",
+ "plan": [
+  "Read the rewrite loop and where the output limit comes from",
+  "Cap the shown length at a sentence, or a line for a script, and cap the rewrites of a long reply to one short words-only try",
+  "Test the cap and that the check still withholds the unsourced numbers",
+  "Replay the conversation that cost most, review, gates, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "The number check is untouched; only its cost is capped",
+   "why": "it is the win of no invented numbers against many for Claude alone, and the owner's balance rule allows no trade on it"
+  },
+  {
+   "decision": "A message is cut at a sentence, a script at a line, with a plain note, once it passes the cap; what is cut for length is never sent back for a rewrite",
+   "why": "the cut happens before the check, so no rewrite is spent on text that would not be shown"
+  },
+  {
+   "decision": "A long reply that keeps most of its answer after the check is not written again; one that keeps little gets one short words-only rewrite",
+   "why": "the old rewrites were as long as the reply and ran twice; one short try reaches the person with words at a fraction of the cost"
+  },
+  {
+   "decision": "Thinking effort is not lowered for the rewrite",
+   "why": "the owner's standing rule keeps thinking effort high in the product; the saving comes from fewer and shorter calls"
+  }
+ ],
+ "change": "dclab_rnd/agents/case_agent.py (SHOWN_WORDS, REWRITE_WORDS, shortened, word_count, CUT_NOTE, WITHHELD_NOTE, REWRITE_SHORT, and the turn's check and rewrite block restructured around two local helpers); tests/test_case_agent.py (LongAnswerCostTests)",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The first length cap could announce a script and show none of it, or report a cut that was not made",
+   "scenario": "a reply of a first sentence followed by a long fenced script with few sentence ends: the cap kept only the first sentence and added the note; the script alone was returned whole with the note",
+   "cause": "the cut worked on sentence ends only and always kept the first piece",
+   "fix": "a long block with line breaks is cut at a line, an open code fence is closed, and a cut is reported only when the text really got shorter",
+   "test": "tests/test_case_agent.py test_a_script_without_sentence_ends_is_cut_at_a_line_and_its_fence_closed, test_a_block_that_cannot_be_made_shorter_is_not_marked_cut"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A long reply with nothing useful left was never written again and ended in a dead-end line",
+   "scenario": "a script with a number on every line lost every sentence and the person got only a request to say more; a long answer whose only substance carried a setting left filler and a note",
+   "cause": "the no-rewrite rule did not look at what survived, where the short path checks for a statement and for how much was kept",
+   "fix": "the rule applies only when a statement survives and at least two fifths of the reply does; otherwise one short words-only rewrite, never the long or the strict second one",
+   "test": "tests/test_case_agent.py test_a_long_reply_with_nothing_left_gets_one_short_words_only_rewrite_not_the_long_ones, test_a_short_rewrite_that_is_cut_again_ends_in_code_s_line_after_one_call_only, test_a_long_reply_whose_survivors_are_filler_is_rewritten_once_short"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The cap was bypassed after a rewrite, counted per message, and a note could be echoed back",
+   "scenario": "a short reply that lost a sentence and whose rewrite came back very long went out uncapped; several messages in one turn were each capped alone; the agent could repeat a note from its history and show it twice",
+   "cause": "the rewrite paths did not call the cut, the cut had no turn-wide budget, and notes were kept in the history the agent reads",
+   "fix": "the cut runs on rewrites too, with the words left in the turn as its budget, and a note the agent echoes is taken out before the check (the note stays in the history so the agent knows code was withheld)",
+   "test": "tests/test_case_agent.py test_the_cap_holds_after_a_rewrite_and_the_note_follows_the_text_shown, test_a_note_the_agent_echoes_from_its_history_is_not_shown_twice"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "replay of the conversation that cost most (CEX-026 r-13, the SMOTE script request), lead agent only, with the cap on (CEX-028)",
+   "gate": "the same simulated person's conversation costs clearly less than before and ends with an answer, within a cap of EUR 0.45",
+   "fixed_before_run": false,
+   "result": "EUR 0.20 for three person turns against EUR 0.73 and no answer before; eight model calls against fourteen and about 15000 output tokens against about 53000; the route reached was advice; the judge did not run because the run's remaining cap was below one Opus request, so understanding is not scored. The simulated person varies from run to run, so this is one comparison, not a proof",
+   "verdict": "not scored",
+   "cost_eur": 0.2,
+   "next": "read the full 10-person route result once the two advice people can be played again at this cost; the next live run is for those people, not for more proof of the cap",
+   "limits": [
+    "one conversation and one simulated person",
+    "the gate was written after seeing the first run, not before",
+    "the judge did not run"
+   ]
+ }
+ ],
+ "outcome": "The advice conversation that cost most now finishes in three turns for a fraction of the cost, and the check still withholds the same numbers. The shown cap and the one-short-rewrite rule are in place; whether they cost the wins (understanding, option fit) is read on the two advice people when they are played again.",
+ "lessons": [
+  "A cost fix that sits next to a safety rule changes only the cost: keep the rule's tests and add ones that prove the numbers stay out",
+  "Measure how long a reply was as written, not what the check left of it, before deciding it is long",
+  "A cut that cannot make the text shorter is not a cut: say nothing"
+ ],
+ "risks": [
+  "A long technical answer is now shorter than a data scientist may want; the note tells the person to ask for any part",
+  "The cap and the short rewrite are measured on one replay; their effect on understanding is not yet scored"
+ ],
+ "commits": []
+}

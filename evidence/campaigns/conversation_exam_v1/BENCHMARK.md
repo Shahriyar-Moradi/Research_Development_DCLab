@@ -63,10 +63,10 @@ thinking on (adaptive) with display 'summarized' for every purpose; the summary 
 
 | where | purpose | calls | kept whole | with thinking |
 |---|---|---|---|---|
-| workspace log (every use of the purpose) | case_agent | 2804 | 1611 | 1505 |
+| workspace log (every use of the purpose) | case_agent | 2811 | 1618 | 1510 |
 | workspace log (every use of the purpose) | case_specialist | 1 | 0 | 0 |
-| workspace log (every use of the purpose) | exam_judge | 512 | 349 | 333 |
-| workspace log (every use of the purpose) | exam_person | 1273 | 823 | 772 |
+| workspace log (every use of the purpose) | exam_judge | 513 | 350 | 333 |
+| workspace log (every use of the purpose) | exam_person | 1276 | 826 | 775 |
 | workspace log (every use of the purpose) | exam_plain | 984 | 577 | 335 |
 | workspace log (every use of the purpose) | home_agent | 3574 | 2166 | 841 |
 | workspace log (every use of the purpose) | home_intent | 619 | 395 | 338 |
