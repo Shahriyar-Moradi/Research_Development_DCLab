@@ -61,6 +61,14 @@ class BenchmarkTests(unittest.TestCase):
         self.assertIn("incomplete", rows["case"]["verdict"])
         self.assertIn("incomplete", rows["plain"]["verdict"])
 
+    def test_a_run_stopped_by_its_cap_or_an_empty_account_is_marked_incomplete(self):
+        arm = {"people": 1, "judged": 1, "failed": 0, "understanding": 1.0}
+        (self.results / "CEX-026_dev_route.json").write_text(json.dumps({"id": "CEX-026", "split": "dev_route", "incomplete": "cap reached",
+                                                                         "summary": {"case": arm}}))
+        row = next(r for r in benchmark.runs(self.results) if r["run"] == "CEX-026")
+        self.assertIn("incomplete", row["verdict"])
+        self.assertIn("cap reached", row["verdict"])
+
     def test_every_arm_has_a_row_and_the_owners_verdict_replaces_pending(self):
         rows = {(r["run"], r["arm"]): r for r in self.doc["runs"]}
         self.assertEqual(set(rows), {("CEX-013", "case"), ("CEX-013", "plain")})

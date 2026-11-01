@@ -1,0 +1,152 @@
+[
+ {
+  "ref": "bd81e8de66",
+  "person": {
+   "truth": {
+    "situation": "I work in finance at an electronics retailer in Wrocław, Poland. The external auditors are checking refunds for the third quarter.",
+    "goal": "Every order with status refunded, an amount above 500 złoty, and an order date between 1 July and 30 September, with order_id, order_date, amount, channel and customer_id.",
+    "decision": "None; the auditors will pick a sample from the list themselves.",
+    "user": "The audit team, who want a file they can filter.",
+    "data": "The order export: order_id, order_date, region, channel, product_category, amount, status, customer_id.",
+    "knows": "'Big' means above 500 złoty, that's the auditors' threshold. I'm not sure whether partial refunds have their own status.",
+    "constraints": "They want it this week, every matching row, nothing summarised."
+   },
+   "level": "analyst",
+   "style": "vague",
+   "must_understand": [
+    "'big' means amount above 500 złoty",
+    "Q3 means 1 July to 30 September",
+    "the auditors want every matching row with order and customer ids"
+   ],
+   "trap": "rows_request",
+   "trap_check": "Asks what 'big' means, then lists the matching refunded orders with their ids rather than a summary or a cleaned copy of the table."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "can u get me the big refunded orders from q3? the auditors are asking [shares sales.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'll start by looking at what columns the table has.\n\nI can pull this, but I need two answers first so the auditors get the right list.\n\n1. **What counts as \"big\"?** The table has 188 refunded orders in total. Their median amount is about $207, and the largest is $943.68. Some options:\n   - Orders over a fixed amount, such as $500 or $750.\n   - The top 10% of refunded orders by amount.\n   - A threshold the auditors gave you.\n\n2. **Which Q3?** Do you mean calendar Q3 (July to September), or does your company use a fiscal year? If the file covers more than one year, which year do you want?\n\nOnce you tell me, I'll set it up as a filtered list of the matching refunded orders. It will include order ID, date, amount and customer, so you can hand it over. I can only show totals and counts here, so the full list will come from that filtered table. I'll also give you the count and total refunded value, so you can check it against the auditors' figures.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "above 500 złoty, not dollars. Q3 is calendar, 1 July to 30 September. Not sure if the file has more than one year. Want order_id, order_date, amount, channel, customer_id. Not sure if partial refunds have their own status, so check that too.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've started building the list. First, a correction: I wrongly called the amounts dollars earlier. I'll treat them as złoty, as you said.\n\n**What I found**\n- **Partial refunds:** There's no separate status for them. `status` has only three values: `paid` (1,733 orders), `refunded` (188) and `cancelled` (99). A partial refund would therefore show as `paid` or `refunded`, and I can't tell which from this file. There's also no refund amount column, so for a refunded order `amount` may be the original order value and not the sum refunded. Tell the auditors that, or check it with whoever owns the data.\n- **Orders over 500 zł:** Across the whole file, 14 refunded orders are over 500 zł.\n- **Year:** I couldn't read the date range, because the table treats `order_date` as plain text. Searching Q3 of 2024 and of 2025 each returned fewer than 5 orders. The filter will use July 1 to September 30 and will include `order_date`, so you can see which year each order falls in. If the file spans several years, I'll need you to name the year.\n\n**The list**\n- **Filter:** `status` is refunded, `amount` is over 500, and the date is from July 1 to September 30.\n- **Columns:** order_id, order_date, amount, channel and customer_id.\n- **Confirmation:** The filter removes almost every row, so I'll ask you to confirm it before it runs.\n\nDo you want only refunded orders, or should I also list `paid` orders over 500 zł from Q3 so you can check them for partial refunds? Which year do you need, if you know it?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "just the refunded ones, the auditors asked for refunds. not sure about the year, the file should show it. they want every row, nothing summarised. i dont know about the partial refunds thing, ill check with the data people",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I can't tell you the year from here, and I can't give you an exact row count yet. Two tools stopped me:\n- DCLab hides any group of fewer than 5 rows. Q3 of 2022, 2023, 2024, 2025 and 2026 each came back as \"fewer than 5\", so I can't tell which year holds the orders.\n- The table treats `order_date` as text, so I can't read its earliest and latest dates.\n\nOnly 14 refunded orders in the whole file are over 500 zł, so the Q3 list will be short.\n\n**The list I'll build**\n- **Rows:** Every refunded order over 500 zł with an order date from July 1 to September 30. Each is a separate row, with nothing summarised or grouped.\n- **Columns:** order_id, order_date, amount, channel and customer_id.\n- **Years:** I won't restrict the year. If the file covers more than one year, you'd get Q3 from each, and the full `order_date` column will show which year each row is from. If the auditors want one year, filter on that column or tell me the year and I'll add it.\n- **Partial refunds:** Left out, as you said. You'll check that with the data people.\n\nThis filter removes about 99% of the file, so it needs your yes before it runs. Shall I go ahead?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "yes go ahead",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I can't run the filter myself, so I can't tell you it has run. The recipe is set up, but my tools only let me preview a step, and I can't apply it or see its output. I don't have a result file or a row count to give you.\n\n**What to enter in the recipe**\n- **Keep rows where:**\n  - `status` is `refunded`\n  - `amount` is over 500\n  - `order_date` is from July 1 to September 30\n- **Keep columns:** order_id, order_date, amount, channel, customer_id\n- **Don't:** group, total or dedupe the rows. The auditors want every row.\n- **Confirm:** The recipe will warn that it removes about 99% of rows. That's expected, so confirm it.\n\n**Checks before you send it to the auditors**\n- **Row count:** It should be 14 or fewer, because 14 is the number of refunded orders over 500 zł across all dates. A count of 0 probably means the date filter didn't read the text dates correctly. A count of exactly 14 means all of them fall in Q3.\n- **Years:** Look at the `order_date` years. If you see more than one, ask the auditors which one they want.\n- **Currency:** The file has no currency column. I'm treating `amount` as złoty because you said so, so confirm that with the data people.\n- **Partial refunds:** Raise this with the data people as well. The file has no refund amount, so `amount` may be the original order value and not what was refunded.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "0756fecacf",
+  "person": {
+   "truth": {
+    "situation": "I work in finance at an electronics retailer in Wrocław, Poland. The external auditors are checking refunds for the third quarter.",
+    "goal": "Every order with status refunded, an amount above 500 złoty, and an order date between 1 July and 30 September, with order_id, order_date, amount, channel and customer_id.",
+    "decision": "None; the auditors will pick a sample from the list themselves.",
+    "user": "The audit team, who want a file they can filter.",
+    "data": "The order export: order_id, order_date, region, channel, product_category, amount, status, customer_id.",
+    "knows": "'Big' means above 500 złoty, that's the auditors' threshold. I'm not sure whether partial refunds have their own status.",
+    "constraints": "They want it this week, every matching row, nothing summarised."
+   },
+   "level": "analyst",
+   "style": "vague",
+   "must_understand": [
+    "'big' means amount above 500 złoty",
+    "Q3 means 1 July to 30 September",
+    "the auditors want every matching row with order and customer ids"
+   ],
+   "trap": "rows_request",
+   "trap_check": "Asks what 'big' means, then lists the matching refunded orders with their ids rather than a summary or a cleaned copy of the table."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "can u get me the big refunded orders from q3? the auditors are asking [shares sales.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Yes, I can pull that. Your table has refunded orders marked in the status column, and I can filter them to Q3. Two things I'd rather not guess for auditors. What counts as \"big\": a specific amount cutoff, or just the largest ones by amount? And is Q3 July through September of the calendar year, or does your fiscal year differ?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "big means above 500 zloty, thats the auditors threshold. Q3 is july to september, calendar year. not sure if partial refunds have their own status tho, maybe check that? they want every matching row with order_id, order_date, amount, channel, customer_id. no summary",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I checked the status column. It has only three values: paid, cancelled and refunded. Partial refunds have no status of their own, so they would sit inside \"refunded\", and I can't tell them apart by amount. One more thing before I pull the list: which year's Q3 do the auditors mean? My first attempt at a year matched almost nothing, so I'd like to use the year your orders actually cover.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "not sure which year tbh. auditors just said q3. the file should have this year's orders, so whichever year has july-september in it is probably right. if there's more than one, can you tell me which ones and i'll check with them",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Understood: I'll use whichever year has July–September orders, and if there's more than one I'll name them for you to check with the auditors. I haven't seen the years yet, so I'll check that next. Meanwhile, what are the auditors doing with this list, for example checking refunds against approvals? That tells me whether anything else should be in the file.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "not sure tbh. they said they'll pick a sample from the list themselves. thats all i know. just need every matching row in a file they can filter",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'm starting on the list now. It will have every refunded order over 500 zloty with an order date from July to September. The columns are order_id, order_date, amount, channel and customer_id, with no summary, in a file the auditors can filter. - **Year:** I haven't confirmed it yet. If the file has Q3 orders from more than one year, I'll tell you which years so you can check with the auditors. - **Partial refunds:** They can't be told apart in this table, so any that are in \"refunded\" will be in the list. - **Date column:** It is stored as text. I'll convert it to dates first, which won't remove any rows. You'll get the file and those notes together once it has run.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]

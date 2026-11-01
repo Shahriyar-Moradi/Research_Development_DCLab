@@ -559,6 +559,22 @@ class RunTests(unittest.TestCase):
         self.assertEqual(X._run_stopped(RuntimeError("BudgetExceeded: this run has used its budget")), "cap reached")
         self.assertIsNone(X._run_stopped(RuntimeError("a model said something odd")))
 
+    def test_joining_runs_takes_the_first_judged_conversation_of_each_person_and_refuses_a_gap(self):
+        """CEX-025: five people ran, five never did; the later run's conversations complete the first run's."""
+        from dclab_rnd.agent_eval.conversation_exam import join
+
+        def conv(pid, arm, ok):
+            return {"id": pid, "arm": arm, "transcript": [{"who": "x"}] if ok else [], "judged": {"valid": ok}}
+
+        first = ("CEX-A", {"conversations": [conv("r-1", "case", True), conv("r-1", "plain", True), conv("r-2", "case", False), conv("r-2", "plain", False)]})
+        second = ("CEX-B", {"conversations": [conv("r-2", "case", True), conv("r-2", "plain", True), conv("r-1", "case", True)]})
+        chosen, source = join.pick([first, second], ["r-1", "r-2"], ["case", "plain"])
+        self.assertEqual([(c["id"], c["arm"]) for c in chosen], [("r-1", "case"), ("r-1", "plain"), ("r-2", "case"), ("r-2", "plain")])
+        self.assertEqual(source, {"case/r-1": "CEX-A", "plain/r-1": "CEX-A", "case/r-2": "CEX-B", "plain/r-2": "CEX-B"})  # once, from the first
+        with self.assertRaises(ValueError) as error:
+            join.pick([first], ["r-1", "r-2"], ["case", "plain"])
+        self.assertIn("case/r-2", str(error.exception))
+
     def test_a_scripted_run_plays_judges_and_keeps_every_conversation(self):
         keep = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, keep, True)
