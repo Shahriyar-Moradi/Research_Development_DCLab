@@ -5,7 +5,7 @@
     make test-db               # the database the tests use (dclab_test), created and migrated
     make login                 # sign-in on for make dev: DCLAB_AUTH=password in .env.dev (read by make dev only) and your owner account (once)
 
-No containers: the developer's own PostgreSQL (``brew services start postgresql@15`` on a Mac). The database is
+No containers: the developer's own PostgreSQL (``brew services start postgresql@16`` on a Mac; the old 15 cluster stays stopped). The database is
 ``DCLAB_DATABASE_URL`` (from the shell or ``.env``, as the server reads it), else ``postgresql+psycopg://$USER@/dclab_dev``.
 The database must be named ``dclab_<letters, digits, _>`` and live on this machine: a URL naming another database, or
 another host (unless ``--remote``), is refused before anything is created, migrated or dropped.
@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 WEB_SRC = ROOT / "dclab_rnd" / "agentic" / "web" / "src"
-START_HINT = ("Start one: brew services start postgresql@15 (macOS), or sudo systemctl start postgresql (Linux). "
+START_HINT = ("Start one: brew services start postgresql@16 (macOS; never 15 beside it: two servers on 5432 fight), or sudo systemctl start postgresql (Linux). "
               "Then run this again. Without a database, `make notebook` runs the app on files.")
 
 
