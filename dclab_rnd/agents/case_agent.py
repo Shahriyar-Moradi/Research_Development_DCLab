@@ -46,6 +46,38 @@ TURN_BUDGET = 3  # the person's turns after which, with the goal and the data kn
 ROUTE_MODEL = "claude-haiku-5-5"  # the cheap second reading of the route
 
 
+def route_now(state: "CaseState") -> Optional[str]:
+    """The second reading of the route for the person's words so far, read again only when they said something new."""
+    if state.route_client is None:
+        return None
+    heard = len(state.case.words)
+    if state.route_seen is None or state.route_seen[0] != heard:
+        state.route_seen = (heard, route_reading(state.route_client, state))
+    return state.route_seen[1]
+
+
+def route_doubt(state: "CaseState", move: str, tracks: set[str]) -> Optional[str]:
+    """The plan's step 1 (2026-11-01): before options are shown or work starts, the kind of help the person's own words name
+    (code) and the cheap second reading (route_check) are compared with what the agent chose; a kind of help missing from it
+    is told once a move, with the person's words quoted, and the agent decides again (AI first, the check second)."""
+    named = C.named_tracks(state.case.words)
+    missing_named = {} if set(named) & tracks else named
+    second = route_now(state)
+    points = {**missing_named, **({second: ""} if second and second not in tracks else {})}
+    key = f"{move}:" + ",".join(sorted(points))
+    if not points or key in state.route_told:
+        return None
+    state.route_told.append(key)
+    latest = state.case.words[-1] if state.case.words else ""
+    said = "; ".join(f"{t}" + (f' (their words: "{p}")' if p else " (a second reading of their words)") for t, p in points.items())
+    chosen = ", ".join(sorted(tracks))
+    if move == "propose":
+        return (f"the person's need may call for {said}, which none of your options offers ({chosen}). Their latest words: "
+                f"\"{latest[:300]}\". Read them again and include that kind of help among the options unless their words clearly rule it out.")
+    return (f"the person's need may call for {said}, not {chosen}. Their latest words: \"{latest[:300]}\". Read them again; start "
+            f"that kind of help, or propose it beside yours, unless their words clearly call for {chosen}.")
+
+
 def data_work(state: "CaseState") -> bool:
     """Something in the case asks for work on data: the person asks for a list, report, model or cleaning; or a table is shared
     and the person asks for help in general rather than a specific question about method (the review of 2026-11-01: a shared
@@ -162,7 +194,8 @@ class CaseState:
     queries: int = 0  # the table queries in this turn (at most QUERIES_A_TURN)
     budget_reached: bool = False  # 2026-11-01: three turns with the goal and the data known: propose or start, no more asking
     route_client: Any = None  # 2026-11-01: the cheap second reading of the route (purpose route_check); None: no check
-    route_checked: bool = False  # the second reading asks once a case
+    route_told: list[str] = field(default_factory=list)  # the plan's step 1: each route doubt (a move and what it pointed to) told once
+    route_seen: Optional[tuple[int, Optional[str]]] = None  # the second reading for the words heard so far: read again on new words only
     rewriting: bool = False  # the agent is rewriting dropped sentences: no move may run (the review: a question counted twice)
     trace: Any = None  # one tracer for the whole case, so its turns are one conversation in the record
     frame: Any = None  # the shared table itself (never sent to a model; the data tools read it)
@@ -370,6 +403,9 @@ def _propose(state: CaseState, options: list[dict[str, Any]]) -> dict[str, Any]:
     kept, refused = C.check_options(offered, state.case, columns=columns, computed=state.computed)
     if len(kept) < 2:
         return {"error": "fewer than two options passed the checks", "refused": refused}
+    doubt = None if state.case.chosen else route_doubt(state, "propose", {o.track for o in kept})
+    if doubt:
+        return {"error": doubt}
     state.case = C.apply(state.case, "options", kept, by="agent", why="proposed")
     state.shown = kept
     return {"shown": [o.title for o in kept], "refused": refused,
@@ -393,14 +429,12 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     if track in NO_DATA_WORK and not state.case.chosen and not r.ready and not state.budget_reached and data_work(state):
         return {"error": "the person's need points to data work (a shared table, or a list, report, model or cleaning): advice "
                          "answers a question with no work on data. Propose or start the work their need calls for."}
-    if not state.case.chosen and not r.ready and not state.budget_reached and track not in NO_DATA_WORK:
+    clear_go = r.may_propose and state.go_ahead and track in C.named_tracks(state.case.words)  # clear, named, and told to go ahead
+    if not state.case.chosen and not r.ready and not state.budget_reached and track not in NO_DATA_WORK and not clear_go:
         return {"error": "the person has not chosen and the case is not ready: " + "; ".join(r.reasons)}
-    if not state.case.chosen and state.route_client is not None and not state.route_checked:
-        state.route_checked = True
-        second = route_reading(state.route_client, state)
-        if second and second != track:
-            return {"error": f"a second reading of the person's own words points to {second}, not {track}. Read their words again; "
-                             f"start {second} unless their words clearly call for {track}."}
+    doubt = None if state.case.chosen else route_doubt(state, "start", {track})
+    if doubt:
+        return {"error": doubt}
     state.case = C.apply(state.case, "route", C.CaseRoute(track=track, tool=tool, by="agent"), by="agent", why="work started")
     return {"started": f"{track}/{tool}", "next": "now tell the person in a few sentences what happens next, then stop"}
 

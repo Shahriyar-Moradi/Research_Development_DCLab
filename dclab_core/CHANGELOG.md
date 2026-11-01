@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.152.0 (2026-11-01)
+
+- `case.named_tracks` (new) and `case.readiness`: the kind of help a person's own words plainly name ("which bookings are
+  going to get cancelled", "send me the ids", "drop the worst 3", "real or hype"), each with the phrase that names it; a
+  bare "prediction" or "forecast" is not a request. A person who said their goal and named the help they want may be
+  proposed to at once (`may_propose`, with the reason). No contract changed shape.
+
 ## 0.151.0 (2026-10-31)
 
 - `case`: `CaseFile` v2 (Phase 13, 37.6 and 37.7) adds `findings` (what a specialist found: a fact, a risk, a question or an

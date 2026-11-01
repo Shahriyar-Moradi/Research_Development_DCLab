@@ -1,0 +1,522 @@
+[
+  {
+    "id": "r-01",
+    "level": "business_owner",
+    "style": "impatient",
+    "opening": "pull me everyone who churned in the last 3 months, my retention team needs a call list by friday",
+    "upload": "customers",
+    "truth": {
+      "situation": "I run a mobile and home-internet provider in Lagos and Abuja. We lose a few percent of subscribers every month and my retention team of six sits idle half the time.",
+      "goal": "I want the team to call people before they cancel, so next month's list should be customers who are still with us but look like they are about to leave. Calling people who already left mostly wastes time; we tried that last year and won back almost nobody.",
+      "decision": "Which current customers the six agents call next month, and in what order, with roughly 400 calls of capacity.",
+      "user": "Me and my retention team lead, who hands out the call sheets every Monday.",
+      "data": "The customer table I uploaded: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d and churned_next_month, which says whether each customer left in the month after the snapshot.",
+      "knows": "I know people with many support tickets and short tenure leave more, but I don't know how to rank everyone. I said 'churned' because that is the word we use, not because I want past churners.",
+      "constraints": "The list has to be ready by Friday and fit about 400 calls. Agents cannot see spend details for privacy reasons, only name, plan and city."
+    },
+    "must_understand": [
+      "the calls are meant to prevent churn, so the list must be of customers still active",
+      "the need is a ranking of who is likely to leave next month, not a list of past churners",
+      "capacity is about 400 calls"
+    ],
+    "route": "prediction",
+    "tool": "ml_project",
+    "also_right": [],
+    "trap": "real_prediction",
+    "trap_check": "Offers a forward-looking churn score that ranks current customers for the call list, not a list of customers who already churned."
+  },
+  {
+    "id": "r-02",
+    "level": "analyst",
+    "style": "detailed",
+    "opening": "Could you pull last year's cancellations broken down by channel and lead time? It's for our summer planning; we keep getting caught out by late cancellations on Algarve stays.",
+    "upload": "bookings",
+    "truth": {
+      "situation": "I work for a holiday-rental agency in Faro, Portugal. Last summer about one booking in five cancelled, many inside two weeks of arrival, and the villas stayed empty.",
+      "goal": "For the bookings already on the books for July and August, I want to know which ones are likely to cancel, so we can ask those guests to reconfirm or pay a deposit early. The breakdown by channel was just my idea of how to start.",
+      "decision": "Which of the roughly 3,000 upcoming summer bookings get a reconfirmation email and a deposit request this month.",
+      "user": "The reservations team, three people who send the reconfirmation emails.",
+      "data": "The bookings table: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id. Past bookings have cancelled filled in; upcoming ones are not decided yet.",
+      "knows": "I know cancellations are higher on free-cancellation bookings and on one online travel agency, but I can't say which individual bookings to chase.",
+      "constraints": "We can only ask for deposits on bookings made through our own site or by phone; the agencies' bookings we can only email. Guests must not feel accused."
+    },
+    "must_understand": [
+      "the action is on upcoming bookings whose outcome is not known yet",
+      "the decision is per booking: who gets a reconfirmation or deposit request",
+      "the channel breakdown was only a proposed starting point"
+    ],
+    "route": "prediction",
+    "tool": "ml_project",
+    "also_right": [],
+    "trap": "real_prediction",
+    "trap_check": "Proposes scoring each upcoming booking for cancellation risk instead of stopping at a table of last year's cancellation rates by channel."
+  },
+  {
+    "id": "r-03",
+    "level": "business_owner",
+    "style": "vague",
+    "opening": "hi, i have a small skincare shop online and i feel like i'm not using my orders data. can you help me get more out of repeat customers?",
+    "upload": null,
+    "truth": {
+      "situation": "I sell skincare from Montreal through a Shopify store, about 2,500 customers. Around a third of them have ordered more than once.",
+      "goal": "In December I want to mail a free sample pack with a discount code, but packs cost me about 6 dollars each, so I want to send them to the customers most likely to order again in the first three months of next year.",
+      "decision": "Which 300 customers receive the sample pack in December.",
+      "user": "Just me; I pack the boxes myself.",
+      "data": "An order export from Shopify: order id, order date, customer id, product category, amount, status (paid, refunded) and region. About two years of history.",
+      "knows": "I know my best customers by name but not beyond the top 50. I have no idea how to tell who will come back.",
+      "constraints": "Budget of about 300 packs. I don't want to spend money on people who order every month anyway."
+    },
+    "must_understand": [
+      "the real decision is who gets 300 sample packs in December",
+      "she wants customers likely to buy again next quarter, which is not known yet",
+      "packs cost money, so a ranking within a fixed budget matters"
+    ],
+    "route": "prediction",
+    "tool": "ml_project",
+    "also_right": [],
+    "trap": "vague_goal",
+    "trap_check": "Asks what she will do with the result, learns it is choosing who gets the sample packs, and offers a repeat-purchase score rather than a generic summary of past orders."
+  },
+  {
+    "id": "r-04",
+    "level": "analyst",
+    "style": "impatient",
+    "opening": "need a churn prediction for the board on thursday. basically what our churn was per plan and per segment last month",
+    "upload": "customers",
+    "truth": {
+      "situation": "I'm the only analyst at a B2B scheduling software company in Munich. The board meets on Thursday and the CEO asked for 'churn by plan'.",
+      "goal": "One slide with the share of customers in each plan and each segment who left in the last month, plus counts, so the board can see where we lose people. That's all; nobody is going to act on individual customers from this.",
+      "decision": "None from me; the board just wants to see last month's numbers next to each other.",
+      "user": "The CEO presents it to the board.",
+      "data": "The customer snapshot: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month (whether they left the month after the snapshot, which was last month).",
+      "knows": "I said 'prediction' because the CEO calls everything about churn that. I know how to make a pivot but I want it checked and done quickly.",
+      "constraints": "Due Thursday morning. Numbers must be simple percentages with counts; no model explanations on the slide."
+    },
+    "must_understand": [
+      "the deliverable is last month's churn rate by plan and by segment, once",
+      "no one acts on individual customers, so no model is needed",
+      "deadline is Thursday"
+    ],
+    "route": "analysis",
+    "tool": "query",
+    "also_right": [],
+    "trap": "report_not_model",
+    "trap_check": "Computes past churn rates and counts by plan and segment without building a predictive model, despite the word 'prediction'."
+  },
+  {
+    "id": "r-05",
+    "level": "data_scientist",
+    "style": "detailed",
+    "opening": "Our 'segment' column is an old sales label nobody trusts. I'd like to find natural groups of customers from how they behave (spend, tenure, tickets, plan) so marketing can build three or four personas.",
+    "upload": "customers",
+    "truth": {
+      "situation": "I'm a data scientist at a gym chain with 40 clubs across Spain. Marketing is rewriting its messaging for 2027 and wants personas grounded in data.",
+      "goal": "A small number of interpretable groups of members, each with a profile (typical spend, tenure, ticket count, plan, city mix), that marketing can name and write messages for.",
+      "decision": "Which personas marketing writes campaigns for next year and which members get which message.",
+      "user": "The marketing lead and two copywriters.",
+      "data": "The member table: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+      "knows": "I know clustering basics; I want it done carefully, with stable groups, and I don't want the churn flag driving the groups because this is about who people are, not whether they leave.",
+      "constraints": "Three to five groups at most, each with at least 5% of members, explainable in one sentence."
+    },
+    "must_understand": [
+      "there is no outcome to predict; the need is groups found in the data",
+      "the old segment column should not define the groups",
+      "groups must be few, sizeable and interpretable"
+    ],
+    "route": "prediction",
+    "tool": "segmentation_project",
+    "also_right": ["analysis"],
+    "trap": "no_outcome",
+    "trap_check": "Proposes finding customer groups without a target instead of turning churned_next_month into the outcome of a supervised model."
+  },
+  {
+    "id": "r-06",
+    "level": "business_owner",
+    "style": "impatient",
+    "opening": "sales in the aegean region are down since august. what do i do about it",
+    "upload": "sales",
+    "truth": {
+      "situation": "I own a home-goods retailer in Turkey that sells through our own website, two marketplaces and four stores. The Aegean region (Izmir, Bodrum) dropped while the rest held up.",
+      "goal": "I need to know why the region fell and what I should do: shift marketing money between channels there, cut prices on some categories, or wait it out because it's seasonal.",
+      "decision": "Where the 2 million lira of Q4 marketing budget for the Aegean goes, and whether to run a price promotion there in November.",
+      "user": "Me and my marketing manager.",
+      "data": "The order export: order_id, order_date, region, channel, product_category, amount, status, customer_id, for the last two years.",
+      "knows": "My manager thinks a marketplace changed its fees and our listings dropped. I suspect it is just the end of tourist season. I don't have competitor prices.",
+      "constraints": "Decision by mid-November. I don't want a pile of charts; I want a recommendation with the reasons."
+    },
+    "must_understand": [
+      "a decision is needed about Q4 budget and a possible promotion",
+      "two competing explanations: marketplace change vs seasonality",
+      "the deliverable is a recommendation with reasons, not only numbers"
+    ],
+    "route": "business",
+    "tool": "business_brief",
+    "also_right": [],
+    "trap": null,
+    "trap_check": null
+  },
+  {
+    "id": "r-07",
+    "level": "analyst",
+    "style": "detailed",
+    "opening": "Leadership wants a recommendation by the end of the month on whether to retire our Basic plan or keep it and raise its price. I have the customer table with plan, tenure, spend, tickets and churn, and I'm not sure how to frame it.",
+    "upload": null,
+    "truth": {
+      "situation": "I'm an analyst at a project-management software company in São Paulo. Basic is 18% of customers but a small share of revenue, and support says Basic users raise many tickets.",
+      "goal": "A clear recommendation to leadership: retire Basic, keep it as is, or keep it with a higher price, with the expected effect on revenue, churn and support load, and what would make us change our mind.",
+      "decision": "Leadership decides in their November meeting what happens to the Basic plan from January.",
+      "user": "The COO and the head of product.",
+      "data": "A customer table I can upload: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+      "knows": "I know many Pro customers started on Basic. I don't know how many Basic users would upgrade versus leave if we removed it.",
+      "constraints": "No price experiment is possible before the meeting. The recommendation must be one page with the numbers behind it."
+    },
+    "must_understand": [
+      "the deliverable is a recommendation on a plan decision, not a table",
+      "Basic acts as an entry route to Pro, which matters to the decision",
+      "upgrade vs leave behaviour after removal is unknown and must be stated as an assumption"
+    ],
+    "route": "business",
+    "tool": "business_brief",
+    "also_right": [],
+    "trap": null,
+    "trap_check": null
+  },
+  {
+    "id": "r-08",
+    "level": "business_owner",
+    "style": "vague",
+    "opening": "we offer free cancellation on everything and it's killing us i think. should we stop?",
+    "upload": "bookings",
+    "truth": {
+      "situation": "I run a small tour and boat-trip operator on Naxos and Paros in Greece. Since we made every booking freely cancellable two years ago, cancellations went up a lot.",
+      "goal": "To decide whether to keep free cancellation on everything, drop it, or keep it only for bookings made far ahead or at a higher price.",
+      "decision": "The cancellation policy for the 2027 season, which I must publish to the booking sites in January.",
+      "user": "Me and my partner, who handles the booking sites.",
+      "data": "Our bookings: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id. Only bookings that were made; I have no record of people who looked and didn't book.",
+      "knows": "I believe free cancellation brings more bookings in the first place, but I can't prove it. I know last-minute cancellations hurt most because boats leave half empty.",
+      "constraints": "I can't run an experiment before January. The booking sites rank you lower without free cancellation, which I can't measure."
+    },
+    "must_understand": [
+      "the decision is the 2027 cancellation policy",
+      "the cost of cancellations can be estimated from the table, but the gain from free cancellation (extra bookings) cannot",
+      "a middle option (only for long lead times) is on the table"
+    ],
+    "route": "business",
+    "tool": "business_brief",
+    "also_right": [],
+    "trap": "missing_column",
+    "trap_check": "Says the table holds only bookings that were made, so the extra bookings free cancellation may bring cannot be measured from it, and states that limit and its assumption in the brief."
+  },
+  {
+    "id": "r-09",
+    "level": "analyst",
+    "style": "detailed",
+    "opening": "We're choosing where to open our next taquería: Querétaro, León or Puebla. I've collected rent quotes, foot-traffic counts and our sales from the three existing branches, and the owners want a recommendation next week.",
+    "upload": null,
+    "truth": {
+      "situation": "I'm the analyst at a family-owned taquería chain with three branches in Mexico City. The owners can afford one new location next year.",
+      "goal": "A recommendation of which city to open in, with the expected payback time for each option and the main risks.",
+      "decision": "Which of the three cities gets the fourth branch, signed by February.",
+      "user": "The two owners, brothers who founded the chain.",
+      "data": "A spreadsheet I made: monthly rent quotes for one site in each city, a weekend foot-traffic count I paid for, and monthly sales and costs of our three branches for two years. Nothing about the new cities' customers.",
+      "knows": "Our branches near universities do best. Puebla has a university site but the highest rent. I don't know how our brand travels outside the capital.",
+      "constraints": "Budget of 3.5 million pesos for fit-out. Owners want to see payback within 24 months."
+    },
+    "must_understand": [
+      "a one-off investment decision among three named cities",
+      "payback within 24 months is the owners' test",
+      "sales in new cities are uncertain and must be estimated with stated assumptions"
+    ],
+    "route": "business",
+    "tool": "business_brief",
+    "also_right": [],
+    "trap": null,
+    "trap_check": null
+  },
+  {
+    "id": "r-10",
+    "level": "analyst",
+    "style": "impatient",
+    "opening": "send me the customer ids on the premium plan with 3 or more support tickets in the last 90 days. account managers are calling them this week",
+    "upload": "customers",
+    "truth": {
+      "situation": "I'm an analyst at a broadband provider in Pune, India. Our operations head set a rule: premium customers with repeated tickets get a personal call from their account manager.",
+      "goal": "The list of matching customers, with customer_id, city and ticket count, so I can split it among the account managers.",
+      "decision": "Nothing to decide; the rule is fixed and the calls are a service check, not a churn campaign.",
+      "user": "Eight account managers, one per city.",
+      "data": "The customer table: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+      "knows": "I know the exact rule; I just don't want to make mistakes with the filter, for example plan names spelled differently.",
+      "constraints": "Needed today. Only active customers, sorted by city."
+    },
+    "must_understand": [
+      "the rule is fixed: premium plan and 3 or more tickets in 90 days",
+      "the output is the matching rows with ids, sorted by city",
+      "this is a service check, not a churn model"
+    ],
+    "route": "analysis",
+    "tool": "query",
+    "also_right": [],
+    "trap": "rows_request",
+    "trap_check": "Returns the filtered list of matching customer ids from the table, without proposing a churn model or a cleaning recipe."
+  },
+  {
+    "id": "r-11",
+    "level": "analyst",
+    "style": "vague",
+    "opening": "can u get me the big refunded orders from q3? the auditors are asking",
+    "upload": "sales",
+    "truth": {
+      "situation": "I work in finance at an electronics retailer in Wrocław, Poland. The external auditors are checking refunds for the third quarter.",
+      "goal": "Every order with status refunded, an amount above 500 złoty, and an order date between 1 July and 30 September, with order_id, order_date, amount, channel and customer_id.",
+      "decision": "None; the auditors will pick a sample from the list themselves.",
+      "user": "The audit team, who want a file they can filter.",
+      "data": "The order export: order_id, order_date, region, channel, product_category, amount, status, customer_id.",
+      "knows": "'Big' means above 500 złoty, that's the auditors' threshold. I'm not sure whether partial refunds have their own status.",
+      "constraints": "They want it this week, every matching row, nothing summarised."
+    },
+    "must_understand": [
+      "'big' means amount above 500 złoty",
+      "Q3 means 1 July to 30 September",
+      "the auditors want every matching row with order and customer ids"
+    ],
+    "route": "analysis",
+    "tool": "query",
+    "also_right": [],
+    "trap": "rows_request",
+    "trap_check": "Asks what 'big' means, then lists the matching refunded orders with their ids rather than a summary or a cleaned copy of the table."
+  },
+  {
+    "id": "r-12",
+    "level": "business_owner",
+    "style": "impatient",
+    "opening": "give me the booking ids for marrakech arrivals in december that don't have free cancellation. need to send payment reminders",
+    "upload": "bookings",
+    "truth": {
+      "situation": "I own a small agency in Marrakech that books riads and desert trips. Non-refundable bookings must be paid in full 30 days before arrival.",
+      "goal": "The list of bookings with destination Marrakech, travel_date in December 2026, free_cancellation false and not cancelled, with booking_id, travel_date, price and customer_id.",
+      "decision": "None; every booking on the list gets the standard reminder.",
+      "user": "My assistant, who sends the reminders.",
+      "data": "The bookings table: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id.",
+      "knows": "I know exactly which bookings I want. I don't care which might cancel; the rule is the rule.",
+      "constraints": "Today, please. December means 1 to 31 December this year."
+    },
+    "must_understand": [
+      "filter: Marrakech, December arrivals, no free cancellation, not already cancelled",
+      "output is booking ids with travel date, price and customer id",
+      "no cancellation risk scoring is wanted"
+    ],
+    "route": "analysis",
+    "tool": "query",
+    "also_right": [],
+    "trap": "rows_request",
+    "trap_check": "Returns the matching December Marrakech bookings with their ids, without offering a cancellation model or reshaping the table."
+  },
+  {
+    "id": "r-13",
+    "level": "data_scientist",
+    "style": "detailed",
+    "opening": "I'm building a card-fraud classifier with a 1.8% positive rate. Is SMOTE worth it compared with class weights, and if I use it, where exactly does it go relative to cross-validation?",
+    "upload": null,
+    "truth": {
+      "situation": "I'm a data scientist at a payments start-up in Manchester. A colleague's notebook applies SMOTE to the whole dataset before splitting and reports a very high recall.",
+      "goal": "To understand whether resampling helps at all here, and the correct way to do it if it does, so I can argue with my colleague using sources.",
+      "decision": "Whether our team's standard pipeline uses SMOTE, class weights, or neither.",
+      "user": "Me and the two other data scientists on the fraud team.",
+      "data": "I'm not sharing data; it's card transactions under PCI rules.",
+      "knows": "I know SMOTE creates synthetic minority rows and that class weights change the loss. I suspect resampling before the split leaks, but I want it explained properly.",
+      "constraints": "No data leaves our systems. I want an answer with references, not code run on our data."
+    },
+    "must_understand": [
+      "a method question with no data shared",
+      "the colleague resamples before splitting, which leaks",
+      "they want an explanation with sources to settle a team practice"
+    ],
+    "route": "advice",
+    "tool": "cited_answer",
+    "also_right": [],
+    "trap": null,
+    "trap_check": null
+  },
+  {
+    "id": "r-14",
+    "level": "business_owner",
+    "style": "vague",
+    "opening": "a consultant wants 12k euros to build an AI demand forecast for my bakeries. is that something a business like mine actually needs?",
+    "upload": null,
+    "truth": {
+      "situation": "I own three bakeries in Utrecht. We throw away bread most evenings and sometimes sell out of croissants by ten.",
+      "goal": "To understand whether demand forecasting would really help a business my size, what simpler options exist, and what I should ask the consultant before paying.",
+      "decision": "Whether to sign the consultant's 12,000 euro offer.",
+      "user": "Me.",
+      "data": "I have till receipts in our cash register system, but I'm not sharing them now; I first want to know if this is even sensible.",
+      "knows": "I know my weekends and holidays are different. I don't know what 'AI forecast' means in practice or how much better it is than looking at last week.",
+      "constraints": "I don't want anything built right now; I want an honest opinion."
+    },
+    "must_understand": [
+      "they want an opinion on whether forecasting is worth it, not a forecast",
+      "no data is shared and nothing should be built now",
+      "simpler baselines (same day last week) are the comparison"
+    ],
+    "route": "advice",
+    "tool": "cited_answer",
+    "also_right": ["business"],
+    "trap": null,
+    "trap_check": null
+  },
+  {
+    "id": "r-15",
+    "level": "data_scientist",
+    "style": "vague",
+    "opening": "my churn model gets 97% accuracy on our customer data but marketing says the list it gives them is useless. what am i doing wrong",
+    "upload": null,
+    "truth": {
+      "situation": "I'm a junior data scientist at an energy retailer in Dublin. Only about 3% of customers churn in a month. I built a model on our customer table and it predicts almost nobody as a churner.",
+      "goal": "To understand why accuracy looks great while the model is useless, and which measure I should look at instead, so I can explain it to my lead and fix it myself.",
+      "decision": "Which metric I report to my lead and how I pick the threshold.",
+      "user": "Me, and then my team lead.",
+      "data": "Our customer table with plan, tenure, spend, tickets and a churned-next-month flag; I'm not uploading it, I'll do the work myself.",
+      "knows": "I know what accuracy, precision and recall are in theory. I don't see how they apply here.",
+      "constraints": "I want an explanation, not someone redoing my model."
+    },
+    "must_understand": [
+      "with 3% churn, predicting nobody gives 97% accuracy",
+      "they want an explanation of metrics and thresholds, not a new model",
+      "data is mentioned but not shared"
+    ],
+    "route": "advice",
+    "tool": "cited_answer",
+    "also_right": [],
+    "trap": null,
+    "trap_check": null
+  },
+  {
+    "id": "r-16",
+    "level": "data_scientist",
+    "style": "detailed",
+    "opening": "My manager looked at our sales data and says the October discount campaign caused the 20% jump in revenue because the correlation between discount days and sales is 0.8. I don't need the numbers redone; I need to explain to him whether that conclusion holds.",
+    "upload": null,
+    "truth": {
+      "situation": "I'm a data scientist at an outdoor-gear retailer in Melbourne. October is also the start of spring hiking season here, and we launched a new product line that month.",
+      "goal": "A clear explanation, with sources, of why a correlation does not show the campaign caused the jump, and what kind of evidence would (a holdout region, comparison with last year).",
+      "decision": "How I frame my reply to my manager before he presents the campaign as a success.",
+      "user": "My manager, who is not technical.",
+      "data": "Daily sales by region and channel; I'm not sharing it and I don't want it analysed now.",
+      "knows": "I suspect seasonality and the product launch explain much of the jump. I know the phrase 'correlation is not causation' but need a convincing explanation.",
+      "constraints": "Plain language, short, with one or two references he can trust."
+    },
+    "must_understand": [
+      "they want an explanation, not an analysis of their data",
+      "seasonality and a product launch overlap with the campaign",
+      "what evidence would support a causal claim"
+    ],
+    "route": "advice",
+    "tool": "cited_answer",
+    "also_right": [],
+    "trap": null,
+    "trap_check": null
+  },
+  {
+    "id": "r-17",
+    "level": "data_scientist",
+    "style": "impatient",
+    "opening": "clean this: dedupe on customer_id keeping the most recent signup, standardise the city names (Bombay -> Mumbai, Bengaluru/Bangalore etc), give me the csv back",
+    "upload": "customers",
+    "truth": {
+      "situation": "I'm a data scientist at an edtech company in India. The customer export from our CRM has duplicates and city names typed in many ways.",
+      "goal": "A clean customer table: one row per customer_id (the most recent signup_date kept), city names mapped to one standard spelling, everything else unchanged.",
+      "decision": "None; I'll use the clean table in my own work.",
+      "user": "Me.",
+      "data": "The customer table: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+      "knows": "I know the duplicates come from customers who re-registered. City variants include Bombay, Bangalore, Bengaluru, Gurgaon, Gurugram and lowercase spellings.",
+      "constraints": "Keep all columns, don't drop any other rows, and tell me how many rows were removed."
+    },
+    "must_understand": [
+      "dedupe on customer_id keeping the latest signup_date",
+      "standardise city spellings",
+      "no other rows dropped; report how many were removed"
+    ],
+    "route": "preparation",
+    "tool": "recipe",
+    "also_right": [],
+    "trap": "clear_request",
+    "trap_check": "Goes ahead with the cleaning recipe straight away, at most confirming the city mapping, instead of interrogating the person about goals."
+  },
+  {
+    "id": "r-18",
+    "level": "analyst",
+    "style": "detailed",
+    "opening": "Please set up a weekly dashboard from our orders: revenue and order count by region and by channel, with refunds shown separately, refreshed every Monday morning for the sales meeting.",
+    "upload": "sales",
+    "truth": {
+      "situation": "I'm a sales analyst at a coffee-equipment distributor in Nairobi. Every Monday I rebuild the same spreadsheet for the 9 a.m. sales meeting.",
+      "goal": "A dashboard that updates itself each week with revenue and order counts by region and channel, refunds separated, and the last eight weeks for comparison.",
+      "decision": "None from the dashboard itself; regional managers look at it every Monday.",
+      "user": "Five regional sales managers and the sales director.",
+      "data": "The order export: order_id, order_date, region, channel, product_category, amount, status, customer_id.",
+      "knows": "I know exactly what I want; it's the spreadsheet I build by hand now.",
+      "constraints": "Ready by Monday 8 a.m. every week. Amounts in Kenyan shillings."
+    },
+    "must_understand": [
+      "a recurring weekly dashboard, not a one-off table",
+      "revenue and order count by region and channel, refunds separate",
+      "refreshed before the Monday meeting"
+    ],
+    "route": "reporting",
+    "tool": "dashboard",
+    "also_right": [],
+    "trap": "clear_request",
+    "trap_check": "Starts building the weekly dashboard with the stated measures right away instead of asking a long list of questions."
+  },
+  {
+    "id": "r-19",
+    "level": "data_scientist",
+    "style": "impatient",
+    "opening": "reshape these bookings into one row per customer: number of bookings, total spend, number cancelled, last travel date. it goes into our CRM",
+    "upload": "bookings",
+    "truth": {
+      "situation": "I'm a data scientist at a ferry and hotel booking platform in Split, Croatia. Our CRM needs a customer-level table to sync.",
+      "goal": "A table with one row per customer_id: count of bookings, sum of price, count of cancelled bookings, latest travel_date.",
+      "decision": "None; the table is loaded into the CRM every week by our engineers.",
+      "user": "The CRM team.",
+      "data": "The bookings table: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id.",
+      "knows": "I know the exact columns I want. Total spend should include cancelled bookings' prices too, since that's what the CRM team asked.",
+      "constraints": "Column names in snake_case. Customers with no customer_id should be left out and counted."
+    },
+    "must_understand": [
+      "one row per customer with four fields",
+      "total spend includes cancelled bookings",
+      "rows without customer_id are excluded and counted"
+    ],
+    "route": "preparation",
+    "tool": "recipe",
+    "also_right": ["analysis"],
+    "trap": "clear_request",
+    "trap_check": "Builds the per-customer reshape directly as a reusable recipe, without turning it into a model or a long discovery conversation."
+  },
+  {
+    "id": "r-20",
+    "level": "business_owner",
+    "style": "vague",
+    "opening": "every month i lose a day making the cancellations by destination report for our board. can it just update itself?",
+    "upload": "bookings",
+    "truth": {
+      "situation": "I run a tour operator in Cusco, Peru, with trips to Machu Picchu, the Sacred Valley and Lake Titicaca. The board gets a cancellations report every month.",
+      "goal": "A monthly report that updates itself: bookings, cancellations and cancellation rate per destination and per channel for the last month, with the previous twelve months beside it.",
+      "decision": "None from me; the board looks at it to spot problems.",
+      "user": "The board of four, who read it on the first Monday of each month.",
+      "data": "The bookings export I uploaded: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id.",
+      "knows": "I know the board wants it by travel month, not booking month. I don't want predictions, just the same report automated.",
+      "constraints": "Ready by the first Monday of each month; amounts in US dollars."
+    },
+    "must_understand": [
+      "a recurring monthly report, the same one built by hand today",
+      "cancellations and rates by destination and channel, by travel month",
+      "no predictions wanted"
+    ],
+    "route": "reporting",
+    "tool": "dashboard",
+    "also_right": [],
+    "trap": "clear_request",
+    "trap_check": "Offers the self-updating monthly report directly, asking at most which month to group by, rather than proposing a cancellation model."
+  }
+]

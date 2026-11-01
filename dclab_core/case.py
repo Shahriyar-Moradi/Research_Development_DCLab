@@ -48,6 +48,44 @@ COMPUTED_FIELDS = ("data", "cannot_answer")  # the review of 37.1: what code may
 # proposes with what is still open stated as assumptions
 CEILING = {"asked": 6, "declined": 2}
 READY_NEEDS = ("goal", "decision", "user", "data")
+# The kind of help a person's own words plainly name (0.152.0; the plan of 2026-11-01, step 1: the lead agent fell back on an
+# analysis when unsure). A reading of the person's words only, never of the agent's: code makes sure such a kind of help is
+# offered, and a clear person (the goal said and the kind of help named) may be proposed to at once. Kept general on purpose:
+# a phrase here must name the deliverable in any business, not fit one written person.
+NAMED = {
+    # a request about cases not yet known; a bare "prediction" or "forecast" is not one ("a churn prediction for the board" wanted
+    # past rates, "is an AI forecast worth it" advice: the 20 route practice people, 2026-11-01)
+    "prediction": re.compile(r"\b(?:predict (?:which|who|whether|if|how many|when)|forecast (?:the|our|next|how|which)|who (?:will|is going to|"
+                             r"is likely to|might)|which \w+(?: \w+)? (?:will|are likely to|is likely to|are going to|might)|(?:likely|about|going) to "
+                             r"(?:get |be )?(?:leave|churn|cancel\w*|quit|buy|default|return|stop|lapse)|"
+                             r"before (?:they|it) (?:leave|churn|cancel|stop|quit|happen))\b", re.I),
+    "business": re.compile(r"\bshould (?:we|i) (?:drop|cut|keep|close|open|raise|lower|increase|reduce|invest|hire|stop|launch|expand|"
+                           r"move|cancel|discontinue|switch|sell|buy|outsource)\b|\bwhat (?:should|do) (?:we|i) do\b|\bdecide (?:whether|which|if|between)\b|"
+                           r"\b(?:drop|cut|close|discontinue|stop selling|stop offering|get rid of|keep)\b[^.?!]{0,30}\b(?:worst|weakest|least|"
+                           r"bottom|lowest|best)\b|\bwhy (?:did|are|is|have|has) (?:our|my|the) \w+", re.I),
+    "analysis": re.compile(r"\b(?:paste|list|send|give|show|pull|export|get)(?: me| us)? (?:all |the |a list of |every )?(?:\w+ ){0,3}"
+                           r"(?:customers|members|users|clients|orders|bookings|rows|records|accounts|ids)\b[^.?!]{0,60}\b(?:who|that|which|with)\b|"
+                           r"\bwith their (?:ids|emails|names|numbers)\b|\bhow many \w+ (?:did|were|have|had)\b", re.I),
+    "reporting": re.compile(r"\b(?:every|each) (?:week|month|monday|morning|quarter|day)\b[^.?!]{0,40}\b(?:report|dashboard|list|view|update|email|"
+                            r"summary|numbers|figures)\b|\b(?:report|dashboard|list|view|update|email|summary)\b[^.?!]{0,30}\b(?:every|each) (?:week|month|"
+                            r"monday|morning|quarter|day)\b|\b(?:weekly|monthly|daily|quarterly) (?:report|dashboard|view|update|email|summary)\b|"
+                            r"\bdashboard\b", re.I),
+    "preparation": re.compile(r"\bclean (?:up )?(?:my|the|our|this|these)\b|\bdedup\w*|\bremove (?:the )?duplicates\b|\b(?:merge|combine|join) "
+                              r"(?:the|our|these|my|two|both)\b|\breshape\b|\bfix the (?:dates|formats?|typos|duplicates)\b", re.I),
+    "advice": re.compile(r"\breal or hype\b|\bis (?:it|that|this) (?:real|true|possible|realistic|a good idea)\b|\bwhat(?:'s| is) the difference\b|"
+                         r"\b(?:in general|in theory|explain (?:to me )?(?:what|how|why)|no data work|just (?:the )?answer)\b", re.I),
+}
+
+
+def named_tracks(words: Iterable[str]) -> dict[str, str]:
+    """The kinds of help the person's own words name, each with the phrase that names it (the first one found)."""
+    found: dict[str, str] = {}
+    for w in words:
+        for track, pattern in NAMED.items():
+            m = pattern.search(str(w))
+            if m and track not in found:
+                found[track] = m.group(0)
+    return found
 
 
 class CaseRefused(ValueError):
@@ -366,7 +404,12 @@ def readiness(case: CaseFile) -> Readiness:
     reasons = [f"{f} is not known yet" for f in missing] + [f"{f} blocks every option" for f in blocking]
     if ceiling and not ready:
         reasons.append("the question ceiling is reached: propose, stating what is still open as assumptions")
-    return Readiness(ready=ready, missing=missing, blocking=blocking, may_propose=ready or ceiling, reasons=reasons)
+    named = named_tracks(case.words)
+    clear = known(case.goal) and bool(named) and not blocking  # 0.152.0: a clear person is not made to answer what they said
+    if clear and not ready and not ceiling:
+        reasons.append("the person said their goal and named the help they want (" + ", ".join(f"{t}: \"{p}\"" for t, p in named.items())
+                       + "): propose now, stating what is open as assumptions")
+    return Readiness(ready=ready, missing=missing, blocking=blocking, may_propose=ready or ceiling or clear, reasons=reasons)
 
 
 def check_options(options: Iterable[CaseOption], case: CaseFile, *, columns: Iterable[str], computed: Iterable[str] = (),

@@ -319,10 +319,20 @@ class EndToEndTests(unittest.TestCase):
                 self.n += 1
                 return {"say": "show me what you can do", "pick": None} if self.n == 1 else {"say": "the first", "pick": 1}
 
+        class Keeps(Script):
+            """A scripted agent that, told once a route doubt (the plan's step 1), keeps its options: it may."""
+
+            def complete(self, messages, tools=None, *args, **kwargs):
+                last = messages[-1] if messages else {}
+                if last.get("role") == "tool" and "may call for" in str(last.get("content")):
+                    self.doubted = getattr(self, "doubted", 0) + 1
+                    self.replies.insert(0, ("", [("propose", {"options": [dict(o, columns=[]) for o in OPTIONS]})]))
+                return super().complete(messages, tools, *args, **kwargs)
+
         def client():
-            return Script(("Tell me more about what you need.", [("ask", {"question": "What would you decide with the result?"})]),
-                          ("", [("propose", {"options": [dict(o, columns=[]) for o in OPTIONS]})]), ("Here are two ways.", []),
-                          ("Good, I'll start.", []))
+            return Keeps(("Tell me more about what you need.", [("ask", {"question": "What would you decide with the result?"})]),
+                         ("", [("propose", {"options": [dict(o, columns=[]) for o in OPTIONS]})]), ("Here are two ways.", []),
+                         ("Good, I'll start.", []))
 
         folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, folder, True)
@@ -744,6 +754,108 @@ class RouteDriftTests(unittest.TestCase):
         sent = json.dumps(client.seen[0])
         self.assertIn("weekly dashboard", sent)
         self.assertIn("churned_next_month", sent)
+
+
+class Counting(Script):
+    def __init__(self, reading):
+        super().__init__()
+        self.reading, self.calls = reading, 0
+
+    def complete(self, messages, tools=None, *args, **kwargs):
+        self.calls += 1
+        return {"content": self.reading, "tool_calls": [], "usage": {"input_tokens": 1, "output_tokens": 1}}
+
+
+class RouteStepOneTests(unittest.TestCase):
+    """The plan of 2026-11-01, step 1 (route): the kind of help the person's own words name is offered; the cheap second reading
+    checks options as well as a start, read again only on new words; each doubt is told once, across turns; a clear person
+    may be proposed to at once; Home gets the route check the exam measured."""
+
+    def test_the_words_name_a_kind_of_help_only_when_they_ask_for_it(self):
+        named = C.named_tracks
+        self.assertEqual(set(named(["which bookings are going to get cancelled next month"])), {"prediction"})
+        self.assertEqual(set(named(["send me the customer ids on the premium plan with 3 tickets"])), {"analysis"})
+        self.assertEqual(set(named(["i want to drop the worst 3 destinations"])), {"business"})
+        self.assertEqual(set(named(["people say AI can predict no-shows. is that real or hype?"])), {"advice"})
+        for words in ("I need a churn prediction for the board", "should I report PR-AUC or ROC-AUC to my manager",
+                      "we lose customers every month", "is an AI demand forecast needed for my bakeries"):
+            self.assertNotIn("prediction", named([words]), words)
+            self.assertNotIn("business", named([words]), words)
+            self.assertNotIn("reporting", named([words]), words)
+
+    def test_options_missing_the_named_kind_of_help_are_refused_once_with_the_persons_words(self):
+        s = state()
+        s.case = C.hear(s.case, "send me the customers who churned, with their ids")
+        s.case = C.apply(s.case, "goal", C.CaseFact(value="the customers who churned", status="said", quote="customers who churned"), by="agent", why="t")
+        two = [dict(o) for o in OPTIONS if o["track"] == "prediction"] + [dict(OPTIONS[0], title="Groups", tool="segmentation_project")]
+        first = A._propose(s, two)
+        self.assertIn("analysis", first["error"])
+        self.assertIn("with their ids", first["error"])
+        self.assertEqual(s.case.options, [])
+        self.assertIn("shown", A._propose(s, two))  # told once: the agent may keep its options
+
+    def test_the_second_reading_checks_options_and_is_read_again_only_on_new_words(self):
+        s = state()
+        s.case = C.hear(s.case, "every Monday the team needs the cancellations by plan")
+        s.case = C.apply(s.case, "goal", C.CaseFact(value="every Monday the cancellations", status="said", quote="every Monday"), by="agent", why="t")
+        s.route_client = Counting("reporting")
+        s.budget_reached = True
+        out = A._propose(s, OPTIONS)
+        self.assertIn("second reading", out["error"])
+        self.assertIn("reporting", out["error"])
+        self.assertIn("shown", A._propose(s, OPTIONS))
+        self.assertEqual(s.route_client.calls, 1)  # no new words: no second call
+        self.assertIn("error", A._start(s, "analysis", "query"))  # a start is its own move: told once too
+        self.assertEqual(s.route_client.calls, 1)
+
+    def test_a_told_doubt_is_kept_across_turns_as_home_rebuilds_its_state(self):
+        from dclab_rnd.agents import case_session
+
+        s = state()
+        s.route_told = ["start:reporting"]
+        doc = case_session.snapshot(s)
+        again = A.CaseState(case=s.case)
+        case_session.restore(again, doc)
+        self.assertEqual(again.route_told, ["start:reporting"])
+
+    def test_a_clear_person_may_be_proposed_to_at_once(self):
+        case = C.hear(C.new("c"), "which members are likely to cancel next month? my team calls 300 a month")
+        self.assertFalse(C.readiness(case).may_propose)  # the goal is not recorded yet
+        case = C.apply(case, "goal", C.CaseFact(value="members likely to cancel", status="said", quote="likely to cancel"), by="agent", why="t")
+        r = C.readiness(case)
+        self.assertTrue(r.may_propose)
+        self.assertFalse(r.ready)
+        self.assertTrue(any("named the help" in x for x in r.reasons))
+        vague = C.apply(C.hear(C.new("c"), "we lose customers, help"), "goal", C.CaseFact(value="lose customers less", status="said", quote="lose customers"), by="agent", why="t")
+        self.assertFalse(C.readiness(vague).may_propose)
+
+    def test_a_clear_person_who_says_go_ahead_may_have_the_named_work_started(self):
+        s = state()
+        s.case = C.hear(s.case, "which members are likely to cancel next month? go ahead")
+        s.case = C.apply(s.case, "goal", C.CaseFact(value="members likely to cancel", status="said", quote="likely to cancel"), by="agent", why="t")
+        s.go_ahead = True
+        self.assertIn("started", A._start(s, "prediction", "ml_project"))
+        s2 = state()
+        s2.case = s.case.model_copy(update={"route": None})
+        self.assertIn("error", A._start(s2, "prediction", "ml_project"))  # no go-ahead in this message: not yet
+
+    def test_home_gives_the_lead_agent_the_route_check(self):
+        from dclab_rnd.draft.case_home import CaseHome
+        from dclab_rnd.draft.store import DraftStore
+
+        asked = []
+
+        class Models:
+            def client(self, purpose, draft_id=None, **k):
+                asked.append((purpose, k.get("model")))
+                return None
+
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder, True)
+        store = DraftStore(folder / "drafts")
+        d = store.create("predict which members cancel")
+        CaseHome(store, Models())._state(store.get(d["id"]))
+        self.assertIn(("route_check", A.ROUTE_MODEL), asked)
 
 
 class RouteDriftReviewTests(unittest.TestCase):

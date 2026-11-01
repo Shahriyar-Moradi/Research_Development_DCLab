@@ -1,0 +1,112 @@
+{
+  "package": "37.11c",
+  "title": "The route, step 1 of the owner's plan: the named kind of help offered, the route check on options too and in the product, a clear person proposed to at once, and 20 practice people",
+  "date": "2026-11-01",
+  "request": "The owner: continue on the approved plan after step 0. Step 1 (the route): about 20 new practice people, the route check on every start, no analysis as a safe default, and go ahead when the person is clear; code over prompt changes, and every change kept only if the scorecard holds.",
+  "spec": "Before options are shown or work starts, the kind of help the person's own words name, and the cheap second reading of their words, are compared with what the agent chose; what is missing is told once, with their words quoted, and the agent decides again. A person who said the goal and named the help may be proposed to at once. Home runs the same route check the exam measured. 20 new practice people by an independent writer, pinned, as their own split.",
+  "plan": [
+    "Read how the route is chosen: the agent's propose and start, the route check, readiness, the exam's people and gate",
+    "Have an independent agent write 20 practice people on the confusions, without reading the existing people or the prompts",
+    "Put the reading of the person's words in dclab_core (named_tracks) and the clear-person rule in readiness",
+    "Wire one route doubt per move into propose and start, cached and persisted; give Home the route check",
+    "Measure the word rule on the 40 old and the 20 new openings before tuning; narrow what misfired",
+    "Tests, version, catalog, review, record"
+  ],
+  "decisions": [
+    {
+      "decision": "A route doubt adds a kind of help to the options; it never removes or forces one",
+      "why": "the gate counts the right route offered or taken, and the plan forbids losses on understanding and traps: telling the agent once and letting it decide keeps the AI first and the check second"
+    },
+    {
+      "decision": "Told once per move and per what it points to, persisted across turns",
+      "why": "Home rebuilds the agent's state every turn, so a flag in memory would have repeated the doubt on every message"
+    },
+    {
+      "decision": "The second reading is cached on the number of the person's messages",
+      "why": "the plan's step 2 is speed: a check on every propose and start must not add a model call when nothing new was said"
+    },
+    {
+      "decision": "No prompt change; the clear-person rule goes through readiness, which the agent already reads",
+      "why": "a prompt change once lowered the route (CEX-014/015)"
+    },
+    {
+      "decision": "A bare mention of prediction or forecast names nothing; only a request about cases not yet known does",
+      "why": "on the 20 new people the first rule read \"a churn prediction for the board\" (past rates wanted, a report-not-model trap) and \"is an AI forecast needed\" (advice) as prediction"
+    },
+    {
+      "decision": "The new people are practice: pinned so an edit shows, never a final test",
+      "why": "the sealed sets are read once; tuning happens on practice in the open"
+    }
+  ],
+  "change": "dclab_core/case.py (NAMED, named_tracks, readiness clear), dclab_core 0.152.0 and CHANGELOG; dclab_rnd/agents/case_agent.py (route_now, route_doubt, route_told, the propose and start checks, a clear start on a go-ahead); dclab_rnd/agents/case_session.py (route_told kept); dclab_rnd/draft/case_home.py (the route_check client); dclab_rnd/agent_eval/conversation_exam/__init__.py (split dev_route, PINNED); people_dev_route.json and .sha256; docs/DATA_CATALOG.md and data_catalog.json; tests/test_case_agent.py, tests/test_conversation_exam.py",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The product's Home never ran the route check that the exam measured",
+      "scenario": "a person talks with Home under the lead agent: the agent starts the wrong kind of help and nothing reads their words a second time; the exam's lead-agent arm had the check, so its route numbers described a safety net users did not get",
+      "cause": "the route_check client was passed only by the exam's CaseArm; CaseHome built the agent's state without it",
+      "fix": "CaseHome asks the gateway for route_check with the route model",
+      "test": "tests/test_case_agent.py test_home_gives_the_lead_agent_the_route_check"
+    },
+    {
+      "id": "F2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The first word rule read method questions and complaints as requests",
+      "scenario": "\"should I report PR-AUC or ROC-AUC to my manager\" was read as a business decision, and \"we lose customers every month\" as a reporting request",
+      "cause": "\"should I\" and \"every month\" alone were taken as naming the help",
+      "fix": "\"should we\" needs a decision verb; \"every month\" needs a report-like word beside it",
+      "test": "tests/test_case_agent.py test_the_words_name_a_kind_of_help_only_when_they_ask_for_it"
+    },
+    {
+      "id": "F3",
+      "source": "measurement",
+      "severity": "behaviour",
+      "defect": "A bare mention of prediction or forecast was read as a request for one",
+      "scenario": "r-04 \"need a churn prediction for the board\" (wants past rates, a report-not-model trap) and r-14 \"is an AI demand forecast needed\" (advice) were read as prediction, which would have nudged the agent toward the trap",
+      "cause": "predict and forecast matched as words, not as requests about cases",
+      "fix": "prediction needs a request about cases not yet known (who will, which ... are going to, predict whether)",
+      "test": "tests/test_case_agent.py test_the_words_name_a_kind_of_help_only_when_they_ask_for_it"
+    },
+    {
+      "id": "F4",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The plan's practice budget cannot pay for the plan's step-1 gate",
+      "scenario": "the gate asks for the lead agent on the 40 old and 20 new practice people, and Claude alone on the 20 new for a fair comparison: about EUR 7.6 at the real EUR 0.08 to 0.10 a conversation, against about EUR 2.7 set aside",
+      "cause": "the plan priced runs of about 10 people; CEX-016 and CEX-020 show the real cost a conversation, the runner's estimate is about 2.5 times higher still",
+      "fix": "the owner chooses: a smaller gate, a larger budget, or both in stages",
+      "test": "none: a cost read from CEX-016 and CEX-020"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "the word rule on the practice openings, before and after narrowing (no model)",
+      "gate": "no opening read as a kind of help its route rules out",
+      "fixed_before_run": true,
+      "result": "first rule: old 40 seven right, one wrong, 32 silent; new 20 seven right, two wrong, 11 silent. Narrowed: old 40 eight right, none wrong; new 20 seven right, none wrong",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "the openings only, not whole conversations",
+        "the rule was narrowed after seeing the new 20, so they are no longer unseen for it; they stay unseen for the agent",
+        "silent on most people: the main effect must come from the second reading, measured only in a live run"
+      ]
+    }
+  ],
+  "outcome": "Built and tested with scripted models; not measured live (no key in the cloud session). The route doubt adds the named or second-read kind of help to the options once, Home now runs the route check, a clear person may be proposed to at once, and 20 pinned practice people are ready as the split dev_route.",
+  "lessons": [
+    "Check that what the exam measures is what the product runs: the route check lived only in the exam's arm",
+    "Measure a word rule on openings before any live run: it is free and it found three misreadings",
+    "A word that names a thing is not a request for it",
+    "Price a gate from past runs' real spend, not from the plan's round number"
+  ],
+  "risks": [
+    "Unmeasured: the doubt could still nudge an option onto a report-not-model or rows trap person when the second reading is wrong",
+    "One more Haiku call when the person said something new and the agent proposes or starts; cached, but it counts against speed",
+    "d-04's prediction need is only in its hidden truth: no word rule can find it, only the agent's questions"
+  ],
+  "commits": []
+}

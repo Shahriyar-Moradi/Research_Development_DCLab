@@ -60,6 +60,8 @@ class CaseHome(HomeAgent):
         if table is not None:
             state.table, state.frame = table, frame
         state.specialist_client = self.models.client("case_specialist", draft_id=draft["id"]) if self.models is not None else None
+        # the plan's step 1: Home gets the cheap route check the exam measured (before, only the exam's arm had it)
+        state.route_client = self.models.client("route_check", draft_id=draft["id"], model=A.ROUTE_MODEL) if self.models is not None else None
         return state
 
     def _client(self, draft_id: str) -> Any:

@@ -51,6 +51,24 @@ OPTIONS = [{"title": "Rank customers by risk of leaving", "what": "A weekly rank
 
 
 class PeopleTests(unittest.TestCase):
+    def test_the_route_practice_people_are_complete_pinned_and_apart_from_the_dev_people(self):
+        """The plan's step 1: 20 practice people on the route's confusions, by an independent writer, pinned."""
+        people = X.load("dev_route")
+        self.assertEqual(len(people), 20)
+        self.assertEqual([p for p in people if X.check_person(p)], [])
+        self.assertEqual({p["route"] for p in people}, set(X.TRACKS))
+        self.assertFalse({p["id"] for p in people} & {p["id"] for p in X.load("dev")})
+        self.assertNotIn("dev_route", X.SEALED)  # practice: tuned on openly, never a final test
+        import shutil, tempfile
+        from unittest import mock
+
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder, True)
+        edited = folder / "people.json"
+        edited.write_text(X.SPLITS["dev_route"].read_text(encoding="utf-8").replace("r-01", "r-99"), encoding="utf-8")
+        with mock.patch.dict(X.SPLITS, {"dev_route": edited}), self.assertRaises(ValueError):
+            X.load("dev_route")
+
     def test_the_dev_people_are_complete_and_mixed(self):
         people = X.load("dev")
         written = [p for p in people if not p["id"].startswith("owner-")]
