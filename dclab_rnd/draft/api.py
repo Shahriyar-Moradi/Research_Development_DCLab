@@ -1139,12 +1139,14 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         if not draft.get("solution") and not unlabelled and not no_outcome and not (through_team and named is None):
             target = named
             if target is None:
-                raise HTTPException(409, "Which column is the outcome the model should learn? Name it (for example “the outcome is is_fraud”), then say build again.")
+                raise HTTPException(409, "Which column is the outcome the model should learn? Name it (for example “the outcome is is_fraud”), then say build again.",
+                                    headers={"X-DCLab-Rule": "outcome column"})  # read by code in the lead agent's Home (case_home)
             asked = {"target": target, **({"prediction_moment": u["prediction_moment"]} if u.get("prediction_moment") else {})}
             proposal = await draft_proposal(draft_id, AnyObject.model_validate(asked))
             moment = str(proposal.get("prediction_moment") or u.get("prediction_moment") or "").strip()
             if len(moment) < 8:
-                raise HTTPException(409, "When is the prediction made, and what is known at that moment? Tell me in a sentence, then say build again.")
+                raise HTTPException(409, "When is the prediction made, and what is known at that moment? Tell me in a sentence, then say build again.",
+                                    headers={"X-DCLab-Rule": "prediction moment"})
             task = proposal.get("task")
             time_column = (proposal.get("time_candidates") or [None])[0]
             # the owner, 2026-10-20: the audit flagged the time column (signup_date alone separated the classes) and the build was refused

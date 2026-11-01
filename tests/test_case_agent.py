@@ -229,7 +229,8 @@ class GuardToolTests(unittest.TestCase):  # 37.6: the guard layer's tools, each 
         s.case = C.hear(s.case, "yes please build it now")
         out = A._request_build(s, "build it now")
         self.assertEqual(out["recorded"], "ml_project")
-        self.assertIn("nothing is built yet", out["next"])
+        self.assertIn("the build starts now", out["next"])
+        self.assertIn("no result or number", out["next"])
 
     def test_the_person_reads_each_option_in_full_and_claude_alone_has_the_same_data_tools(self):
         from dclab_rnd.agent_eval.conversation_exam import arms as exam_arms

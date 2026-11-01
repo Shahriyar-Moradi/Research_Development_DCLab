@@ -8,8 +8,9 @@ and every sentence to the person with a number nobody gave or code computed is d
 refusal comes back to the agent as the tool's result, so it can think again.
 
 Its tools are registered once, in scope "case" (``register``); the state of one case is :class:`CaseState`, the context
-every tool receives. The switch is ``DCLAB_CASE_AGENT`` (off by default); the conversation exam measures it as the arm
-"case" before it serves anyone.
+every tool receives. Since 37.11 (the owner, 2026-11-01) it leads Home by default wherever a model serves its purpose; the
+switch ``DCLAB_CASE_AGENT`` set to 0 turns it off, and with no model the rules-first Home serves (the fallback and the open
+edition's path). The conversation exam measures it as the arm "case".
 """
 
 from __future__ import annotations
@@ -129,8 +130,20 @@ def declines(words: str) -> bool:
     return bool(WHOLE_DECLINE.search(w)) or (len(w.split()) <= DECLINE_WORDS and bool(DECLINES.search(w)))
 
 
-def on() -> bool:
-    return os.environ.get(SWITCH, "").strip().lower() in ("1", "true", "yes", "on")
+def on(models: Any = None) -> bool:
+    """Whether the lead agent leads Home. ``DCLAB_CASE_AGENT`` decides when set (1 on, 0 off). Unset, it is the default where
+    ``models`` serves its purpose (37.11: the owner's decision of 2026-11-01, made before a sealed exam passed: CEX-013 and
+    CEX-017 failed their gates); with no model the rules-first Home serves."""
+    value = os.environ.get(SWITCH, "").strip().lower()
+    if value in ("1", "true", "yes", "on"):
+        return True
+    if value in ("0", "false", "no", "off"):
+        return False
+    available = getattr(models, "available", None)
+    try:
+        return bool(available(PURPOSE)) if callable(available) else False
+    except Exception:  # noqa: BLE001 - a gateway that cannot answer serves no model: the fallback
+        return False
 
 
 @dataclass
@@ -266,7 +279,9 @@ def _request_build(state: CaseState, quote: str) -> dict[str, Any]:
         state.case = C.apply(state.case, "build", C.CaseBuild(tool=route.tool, quote=quote), by="person", why="the person said yes to the build")
     except C.CaseRefused as error:
         return state.refuse(error)
-    return {"recorded": route.tool, "next": "tell the person their yes is recorded and the build is the next step; nothing is built yet"}
+    # the live check of 37.11 (2026-11-01): "nothing is built yet" was said word for word while Home started the build
+    return {"recorded": route.tool, "next": "tell the person in a sentence that their yes is recorded and the build starts now; "
+                                            "give no result or number before it has run"}
 
 
 def _consult(state: CaseState, specialist: str, question: str) -> dict[str, Any]:

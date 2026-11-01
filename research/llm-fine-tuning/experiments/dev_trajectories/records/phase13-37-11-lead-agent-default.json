@@ -1,0 +1,140 @@
+{
+ "package": "37.11",
+ "title": "The lead agent made Home's default by the owner's decision, with the build path fixed under it and the rules-first Home kept as the fallback",
+ "date": "2026-11-01",
+ "request": "The owner, after the three-arm practice exam: use the lead agent in the DCLab R&D project; offered a local switch in make dev or the default for everyone, the owner chose the default, knowing both sealed exams failed their gates.",
+ "spec": "The lead agent leads Home wherever a model serves its purpose; DCLAB_CASE_AGENT=0 turns it off; with no model the rules-first Home serves; nothing that measures today's Home changes what it measures.",
+ "plan": [
+  "Find every place the switch is read",
+  "Make the default depend on a model serving the purpose, keep the explicit switch",
+  "Keep the rules-first Home callable by name for the fallback and the exam",
+  "Test the switch, the default with and without a model, and the exam arm",
+  "One live turn through the product's path, review, gate, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "The default is on only where a model serves case_agent",
+   "why": "with no model (tests, the open edition, DCLAB_NO_LIVE_MODELS) the lead agent cannot run; the rules-first Home stays their path"
+  },
+  {
+   "decision": "DCLAB_CASE_AGENT=0 turns it off in one line; 1 still forces it on",
+   "why": "the owner overrode an unpassed gate, so going back must be one change"
+  },
+  {
+   "decision": "The rules-first Home becomes DraftWork.rules_first and the exam's arm home calls it by name",
+   "why": "the arm built Home through DraftWork.agent; with the new default it would have become the lead agent and the exam would compare the lead agent with itself"
+  },
+  {
+   "decision": "The old prompts are kept, not retired",
+   "why": "the plan retires them at switch-on, but they are the fallback while the gate has not passed"
+  }
+ ],
+ "change": "dclab_rnd/agents/case_agent.py (on(models) with the default); dclab_rnd/draft/work.py (agent uses on(self.models), rules_first); dclab_rnd/agent_eval/conversation_exam/arms.py (HomeArm uses rules_first); docstrings in case_home.py and harness.py; docs/guides/PHASE13_CLAUDE_FIRST_PLAN.md (37.11 status); tests/test_case_home.py; dclab_rnd/draft/case_home.py (build after the yes, build answers read by code, confirm moment, turn lock, segmentation family); dclab_rnd/draft/api.py (rule tags on the outcome and moment refusals); dclab_rnd/draft/work.py (clients and on_request for CaseHome, a draft keeps its Home); .env.example",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "latent",
+   "defect": "The exam's arm home would have become the lead agent",
+   "scenario": "make the default on, run the conversation exam with the arms home and case on a live key: both arms are the lead agent",
+   "cause": "HomeArm built Home with DraftWork.agent, the product's wiring, which now gives the lead agent by default",
+   "fix": "HomeArm calls DraftWork.rules_first by name",
+   "test": "tests/test_case_home.py test_the_exams_home_arm_is_the_rules_first_home_with_a_model_serving_the_lead_agent"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With the lead agent leading Home, a prediction draft could not be built",
+   "scenario": "the person says yes, presses Build: 409 on the outcome, a column question answered by the agent, the build refused again in a loop",
+   "cause": "CaseHome had no on_request; its build yes was stored in case_state.build, which nothing read; quick_build's needs were never written",
+   "fix": "CaseHome starts the build after the yes (on_request, built); the build's outcome and moment questions are read by code; a column check goes to take_answer",
+   "test": "tests/test_case_home.py test_the_persons_yes_starts_the_build_and_an_outcome_named_in_their_answer_is_read_by_code"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A draft started under the rules-first Home lost its history under the lead agent",
+   "scenario": "three rules answers, then the default flips: the agent sees only the last message",
+   "cause": "the new case started empty",
+   "fix": "a draft keeps the Home that started it (_lead_agent_may_lead)",
+   "test": "tests/test_case_home.py test_a_draft_keeps_the_home_that_started_it"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Any sentence became the prediction moment and started a build",
+   "scenario": "'What do you mean by prediction moment?' saved as the moment and built",
+   "cause": "the first fix took any 8+ characters",
+   "fix": "no '?'; the moment is said back and built only on a short yes; a 'yes, but' correction is said back again",
+   "test": "tests/test_case_home.py test_a_question_or_a_sentence_naming_a_column_in_passing_is_never_taken_as_the_build_answer, test_a_yes_with_a_correction_says_the_new_moment_back_instead_of_building"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A column named in passing became the outcome",
+   "scenario": "'Actually I just want revenue by region' made region the target",
+   "cause": "any whole-word match counted",
+   "fix": "only a message that is a column name or 'the outcome is <column>'",
+   "test": "tests/test_case_home.py test_a_question_or_a_sentence_naming_a_column_in_passing_is_never_taken_as_the_build_answer"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A build question stayed open after the route moved on, a second yes built nothing, the lead agent's turns held no lock, and groups kept their family after a prediction",
+   "scenario": "route to analysis then 'revenue by region'; a refused build then yes again; two instances; groups then 'predict churn'",
+   "cause": "build_waiting cleared in two places only; state.build compared by value; no @turn; family never removed",
+   "fix": "cleared on a route change and a new table; state.build reset each turn; @turn on start, reply, data_ready; family removed when the route leaves segmentation",
+   "test": "tests/test_case_home.py (route, second yes, turn lock, groups tests)"
+  },
+  {
+   "id": "F7",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The agent said 'nothing is built yet' as the build started",
+   "scenario": "live check e2e-1: the project was created right after that sentence",
+   "cause": "the build tool's next-step text",
+   "fix": "'the build starts now; give no result or number before it has run'",
+   "test": "tests/test_case_agent.py (request_build next text)"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "one live Home turn through DraftWork with DCLAB_CASE_AGENT unset and the Claude key in .env",
+   "gate": "the default gives the lead agent (CaseHome) and it answers the first message within a cap of EUR 0.3",
+   "fixed_before_run": true,
+   "result": "CaseHome served; it asked for a table of past cancellations with attendance, membership type and start date; EUR 0.02",
+   "verdict": "pass",
+   "cost_eur": 0.02,
+   "limits": [
+    "one opening only; it says nothing about the route, which is the lead agent's known weak point"
+   ]
+  },
+  {
+   "name": "live: Home led by the lead agent through the real app, bank_marketing sample, a scripted person, from the first sentence to a built project",
+   "gate": "a project is built from the chat after the person's yes, with duration kept out, within a cap of EUR 0.3",
+   "fixed_before_run": true,
+   "result": "project built from the chat; the agent read target as the outcome and kept duration out because it is known only after the call; EUR 0.08",
+   "verdict": "pass",
+   "cost_eur": 0.08,
+   "limits": [
+    "one person, one table; the outcome and moment came from the sample's own suggestion, so the build questions were not asked live"
+   ]
+  }
+ ],
+ "outcome": "Home's conversation is the lead agent's by default wherever a model serves it, with the rules-first Home as the fallback, one line to turn it off, and the exam still measuring today's Home. The sealed gate has not passed: the route is the known risk.",
+ "lessons": [
+  "Before flipping a default, find every caller that reaches it through the shared wiring, evaluations first",
+  "A switch an owner overrides keeps a one-line way back",
+  "A new default path needs the end-to-end action (here a build) tested before it is turned on, not only the conversation"
+ ],
+ "risks": [
+  "The route: 0.79 against Claude alone's 1.00 on sealed v2; the advice-door fix is measured on practice people only",
+  "Replies are slower (about 16 s against 12) and cost about EUR 0.09 a conversation on practice people"
+ ],
+ "commits": []
+}

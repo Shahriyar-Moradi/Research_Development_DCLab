@@ -23,19 +23,42 @@ class DraftWork:
     def agent(self, draft_id: str | None = None) -> HomeAgent:
         from ..agents import case_agent
 
-        if case_agent.on():  # 37.9: the lead agent leads Home's conversation; with the switch off the rules-first Home does
+        if case_agent.on(self.models) and self._lead_agent_may_lead(draft_id):
+            # 37.11: the lead agent leads Home by default where a model serves it; DCLAB_CASE_AGENT=0 or no model: rules first
             from .case_home import CaseHome
 
-            return CaseHome(self.drafts, self.models, traces=self.traces)
+            return CaseHome(self.drafts, self.models, traces=self.traces, on_request=self.requests, **self._clients(draft_id))
+        return self.rules_first(draft_id)
+
+    def _lead_agent_may_lead(self, draft_id: str | None) -> bool:
+        """A draft keeps the Home that started it (the review of 37.11): one the rules-first Home already answered, with no
+        case of the lead agent's, stays with the rules-first Home, so its questions and history are never dropped."""
+        if not draft_id:
+            return True
+        try:
+            draft = self.drafts.get(draft_id)
+        except Exception:  # noqa: BLE001 - a draft not created yet starts with the lead agent
+            return True
+        if draft.get("case_state"):
+            return True
+        return not any(m.get("role") == "agent" for m in draft.get("messages") or [])
+
+    def _clients(self, draft_id: str | None) -> dict[str, Any]:
+        """The model clients Home's own steps use (queries, business briefs, evidence answers, reading the person's words)."""
         from .reader import reader
 
+        return dict(reader=reader(self.models, draft_id=draft_id), second_opinion=self.pattern_on("second_opinion"),
+                    intent_client=self.models.client("home_intent", draft_id=draft_id),
+                    query_client=self.models.client("home_query", draft_id=draft_id),
+                    business_client=self.models.client("home_business", draft_id=draft_id),
+                    understand_client=self.models.client("home_understand", draft_id=draft_id),
+                    evidence_client=self.models.client("evidence_answer", draft_id=draft_id))
+
+    def rules_first(self, draft_id: str | None = None) -> HomeAgent:
+        """Home's rules-first conversation: the fallback when no model serves the lead agent or DCLAB_CASE_AGENT=0, the open
+        edition's path, and the conversation exam's arm "home" (which must stay today's Home whatever the default)."""
         return HomeAgent(self.drafts, self.models.client("home_agent", draft_id=draft_id), on_request=self.requests, traces=self.traces,
-                         reader=reader(self.models, draft_id=draft_id), second_opinion=self.pattern_on("second_opinion"),
-                         intent_client=self.models.client("home_intent", draft_id=draft_id),
-                         query_client=self.models.client("home_query", draft_id=draft_id),
-                         business_client=self.models.client("home_business", draft_id=draft_id),
-                         understand_client=self.models.client("home_understand", draft_id=draft_id),
-                         evidence_client=self.models.client("evidence_answer", draft_id=draft_id))
+                         **self._clients(draft_id))
 
     def pattern_on(self, name: str) -> bool:
         """28.6: a team pattern's switch in this workspace's settings (on only where its gate passed)."""

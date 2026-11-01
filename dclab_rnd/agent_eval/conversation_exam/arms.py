@@ -263,7 +263,9 @@ class HomeArm:
 
         d = self.store.create(str(person["opening"]))
         self.id = d["id"]
-        self.agent = DraftWork(self.store, self.models).agent(self.id)  # the product's own wiring (the review of 37.0)
+        # the product's own wiring for the rules-first Home (the review of 37.0); since 37.11 DraftWork.agent gives the lead agent
+        # by default, so the arm "home" asks for the rules-first Home by name and stays what it measures
+        self.agent = DraftWork(self.store, self.models).rules_first(self.id)
         self.agent.start(self.id)
         if person.get("upload"):
             filename = tables.write(str(person["upload"]), self.store.data_dir(self.id))
