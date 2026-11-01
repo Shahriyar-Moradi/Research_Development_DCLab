@@ -50,6 +50,8 @@ offered or taken; traps the mean of the planted traps' rates; seconds per turn t
 | CEX-029 (in CEX-030) | dev_route | lead agent | 2 | 1.00 | – | 1.00 | 0 | 0 | – | 18.2 | 0.26 |  |
 | CEX-030 (joined: CEX-025, CEX-026, CEX-027, CEX-029) | dev_route | Claude alone | 10 | 0.70 | 3.33 | 0.70 | 1 | 57 | 0.50 | 19.7 | 0.56 |  |
 | CEX-030 (joined: CEX-025, CEX-026, CEX-027, CEX-029) | dev_route | lead agent | 10 | 0.93 | 4.00 | 1.00 | 5 | 0 | 0.92 | 21.1 | 0.96 |  |
+| CEX-031 | dev_route | Claude alone | 1 | 1.00 | – | 1.00 | 0 | 0 | 0.00 | 9.6 | 0.03 | incomplete: stopped (cap reached) |
+| CEX-031 | dev_route | lead agent | 1 | 1.00 | 4.00 | 1.00 | 0 | 0 | 1.00 | 18.1 | 0.06 | incomplete: stopped (cap reached) |
 
 ## The judge against the people who labelled
 
@@ -67,11 +69,11 @@ thinking on (adaptive) with display 'summarized' for every purpose; the summary 
 
 | where | purpose | calls | kept whole | with thinking |
 |---|---|---|---|---|
-| workspace log (every use of the purpose) | case_agent | 2835 | 1642 | 1524 |
+| workspace log (every use of the purpose) | case_agent | 2857 | 1664 | 1540 |
 | workspace log (every use of the purpose) | case_specialist | 1 | 0 | 0 |
-| workspace log (every use of the purpose) | exam_judge | 517 | 354 | 337 |
-| workspace log (every use of the purpose) | exam_person | 1290 | 840 | 787 |
-| workspace log (every use of the purpose) | exam_plain | 992 | 585 | 339 |
+| workspace log (every use of the purpose) | exam_judge | 521 | 358 | 340 |
+| workspace log (every use of the purpose) | exam_person | 1305 | 855 | 801 |
+| workspace log (every use of the purpose) | exam_plain | 1010 | 603 | 353 |
 | workspace log (every use of the purpose) | home_agent | 3574 | 2166 | 841 |
 | workspace log (every use of the purpose) | home_intent | 619 | 395 | 338 |
 | workspace log (every use of the purpose) | home_query | 27 | 19 | 12 |

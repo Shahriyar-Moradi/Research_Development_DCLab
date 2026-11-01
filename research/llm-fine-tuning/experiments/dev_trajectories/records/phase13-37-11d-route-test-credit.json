@@ -89,6 +89,16 @@
    "cause": "the practice people share three fixed tables and this person's story needs data the table does not hold",
    "fix": "none: the set is hash-pinned and not edited after a run; the person is read as flawed, not counted for or against the agent",
    "test": "none"
+  },
+  {
+   "id": "F7",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "Two of the four clear-request practice people have a story that does not fit the table they share",
+   "scenario": "CEX-027 r-17 asks to dedupe Indian city names in a table with only UAE cities and no repeated ids; CEX-031 r-20 says the company only runs trips to places that are not in the bookings table's destinations; the simulated person then doubts the file or the agent, and the conversation drifts into asking for another upload",
+   "cause": "the independent writer of the practice people did not see the three shared tables, so a story can name data the table does not hold",
+   "fix": "none for this set (hash-pinned, not edited after a run); the fresh sealed set must be written with the three tables' columns and values in front of its writer",
+   "test": "none: a rule for the next set"
   }
  ],
  "measurements": [
@@ -134,6 +144,19 @@
     "one person of the failing kind has a table that does not fit its story",
     "option fit rests on six people"
    ]
+  },
+  {
+   "name": "the clear-request trap settled with the two unseen clear-request people r-19 and r-20 (CEX-031; the run's cap stopped it before Claude alone on r-20 was judged)",
+   "gate": "the trap check of the written gate, read over the clear-request kind once more people of that kind are played",
+   "fixed_before_run": true,
+   "result": "the lead agent handled the trap for both people (r-19 after one question it built the recipe; r-20 judged handled) and Claude alone failed it on r-19; over the four clear-request people the lead agent handled 3 and Claude alone 2 of the 3 judged, the fourth not judged, so the lead agent's rate is not below Claude alone's whichever way that last one falls. The ten chosen people still fail the check as written (1 of 2 against 2 of 2). Cost EUR 0.34",
+   "verdict": "not scored",
+   "cost_eur": 0.34,
+   "limits": [
+    "the last conversation was not judged because the cap was below one judge request",
+    "two of the four people have a table that does not fit their story",
+    "a small number of people per kind"
+   ]
   }
  ],
  "outcome": "By the gate written beforehand the route step fails on one check, the clear-request trap, decided by one flawed test person; the other four checks pass, with the right route offered for all ten and the wins kept. Two unseen clear-request people can settle it for about EUR 0.3.",
@@ -143,7 +166,9 @@
   "A summary must show how many conversations were judged, not only how many were listed",
   "Run the full check after changing a default: the test that counted the old path's calls only failed there",
   "Read a run's most expensive conversation first: here one conversation held most of a run's cost and showed a conflict between two rules",
-  "A practice person whose story does not match its table says nothing for or against the agent"
+  "A practice person whose story does not match its table says nothing for or against the agent",
+  "Give the writer of practice and sealed people the tables' columns and values: a story that names data the table does not hold says nothing about the agent",
+  "A run's cap must leave room for one judge request after the last conversation: expected spend plus a margin of about a quarter euro"
  ],
  "risks": [
   "The lead agent is Home's default with a route fix that is not yet measured on the hard kinds of help",
