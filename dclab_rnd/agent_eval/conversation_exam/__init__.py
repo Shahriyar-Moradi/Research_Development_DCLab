@@ -44,10 +44,11 @@ ROOT = HERE.parents[2]
 PEOPLE = HERE / "people_dev.json"
 SPLITS = {"dev": PEOPLE, "sealed_v1": HERE / "people_sealed_v1.json",  # sealed: 40 people by an agent shown the format alone
           "sealed_v2": HERE / "people_sealed_v2.json",  # 20 more by an independent writer, the short lead agent against Claude alone
+          "sealed_v3": HERE / "people_sealed_v3.json",  # 12 more (2026-11-02), by an independent writer shown the tables (WRITING_PEOPLE.md): every person who shares a table carries table_claims
           "dev_route": HERE / "people_dev_route.json"}  # practice: 20 by an independent writer on the route's confusions (the plan's step 1)
 PINNED = {"dev_route": HERE / "people_dev_route.sha256"}  # practice sets pinned so an edit after a run shows (never tuned on in silence)
-SEALED = {"sealed_v1": HERE / "people_sealed_v1.sha256", "sealed_v2": HERE / "people_sealed_v2.sha256"}  # pinned before its one run
-SEALED_ARMS = {"sealed_v1": ("home", "plain", "case"), "sealed_v2": ("plain", "case")}  # the arms each sealed gate compares
+SEALED = {"sealed_v1": HERE / "people_sealed_v1.sha256", "sealed_v2": HERE / "people_sealed_v2.sha256", "sealed_v3": HERE / "people_sealed_v3.sha256"}  # pinned before its one run
+SEALED_ARMS = {"sealed_v1": ("home", "plain", "case"), "sealed_v2": ("plain", "case"), "sealed_v3": ("plain", "case")}  # the arms each sealed gate compares
 CAMPAIGN = ROOT / "evidence" / "campaigns" / "conversation_exam_v1"
 RESULTS = CAMPAIGN / "results"
 LABELS = CAMPAIGN / "labels"
@@ -520,7 +521,7 @@ ESTIMATE_EUR = {"home": 0.08, "plain": 0.05, "case": 0.10, "safe": 0.06, "person
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--split", default="dev", help="dev, dev_route (practice), sealed_v1 or sealed_v2 (a sealed set: run once, with the arms its gate compares, kept in the exam vault)")
+    parser.add_argument("--split", default="dev", help="dev, dev_route (practice), sealed_v1, sealed_v2 or sealed_v3 (a sealed set: run once, with the arms its gate compares, kept in the exam vault)")
     parser.add_argument("--arms", default=",".join(READY_ARMS))
     parser.add_argument("--only", default=None, help="a comma list of person ids")
     parser.add_argument("--yes", action="store_true")
