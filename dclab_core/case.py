@@ -64,7 +64,7 @@ NAMED = {
     "business": re.compile(r"\bshould (?:we|i) (?:drop|cut|keep|close|open|raise|lower|increase|reduce|invest|hire|stop|launch|expand|"
                            r"move|cancel|discontinue|switch|sell|buy|outsource)\b(?!\s+(?:the\s+|our\s+|my\s+|these\s+|this\s+)?(?:duplicate|rows?|"
                            r"thresholds?|outliers?|models?|features?|columns?|nulls?|missing|learning rate|epochs?|samples?|weights?|classifier|split))|"
-                           r"\bwhat (?:should|do) (?:we|i) do\b(?! about (?:the )?(?:leak\w*|missing|nulls?|outliers?|duplicates?|imbalance|overfit\w*|"
+                           r"\bwhat (?:should|do) (?:we|i) do\b(?! (?:about|with) (?:the |my |our )?(?:leak\w*|missing|nulls?|outliers?|duplicates?|imbalance|overfit\w*|"
                            r"the model|my model))|\b(?:drop|cut|close|discontinue|stop selling|stop offering|get rid of)\b[^.?!]{0,30}\b(?:worst|weakest|"
                            r"least|bottom|lowest)\b", re.I),
     "analysis": re.compile(r"\b(?:paste|list|send|give|show|pull|export|get)(?: me| us)? (?:all |the |a list of |every )?(?:\w+ ){0,3}"
@@ -409,6 +409,7 @@ def readiness(case: CaseFile) -> Readiness:
     if ceiling and not ready:
         reasons.append("the question ceiling is reached: propose, stating what is still open as assumptions")
     named = named_tracks(case.words)
+    named = {t: p for t, p in named.items() if t != "advice"}  # advice words are too weak a sign to skip questions on
     clear = known(case.goal) and bool(named) and not blocking  # 0.152.0: a clear person is not made to answer what they said
     if clear and not ready and not ceiling:
         reasons.append("the person said their goal and named the help they want (" + ", ".join(f"{t}: \"{p}\"" for t, p in named.items())

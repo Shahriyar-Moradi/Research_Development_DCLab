@@ -829,20 +829,43 @@ class RouteStepOneTests(unittest.TestCase):
         vague = C.apply(C.hear(C.new("c"), "we lose customers, help"), "goal", C.CaseFact(value="lose customers less", status="said", quote="lose customers"), by="agent", why="t")
         self.assertFalse(C.readiness(vague).may_propose)
 
-    def test_a_clear_person_who_says_go_ahead_may_have_the_named_work_started(self):
+    def test_a_clear_person_is_proposed_to_but_never_started_on_before_the_case_is_ready(self):
+        """The second review of step 1: "send me the customers who churned ... call list by friday" is both a go-ahead and a
+        named analysis on a real-prediction trap; an early start locked it."""
         s = state()
-        s.case = C.hear(s.case, "which members are likely to cancel next month? go ahead")
-        s.case = C.apply(s.case, "goal", C.CaseFact(value="members likely to cancel", status="said", quote="likely to cancel"), by="agent", why="t")
+        s.case = C.hear(s.case, "send me the customers who churned in the last 3 months, my retention team needs a call list by friday")
+        s.case = C.apply(s.case, "goal", C.CaseFact(value="the customers who churned", status="said", quote="customers who churned"), by="agent", why="t")
         s.go_ahead = True
-        self.assertIn("started", A._start(s, "prediction", "ml_project"))
-        s2 = state()
-        s2.case = s.case.model_copy(update={"route": None})
-        self.assertIn("error", A._start(s2, "prediction", "ml_project"))  # no go-ahead in this message: not yet
+        self.assertTrue(C.readiness(s.case).may_propose)
+        self.assertIn("error", A._start(s, "analysis", "query"))
+        self.assertIsNone(s.case.route)
+
+    def test_advice_words_do_not_silence_the_second_reading(self):
+        """The second review of step 1: "is that a good idea?" named advice only, and the reading that would catch the data work
+        behind it was never asked."""
+        s = state()
+        s.case = C.hear(s.case, "Is that a good idea? we keep losing members and I want to call them before it is too late")
+        s.budget_reached = True
+        s.route_client = Counting("prediction")
+        out = A._start(s, "advice", "cited_answer")
+        self.assertIn("prediction", out.get("error", ""))
+        self.assertEqual(s.route_client.calls, 1)
+        case = C.apply(s.case, "goal", C.CaseFact(value="call them before it is too late", status="said", quote="call them before"), by="agent", why="t")
+        self.assertFalse(C.readiness(case).may_propose)  # advice words alone never make a person clear
+
+    def test_a_short_table_value_does_not_switch_the_route_check_off(self):
+        s = state()
+        s.group_names = {"No", "Gold Plus"}
+        s.case = C.hear(s.case, "no idea, which members will cancel next month?")
+        client = Counting("prediction")
+        self.assertEqual(A.route_reading(client, s), "prediction")
+        s.case = C.hear(s.case, "what about the gold plus ones")
+        self.assertIsNone(A.route_reading(Counting("prediction"), s))
 
     def test_method_questions_and_relative_clauses_name_no_kind_of_help(self):
         """The review of step 1: these were read as business or prediction."""
         for words in ("Should I drop the duplicate rows before training?", "Should I raise the threshold to 0.7",
-                      "What should I do about leakage in my features", "Why is the model accuracy so high?",
+                      "What should I do about leakage in my features", "Why is the model accuracy so high?", "What do I do with missing values before cross-validation?",
                       "I have to decide whether to use SMOTE or class weights", "My manager, who will present it to the board, wants last month's churn by plan",
                       "which threshold will work best", "the customers who will receive the email", "before they leave town"):
             self.assertEqual(C.named_tracks([words]), {}, words)

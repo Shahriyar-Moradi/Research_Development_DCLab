@@ -9,7 +9,8 @@ only with its version, and its frozen schema is in `schemas/baseline/`. A host p
 - `case.named_tracks` (new) and `case.readiness`: the kind of help a person's own words plainly name ("which bookings are
   going to get cancelled", "send me the ids", "drop the worst 3", "real or hype"), each with the phrase that names it; a
   bare "prediction" or "forecast" is not a request. A person who said their goal and named the help they want may be
-  proposed to at once (`may_propose`, with the reason). No contract changed shape.
+  proposed to at once (`may_propose`, with the reason); advice words alone never count, and nothing is started early.
+  No contract changed shape.
 
 ## 0.151.0 (2026-10-31)
 

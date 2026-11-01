@@ -64,10 +64,12 @@ def route_doubt(state: "CaseState", move: str, tracks: set[str]) -> Optional[str
     key = f"{move}:{len(state.case.words)}"  # once a move for what the person has said so far (the review: not once per set of points)
     if key in state.route_told:
         return None
-    if set(named) & tracks:  # the review: what their words name is covered; the second reading may not push a model onto a rows request
+    strong = {t: p for t, p in named.items() if t != "advice"}  # advice words ("is that a good idea") are the weakest sign: they hide data work
+    if set(strong) & tracks:  # the review: what their words name is covered; the second reading may not push a model onto a rows request
         return None
-    second = None if named else route_now(state)  # their own words outrank the second reading
-    points = {**named, **({second: ""} if second and second not in tracks else {})}
+    second = None if strong else route_now(state)  # their own words outrank the second reading
+    missing = {t: p for t, p in named.items() if t not in tracks}
+    points = {**missing, **({second: ""} if second and second not in tracks else {})}
     if not points:
         return None
     state.route_told.append(key)
@@ -101,7 +103,9 @@ def route_reading(client: Any, state: "CaseState") -> Optional[str]:
     only (never the assistant's messages, which may quote group names), answered with one track; None when it cannot."""
     if client is None:
         return None
-    if state.group_names and any(g in " ".join(state.case.words) for g in state.group_names):
+    said = " ".join(state.case.words)
+    # whole words, any case; a value under three characters ("No", "A") names nothing and would switch the check off for good
+    if any(len(g) >= 3 and re.search(rf"(?<!\w){re.escape(g)}(?!\w)", said, re.I) for g in state.group_names or ()):
         return None  # the review of step 1: their words repeat a table value the case was shown; route_check holds no cell value
     cols = ", ".join(c["name"] for c in (state.table or {}).get("columns") or [])
     words = "\n".join(f"- {w}" for w in state.case.words[-8:])
@@ -434,10 +438,9 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     if track in NO_DATA_WORK and not state.case.chosen and not r.ready and not state.budget_reached and data_work(state):
         return {"error": "the person's need points to data work (a shared table, or a list, report, model or cleaning): advice "
                          "answers a question with no work on data. Propose or start the work their need calls for."}
-    # clear, told to go ahead, and this the one kind of help named ("a dashboard of the bookings going to get cancelled" names two:
-    # never started before the case is ready; the review of step 1, a report-not-model trap)
-    clear_go = r.may_propose and state.go_ahead and set(C.named_tracks(state.case.words)) == {track}
-    if not state.case.chosen and not r.ready and not state.budget_reached and track not in NO_DATA_WORK and not clear_go:
+    # a clear person is proposed to at once (readiness), never started on before the case is ready: "send me the customers who
+    # churned ... call list by friday" is both a go-ahead and a named analysis, on a real-prediction trap (the second review of step 1)
+    if not state.case.chosen and not r.ready and not state.budget_reached and track not in NO_DATA_WORK:
         return {"error": "the person has not chosen and the case is not ready: " + "; ".join(r.reasons)}
     doubt = None if state.case.chosen else route_doubt(state, "start", {track})
     if doubt:

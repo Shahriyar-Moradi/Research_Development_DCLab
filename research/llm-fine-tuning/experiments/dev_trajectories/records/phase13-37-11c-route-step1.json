@@ -36,6 +36,10 @@
     {
       "decision": "The new people are practice: pinned so an edit shows, never a final test",
       "why": "the sealed sets are read once; tuning happens on practice in the open"
+    },
+    {
+      "decision": "No early start: a clear person gets options at once, never work started before the case is ready",
+      "why": "the plan asks the agent to propose at once when the person is clear; an early start only added a way to lock a trap's wrong work"
     }
   ],
   "change": "dclab_core/case.py (NAMED, named_tracks, readiness clear), dclab_core 0.152.0 and CHANGELOG; dclab_rnd/agents/case_agent.py (route_now, route_doubt, route_told, the propose and start checks, a clear start on a go-ahead); dclab_rnd/agents/case_session.py (route_told kept); dclab_rnd/draft/case_home.py (the route_check client); dclab_rnd/agent_eval/conversation_exam/__init__.py (split dev_route, PINNED); people_dev_route.json and .sha256; docs/DATA_CATALOG.md and data_catalog.json; tests/test_case_agent.py, tests/test_conversation_exam.py",
@@ -159,6 +163,46 @@
       "cause": "a count question was taken as naming the help",
       "fix": "the count phrase is no longer read as naming any kind of help",
       "test": "the measurement on openings and truth sentences"
+    },
+    {
+      "id": "F13",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "A rows-phrased real-prediction trap could have an analysis started before the case was ready",
+      "scenario": "\"send me the customers who churned in the last 3 months, my retention team needs a call list by friday\": send me is a go-ahead and names analysis, so the start was accepted and the route locked",
+      "cause": "the clear start counted the message that named the help as its own go-ahead",
+      "fix": "no early start at all: a clear person is proposed to at once, and work starts only when the case is ready or the person chose",
+      "test": "tests/test_case_agent.py test_a_clear_person_is_proposed_to_but_never_started_on_before_the_case_is_ready"
+    },
+    {
+      "id": "F14",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "\"What do I do with missing values\" was read as a business question",
+      "scenario": "an advice start got a doubt pointing to business, and the second reading was not asked",
+      "cause": "the method exclusion followed about only",
+      "fix": "with is excluded too",
+      "test": "tests/test_case_agent.py test_method_questions_and_relative_clauses_name_no_kind_of_help"
+    },
+    {
+      "id": "F15",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Advice words silenced the second reading where they hide data work",
+      "scenario": "\"Is that a good idea? we keep losing members and I want to call them before it is too late\": advice started at once, the reading never asked",
+      "cause": "any named kind of help, advice included, outranked the reading",
+      "fix": "advice words are the weakest sign: the reading is still asked, and they never make a person clear",
+      "test": "tests/test_case_agent.py test_advice_words_do_not_silence_the_second_reading"
+    },
+    {
+      "id": "F16",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A short table value switched the route check off for the rest of the case",
+      "scenario": "a group named No or A matched inside ordinary words",
+      "cause": "a substring test",
+      "fix": "whole words, any case, values of three characters or more",
+      "test": "tests/test_case_agent.py test_a_short_table_value_does_not_switch_the_route_check_off"
     }
   ],
   "measurements": [
@@ -195,7 +239,8 @@
     "A word that names a thing is not a request for it",
     "Price a gate from past runs' real spend, not from the plan's round number",
     "A rule that tells the agent to act sooner (propose now, start now) needs a narrower trigger than one that only adds an option",
-    "Test a word rule on the sentences people say later in a conversation, not only on their first message"
+    "Test a word rule on the sentences people say later in a conversation, not only on their first message",
+    "When a review keeps finding holes in a shortcut, remove the shortcut if the plan does not need it"
   ],
   "risks": [
     "Unmeasured: the doubt could still nudge an option onto a report-not-model or rows trap person when the second reading is wrong",
