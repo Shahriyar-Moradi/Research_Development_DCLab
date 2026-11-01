@@ -77,8 +77,11 @@ OWNER = {"id": "owner-telco", "level": "business_owner", "style": "vague", "open
          "route": "prediction", "tool": "segmentation_project", "also_right": [], "trap": None, "trap_check": None}
 
 
-def check_person(p: Mapping[str, Any]) -> list[str]:
-    """What is wrong with a written person (empty when complete)."""
+REQUIRE_CLAIMS = frozenset({"sealed_v3"})  # sets written to fit their table: a person with a table must say what the story relies on (table_fit)
+
+
+def check_person(p: Mapping[str, Any], require_claims: bool = False) -> list[str]:
+    """What is wrong with a written person (empty when complete). ``require_claims``: the set must be written to fit its tables."""
     problems = []
     for key, allowed in (("level", LEVELS), ("style", STYLES), ("route", TRACKS), ("tool", TOOLS)):
         if p.get(key) not in allowed:
@@ -101,6 +104,9 @@ def check_person(p: Mapping[str, Any]) -> list[str]:
         problems.append("a trap_check without a trap")
     if p.get("tool") == "segmentation_project" and p.get("route") != "prediction":
         problems.append("a segmentation project is a prediction route")
+    from . import table_fit
+
+    problems += table_fit.fit(p, require=require_claims)  # the story must fit the table it shares (checked when claimed, required for a new set)
     return problems
 
 
@@ -507,7 +513,9 @@ def next_id() -> str:
     return f"CEX-{n:03d}"
 
 
-ESTIMATE_EUR = {"home": 0.08, "plain": 0.10, "person": 0.01, "judge": 0.08}  # per conversation; replaced by each run's measured spend
+# per conversation, measured on the practice runs of 2026-11-01 (the judge was priced at 0.08 before and the estimate read 4.3 for a run that
+# cost 1.7); a technical advice conversation costs more than these. Replaced by each run's measured spend.
+ESTIMATE_EUR = {"home": 0.08, "plain": 0.05, "case": 0.10, "safe": 0.06, "person": 0.005, "judge": 0.025}
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -544,7 +552,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.only:
         wanted = {x.strip() for x in args.only.split(",")}
         people = [p for p in people if p["id"] in wanted]
-    bad = {p["id"]: check_person(p) for p in people if check_person(p)}
+    bad = {p["id"]: check_person(p, args.split in REQUIRE_CLAIMS) for p in people if check_person(p, args.split in REQUIRE_CLAIMS)}
     if bad:
         print(f"refused: people with problems: {bad}", file=sys.stderr)
         return 2

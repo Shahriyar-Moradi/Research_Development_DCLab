@@ -1,0 +1,117 @@
+{
+ "package": "37.11f",
+ "title": "A written person's story must fit the table they share: the claims are checked by code and the writer of a new set is briefed with the real tables",
+ "date": "2026-11-02",
+ "request": "The owner asked to fix the rule for writing the fresh sealed set, after the route test found practice people whose story the shared table could not hold.",
+ "spec": "A person who shares a table can state what the story relies on in it; code checks the claims against the real table and refuses a false one; a new set can require the claims; the writer gets a brief generated from the real tables; the sets that exist are untouched.",
+ "plan": [
+  "Measure how widespread the flaw is, from the practice sets and the saved conversations",
+  "Make the claims machine-checkable and opt-in, required for the next sealed set",
+  "Generate the brief for the writer from the tables themselves",
+  "Test, review, gates, commit"
+ ],
+ "decisions": [
+  {
+   "decision": "The claims are opt-in and required only for the next sealed set",
+   "why": "the practice sets are pinned by hash and were run on; changing how they are checked would change what they mean"
+  },
+  {
+   "decision": "Claims name values and properties, not only columns",
+   "why": "the columns of the existing sets match their tables almost always; the stories broke on city names, destinations and duplicates, which a column check cannot see"
+  },
+  {
+   "decision": "The brief is generated, with a test that it is current",
+   "why": "a hand-written brief drifts from the tables, which is how the practice set came to be written for tables nobody had shown the writer"
+  },
+  {
+   "decision": "The practice set is not edited",
+   "why": "it is hash-pinned; its flawed people are read as flawed in the record instead"
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/conversation_exam/table_fit.py, brief.py, WRITING_PEOPLE.md (generated), __init__.py (check_person takes require_claims, REQUIRE_CLAIMS, main passes it); tests/test_conversation_exam_table_fit.py",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "Practice people written without the tables told stories the tables could not hold, and nothing checked it",
+   "scenario": "in the route test, r-06 (a company in Turkey sharing the UAE sales table), r-17 (Indian city names cleaned in a table of UAE cities with unique ids) and r-20 (a Peruvian tour operator in a table of Paris and Dubai) each drifted into 'I sent the wrong file'; at least three of eight played people with a table, against about one of twenty-six in the set written with the tables in view",
+   "cause": "the independent writer never saw the three invented tables, and check_person looked at the record's shape, not at whether the story fits its data",
+   "fix": "table_claims checked against the real table, required for the next sealed set, and a brief generated from the tables",
+   "test": "tests/test_conversation_exam_table_fit.py test_the_stories_that_broke_the_route_test_would_have_been_refused_with_the_reason"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The first version of the repeated-id claim said a column that repeats all the time never does",
+   "scenario": "a story claiming that the plan column repeats was answered 'it never does'",
+   "cause": "the claim was meant for id columns and took any column",
+   "fix": "the claim is refused for a column not ending in _id, with that reason",
+   "test": "tests/test_conversation_exam_table_fit.py test_each_kind_of_false_claim_is_named"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A badly shaped claim crashed the check instead of being refused",
+   "scenario": "a writer's typo such as columns given as a number, values given as a list, or a null made the person checker and the exam's main die with a traceback; a bare string was read letter by letter",
+   "cause": "the claims were iterated without checking their shape",
+   "fix": "the shape is checked first and refused as malformed table_claims with the shape it should have",
+   "test": "tests/test_conversation_exam_table_fit.py test_a_badly_shaped_claim_is_refused_with_its_shape_never_a_traceback"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The rule that a new set must carry claims was met by writing empty claims",
+   "scenario": "table_claims set to an empty object, or to empty lists, passed the required-claims rule, which is the failure the package exists to prevent; a story saying one row per customer on the sales table passed because nothing could be claimed about uniqueness",
+   "cause": "presence of the key was checked, not that it says anything, and only repetition could be claimed",
+   "fix": "a required set refuses claims that say nothing, and a unique claim for id columns is checked like the repeated one",
+   "test": "tests/test_conversation_exam_table_fit.py test_claims_that_say_nothing_do_not_satisfy_a_set_that_requires_them, test_uniqueness_can_be_claimed_and_is_checked"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Number and yes-no columns could not be claimed, and the check leaned on a pandas detail",
+   "scenario": "a claim about the cancelled column was refused as having too many values; the text-only test of a column would fail on a newer pandas where text is a string type",
+   "cause": "only columns of the object type were listed",
+   "fix": "every column with few distinct values is listed whatever its type, and the number ranges, date spans and a text example are listed for the rest",
+   "test": "tests/test_conversation_exam_table_fit.py test_numbers_and_yes_no_columns_can_be_claimed_when_they_hold_few_values"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The brief understated what an advice conversation costs, left out the money, date and number facts of the tables, and did not say how to register a new set",
+   "scenario": "a run capped from the brief's per-conversation cost would stop in the middle of the advice people; a writer could set a story in another currency or year; the exam's own estimate read EUR 4.3 for a run that cost EUR 1.7",
+   "cause": "the brief listed values and flags only, and the exam's estimate still priced the judge at its old rate",
+   "fix": "the brief lists ranges, date spans and a price example, gives the advice cost apart, names the route-trap rule and the registration steps; the estimate uses the measured costs",
+   "test": "tests/test_conversation_exam_table_fit.py test_the_brief_is_the_one_generated_from_the_real_tables"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the stories of the route test's people replayed as claims against the real tables",
+   "gate": "the claims of r-17 and r-20 as the stories made them are refused with the reason, a story that fits passes, and the existing sets pass unchanged",
+   "fixed_before_run": true,
+   "result": "r-17's Bombay and Bengaluru and its repeated customers, and r-20's Machu Picchu and Cusco, were each refused naming the values the table holds; a fitting story passed in any letter case; the dev and route sets, 40 and 20 people, are unchanged",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the claims of r-17 and r-20 were written afterwards from their stories, as the writer would have written them",
+    "a story's claim about the table is only checked when the writer makes it"
+   ]
+  }
+ ],
+ "outcome": "The next set cannot be written, or run, with a person whose story the table cannot hold, and its writer is shown the tables. The practice set stays as it is.",
+ "lessons": [
+  "Check what a story claims about its data, not only the shape of the record that holds it",
+  "Show the writer the real data; a brief generated from it cannot drift"
+ ],
+ "risks": [
+  "A writer can claim nothing and write a story that does not fit: the claims are required for the next sealed set, but a story detail left unclaimed is still unchecked"
+ ],
+ "commits": []
+}
