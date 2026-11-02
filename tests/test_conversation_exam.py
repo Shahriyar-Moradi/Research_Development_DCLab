@@ -671,6 +671,32 @@ class SealedV2GateTests(unittest.TestCase):
         self.assertEqual(set(ce.SEALED_ARMS["sealed_v2"]), {"plain", "case"})
 
 
+class DeliveryTests(unittest.TestCase):
+    """2026-11-02 (the owner's Telco session): the exam scores whether a person who asked for figures got them, and how soon."""
+
+    PERSON = {"id": "q-01", "opening": "which segment of my customer I lost more", "upload": "customers"}
+
+    def test_a_person_who_shares_a_table_and_asks_for_figures_is_one_who_asked(self):
+        self.assertTrue(X.figures_asked(self.PERSON))
+        self.assertFalse(X.figures_asked({**self.PERSON, "upload": None}))
+        self.assertFalse(X.figures_asked({**self.PERSON, "opening": "I want a model that predicts who will leave"}))
+
+    def test_the_reply_with_the_first_drawn_answer_and_the_questions_and_stalling_before_it_are_counted(self):
+        conv = {"transcript": [{"role": "person", "text": "x"},
+                               {"role": "assistant", "text": "What will you do with the answer?", "choices": []},
+                               {"role": "person", "text": "show me"},
+                               {"role": "assistant", "text": "I will retry next turn.", "choices": []},
+                               {"role": "assistant", "text": "Month-to-month lost the most.", "choices": [], "shown": ["answer"]}]}
+        d = X.delivery(conv, self.PERSON)
+        self.assertEqual((d["figures_by_reply"], d["questions_before_figures"], d["stalling"]), (2, 1, 1))
+
+    def test_the_summary_says_how_many_who_asked_had_figures_by_the_second_reply(self):
+        rows = [{**{k: 0 for k in ("asked", "useful_questions", "already_answered", "safety_failures", "silent")}, "judged": True, "failed": False,
+                 "unjudged": False, "model_fallback": False, "turns_before_options": 1, "person_turns": 2, "figures_asked": True,
+                 "figures_by_reply": by, "questions_before_figures": 0, "stalling": 0} for by in (0, 1, None)]
+        self.assertEqual(X._delivered(rows)["acts_when_asked"], round(2 / 3, 4))
+
+
 if __name__ == "__main__":
     unittest.main()
 

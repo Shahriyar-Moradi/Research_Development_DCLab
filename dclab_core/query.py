@@ -115,6 +115,59 @@ def _kinds(frame: pd.DataFrame) -> dict[str, str]:
     return out
 
 
+WHERE_FIX = ('Fix: a share is {"name": "left_share", "op": "rate", "where": {"column": "<column>", "op": "eq", "value": "<value>"}} '
+             '(the condition is the where, with no "column" on the measure itself); the number of rows meeting a condition is '
+             '{"name": "left", "op": "count", "where": {"column": "<column>", "op": "eq", "value": "<value>"}}')
+YES_WORDS, NO_WORDS = frozenset({"yes", "y", "true", "t", "1"}), frozenset({"no", "n", "false", "f", "0"})
+
+
+def _flag(series: pd.Series) -> dict[str, Any]:
+    """The values of a column that holds at most two, as lower-case text to the value the table has (empty when it holds more)."""
+    found = series.dropna().unique()
+    if not 1 <= len(found) <= 2:
+        return {}
+    return {str(v).strip().lower(): (v.item() if hasattr(v, "item") else v) for v in found}
+
+
+def _align(f: Filter, frame: pd.DataFrame, notes: list[str]) -> Filter:
+    """A yes/no column asked with true, "yes", 1 and the like: the value the table really holds, said in ``notes``."""
+    if f.column not in frame.columns or f.op not in ("eq", "ne") or isinstance(f.value, list) or f.value is None:
+        return f
+    held = _flag(frame[f.column])
+    want = str(f.value).strip().lower()
+    if not held or want in held:
+        actual = held.get(want, f.value)
+    elif want in YES_WORDS | NO_WORDS and set(held) <= YES_WORDS | NO_WORDS:
+        actual = next((v for k, v in held.items() if (k in YES_WORDS) == (want in YES_WORDS)), f.value)
+    else:
+        return f
+    if actual == f.value and type(actual) is type(f.value):
+        return f
+    notes.append(f"{f.column}: {f.value!r} read as {actual!r}, the value the table holds")
+    return f.model_copy(update={"value": actual})
+
+
+def repair(plan: QueryPlan, frame: pd.DataFrame) -> tuple[QueryPlan, list[str]]:
+    """What a plain misreading of the plan's shape can be made right, said in the notes and never silent: a yes/no column
+    asked with true or "yes" gets the value the table holds, and a share asked of a yes/no column with no condition counts
+    that column's yes value. Anything else is left for ``validate`` to refuse."""
+    notes: list[str] = []
+    filters = [_align(f, frame, notes) for f in plan.filters]
+    measures = []
+    for m in plan.measures:
+        if m.where is not None:
+            m = m.model_copy(update={"where": _align(m.where, frame, notes)})
+        elif m.op == "rate" and m.column in frame.columns:
+            held = _flag(frame[m.column])
+            yes = [(k, v) for k, v in held.items() if k in YES_WORDS]
+            says_no = bool(re.search(r"(?:^|_)(?:no|not|stay\w*|retain\w*|kept)(?:_|$)", m.name.lower()))  # a share named for the other value is not guessed
+            if len(held) == 2 and len(yes) == 1 and set(held) <= YES_WORDS | NO_WORDS and not says_no:  # both values say yes or no: never "x"/"y"
+                m = m.model_copy(update={"where": Filter(column=m.column, op="eq", value=yes[0][1]), "column": None})
+                notes.append(f"the share {m.name} counts the rows where {m.where.column} = {yes[0][1]!r}")
+        measures.append(m)
+    return plan.model_copy(update={"filters": filters, "measures": measures}), notes
+
+
 def validate(plan: QueryPlan, frame: pd.DataFrame) -> list[str]:
     """The reasons the plan is refused on this table (empty: it may run)."""
     kinds = _kinds(frame)
@@ -158,11 +211,18 @@ def validate(plan: QueryPlan, frame: pd.DataFrame) -> list[str]:
         if plan.period.column in plan.group_by:
             why.append(f"period: {plan.period.column} is also a group")
     for m in plan.measures:
+        if m.where is not None and m.op not in ("count", "rate"):
+            why.append(f"measure {m.name}: a condition (where) belongs to a count or a share, not to {m.op}: {WHERE_FIX}")
+            continue
+        if m.op == "count" and m.where is not None:  # a count of the rows that meet a condition (the owner's Telco session, 2026-11-02)
+            if known(m.where.column, f"measure {m.name} condition") and kinds[m.where.column] in ("text", "identifier") \
+                    and m.where.op not in ("is_null", "not_null"):
+                why.append(f"measure {m.name}: a count's condition never names one identifier or a free text")
         if m.op == "count" and m.column is None:
             continue
         if m.op == "rate":
             if m.where is None or not known(m.where.column, "rate"):
-                why.append(f"measure {m.name}: a rate needs the condition it counts (where)")
+                why.append(f"measure {m.name}: a rate needs the condition it counts (where). {WHERE_FIX}")
             elif kinds[m.where.column] in ("text", "identifier") and m.where.op not in ("is_null", "not_null"):
                 why.append(f"measure {m.name}: a rate's condition never names one identifier or a free text")
             continue
@@ -203,6 +263,10 @@ def _mask(frame: pd.DataFrame, f: Filter) -> pd.Series:
 
 def _measure(rows: pd.DataFrame, m: Measure, floor: int = FLOOR) -> Any:
     if m.op == "count":
+        if m.where is not None:  # only the rows that meet the condition are counted
+            rows = rows[_mask(rows, m.where)]
+            n = int(len(rows)) if m.column is None else int(rows[m.column].notna().sum())
+            return n if n == 0 or n >= floor else None  # one or two rows meeting a condition are never counted out (the review of 37.11j)
         return int(len(rows)) if m.column is None else int(rows[m.column].notna().sum())
     if m.op == "count_distinct":
         return int(rows[m.column].nunique(dropna=True))

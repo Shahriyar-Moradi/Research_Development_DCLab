@@ -81,6 +81,54 @@ NAMED = {
 }
 
 
+# 2026-11-02 (the owner's Telco session): a person who asks for a number, a ranking, a report or a chart of the table they shared
+# is asking for something the table can answer now. They are not asked what they will do with it first: the figures come first.
+FIGURES = re.compile(
+    r"\bwhich (?:\w+ ){0,2}(?:segments?|groups?|types?|kinds?|categor(?:y|ies)|regions?|plans?|products?|channels?|contracts?|cohorts?)\b|"
+    r"\bhow many\b|\bwhat (?:share|percent\w*|proportion|number|rate|fraction)\b|\bbreak ?down\b|\bcompare\b|\brank\w*\b|"
+    r"\b(?:report|dashboard|plot|chart|graph|ranking)\b|\b(?:show|give|send|make|draw)(?: me| us)? (?:my |the |a |an )?(?:\w+ )?"
+    r"(?:table|numbers|figures|summary|totals?|counts?)\b", re.I)
+
+
+def asks_for_figures(words: Iterable[str] | str) -> bool:
+    """The person's own words ask for figures, a ranking, a report or a chart (a reading of their words only)."""
+    if isinstance(words, str):
+        words = [words]
+    return any(FIGURES.search(str(w)) for w in words)
+
+
+MODEL_WORDS = re.compile(r"\b(?:predict\w*|classifier|model(?:s|ling|ing)?|forecast\w*|train(?:ed|ing)?|machine learning|baseline|hold-?out|"
+                         r"logistic|boosting|likely to|will (?:leave|churn|cancel)|score each|risk|scores?|likelihood|probabilit\w*|random forest|svm|xgboost|"
+                         r"lightgbm|regression|neural|cross.?validat\w*|folds?|imbalanc\w*|overfit\w*|should (?:i|we))\b", re.I)
+
+
+def wants_figures(words: Iterable[str] | str) -> bool:
+    """Figures, a ranking, a report or a chart of the table, and no model asked for: what the table can answer now."""
+    if isinstance(words, str):
+        words = [words]
+    words = list(words)
+    return asks_for_figures(words) and not any(MODEL_WORDS.search(str(w)) for w in words)
+
+
+OUTCOME_LANG = re.compile(r"\b(?:outcome|target|label|predict\w*|whether|marks?|means?|says?|shows?|tells?|flags?|left|leave\w*|leaving|churn\w*|cancel\w*|lost|los\w+|"
+                          r"default\w*|fraud\w*|stopped|quit)\b", re.I)
+
+
+def grounded_columns(case: "CaseFile", columns: Iterable[str]) -> list[str]:
+    """The table's columns that the person themselves tied to what happened: a column named, in one sentence of their own words or of
+    an assumption they confirmed, together with outcome language ("Churn means the customer left", "the churn_flag column says who
+    left"). A column only mentioned ("is it different by gender?") is not one, and the agent's own paraphrases ground nothing. The
+    outcome of a build is taken from here and never guessed."""
+    texts = [*case.words, *(f.value for f in case.assumptions if f.status == "confirmed")]
+    sentences = [s for t in texts for s in re.split(r"(?<=[.?!;])\s+|\n+", str(t)) if s.strip()]
+    found = []
+    for column in columns:
+        pattern = re.compile(r"(?<![\w])" + re.escape(str(column)) + r"(?![\w])", re.I)
+        if any(pattern.search(s) and OUTCOME_LANG.search(pattern.sub(" ", s)) for s in sentences):
+            found.append(str(column))
+    return found
+
+
 def named_tracks(words: Iterable[str]) -> dict[str, str]:
     """The kinds of help the person's own words name, each with the phrase that names it (the first one found)."""
     found: dict[str, str] = {}
@@ -228,6 +276,14 @@ def quote_ok(quote: Optional[str], value: str, words: Iterable[str]) -> bool:
     return any(pattern.search(_norm(w)) for w in words) and bool(_content(value) & _content(q))
 
 
+def whole_short_message(quote: Optional[str], words: Iterable[str]) -> bool:
+    """The quote is the whole of a short message (up to four words): a bare "yes" or "go" is the person's yes and cannot be quoted in two
+    words (the owner's second Telco session: five messages to start one build)."""
+    plain = lambda t: re.sub(r"[\W_]+", " ", str(t or "")).strip().lower()  # noqa: E731
+    q = plain(quote)
+    return bool(q) and len(q.split()) <= 4 and any(plain(w) == q for w in words)
+
+
 _NUMBER = re.compile(r"(?<![\w.])(?:\d[\d,]*(?:\.\d+)?|\.\d+)(?:\s?(?:%|percent\b|per cent\b)|[kKmMbB]\b|[xX]\b)?(?:\s+(?:in|out of)\s+\d+)?")
 
 
@@ -325,7 +381,7 @@ def apply(case: CaseFile, field: str, value: Union[CaseFact, Unknown, CaseOption
         return _next(case, field, items, by, why, op="add", findings=[*case.findings, *items])
     if field == "build":  # 37.6: the person's yes to a build, with their words
         latest = case.words[-1:] if case.words else []
-        if value is None or not quote_ok(value.quote, value.quote, latest):
+        if value is None or not (quote_ok(value.quote, value.quote, latest) or whole_short_message(value.quote, latest)):
             raise CaseRefused("a build needs the person's own words from their latest message")
         return _next(case, field, value, by, why, build=value)
     raise CaseRefused(f"no field {field!r} the agent may change")
@@ -401,14 +457,18 @@ def readiness(case: CaseFile) -> Readiness:
     """Ready to propose: the goal and the decision it serves are known, who uses the result is known, the data is known or
     its absence is, and no unknown blocks every option. Known means said, computed or confirmed: never assumed. The
     ceiling (about six questions, or two declined) lets the agent propose before, with what is open stated."""
-    missing = [f for f in READY_NEEDS if not known(getattr(case, f))]
-    blocking = [u.field for u in case.unknowns if u.blocks == "all"]
+    named = named_tracks(case.words)
+    # a figures request on a shared table (not a prediction, a business decision or advice) needs only the goal and the data:
+    # the decision and the user are asked after the answer, and stay open as assumptions meanwhile
+    descriptive = known(case.data) and wants_figures(case.words) and not ({"prediction", "business"} & set(named))
+    needs = ("goal", "data") if descriptive else READY_NEEDS
+    missing = [f for f in needs if not known(getattr(case, f))]
+    blocking = [u.field for u in case.unknowns if u.blocks == "all" and not (descriptive and u.field in ("decision", "user"))]
     ready = not missing and not blocking
     ceiling = case.asked >= CEILING["asked"] or case.declined >= CEILING["declined"]
     reasons = [f"{f} is not known yet" for f in missing] + [f"{f} blocks every option" for f in blocking]
     if ceiling and not ready:
         reasons.append("the question ceiling is reached: propose, stating what is still open as assumptions")
-    named = named_tracks(case.words)
     named = {t: p for t, p in named.items() if t != "advice"}  # advice words are too weak a sign to skip questions on
     clear = known(case.goal) and bool(named) and not blocking  # 0.152.0: a clear person is not made to answer what they said
     if clear and not ready and not ceiling:

@@ -1,0 +1,253 @@
+[
+ {
+  "id": "q-01",
+  "level": "business_owner",
+  "style": "impatient",
+  "opening": "I face losing my customer I want know which segment of my customer I lost more",
+  "upload": "customers",
+  "table_claims": {
+   "columns": [
+    "segment",
+    "plan",
+    "city",
+    "churned_next_month"
+   ],
+   "values": {
+    "segment": [
+     "business",
+     "consumer"
+    ],
+    "plan": [
+     "basic",
+     "plus",
+     "premium"
+    ]
+   }
+  },
+  "truth": {
+   "situation": "I run a small internet reseller in Sharjah. Customers keep leaving and I do not have time for long talks; I type fast and with mistakes.",
+   "goal": "I want to know which group of my customers I lose the most, counted in how many customers left, not in percent. Then maybe change what I offer.",
+   "decision": "Maybe which group gets a better offer, but I have not decided and do not want to be asked about it before I see numbers.",
+   "user": "Only me.",
+   "data": "The customer table I shared: segment, city, plan, tenure, spend, support tickets and churned_next_month (1 means the customer left).",
+   "knows": "I only know that churned_next_month = 1 means a customer left. I will get annoyed if asked what I will do with the answer before seeing numbers, and I will say 'just show me the report and dashboard'.",
+   "constraints": "None. I want it now."
+  },
+  "must_understand": [
+   "wants the number of customers lost per group, not the share",
+   "churned_next_month = 1 is a lost customer",
+   "wants to see the figures, a report or a dashboard, without a long interview"
+  ],
+  "route": "analysis",
+  "tool": "query",
+  "also_right": [
+   "reporting"
+  ],
+  "trap": "clear_request",
+  "trap_check": "Shows counts of lost customers by segment, plan or city from the table within its first two replies instead of asking what they will do with the answer."
+ },
+ {
+  "id": "q-02",
+  "level": "analyst",
+  "style": "impatient",
+  "opening": "how many customers churned by plan and by city? give me a chart pls",
+  "upload": "customers",
+  "table_claims": {
+   "columns": [
+    "plan",
+    "city",
+    "churned_next_month"
+   ],
+   "values": {
+    "plan": [
+     "basic",
+     "plus",
+     "premium"
+    ],
+    "city": [
+     "Dubai",
+     "Sharjah",
+     "Ajman"
+    ]
+   }
+  },
+  "truth": {
+   "situation": "I am a data analyst at a telecom shop chain in the UAE. My manager wants a quick look before a meeting in an hour.",
+   "goal": "A chart of the number of churned customers by plan and by city, plus the numbers behind it.",
+   "decision": "None yet; the chart goes into a slide for the manager.",
+   "user": "My manager, who reads the slide.",
+   "data": "The customers table: plan, city, churned_next_month among others.",
+   "knows": "I know exactly what I want. I will say 'just give me the chart' if asked a question first.",
+   "constraints": "One hour."
+  },
+  "must_understand": [
+   "counts of churned customers (churned_next_month = 1) by plan and by city",
+   "a chart plus the numbers, now",
+   "no model is wanted"
+  ],
+  "route": "analysis",
+  "tool": "query",
+  "also_right": [
+   "reporting"
+  ],
+  "trap": "clear_request",
+  "trap_check": "Draws a chart of churned customers by plan and city in the first or second reply, with the numbers, without asking about the decision."
+ },
+ {
+  "id": "q-03",
+  "level": "business_owner",
+  "style": "vague",
+  "opening": "which of my customer plan lose more customers? and give me dashbord i want see it every week",
+  "upload": "customers",
+  "table_claims": {
+   "columns": [
+    "plan",
+    "churned_next_month"
+   ],
+   "values": {
+    "plan": [
+     "basic",
+     "plus",
+     "premium"
+    ]
+   }
+  },
+  "truth": {
+   "situation": "I own a small subscription business in Ras Al Khaimah and I am not technical. I write short messages with mistakes.",
+   "goal": "A dashboard I can open every week that shows which plan loses the most customers.",
+   "decision": "I may change the price of the plan that loses most.",
+   "user": "Me and my sister who helps with the shop.",
+   "data": "The customers table with plan and churned_next_month.",
+   "knows": "I do not know what 'churned_next_month' means exactly but my accountant said 1 is gone customer.",
+   "constraints": "It must be simple, no technical words."
+  },
+  "must_understand": [
+   "a dashboard of lost customers by plan, seen every week",
+   "no prediction is asked",
+   "keep it simple"
+  ],
+  "route": "reporting",
+  "tool": "dashboard",
+  "also_right": [
+   "analysis"
+  ],
+  "trap": "clear_request",
+  "trap_check": "Shows a dashboard or chart of lost customers by plan in its first two replies and says it can be refreshed, instead of asking about their decision first."
+ },
+ {
+  "id": "q-04",
+  "level": "analyst",
+  "style": "detailed",
+  "opening": "Make me a report of churn by segment and by number of support tickets, ranked by customers lost, for tomorrow's meeting. No model please, only the numbers.",
+  "upload": "customers",
+  "table_claims": {
+   "columns": [
+    "segment",
+    "support_tickets_90d",
+    "churned_next_month"
+   ],
+   "values": {
+    "segment": [
+     "business",
+     "consumer"
+    ],
+    "support_tickets_90d": [
+     0,
+     5
+    ]
+   }
+  },
+  "truth": {
+   "situation": "I am an analyst preparing a retention meeting for tomorrow morning at a telecom company in Abu Dhabi.",
+   "goal": "A ranked report of customers lost by segment and by support tickets in the last 90 days, with the share that left beside each number.",
+   "decision": "Whether to put more support staff on business customers; the meeting decides.",
+   "user": "The head of customer care and two managers.",
+   "data": "The customers table: segment, support_tickets_90d and churned_next_month.",
+   "knows": "I know what I need; I resent being asked what the meeting will decide.",
+   "constraints": "Ready tomorrow morning; numbers only, no model."
+  },
+  "must_understand": [
+   "ranked by number of customers lost, share beside it",
+   "by segment and by support tickets",
+   "numbers only, no model"
+  ],
+  "route": "analysis",
+  "tool": "query",
+  "also_right": [
+   "reporting"
+  ],
+  "trap": "clear_request",
+  "trap_check": "Produces the ranked numbers and chart by segment and by support tickets in the first two replies and does not offer a prediction instead."
+ },
+ {
+  "id": "q-05",
+  "level": "business_owner",
+  "style": "impatient",
+  "opening": "just show me the numbers, no questions. who left more, business or consumer customers?",
+  "upload": "customers",
+  "table_claims": {
+   "columns": [
+    "segment",
+    "churned_next_month"
+   ],
+   "values": {
+    "segment": [
+     "business",
+     "consumer"
+    ]
+   }
+  },
+  "truth": {
+   "situation": "I run a courier company's customer desk in Ajman. I have very little patience for questions.",
+   "goal": "Know whether business or consumer customers left more.",
+   "decision": "Which group my sales team visits first.",
+   "user": "Me.",
+   "data": "The customers table: segment and churned_next_month.",
+   "knows": "I will repeat 'just show me' if the assistant asks me anything before showing the numbers.",
+   "constraints": "None."
+  },
+  "must_understand": [
+   "wants counts of customers who left, business against consumer",
+   "no questions before the numbers"
+  ],
+  "route": "analysis",
+  "tool": "query",
+  "also_right": [],
+  "trap": "clear_request",
+  "trap_check": "Gives the business against consumer numbers in the first reply, with no question before them."
+ },
+ {
+  "id": "q-06",
+  "level": "business_owner",
+  "style": "detailed",
+  "opening": "I need a report of the customers who will cancel next month, my call team phones twenty a week.",
+  "upload": "customers",
+  "table_claims": {
+   "columns": [
+    "customer_id",
+    "tenure_months",
+    "support_tickets_90d",
+    "churned_next_month"
+   ]
+  },
+  "truth": {
+   "situation": "I manage a call team of three people at a telecom reseller in Dubai.",
+   "goal": "A weekly list of about twenty customers who are most likely to cancel next month, so the team can phone them first.",
+   "decision": "Who the team phones this week.",
+   "user": "The three call agents and me.",
+   "data": "The customers table with churned_next_month, tenure, tickets, spend.",
+   "knows": "I say 'report' but I mean a ranked list of who is likely to leave, not a count of past cancellations.",
+   "constraints": "Twenty calls a week."
+  },
+  "must_understand": [
+   "the list is of customers likely to leave next month, so a prediction",
+   "twenty calls a week",
+   "a past-cancellation report would not do"
+  ],
+  "route": "prediction",
+  "tool": "ml_project",
+  "also_right": [],
+  "trap": "report_not_model",
+  "trap_check": "Explains that a ranked list of who is likely to cancel needs a prediction, and offers that route instead of only counting past cancellations."
+ }
+]

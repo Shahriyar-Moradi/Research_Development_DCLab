@@ -329,18 +329,235 @@ class EndToEndTests(unittest.TestCase):
                     self.replies.insert(0, ("", [("propose", {"options": [dict(o, columns=[]) for o in OPTIONS]})]))
                 return super().complete(messages, tools, *args, **kwargs)
 
-        def client():
-            return Keeps(("Tell me more about what you need.", [("ask", {"question": "What would you decide with the result?"})]),
-                         ("", [("propose", {"options": [dict(o, columns=[]) for o in OPTIONS]})]), ("Here are two ways.", []),
-                         ("Good, I'll start.", []))
+        def client(person):
+            first = [("", [("query", {"measures": [{"name": "rows", "op": "count"}]})])] if person.get("upload") and C.wants_figures([person["opening"]]) else []
+            return Keeps(*first, ("Tell me more about what you need.", [("ask", {"question": "What would you decide with the result?"})]),  # a person who
+                         ("", [("propose", {"options": [dict(o, columns=[]) for o in OPTIONS]})]), ("Here are two ways.", []),  # asks for figures of
+                         ("Good, I'll start.", []))  # their table gets them first (2026-11-02): a query comes before the question
 
         folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, folder, True)
         for p in X.load("dev"):
-            conv = X.play(p, exam_arms.CaseArm(client()), Person())
+            conv = X.play(p, exam_arms.CaseArm(client(p)), Person())
             self.assertEqual(conv["route"], "prediction", p["id"])
             self.assertEqual(conv["ended"], "routed", p["id"])
             self.assertIn("case_file", conv["notes"])
+
+
+class ActFirstTests(unittest.TestCase):
+    """2026-11-02 (the owner's Telco session: nine questions and no figure for twelve messages): a person who asks for figures
+    of the table they shared gets them first; the decision and the user are not asked before; a bare yes after the agent's
+    question, and an order to show, are go-aheads."""
+
+    ASKED = ["I face losing my customer I want know which segment of my customer I lost more", "give me a report of segment of my customer",
+             "now show my report and give dashboard", "give plot", "no just show me the report and dashboard what I sked",
+             "how many customers left by contract?", "compare churn by plan"]
+
+    def test_figures_are_asked_for_in_these_words_and_not_in_a_request_for_a_model(self):
+        for w in self.ASKED:
+            self.assertTrue(C.asks_for_figures(w), w)
+        for w in ("we are losing customers", "I want a model that predicts who will leave", "should we drop the basic plan"):
+            self.assertFalse(C.asks_for_figures(w), w)
+
+    def ready_case(self, words):
+        case = C.new("case-f")
+        for w in words:
+            case = C.hear(case, w)
+        case = C.apply(case, "goal", C.CaseFact(value=" ".join(words[0].split()[:6]), status="said", quote=" ".join(words[0].split()[:6])), by="agent", why="noted")
+        return C.apply(case, "data", C.CaseFact(value="t.csv: 7043 rows, 21 columns", status="computed", computed="profile"), by="code", why="read")
+
+    def test_a_figures_request_on_a_shared_table_is_ready_with_only_the_goal_and_the_data(self):
+        r = C.readiness(self.ready_case([self.ASKED[0]]))
+        self.assertTrue(r.ready and r.may_propose, r.reasons)
+
+    def test_without_a_figures_request_the_decision_and_the_user_are_still_needed(self):
+        r = C.readiness(self.ready_case(["we are losing customers"]))
+        self.assertFalse(r.ready)
+        self.assertEqual(sorted(r.missing), ["decision", "user"])
+
+    def test_a_prediction_request_still_needs_the_decision_and_the_user(self):
+        r = C.readiness(self.ready_case(["which customers will leave, and give me a report"]))
+        self.assertFalse(r.ready)
+
+    def test_an_unknown_about_the_decision_does_not_block_a_figures_request(self):
+        case = self.ready_case([self.ASKED[0]])
+        case = C.apply(case, "unknowns", C.Unknown(field="decision", question="What will you do with it?", blocks="all", rank=1), by="agent", why="open")
+        self.assertTrue(C.readiness(case).ready)
+
+    def test_an_order_to_show_and_a_bare_yes_to_the_agents_question_are_go_aheads(self):
+        for w in ("now show my report and give dashboard", "give plot", "no just show me the report and dashboard what I sked"):
+            self.assertTrue(A.goes_ahead(w), w)
+        self.assertTrue(A.goes_ahead("yes right", asking=True))
+        self.assertTrue(A.goes_ahead("go", asking=True))
+        self.assertFalse(A.goes_ahead("yes right", asking=False))  # a yes to nothing is not an order
+        self.assertFalse(A.goes_ahead("don't show the report yet", asking=False))
+
+    def test_a_question_before_the_figures_is_refused_and_allowed_after_a_query_ran(self):
+        s = state()
+        s.frame = __import__("pandas").DataFrame(QueryCapTests.FRAME)
+        q = ("query", {"group_by": ["plan"], "measures": [{"name": "customers", "op": "count"}]})
+        client = Script(("", [("ask", {"question": "What will you do with the answer?"})]), ("", [q]),
+                        ("Plan x has 3 customers and plan y has 3.", [("ask", {"question": "Which plan do you want to look at next?"})]))
+        out = A.turn(s, client, "which plan loses more? show me")
+        first = [m["content"] for m in client.seen[1] if m.get("role") == "tool"][0]
+        self.assertIn("ask the table now", first)
+        self.assertEqual(s.case.asked, 1)  # only the question after the figures was counted
+        self.assertIn("Plan x has 3 customers", out["text"])
+    def test_a_chart_drawn_in_block_characters_never_reaches_the_person(self):
+        s = state()
+        text = "Here is a quick plot.\nMonth-to-month \u2588\u2588\u2588\u2588\u2588\u2588 One year \u2588\u2588\u2588 Two year \u2588\nMonth-to-month customers leave the most."
+        self.assertEqual(A.checked(text, s), "Here is a quick plot. Month-to-month customers leave the most.")
+        self.assertEqual(A.checked("Contract \u2588\u2588 matters most to this group of customers across the whole table of data.", s),
+                         "Contract matters most to this group of customers across the whole table of data.")
+
+    def test_the_pages_create_a_project_message_is_a_yes_to_building_and_a_go_ahead(self):
+        self.assertTrue(A.says_yes("Create a project from this chat"))
+        self.assertTrue(A.goes_ahead("Create a project from this chat"))
+        self.assertFalse(A.says_yes("Don't create a project yet"))
+        for question in ("Can I create a project later?", "How do I create a project?", "create a project from this chat when it is ready?"):
+            self.assertFalse(A.says_yes(question), question)  # a question is no yes (the review of 37.11j)
+            self.assertFalse(A.goes_ahead(question), question)
+
+    def test_requests_that_are_not_figures_stay_with_the_model_and_the_decision_questions(self):
+        for w in ("Rank my customers by risk of leaving", "Compare random forest and svm for imbalanced data",
+                  "How many folds should I use for cross validation?", "Which plan should I pick for hosting my data?"):
+            self.assertFalse(C.wants_figures(w), w)
+
+    def test_a_personal_column_is_refused_before_any_number_is_seen(self):
+        s = state()
+        s.frame = __import__("pandas").DataFrame(QueryCapTests.FRAME)
+        s.personal = {"plan"}
+        client = Script(("", [("query", {"group_by": ["plan"], "measures": [{"name": "n", "op": "count"}]}),
+                              ("dashboard", {"tiles": [{"group_by": ["plan"], "measures": [{"name": "n", "op": "count"}]}]})]), ("I cannot use that column.", []))
+        A.turn(s, client, "which plan loses more?")
+        results = [m["content"] for m in client.seen[1] if m.get("role") == "tool"]
+        self.assertTrue(all("holds personal data" in r for r in results), results)
+        self.assertEqual(s.cards, [])
+
+    def test_a_dashboard_after_an_answer_moves_the_route_so_the_board_can_be_refreshed(self):
+        s = state()
+        s.frame = __import__("pandas").DataFrame(QueryCapTests.FRAME)
+        a = ("answer", {"group_by": ["plan"], "measures": [{"name": "customers", "op": "count"}]})
+        d = ("dashboard", {"tiles": [{"group_by": ["plan"], "measures": [{"name": "customers", "op": "count"}]}]})
+        A.turn(s, Script(("", [a]), ("Plan x has 3 customers.", [])), "which plan loses more? show me")
+        self.assertEqual(s.case.route.tool, "query")
+        A.turn(s, Script(("", [d]), ("The dashboard shows customers by plan.", [])), "now give dashboard")
+        self.assertEqual((s.case.route.track, s.case.route.tool), ("reporting", "dashboard"))
+
+    def test_a_decision_question_is_not_asked_twice_nor_after_an_order_for_figures(self):
+        q = "What will you do with this? For example offer them a deal."
+        self.assertEqual(A.without_decision_questions("Consumer lost 174. " + q), "Consumer lost 174.")
+        self.assertEqual(A.without_decision_questions("Who will read the report?"), "")
+        s = state()
+        s.turns = [{"role": "user", "content": "x"}, {"role": "assistant", "content": q}]
+        out = A.turn(s, Script((q + " Consumer lost the most.", [])), "just show me the report")
+        self.assertNotIn("What will you do", out["text"])
+        self.assertIn("Consumer lost the most.", out["text"])
+
+    def test_the_first_reply_to_a_figures_request_does_not_ask_what_they_will_do(self):
+        s = state()
+        out = A.turn(s, Script(("Consumer lost the most. What will you do with this?", [])), "which segment of my customer I lost more")
+        self.assertEqual(out["text"], "Consumer lost the most.")
+
+    def test_the_figures_shown_are_the_work_and_the_case_says_so_only_for_a_person_who_asked_for_them(self):
+        s = state()
+        s.frame = __import__("pandas").DataFrame(QueryCapTests.FRAME)
+        q = ("answer", {"group_by": ["plan"], "measures": [{"name": "customers", "op": "count"}]})
+        A.turn(s, Script(("", [q]), ("Plan x has 3 customers.", [])), "which plan loses more? show me")
+        self.assertEqual((s.case.route.track, s.case.route.tool, s.case.route.by), ("analysis", "query", "agent"))
+        t = state()
+        t.frame = __import__("pandas").DataFrame(QueryCapTests.FRAME)
+        A.turn(t, Script(("", [q]), ("Plan x has 3 customers.", [])), "I need a model that will predict who will leave")
+        self.assertIsNone(t.case.route)  # a model was asked for: showing a count is not the work
+
+
+class OrdersTests(unittest.TestCase):
+    """2026-11-02 (the owner's second Telco session): five messages to start one build. "yes" could not be quoted (two words were
+    needed), "build the model" was not read as a yes, and the agent asked the person to type a phrase."""
+
+    def routed(self, words):
+        s = state()
+        A.turn(s, Script(("", [("propose", {"options": OPTIONS})]), ("Two ways.", [])), "show me options")
+        A.pick(s, Script(("Started.", [])), "Rank customers by risk")
+        s.case = C.hear(s.case, words)
+        return s
+
+    def test_a_bare_yes_to_the_agents_question_is_a_yes_and_can_be_quoted_whole(self):
+        s = self.routed("yes")
+        s.turns = [{"role": "assistant", "content": "A model would score each customer. Shall I build it now?"}, {"role": "user", "content": "yes"}]
+        self.assertEqual(A._request_build(s, "yes")["recorded"], "ml_project")
+
+    def test_a_bare_yes_to_a_question_about_something_else_is_not_a_yes_to_building(self):
+        s = self.routed("yes")
+        s.turns = [{"role": "assistant", "content": "Want me to also show churn by contract?"}, {"role": "user", "content": "yes"}]
+        self.assertIn("not about building", A._request_build(s, "yes")["error"])
+
+    def test_negated_conditional_and_reported_orders_are_not_orders(self):
+        for w in ("I'd rather not build a model", "there is no need to build a model", "I won't build a model until you show me churn by contract",
+                  "We should not build a model yet.", "Not now. Build a model after the report", "build the model once I confirm",
+                  "Build a model only after the leakage check", "build a model tomorrow", "my colleague said: build a model",
+                  "if we build a model what happens", "I won't train a model", "make a model of the business", "create a model of costs in excel",
+                  "build a model without the contract column", "no model please, whatever you think"):
+            self.assertFalse(A.orders_model(w), w)
+            self.assertFalse(A.says_yes(w), w)
+            self.assertFalse(A.goes_ahead(w), w)
+
+    def test_a_report_is_not_blocked_by_a_mention_of_risk_or_a_yes_to_an_offered_chart(self):
+        for words in ("Which contract has the highest churn risk? chart it", "show a report of customers likely to leave", "yes please"):
+            s = state()
+            s.frame = __import__("pandas").DataFrame(QueryCapTests.FRAME)
+            client = Script(("", [("answer", {"group_by": ["plan"], "measures": [{"name": "customers", "op": "count"}]})]), ("Plans x and y have 3 each.", []))
+            A.turn(s, client, words)
+            first = [m["content"] for m in client.seen[1] if m.get("role") == "tool"][0]
+            self.assertNotIn("a model is the work now", first, words)
+
+    def test_the_outcome_needs_the_persons_own_outcome_words_in_the_same_sentence_as_the_column(self):
+        case = C.new("c")
+        case = C.hear(case, "Which contract type loses most customers? Is it different by gender?")
+        self.assertEqual(C.grounded_columns(case, ["gender", "Contract"]), ["Contract"])  # gender is only mentioned
+        case = C.hear(case, "the churn_flag column says who left")
+        self.assertEqual(C.grounded_columns(case, ["gender", "churn_flag"]), ["churn_flag"])
+
+    def test_a_long_message_still_needs_its_own_two_word_quote(self):
+        s = self.routed("yes, but only after I have asked my team about the weekly list size")
+        self.assertIn("error", A._request_build(s, "yes"))  # one word of a long message is not a quote
+        self.assertEqual(A._request_build(s, "yes, but only after I have asked my team")["recorded"], "ml_project")
+
+    def test_an_order_to_build_a_model_is_a_yes_and_a_question_about_building_is_not(self):
+        for w in ("build the model", "now build model", "make prediction models", "train a model please", "Create a churn model"):
+            self.assertTrue(A.says_yes(w), w)
+            self.assertTrue(A.goes_ahead(w), w)
+        for w in ("how do I build a model?", "can you build a model later", "should I build a model", "what does a model need?", "don't build the model yet"):
+            self.assertFalse(A.says_yes(w), w)
+            self.assertFalse(A.goes_ahead(w), w)
+
+    def test_you_decide_is_a_go_ahead(self):
+        for w in ("you decide", "your call", "up to you", "whatever you think"):
+            self.assertTrue(A.goes_ahead(w), w)
+
+    def test_the_outcome_column_is_taken_only_when_the_persons_words_name_it(self):
+        s = self.routed("yes build it now")
+        s.table = A.table_of("t.csv", [{"name": "churn_flag", "kind": "category", "noticed": []}, {"name": "plan", "kind": "category", "noticed": []}], 100)
+        self.assertIn("error", A._request_build(s, "yes build it now", outcome="churn_flag"))  # nobody named it
+        s.case = C.hear(s.case, "yes build it now, the churn_flag column says who left")
+        out = A._request_build(s, "yes build it now", outcome="churn_flag")
+        self.assertEqual(s.build["outcome"], "churn_flag")
+        self.assertIn("error", A._request_build(s, "yes build it now", outcome="no_such_column"))
+
+    def test_no_report_is_drawn_while_the_work_is_a_model_or_the_person_handed_the_choice_over(self):
+        s = state()
+        s.frame = __import__("pandas").DataFrame(QueryCapTests.FRAME)
+        q = ("answer", {"group_by": ["plan"], "measures": [{"name": "customers", "op": "count"}]})
+        for words in ("now build model", "you decide", "make prediction models"):
+            client = Script(("", [q]), ("Understood.", []))
+            A.turn(s, client, words)
+            first = [m["content"] for m in client.seen[1] if m.get("role") == "tool"][0]
+            self.assertIn("a model is the work now", first, words)
+        self.assertEqual(s.cards, [])
+        client = Script(("", [q]), ("Plan x has 3 customers.", []))
+        A.turn(s, client, "also show me a chart of customers by plan")  # figures asked for: drawn even while a model is the work
+        self.assertEqual(len(s.cards), 1)
+
 
 
 if __name__ == "__main__":
@@ -639,21 +856,46 @@ class SpeedAndGoAheadTests(unittest.TestCase):
 
 
 class QueryCapTests(unittest.TestCase):
-    """2026-10-31 (CEX-014: 98 table queries in 10 conversations once the table was read by code): at most two queries a
-    turn, as the prompt asks; a third is refused and the agent writes to the person."""
+    """2026-10-31 (CEX-014: 98 table queries in 10 conversations once the table was read by code): a cap on the queries that
+    ran in a turn. 2026-11-02 (the owner's Telco session): the cap is four, a refused query is not counted (two refusals had
+    closed the turn and the agent said "next turn"), and three refusals end the tries with words to say now."""
 
-    def test_a_third_query_in_one_turn_is_refused(self):
+    FRAME = {"customer_id": ["a", "b", "c", "d", "e", "f"], "plan": ["x", "x", "x", "y", "y", "y"], "churned_next_month": [1, 0, 0, 1, 1, 0]}
+
+    def frame_state(self):
         s = state()
-        s.frame = __import__("pandas").DataFrame({"customer_id": ["a", "b", "c", "d", "e", "f"], "plan": ["x", "x", "x", "y", "y", "y"],
-                                                 "churned_next_month": [1, 0, 0, 1, 1, 0]})
+        s.frame = __import__("pandas").DataFrame(self.FRAME)
+        return s
+
+    def test_a_fifth_query_in_one_turn_is_refused(self):
+        s = self.frame_state()
         q = ("query", {"group_by": ["plan"], "measures": [{"name": "customers", "op": "count"}]})
-        client = Script(("", [q, q, q]), ("Plans x and y each have 3 customers. Who acts on this?", [("ask", {"question": "Who acts on this?"})]))
+        client = Script(("", [q] * 5), ("Plans x and y each have 3 customers. Who acts on this?", [("ask", {"question": "Who acts on this?"})]))
         A.turn(s, client, "how do my plans compare?")
         results = [m["content"] for m in client.seen[1] if m.get("role") == "tool"]
-        self.assertNotIn("error", results[0])
-        self.assertIn("twice this turn", results[2])
+        self.assertNotIn("error", results[3])
+        self.assertIn("asked 4 times this turn", results[4])
+        self.assertNotIn("next turn", results[4])
         A.turn(s, Script(("", [q]), ("ok", [("ask", {"question": "Next?"})])), "and now?")  # a new turn may query again
         self.assertEqual(s.queries, 1)
+
+    def test_a_refused_query_is_not_counted_so_it_can_be_repaired_in_the_same_turn(self):
+        s = self.frame_state()
+        bad = ("query", {"group_by": ["plan"], "measures": [{"name": "share", "op": "rate", "column": "plan"}]})
+        good = ("query", {"group_by": ["plan"], "measures": [{"name": "left", "op": "count", "where": {"column": "churned_next_month", "op": "eq", "value": 1}}]})
+        client = Script(("", [bad, bad]), ("", [good]), ("Plan x lost 1 and plan y lost 2.", [("ask", {"question": "What will you do about plan y?"})]))
+        A.turn(s, client, "which plan loses more?")
+        self.assertEqual((s.queries, s.query_errors), (1, 2))
+        self.assertTrue(any('"left"' in c or "as_said" in c for c in s.computed))  # the repaired query ran and its numbers may be said
+
+    def test_three_refused_queries_end_the_tries_with_words_to_say_now_not_a_promise_of_later(self):
+        s = self.frame_state()
+        bad = ("query", {"group_by": ["plan"], "measures": [{"name": "share", "op": "rate", "column": "plan"}]})
+        client = Script(("", [bad, bad, bad, bad]), ("I could not work that out; here is what I know.", [("ask", {"question": "Shall I try another way?"})]))
+        A.turn(s, client, "which plan loses more?")
+        results = [m["content"] for m in client.seen[1] if m.get("role") == "tool"]
+        self.assertIn("three questions of the table were refused", results[3])
+        self.assertIn("do not say you will try again later", results[3])
 
     def test_send_it_now_is_a_go_ahead(self):
         self.assertTrue(A.goes_ahead("You still haven't sent the table I asked for. Send it now."))

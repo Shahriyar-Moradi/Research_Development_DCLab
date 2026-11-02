@@ -376,7 +376,10 @@ class CaseArm:
     def _out(self, r: Mapping[str, Any]) -> dict[str, Any]:
         self.choices = [{"title": o.title, "what": _option_text(o.what, o.gets, o.tradeoff, o.effort), "track": o.track, "tool": o.tool, "kind": "option"}
                         for o in r.get("options") or []]
-        return {"text": r.get("text") or "", "choices": list(self.choices), "waiting": bool(r.get("asking"))}
+        shown = [str(c.get("kind")) for c in r.get("cards") or []]
+        marker = ("[DCLab drew " + " and ".join("a chart with its numbers table" if k == "answer" else "a dashboard" for k in shown)
+                  + " above this message]\n\n") if shown else ""  # the person and the judge see what the page would show
+        return {"text": marker + (r.get("text") or ""), "choices": list(self.choices), "waiting": bool(r.get("asking")), "shown": shown}  # 2026-11-02: the answers and dashboards drawn under the message
 
     def send(self, words: str) -> dict[str, Any]:
         from dclab_rnd.agents import case_agent as A

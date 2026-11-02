@@ -22,12 +22,12 @@ MAX_LINES = 4  # the page's four series styles
 
 def spec(plan: Any, result: Any) -> dict[str, Any]:
     """The chart for one answer: {"kind": kpi|line|bar|table, "title", ...} from the plan's shape and the result's rows."""
-    from .home_query import OP_WORDS, describe, key_text, shown
+    from .home_query import OP_WORDS, condition_text, describe, key_text, shown
 
     measures = [m.name for m in plan.measures]
     keys = result.columns[:len(result.columns) - len(measures)]
     rows = result.rows
-    heads = [{"count": "rows", "count_distinct": f"distinct {m.column}", "rate": "share"}.get(m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}")
+    heads = [{"count": "rows" + (f" where {condition_text(m.where)}" if m.where else ""), "count_distinct": f"distinct {m.column}", "rate": "share"}.get(m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}")
              for m in plan.measures]  # headers from the plan, never a measure's name
     numbers = {"columns": [*keys, *heads],  # every chart carries the numbers' table, each as the answer writes it
                "rows": [[key_text(v) for v in r[:len(keys)]] + [shown(v) for v in r[len(keys):]] for r in rows]}

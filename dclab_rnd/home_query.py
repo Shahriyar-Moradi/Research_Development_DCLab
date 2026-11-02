@@ -328,12 +328,18 @@ def shown_numbers(result: Q.QueryResult) -> list[str]:
     return [shown(v) for row in result.rows for v in row if isinstance(v, (int, float)) and not isinstance(v, bool)]
 
 
+def condition_text(f: Q.Filter) -> str:
+    """A condition in words (Churn = True, tenure > 12): what a count with a condition counts, said in its title and header."""
+    sign = {"eq": "=", "ne": "!=", "gt": ">", "ge": ">=", "lt": "<", "le": "<="}.get(f.op)
+    return f"{f.column} {sign} {f.value}" if sign else f"{f.column} {f.op.replace('_', ' ')}" + ("" if f.value is None else f" {f.value}")
+
+
 def describe(plan: Q.QueryPlan) -> str:
     """What the plan computed, in words built from the plan itself (never the person's or a model's label): the
     operation and column, the filters, the period and its date column."""
     m = plan.measures[0]
-    what = {"count": "number of rows", "count_distinct": f"number of distinct {m.column}", "rate": f"share of rows where {m.where.column if m.where else ''}"
-            }.get(m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}")
+    what = {"count": "number of rows" + (f" where {condition_text(m.where)}" if m.where else ""), "count_distinct": f"number of distinct {m.column}",
+            "rate": f"share of rows where {m.where.column if m.where else ''}"}.get(m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}")
     if plan.group_by:
         what += " by " + ", ".join(plan.group_by)
     if plan.filters:
@@ -350,7 +356,7 @@ def model_text(plan: Q.QueryPlan) -> str:
     only, never a value (no group name, number, filter value or count of hidden groups). The person sees the answer
     itself; home_agent is shown no cell values (its limit is 0), and its prompts are kept whole for training."""
     m = plan.measures[0]
-    what = {"count": "number of rows", "count_distinct": f"number of distinct {m.column}",
+    what = {"count": "number of rows" + (f" meeting a condition on {m.where.column}" if m.where else ""), "count_distinct": f"number of distinct {m.column}",
             "rate": f"share of rows by a condition on {m.where.column if m.where else ''}"}.get(m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}")
     if plan.group_by:
         what += " by " + ", ".join(plan.group_by)

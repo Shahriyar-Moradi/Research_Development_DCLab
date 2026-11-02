@@ -71,11 +71,12 @@ def verify(name: str, tar: Path) -> dict:
             elif m.islnk():
                 in_tar[m.name] = in_tar.get(m.linkname, "link-target-missing")
     on_mac = {str(p.relative_to(SNAPSHOTS)) for p in (SNAPSHOTS / name).rglob("*") if p.is_file()}
-    missing = [f["path"] for f in manifest["files"] if f"{name}/{f['path']}" not in in_tar]
-    bad = [f["path"] for f in manifest["files"] if in_tar.get(f"{name}/{f['path']}") not in (None, f["sha256"])]
-    not_in_tar = sorted(on_mac - set(in_tar))
+    skip = lambda rel: rel.endswith(".DS_Store")  # Finder rewrites these while a copy runs (2026-11-02: the three files that "differed")  # noqa: E731
+    missing = [f["path"] for f in manifest["files"] if f"{name}/{f['path']}" not in in_tar and not skip(f["path"])]
+    bad = [f["path"] for f in manifest["files"] if in_tar.get(f"{name}/{f['path']}") not in (None, f["sha256"]) and not skip(f["path"])]
+    not_in_tar = sorted(r for r in on_mac - set(in_tar) if not skip(r))
     differs = []
-    for rel in sorted(on_mac & set(in_tar)):
+    for rel in sorted(r for r in on_mac & set(in_tar) if not skip(r)):
         with open(SNAPSHOTS / rel, "rb") as fh:
             if sha(fh) != in_tar[rel]:
                 differs.append(rel)
@@ -167,6 +168,9 @@ def main() -> int:
             print(f"refused: {name}'s manifest does not match training_records/INDEX.json", file=sys.stderr)
             return 2
         tar = dest / f"training_snapshot_{name[:8]}.tar"
+        check = tar.with_suffix(".verify.json")
+        if tar.exists() and check.exists() and name not in json.loads(check.read_text(encoding="utf-8")).get("snapshots", {}):
+            tar = dest / f"training_snapshot_{name}.tar"  # a second snapshot of the same day (2026-11-02): its own tar, never the first's
         if tar.exists():
             print(f"{name}: {tar.name} exists; re-verifying it", flush=True)
         else:

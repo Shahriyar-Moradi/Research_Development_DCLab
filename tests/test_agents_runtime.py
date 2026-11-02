@@ -142,7 +142,8 @@ class DclabRegistryTests(unittest.TestCase):
         self.assertEqual(set(registry.names("case")), {"case_read_table", "case_note", "case_add_unknown", "case_resolve", "case_confirm_assumption",
                                                        "case_ask", "case_propose", "case_start",  # 37.3: the lead agent's case-file tools
                                                        "case_query", "case_check_leakage", "case_preview_step", "case_request_build",  # 37.6: guards as tools
-                                                       "case_consult"})  # 37.7: the specialists
+                                                       "case_consult",  # 37.7: the specialists
+                                                       "case_answer", "case_dashboard"})  # 2026-11-02: what the person asked for is shown, not promised
         # A7: DCLab's own agents as tools for an external chat at /mcp
         self.assertTrue({"home_start", "home_message", "home_add_data", "home_status", "home_build", "home_list"} <= set(registry.names("chat")))
         # the research campaign's experiment tool is a closed part, absent from the open edition

@@ -22,7 +22,7 @@ from dclab_core import case as C
 
 CAP_EUR = 5.0  # the owner's soft cap per case (2026-10-30)
 YES = re.compile(r"^\s*(?:yes|yeah|yep|ok|okay|go on|continue|carry on|sure|please do|go ahead)\b", re.I)
-ASK = ("This case has used its budget of €{cap:.0f} of model work. Shall I go on? Say yes to continue, or tell me what to "
+ASK = ("This case has used its budget of €{cap:g} of model work. Shall I go on? Say yes to continue, or tell me what to "
        "focus on.")
 
 

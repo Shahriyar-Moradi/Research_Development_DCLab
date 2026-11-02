@@ -1,0 +1,158 @@
+{
+ "package": "37.11k",
+ "title": "The lead agent builds when told to: an order, a bare yes and 'you decide' are read as a person says them (the owner's second Telco session)",
+ "date": "2026-11-02",
+ "request": "The owner kept going in the same draft after the act-first fixes and asked for a model: five messages and three questions to start one build, 'Can you reply build the model so I can start it?', then the build asked for the outcome column again, and 'you decide' drew another report. 'Now go on to make fixes.' Budget: the $2 the owner gave.",
+ "spec": "An order to build a model, a bare yes to the agent's own question and 'you decide' are the person's decisions; the build starts in the same turn with the outcome column the person already named or confirmed; no report is drawn in a turn about a model; a chart says what a count counts.",
+ "plan": [
+  "read the saved case events and case file of the owner's draft",
+  "fix the build request: a whole short message is a valid quote, an order to build is a yes, delegation is a go-ahead",
+  "carry the confirmed outcome column into the build",
+  "refuse report cards while the work is a model",
+  "name the condition in a conditional count's title and header",
+  "scripted replay tests, one live replay of the whole session"
+ ],
+ "decisions": [
+  {
+   "decision": "An explicit order to build a model skips the readiness interview; a plain yes still needs a ready case",
+   "why": "the live replay showed the agent refusing to request the build until the decision and the user were said, after the person had ordered it twice; the build's own questions (outcome, prediction moment said back) remain the guard"
+  },
+  {
+   "decision": "The outcome column is taken only from the person's words or an assumption they confirmed",
+   "why": "the api rule says DCLab does not pick the outcome for the person; a column they named is theirs"
+  },
+  {
+   "decision": "Decision questions are refused by code after an order or a delegation",
+   "why": "asking what they will do with a model they ordered twice was the stall the owner objected to"
+  }
+ ],
+ "change": "dclab_rnd/agents/case_agent.py (_request_build, ORDER_MODEL, DELEGATE, orders_model, _model_work, _ask), dclab_core/case.py (whole_short_message, grounded_columns), dclab_rnd/draft/case_home.py (_build, _outcome_candidates, _build_answer), dclab_rnd/home_query.py and home_chart.py (conditional count text), dclab_rnd/agents/case_session.py (budget text), dclab_rnd/prompts/case_agent.md, scripts/live_home_telco_replay.py, tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "A bare yes could never start a build",
+   "scenario": "the agent asked 'Shall I build it now?', the person said yes, the agent answered 'Can you reply build the model so I can start it?'",
+   "cause": "quote_ok needs two words and the case file applied the same rule to the build's quote",
+   "fix": "the quote may be the whole of a short message (core whole_short_message), in the agent's check and in the case file's",
+   "test": "tests/test_case_agent.py OrdersTests"
+  },
+  {
+   "id": "F2",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "'build the model' and 'make prediction models' were not a yes or a go-ahead",
+   "scenario": "the person ordered a model twice and was asked 'Shall I build it now?' each time",
+   "cause": "BUILD_YES and GO_AHEAD named only 'build it' and 'go ahead'",
+   "fix": "orders_model and DELEGATE; a question about building stays no yes",
+   "test": "tests/test_case_agent.py OrdersTests"
+  },
+  {
+   "id": "F3",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "The outcome the person had confirmed was asked again with an example from another table",
+   "scenario": "'Which column is the outcome ... for example the outcome is is_fraud' after 'Churn means the customer left' was confirmed",
+   "cause": "nothing carried a confirmed column into understanding.target; the example text is fixed",
+   "fix": "request_build takes an outcome that code grounds in the person's words; CaseHome writes it before the build; the question names the table's own candidates; 'you decide' uses the one grounded column",
+   "test": "tests/test_case_home.py BuildFlowTests"
+  },
+  {
+   "id": "F4",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "A report was drawn again in a turn about a model, and 'you decide' drew one",
+   "scenario": "'now build model' answered with a report and a dashboard; 'you decide' answered 'I've decided to give you the report you asked for first'",
+   "cause": "nothing refused a card while the work was a model",
+   "fix": "_model_work refuses answer and dashboard cards unless the message asks for figures",
+   "test": "tests/test_case_agent.py OrdersTests"
+  },
+  {
+   "id": "F5",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "A chart of customers lost was titled 'Number of rows by Contract'",
+   "scenario": "a count with a condition drawn with the title and header of an unconditional count",
+   "cause": "describe and spec ignored the count's where",
+   "fix": "the title and header carry the condition; the model's own text names only the column",
+   "test": "tests/test_home_query.py"
+  },
+  {
+   "id": "F6",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The live replay still stalled on the build: the agent refused to request it until the decision and the user were said",
+   "scenario": "'now build model' answered 'DCLab won't build it yet because it needs to know what you'll do with the scores'; 'make prediction models' and 'yes' got the same question",
+   "cause": "_request_build required a ready case for every yes",
+   "fix": "an order to build skips the interview; a decision question is refused after an order",
+   "test": "tests/test_case_agent.py"
+  },
+  {
+   "id": "F7",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The case budget message said 'budget of EUR 0' for a cap under one euro",
+   "scenario": "a cap of 0.3 printed as 0",
+   "cause": "format with no decimals",
+   "fix": "general number format",
+   "test": "live run"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A negated, delayed or reported 'build a model' was read as an order and started a build",
+   "scenario": "'I won't build a model until you show me churn by contract' passed the yes check and skipped the readiness gate",
+   "cause": "orders_model rejected only a question mark, a leading question word and a few delay words",
+   "fix": "an order must open with the verb, be short and hold no negation or delay; refusals and delays veto a go-ahead; 'no model please, whatever you think' is no delegation",
+   "test": "tests/test_case_agent.py OrdersTests"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A column only mentioned could become the outcome, and a bare yes to another question could request a build",
+   "scenario": "'Is it different by gender?' made gender the target when it was the only two-valued column named; a yes to 'Want me to also show churn by contract?' could request the build",
+   "cause": "grounding was a whole-word match anywhere in the history, including the agent's paraphrases; a one-word quote checked nothing about the question asked",
+   "fix": "a column is grounded only in a sentence of the person's own words (or a confirmed assumption) that also holds outcome language; a bare yes needs the agent's last message to have asked about building",
+   "test": "tests/test_case_agent.py, tests/test_case_home.py"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The report block was too wide: a mention of risk, or a yes to an offered chart, drew nothing",
+   "scenario": "'Which contract has the highest churn risk? chart it' got the model-work refusal",
+   "cause": "_model_work counted any model word and any yes",
+   "fix": "only an order to build, a delegation, or a build route with no figures request blocks a card",
+   "test": "tests/test_case_agent.py OrdersTests"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "owner's whole session replayed live (run2: report half and build half)",
+   "gate": "practice scorecard of 2026-11-02 (acts when asked, no stalling)",
+   "fixed_before_run": true,
+   "result": "the report half: figures at the second message, dashboards drawn, no stalling phrase; the build half did not start the build (fixed afterwards)",
+   "verdict": "not scored",
+   "cost_eur": 0.3255,
+   "limits": [
+    "one scripted person, one run",
+    "the soft cap of the run was reached on the last message",
+    "the fix for the readiness gate has scripted tests only, no live run"
+   ]
+  }
+ ],
+ "outcome": "The report half of the owner's session works live. The build half was fixed in two rounds: the first (a bare yes, orders, the confirmed outcome, no redrawn report) is covered by scripted tests; the live replay then showed one more gate (readiness before the build request), fixed after it and again covered by scripted tests only. The test budget is spent: a live replay of the build half is still owed. A second independent review found five safety and behaviour defects in the first version of this package; all five are fixed and covered by tests.",
+ "lessons": [
+  "a person's one-word yes must be quotable: a rule written for facts (two words of evidence) must not gate a decision",
+  "an order is an order: asking whether to build after the person ordered it twice reads as stalling however polite",
+  "when a live run shows another gate, the scripted test must follow the live message, not the author's guess of it"
+ ],
+ "risks": [
+  "the build half is not proven live",
+  "treating 'build model' as a yes removes a confirmation; the build's outcome and prediction-moment questions remain the guard"
+ ],
+ "commits": []
+}

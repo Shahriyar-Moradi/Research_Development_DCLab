@@ -61,6 +61,10 @@ class CaseHome(HomeAgent):
         table, frame = table_of(self.store, draft)
         if table is not None:
             state.table, state.frame = table, frame
+        from .. import home_query
+        from . import brief as briefs
+
+        state.personal = {c["name"] for c in briefs.columns_of(draft) if str(c.get("sensitivity") or "none") in home_query.SENSITIVE}
         state.specialist_client = self.models.client("case_specialist", draft_id=draft["id"]) if self.models is not None else None
         # the plan's step 1: Home gets the cheap route check the exam measured (before, only the exam's arm had it)
         state.route_client = self.models.client("route_check", draft_id=draft["id"], model=A.ROUTE_MODEL) if self.models is not None else None
@@ -104,10 +108,47 @@ class CaseHome(HomeAgent):
         self.store.update(draft_id, put)
         if draw:
             self.refresh_workflow(draft_id)  # emits "workflow": without it the page's Solution workflow card stays empty
+        for card in out.get("cards") or []:  # the answers and dashboards of this turn, drawn before the words that read them
+            self._card(draft_id, card)
         if out.get("text"):
             self.say(draft_id, out["text"], kind="text", by="case_agent")
         if out.get("options"):
             self.say(draft_id, "", kind="case_options", options=[o.model_dump(mode="json") for o in out["options"]])
+
+    def _card(self, draft_id: str, card: dict[str, Any]) -> None:
+        """One answer or dashboard the lead agent asked for, run and drawn by Home's own renderers (``give_answer``, ``publish_board``):
+        the engine runs the plan again on the draft's table, so what the person sees is what code computed, never the agent's text."""
+        from dclab_core import dashboard as D
+        from dclab_core import query as Q
+
+        from .. import home_query
+
+        try:
+            from . import brief as briefs
+
+            draft = self.store.get(draft_id)
+            plans = [Q.QueryPlan.model_validate(card["plan"])] if card.get("kind") == "answer" else [Q.QueryPlan.model_validate(p) for p in card.get("plans") or []]
+            marked = sorted({c for p in plans for c in home_query.sensitive_columns(p, briefs.columns_of(draft))})
+            if marked:  # the agent's own check came first; this is the page's (the review of 37.11j)
+                self.say(draft_id, f"That uses {', '.join(marked)}, which holds personal data; I don't draw it. Ask about another column.", kind="text")
+                return
+            if card.get("kind") == "answer":
+                shown = self.give_answer(draft_id, plans[0], "case_agent")
+                if shown.get("kind") != "answer":  # the same question on the same table was answered already: said, never a silent turn
+                    self.say(draft_id, "This chart is already above: the same question on the same table.", kind="text")
+                return
+            kept = ((draft.get("dashboard") or {}).get("board") or {}).get("kpis") or []
+            if [Q.plan_hash(k_plan) for k_plan in (Q.QueryPlan.model_validate(k["plan"]) for k in kept)] == [Q.plan_hash(p) for p in plans]:
+                return  # the same dashboard is on the page already
+            frame = home_query.table(self.store, draft)
+            draft = self.store.get(draft_id)  # the table's hash, filled in by the read when it was missing
+            active = draft.get("active_asset")
+            version = next((a.get("clean_sha256") for a in draft.get("assets") or [] if a.get("id") == active), None)
+            board = D.Dashboard(title=str(card.get("title") or "Your dashboard"), refresh="on_new_data", floor=home_query.floor(),
+                                kpis=[D.Kpi(name=home_query.describe(p)[:120], plan=p) for p in plans])
+            self.publish_board(draft_id, board, frame, version, [], False)
+        except Exception as error:  # noqa: BLE001 - a card that cannot be drawn is said in words, never a failed turn
+            self.say(draft_id, f"I could not draw that here: {str(error)[:200]}", kind="text")
 
     def _run(self, draft_id: str, words: str, pick: Optional[str] = None) -> None:
         client = self._client(draft_id)
@@ -117,19 +158,37 @@ class CaseHome(HomeAgent):
         out = A.pick(state, client, pick) if pick else A.turn(state, client, words)
         self._save(draft_id, state, out)
         if state.build and state.build.get("tool") in A.BUILDS:
-            self._build(draft_id)  # the person's yes starts the build, as "build it" does on the rules-first Home
+            self._build(draft_id, outcome=state.build.get("outcome"))  # the person's yes starts the build, as "build it" does on the rules-first Home
 
     BUILD_NEEDS = ("outcome column", "prediction moment")  # "confirm moment" follows the second  # the build's own refusals whose answer code reads (draft/api.py quick_build)
 
-    def _build(self, draft_id: str) -> None:
+    def _outcome_candidates(self, draft: dict[str, Any]) -> list[str]:
+        """The two-valued columns the person's words (or an assumption they confirmed) name: what the model may learn, never a guess."""
+        columns = [str(c["name"]) for c in (draft.get("analysis") or {}).get("columns") or [] if c.get("name") and c.get("unique") == 2]
+        saved = (draft.get("case_state") or {}).get("case")
+        return C.grounded_columns(C.CaseFile.read(saved), columns) if saved and columns else []
+
+    def _build(self, draft_id: str, outcome: Optional[str] = None) -> None:
         """The same build step as the button and the rules-first Home's "build it". What it still needs is asked in the chat:
         a column check as the rules-first Home asks it (``built``), the outcome column or the prediction moment as the build's
-        own question, whose answer code reads on the next message (``_build_answer``)."""
+        own question, whose answer code reads on the next message (``_build_answer``). The outcome the person already named or
+        confirmed (the agent's ``outcome``, or the one two-valued column their words name) is written first, so it is not asked again."""
+        draft = self.store.get(draft_id)
+        if not (draft.get("understanding") or {}).get("target"):
+            candidates = self._outcome_candidates(draft)
+            column = outcome or (candidates[0] if len(candidates) == 1 else None)
+            if column:
+                self.store.update(draft_id, lambda d: d.setdefault("understanding", {}).update(target=column))
         done = self.on_request(draft_id, "build", {})
         if done is None:
             return
         rule = done.get("rule")
         self.store.update(draft_id, lambda d: d.update(build_waiting=rule) if rule in self.BUILD_NEEDS else d.pop("build_waiting", None))
+        if rule == "outcome column":  # the build's fixed example is replaced by the table's own candidates
+            names = [str(c["name"]) for c in (self.store.get(draft_id).get("analysis") or {}).get("columns") or [] if c.get("name") and c.get("unique") == 2][:3]
+            done = {**done, "refused": "Which column is the outcome the model should learn? "
+                    + (f"{', '.join(names)} look like yes or no outcomes. " if names else "") + "Name it (for example “the outcome is "
+                    + (names[0] if names else "churned") + "”) and I will go on."}
         self.built(draft_id, done)
 
     # The answer to the said-back moment (37.11b; the moment is the prediction contract, so it is built only on a plain yes):
@@ -178,6 +237,15 @@ class CaseHome(HomeAgent):
             columns = {str(c.get("name")).casefold(): str(c.get("name")) for c in (draft.get("analysis") or {}).get("columns") or [] if c.get("name")}
             m = self.OUTCOME_SAID.match(said)
             column = columns.get(m.group(1).strip().casefold()) if m else None
+            if column is None and A.DELEGATE.search(said) and not (A.HOLD.search(said) or A.REFUSE_BUILD.search(said) or A.NOT_NOW.search(said)):
+                # "you decide": the one column their own words name, never a guess (and never in a message that holds the build back)
+                grounded = self._outcome_candidates(draft)
+                if len(grounded) == 1:
+                    column = grounded[0]
+                    self.say(draft_id, f"I will use {column} as the outcome: it is the column your own words name.", kind="text", by="case_agent")
+                elif len(grounded) > 1:
+                    self.say(draft_id, f"Your words name more than one yes-or-no column ({', '.join(grounded[:3])}). Which one is the outcome?", kind="text", by="case_agent")
+                    return True
             if column is None:
                 return False
             self.store.update(draft_id, lambda d: (d.setdefault("understanding", {}).update(target=column), d.pop("build_waiting", None)))
