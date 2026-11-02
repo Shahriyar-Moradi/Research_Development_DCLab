@@ -30,6 +30,7 @@ PLIST = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
 LOG = Path.home() / "Library" / "Logs" / "dclab" / "store-scheduled.log"
 EVERY_SECONDS = 6 * 3600
 MIN_FREE = 2 * 1024 ** 3
+MAX_SWAP = 4 * 1024 ** 3  # 2026-11-03: a run that does not fit in memory swaps onto the same disk and fills it; stopped before that
 
 
 def log(line: str) -> None:
@@ -65,6 +66,27 @@ def decide(due: bool, free_bytes: int, running: bool, worker: bool = False) -> t
     return True, "due"
 
 
+def swap_used() -> int:
+    """Bytes of swap in use (macOS ``sysctl vm.swapusage``); 0 where it cannot be read."""
+    out = subprocess.run(["sysctl", "-n", "vm.swapusage"], capture_output=True, text=True).stdout
+    import re
+
+    m = re.search(r"used = ([\d.]+)([MG])", out)
+    return int(float(m.group(1)) * (1024 ** 3 if m.group(2) == "G" else 1024 ** 2)) if m else 0
+
+
+def stop_child(child: subprocess.Popen) -> None:
+    """Interrupt, then terminate, then kill: a run that swaps does not answer an interrupt for many minutes (2026-11-02: ten minutes of
+    SIGINT with no effect, SIGTERM ended it in twenty seconds). The store writes through atomic replaces, so the last step is safe."""
+    for sig, wait in ((signal.SIGINT, 30), (signal.SIGTERM, 30), (signal.SIGKILL, 0)):
+        if child.poll() is not None:
+            return
+        child.send_signal(sig)
+        deadline = time.time() + wait
+        while time.time() < deadline and child.poll() is None:
+            time.sleep(1)
+
+
 def run_once() -> int:
     sys.path.insert(0, str(ROOT))
     from dclab_rnd.store import conductor
@@ -78,19 +100,23 @@ def run_once() -> int:
     python = ROOT / ".venv" / "bin" / "python"
     child = subprocess.Popen(["nice", "-n", "10", str(python if python.exists() else sys.executable), "-m", "dclab_rnd.store", "run"],
                              cwd=ROOT, env=env, stdout=open(LOG, "a"), stderr=subprocess.STDOUT)
-    stopped = {"low_disk": False}
+    stopped = {"low_disk": False, "swap": False}
 
     def watch() -> None:
         while child.poll() is None:
             if shutil.disk_usage(Path.home()).free < MIN_FREE:
                 stopped["low_disk"] = True
-                child.send_signal(signal.SIGINT)
+                stop_child(child)
+                return
+            if swap_used() > MAX_SWAP:
+                stopped["swap"] = True
+                stop_child(child)
                 return
             time.sleep(30)
 
     threading.Thread(target=watch, daemon=True).start()
     code = child.wait()
-    log(f"ended: exit {code}" + (" (stopped: free disk under 2 GB)" if stopped["low_disk"] else ""))
+    log(f"ended: exit {code}" + (" (stopped: free disk under 2 GB)" if stopped["low_disk"] else "") + (" (stopped: swap over 4 GB, the run does not fit in memory)" if stopped["swap"] else ""))
     return code
 
 

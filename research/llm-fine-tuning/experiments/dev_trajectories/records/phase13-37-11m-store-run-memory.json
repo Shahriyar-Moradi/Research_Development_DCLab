@@ -1,0 +1,83 @@
+{
+ "package": "37.11m",
+ "title": "The store's whole run no longer swaps the Mac to a stop: the decision sets stream, and the scheduler stops a run that does not fit",
+ "date": "2026-11-03",
+ "request": "The owner's scheduled store run (python -m dclab_rnd.store run) had run four and a half hours on an 8 GB Mac at a footprint near nine gigabytes, swapping. The owner said: stop it, run it at 01:30, then run the whole store.",
+ "spec": "A whole store run finishes on an 8 GB Mac, and a run that cannot is stopped before it fills the disk, however slowly it answers an interrupt.",
+ "plan": [
+  "identify the process and why it was slow",
+  "stop it, pause the six-hour schedule, schedule one run",
+  "find the stage that spikes in memory from the stack at the stop",
+  "keep only what the decision sets need",
+  "stop a run at four gigabytes of swap, escalating the signal",
+  "build every stage of the sets in its own process"
+ ],
+ "decisions": [
+  {
+   "decision": "The scheduler stops a run at four gigabytes of swap or under two of free disk, with an interrupt, then terminate, then kill",
+   "why": "an interrupt had no effect for ten minutes while the process swapped; the store writes through atomic replaces"
+  },
+  {
+   "decision": "Build the sets stage by stage in separate processes when a whole run cannot fit",
+   "why": "every stage fits alone; the whole run held the earlier stages' memory"
+  }
+ ],
+ "change": "dclab_rnd/store/sets/decisions.py (one pass keeping only wanted decisions, labels and sources; slim placements), scripts/store_scheduled.py (swap guard, stop escalation), tests/test_store_scheduled.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The decision sets held every shaped decision record as an object at once",
+   "scenario": "a whole store run's footprint jumped from about six hundred megabytes to over six gigabytes in one minute while building the decision sets",
+   "cause": "a dictionary of every record of the kind, and one whole curator choice for each of one and a half million placements",
+   "fix": "one pass keeping only the placed decisions, the labels and the source names; each placement keeps the five fields the sets read",
+   "test": "tests/test_store_sets_decisions.py; the stage built alone in 160 seconds on the real store"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "An interrupt does nothing while a run swaps, and the guard only sent an interrupt",
+   "scenario": "the scheduler sent an interrupt when free disk fell under two gigabytes and the run went on for hours",
+   "cause": "the interpreter could not run its handler while it waited on swap",
+   "fix": "interrupt, terminate after thirty seconds, kill after thirty more; a swap limit before the disk fills",
+   "test": "tests/test_store_scheduled.py GuardTests"
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "severity": "gap",
+   "defect": "I called the scheduler's low-disk line a label when the guard had really fired",
+   "scenario": "the log said stopped: free disk under 2 GB and I told the owner it was only a label",
+   "cause": "I did not read the guard's code before saying so",
+   "fix": "corrected to the owner at once; the cause was the run's own swap filling the disk",
+   "test": "none"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "set stages built alone on the real store",
+   "gate": "each stage finishes without error",
+   "fixed_before_run": true,
+   "result": "decisions, others, experiments, dclab_code, verified_code, routing, llm, then the tutor, the service files and the catalog all finished with no errors; the whole run in one process was stopped twice by the swap guard",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the whole conductor in one process is still not proven on this Mac",
+    "the llm stage still holds all its examples in memory and finished alone without trouble"
+   ]
+  }
+ ],
+ "outcome": "The store is built stage by stage with no errors. The whole run in one process still cannot be shown to fit; the llm sets should stream each set to disk.",
+ "lessons": [
+  "read the guard before explaining a log line",
+  "an interrupt is not a stop when a process swaps: escalate",
+  "a watcher whose own command line holds the search words matches itself"
+ ],
+ "risks": [
+  "a kill during a write could leave a half file; the store replaces files atomically",
+  "the next whole run may still be stopped by the swap limit"
+ ],
+ "commits": []
+}

@@ -28,14 +28,14 @@
  },
  "costs": {
   "by_model_type": {
-   "m4_workflow_llm": 230.005344
+   "m4_workflow_llm": 240.32863
   },
   "by_purpose": {
    "ai_first": 18.406708,
    "brief_checker": 0.023292,
    "campaign": 1.147882,
    "campaign_review": 12.466256,
-   "case_agent": 29.795865,
+   "case_agent": 36.373504,
    "case_specialist": 0.016438,
    "conversation_reader": 14.700744,
    "critic": 0.069044,
@@ -47,9 +47,9 @@
    "decomposer": 4.20616,
    "embedding": 0.00446,
    "evidence_answer": 0.115634,
-   "exam_judge": 12.438178,
-   "exam_person": 0.537675,
-   "exam_plain": 9.053886,
+   "exam_judge": 13.936402,
+   "exam_person": 0.625342,
+   "exam_plain": 10.831456,
    "feature_engineer": 0.103984,
    "home_agent": 29.692109,
    "home_business": 0.091378,
@@ -57,31 +57,31 @@
    "home_orchestrator": 0.402659,
    "home_query": 0.189188,
    "home_understand": 3.599714,
-   "intern": 36.987822,
+   "intern": 37.108177,
    "journey_checker": 2.307328,
    "journey_writer": 7.305133,
-   "leakage_review": 0.813488,
+   "leakage_review": 0.840528,
    "map_reviewer": 2.418224,
    "metric_question": 0.526472,
-   "notebook_cell": 0.188415,
+   "notebook_cell": 0.248775,
    "parse_pattern": 0.002646,
    "problem_analyst": 0.280889,
-   "project_answer": 0.132486,
+   "project_answer": 0.145152,
    "reasoning_teacher": 0.00776,
    "reflector": 0.0851,
    "reporter": 0.25734,
-   "route_check": 0.001008,
+   "route_check": 0.002127,
    "routing_labeler": 1.408134,
    "solution_challenger": 0.257164,
    "solution_planner": 3.928848,
    "solution_router": 1.569544,
-   "stage_notes": 4.71237,
+   "stage_notes": 4.873016,
    "store_curator": 0.81816,
    "synthetic_schema": 0.460322,
    "understanding_critic": 6.803352,
    "workspace_chat": 0.02462
   },
-  "total_eur": 237.854346
+  "total_eur": 248.177632
  },
  "coverage": {
   "gaps": [
@@ -1484,10 +1484,10 @@
  },
  "kinds": {
   "actions": {
-   "bytes": 24955702,
-   "entries": 2302,
-   "last": "2026-11-01T16:05:51+00:00",
-   "sources": 1823,
+   "bytes": 25649445,
+   "entries": 2423,
+   "last": "2026-11-02T21:45:33+00:00",
+   "sources": 1891,
    "what": "agent steps and tool calls",
    "workspaces": [
     "dev",
@@ -1522,6 +1522,10 @@
     "e2e__2026-11-01__104710_browser_e2e",
     "e2e__2026-11-01__104921_browser_e2e",
     "e2e__2026-11-01__105954_browser_e2e",
+    "e2e__2026-11-02__003221_product_e2e",
+    "e2e__2026-11-02__145804_product_e2e",
+    "e2e__2026-11-02__205349_product_e2e",
+    "e2e__2026-11-02__211036_product_e2e",
     "journey_plays__homework_v1__jh-anomaly-000__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-001__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-002__s0__workspace",
@@ -3105,10 +3109,64 @@
     "live_tests__2026-10-31-home-eval__dev-010445__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-014123__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-091327__model__d-v1",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-01",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-03",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-04",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-06",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-08",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-01",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-03",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-04",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-06",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-08",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-026__case__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-026__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-026__plain__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-026__plain__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-027__case__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-027__case__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-027__plain__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-027__plain__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-028__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-029__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-029__case__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-029__plain__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-029__plain__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-031__case__r-19",
+    "live_tests__2026-11-01-conversation-exam__cex-031__case__r-20",
+    "live_tests__2026-11-01-conversation-exam__cex-031__plain__r-19",
+    "live_tests__2026-11-01-conversation-exam__cex-031__plain__r-20",
     "live_tests__2026-11-01-home-eval__dev-025415__model__d-v1",
     "live_tests__2026-11-01-home-eval__dev-032610__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-175632__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-205205__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-210517__model__d-v1",
     "live_tests__2026-11-01-lead-default__e2e-1",
     "live_tests__2026-11-01-lead-default__e2e-2",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-01",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-02",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-03",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-04",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-01",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-02",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-03",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-04",
+    "live_tests__2026-11-02-conversation-exam__cex-034__case__q-01",
+    "live_tests__2026-11-02-conversation-exam__cex-034__case__q-04",
+    "live_tests__2026-11-02-home-eval__dev-113551__model__d-v1",
+    "live_tests__2026-11-02-home-eval__dev-180851__model__d-v1",
+    "live_tests__2026-11-02-telco-replay__run1",
+    "live_tests__2026-11-02-telco-replay__run2",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-100832-215130__workflow",
     "twin__runs__20261016-112025-a15b8e__ai_first",
@@ -3180,20 +3238,20 @@
    ]
   },
   "agents": {
-   "bytes": 1684516117,
-   "entries": 2898,
-   "last": "2026-11-01T15:18:59+00:00",
-   "sources": 2486,
+   "bytes": 1719166278,
+   "entries": 2954,
+   "last": "2026-11-02T21:52:13+00:00",
+   "sources": 2523,
    "what": "other agents' sessions: Claude Code (the main checkout and its worktrees), testers'",
    "workspaces": [
     "rnd"
    ]
   },
   "audit": {
-   "bytes": 1732370,
-   "entries": 332,
-   "last": "2026-11-01T14:41:57+00:00",
-   "sources": 138,
+   "bytes": 1867851,
+   "entries": 360,
+   "last": "2026-11-02T21:45:34+00:00",
+   "sources": 144,
    "what": "the audit trail",
    "workspaces": [
     "dev",
@@ -3228,6 +3286,10 @@
     "e2e__2026-11-01__104710_browser_e2e",
     "e2e__2026-11-01__104921_browser_e2e",
     "e2e__2026-11-01__105954_browser_e2e",
+    "e2e__2026-11-02__003221_product_e2e",
+    "e2e__2026-11-02__145804_product_e2e",
+    "e2e__2026-11-02__205349_product_e2e",
+    "e2e__2026-11-02__211036_product_e2e",
     "live_tests__2026-10-16_phase3__workspace",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-100832-215130__ai_first",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-100832-215130__workflow",
@@ -3264,6 +3326,8 @@
     "live_tests__2026-10-30-capture__workspace_chat",
     "live_tests__2026-11-01-lead-default__e2e-1",
     "live_tests__2026-11-01-lead-default__e2e-2",
+    "live_tests__2026-11-02-telco-replay__run1",
+    "live_tests__2026-11-02-telco-replay__run2",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-100832-215130__workflow",
     "twin__runs__20261016-112025-a15b8e__ai_first",
@@ -3335,10 +3399,10 @@
    ]
   },
   "conversations": {
-   "bytes": 385484675,
-   "entries": 7932,
-   "last": "2026-11-01T07:22:09+00:00",
-   "sources": 7789,
+   "bytes": 391576750,
+   "entries": 8015,
+   "last": "2026-11-02T21:17:48+00:00",
+   "sources": 7859,
    "what": "Home, the intern, the workspace chat, the twin, MCP",
    "workspaces": [
     "dev",
@@ -3371,6 +3435,10 @@
     "e2e__2026-11-01__104710_browser_e2e",
     "e2e__2026-11-01__104921_browser_e2e",
     "e2e__2026-11-01__105954_browser_e2e",
+    "e2e__2026-11-02__003221_product_e2e",
+    "e2e__2026-11-02__145804_product_e2e",
+    "e2e__2026-11-02__205349_product_e2e",
+    "e2e__2026-11-02__211036_product_e2e",
     "journey_plays__homework_v1__jh-anomaly-000__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-001__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-002__s0__workspace",
@@ -5985,9 +6053,16 @@
     "live_tests__2026-10-31-home-eval__dev-091327__model__d-v1",
     "live_tests__2026-11-01-home-eval__dev-025415__model__d-v1",
     "live_tests__2026-11-01-home-eval__dev-032610__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-175632__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-205205__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-210517__model__d-v1",
     "live_tests__2026-11-01-lead-default",
     "live_tests__2026-11-01-lead-default__e2e-1",
     "live_tests__2026-11-01-lead-default__e2e-2",
+    "live_tests__2026-11-02-home-eval__dev-113551__model__d-v1",
+    "live_tests__2026-11-02-home-eval__dev-180851__model__d-v1",
+    "live_tests__2026-11-02-telco-replay__run1",
+    "live_tests__2026-11-02-telco-replay__run2",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -6063,20 +6138,20 @@
    ]
   },
   "curation": {
-   "bytes": 1261209023,
-   "entries": 79,
-   "last": "2026-11-01T15:51:09+00:00",
-   "sources": 79,
+   "bytes": 1269579069,
+   "entries": 85,
+   "last": "2026-11-02T22:05:45+00:00",
+   "sources": 85,
    "what": "every curator's choice: where each record went, its quality, why, and its failed answers",
    "workspaces": [
     "rnd"
    ]
   },
   "decisions": {
-   "bytes": 410432099,
-   "entries": 9261,
-   "last": "2026-11-01T07:18:24+00:00",
-   "sources": 9113,
+   "bytes": 413806736,
+   "entries": 9320,
+   "last": "2026-11-02T21:15:28+00:00",
+   "sources": 9162,
    "what": "the decision ledger: records, labels and outcomes",
    "workspaces": [
     "dev",
@@ -6110,6 +6185,10 @@
     "e2e__2026-11-01__104710_browser_e2e",
     "e2e__2026-11-01__104921_browser_e2e",
     "e2e__2026-11-01__105954_browser_e2e",
+    "e2e__2026-11-02__003221_product_e2e",
+    "e2e__2026-11-02__145804_product_e2e",
+    "e2e__2026-11-02__205349_product_e2e",
+    "e2e__2026-11-02__211036_product_e2e",
     "fraud_decision_v1__seed0",
     "fraud_decision_v1__seed1",
     "fraud_decision_v1__seed2",
@@ -7919,10 +7998,42 @@
     "live_tests__2026-10-31-home-eval__dev-010445__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-014123__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-091327__model__d-v1",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-01",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-03",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-04",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-06",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-08",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-026__case__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-026__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-027__case__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-027__case__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-028__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-029__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-029__case__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-031__case__r-19",
+    "live_tests__2026-11-01-conversation-exam__cex-031__case__r-20",
     "live_tests__2026-11-01-home-eval__dev-025415__model__d-v1",
     "live_tests__2026-11-01-home-eval__dev-032610__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-175632__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-205205__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-210517__model__d-v1",
     "live_tests__2026-11-01-lead-default__e2e-1",
     "live_tests__2026-11-01-lead-default__e2e-2",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-01",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-02",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-03",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-04",
+    "live_tests__2026-11-02-conversation-exam__cex-034__case__q-01",
+    "live_tests__2026-11-02-conversation-exam__cex-034__case__q-04",
+    "live_tests__2026-11-02-home-eval__dev-113551__model__d-v1",
+    "live_tests__2026-11-02-home-eval__dev-180851__model__d-v1",
+    "live_tests__2026-11-02-telco-replay__run1",
+    "live_tests__2026-11-02-telco-replay__run2",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -10116,10 +10227,10 @@
    ]
   },
   "deletions": {
-   "bytes": 48869,
-   "entries": 201,
-   "last": "2026-11-01T16:12:07+00:00",
-   "sources": 198,
+   "bytes": 51532,
+   "entries": 212,
+   "last": "2026-11-02T19:14:16+00:00",
+   "sources": 209,
    "what": "each deletion in the product, recorded beside what it removed",
    "workspaces": [
     "dev",
@@ -10130,20 +10241,20 @@
    ]
   },
   "fixes": {
-   "bytes": 141042679,
-   "entries": 1544,
-   "last": "2026-11-01T07:47:00+00:00",
-   "sources": 1503,
+   "bytes": 143593681,
+   "entries": 1591,
+   "last": "2026-11-02T21:32:41+00:00",
+   "sources": 1545,
    "what": "a failing test, the passing run after it, and the commits between",
    "workspaces": [
     "rnd"
    ]
   },
   "model_requests": {
-   "bytes": 210980046,
-   "entries": 314,
-   "last": "2026-11-01T07:19:15+00:00",
-   "sources": 106,
+   "bytes": 226504652,
+   "entries": 345,
+   "last": "2026-11-02T21:17:31+00:00",
+   "sources": 111,
    "what": "every model request with its shadows and checks",
    "workspaces": [
     "dev",
@@ -10198,6 +10309,8 @@
     "live_tests__2026-10-30-capture__workspace_chat",
     "live_tests__2026-11-01-lead-default__e2e-1",
     "live_tests__2026-11-01-lead-default__e2e-2",
+    "live_tests__2026-11-02-telco-replay__run1",
+    "live_tests__2026-11-02-telco-replay__run2",
     "twin__runs__20261016-100832-215130__ai_first",
     "twin__runs__20261016-112025-a15b8e__ai_first",
     "twin__runs__20261016-112855-921d50__ai_first",
@@ -10219,10 +10332,10 @@
    ]
   },
   "other": {
-   "bytes": 548982237,
-   "entries": 15189,
-   "last": "2026-11-01T14:58:41+00:00",
-   "sources": 14390,
+   "bytes": 554571359,
+   "entries": 15435,
+   "last": "2026-11-02T21:49:49+00:00",
+   "sources": 14492,
    "what": "anything else a workspace holds (logs, results, designs, transcripts, settings), so nothing is left out",
    "workspaces": [
     "dev",
@@ -10256,6 +10369,10 @@
     "e2e__2026-11-01__104710_browser_e2e",
     "e2e__2026-11-01__104921_browser_e2e",
     "e2e__2026-11-01__105954_browser_e2e",
+    "e2e__2026-11-02__003221_product_e2e",
+    "e2e__2026-11-02__145804_product_e2e",
+    "e2e__2026-11-02__205349_product_e2e",
+    "e2e__2026-11-02__211036_product_e2e",
     "fraud_decision_v1__seed0",
     "fraud_decision_v1__seed1",
     "fraud_decision_v1__seed2",
@@ -12842,8 +12959,57 @@
     "live_tests__2026-10-31-conversation-exam__cex-024__case__d-40",
     "live_tests__2026-10-31-conversation-exam__cex-024__plain__d-40",
     "live_tests__2026-10-31-conversation-exam__cex-024__safe__d-40",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-01",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-03",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-04",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-06",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-08",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-01",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-03",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-04",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-06",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-08",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-026__case__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-026__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-026__plain__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-026__plain__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-027__case__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-027__case__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-027__plain__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-027__plain__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-028__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-029__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-029__case__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-029__plain__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-029__plain__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-031__case__r-19",
+    "live_tests__2026-11-01-conversation-exam__cex-031__case__r-20",
+    "live_tests__2026-11-01-conversation-exam__cex-031__plain__r-19",
+    "live_tests__2026-11-01-conversation-exam__cex-031__plain__r-20",
     "live_tests__2026-11-01-lead-default__e2e-1",
     "live_tests__2026-11-01-lead-default__e2e-2",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-01",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-02",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-03",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-04",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-01",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-02",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-03",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-04",
+    "live_tests__2026-11-02-conversation-exam__cex-034__case__q-01",
+    "live_tests__2026-11-02-conversation-exam__cex-034__case__q-04",
+    "live_tests__2026-11-02-telco-replay__run1",
+    "live_tests__2026-11-02-telco-replay__run2",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -13260,10 +13426,10 @@
    ]
   },
   "sessions": {
-   "bytes": 351928232,
-   "entries": 3631,
-   "last": "2026-11-01T16:12:01+00:00",
-   "sources": 3176,
+   "bytes": 366605874,
+   "entries": 3879,
+   "last": "2026-11-02T21:43:11+00:00",
+   "sources": 3373,
    "what": "the experience log's events",
    "workspaces": [
     "dev",
@@ -13301,6 +13467,10 @@
     "e2e__2026-11-01__104710_browser_e2e",
     "e2e__2026-11-01__104921_browser_e2e",
     "e2e__2026-11-01__105954_browser_e2e",
+    "e2e__2026-11-02__003221_product_e2e",
+    "e2e__2026-11-02__145804_product_e2e",
+    "e2e__2026-11-02__205349_product_e2e",
+    "e2e__2026-11-02__211036_product_e2e",
     "fraud_decision_v1__seed0",
     "fraud_decision_v1__seed1",
     "fraud_decision_v1__seed2",
@@ -14952,10 +15122,64 @@
     "live_tests__2026-10-31-home-eval__dev-010445__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-014123__model__d-v1",
     "live_tests__2026-10-31-home-eval__dev-091327__model__d-v1",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-01",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-03",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-04",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-06",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-08",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-025__case__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-01",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-03",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-04",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-06",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-08",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-025__plain__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-026__case__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-026__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-026__plain__r-11",
+    "live_tests__2026-11-01-conversation-exam__cex-026__plain__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-027__case__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-027__case__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-027__plain__r-17",
+    "live_tests__2026-11-01-conversation-exam__cex-027__plain__r-18",
+    "live_tests__2026-11-01-conversation-exam__cex-028__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-029__case__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-029__case__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-029__plain__r-13",
+    "live_tests__2026-11-01-conversation-exam__cex-029__plain__r-15",
+    "live_tests__2026-11-01-conversation-exam__cex-031__case__r-19",
+    "live_tests__2026-11-01-conversation-exam__cex-031__case__r-20",
+    "live_tests__2026-11-01-conversation-exam__cex-031__plain__r-19",
+    "live_tests__2026-11-01-conversation-exam__cex-031__plain__r-20",
     "live_tests__2026-11-01-home-eval__dev-025415__model__d-v1",
     "live_tests__2026-11-01-home-eval__dev-032610__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-175632__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-205205__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-210517__model__d-v1",
     "live_tests__2026-11-01-lead-default__e2e-1",
     "live_tests__2026-11-01-lead-default__e2e-2",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-01",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-02",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-03",
+    "live_tests__2026-11-02-conversation-exam__cex-033__case__q-04",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-01",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-02",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-03",
+    "live_tests__2026-11-02-conversation-exam__cex-033__plain__q-04",
+    "live_tests__2026-11-02-conversation-exam__cex-034__case__q-01",
+    "live_tests__2026-11-02-conversation-exam__cex-034__case__q-04",
+    "live_tests__2026-11-02-home-eval__dev-113551__model__d-v1",
+    "live_tests__2026-11-02-home-eval__dev-180851__model__d-v1",
+    "live_tests__2026-11-02-telco-replay__run1",
+    "live_tests__2026-11-02-telco-replay__run2",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -15349,10 +15573,10 @@
    ]
   },
   "students": {
-   "bytes": 55515571,
-   "entries": 366,
-   "last": "2026-11-01T17:22:05+00:00",
-   "sources": 253,
+   "bytes": 57164264,
+   "entries": 394,
+   "last": "2026-11-02T22:32:56+00:00",
+   "sources": 270,
    "what": "every student version, whole: the fitted model, its training snapshot, card, measurements, shadow answers",
    "workspaces": [
     "dev",
@@ -15365,6 +15589,10 @@
     "e2e__2026-10-29__012615_product_e2e",
     "e2e__2026-10-29__014534_product_e2e",
     "e2e__2026-11-01__104056_browser_e2e",
+    "e2e__2026-11-02__003221_product_e2e",
+    "e2e__2026-11-02__145804_product_e2e",
+    "e2e__2026-11-02__205349_product_e2e",
+    "e2e__2026-11-02__211036_product_e2e",
     "live_tests__2026-10-19_model_paths__104822",
     "live_tests__2026-10-25_model_paths__031227",
     "live_tests__2026-10-26-dclab-code-home-draft__ws",
@@ -15374,10 +15602,10 @@
    ]
   },
   "tasks": {
-   "bytes": 4624339,
-   "entries": 447,
-   "last": "2026-11-01T16:11:59+00:00",
-   "sources": 85,
+   "bytes": 4987379,
+   "entries": 476,
+   "last": "2026-11-02T21:19:22+00:00",
+   "sources": 97,
    "what": "every job's state changes; the development sessions' task lists",
    "workspaces": [
     "dev",
@@ -15409,6 +15637,10 @@
     "e2e__2026-11-01__104710_browser_e2e",
     "e2e__2026-11-01__104921_browser_e2e",
     "e2e__2026-11-01__105954_browser_e2e",
+    "e2e__2026-11-02__003221_product_e2e",
+    "e2e__2026-11-02__145804_product_e2e",
+    "e2e__2026-11-02__205349_product_e2e",
+    "e2e__2026-11-02__211036_product_e2e",
     "live_tests__2026-10-16_phase3__workspace",
     "live_tests__2026-10-19_model_paths__104822",
     "live_tests__2026-10-20_home_orchestrator__run-163041__workspace",
@@ -15422,7 +15654,9 @@
     "live_tests__2026-10-28-dclab-code-hyperack-rerun__workspace_known",
     "live_tests__2026-10-28-rnd-hyperack-live__workspace_recommend",
     "live_tests__2026-11-01-lead-default__e2e-1",
-    "live_tests__2026-11-01-lead-default__e2e-2"
+    "live_tests__2026-11-01-lead-default__e2e-2",
+    "live_tests__2026-11-02-telco-replay__run1",
+    "live_tests__2026-11-02-telco-replay__run2"
    ]
   },
   "teachers": {
@@ -15446,10 +15680,10 @@
    ]
   },
   "tests": {
-   "bytes": 349966384,
-   "entries": 14105,
-   "last": "2026-11-01T07:31:04+00:00",
-   "sources": 13833,
+   "bytes": 352025753,
+   "entries": 14207,
+   "last": "2026-11-02T21:32:45+00:00",
+   "sources": 13928,
    "what": "test runs and gates",
    "workspaces": [
     "dev",
@@ -15459,10 +15693,10 @@
    ]
   },
   "workflows": {
-   "bytes": 386255745,
-   "entries": 15524,
-   "last": "2026-11-01T07:36:05+00:00",
-   "sources": 15366,
+   "bytes": 393570648,
+   "entries": 15697,
+   "last": "2026-11-02T21:32:32+00:00",
+   "sources": 15532,
    "what": "each walk from a draft to a report; team and orchestra boards, walks and interrupts",
    "workspaces": [
     "dev",
@@ -15498,6 +15732,10 @@
     "e2e__2026-11-01__104710_browser_e2e",
     "e2e__2026-11-01__104921_browser_e2e",
     "e2e__2026-11-01__105954_browser_e2e",
+    "e2e__2026-11-02__003221_product_e2e",
+    "e2e__2026-11-02__145804_product_e2e",
+    "e2e__2026-11-02__205349_product_e2e",
+    "e2e__2026-11-02__211036_product_e2e",
     "journey_plays__homework_v1__jh-anomaly-000__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-001__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-002__s0__workspace",
@@ -18116,9 +18354,16 @@
     "live_tests__2026-10-31-home-eval__dev-091327__model__d-v1",
     "live_tests__2026-11-01-home-eval__dev-025415__model__d-v1",
     "live_tests__2026-11-01-home-eval__dev-032610__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-175632__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-205205__model__d-v1",
+    "live_tests__2026-11-01-home-eval__dev-210517__model__d-v1",
     "live_tests__2026-11-01-lead-default",
     "live_tests__2026-11-01-lead-default__e2e-1",
     "live_tests__2026-11-01-lead-default__e2e-2",
+    "live_tests__2026-11-02-home-eval__dev-113551__model__d-v1",
+    "live_tests__2026-11-02-home-eval__dev-180851__model__d-v1",
+    "live_tests__2026-11-02-telco-replay__run1",
+    "live_tests__2026-11-02-telco-replay__run2",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -18199,29 +18444,29 @@
    "sets": [
     {
      "counts": {
-      "dev": 232,
+      "dev": 239,
       "sealed": 7,
-      "sealed_pending": 270,
-      "train": 683
+      "sealed_pending": 292,
+      "train": 707
      },
      "name": "column.category_code/pairs",
      "path": "sets/m1_students/column.category_code/pairs/v1",
      "reasoning": {
-      "no_model": 1192
+      "no_model": 1245
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 807,
+      "dev": 814,
       "sealed": 7,
-      "sealed_pending": 951,
-      "train": 2335
+      "sealed_pending": 973,
+      "train": 2359
      },
      "name": "column.category_code",
      "path": "sets/m1_students/column.category_code/v1",
      "reasoning": {
-      "no_model": 4100
+      "no_model": 4153
      },
      "version": "v1"
     },
@@ -18259,61 +18504,61 @@
     },
     {
      "counts": {
-      "dev": 2180,
+      "dev": 2207,
       "sealed": 34,
-      "sealed_pending": 2485,
-      "train": 7272
+      "sealed_pending": 2572,
+      "train": 7366
      },
      "name": "column.is_identifier/pairs",
      "path": "sets/m1_students/column.is_identifier/pairs/v1",
      "reasoning": {
       "lost": 1503,
-      "no_model": 10435,
-      "none": 33
+      "no_model": 10543,
+      "none": 133
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 10548,
+      "dev": 10575,
       "sealed": 34,
-      "sealed_pending": 11162,
-      "train": 33249
+      "sealed_pending": 11249,
+      "train": 33343
      },
      "name": "column.is_identifier",
      "path": "sets/m1_students/column.is_identifier/v1",
      "reasoning": {
       "lost": 2661,
-      "no_model": 52267,
-      "none": 65
+      "no_model": 52375,
+      "none": 165
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1413,
+      "dev": 1440,
       "sealed": 34,
-      "sealed_pending": 1503,
-      "train": 9153
+      "sealed_pending": 1590,
+      "train": 9247
      },
      "name": "column.semantic_role/pairs",
      "path": "sets/m1_students/column.semantic_role/pairs/v1",
      "reasoning": {
-      "no_model": 12103
+      "no_model": 12311
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 4156,
+      "dev": 4183,
       "sealed": 34,
-      "sealed_pending": 4524,
-      "train": 16619
+      "sealed_pending": 4611,
+      "train": 16713
      },
      "name": "column.semantic_role",
      "path": "sets/m1_students/column.semantic_role/v1",
      "reasoning": {
-      "no_model": 25333
+      "no_model": 25541
      },
      "version": "v1"
     },
@@ -18333,32 +18578,32 @@
     },
     {
      "counts": {
-      "dev": 50,
+      "dev": 51,
       "sealed": 1,
-      "sealed_pending": 42,
-      "train": 163
+      "sealed_pending": 43,
+      "train": 165
      },
      "name": "column.time/pairs",
      "path": "sets/m1_students/column.time/pairs/v1",
      "reasoning": {
       "lost": 43,
-      "no_model": 212,
+      "no_model": 216,
       "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 334,
+      "dev": 335,
       "sealed": 1,
-      "sealed_pending": 346,
-      "train": 1081
+      "sealed_pending": 347,
+      "train": 1083
      },
      "name": "column.time",
      "path": "sets/m1_students/column.time/v1",
      "reasoning": {
       "lost": 63,
-      "no_model": 1698,
+      "no_model": 1702,
       "none": 1
      },
      "version": "v1"
@@ -18379,85 +18624,85 @@
     },
     {
      "counts": {
-      "dev": 99,
+      "dev": 101,
       "sealed": 1,
-      "sealed_pending": 79,
-      "train": 251
+      "sealed_pending": 86,
+      "train": 263
      },
      "name": "data.cases_table/pairs",
      "path": "sets/m1_students/data.cases_table/pairs/v1",
      "reasoning": {
-      "no_model": 430
+      "no_model": 451
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 259,
+      "dev": 265,
       "sealed": 2,
-      "sealed_pending": 231,
-      "train": 648
+      "sealed_pending": 242,
+      "train": 668
      },
      "name": "data.cases_table",
      "path": "sets/m1_students/data.cases_table/v1",
      "reasoning": {
-      "no_model": 1140
+      "no_model": 1177
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 373,
+      "dev": 387,
       "sealed": 7,
-      "sealed_pending": 351,
-      "train": 963
+      "sealed_pending": 388,
+      "train": 1017
      },
      "name": "data.cleaning_keep",
      "path": "sets/m1_students/data.cleaning_keep/v1",
      "reasoning": {
-      "no_model": 1694
+      "no_model": 1799
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1031,
+      "dev": 1060,
       "sealed": 5,
-      "sealed_pending": 865,
-      "train": 2652
+      "sealed_pending": 975,
+      "train": 2802
      },
      "name": "data.cleaning_step/pairs",
      "path": "sets/m1_students/data.cleaning_step/pairs/v1",
      "reasoning": {
-      "no_model": 4553
+      "no_model": 4842
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 2730,
+      "dev": 2797,
       "sealed": 8,
-      "sealed_pending": 2692,
-      "train": 6785
+      "sealed_pending": 2842,
+      "train": 7033
      },
      "name": "data.cleaning_step",
      "path": "sets/m1_students/data.cleaning_step/v1",
      "reasoning": {
-      "no_model": 12215
+      "no_model": 12680
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 106,
+      "dev": 108,
       "sealed": 1,
-      "sealed_pending": 105,
-      "train": 278
+      "sealed_pending": 110,
+      "train": 284
      },
      "name": "data.fit_verdict",
      "path": "sets/m1_students/data.fit_verdict/v1",
      "reasoning": {
-      "no_model": 490
+      "no_model": 503
      },
      "version": "v1"
     },
@@ -18477,44 +18722,44 @@
     },
     {
      "counts": {
-      "dev": 518,
+      "dev": 520,
       "sealed": 2,
-      "sealed_pending": 547,
-      "train": 1548
+      "sealed_pending": 552,
+      "train": 1554
      },
      "name": "data.sampling",
      "path": "sets/m1_students/data.sampling/v1",
      "reasoning": {
-      "no_model": 2615
+      "no_model": 2628
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 263,
+      "dev": 269,
       "sealed": 1,
-      "sealed_pending": 244,
-      "train": 665
+      "sealed_pending": 255,
+      "train": 685
      },
      "name": "data.structure_format",
      "path": "sets/m1_students/data.structure_format/v1",
      "reasoning": {
-      "no_model": 1173
+      "no_model": 1210
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 8,
+      "dev": 9,
       "sealed": 1,
-      "sealed_pending": 8,
-      "train": 22
+      "sealed_pending": 9,
+      "train": 24
      },
      "name": "data.synthetic_shape",
      "path": "sets/m1_students/data.synthetic_shape/v1",
      "reasoning": {
       "lost": 13,
-      "no_model": 24,
+      "no_model": 28,
       "none": 2
      },
      "version": "v1"
@@ -18537,13 +18782,13 @@
      "counts": {
       "dev": 6,
       "sealed": 6,
-      "sealed_pending": 1,
-      "train": 8
+      "sealed_pending": 3,
+      "train": 11
      },
      "name": "evidence.records",
      "path": "sets/m1_students/evidence.records/v1",
      "reasoning": {
-      "no_model": 21
+      "no_model": 26
      },
      "version": "v1"
     },
@@ -18579,48 +18824,48 @@
     },
     {
      "counts": {
-      "dev": 2421,
+      "dev": 2448,
       "sealed": 37,
-      "sealed_pending": 2730,
-      "train": 8015
+      "sealed_pending": 2817,
+      "train": 8109
      },
      "name": "feature.leakage_suspect/pairs",
      "path": "sets/m1_students/feature.leakage_suspect/pairs/v1",
      "reasoning": {
       "lost": 1503,
-      "no_model": 11667,
-      "none": 33
+      "no_model": 11775,
+      "none": 133
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 11184,
+      "dev": 11211,
       "sealed": 37,
-      "sealed_pending": 11781,
-      "train": 35101
+      "sealed_pending": 11868,
+      "train": 35195
      },
      "name": "feature.leakage_suspect",
      "path": "sets/m1_students/feature.leakage_suspect/v1",
      "reasoning": {
       "lost": 2661,
-      "no_model": 55377,
-      "none": 65
+      "no_model": 55485,
+      "none": 165
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 517,
+      "dev": 519,
       "sealed": 3,
-      "sealed_pending": 543,
-      "train": 1543
+      "sealed_pending": 548,
+      "train": 1549
      },
      "name": "features.recipe",
      "path": "sets/m1_students/features.recipe/v1",
      "reasoning": {
       "lost": 4,
-      "no_model": 2602
+      "no_model": 2615
      },
      "version": "v1"
     },
@@ -18711,58 +18956,58 @@
     },
     {
      "counts": {
-      "dev": 99,
+      "dev": 100,
       "sealed": 86,
-      "sealed_pending": 4,
-      "train": 250
+      "sealed_pending": 6,
+      "train": 251
      },
      "name": "map.size",
      "path": "sets/m1_students/map.size/v1",
      "reasoning": {
-      "no_model": 439
+      "no_model": 443
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 518,
+      "dev": 520,
       "sealed": 2,
-      "sealed_pending": 547,
-      "train": 1548
+      "sealed_pending": 552,
+      "train": 1554
      },
      "name": "metric.primary",
      "path": "sets/m1_students/metric.primary/v1",
      "reasoning": {
-      "no_model": 2615
+      "no_model": 2628
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 517,
+      "dev": 519,
       "sealed": 2,
-      "sealed_pending": 542,
-      "train": 1537
+      "sealed_pending": 547,
+      "train": 1543
      },
      "name": "model.family",
      "path": "sets/m1_students/model.family/v1",
      "reasoning": {
       "lost": 4,
-      "no_model": 2594
+      "no_model": 2607
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 217,
+      "dev": 219,
       "sealed": 53,
-      "sealed_pending": 177,
-      "train": 638
+      "sealed_pending": 182,
+      "train": 644
      },
      "name": "model.first",
      "path": "sets/m1_students/model.first/v1",
      "reasoning": {
-      "no_model": 1085
+      "no_model": 1098
      },
      "version": "v1"
     },
@@ -18796,153 +19041,153 @@
     },
     {
      "counts": {
-      "dev": 731,
+      "dev": 733,
       "sealed": 1,
-      "sealed_pending": 764,
-      "train": 2259
+      "sealed_pending": 769,
+      "train": 2265
      },
      "name": "modifier.groups",
      "path": "sets/m1_students/modifier.groups/v1",
      "reasoning": {
       "lost": 136,
-      "no_model": 3617,
-      "none": 2
+      "no_model": 3625,
+      "none": 7
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 675,
+      "dev": 677,
       "sealed": 1,
-      "sealed_pending": 713,
-      "train": 2091
+      "sealed_pending": 718,
+      "train": 2097
      },
      "name": "modifier.noisy_labels",
      "path": "sets/m1_students/modifier.noisy_labels/v1",
      "reasoning": {
       "lost": 136,
-      "no_model": 3342,
-      "none": 2
+      "no_model": 3350,
+      "none": 7
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 731,
+      "dev": 733,
       "sealed": 1,
-      "sealed_pending": 764,
-      "train": 2259
+      "sealed_pending": 769,
+      "train": 2265
      },
      "name": "modifier.rare_positives",
      "path": "sets/m1_students/modifier.rare_positives/v1",
      "reasoning": {
       "lost": 136,
-      "no_model": 3617,
-      "none": 2
+      "no_model": 3625,
+      "none": 7
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 675,
+      "dev": 677,
       "sealed": 1,
-      "sealed_pending": 713,
-      "train": 2091
+      "sealed_pending": 718,
+      "train": 2097
      },
      "name": "modifier.review_capacity",
      "path": "sets/m1_students/modifier.review_capacity/v1",
      "reasoning": {
       "lost": 136,
-      "no_model": 3342,
-      "none": 2
+      "no_model": 3350,
+      "none": 7
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 731,
+      "dev": 733,
       "sealed": 1,
-      "sealed_pending": 764,
-      "train": 2259
+      "sealed_pending": 769,
+      "train": 2265
      },
      "name": "modifier.time_order",
      "path": "sets/m1_students/modifier.time_order/v1",
      "reasoning": {
       "lost": 136,
-      "no_model": 3617,
-      "none": 2
+      "no_model": 3625,
+      "none": 7
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 17,
+      "dev": 19,
       "sealed": 1,
-      "sealed_pending": 16,
-      "train": 39
+      "sealed_pending": 21,
+      "train": 45
      },
      "name": "problem.family/pairs",
      "path": "sets/m1_students/problem.family/pairs/v1",
      "reasoning": {
-      "no_model": 73
+      "no_model": 86
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 110,
+      "dev": 112,
       "sealed": 1,
-      "sealed_pending": 105,
-      "train": 280
+      "sealed_pending": 110,
+      "train": 286
      },
      "name": "problem.family",
      "path": "sets/m1_students/problem.family/v1",
      "reasoning": {
-      "no_model": 496
+      "no_model": 509
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 202,
+      "dev": 208,
       "sealed": 2,
-      "sealed_pending": 194,
-      "train": 518
+      "sealed_pending": 198,
+      "train": 528
      },
      "name": "problem.pack",
      "path": "sets/m1_students/problem.pack/v1",
      "reasoning": {
       "lost": 2,
-      "no_model": 913,
+      "no_model": 933,
       "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 18,
+      "dev": 24,
       "sealed": 1,
-      "sealed_pending": 17,
-      "train": 42
+      "sealed_pending": 22,
+      "train": 48
      },
      "name": "problem.ready/pairs",
      "path": "sets/m1_students/problem.ready/pairs/v1",
      "reasoning": {
-      "no_model": 78
+      "no_model": 95
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 116,
+      "dev": 122,
       "sealed": 1,
-      "sealed_pending": 107,
-      "train": 289
+      "sealed_pending": 112,
+      "train": 295
      },
      "name": "problem.ready",
      "path": "sets/m1_students/problem.ready/v1",
      "reasoning": {
-      "no_model": 513
+      "no_model": 530
      },
      "version": "v1"
     },
@@ -18993,48 +19238,48 @@
     },
     {
      "counts": {
-      "dev": 113,
+      "dev": 119,
       "sealed": 6,
-      "sealed_pending": 72,
-      "train": 260
+      "sealed_pending": 78,
+      "train": 273
      },
      "name": "request.exit",
      "path": "sets/m1_students/request.exit/v1",
      "reasoning": {
-      "no_model": 451
+      "no_model": 476
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 88,
+      "dev": 94,
       "sealed": 21,
-      "sealed_pending": 39,
-      "train": 181
+      "sealed_pending": 45,
+      "train": 194
      },
      "name": "request.intent/pairs",
      "path": "sets/m1_students/request.intent/pairs/v1",
      "reasoning": {
       "lost": 6,
-      "no_model": 14,
-      "none": 81,
+      "no_model": 34,
+      "none": 86,
       "recorded": 228
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 114,
+      "dev": 120,
       "sealed": 9,
-      "sealed_pending": 71,
-      "train": 259
+      "sealed_pending": 77,
+      "train": 272
      },
      "name": "request.intent",
      "path": "sets/m1_students/request.intent/v1",
      "reasoning": {
       "lost": 21,
-      "no_model": 123,
-      "none": 81,
+      "no_model": 143,
+      "none": 86,
       "recorded": 228
      },
      "version": "v1"
@@ -19055,29 +19300,29 @@
     },
     {
      "counts": {
-      "dev": 26,
+      "dev": 32,
       "sealed": 1,
-      "sealed_pending": 25,
-      "train": 68
+      "sealed_pending": 31,
+      "train": 81
      },
      "name": "request.suggestion",
      "path": "sets/m1_students/request.suggestion/v1",
      "reasoning": {
-      "no_model": 120
+      "no_model": 145
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 24,
+      "dev": 30,
       "sealed": 1,
-      "sealed_pending": 24,
-      "train": 65
+      "sealed_pending": 30,
+      "train": 78
      },
      "name": "request.tool",
      "path": "sets/m1_students/request.tool/v1",
      "reasoning": {
-      "no_model": 114
+      "no_model": 139
      },
      "version": "v1"
     },
@@ -19112,219 +19357,219 @@
     },
     {
      "counts": {
-      "dev": 4,
+      "dev": 5,
       "sealed": 4,
-      "sealed_pending": 0,
-      "train": 14
+      "sealed_pending": 2,
+      "train": 15
      },
      "name": "solution.route/pairs",
      "path": "sets/m1_students/solution.route/pairs/v1",
      "reasoning": {
-      "no_model": 22
+      "no_model": 26
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 102,
+      "dev": 103,
       "sealed": 90,
-      "sealed_pending": 10,
-      "train": 240
+      "sealed_pending": 12,
+      "train": 241
      },
      "name": "solution.route",
      "path": "sets/m1_students/solution.route/v1",
      "reasoning": {
-      "no_model": 442
+      "no_model": 446
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 518,
+      "dev": 520,
       "sealed": 2,
-      "sealed_pending": 547,
-      "train": 1548
+      "sealed_pending": 552,
+      "train": 1554
      },
      "name": "split.folds",
      "path": "sets/m1_students/split.folds/v1",
      "reasoning": {
-      "no_model": 2615
+      "no_model": 2628
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 150,
+      "dev": 152,
       "sealed": 1,
-      "sealed_pending": 177,
-      "train": 449
+      "sealed_pending": 182,
+      "train": 455
      },
      "name": "split.strategy/pairs",
      "path": "sets/m1_students/split.strategy/pairs/v1",
      "reasoning": {
-      "no_model": 777
+      "no_model": 790
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 375,
+      "dev": 377,
       "sealed": 2,
-      "sealed_pending": 418,
-      "train": 1112
+      "sealed_pending": 423,
+      "train": 1118
      },
      "name": "split.strategy",
      "path": "sets/m1_students/split.strategy/v1",
      "reasoning": {
-      "no_model": 1907
+      "no_model": 1920
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 793,
+      "dev": 795,
       "sealed": 2,
-      "sealed_pending": 827,
-      "train": 2420
+      "sealed_pending": 832,
+      "train": 2426
      },
      "name": "target.column",
      "path": "sets/m1_students/target.column/v1",
      "reasoning": {
       "lost": 153,
-      "no_model": 3884,
-      "none": 5
+      "no_model": 3892,
+      "none": 10
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 293,
+      "dev": 295,
       "sealed": 1,
-      "sealed_pending": 331,
-      "train": 963
+      "sealed_pending": 336,
+      "train": 969
      },
      "name": "task.framing/pairs",
      "path": "sets/m1_students/task.framing/pairs/v1",
      "reasoning": {
       "lost": 78,
-      "no_model": 1507,
-      "none": 3
+      "no_model": 1515,
+      "none": 8
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 796,
+      "dev": 798,
       "sealed": 2,
-      "sealed_pending": 829,
-      "train": 2427
+      "sealed_pending": 834,
+      "train": 2433
      },
      "name": "task.framing",
      "path": "sets/m1_students/task.framing/v1",
      "reasoning": {
       "lost": 153,
-      "no_model": 3896,
-      "none": 5
+      "no_model": 3904,
+      "none": 10
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 83,
+      "dev": 88,
       "sealed": 5,
-      "sealed_pending": 29,
-      "train": 119
+      "sealed_pending": 39,
+      "train": 124
      },
      "name": "team.next_node",
      "path": "sets/m1_students/team.next_node/v1",
      "reasoning": {
-      "no_model": 236
+      "no_model": 256
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 631,
+      "dev": 632,
       "sealed": 1,
-      "sealed_pending": 268,
-      "train": 1185
+      "sealed_pending": 272,
+      "train": 1189
      },
      "name": "threshold.operating_point",
      "path": "sets/m1_students/threshold.operating_point/v1",
      "reasoning": {
-      "no_model": 2085
+      "no_model": 2094
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 514,
+      "dev": 516,
       "sealed": 2,
-      "sealed_pending": 539,
-      "train": 1532
+      "sealed_pending": 544,
+      "train": 1538
      },
      "name": "tuning.accept",
      "path": "sets/m1_students/tuning.accept/v1",
      "reasoning": {
-      "no_model": 2587
+      "no_model": 2600
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 472,
+      "dev": 474,
       "sealed": 1,
-      "sealed_pending": 500,
-      "train": 1408
+      "sealed_pending": 505,
+      "train": 1414
      },
      "name": "workflow.g4",
      "path": "sets/m1_students/workflow.g4/v1",
      "reasoning": {
-      "no_model": 2381
+      "no_model": 2394
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 2893,
+      "dev": 2908,
       "sealed": 21,
-      "sealed_pending": 3046,
-      "train": 8515
+      "sealed_pending": 3089,
+      "train": 8561
      },
      "name": "workflow.move",
      "path": "sets/m1_students/workflow.move/v1",
      "reasoning": {
       "lost": 1269,
-      "no_model": 13178,
-      "none": 28
+      "no_model": 13239,
+      "none": 71
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 121,
+      "dev": 144,
       "sealed": 1,
-      "sealed_pending": 122,
-      "train": 335
+      "sealed_pending": 141,
+      "train": 369
      },
      "name": "workflow.next_question/pairs",
      "path": "sets/m1_students/workflow.next_question/pairs/v1",
      "reasoning": {
-      "no_model": 579
+      "no_model": 655
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1123,
+      "dev": 1150,
       "sealed": 2,
-      "sealed_pending": 1048,
-      "train": 2757
+      "sealed_pending": 1071,
+      "train": 2797
      },
      "name": "workflow.next_question",
      "path": "sets/m1_students/workflow.next_question/v1",
      "reasoning": {
-      "no_model": 4930
+      "no_model": 5020
      },
      "version": "v1"
     },
@@ -19347,29 +19592,30 @@
      "counts": {
       "dev": 26,
       "sealed": 5,
-      "sealed_pending": 39,
+      "sealed_pending": 43,
       "train": 91
      },
      "name": "workflow.stage_approval",
      "path": "sets/m1_students/workflow.stage_approval/v1",
      "reasoning": {
       "lost": 155,
-      "no_model": 6
+      "no_model": 6,
+      "none": 4
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 224,
+      "dev": 234,
       "sealed": 3,
-      "sealed_pending": 209,
-      "train": 590
+      "sealed_pending": 220,
+      "train": 609
      },
      "name": "workflow.template",
      "path": "sets/m1_students/workflow.template/v1",
      "reasoning": {
       "lost": 22,
-      "no_model": 1004
+      "no_model": 1044
      },
      "version": "v1"
     }
@@ -19411,29 +19657,29 @@
     },
     {
      "counts": {
-      "dev": 83,
+      "dev": 88,
       "sealed": 5,
-      "sealed_pending": 29,
-      "train": 119
+      "sealed_pending": 39,
+      "train": 124
      },
      "name": "internal/team.next_node",
      "path": "sets/m2_workflow_decisions/internal/team.next_node/v1",
      "reasoning": {
-      "no_model": 236
+      "no_model": 256
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 472,
+      "dev": 474,
       "sealed": 1,
-      "sealed_pending": 500,
-      "train": 1408
+      "sealed_pending": 505,
+      "train": 1414
      },
      "name": "internal/workflow.g4",
      "path": "sets/m2_workflow_decisions/internal/workflow.g4/v1",
      "reasoning": {
-      "no_model": 2381
+      "no_model": 2394
      },
      "version": "v1"
     },
@@ -19469,59 +19715,59 @@
     },
     {
      "counts": {
-      "dev": 99,
+      "dev": 100,
       "sealed": 86,
-      "sealed_pending": 4,
-      "train": 250
+      "sealed_pending": 6,
+      "train": 251
      },
      "name": "rnd/map.size",
      "path": "sets/m2_workflow_decisions/rnd/map.size/v1",
      "reasoning": {
-      "no_model": 439
+      "no_model": 443
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 110,
+      "dev": 112,
       "sealed": 1,
-      "sealed_pending": 105,
-      "train": 280
+      "sealed_pending": 110,
+      "train": 286
      },
      "name": "rnd/problem.family",
      "path": "sets/m2_workflow_decisions/rnd/problem.family/v1",
      "reasoning": {
-      "no_model": 496
+      "no_model": 509
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 202,
+      "dev": 208,
       "sealed": 2,
-      "sealed_pending": 194,
-      "train": 518
+      "sealed_pending": 198,
+      "train": 528
      },
      "name": "rnd/problem.pack",
      "path": "sets/m2_workflow_decisions/rnd/problem.pack/v1",
      "reasoning": {
       "lost": 2,
-      "no_model": 913,
+      "no_model": 933,
       "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 116,
+      "dev": 122,
       "sealed": 1,
-      "sealed_pending": 107,
-      "train": 289
+      "sealed_pending": 112,
+      "train": 295
      },
      "name": "rnd/problem.ready",
      "path": "sets/m2_workflow_decisions/rnd/problem.ready/v1",
      "reasoning": {
-      "no_model": 513
+      "no_model": 530
      },
      "version": "v1"
     },
@@ -19557,31 +19803,31 @@
     },
     {
      "counts": {
-      "dev": 113,
+      "dev": 119,
       "sealed": 6,
-      "sealed_pending": 72,
-      "train": 260
+      "sealed_pending": 78,
+      "train": 273
      },
      "name": "rnd/request.exit",
      "path": "sets/m2_workflow_decisions/rnd/request.exit/v1",
      "reasoning": {
-      "no_model": 451
+      "no_model": 476
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 114,
+      "dev": 120,
       "sealed": 9,
-      "sealed_pending": 71,
-      "train": 259
+      "sealed_pending": 77,
+      "train": 272
      },
      "name": "rnd/request.intent",
      "path": "sets/m2_workflow_decisions/rnd/request.intent/v1",
      "reasoning": {
       "lost": 21,
-      "no_model": 123,
-      "none": 81,
+      "no_model": 143,
+      "none": 86,
       "recorded": 228
      },
      "version": "v1"
@@ -19602,29 +19848,29 @@
     },
     {
      "counts": {
-      "dev": 26,
+      "dev": 32,
       "sealed": 1,
-      "sealed_pending": 25,
-      "train": 68
+      "sealed_pending": 31,
+      "train": 81
      },
      "name": "rnd/request.suggestion",
      "path": "sets/m2_workflow_decisions/rnd/request.suggestion/v1",
      "reasoning": {
-      "no_model": 120
+      "no_model": 145
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 24,
+      "dev": 30,
       "sealed": 1,
-      "sealed_pending": 24,
-      "train": 65
+      "sealed_pending": 30,
+      "train": 78
      },
      "name": "rnd/request.tool",
      "path": "sets/m2_workflow_decisions/rnd/request.tool/v1",
      "reasoning": {
-      "no_model": 114
+      "no_model": 139
      },
      "version": "v1"
     },
@@ -19659,45 +19905,45 @@
     },
     {
      "counts": {
-      "dev": 102,
+      "dev": 103,
       "sealed": 90,
-      "sealed_pending": 10,
-      "train": 240
+      "sealed_pending": 12,
+      "train": 241
      },
      "name": "rnd/solution.route",
      "path": "sets/m2_workflow_decisions/rnd/solution.route/v1",
      "reasoning": {
-      "no_model": 442
+      "no_model": 446
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 2893,
+      "dev": 2908,
       "sealed": 21,
-      "sealed_pending": 3046,
-      "train": 8515
+      "sealed_pending": 3089,
+      "train": 8561
      },
      "name": "rnd/workflow.move",
      "path": "sets/m2_workflow_decisions/rnd/workflow.move/v1",
      "reasoning": {
       "lost": 1269,
-      "no_model": 13178,
-      "none": 28
+      "no_model": 13239,
+      "none": 71
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1123,
+      "dev": 1150,
       "sealed": 2,
-      "sealed_pending": 1048,
-      "train": 2757
+      "sealed_pending": 1071,
+      "train": 2797
      },
      "name": "rnd/workflow.next_question",
      "path": "sets/m2_workflow_decisions/rnd/workflow.next_question/v1",
      "reasoning": {
-      "no_model": 4930
+      "no_model": 5020
      },
      "version": "v1"
     },
@@ -19720,29 +19966,30 @@
      "counts": {
       "dev": 26,
       "sealed": 5,
-      "sealed_pending": 39,
+      "sealed_pending": 43,
       "train": 91
      },
      "name": "rnd/workflow.stage_approval",
      "path": "sets/m2_workflow_decisions/rnd/workflow.stage_approval/v1",
      "reasoning": {
       "lost": 155,
-      "no_model": 6
+      "no_model": 6,
+      "none": 4
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 224,
+      "dev": 234,
       "sealed": 3,
-      "sealed_pending": 209,
-      "train": 590
+      "sealed_pending": 220,
+      "train": 609
      },
      "name": "rnd/workflow.template",
      "path": "sets/m2_workflow_decisions/rnd/workflow.template/v1",
      "reasoning": {
       "lost": 22,
-      "no_model": 1004
+      "no_model": 1044
      },
      "version": "v1"
     }
@@ -19798,125 +20045,125 @@
     },
     {
      "counts": {
-      "dev": 7992,
+      "dev": 8012,
       "sealed": 17,
-      "sealed_pending": 8400,
-      "train": 25093
+      "sealed_pending": 8480,
+      "train": 25173
      },
      "name": "binary_classification/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/binary_classification/feature.leakage_suspect/v1",
      "reasoning": {
       "lost": 2337,
-      "no_model": 39110,
-      "none": 55
+      "no_model": 39190,
+      "none": 155
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 176,
+      "dev": 177,
       "sealed": 41,
-      "sealed_pending": 139,
-      "train": 485
+      "sealed_pending": 143,
+      "train": 489
      },
      "name": "binary_classification/model.first",
      "path": "sets/m3_ml_decisions/binary_classification/model.first/v1",
      "reasoning": {
-      "no_model": 841
+      "no_model": 850
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 465,
+      "dev": 466,
       "sealed": 1,
-      "sealed_pending": 485,
-      "train": 1386
+      "sealed_pending": 489,
+      "train": 1390
      },
      "name": "binary_classification/modifier.groups",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.groups/v1",
      "reasoning": {
       "lost": 113,
-      "no_model": 2222,
-      "none": 2
+      "no_model": 2226,
+      "none": 7
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 442,
+      "dev": 443,
       "sealed": 1,
-      "sealed_pending": 463,
-      "train": 1315
+      "sealed_pending": 467,
+      "train": 1319
      },
      "name": "binary_classification/modifier.noisy_labels",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.noisy_labels/v1",
      "reasoning": {
       "lost": 113,
-      "no_model": 2106,
-      "none": 2
+      "no_model": 2110,
+      "none": 7
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 465,
+      "dev": 466,
       "sealed": 1,
-      "sealed_pending": 485,
-      "train": 1386
+      "sealed_pending": 489,
+      "train": 1390
      },
      "name": "binary_classification/modifier.rare_positives",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.rare_positives/v1",
      "reasoning": {
       "lost": 113,
-      "no_model": 2222,
-      "none": 2
+      "no_model": 2226,
+      "none": 7
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 442,
+      "dev": 443,
       "sealed": 1,
-      "sealed_pending": 463,
-      "train": 1315
+      "sealed_pending": 467,
+      "train": 1319
      },
      "name": "binary_classification/modifier.review_capacity",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.review_capacity/v1",
      "reasoning": {
       "lost": 113,
-      "no_model": 2106,
-      "none": 2
+      "no_model": 2110,
+      "none": 7
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 465,
+      "dev": 466,
       "sealed": 1,
-      "sealed_pending": 485,
-      "train": 1386
+      "sealed_pending": 489,
+      "train": 1390
      },
      "name": "binary_classification/modifier.time_order",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.time_order/v1",
      "reasoning": {
       "lost": 113,
-      "no_model": 2222,
-      "none": 2
+      "no_model": 2226,
+      "none": 7
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 438,
+      "dev": 443,
       "sealed": 162,
-      "sealed_pending": 418,
-      "train": 1178
+      "sealed_pending": 433,
+      "train": 1198
      },
      "name": "experiments/binary",
      "path": "sets/m3_ml_decisions/experiments/binary/v1",
      "reasoning": {
-      "no_field": 2034
+      "no_field": 2074
      },
      "version": "v1"
     },
@@ -19950,15 +20197,15 @@
     },
     {
      "counts": {
-      "dev": 110,
+      "dev": 115,
       "sealed": 85,
-      "sealed_pending": 170,
-      "train": 505
+      "sealed_pending": 175,
+      "train": 515
      },
      "name": "experiments/regression",
      "path": "sets/m3_ml_decisions/experiments/regression/v1",
      "reasoning": {
-      "no_field": 785
+      "no_field": 805
      },
      "version": "v1"
     },
@@ -20006,15 +20253,15 @@
     },
     {
      "counts": {
-      "dev": 807,
+      "dev": 814,
       "sealed": 7,
-      "sealed_pending": 951,
-      "train": 2335
+      "sealed_pending": 973,
+      "train": 2359
      },
      "name": "general/column.category_code",
      "path": "sets/m3_ml_decisions/general/column.category_code/v1",
      "reasoning": {
-      "no_model": 4100
+      "no_model": 4153
      },
      "version": "v1"
     },
@@ -20036,31 +20283,31 @@
     },
     {
      "counts": {
-      "dev": 10548,
+      "dev": 10575,
       "sealed": 34,
-      "sealed_pending": 11162,
-      "train": 33249
+      "sealed_pending": 11249,
+      "train": 33343
      },
      "name": "general/column.is_identifier",
      "path": "sets/m3_ml_decisions/general/column.is_identifier/v1",
      "reasoning": {
       "lost": 2661,
-      "no_model": 52267,
-      "none": 65
+      "no_model": 52375,
+      "none": 165
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 4156,
+      "dev": 4183,
       "sealed": 34,
-      "sealed_pending": 4524,
-      "train": 16619
+      "sealed_pending": 4611,
+      "train": 16713
      },
      "name": "general/column.semantic_role",
      "path": "sets/m3_ml_decisions/general/column.semantic_role/v1",
      "reasoning": {
-      "no_model": 25333
+      "no_model": 25541
      },
      "version": "v1"
     },
@@ -20080,116 +20327,116 @@
     },
     {
      "counts": {
-      "dev": 334,
+      "dev": 335,
       "sealed": 1,
-      "sealed_pending": 346,
-      "train": 1081
+      "sealed_pending": 347,
+      "train": 1083
      },
      "name": "general/column.time",
      "path": "sets/m3_ml_decisions/general/column.time/v1",
      "reasoning": {
       "lost": 63,
-      "no_model": 1698,
+      "no_model": 1702,
       "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 259,
+      "dev": 265,
       "sealed": 2,
-      "sealed_pending": 231,
-      "train": 648
+      "sealed_pending": 242,
+      "train": 668
      },
      "name": "general/data.cases_table",
      "path": "sets/m3_ml_decisions/general/data.cases_table/v1",
      "reasoning": {
-      "no_model": 1140
+      "no_model": 1177
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 373,
+      "dev": 387,
       "sealed": 7,
-      "sealed_pending": 351,
-      "train": 963
+      "sealed_pending": 388,
+      "train": 1017
      },
      "name": "general/data.cleaning_keep",
      "path": "sets/m3_ml_decisions/general/data.cleaning_keep/v1",
      "reasoning": {
-      "no_model": 1694
+      "no_model": 1799
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 2730,
+      "dev": 2797,
       "sealed": 8,
-      "sealed_pending": 2692,
-      "train": 6785
+      "sealed_pending": 2842,
+      "train": 7033
      },
      "name": "general/data.cleaning_step",
      "path": "sets/m3_ml_decisions/general/data.cleaning_step/v1",
      "reasoning": {
-      "no_model": 12215
+      "no_model": 12680
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 106,
+      "dev": 108,
       "sealed": 1,
-      "sealed_pending": 105,
-      "train": 278
+      "sealed_pending": 110,
+      "train": 284
      },
      "name": "general/data.fit_verdict",
      "path": "sets/m3_ml_decisions/general/data.fit_verdict/v1",
      "reasoning": {
-      "no_model": 490
+      "no_model": 503
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 492,
+      "dev": 494,
       "sealed": 2,
-      "sealed_pending": 507,
-      "train": 1463
+      "sealed_pending": 512,
+      "train": 1469
      },
      "name": "general/data.sampling",
      "path": "sets/m3_ml_decisions/general/data.sampling/v1",
      "reasoning": {
-      "no_model": 2464
+      "no_model": 2477
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 263,
+      "dev": 269,
       "sealed": 1,
-      "sealed_pending": 244,
-      "train": 665
+      "sealed_pending": 255,
+      "train": 685
      },
      "name": "general/data.structure_format",
      "path": "sets/m3_ml_decisions/general/data.structure_format/v1",
      "reasoning": {
-      "no_model": 1173
+      "no_model": 1210
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 8,
+      "dev": 9,
       "sealed": 1,
-      "sealed_pending": 8,
-      "train": 22
+      "sealed_pending": 9,
+      "train": 24
      },
      "name": "general/data.synthetic_shape",
      "path": "sets/m3_ml_decisions/general/data.synthetic_shape/v1",
      "reasoning": {
       "lost": 13,
-      "no_model": 24,
+      "no_model": 28,
       "none": 2
      },
      "version": "v1"
@@ -20198,13 +20445,13 @@
      "counts": {
       "dev": 6,
       "sealed": 6,
-      "sealed_pending": 1,
-      "train": 8
+      "sealed_pending": 3,
+      "train": 11
      },
      "name": "general/evidence.records",
      "path": "sets/m3_ml_decisions/general/evidence.records/v1",
      "reasoning": {
-      "no_model": 21
+      "no_model": 26
      },
      "version": "v1"
     },
@@ -20224,16 +20471,16 @@
     },
     {
      "counts": {
-      "dev": 491,
+      "dev": 493,
       "sealed": 3,
-      "sealed_pending": 503,
-      "train": 1459
+      "sealed_pending": 508,
+      "train": 1465
      },
      "name": "general/features.recipe",
      "path": "sets/m3_ml_decisions/general/features.recipe/v1",
      "reasoning": {
       "lost": 4,
-      "no_model": 2452
+      "no_model": 2465
      },
      "version": "v1"
     },
@@ -20310,30 +20557,30 @@
     },
     {
      "counts": {
-      "dev": 492,
+      "dev": 494,
       "sealed": 2,
-      "sealed_pending": 507,
-      "train": 1463
+      "sealed_pending": 512,
+      "train": 1469
      },
      "name": "general/metric.primary",
      "path": "sets/m3_ml_decisions/general/metric.primary/v1",
      "reasoning": {
-      "no_model": 2464
+      "no_model": 2477
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 491,
+      "dev": 493,
       "sealed": 2,
-      "sealed_pending": 502,
-      "train": 1453
+      "sealed_pending": 507,
+      "train": 1459
      },
      "name": "general/model.family",
      "path": "sets/m3_ml_decisions/general/model.family/v1",
      "reasoning": {
       "lost": 4,
-      "no_model": 2444
+      "no_model": 2457
      },
      "version": "v1"
     },
@@ -20382,75 +20629,75 @@
     },
     {
      "counts": {
-      "dev": 492,
+      "dev": 494,
       "sealed": 2,
-      "sealed_pending": 507,
-      "train": 1463
+      "sealed_pending": 512,
+      "train": 1469
      },
      "name": "general/split.folds",
      "path": "sets/m3_ml_decisions/general/split.folds/v1",
      "reasoning": {
-      "no_model": 2464
+      "no_model": 2477
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 349,
+      "dev": 351,
       "sealed": 2,
-      "sealed_pending": 378,
-      "train": 1027
+      "sealed_pending": 383,
+      "train": 1033
      },
      "name": "general/split.strategy",
      "path": "sets/m3_ml_decisions/general/split.strategy/v1",
      "reasoning": {
-      "no_model": 1756
+      "no_model": 1769
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 793,
+      "dev": 795,
       "sealed": 2,
-      "sealed_pending": 827,
-      "train": 2420
+      "sealed_pending": 832,
+      "train": 2426
      },
      "name": "general/target.column",
      "path": "sets/m3_ml_decisions/general/target.column/v1",
      "reasoning": {
       "lost": 153,
-      "no_model": 3884,
-      "none": 5
+      "no_model": 3892,
+      "none": 10
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 796,
+      "dev": 798,
       "sealed": 2,
-      "sealed_pending": 829,
-      "train": 2427
+      "sealed_pending": 834,
+      "train": 2433
      },
      "name": "general/task.framing",
      "path": "sets/m3_ml_decisions/general/task.framing/v1",
      "reasoning": {
       "lost": 153,
-      "no_model": 3896,
-      "none": 5
+      "no_model": 3904,
+      "none": 10
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 263,
+      "dev": 264,
       "sealed": 1,
-      "sealed_pending": 268,
-      "train": 745
+      "sealed_pending": 272,
+      "train": 749
      },
      "name": "general/threshold.operating_point",
      "path": "sets/m3_ml_decisions/general/threshold.operating_point/v1",
      "reasoning": {
-      "no_model": 1277
+      "no_model": 1286
      },
      "version": "v1"
     },
@@ -20526,15 +20773,15 @@
     },
     {
      "counts": {
-      "dev": 84,
+      "dev": 85,
       "sealed": 2,
-      "sealed_pending": 81,
-      "train": 229
+      "sealed_pending": 85,
+      "train": 233
      },
      "name": "logistic_regression/tuning.accept",
      "path": "sets/m3_ml_decisions/logistic_regression/tuning.accept/v1",
      "reasoning": {
-      "no_model": 396
+      "no_model": 405
      },
      "version": "v1"
     },
@@ -20840,31 +21087,31 @@
     },
     {
      "counts": {
-      "dev": 1675,
+      "dev": 1682,
       "sealed": 17,
-      "sealed_pending": 1630,
-      "train": 5238
+      "sealed_pending": 1637,
+      "train": 5252
      },
      "name": "regression/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/regression/feature.leakage_suspect/v1",
      "reasoning": {
       "lost": 284,
-      "no_model": 8266,
+      "no_model": 8294,
       "none": 10
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 25,
+      "dev": 26,
       "sealed": 20,
-      "sealed_pending": 8,
-      "train": 86
+      "sealed_pending": 9,
+      "train": 88
      },
      "name": "regression/model.first",
      "path": "sets/m3_ml_decisions/regression/model.first/v1",
      "reasoning": {
-      "no_model": 139
+      "no_model": 143
      },
      "version": "v1"
     },
@@ -20884,90 +21131,90 @@
     },
     {
      "counts": {
-      "dev": 218,
+      "dev": 219,
       "sealed": 119,
-      "sealed_pending": 94,
-      "train": 717
+      "sealed_pending": 95,
+      "train": 719
      },
      "name": "regression/modifier.groups",
      "path": "sets/m3_ml_decisions/regression/modifier.groups/v1",
      "reasoning": {
       "lost": 20,
-      "no_model": 1128
+      "no_model": 1132
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 193,
+      "dev": 194,
       "sealed": 97,
-      "sealed_pending": 94,
-      "train": 645
+      "sealed_pending": 95,
+      "train": 647
      },
      "name": "regression/modifier.noisy_labels",
      "path": "sets/m3_ml_decisions/regression/modifier.noisy_labels/v1",
      "reasoning": {
       "lost": 20,
-      "no_model": 1009
+      "no_model": 1013
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 218,
+      "dev": 219,
       "sealed": 119,
-      "sealed_pending": 94,
-      "train": 717
+      "sealed_pending": 95,
+      "train": 719
      },
      "name": "regression/modifier.rare_positives",
      "path": "sets/m3_ml_decisions/regression/modifier.rare_positives/v1",
      "reasoning": {
       "lost": 20,
-      "no_model": 1128
+      "no_model": 1132
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 193,
+      "dev": 194,
       "sealed": 97,
-      "sealed_pending": 94,
-      "train": 645
+      "sealed_pending": 95,
+      "train": 647
      },
      "name": "regression/modifier.review_capacity",
      "path": "sets/m3_ml_decisions/regression/modifier.review_capacity/v1",
      "reasoning": {
       "lost": 20,
-      "no_model": 1009
+      "no_model": 1013
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 218,
+      "dev": 219,
       "sealed": 119,
-      "sealed_pending": 94,
-      "train": 717
+      "sealed_pending": 95,
+      "train": 719
      },
      "name": "regression/modifier.time_order",
      "path": "sets/m3_ml_decisions/regression/modifier.time_order/v1",
      "reasoning": {
       "lost": 20,
-      "no_model": 1128
+      "no_model": 1132
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 3,
+      "dev": 4,
       "sealed": 1,
-      "sealed_pending": 5,
-      "train": 19
+      "sealed_pending": 6,
+      "train": 21
      },
      "name": "ridge/tuning.accept",
      "path": "sets/m3_ml_decisions/ridge/tuning.accept/v1",
      "reasoning": {
-      "no_model": 28
+      "no_model": 32
      },
      "version": "v1"
     },
@@ -21010,15 +21257,15 @@
    "sets": [
     {
      "counts": {
-      "dev": 44,
+      "dev": 47,
       "sealed": 17,
-      "sealed_pending": 15,
-      "train": 70
+      "sealed_pending": 19,
+      "train": 91
      },
      "name": "case_files",
      "path": "sets/m4_workflow_llm/case_files/v1",
      "reasoning": {
-      "none": 146
+      "none": 174
      },
      "version": "v1"
     },
@@ -21026,14 +21273,15 @@
      "counts": {
       "dev": 0,
       "sealed": 4,
-      "sealed_pending": 0,
+      "sealed_pending": 4,
       "train": 8
      },
      "name": "code",
      "path": "sets/m4_workflow_llm/code/v2",
      "reasoning": {
       "lost": 12,
-      "none": 5
+      "none": 6,
+      "recorded": 4
      },
      "version": "v2"
     },
@@ -21054,16 +21302,16 @@
     },
     {
      "counts": {
-      "dev": 353,
+      "dev": 434,
       "sealed": 242,
-      "sealed_pending": 200,
-      "train": 1455
+      "sealed_pending": 250,
+      "train": 1750
      },
      "name": "exam_simulation",
      "path": "sets/m4_workflow_llm/exam_simulation/v1",
      "reasoning": {
-      "none": 5064,
-      "recorded": 4136
+      "none": 6118,
+      "recorded": 4953
      },
      "version": "v1"
     },
@@ -21071,14 +21319,14 @@
      "counts": {
       "dev": 4,
       "sealed": 1,
-      "sealed_pending": 7,
+      "sealed_pending": 9,
       "train": 8
      },
      "name": "home_advice",
      "path": "sets/m4_workflow_llm/home_advice/v1",
      "reasoning": {
       "from_record": 16,
-      "none": 35
+      "none": 39
      },
      "version": "v1"
     },
@@ -21189,14 +21437,14 @@
      "counts": {
       "dev": 450,
       "sealed": 6,
-      "sealed_pending": 171,
-      "train": 753
+      "sealed_pending": 188,
+      "train": 768
      },
      "name": "reasoning/final_turn_silver_frontier",
      "path": "sets/m4_workflow_llm/reasoning/final_turn_silver_frontier/v1",
      "reasoning": {
-      "none": 1340,
-      "recorded": 1615
+      "none": 1359,
+      "recorded": 1655
      },
      "version": "v1"
     },
@@ -21204,13 +21452,13 @@
      "counts": {
       "dev": 334,
       "sealed": 1,
-      "sealed_pending": 113,
-      "train": 503
+      "sealed_pending": 129,
+      "train": 507
      },
      "name": "reasoning/silver_frontier",
      "path": "sets/m4_workflow_llm/reasoning/silver_frontier/v1",
      "reasoning": {
-      "recorded": 969
+      "recorded": 989
      },
      "version": "v1"
     },
@@ -21232,7 +21480,7 @@
      "counts": {
       "dev": 49,
       "sealed": 21,
-      "sealed_pending": 22,
+      "sealed_pending": 35,
       "train": 176
      },
      "name": "report",
@@ -21240,7 +21488,7 @@
      "reasoning": {
       "lost": 108,
       "none": 24,
-      "recorded": 137
+      "recorded": 150
      },
      "version": "v2"
     },
@@ -21274,18 +21522,18 @@
     },
     {
      "counts": {
-      "dev": 1108,
+      "dev": 1114,
       "sealed": 177,
-      "sealed_pending": 697,
-      "train": 2310
+      "sealed_pending": 701,
+      "train": 2342
      },
      "name": "understand_problem",
      "path": "sets/m4_workflow_llm/understand_problem/v2",
      "reasoning": {
-      "from_record": 8057,
+      "from_record": 8145,
       "lost": 3785,
-      "none": 4751,
-      "recorded": 1650,
+      "none": 4837,
+      "recorded": 1678,
       "replayed": 1
      },
      "version": "v2"
@@ -21327,16 +21575,16 @@
     },
     {
      "counts": {
-      "dev": 24,
+      "dev": 25,
       "sealed": 306,
-      "sealed_pending": 57,
-      "train": 243
+      "sealed_pending": 58,
+      "train": 249
      },
      "name": "trajectories/development",
      "path": "sets/m5_solver_llm/trajectories/development/v2",
      "reasoning": {
-      "none": 40515,
-      "recorded": 2322
+      "none": 40661,
+      "recorded": 2329
      },
      "version": "v2"
     },
@@ -21389,14 +21637,14 @@
      "counts": {
       "dev": 4,
       "sealed": 2,
-      "sealed_pending": 19,
+      "sealed_pending": 20,
       "train": 19
      },
      "name": "trajectories/silver_frontier",
      "path": "sets/m5_solver_llm/trajectories/silver_frontier/v1",
      "reasoning": {
-      "none": 669,
-      "recorded": 25
+      "none": 677,
+      "recorded": 38
      },
      "version": "v1"
     },
@@ -21482,60 +21730,60 @@
     },
     {
      "counts": {
-      "dev": 252,
+      "dev": 254,
       "sealed": 146,
-      "sealed_pending": 159,
-      "train": 784
+      "sealed_pending": 163,
+      "train": 790
      },
      "name": "graph",
      "path": "sets/m6_stepwise_decisions/graph/v1",
      "reasoning": {
-      "from_record": 5710,
-      "none": 1341
+      "from_record": 5790,
+      "none": 1353
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 57,
+      "dev": 65,
       "sealed": 1,
-      "sealed_pending": 50,
-      "train": 157
+      "sealed_pending": 60,
+      "train": 178
      },
      "name": "job",
      "path": "sets/m6_stepwise_decisions/job/v1",
      "reasoning": {
-      "no_model": 1082
+      "no_model": 1254
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 200,
+      "dev": 202,
       "sealed": 145,
-      "sealed_pending": 78,
-      "train": 567
+      "sealed_pending": 82,
+      "train": 573
      },
      "name": "stages",
      "path": "sets/m6_stepwise_decisions/stages/v1",
      "reasoning": {
-      "from_record": 2915,
-      "no_model": 1977
+      "from_record": 2951,
+      "no_model": 2001
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 17,
+      "dev": 18,
       "sealed": 10,
-      "sealed_pending": 4,
-      "train": 54
+      "sealed_pending": 6,
+      "train": 55
      },
      "name": "team/orchestra",
      "path": "sets/m6_stepwise_decisions/team/orchestra/v1",
      "reasoning": {
-      "from_record": 700,
-      "missing": 85
+      "from_record": 712,
+      "missing": 89
      },
      "version": "v1"
     },
@@ -21556,15 +21804,15 @@
     },
     {
      "counts": {
-      "dev": 519,
+      "dev": 525,
       "sealed": 175,
-      "sealed_pending": 377,
-      "train": 1592
+      "sealed_pending": 384,
+      "train": 1607
      },
      "name": "walk",
      "path": "sets/m6_stepwise_decisions/walk/v1",
      "reasoning": {
-      "no_model": 164245
+      "no_model": 166836
      },
      "version": "v1"
     }
@@ -21578,29 +21826,29 @@
    "sets": [
     {
      "counts": {
-      "dev": 65,
+      "dev": 68,
       "sealed": 15,
-      "sealed_pending": 110,
-      "train": 221
+      "sealed_pending": 114,
+      "train": 225
      },
      "name": "code",
      "path": "sets/m7_judges/code/v1",
      "reasoning": {
-      "no_field": 411
+      "no_field": 422
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1432,
+      "dev": 1462,
       "sealed": 914,
-      "sealed_pending": 509,
-      "train": 4348
+      "sealed_pending": 538,
+      "train": 4441
      },
      "name": "correction",
      "path": "sets/m7_judges/correction/v1",
      "reasoning": {
-      "no_field": 7203
+      "no_field": 7355
      },
      "version": "v1"
     },
@@ -21620,16 +21868,16 @@
     },
     {
      "counts": {
-      "dev": 62,
+      "dev": 67,
       "sealed": 53,
-      "sealed_pending": 24,
-      "train": 194
+      "sealed_pending": 31,
+      "train": 217
      },
      "name": "exam_judgments",
      "path": "sets/m7_judges/exam_judgments/v1",
      "reasoning": {
-      "none": 16,
-      "recorded": 317
+      "none": 19,
+      "recorded": 349
      },
      "version": "v1"
     },
@@ -21649,29 +21897,29 @@
     },
     {
      "counts": {
-      "dev": 1,
+      "dev": 12,
       "sealed": 1,
-      "sealed_pending": 2,
-      "train": 6
+      "sealed_pending": 14,
+      "train": 43
      },
      "name": "preferences",
      "path": "sets/m7_judges/preferences/v1",
      "reasoning": {
-      "none": 18
+      "none": 138
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 468,
+      "dev": 470,
       "sealed": 1,
-      "sealed_pending": 497,
-      "train": 1398
+      "sealed_pending": 502,
+      "train": 1404
      },
      "name": "result",
      "path": "sets/m7_judges/result/v1",
      "reasoning": {
-      "no_field": 2363
+      "no_field": 2376
      },
      "version": "v1"
     },
@@ -21680,12 +21928,12 @@
       "dev": 131,
       "sealed": 119,
       "sealed_pending": 0,
-      "train": 2449
+      "train": 2481
      },
      "name": "review_findings",
      "path": "sets/m7_judges/review_findings/v1",
      "reasoning": {
-      "no_field": 2699
+      "no_field": 2731
      },
      "version": "v1"
     }
@@ -21703,13 +21951,13 @@
      "counts": {
       "dev": 151,
       "sealed": 227,
-      "sealed_pending": 30,
-      "train": 510
+      "sealed_pending": 42,
+      "train": 518
      },
      "name": "problem.pack",
      "path": "sets/m7_routing/problem.pack/v1",
      "reasoning": {
-      "no_field": 918
+      "no_field": 938
      },
      "version": "v1"
     },
@@ -21717,27 +21965,27 @@
      "counts": {
       "dev": 67,
       "sealed": 19,
-      "sealed_pending": 59,
-      "train": 305
+      "sealed_pending": 71,
+      "train": 318
      },
      "name": "request.exit",
      "path": "sets/m7_routing/request.exit/v1",
      "reasoning": {
-      "no_field": 450
+      "no_field": 475
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 393,
+      "dev": 396,
       "sealed": 198,
-      "sealed_pending": 438,
-      "train": 1284
+      "sealed_pending": 469,
+      "train": 1317
      },
      "name": "request.intent",
      "path": "sets/m7_routing/request.intent/v1",
      "reasoning": {
-      "no_field": 2313
+      "no_field": 2380
      },
      "version": "v1"
     },
@@ -21759,13 +22007,13 @@
      "counts": {
       "dev": 20,
       "sealed": 23,
-      "sealed_pending": 1,
-      "train": 76
+      "sealed_pending": 13,
+      "train": 89
      },
      "name": "request.suggestion",
      "path": "sets/m7_routing/request.suggestion/v1",
      "reasoning": {
-      "no_field": 120
+      "no_field": 145
      },
      "version": "v1"
     },
@@ -21773,13 +22021,13 @@
      "counts": {
       "dev": 20,
       "sealed": 19,
-      "sealed_pending": 1,
-      "train": 74
+      "sealed_pending": 13,
+      "train": 87
      },
      "name": "request.tool",
      "path": "sets/m7_routing/request.tool/v1",
      "reasoning": {
-      "no_field": 114
+      "no_field": 139
      },
      "version": "v1"
     },
@@ -21799,15 +22047,15 @@
     },
     {
      "counts": {
-      "dev": 865,
+      "dev": 870,
       "sealed": 1292,
-      "sealed_pending": 76,
-      "train": 2695
+      "sealed_pending": 133,
+      "train": 2723
      },
      "name": "workflow.next_question",
      "path": "sets/m7_routing/workflow.next_question/v1",
      "reasoning": {
-      "no_field": 4928
+      "no_field": 5018
      },
      "version": "v1"
     }
@@ -21821,15 +22069,15 @@
    "sets": [
     {
      "counts": {
-      "dev": 9,
+      "dev": 10,
       "sealed": 2,
-      "sealed_pending": 4,
-      "train": 17
+      "sealed_pending": 7,
+      "train": 20
      },
      "name": "evidence",
      "path": "sets/m8_retrieval/evidence/v1",
      "reasoning": {
-      "no_field": 32
+      "no_field": 39
      },
      "version": "v1"
     }
@@ -21842,8 +22090,8 @@
  },
  "quarantine": {
   ".DS_Store": 0,
-  "a_duplicate_of_a_record_already_placed": 69,
-  "broken": 37,
+  "a_duplicate_of_a_record_already_placed": 75,
+  "broken": 42,
   "the_record_s_consent_improve_does_not_allow_training": 1
  },
  "root": "the store's root (dclab-records, owner/main)",

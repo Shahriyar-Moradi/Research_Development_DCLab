@@ -51,8 +51,8 @@ def placements(layout: Layout) -> dict[tuple[str, str], dict[str, Any]]:
             d = json.loads(line)
             if d.get("used") is False or d.get("refused") or not str(d.get("curator", "")).startswith("rule:"):
                 continue
-            out[(d["record"], d["model_type"])] = d
-    return out
+            out[(d["record"], d["model_type"])] = {k: d.get(k) for k in ("folder", "quality", "curator", "model_type", "record")}  # the fields the sets read:
+    return out  # 1.5 million whole choices took 2.7 GB (2026-11-03)
 
 
 def _best_label(labels: list[StoreRecord]) -> tuple[Any, Optional[str]]:
@@ -163,16 +163,24 @@ def build(layout: Optional[Layout] = None, scripted: Optional[frozenset[str]] = 
     scripted = scripted_names() if scripted is None else scripted
     layout = layout or Layout()
     placed = placements(layout)
-    records = {r.id: r for r in shapers.records(layout, "decisions")}
+    # One pass over the shaped records, keeping only what the sets need (2026-11-03: every record of the kind was held at once as an
+    # object, 6.6 GB on an 8 GB Mac, and the scheduled whole run was stopped by its swap guard): the decisions the curators placed,
+    # every label by the decision it labels, and the model-role sources the answers name.
+    wanted = {rid for rid, _ in placed}
+    records: dict[str, StoreRecord] = {}
     labels: dict[str, list[StoreRecord]] = defaultdict(list)
-    for r in records.values():
+    named: set[str] = set()
+    for r in shapers.records(layout, "decisions"):
         if r.type == "label":
             labels[str(r.body.get("record") or r.body.get("record_id"))].append(r)
+        elif r.type == "decision":
+            named |= {str(a.get("source")) for a in r.body.get("answers") or []
+                      if isinstance(a, dict) and a.get("by") == "model_role" and str(a.get("source") or "").startswith("mr")}
+            if r.id in wanted:
+                records[r.id] = r
     sets: dict[tuple[str, str], list[DecisionExample]] = defaultdict(list)
     out_of_sets: dict[str, int] = defaultdict(int)
     set_aside: set[str] = set()
-    named = {str(a.get("source")) for r in records.values() if r.type == "decision" for a in r.body.get("answers") or []
-             if isinstance(a, dict) and a.get("by") == "model_role" and str(a.get("source") or "").startswith("mr")}
     thoughts = thinking_by_request(layout, named)
     for (rid, model_type), choice in sorted(placed.items()):
         record = records.get(rid)
