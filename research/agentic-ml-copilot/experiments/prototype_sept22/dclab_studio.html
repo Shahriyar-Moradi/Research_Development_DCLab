@@ -188,10 +188,259 @@ button { font-family: inherit; cursor: pointer; }
 .command-input { flex: 1; border: none; background: transparent; font-size: 13.5px; height: 30px; color: var(--text-primary); outline: none; }
 .command-send { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; border: none; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .demo-reply { max-width: 1180px; margin: 10px 0 0; font-size: 12.5px; color: var(--text-secondary); padding: 10px 14px; background: var(--surface-2); border-radius: var(--radius); display: none; }
+
+/* ---------- Mode switch (shared by both modes) ---------- */
+.mode-switch { display: inline-flex; background: var(--surface-2); border-radius: 9px; padding: 2px; gap: 2px; }
+.mode-switch button { border: none; background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 7px; white-space: nowrap; }
+.mode-switch button[aria-pressed="true"] { background: var(--surface); color: var(--text-primary); box-shadow: 0 0 0 0.5px var(--border), 0 1px 2px rgba(0,0,0,.06); }
+body.mode-ds #dev-view { display: none; }
+body:not(.mode-ds) #ds-view { display: none; }
+
+/* ---------- Data science mode: chat-first, like Claude Code ---------- */
+:root {
+  --ds-bg: #faf9f6; --ds-side: #f3f1ec; --ds-surface: #ffffff; --ds-surface-2: #efede7; --ds-border: #e4e1d9;
+  --ds-text: #1f1e1b; --ds-text-2: #5c5952; --ds-muted: #8d897f;
+  --ds-add-bg: #e6f4ea; --ds-add: #1a7f37; --ds-del-bg: #fbe9e8; --ds-del: #b42318;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ds-bg: #1e1d1b; --ds-side: #181715; --ds-surface: #262522; --ds-surface-2: #2f2e2a; --ds-border: #3a3833;
+    --ds-text: #ecebe7; --ds-text-2: #b4b0a7; --ds-muted: #8a867d;
+    --ds-add-bg: #16301f; --ds-add: #6fd08c; --ds-del-bg: #3a1d1c; --ds-del: #f08a80;
+  }
+}
+:root[data-theme="dark"] {
+  --ds-bg: #1e1d1b; --ds-side: #181715; --ds-surface: #262522; --ds-surface-2: #2f2e2a; --ds-border: #3a3833;
+  --ds-text: #ecebe7; --ds-text-2: #b4b0a7; --ds-muted: #8a867d;
+  --ds-add-bg: #16301f; --ds-add: #6fd08c; --ds-del-bg: #3a1d1c; --ds-del: #f08a80;
+}
+body.mode-ds { background: var(--ds-bg); }
+.ds { display: flex; height: 100vh; height: 100dvh; background: var(--ds-bg); color: var(--ds-text); overflow: hidden; }
+.ds .mode-switch { background: var(--ds-surface-2); }
+.ds .mode-switch button { color: var(--ds-text-2); }
+.ds .mode-switch button[aria-pressed="true"] { background: var(--ds-surface); color: var(--ds-text); box-shadow: 0 0 0 0.5px var(--ds-border); }
+.ds-icon-btn { width: 30px; height: 30px; border: none; background: transparent; color: var(--ds-text-2); border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ds-icon-btn:hover { background: var(--ds-surface-2); color: var(--ds-text); }
+.ds svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ds-btn { border: 0.5px solid var(--ds-border); background: var(--ds-surface); color: var(--ds-text); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 500; }
+.ds-btn:hover { background: var(--ds-surface-2); }
+.ds-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ds-btn.primary:hover { filter: brightness(1.08); }
+.ds-btn:disabled { opacity: .5; cursor: default; }
+.ds-btn.sm { padding: 4px 10px; font-size: 12px; }
+
+/* Left sidebar: sessions */
+.ds-side { width: 252px; flex-shrink: 0; background: var(--ds-side); border-right: 0.5px solid var(--ds-border); display: flex; flex-direction: column; padding: 12px 10px; overflow-y: auto; }
+.ds-side-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 12px; }
+.ds-brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.ds-brand .brand-mark { width: 22px; height: 22px; font-size: 12px; border-radius: 6px; }
+.ds-nav { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 8px; border: none; background: none; border-radius: 8px; color: var(--ds-text); font-size: 13.5px; text-align: left; }
+.ds-nav:hover { background: var(--ds-surface-2); }
+.ds-nav .count { margin-left: auto; font-size: 11.5px; color: var(--ds-muted); }
+.ds-nav.active { background: var(--ds-surface-2); font-weight: 500; }
+.ds-label { font-size: 11.5px; color: var(--ds-muted); padding: 16px 8px 6px; font-weight: 500; }
+.ds-session { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; font-size: 13px; color: var(--ds-text-2); cursor: default; }
+.ds-session:hover { background: var(--ds-surface-2); }
+.ds-session.active { background: var(--ds-surface); color: var(--ds-text); box-shadow: 0 0 0 0.5px var(--ds-border); }
+.ds-session .s-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ds-border); flex-shrink: 0; }
+.ds-session.active .s-dot { background: var(--warning); }
+.ds-session.active.ok .s-dot { background: var(--success); }
+.ds-session .s-sub { margin-left: auto; font-size: 11px; color: var(--ds-muted); }
+.ds-activity { font-size: 12.5px; color: var(--ds-text-2); padding: 4px 8px; display: flex; gap: 7px; align-items: baseline; }
+.ds-activity::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--ds-muted); flex-shrink: 0; transform: translateY(-1px); }
+.ds-side-foot { margin-top: auto; padding-top: 14px; }
+.ds-compute { padding: 10px 10px; border-radius: 10px; background: var(--ds-surface); border: 0.5px solid var(--ds-border); }
+.ds-compute .t { font-size: 12px; font-weight: 500; }
+.ds-compute .s { font-size: 11.5px; color: var(--ds-muted); margin: 3px 0 7px; }
+.ds-compute .bar-track { background: var(--ds-surface-2); }
+
+/* Center: the conversation */
+.ds-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ds-top { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 0.5px solid var(--ds-border); }
+.ds-title { display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 14px; font-weight: 500; }
+.ds-title .file { color: var(--ds-muted); font-weight: 400; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ds-top .spacer { flex: 1; }
+.ds-scroll { flex: 1; overflow-y: auto; }
+.ds-thread { max-width: 760px; margin: 0 auto; padding: 26px 24px 18px; }
+.ds-msg { font-size: 15px; line-height: 1.65; margin: 0 0 14px; color: var(--ds-text); }
+.ds-msg b { font-weight: 600; }
+.ds-msg code, .ds-inline-code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; background: var(--ds-surface-2); padding: 1px 5px; border-radius: 5px; }
+.ds-user { display: flex; justify-content: flex-end; margin: 0 0 18px; }
+.ds-user div { background: var(--ds-surface-2); padding: 10px 14px; border-radius: 16px; max-width: 80%; font-size: 15px; line-height: 1.55; }
+
+/* Collapsible step rows: "Read 3 cells ▸" */
+.ds-step { margin: 0 0 12px; }
+.ds-step > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; color: var(--ds-muted); font-size: 14.5px; padding: 2px 0; }
+.ds-step > summary::-webkit-details-marker { display: none; }
+.ds-step > summary:hover { color: var(--ds-text-2); }
+.ds-step > summary .chev { font-size: 10px; transition: transform .15s; }
+.ds-step[open] > summary .chev { transform: rotate(90deg); }
+.ds-step > summary .badge-ok { color: var(--success); }
+.ds-step > summary .badge-lock { color: var(--ds-muted); }
+.ds-step > summary .add { color: var(--ds-add); font-family: ui-monospace, monospace; font-size: 13px; }
+.ds-step > summary .del { color: var(--ds-del); font-family: ui-monospace, monospace; font-size: 13px; }
+.ds-step-body { margin: 8px 0 4px; padding: 12px 14px; border: 0.5px solid var(--ds-border); border-radius: 12px; background: var(--ds-surface); font-size: 13.5px; color: var(--ds-text-2); line-height: 1.55; }
+.ds-cell-list { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; display: grid; gap: 4px; }
+.ds-cell-list span { color: var(--ds-muted); }
+
+/* Data profile table */
+.ds-profile { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ds-profile th { text-align: left; font-weight: 500; color: var(--ds-muted); font-size: 11.5px; padding: 0 8px 6px 0; border-bottom: 0.5px solid var(--ds-border); }
+.ds-profile td { padding: 6px 8px 6px 0; border-bottom: 0.5px solid var(--ds-border); color: var(--ds-text); vertical-align: middle; }
+.ds-profile tr:last-child td { border-bottom: none; }
+.ds-profile .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+.ds-profile .muted { color: var(--ds-muted); }
+.ds-spark { display: flex; align-items: flex-end; gap: 2px; height: 20px; width: 84px; }
+.ds-spark i { flex: 1; background: var(--accent); opacity: .55; border-radius: 1.5px 1.5px 0 0; min-height: 2px; }
+.ds-rate { display: flex; align-items: center; gap: 8px; }
+.ds-rate .track { width: 84px; height: 6px; border-radius: 3px; background: var(--ds-surface-2); overflow: hidden; }
+.ds-rate .fill { height: 100%; background: var(--warning); }
+.ds-note { font-size: 12px; color: var(--ds-muted); margin-top: 8px; }
+
+/* Finding and result cards inside the conversation */
+.ds-card { border: 0.5px solid var(--ds-border); border-radius: 14px; background: var(--ds-surface); margin: 0 0 16px; overflow: hidden; }
+.ds-card.danger { border-color: var(--danger-border); }
+.ds-card-head { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 0.5px solid var(--ds-border); }
+.ds-card-head .t { font-size: 13.5px; font-weight: 600; flex: 1; }
+.ds-card-body { padding: 12px 14px; font-size: 13.5px; color: var(--ds-text-2); line-height: 1.55; }
+.ds-code { margin: 0; padding: 12px 14px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; line-height: 1.7; background: var(--code-bg); white-space: pre; overflow-x: auto; color: var(--text-primary); }
+.ds-meta { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; padding: 0 14px 12px; }
+.ds-meta div { font-size: 11px; color: var(--ds-muted); }
+.ds-meta b { display: block; font-size: 14px; color: var(--ds-text); font-family: ui-monospace, monospace; font-weight: 600; }
+.ds-proof { font-size: 11.5px; color: var(--ds-muted); padding: 0 14px 10px; }
+.ds-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 14px; }
+.ds-explain { margin: 0 14px 14px; padding: 10px 12px; border-radius: 10px; background: var(--ds-surface-2); font-size: 13px; color: var(--ds-text-2); line-height: 1.55; }
+
+/* Diff, like an edited file in Claude Code */
+.ds-diff { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; line-height: 1.65; border-radius: 10px; overflow-x: auto; background: var(--code-bg); padding: 8px 0; }
+.ds-diff div { white-space: pre; padding: 0 12px; color: var(--text-primary); }
+.ds-diff .a { background: var(--ds-add-bg); }
+.ds-diff .a::before { content: "+ "; color: var(--ds-add); }
+.ds-diff .d { background: var(--ds-del-bg); }
+.ds-diff .d::before { content: "\2212 "; color: var(--ds-del); }
+.ds-diff .c::before { content: "  "; }
+
+/* Bars for the model comparison */
+.ds-bars { display: grid; gap: 8px; padding: 12px 14px 6px; }
+.ds-bar { display: grid; grid-template-columns: 110px 1fr 46px; gap: 10px; align-items: center; font-size: 12.5px; }
+.ds-bar .n { color: var(--ds-text-2); }
+.ds-bar .track { height: 8px; background: var(--ds-surface-2); border-radius: 4px; overflow: hidden; }
+.ds-bar .fill { height: 100%; background: var(--ds-muted); border-radius: 4px; }
+.ds-bar.best .fill { background: var(--accent); }
+.ds-bar .v { text-align: right; font-family: ui-monospace, monospace; color: var(--ds-text); }
+
+/* Task list card, like Claude Code's plan under the reply */
+.ds-tasks { border: 0.5px solid var(--ds-border); border-radius: 14px; background: var(--ds-surface); padding: 12px 16px; margin: 8px 0 12px; }
+.ds-tasks-title { font-size: 12px; color: var(--ds-muted); margin-bottom: 6px; }
+.ds-task { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 14px; color: var(--ds-text); }
+.ds-task .ic { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; }
+.ds-task.done .ic { background: var(--ds-text-2); color: var(--ds-surface); }
+.ds-task.done { color: var(--ds-text-2); }
+.ds-task.doing .ic { border: 2px solid var(--ds-border); border-top-color: var(--accent); animation: ds-spin 1s linear infinite; }
+.ds-task.todo .ic, .ds-task.locked .ic { border: 1.5px dashed var(--ds-muted); }
+.ds-task.locked { color: var(--ds-muted); }
+.ds-task .why { margin-left: auto; font-size: 11.5px; color: var(--ds-muted); }
+@keyframes ds-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ds-task.doing .ic { animation: none; } }
+.ds-working { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ds-muted); margin: 4px 0 6px; }
+.ds-working::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--warning); }
+.ds-working.ok::before { background: var(--success); }
+
+/* Composer */
+.ds-composer { padding: 0 24px 14px; }
+.ds-composer-inner { max-width: 760px; margin: 0 auto; }
+.ds-quick { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.ds-quick button { border: 0.5px solid var(--ds-border); background: var(--ds-surface); color: var(--ds-text-2); font-size: 12px; padding: 4px 10px; border-radius: 14px; }
+.ds-quick button:hover { color: var(--ds-text); background: var(--ds-surface-2); }
+.ds-box { border: 0.5px solid var(--ds-border); background: var(--ds-surface); border-radius: 16px; padding: 10px 10px 8px 14px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.ds-box textarea { width: 100%; border: none; outline: none; resize: none; background: transparent; color: var(--ds-text); font: inherit; font-size: 14.5px; line-height: 1.5; min-height: 24px; max-height: 160px; }
+.ds-box textarea::placeholder { color: var(--ds-muted); }
+.ds-box-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.ds-box-row .spacer { flex: 1; }
+.ds-scope { border: 0.5px solid var(--ds-border); background: var(--ds-surface-2); color: var(--ds-text); border-radius: 8px; font: inherit; font-size: 12px; padding: 4px 6px; }
+.ds-send { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+.ds-send svg { stroke: #fff; }
+.ds-foot { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; font-size: 11.5px; color: var(--ds-muted); margin-top: 8px; }
+.ds-foot .k::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--success); margin-right: 5px; }
+
+/* Right panel: environment, outputs, notebook, data */
+.ds-panel { width: 340px; flex-shrink: 0; border-left: 0.5px solid var(--ds-border); background: var(--ds-bg); display: flex; flex-direction: column; min-height: 0; }
+.ds-tabs { display: flex; gap: 2px; padding: 10px 12px 0; border-bottom: 0.5px solid var(--ds-border); }
+.ds-tab { border: none; background: none; color: var(--ds-text-2); font-size: 13px; padding: 7px 10px 9px; border-bottom: 2px solid transparent; margin-bottom: -0.5px; }
+.ds-tab[aria-selected="true"] { color: var(--ds-text); border-bottom-color: var(--ds-text); font-weight: 500; }
+.ds-tabpane { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.ds-tabpane[hidden] { display: none; }
+.ds-pcard { border: 0.5px solid var(--ds-border); border-radius: 12px; background: var(--ds-surface); padding: 12px 14px; }
+.ds-pcard-t { font-size: 13px; font-weight: 500; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.ds-pcard-t .r { margin-left: auto; font-size: 11.5px; color: var(--ds-muted); font-weight: 400; }
+.ds-kv { display: grid; grid-template-columns: 82px 1fr; gap: 6px 10px; font-size: 12.5px; }
+.ds-kv dt { color: var(--ds-muted); }
+.ds-kv dd { margin: 0; color: var(--ds-text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-status-h { font-size: 14px; font-weight: 600; margin-bottom: 8px; line-height: 1.35; }
+.ds-chips { display: grid; gap: 6px; }
+.ds-chip { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ds-text-2); }
+.ds-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.ds-metric { background: var(--ds-surface-2); border-radius: 8px; padding: 7px 8px; }
+.ds-metric .l { font-size: 10.5px; color: var(--ds-muted); }
+.ds-metric .v { font-family: ui-monospace, monospace; font-size: 14px; font-weight: 600; margin-top: 2px; }
+.ds-metric .m { font-size: 9.5px; color: var(--success); }
+.ds-vars { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ds-vars td { padding: 4px 6px 4px 0; border-bottom: 0.5px solid var(--ds-border); }
+.ds-vars tr:last-child td { border-bottom: none; }
+.ds-vars td:first-child { font-family: ui-monospace, monospace; color: var(--ds-text); white-space: nowrap; }
+.ds-vars td:nth-child(2) { color: var(--ds-muted); }
+.ds-vars td:last-child { text-align: right; font-family: ui-monospace, monospace; color: var(--ds-text-2); }
+.ds-vars tr.new td:first-child::after { content: " new"; font-family: inherit; font-size: 10px; color: var(--success); }
+.ds-changes { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.ds-changes .add { color: var(--ds-add); font-family: ui-monospace, monospace; }
+.ds-changes .del { color: var(--ds-del); font-family: ui-monospace, monospace; }
+.ds-changes .spacer { flex: 1; }
+.ds-nb-tools { display: flex; gap: 4px; }
+.ds-nb-tools button { border: none; background: none; color: var(--ds-text-2); font-size: 12.5px; padding: 4px 8px; border-radius: 7px; }
+.ds-nb-tools button:hover { background: var(--ds-surface-2); }
+.ds-nbcell { border: 0.5px solid var(--ds-border); border-radius: 12px; background: var(--ds-surface); overflow: hidden; transition: box-shadow .3s; }
+.ds-nbcell.flash { box-shadow: 0 0 0 2px var(--accent); }
+.ds-nbcell-h { display: flex; gap: 8px; align-items: center; padding: 7px 12px; font-size: 12px; font-weight: 500; border-bottom: 0.5px solid var(--ds-border); }
+.ds-nbcell-h .n { font-family: ui-monospace, monospace; color: var(--ds-muted); font-weight: 400; }
+.ds-nbcell-h .flag { margin-left: auto; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; background: var(--danger-bg); color: var(--danger); }
+.ds-nbcell-h .flag.ok { background: var(--success-bg); color: var(--success); }
+.ds-nbcell .ds-code { font-size: 11.5px; padding: 10px 12px; }
+.ds-nbcell-o { padding: 8px 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+.ds-tag { font-size: 11px; background: var(--ds-surface-2); color: var(--ds-text-2); padding: 3px 8px; border-radius: 10px; }
+
+/* Small toast for demo-only buttons */
+.ds-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ds-text); color: var(--ds-bg); font-size: 12.5px; padding: 8px 14px; border-radius: 10px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50; max-width: calc(100vw - 32px); }
+.ds-toast.show { opacity: 1; }
+
+/* Narrow screens: side panels become drawers */
+.ds-scrim { display: none; }
+@media (max-width: 1180px) {
+  .ds-panel { position: fixed; right: 0; top: 0; bottom: 0; z-index: 30; width: min(360px, 92vw); transform: translateX(100%); transition: transform .2s; box-shadow: -8px 0 24px rgba(0,0,0,.08); }
+  .ds.panel-open .ds-panel { transform: none; }
+}
+@media (max-width: 820px) {
+  .ds-side { position: fixed; left: 0; top: 0; bottom: 0; z-index: 30; transform: translateX(-100%); transition: transform .2s; box-shadow: 8px 0 24px rgba(0,0,0,.08); }
+  .ds.side-open .ds-side { transform: none; }
+  .ds-thread { padding: 18px 16px 12px; }
+  .ds-composer { padding: 0 16px 12px; }
+  .ds-top .ds-btn:not(.primary) { display: none; }
+  .ds-bar { grid-template-columns: 90px 1fr 42px; }
+}
+@media (max-width: 1180px) { .ds.panel-open .ds-scrim, .ds.side-open .ds-scrim { display: block; position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.18); } }
+@media (min-width: 821px) { .ds.side-collapsed .ds-side { display: none; } }
+@media (min-width: 1181px) { .ds.panel-collapsed .ds-panel { display: none; } }
+@media (max-width: 560px) {
+  .ds-title .file { display: none; }
+  .ds-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; flex: 1; }
+  .ds-top { gap: 4px; padding: 10px 8px; }
+  .ds-top .spacer, .ds-top .ds-btn { display: none; }
+  .ds-quick { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .ds-quick button { flex-shrink: 0; }
+}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="dev-view">
 
   <aside class="sidebar">
     <div class="brand"><div class="brand-mark">D</div><div class="brand-name">DCLab Studio</div></div>
@@ -213,6 +462,7 @@ button { font-family: inherit; cursor: pointer; }
     <header class="topbar">
       <div class="crumb">Churn project / <b>churn_model.ipynb</b></div>
       <div class="topbar-right">
+        <div class="mode-switch" role="group" aria-label="View mode"><button type="button" data-mode="dev" aria-pressed="true">Developer</button><button type="button" data-mode="ds" aria-pressed="false">Data science</button></div>
         <span class="pill"><span class="pill-dot"></span>Python 3.12</span>
         <button class="btn">Share</button>
         <button class="btn primary">Publish</button>
@@ -298,7 +548,7 @@ auc = <span class="tok-fn">roc_auc_score</span>(y_test, pred)</div>
                 <div class="compare-row"><span class="cname">lightgbm</span><div class="cbar-track"><div class="cbar-fill" style="width:83%"></div></div><span class="cval">.731</span></div>
               </div>
               <div class="proof-line">No single model wins every time &middot; DCLAB-R13</div>
-              <div class="insight-actions"><button class="btn primary">Use logistic regression</button><button class="btn">Compare</button></div>
+              <div class="insight-actions"><button class="btn primary" id="dev-choose-btn">Use logistic regression</button><button class="btn">Compare</button></div>
             </div>
           </div>
 
@@ -322,9 +572,269 @@ auc = <span class="tok-fn">roc_auc_score</span>(y_test, pred)</div>
   </div>
 </div>
 
+<!-- ===================== Data science mode ===================== -->
+<div class="ds" id="ds-view">
+  <div class="ds-scrim" id="ds-scrim"></div>
+
+  <aside class="ds-side" aria-label="Sessions">
+    <div class="ds-side-head">
+      <div class="ds-brand"><div class="brand-mark">D</div>DCLab Studio</div>
+      <button class="ds-icon-btn" id="ds-side-close" aria-label="Hide sidebar"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
+    </div>
+    <button class="ds-nav" data-demo="New analysis"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New analysis</button>
+    <button class="ds-nav" data-demo="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg>Search</button>
+
+    <div class="ds-label">Workspace</div>
+    <button class="ds-nav active"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h3"/></svg>Notebooks<span class="count">12</span></button>
+    <button class="ds-nav" data-demo="Datasets"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>Datasets<span class="count">7</span></button>
+    <button class="ds-nav" data-demo="Experiments"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3"/></svg>Experiments<span class="count">4</span></button>
+
+    <div class="ds-label">Sessions</div>
+    <div class="ds-session active" id="ds-session-now"><span class="s-dot"></span>Churn review<span class="s-sub">now</span></div>
+    <div class="ds-session"><span class="s-dot"></span>Telco feature check<span class="s-sub">2d</span></div>
+    <div class="ds-session"><span class="s-dot"></span>HyperAck baseline<span class="s-sub">5d</span></div>
+
+    <div class="ds-label">Agent activity</div>
+    <div class="ds-activity">Review &middot; 2m ago</div>
+    <div class="ds-activity" id="ds-activity-2">Waiting on leakage fix</div>
+
+    <div class="ds-side-foot">
+      <div class="ds-compute">
+        <div class="t">Compute this week</div>
+        <div class="s">6.4 of 10 GPU hours</div>
+        <div class="bar-track"><div class="bar-fill" style="width:64%"></div></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+    <header class="ds-top">
+      <button class="ds-icon-btn" id="ds-side-toggle" aria-label="Show or hide sidebar"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
+      <div class="ds-title">Churn review <span class="file">&middot; Churn project / churn_model.ipynb</span></div>
+      <div class="spacer"></div>
+      <div class="mode-switch" role="group" aria-label="View mode"><button type="button" data-mode="dev" aria-pressed="false">Developer</button><button type="button" data-mode="ds" aria-pressed="true">Data science</button></div>
+      <button class="ds-btn" data-demo="Share">Share</button>
+      <button class="ds-btn primary" data-demo="Publish">Publish</button>
+      <button class="ds-icon-btn" id="ds-panel-toggle" aria-label="Show or hide side panel"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+    </header>
+
+    <div class="ds-scroll" id="ds-scroll">
+      <div class="ds-thread">
+
+        <div class="ds-user"><div>Review churn_model.ipynb before I compare models. About 13% of customers churn.</div></div>
+
+        <p class="ds-msg">I'll read the notebook and profile the data first. Then I'll check the split, the metric, and the model comparison.</p>
+
+        <details class="ds-step">
+          <summary>Read 3 cells <span class="chev">&#9654;</span></summary>
+          <div class="ds-step-body ds-cell-list">
+            <div>[1] Prepare features <span>&middot; scaler, split</span></div>
+            <div>[2] Train baseline <span>&middot; LogisticRegression</span></div>
+            <div>[3] Evaluate model <span>&middot; ROC-AUC on the test split</span></div>
+          </div>
+        </details>
+
+        <details class="ds-step">
+          <summary>Profiled the data &middot; 5,000 rows &times; 6 features <span class="chev">&#9654;</span></summary>
+          <div class="ds-step-body">
+            <table class="ds-profile" id="ds-profile-step"></table>
+            <div class="ds-note">Demo profile for the prototype, not read from a real table.</div>
+          </div>
+        </details>
+
+        <p class="ds-msg">One problem blocks the rest. Cell 1 fits the scaler on <b>all 5,000 rows before the split</b>. Test-set statistics leak into training and inflate every score after it.</p>
+
+        <div class="ds-card danger" id="ds-finding">
+          <div class="ds-card-head"><span class="chip-icon danger">!</span><span class="t">Cell 1 &middot; leakage risk</span><span class="tag-badge danger" id="ds-finding-badge">Fix first</span></div>
+          <pre class="ds-code" id="ds-finding-code"></pre>
+          <div class="ds-card-body" style="padding-bottom:6px">The scaler learns each column's mean and spread from the test rows too.</div>
+          <div class="ds-proof">DCLAB-R04 &middot; confirmed precedent EXP-002</div>
+          <div class="ds-meta"><div>Confidence<b>97%</b></div><div>Score impact<b>&minus;3 to &minus;8 pts</b></div></div>
+          <div class="ds-explain" id="ds-explain" hidden>
+            In plain words: the scaler learns the average and spread of every column. Here it learns them from all 5,000 rows, including the 1,000 test rows. So the model gets a small hint about rows it should never see.<br><br>
+            Real-life example: a student who is told tomorrow's exam average already knows something about the exam.<br><br>
+            The fix: split first, fit the scaler on the training rows only, then use it to transform the test rows.
+          </div>
+          <div class="ds-actions">
+            <button class="ds-btn primary" id="ds-fix-btn">Fix in cell</button>
+            <button class="ds-btn" id="ds-explain-btn" aria-expanded="false">Explain</button>
+            <button class="ds-btn" id="ds-show-cell">Show in notebook</button>
+          </div>
+        </div>
+
+        <p class="ds-msg">Two other checks:</p>
+
+        <details class="ds-step">
+          <summary><span class="badge-ok">&#10003;</span> Cell 3 &middot; metric choice verified <span class="chev">&#9654;</span></summary>
+          <div class="ds-step-body">
+            ROC-AUC alone understates risk at a 13.5% positive rate. PR-AUC is already suggested in the cell's output.
+            <div style="margin-top:10px"><button class="ds-btn sm" data-demo="Add threshold view">Add threshold view</button></div>
+          </div>
+        </details>
+
+        <details class="ds-step" id="ds-compare-step">
+          <summary><span class="badge-lock" id="ds-compare-icon">&#128274;</span> <span id="ds-compare-label">Model comparison &middot; locked</span> <span class="chev">&#9654;</span></summary>
+          <div class="ds-step-body" id="ds-compare-why">Unlocks once the leakage fix is applied. Comparing models on leaky data would just rank who overfits to the leak.</div>
+        </details>
+
+        <!-- Shown after "Fix in cell" -->
+        <div id="ds-after-fix" hidden>
+          <div class="ds-user"><div>Fix it.</div></div>
+          <details class="ds-step" open>
+            <summary>Edited cells 1&ndash;3 <span class="add">+7</span> <span class="del">&minus;5</span> <span class="chev">&#9654;</span></summary>
+            <div class="ds-step-body" style="padding:8px">
+              <div class="ds-diff">
+<div class="c">from sklearn.preprocessing import StandardScaler</div><div class="c">from sklearn.model_selection import train_test_split</div><div class="c"> </div><div class="d">scaler = StandardScaler()</div><div class="d">X_scaled = scaler.fit_transform(X)</div><div class="c">X_train, X_test, y_train, y_test = train_test_split(</div><div class="d">    X_scaled, y, test_size=0.2, random_state=42</div><div class="a">    X, y, test_size=0.2, random_state=42</div><div class="c">)</div><div class="a"> </div><div class="a">scaler = StandardScaler()</div><div class="a">X_train_scaled = scaler.fit_transform(X_train)</div><div class="a">X_test_scaled = scaler.transform(X_test)  # fit on train only</div><div class="c">&middot;&middot;&middot; cell 2</div><div class="d">model.fit(X_train, y_train)</div><div class="a">model.fit(X_train_scaled, y_train)</div><div class="c">&middot;&middot;&middot; cell 3</div><div class="d">pred = model.predict_proba(X_test)[:, 1]</div><div class="a">pred = model.predict_proba(X_test_scaled)[:, 1]</div>
+              </div>
+            </div>
+          </details>
+          <details class="ds-step">
+            <summary>Re-ran cells 1&ndash;3 <span class="chev">&#9654;</span></summary>
+            <div class="ds-step-body">5-fold cross-validation on the training split. The test split was not used to choose anything.</div>
+          </details>
+          <p class="ds-msg">The leak is fixed and the model comparison is unlocked. Models are ranked by mean ROC-AUC minus a stability penalty, then runtime.</p>
+          <div class="ds-card">
+            <div class="ds-card-head"><span class="chip-icon success">&#10003;</span><span class="t">Model comparison</span><span class="tag-badge" style="background:var(--success-bg);color:var(--success)">Unlocked</span></div>
+            <div class="ds-bars">
+              <div class="ds-bar best"><span class="n">logistic reg.</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="v">.776</span></div>
+              <div class="ds-bar"><span class="n">hist gb</span><div class="track"><div class="fill" style="width:85%"></div></div><span class="v">.733</span></div>
+              <div class="ds-bar"><span class="n">lightgbm</span><div class="track"><div class="fill" style="width:83%"></div></div><span class="v">.731</span></div>
+            </div>
+            <div class="ds-proof" style="padding-top:6px">No single model wins every time &middot; DCLAB-R13</div>
+            <div class="ds-actions"><button class="ds-btn primary" id="ds-choose-btn">Use logistic regression</button><button class="ds-btn" data-demo="Compare">Compare</button></div>
+          </div>
+        </div>
+
+        <!-- Shown after "Use logistic regression" -->
+        <div id="ds-after-choose" hidden>
+          <p class="ds-msg">Logistic regression is the model to tune. Tuning runs inside the training folds only. The test split stays unread until the final check.</p>
+        </div>
+
+        <div id="ds-live"></div>
+
+        <div class="ds-tasks" aria-label="Review gate">
+          <div class="ds-tasks-title">Review gate</div>
+          <div id="ds-tasks"></div>
+        </div>
+        <div class="ds-working" id="ds-working">Waiting on leakage fix</div>
+      </div>
+    </div>
+
+    <div class="ds-composer">
+      <div class="ds-composer-inner">
+        <div class="ds-quick" aria-label="Suggestions">
+          <button type="button" data-q="Profile the data and flag odd columns">Profile data</button>
+          <button type="button" data-q="Check every cell for leakage">Check leakage</button>
+          <button type="button" data-q="Compare models with cross-validation">Compare models</button>
+          <button type="button" data-q="Explain which metric fits a 13.5% positive rate">Explain metric</button>
+        </div>
+        <div class="ds-box">
+          <textarea id="ds-input" rows="1" placeholder="Ask to review, explain, compare, or optimize"></textarea>
+          <div class="ds-box-row">
+            <button class="ds-icon-btn" data-demo="Attach a file" aria-label="Attach"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            <select class="ds-scope" id="ds-scope" aria-label="Scope">
+              <option>Whole notebook</option><option>Cell 1 &middot; Prepare features</option><option>Cell 2 &middot; Train baseline</option><option>Cell 3 &middot; Evaluate model</option><option>Dataset only</option>
+            </select>
+            <div class="spacer"></div>
+            <button class="ds-send" id="ds-send" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+          </div>
+        </div>
+        <div class="ds-foot"><span class="k">Python 3.12 kernel</span><span>Prototype &middot; demo data &middot; numbers are checked against the run</span></div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="ds-panel" aria-label="Side panel">
+    <div class="ds-tabs" role="tablist">
+      <button class="ds-tab" role="tab" aria-selected="true" data-tab="overview">Overview</button>
+      <button class="ds-tab" role="tab" aria-selected="false" data-tab="notebook">Notebook</button>
+      <button class="ds-tab" role="tab" aria-selected="false" data-tab="data">Data</button>
+      <div style="flex:1"></div>
+      <button class="ds-icon-btn" id="ds-panel-close" aria-label="Hide side panel"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+
+    <div class="ds-tabpane" data-pane="overview">
+      <div class="ds-pcard">
+        <div class="ds-pcard-t">Notebook review</div>
+        <div class="ds-status-h" id="ds-status-h">1 finding blocks the rest of the review</div>
+        <div class="ds-chips" id="ds-chips"></div>
+      </div>
+      <div class="ds-pcard">
+        <div class="ds-pcard-t">Environment</div>
+        <dl class="ds-kv">
+          <dt>Kernel</dt><dd><span class="pill-dot" style="display:inline-block;margin-right:5px"></span>Python 3.12 &middot; idle</dd>
+          <dt>Project</dt><dd>Churn project</dd>
+          <dt>Notebook</dt><dd>churn_model.ipynb</dd>
+          <dt>Dataset</dt><dd>churn.csv &middot; 5,000 &times; 7</dd>
+          <dt>Target</dt><dd>churn &middot; 13.5% positive</dd>
+        </dl>
+      </div>
+      <div class="ds-pcard">
+        <div class="ds-pcard-t">Outputs <span class="r">cell 2</span></div>
+        <div class="ds-metrics">
+          <div class="ds-metric"><div class="l">ROC-AUC</div><div class="v">0.776</div><div class="m">measured</div></div>
+          <div class="ds-metric"><div class="l">Train time</div><div class="v">0.05s</div><div class="m">measured</div></div>
+          <div class="ds-metric"><div class="l">Std, folds</div><div class="v">0.013</div><div class="m">measured</div></div>
+        </div>
+      </div>
+      <div class="ds-pcard">
+        <div class="ds-pcard-t">Variables</div>
+        <table class="ds-vars" id="ds-vars"></table>
+      </div>
+      <div class="ds-pcard">
+        <div class="ds-pcard-t">Changes</div>
+        <div class="ds-changes" id="ds-changes"></div>
+      </div>
+    </div>
+
+    <div class="ds-tabpane" data-pane="notebook" hidden>
+      <div class="ds-nb-tools"><button data-demo="Run all">&#9654; Run all</button><button data-demo="Add code cell">+ Code</button><button data-demo="Add text cell">+ Text</button></div>
+      <div style="font-size:14px;font-weight:600">Train and evaluate</div>
+      <div style="font-size:12px;color:var(--ds-text-2);margin-top:-6px">Build a binary churn classifier and compare model quality on the validation set.</div>
+      <div class="ds-nbcell" id="ds-nb1">
+        <div class="ds-nbcell-h"><span class="n">[1]</span>Prepare features<span class="flag" id="ds-nb1-flag">Leakage</span></div>
+        <pre class="ds-code" id="ds-nb1-code"></pre>
+        <div class="ds-nbcell-o"><span class="ds-tag">5,000 rows</span><span class="ds-tag">6 features</span></div>
+      </div>
+      <div class="ds-nbcell">
+        <div class="ds-nbcell-h"><span class="n">[2]</span>Train baseline</div>
+        <pre class="ds-code" id="ds-nb2-code"></pre>
+        <div class="ds-nbcell-o"><span class="ds-tag">ROC-AUC 0.776</span><span class="ds-tag">0.05s</span><span class="ds-tag">std 0.013</span></div>
+      </div>
+      <div class="ds-nbcell">
+        <div class="ds-nbcell-h"><span class="n">[3]</span>Evaluate model</div>
+        <pre class="ds-code" id="ds-nb3-code"></pre>
+        <div class="ds-nbcell-o"><span class="ds-tag">PR-AUC recommended alongside ROC-AUC &middot; 13.5% positive rate</span></div>
+      </div>
+    </div>
+
+    <div class="ds-tabpane" data-pane="data" hidden>
+      <div class="ds-pcard">
+        <div class="ds-pcard-t">churn.csv <span class="r">5,000 rows &middot; 7 columns</span></div>
+        <table class="ds-profile" id="ds-profile-data"></table>
+        <div class="ds-note">Demo profile for the prototype.</div>
+      </div>
+      <div class="ds-pcard">
+        <div class="ds-pcard-t">Split</div>
+        <dl class="ds-kv">
+          <dt>Train</dt><dd>4,000 rows &middot; 80%</dd>
+          <dt>Test</dt><dd>1,000 rows &middot; 20%, read once</dd>
+          <dt>Seed</dt><dd>42</dd>
+        </dl>
+      </div>
+    </div>
+  </aside>
+</div>
+<div class="ds-toast" id="ds-toast" role="status" aria-live="polite"></div>
+
 <script>
-document.getElementById('fix-btn').addEventListener('click', function () {
-  document.getElementById('cell1-code').innerHTML =
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { fixed: false, chosen: false };
+
+  /* ---- Shared cell code ---- */
+  var CELL1_LEAKY = $('cell1-code').innerHTML;
+  var CELL1_FIXED =
     '<span class="tok-kw">from</span> sklearn.preprocessing <span class="tok-kw">import</span> StandardScaler\n' +
     '<span class="tok-kw">from</span> sklearn.model_selection <span class="tok-kw">import</span> train_test_split\n\n' +
     'X_train, X_test, y_train, y_test = <span class="tok-fn">train_test_split</span>(\n' +
@@ -333,29 +843,271 @@ document.getElementById('fix-btn').addEventListener('click', function () {
     'scaler = StandardScaler()\n' +
     'X_train_scaled = scaler.<span class="tok-fn">fit_transform</span>(X_train)\n' +
     'X_test_scaled = scaler.<span class="tok-fn">transform</span>(X_test)  <span style="color:var(--text-muted)"># fit on train only</span>';
-  this.textContent = 'Fixed';
-  this.disabled = true;
+  function cell2(xs) {
+    return '<span class="tok-kw">from</span> sklearn.linear_model <span class="tok-kw">import</span> LogisticRegression\n' +
+      'model = <span class="tok-fn">LogisticRegression</span>(max_iter=<span class="tok-num">1000</span>, random_state=<span class="tok-num">42</span>)\n' +
+      'model.<span class="tok-fn">fit</span>(' + xs + ', y_train)';
+  }
+  function cell3(xs) {
+    return '<span class="tok-kw">from</span> sklearn.metrics <span class="tok-kw">import</span> roc_auc_score\n' +
+      'pred = model.<span class="tok-fn">predict_proba</span>(' + xs + ')[:, <span class="tok-num">1</span>]\n' +
+      'auc = <span class="tok-fn">roc_auc_score</span>(y_test, pred)';
+  }
 
-  document.getElementById('compare-icon').textContent = '\u2713';
-  document.getElementById('compare-icon').className = 'insight-icon success';
-  document.getElementById('compare-badge').textContent = 'Unlocked';
-  document.getElementById('compare-badge').className = 'tag-badge';
-  document.getElementById('compare-badge').style.background = 'var(--success-bg)';
-  document.getElementById('compare-badge').style.color = 'var(--success)';
-  document.getElementById('compare-body').textContent = 'Recomputed after the fix. Ranked by mean ROC-AUC minus a stability penalty, then runtime.';
-  document.getElementById('compare-content').style.display = 'block';
-});
+  /* ---- Demo data profile ---- */
+  var PROFILE = [
+    { name: 'tenure_months', type: 'int', miss: '0%', hist: [9, 7, 6, 5, 5, 4, 4, 5, 6, 8] },
+    { name: 'monthly_charges', type: 'float', miss: '0%', hist: [6, 3, 4, 5, 7, 8, 7, 6, 4, 3] },
+    { name: 'total_charges', type: 'float', miss: '0.2%', hist: [10, 7, 5, 4, 3, 3, 2, 2, 1, 1] },
+    { name: 'contract_type', type: 'category, 3', miss: '0%', hist: [11, 5, 4] },
+    { name: 'support_calls', type: 'int', miss: '0%', hist: [10, 8, 5, 3, 2, 1, 1] },
+    { name: 'payment_method', type: 'category, 4', miss: '0%', hist: [7, 6, 5, 4] }
+  ];
+  function profileHtml() {
+    var max, rows = '<tr><th>Column</th><th>Type</th><th>Missing</th><th>Distribution</th></tr>';
+    PROFILE.forEach(function (c) {
+      max = Math.max.apply(null, c.hist);
+      rows += '<tr><td class="mono">' + c.name + '</td><td class="muted">' + c.type + '</td><td class="mono">' + c.miss +
+        '</td><td><div class="ds-spark">' + c.hist.map(function (h) { return '<i style="height:' + Math.round(h / max * 100) + '%"></i>'; }).join('') + '</div></td></tr>';
+    });
+    rows += '<tr><td class="mono">churn <span class="muted">target</span></td><td class="muted">binary</td><td class="mono">0%</td>' +
+      '<td><div class="ds-rate"><div class="track"><div class="fill" style="width:13.5%"></div></div><span class="mono">13.5%</span></div></td></tr>';
+    return rows;
+  }
+  $('ds-profile-step').innerHTML = profileHtml();
+  $('ds-profile-data').innerHTML = profileHtml();
 
-function sendDemo() {
-  var v = document.getElementById('cmd-input').value.trim();
-  if (!v) return;
-  var box = document.getElementById('demo-reply');
-  box.style.display = 'block';
-  box.textContent = 'Demo only \u2014 wiring this to a live agent is the next integration step, not simulated here for: \u201c' + v + '\u201d';
-  document.getElementById('cmd-input').value = '';
-}
-document.getElementById('cmd-send').addEventListener('click', sendDemo);
-document.getElementById('cmd-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') sendDemo(); });
+  /* ---- Storage helpers (may be blocked) ---- */
+  function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  /* ---- Mode switch ---- */
+  function setMode(m) {
+    document.body.classList.toggle('mode-ds', m === 'ds');
+    Array.prototype.forEach.call(document.querySelectorAll('.mode-switch button'), function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === m));
+    });
+    document.title = m === 'ds' ? 'DCLab Studio — Data science' : 'DCLab Studio — churn_model.ipynb';
+    save('dclab-studio-mode', m);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.mode-switch button'), function (b) {
+    b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); });
+  });
+  var urlMode = (location.search.match(/[?&]mode=(ds|dev)\b/) || [])[1];
+  setMode(urlMode || load('dclab-studio-mode') || 'dev');
+
+  /* ---- Toast for buttons the prototype does not wire ---- */
+  var toastTimer;
+  function toast(text) {
+    var t = $('ds-toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-demo]'), function (b) {
+    b.addEventListener('click', function () { toast('Demo only — "' + b.getAttribute('data-demo') + '" is not wired in this prototype.'); });
+  });
+
+  /* ---- Data science view: render from state ---- */
+  function renderDs() {
+    $('ds-finding-code').innerHTML = state.fixed ? CELL1_FIXED : CELL1_LEAKY;
+    $('ds-nb1-code').innerHTML = state.fixed ? CELL1_FIXED : CELL1_LEAKY;
+    $('ds-nb2-code').innerHTML = cell2(state.fixed ? 'X_train_scaled' : 'X_train');
+    $('ds-nb3-code').innerHTML = cell3(state.fixed ? 'X_test_scaled' : 'X_test');
+    var flag = $('ds-nb1-flag');
+    flag.textContent = state.fixed ? 'Fixed' : 'Leakage';
+    flag.className = 'flag' + (state.fixed ? ' ok' : '');
+
+    var fb = $('ds-fix-btn');
+    fb.textContent = state.fixed ? 'Fixed' : 'Fix in cell';
+    fb.disabled = state.fixed;
+    var badge = $('ds-finding-badge');
+    badge.textContent = state.fixed ? 'Fixed' : 'Fix first';
+    badge.className = 'tag-badge' + (state.fixed ? '' : ' danger');
+    badge.style.background = state.fixed ? 'var(--success-bg)' : '';
+    badge.style.color = state.fixed ? 'var(--success)' : '';
+
+    $('ds-compare-icon').innerHTML = state.fixed ? '&#10003;' : '&#128274;';
+    $('ds-compare-icon').className = state.fixed ? 'badge-ok' : 'badge-lock';
+    $('ds-compare-label').innerHTML = state.fixed ? 'Model comparison &middot; unlocked' : 'Model comparison &middot; locked';
+    $('ds-compare-why').textContent = state.fixed
+      ? 'Recomputed after the fix. The result is further down.'
+      : 'Unlocks once the leakage fix is applied. Comparing models on leaky data would just rank who overfits to the leak.';
+
+    $('ds-after-fix').hidden = !state.fixed;
+    $('ds-after-choose').hidden = !state.chosen;
+    var cb = $('ds-choose-btn');
+    cb.textContent = state.chosen ? 'Chosen' : 'Use logistic regression';
+    cb.disabled = state.chosen;
+
+    // Review gate as a task list
+    var tasks = [
+      { t: 'Fix preprocessing order', s: state.fixed ? 'done' : 'doing' },
+      { t: 'Compare models', s: !state.fixed ? 'locked' : (state.chosen ? 'done' : 'doing'), why: !state.fixed ? 'after the fix' : '' },
+      { t: 'Tune the winner', s: state.chosen ? 'doing' : 'locked', why: state.chosen ? '' : 'after a model is chosen' }
+    ];
+    $('ds-tasks').innerHTML = tasks.map(function (k) {
+      return '<div class="ds-task ' + k.s + '"><span class="ic">' + (k.s === 'done' ? '&#10003;' : '') + '</span>' + k.t +
+        (k.why ? '<span class="why">' + k.why + '</span>' : '') + '</div>';
+    }).join('');
+
+    var w = $('ds-working');
+    w.textContent = !state.fixed ? 'Waiting on leakage fix' : (state.chosen ? 'Ready to tune the winner' : 'Comparison ready · pick a model');
+    w.className = 'ds-working' + (state.fixed ? ' ok' : '');
+    $('ds-activity-2').textContent = state.fixed ? 'Leakage fixed · just now' : 'Waiting on leakage fix';
+    $('ds-session-now').classList.toggle('ok', state.fixed);
+
+    // Status card
+    $('ds-status-h').textContent = state.fixed ? 'No blocking findings' : '1 finding blocks the rest of the review';
+    $('ds-chips').innerHTML = state.fixed
+      ? '<div class="ds-chip"><span class="chip-icon success">&#10003;</span>Leakage &middot; fixed</div>' +
+        '<div class="ds-chip"><span class="chip-icon success">&#10003;</span>Model comparison &middot; unlocked</div>' +
+        '<div class="ds-chip"><span class="chip-icon success">&#10003;</span>Metric choice &middot; verified</div>'
+      : '<div class="ds-chip"><span class="chip-icon danger">!</span>Leakage &middot; blocking</div>' +
+        '<div class="ds-chip"><span class="chip-icon warning">&middot;</span>Model comparison &middot; locked</div>' +
+        '<div class="ds-chip"><span class="chip-icon success">&#10003;</span>Metric choice &middot; verified</div>';
+
+    // Variables, like a notebook's variable explorer
+    var vars = state.fixed
+      ? [['X', 'DataFrame', '5000×6'], ['y', 'Series', '5000'], ['X_train', 'DataFrame', '4000×6'], ['X_test', 'DataFrame', '1000×6'],
+         ['X_train_scaled', 'ndarray', '4000×6', 1], ['X_test_scaled', 'ndarray', '1000×6', 1], ['model', 'LogisticRegression', 'fitted'], ['auc', 'float', '0.776']]
+      : [['X', 'DataFrame', '5000×6'], ['y', 'Series', '5000'], ['X_scaled', 'ndarray', '5000×6'], ['X_train', 'ndarray', '4000×6'],
+         ['X_test', 'ndarray', '1000×6'], ['model', 'LogisticRegression', 'fitted'], ['auc', 'float', '0.776']];
+    $('ds-vars').innerHTML = vars.map(function (v) {
+      return '<tr' + (v[3] ? ' class="new"' : '') + '><td>' + v[0] + '</td><td>' + v[1] + '</td><td>' + v[2] + '</td></tr>';
+    }).join('');
+
+    $('ds-changes').innerHTML = state.fixed
+      ? '<span>cells 1&ndash;3</span><span class="add">+7</span><span class="del">&minus;5</span><span class="spacer"></span><button class="ds-btn sm primary" data-demo-inline="Publish">Publish</button>'
+      : '<span style="color:var(--ds-muted)">No edits yet</span>';
+    var pub = document.querySelector('[data-demo-inline]');
+    if (pub) pub.addEventListener('click', function () { toast('Demo only — "Publish" is not wired in this prototype.'); });
+  }
+
+  /* ---- Actions shared by both modes ---- */
+  function applyFix() {
+    if (state.fixed) return;
+    state.fixed = true;
+    // Developer view: same changes as before
+    $('cell1-code').innerHTML = CELL1_FIXED;
+    var fb = $('fix-btn');
+    fb.textContent = 'Fixed';
+    fb.disabled = true;
+    $('compare-icon').textContent = '✓';
+    $('compare-icon').className = 'insight-icon success';
+    $('compare-badge').textContent = 'Unlocked';
+    $('compare-badge').className = 'tag-badge';
+    $('compare-badge').style.background = 'var(--success-bg)';
+    $('compare-badge').style.color = 'var(--success)';
+    $('compare-body').textContent = 'Recomputed after the fix. Ranked by mean ROC-AUC minus a stability penalty, then runtime.';
+    $('compare-content').style.display = 'block';
+    // Data science view
+    renderDs();
+    if (document.body.classList.contains('mode-ds')) {
+      $('ds-after-fix').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+  function choose() {
+    if (!state.fixed || state.chosen) return;
+    state.chosen = true;
+    var db = $('dev-choose-btn');
+    db.textContent = 'Chosen';
+    db.disabled = true;
+    renderDs();
+  }
+  $('fix-btn').addEventListener('click', applyFix);
+  $('ds-fix-btn').addEventListener('click', applyFix);
+  $('dev-choose-btn').addEventListener('click', choose);
+  $('ds-choose-btn').addEventListener('click', choose);
+
+  $('ds-explain-btn').addEventListener('click', function () {
+    var box = $('ds-explain');
+    box.hidden = !box.hidden;
+    this.setAttribute('aria-expanded', String(!box.hidden));
+    this.textContent = box.hidden ? 'Explain' : 'Hide explanation';
+  });
+
+  /* ---- Side panels ---- */
+  var ds = $('ds-view');
+  var narrowSide = window.matchMedia('(max-width: 820px)');
+  var narrowPanel = window.matchMedia('(max-width: 1180px)');
+  function toggleSide(open) {
+    if (narrowSide.matches) ds.classList.toggle('side-open', open);
+    else ds.classList.toggle('side-collapsed', open === undefined ? undefined : !open);
+  }
+  function togglePanel(open) {
+    if (narrowPanel.matches) ds.classList.toggle('panel-open', open);
+    else ds.classList.toggle('panel-collapsed', open === undefined ? undefined : !open);
+  }
+  $('ds-side-toggle').addEventListener('click', function () { toggleSide(); });
+  $('ds-side-close').addEventListener('click', function () { toggleSide(false); });
+  $('ds-panel-toggle').addEventListener('click', function () { togglePanel(); });
+  $('ds-panel-close').addEventListener('click', function () { togglePanel(false); });
+  $('ds-scrim').addEventListener('click', function () { ds.classList.remove('side-open', 'panel-open'); });
+
+  function selectTab(name) {
+    Array.prototype.forEach.call(document.querySelectorAll('.ds-tab'), function (t) {
+      t.setAttribute('aria-selected', String(t.getAttribute('data-tab') === name));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.ds-tabpane'), function (p) {
+      p.hidden = p.getAttribute('data-pane') !== name;
+    });
+    save('dclab-studio-tab', name);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.ds-tab'), function (t) {
+    t.addEventListener('click', function () { selectTab(t.getAttribute('data-tab')); });
+  });
+  selectTab(load('dclab-studio-tab') || 'overview');
+
+  $('ds-show-cell').addEventListener('click', function () {
+    togglePanel(true);
+    selectTab('notebook');
+    var c = $('ds-nb1');
+    c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    c.classList.add('flash');
+    setTimeout(function () { c.classList.remove('flash'); }, 1400);
+  });
+
+  /* ---- Composer ---- */
+  var input = $('ds-input');
+  function grow() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px'; }
+  input.addEventListener('input', grow);
+  Array.prototype.forEach.call(document.querySelectorAll('.ds-quick button'), function (b) {
+    b.addEventListener('click', function () { input.value = b.getAttribute('data-q'); grow(); input.focus(); });
+  });
+  function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function sendDs() {
+    var v = input.value.trim();
+    if (!v) return;
+    var scope = $('ds-scope').value;
+    var live = $('ds-live');
+    live.insertAdjacentHTML('beforeend',
+      '<div class="ds-user"><div>' + esc(v) + '</div></div>' +
+      '<p class="ds-msg" style="color:var(--ds-text-2)">Demo only — wiring this to a live agent is the next integration step, not simulated here. Scope: ' + esc(scope) + '.</p>');
+    input.value = '';
+    grow();
+    $('ds-scroll').scrollTop = $('ds-scroll').scrollHeight;
+  }
+  $('ds-send').addEventListener('click', sendDs);
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendDs(); }
+  });
+
+  /* ---- Developer view composer (unchanged behaviour) ---- */
+  function sendDemo() {
+    var v = $('cmd-input').value.trim();
+    if (!v) return;
+    var box = $('demo-reply');
+    box.style.display = 'block';
+    box.textContent = 'Demo only — wiring this to a live agent is the next integration step, not simulated here for: “' + v + '”';
+    $('cmd-input').value = '';
+  }
+  $('cmd-send').addEventListener('click', sendDemo);
+  $('cmd-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') sendDemo(); });
+
+  renderDs();
+})();
 </script>
 </body>
 </html>

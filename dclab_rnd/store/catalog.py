@@ -12,7 +12,7 @@ from typing import Any, Optional
 
 from dclab_core.store import EXAMPLE_SHAPES, KINDS, MODEL_TYPES
 
-from .layout import DEFAULT, ROOT, Layout
+from .layout import ROOT, Layout, owns_repository_copy
 from .store import Store, now, write_json
 
 SCHEMAS = ("store_entry", "store_record", "decision_example", "chat_example", "preference_pair", "solver_trajectory", "episode",
@@ -115,7 +115,7 @@ pending splits (`python -m dclab_rnd.store build`; the sealed split is kept, so 
 
 def write(layout: Optional[Layout] = None, copy: Optional[Path] = None) -> dict[str, Any]:
     """Write ``CATALOG.json``, ``README.md`` and the schemas at the store's root, and the catalog's copy in this repository: only for
-    the owner's own store (the default root), or where ``copy`` says (a scratch or tester store never replaces the repository's view)."""
+    the owner's own store (the default root, a clone of dclab-records), or where ``copy`` says (a scratch or tester store never replaces the repository's view)."""
     from dclab_core.contracts import CONTRACTS
 
     layout = layout or Layout()
@@ -127,7 +127,7 @@ def write(layout: Optional[Layout] = None, copy: Optional[Path] = None) -> dict[
                       for k, v in doc["kinds"].items())
     models = "\n".join(f"- `{m}`: {v['what']} ({len(v['sets'])} sets; shapes: {', '.join(v['shapes'])})" for m, v in doc["model_types"].items())
     layout.readme.write_text(README.format(kinds=kinds, models=models), encoding="utf-8")
-    if copy is None and layout.root.resolve() == DEFAULT.resolve():
+    if copy is None and owns_repository_copy(layout.root):
         copy = COPY
     if copy is not None:
         kept = {k: v for k, v in doc.items() if k != "built_at"}  # no time: it changes only when the store does

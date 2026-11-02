@@ -38,7 +38,7 @@ from typing import Any, Iterable, Iterator, Optional
 
 from dclab_core.store import MODEL_TYPES, REASONING_SOURCES
 
-from .layout import DEFAULT, Layout
+from .layout import Layout, owns_repository_copy
 from .sets import NOTE_PREFIX, why_no_reasoning
 from .store import now, write_json
 
@@ -691,7 +691,7 @@ def write(layout: Optional[Layout] = None, doc: Optional[dict[str, Any]] = None,
     for path, value in ((layout.catalog, kept),):
         current = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
         write_json(path, {**current, "coverage": value})
-    if copy is None and layout.root.resolve() == DEFAULT.resolve():
+    if copy is None and owns_repository_copy(layout.root):
         copy = COPY
     if copy is not None:
         current = json.loads(Path(copy).read_text(encoding="utf-8")) if Path(copy).exists() else {}
