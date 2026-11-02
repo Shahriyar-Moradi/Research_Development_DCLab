@@ -47,7 +47,16 @@ GATE_V3 = {**GATE_V2, "version": "conversation_exam_gate_v3", "fixed": "2026-10-
            "options_fit": {**GATE_V2["options_fit"], "min_shown": 6, "min_paired": 6},
            "traps": {"against": "plain", "rule": "every trap kind's pass rate not below Claude alone's"},
            "judge_owner_agreement": {"min": 0.70, "owner_labels": 6}}
-GATES = {"sealed_v1": GATE_V2, "sealed_v2": GATE_V3}
+# 2026-11-02: sealed_v3 (12 people by an independent writer shown the tables): the same thresholds as v3, and the owner's labelled papers
+# are COUNTED. v3 only compared an agreement number with its bar: `owner_labels` was read by nothing, so one labelled paper could carry
+# the verdict (the review of the registration). With `enforce_count` a bare agreement is refused, and fewer papers than `owner_labels`
+# leave the verdict waiting. What it does not change, and the owner should know: the paired options test runs only when `min_paired`
+# people have options from both students (with three advice people it may not, as with ten people on the practice route test), and a
+# trap kind with one person is decided by that person.
+GATE_V4 = {**GATE_V3, "version": "conversation_exam_gate_v4", "fixed": "2026-11-02",
+           "for": "sealed_v3: the lead agent (arm case) against Claude alone (plain), 12 people by an independent writer shown the tables",
+           "judge_owner_agreement": {**GATE_V3["judge_owner_agreement"], "enforce_count": True}}
+GATES = {"sealed_v1": GATE_V2, "sealed_v2": GATE_V3, "sealed_v3": GATE_V4}
 
 
 def gate_for(split: str) -> dict:
@@ -93,9 +102,17 @@ def gap(a: list[Mapping[str, Any]], b: list[Mapping[str, Any]]) -> dict[str, Any
 
 
 def verdict(scores: Mapping[str, list[Mapping[str, Any]]], lead: str = "case", agreement: Optional[float] = None,
-            gate: Optional[Mapping[str, Any]] = None) -> dict[str, Any]:
-    """The gate on one run's scores by arm. Without the owner's labels the verdict waits (when nothing else failed)."""
+            gate: Optional[Mapping[str, Any]] = None, labelled: Optional[int] = None) -> dict[str, Any]:
+    """The gate on one run's scores by arm. Without the owner's labels the verdict waits (when nothing else failed). A gate that
+    counts the labels (``enforce_count``) takes the number of papers the agreement comes from: fewer than it needs and the verdict
+    waits; an agreement without that number is refused."""
     g = dict(gate or GATE)
+    counted = g["judge_owner_agreement"].get("enforce_count")
+    if counted and agreement is not None:
+        if labelled is None:
+            raise ValueError("this gate counts the owner's labelled papers: pass labelled= with the agreement")
+        if labelled < g["judge_owner_agreement"]["owner_labels"]:
+            agreement = None  # too few papers to say anything about the judge: the verdict waits
     route_key = "route_reached" if g["version"] != GATE_V1["version"] else "route_right"
     mine = list(scores.get(lead) or [])
     plain, home = list(scores.get(g["understanding"]["against"]) or []), list(scores.get(g["traps"]["against"]) or [])
@@ -120,4 +137,7 @@ def verdict(scores: Mapping[str, list[Mapping[str, Any]]], lead: str = "case", a
         status = "fail"
     else:
         status = "pending_owner_labels" if agreement is None else "pass"
-    return {"gate": g["version"], "status": status, "checks": checks}
+    out = {"gate": g["version"], "status": status, "checks": checks}
+    if counted:
+        out.update(labelled=labelled, labels_needed=g["judge_owner_agreement"]["owner_labels"])
+    return out

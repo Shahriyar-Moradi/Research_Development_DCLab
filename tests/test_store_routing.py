@@ -457,7 +457,7 @@ class RoutingKeeperAndHookTest(unittest.TestCase):
         from dclab_rnd.ledger import capture
 
         home = Path(tempfile.mkdtemp())
-        led = ledger.open_ledger(home, "wtest")
+        led = ledger.open_ledger(home)
         ledger.install(led)
         try:
             rid = capture.routing_read("d1", "request.intent", "analysis", "model_role", options=TRACKS,

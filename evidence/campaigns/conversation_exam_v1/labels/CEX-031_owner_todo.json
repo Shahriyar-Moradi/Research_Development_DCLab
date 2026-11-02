@@ -1,0 +1,131 @@
+[
+ {
+  "ref": "b3ae8aa24f",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a ferry and hotel booking platform in Split, Croatia. Our CRM needs a customer-level table to sync.",
+    "goal": "A table with one row per customer_id: count of bookings, sum of price, count of cancelled bookings, latest travel_date.",
+    "decision": "None; the table is loaded into the CRM every week by our engineers.",
+    "user": "The CRM team.",
+    "data": "The bookings table: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id.",
+    "knows": "I know the exact columns I want. Total spend should include cancelled bookings' prices too, since that's what the CRM team asked.",
+    "constraints": "Column names in snake_case. Customers with no customer_id should be left out and counted."
+   },
+   "level": "data_scientist",
+   "style": "impatient",
+   "must_understand": [
+    "one row per customer with four fields",
+    "total spend includes cancelled bookings",
+    "rows without customer_id are excluded and counted"
+   ],
+   "trap": "clear_request",
+   "trap_check": "Builds the per-customer reshape directly as a reusable recipe, without turning it into a model or a long discovery conversation."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "reshape these bookings into one row per customer: number of bookings, total spend, number cancelled, last travel date. it goes into our CRM [shares bookings.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I'll start by looking at the columns in bookings.csv.\n\nI've started a cleaning recipe that turns bookings.csv, which has 1,500 booking rows, into one row per `customer_id`. It will have these columns:\n\n- **Number of bookings:** a count of bookings per customer.\n- **Total spend:** the sum of `price` per customer.\n- **Number cancelled:** the sum of the `cancelled` flag, which looks like a 0/1 code.\n- **Last travel date:** the latest `travel_date` per customer.\n\nSome things to settle before the file goes into your CRM:\n\n1. **`price` is stored as text, not as a number.** It may include currency symbols or commas. I'll convert it to numbers first and show you any values that don't convert.\n2. **Total spend and cancellations:** do you want total spend to count every booking, or only the ones that weren't cancelled? As it stands, cancelled bookings would be included in the total.\n3. **`travel_date` is stored as a date.** The last travel date will include future trips. If you'd rather have the last trip that has already happened, tell me.\n4. **Duplicates and blank customers:** I'll check for repeated `booking_id`s and rows with no `customer_id`. I'll show you how many rows each affects before removing anything.\n\nTell me your choice on questions 2 and 3, or I'll go with the defaults. The defaults are to include all bookings in total spend and to use the latest travel date overall.",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "2: include cancelled bookings in total spend. CRM asked for it. 3: latest travel_date overall, future trips included. Drop rows with no customer_id, but tell me how many. Column names in snake_case. Show me the result when it's ready.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I've checked the table, but I haven't built or applied the one-row-per-customer table yet. I also can't show you the finished table's rows myself, because I can only see summary numbers. The result will be in the recipe.\n\n**What I found**\n- **Rows with no `customer_id`:** 0. Dropping them removes nothing, so all 1,500 rows stay.\n- **Duplicate `booking_id`s:** 0. Nothing needs removing there either.\n- **Cancellations:** 343 of the 1,500 bookings are cancelled.\n- **Customers:** there are 865 distinct customers. The output should have 865 rows, one per customer.\n\n**What the recipe will do**\n- Group by `customer_id`.\n- `number_of_bookings`: count of bookings.\n- `total_spend`: sum of `price` across all bookings, cancelled ones included, as the CRM asked.\n- `number_cancelled`: sum of `cancelled`. It should add up to 343 across all customers.\n- `last_travel_date`: the latest `travel_date`, future trips included.\n- Column names are in snake_case, and the customer column will be `customer_id`.\n\n**Still to check:** `price` is stored as text, so I haven't confirmed that every value converts to a number. If some don't, `total_spend` would be wrong or blank for those customers. I'll check that before finalising and tell you about any problem values instead of guessing.\n\nWhen the recipe has run, check two things before you load it into the CRM. The output should have 865 rows. `number_cancelled` should add up to 343.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "d8bbd2668c",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at a ferry and hotel booking platform in Split, Croatia. Our CRM needs a customer-level table to sync.",
+    "goal": "A table with one row per customer_id: count of bookings, sum of price, count of cancelled bookings, latest travel_date.",
+    "decision": "None; the table is loaded into the CRM every week by our engineers.",
+    "user": "The CRM team.",
+    "data": "The bookings table: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id.",
+    "knows": "I know the exact columns I want. Total spend should include cancelled bookings' prices too, since that's what the CRM team asked.",
+    "constraints": "Column names in snake_case. Customers with no customer_id should be left out and counted."
+   },
+   "level": "data_scientist",
+   "style": "impatient",
+   "must_understand": [
+    "one row per customer with four fields",
+    "total spend includes cancelled bookings",
+    "rows without customer_id are excluded and counted"
+   ],
+   "trap": "clear_request",
+   "trap_check": "Builds the per-customer reshape directly as a reusable recipe, without turning it into a model or a long discovery conversation."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "reshape these bookings into one row per customer: number of bookings, total spend, number cancelled, last travel date. it goes into our CRM [shares bookings.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Clear: your 1,500 bookings come from 865 customers, so you'd get 865 rows with those four fields. One thing changes the numbers: should total spend include cancelled bookings, or only the ones that weren't cancelled?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "Include cancelled bookings in total spend. CRM team asked for that. Column names in snake_case. Drop rows with no customer_id but tell me how many there were.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Noted: cancelled bookings count in total spend, columns in snake_case, and rows with no customer_id get dropped. I checked the table, and **0 rows are missing a customer_id**. All 1,500 rows stay, so nothing is dropped. Price is stored as text, so I'd convert it to a number before adding it up. Two ways to go are below. Pick whichever suits you.",
+    "choices": [
+     {
+      "title": "CRM customer file (recipe)",
+      "what": "Read price as a number, drop rows with no customer_id, then build one row per customer_id: number_of_bookings, total_spend (cancelled included), number_cancelled, last_travel_date, in snake_case. You get: A clean customer-level file ready to load into the CRM, plus the count of rows dropped. Trade-off: Just the four fields you named; no extra columns like favourite destination or channel. Effort: Low: one recipe, quick to run."
+     },
+     {
+      "title": "File plus a quick check of the numbers (query)",
+      "what": "Same customer file, preceded by summary numbers: bookings per customer, spend totals, cancellation share, so you can sanity-check before the CRM team loads it. You get: Reassurance that the totals look sensible. Trade-off: An extra step before the file is ready. Effort: Low to medium."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "Option 1. Skip the summary step. Build the customer file with the four fields and snake_case names, and give me the dropped-row count.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "The customer file recipe is under way. It will do these things:\n\n- Convert price from text to a number. - Group the bookings by customer_id, which should give about 865 rows. - Add up total spend with cancelled bookings included, as the CRM team asked. - Output four fields per customer, with snake_case column names: number of bookings, total spend, number cancelled, and last travel date. - Drop any rows with no customer_id. I found none, so I expect all 1,500 rows to be used. When it finishes, you'll get the file to download and the exact counts. These include the number of rows dropped and any prices that couldn't be read as numbers.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]

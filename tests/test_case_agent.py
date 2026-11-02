@@ -705,6 +705,108 @@ class NumberCutTests(unittest.TestCase):
         self.assertFalse(A.has_statement("Does that cover what you need, or would you like help wording it?"))
 
 
+class LongAnswerCostTests(unittest.TestCase):
+    """2026-11-01 (CEX-026 r-13): a data scientist asked for a full script; the number check withheld every sentence holding a
+    setting nobody gave and each withheld answer was written again at full length (five of fourteen calls, EUR 0.73, no code).
+    The check is unchanged; a message is capped at SHOWN_WORDS and a long reply that loses sentences is not written again."""
+
+    LONG = " ".join(f"Step {w} explains one idea about resampling in plain words without any figure." for w in
+                    ("one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen",
+                     "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "twentyone", "twentytwo", "twentythree", "twentyfour"))
+
+    def test_a_message_over_the_cap_is_cut_at_a_sentence_with_a_note_and_no_rewrite(self):
+        self.assertGreater(A.word_count(self.LONG), A.SHOWN_WORDS)
+        client = Script((self.LONG, []))
+        out = A.turn(state(table=False), client, "explain resampling for fraud models")
+        self.assertEqual(len(client.seen), 1)  # nothing sent back
+        self.assertLessEqual(A.word_count(out["text"].replace(A.CUT_NOTE, "")), A.SHOWN_WORDS)
+        self.assertTrue(out["text"].startswith("Step one explains"))
+        self.assertIn(A.CUT_NOTE, out["text"])
+        self.assertTrue(out["text"].replace(A.CUT_NOTE, "").strip().endswith("."))  # cut at a sentence
+
+    def test_a_long_reply_that_loses_sentences_is_not_written_again_and_never_shows_the_number(self):
+        body = self.LONG[: self.LONG.index("Step eleven")]
+        long_reply = body + " Use 300 rounds and 5 folds for the run. " + body
+        self.assertGreater(A.word_count(long_reply), A.REWRITE_WORDS)
+        client = Script((long_reply, []), ("This second call must never be made.", []))
+        out = A.turn(state(table=False), client, "explain resampling for fraud models")
+        self.assertEqual(len(client.seen), 1)  # no rewrite: the saving
+        self.assertNotIn("300 rounds", out["text"])  # the check still withholds the number nobody gave
+        self.assertNotIn("5 folds", out["text"])
+        self.assertIn("Step one explains", out["text"])  # what survived reaches the person
+        self.assertIn(A.WITHHELD_NOTE, out["text"])
+
+    def test_a_long_reply_with_nothing_left_gets_one_short_words_only_rewrite_not_the_long_ones(self):
+        """The review: a script with a number on every line left only 'tell me more'; one short rewrite gives the person words."""
+        long_reply = " ".join(f"Use {n}00 rounds in setting {n}." for n in range(1, 40))
+        client = Script((long_reply, []), ("First resample inside each training fold, then fit, then score on data it has not seen.", []),
+                        ("never asked", []))
+        out = A.turn(state(table=False), client, "give me the settings")
+        self.assertEqual(len(client.seen), 2)  # one rewrite, never the strict second
+        self.assertIn("at most 120 words", json.dumps(client.seen[1]))
+        self.assertIn("resample inside each training fold", out["text"])
+        self.assertNotIn("00 rounds", out["text"])
+
+    def test_a_short_rewrite_that_is_cut_again_ends_in_code_s_line_after_one_call_only(self):
+        long_reply = " ".join(f"Use {n}00 rounds in setting {n}." for n in range(1, 40))
+        client = Script((long_reply, []), ("Use 300 rounds and 5 folds.", []), ("never asked", []))
+        out = A.turn(state(table=False), client, "give me the settings")
+        self.assertEqual(len(client.seen), 2)
+        self.assertIn("only numbers that come from you", out["text"])
+        self.assertNotIn("300 rounds", out["text"])
+
+    def test_a_long_reply_whose_survivors_are_filler_is_rewritten_once_short(self):
+        filler = "Sure, happy to help with that. " + " ".join(f"Set value {n} to {n}00 here." for n in range(1, 35))
+        self.assertGreater(A.word_count(filler), A.REWRITE_WORDS)
+        client = Script((filler, []), ("Use class weights first; resampling comes second and only inside each fold.", []))
+        out = A.turn(state(table=False), client, "which settings should I use")
+        self.assertEqual(len(client.seen), 2)
+        self.assertIn("class weights first", out["text"])
+
+    def test_a_script_without_sentence_ends_is_cut_at_a_line_and_its_fence_closed(self):
+        script = "Here is the script. ```python\n" + "\n".join(f"step_{n} = run(stage_{n})" for n in range(1, 120)) + "\n```"
+        self.assertGreater(A.word_count(script), A.SHOWN_WORDS)
+        out, cut = A.shortened(script)
+        self.assertTrue(cut)
+        self.assertLess(A.word_count(out), A.word_count(script))
+        self.assertLessEqual(A.word_count(out), A.SHOWN_WORDS + 5)
+        self.assertTrue(out.startswith("Here is the script."))
+        self.assertIn("step_1 = run(stage_1)", out)  # the code is not dropped after being announced
+        self.assertEqual(out.count("```") % 2, 0)
+
+    def test_a_block_that_cannot_be_made_shorter_is_not_marked_cut(self):
+        one_line = "word " * 400
+        self.assertEqual(A.shortened(one_line), (one_line.strip(), False))
+
+    def test_the_cap_holds_after_a_rewrite_and_the_note_follows_the_text_shown(self):
+        client = Script(("Only about 7 in 50 customers leave, so lead with PR-AUC.", []), (self.LONG, []))
+        out = A.turn(state(table=False), client, "churn with 3% positives: which metric for my manager")
+        self.assertLessEqual(A.word_count(out["text"].replace(A.CUT_NOTE, "")), A.SHOWN_WORDS + 5)
+        self.assertIn(A.CUT_NOTE, out["text"])
+        client = Script(("Only about 7 in 50 customers leave, so lead with PR-AUC.", []), ("Few customers leave, so lead with PR-AUC.", []))
+        out = A.turn(state(table=False), client, "churn with 3% positives: which metric for my manager")
+        self.assertNotIn(A.CUT_NOTE, out["text"])  # the first draft was short: no note
+
+    def test_a_note_the_agent_echoes_from_its_history_is_not_shown_twice(self):
+        client = Script((f"Here is the short answer. {A.CUT_NOTE}", []))
+        out = A.turn(state(table=False), client, "explain resampling")
+        self.assertEqual(out["text"].count("short version"), 0)
+        self.assertIn("Here is the short answer.", out["text"])
+
+    def test_a_short_reply_still_gets_its_rewrite_as_before(self):
+        client = Script(("Only about 7 in 50 customers leave, so lead with PR-AUC.", []), ("Few customers leave, so lead with PR-AUC.", []))
+        out = A.turn(state(table=False), client, "churn with 3% positives: which metric for my manager")
+        self.assertEqual(out["text"], "Few customers leave, so lead with PR-AUC.")
+        self.assertEqual(len(client.seen), 2)
+
+    def test_shortened_keeps_the_first_sentence_and_closes_an_open_code_fence(self):
+        self.assertEqual(A.shortened("Short one."), ("Short one.", False))
+        text, cut = A.shortened("First sentence is here. " + "```python\nx = 1.\n" + "word " * 30 + ". More.", limit=8)
+        self.assertTrue(cut)
+        self.assertTrue(text.startswith("First sentence is here."))
+        self.assertEqual(text.count("```") % 2, 0)
+
+
 class RouteDriftTests(unittest.TestCase):
     """2026-11-01 (sealed v2: the lead agent reached the right route for 15 of 19, Claude alone 19; it talked 4 to 8 turns and
     drifted into advice): advice no longer opens before the case is ready when there is data work; after three turns with

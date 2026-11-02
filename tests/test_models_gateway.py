@@ -592,7 +592,9 @@ class ApiTests(unittest.TestCase):
             from dclab_rnd.agentic.server import create_app
         except ImportError as error:
             self.skipTest(f"Studio dependencies not installed: {error}")
-        env = mock.patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "sk-never-logged"})
+        # these tests count the rules-first Home's model uses (home_intent, home_agent, ...): since 37.11 the lead agent leads Home by
+        # default wherever a model serves it, so the switch is pinned off here (the lead agent's own purposes: tests/test_case_home.py)
+        env = mock.patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "sk-never-logged", "DCLAB_CASE_AGENT": "0"})
         env.start()
         self.addCleanup(env.stop)
         self.app = create_app(Path(tempfile.mkdtemp()))

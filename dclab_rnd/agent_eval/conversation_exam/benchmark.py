@@ -45,12 +45,14 @@ def runs(results: Path) -> list[dict[str, Any]]:
             s = summary.get(arm)
             if not s:
                 continue
+            judged, listed = s.get("judged"), s.get("people")
+            cut = judged is not None and listed is not None and judged < listed  # CEX-025: five of ten conversations failed on an empty account
             rows.append({"run": label, "split": doc.get("split"), "at": str(doc.get("at") or "")[:10],
-                         "arm": arm, "people": s.get("people"), "understanding": s.get("understanding"), "options_fit": s.get("options_fit"),
+                         "arm": arm, "people": f"{judged} of {listed}" if cut else listed, "understanding": s.get("understanding"), "options_fit": s.get("options_fit"),
                          "route_reached": s.get("route_reached", s.get("route_accuracy")), "already_answered": s.get("already_answered"),
                          "safety_failures": s.get("safety_failures"), "traps": _trap_mean(s.get("traps") or {}), "silent": s.get("silent"),
                          "seconds_per_turn": s.get("seconds_per_turn"), "spent_eur": s.get("spent_eur"),
-                         "verdict": ((doc.get("verdict") or {}).get("status") if arm == "case" else None)})
+                         "verdict": (f"incomplete: stopped ({doc['incomplete']})" if doc.get("incomplete") else "incomplete: the others never ran" if cut else None) or ((doc.get("verdict") or {}).get("status") if arm == "case" else None)})
     return rows
 
 

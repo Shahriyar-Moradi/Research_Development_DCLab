@@ -44,10 +44,11 @@ ROOT = HERE.parents[2]
 PEOPLE = HERE / "people_dev.json"
 SPLITS = {"dev": PEOPLE, "sealed_v1": HERE / "people_sealed_v1.json",  # sealed: 40 people by an agent shown the format alone
           "sealed_v2": HERE / "people_sealed_v2.json",  # 20 more by an independent writer, the short lead agent against Claude alone
+          "sealed_v3": HERE / "people_sealed_v3.json",  # 12 more (2026-11-02), by an independent writer shown the tables (WRITING_PEOPLE.md): every person who shares a table carries table_claims
           "dev_route": HERE / "people_dev_route.json"}  # practice: 20 by an independent writer on the route's confusions (the plan's step 1)
 PINNED = {"dev_route": HERE / "people_dev_route.sha256"}  # practice sets pinned so an edit after a run shows (never tuned on in silence)
-SEALED = {"sealed_v1": HERE / "people_sealed_v1.sha256", "sealed_v2": HERE / "people_sealed_v2.sha256"}  # pinned before its one run
-SEALED_ARMS = {"sealed_v1": ("home", "plain", "case"), "sealed_v2": ("plain", "case")}  # the arms each sealed gate compares
+SEALED = {"sealed_v1": HERE / "people_sealed_v1.sha256", "sealed_v2": HERE / "people_sealed_v2.sha256", "sealed_v3": HERE / "people_sealed_v3.sha256"}  # pinned before its one run
+SEALED_ARMS = {"sealed_v1": ("home", "plain", "case"), "sealed_v2": ("plain", "case"), "sealed_v3": ("plain", "case")}  # the arms each sealed gate compares
 CAMPAIGN = ROOT / "evidence" / "campaigns" / "conversation_exam_v1"
 RESULTS = CAMPAIGN / "results"
 LABELS = CAMPAIGN / "labels"
@@ -77,8 +78,11 @@ OWNER = {"id": "owner-telco", "level": "business_owner", "style": "vague", "open
          "route": "prediction", "tool": "segmentation_project", "also_right": [], "trap": None, "trap_check": None}
 
 
-def check_person(p: Mapping[str, Any]) -> list[str]:
-    """What is wrong with a written person (empty when complete)."""
+REQUIRE_CLAIMS = frozenset({"sealed_v3"})  # sets written to fit their table: a person with a table must say what the story relies on (table_fit)
+
+
+def check_person(p: Mapping[str, Any], require_claims: bool = False) -> list[str]:
+    """What is wrong with a written person (empty when complete). ``require_claims``: the set must be written to fit its tables."""
     problems = []
     for key, allowed in (("level", LEVELS), ("style", STYLES), ("route", TRACKS), ("tool", TOOLS)):
         if p.get(key) not in allowed:
@@ -101,6 +105,9 @@ def check_person(p: Mapping[str, Any]) -> list[str]:
         problems.append("a trap_check without a trap")
     if p.get("tool") == "segmentation_project" and p.get("route") != "prediction":
         problems.append("a segmentation project is a prediction route")
+    from . import table_fit
+
+    problems += table_fit.fit(p, require=require_claims)  # the story must fit the table it shares (checked when claimed, required for a new set)
     return problems
 
 
@@ -196,6 +203,20 @@ class PersonFailed(RuntimeError):
 
 def _budget_refused(error: BaseException) -> bool:
     return "BudgetExceeded" in str(error)
+
+
+# the model account itself ran dry (CEX-025, 2026-11-01: five of ten people were scored as zero understanding because every call
+# failed): a run stops there like at its cap, and the person in play is left out of the scores, never counted as a failed agent
+NO_CREDIT = ("no credit left", "credit balance is too low", "ModelPaused")
+
+
+def _run_stopped(error: BaseException) -> str | None:
+    """Why a run cannot go on, from an error of a conversation: its cap, or the model account out of credit; None otherwise."""
+    if _budget_refused(error):
+        return "cap reached"
+    if any(marker in str(error) for marker in NO_CREDIT):
+        return "model account out of credit"
+    return None
 
 
 def asks(turn: Mapping[str, Any]) -> bool:
@@ -364,19 +385,16 @@ def measure(people: list[Mapping[str, Any]], arm_for: Mapping[str, Callable[[str
                     conv = play(p, make(str(p["id"]), folder), person_for(f"{arm_name}-{p['id']}", p))
                 except PersonFailed as error:
                     conv = {**broken, "ended": "person_error", "error": str(error)[:400]}
-                    if _budget_refused(error):
-                        incomplete = "cap reached"
+                    incomplete = _run_stopped(error) or incomplete
                 except Exception as error:  # the arm broke: recorded as broken, never dropped
                     conv = {**broken, "ended": "error", "error": f"{type(error).__name__}: {error}"[:400]}
-                    if _budget_refused(error):
-                        incomplete = "cap reached"
+                    incomplete = _run_stopped(error) or incomplete
                 if conv["transcript"] and incomplete is None:
                     try:
                         conv["judged"] = _judged(judge_for(str(p["id"]), arm_name), p, conv["transcript"])
                     except Exception as error:
                         conv["judged"] = {"valid": False, "problems": [f"{type(error).__name__}: {error}"[:400]]}
-                        if _budget_refused(error):
-                            incomplete = "cap reached"
+                        incomplete = _run_stopped(error) or incomplete
                 else:
                     conv.setdefault("judged", {"valid": False, "problems": ["no conversation"]})
                 costs = spent_for(str(p["id"]), arm_name) if spent_for else None
@@ -496,12 +514,29 @@ def next_id() -> str:
     return f"CEX-{n:03d}"
 
 
-ESTIMATE_EUR = {"home": 0.08, "plain": 0.10, "person": 0.01, "judge": 0.08}  # per conversation; replaced by each run's measured spend
+# per conversation, measured on the practice runs of 2026-11-01 (the judge was priced at 0.08 before and the estimate read 4.3 for a run that
+# cost 1.7); a technical advice conversation costs more than these. Replaced by each run's measured spend.
+ESTIMATE_EUR = {"home": 0.08, "plain": 0.05, "case": 0.10, "safe": 0.06, "person": 0.005, "judge": 0.025}
+
+
+def seal_after_run(vault: Path, run: str, split: str, arms: list[str], spent: float, cap: Optional[float], incomplete: Optional[str]) -> Optional[dict[str, Any]]:
+    """Seal and list a sealed run's vault (``vault.seal``). A failure never takes the run's result with it: it says how to seal afterwards."""
+    from . import vault as _vault
+
+    try:
+        manifest = _vault.seal(vault, run, split, {"commit": _vault.head(), "arms": list(arms), "spent_eur": round(spent, 4), "cap_eur": cap,
+                                                  "incomplete": incomplete, "thinking_effort": os.environ.get("DCLAB_THINKING_EFFORT") or "the workspace's",
+                                                  "pinned_sha256": SEALED[split].read_text(encoding="utf-8").strip()})
+        print(f"vault sealed: {manifest['counts']}", file=sys.stderr)
+        return manifest
+    except Exception as error:  # noqa: BLE001
+        print(f"the vault could not be sealed now ({type(error).__name__}: {error}); run python -m dclab_rnd.agent_eval.conversation_exam.vault all", file=sys.stderr)
+        return None
 
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--split", default="dev", help="dev, dev_route (practice), sealed_v1 or sealed_v2 (a sealed set: run once, with the arms its gate compares, kept in the exam vault)")
+    parser.add_argument("--split", default="dev", help="dev, dev_route (practice), sealed_v1, sealed_v2 or sealed_v3 (a sealed set: run once, with the arms its gate compares, kept in the exam vault)")
     parser.add_argument("--arms", default=",".join(READY_ARMS))
     parser.add_argument("--only", default=None, help="a comma list of person ids")
     parser.add_argument("--yes", action="store_true")
@@ -533,7 +568,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.only:
         wanted = {x.strip() for x in args.only.split(",")}
         people = [p for p in people if p["id"] in wanted]
-    bad = {p["id"]: check_person(p) for p in people if check_person(p)}
+    bad = {p["id"]: check_person(p, args.split in REQUIRE_CLAIMS) for p in people if check_person(p, args.split in REQUIRE_CLAIMS)}
     if bad:
         print(f"refused: people with problems: {bad}", file=sys.stderr)
         return 2
@@ -604,6 +639,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     labels_dir.mkdir(parents=True, exist_ok=True)
     todo = _labels.todo(result["conversations"], {p["id"]: p for p in people})
     (labels_dir / f"{run}_owner_todo.json").write_text(_labels.dumps(todo), encoding="utf-8")
+    if sealed:  # the vault is sealed and listed (counts and hashes; a manifest beside what the archive keeps whole): even a run that ended early
+        seal_after_run(vault, run, args.split, arms, budget.spent_eur(), args.cap_eur, result["incomplete"])
     if result["incomplete"]:
         print(f"INCOMPLETE ({result['incomplete']}): {len(result['scores'][arms[0]])} of {len(people)} people scored", file=sys.stderr)
     print(json.dumps(result["summary"], indent=1))

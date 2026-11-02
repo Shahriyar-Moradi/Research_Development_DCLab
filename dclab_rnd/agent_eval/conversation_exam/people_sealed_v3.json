@@ -1,0 +1,439 @@
+[
+ {
+  "id": "s3-01",
+  "level": "data_scientist",
+  "style": "impatient",
+  "opening": "Quick one. Churn model, monthly snapshots, the same customer shows up in up to 12 rows. Random 5-fold or a time-based split? I have to defend it on Thursday.",
+  "upload": null,
+  "truth": {
+   "situation": "I'm a data scientist at a streaming subscription company; my churn dataset has one row per customer per month, so each customer appears in up to 12 rows.",
+   "goal": "I want a validation scheme whose score will match how the model performs once it is live.",
+   "decision": "I will pick the cross-validation method for the model and present it to the modelling review on Thursday.",
+   "user": "the modelling review panel, a mix of senior data scientists and a product lead",
+   "data": "No data needed for this question; I only describe the layout of my snapshot table.",
+   "knows": "I know plain k-fold and time-series splits exist; I'm not sure how repeated customers change things and I haven't tried grouped splits.",
+   "constraints": "The review is Thursday and I have two evenings to rerun anything."
+  },
+  "must_understand": [
+   "a method question about validation, no data work",
+   "the same customer appears in many rows, so a random split puts one person in both train and test",
+   "the model is used going forward in time, so the split should respect time",
+   "the answer must be defensible in front of a review panel"
+  ],
+  "route": "advice",
+  "tool": "cited_answer",
+  "also_right": [],
+  "trap": null,
+  "trap_check": null
+ },
+ {
+  "id": "s3-02",
+  "level": "data_scientist",
+  "style": "detailed",
+  "opening": "I trained a LightGBM default model on about 400k loans using class weights because defaults are only 4%. AUC is fine, but the predicted probabilities are clearly too high: the average prediction is around 0.25 while the real rate is 0.04. Finance wants to use these as actual probabilities for a loss reserve. Can you give me a complete, working Python script that fits the model, calibrates it properly (Platt versus isotonic, on data that was not used for training) and prints the Brier score and a reliability curve before and after?",
+  "upload": null,
+  "truth": {
+   "situation": "I'm a data scientist at a consumer lending fintech; my default model is trained on roughly 400,000 loans with about 4% defaults.",
+   "goal": "I want predicted probabilities that finance can treat as real default probabilities in a loss reserve.",
+   "decision": "Finance will multiply my probabilities by exposure to set the quarterly reserve, so I need to know whether to ship the calibrated or raw scores.",
+   "user": "the finance team's reserving analysts, who use the numbers directly in a spreadsheet",
+   "data": "No file to share; I describe the setup and want runnable code with scikit-learn and LightGBM that I can adapt to my own columns.",
+   "knows": "I know about class weights and the Brier score; I'm not sure whether class weights are the cause or how to hold out data for calibration without wasting too much.",
+   "constraints": "Python only, scikit-learn and lightgbm are installed, and the script has to run top to bottom without my editing it."
+  },
+  "must_understand": [
+   "class weights inflate predicted probabilities, so raw scores are not real probabilities",
+   "calibration must be fitted on data separate from the training set and checked on untouched data",
+   "the person wants a full runnable script, not only an explanation",
+   "finance uses the numbers as real probabilities, so Brier score and the reliability curve matter more than AUC"
+  ],
+  "route": "advice",
+  "tool": "cited_answer",
+  "also_right": [],
+  "trap": null,
+  "trap_check": null
+ },
+ {
+  "id": "s3-03",
+  "level": "analyst",
+  "style": "vague",
+  "opening": "my model for card fraud never flags anything, only about 2% of cases are fraud. someone said use SMOTE? is that the right fix",
+  "upload": null,
+  "truth": {
+   "situation": "I'm an analyst on a small risk team at a payments company; my first classifier on card transactions has 2% fraud and predicts 'not fraud' for nearly everything.",
+   "goal": "I want the model to actually catch fraud without drowning the investigators in false alarms.",
+   "decision": "I decide whether to use SMOTE, class weights or something else before the model goes to the investigators next month.",
+   "user": "a team of fraud investigators who each can check a limited number of cases a day",
+   "data": "No data needed here; a question about method.",
+   "knows": "I've read about SMOTE once; I don't really know where in the process it goes or what else I could do.",
+   "constraints": "I'm new to modelling, the team lead is away, and I'd like a clear recommendation."
+  },
+  "must_understand": [
+   "a method question about imbalanced classes, no data work",
+   "with 2% positives the model predicting everything as negative is expected, accuracy is misleading",
+   "any resampling such as SMOTE must be done only inside the training folds, never before the split",
+   "alternatives such as class weights, threshold choice and precision/recall metrics matter, and the person is a beginner"
+  ],
+  "route": "advice",
+  "tool": "cited_answer",
+  "also_right": [],
+  "trap": null,
+  "trap_check": null
+ },
+ {
+  "id": "s3-04",
+  "level": "analyst",
+  "style": "impatient",
+  "opening": "Take the exact duplicate rows out of the sales file and send back the cleaned CSV. Only that, leave everything else alone.",
+  "upload": "sales",
+  "table_claims": {
+   "columns": [
+    "order_id",
+    "customer_id"
+   ],
+   "duplicate_rows": true,
+   "repeated": [
+    "order_id"
+   ]
+  },
+  "truth": {
+   "situation": "I'm an analyst at an online retailer in the UAE; the order export sometimes comes out with some lines doubled.",
+   "goal": "I want the sales file without the doubled lines so that totals stop overcounting.",
+   "decision": "The cleaned file goes straight into the weekly sales numbers that the commercial team reads.",
+   "user": "the commercial team, through the weekly numbers",
+   "data": "The sales table I uploaded: order_id, order_date, region, channel, product_category, amount, status, customer_id; some orders appear twice.",
+   "knows": "I know the export sometimes repeats lines; I don't know how many rows are affected.",
+   "constraints": "I need the file back today and I do not want any other change to it."
+  },
+  "must_understand": [
+   "the request is one concrete thing: remove exact duplicate rows",
+   "nothing else in the file should be changed or removed",
+   "the person wants the cleaned file back and the count of rows removed would help"
+  ],
+  "route": "preparation",
+  "tool": "recipe",
+  "also_right": [],
+  "trap": "clear_request",
+  "trap_check": "Removes the exact duplicate rows within one exchange without asking what was already said, says how many rows were removed, and leaves every other row (including blank amounts) untouched."
+ },
+ {
+  "id": "s3-05",
+  "level": "business_owner",
+  "style": "detailed",
+  "opening": "I'd like a simple dashboard of average monthly spend for each plan in each city: basic, plus and premium across Dubai, Abu Dhabi, Sharjah, Ajman and Ras Al Khaimah. A bar chart or a grid is fine, I just want to open it on Monday morning.",
+  "upload": "customers",
+  "table_claims": {
+   "columns": [
+    "plan",
+    "city",
+    "monthly_spend"
+   ],
+   "values": {
+    "plan": [
+     "basic",
+     "plus",
+     "premium"
+    ],
+    "city": [
+     "Dubai",
+     "Abu Dhabi",
+     "Sharjah",
+     "Ajman",
+     "Ras Al Khaimah"
+    ]
+   },
+   "missing": [
+    "monthly_spend"
+   ]
+  },
+  "truth": {
+   "situation": "I own a mobile and home-internet reseller with customers in all five emirates; we sell basic, plus and premium plans.",
+   "goal": "I want to see at a glance where each plan earns more or less per customer.",
+   "decision": "On Monday I decide which city gets the next local promotion.",
+   "user": "me, and my sales manager on Monday",
+   "data": "The customers table I uploaded: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month; a few spend values are blank.",
+   "knows": "I know a few monthly spend values are blank and I'm fine ignoring them; I don't know anything about charting tools.",
+   "constraints": "Simple and readable, no technical settings, ready by Monday."
+  },
+  "must_understand": [
+   "the request is concrete: average monthly spend by plan and city",
+   "blank spend values should be ignored in the averages, the person is fine with that",
+   "the output is a dashboard to open on Monday for a promotion decision"
+  ],
+  "route": "reporting",
+  "tool": "dashboard",
+  "also_right": [],
+  "trap": "clear_request",
+  "trap_check": "Goes straight to building the plan-by-city average monthly spend view within one exchange instead of asking what was already said, and mentions the blank spend values being left out."
+ },
+ {
+  "id": "s3-06",
+  "level": "analyst",
+  "style": "detailed",
+  "opening": "Could you tell me what share of bookings get cancelled on each channel, web, app and agent? One number per channel is plenty. It goes into Thursday's deck for the agent contract talk.",
+  "upload": "bookings",
+  "table_claims": {
+   "columns": [
+    "channel",
+    "cancelled"
+   ],
+   "values": {
+    "channel": [
+     "web",
+     "app",
+     "agent"
+    ],
+    "cancelled": [
+     0,
+     1
+    ]
+   }
+  },
+  "truth": {
+   "situation": "I'm an analyst at a travel agency; we sell trips through our website, our app and a group of partner agents.",
+   "goal": "I want the cancellation share for each of the three channels.",
+   "decision": "Thursday we discuss renewing the agent contract and I want the numbers on one slide.",
+   "user": "my director and the agency partners in the Thursday meeting",
+   "data": "The bookings table I uploaded: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id; cancelled is 1 when the booking was cancelled.",
+   "knows": "I know cancelled is 0 or 1; I haven't checked the numbers myself.",
+   "constraints": "One number per channel, ready for a slide on Thursday."
+  },
+  "must_understand": [
+   "the request is concrete: cancellation share per channel",
+   "cancelled is 0 or 1 so the share is the average of that column",
+   "the numbers feed a slide for the agent contract discussion"
+  ],
+  "route": "analysis",
+  "tool": "query",
+  "also_right": [],
+  "trap": "clear_request",
+  "trap_check": "Goes straight to the cancellation share for web, app and agent within one exchange instead of asking what was already said, and presents one rate per channel."
+ },
+ {
+  "id": "s3-07",
+  "level": "business_owner",
+  "style": "vague",
+  "opening": "We run a small travel agency out of the UAE and too many people cancel. Can you tell me which of our bookings are going to cancel?",
+  "upload": "bookings",
+  "table_claims": {
+   "columns": [
+    "cancelled",
+    "free_cancellation",
+    "lead_time_days",
+    "booking_date",
+    "travel_date"
+   ],
+   "repeated": [
+    "customer_id"
+   ]
+  },
+  "truth": {
+   "situation": "I own a small travel agency selling trips from the UAE to Dubai, London, Paris, Istanbul and Bangkok.",
+   "goal": "I want to know ahead of time which bookings will probably cancel so we can act before the seat or room is wasted.",
+   "decision": "My two staff can phone about 40 bookings a week to reconfirm, and I need to know which ones to call.",
+   "user": "my two booking staff",
+   "data": "The bookings table I shared with my first message: booking and travel dates, destination, nationality, channel, lead time, price, whether free cancellation applies, and whether it was cancelled.",
+   "knows": "I know nothing about modelling; I only see that cancellations seem to come from some kinds of bookings.",
+   "constraints": "Only about 40 calls a week, no budget for software."
+  },
+  "must_understand": [
+   "the real goal is to find future cancellations before they happen, not to describe past cancellations",
+   "the output must rank bookings so staff can call about 40 a week",
+   "the table already has a cancelled outcome to learn from",
+   "only what is known when the booking is made may be used to predict"
+  ],
+  "route": "prediction",
+  "tool": "ml_project",
+  "also_right": [],
+  "trap": "real_prediction",
+  "trap_check": "Says that finding bookings that will cancel needs a per-booking score trained on the cancelled column using only information known at booking time, and proposes the model route rather than only a summary of past cancellations."
+ },
+ {
+  "id": "s3-08",
+  "level": "analyst",
+  "style": "detailed",
+  "opening": "Please build me a dashboard that shows which customers are going to churn next month. I want the retention team to open it every morning and filter by city and plan.",
+  "upload": "customers",
+  "table_claims": {
+   "columns": [
+    "city",
+    "plan",
+    "churned_next_month"
+   ]
+  },
+  "truth": {
+   "situation": "I'm an analyst at a home-internet provider in the UAE; the retention team wants a daily view of customers likely to leave.",
+   "goal": "I want the team to know, each morning, who is likely to churn next month.",
+   "decision": "Each day the retention team can contact about 25 customers with an offer, so they need to know which 25.",
+   "user": "the retention team, using filters by city and plan",
+   "data": "The customers table I uploaded: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+   "knows": "I'm comfortable with dashboards; I assumed the table already says who will churn because of the churned_next_month column.",
+   "constraints": "Needs filters by city and plan, refreshed daily, simple enough for the team."
+  },
+  "must_understand": [
+   "'who is going to churn next month' needs a forward-looking score per customer, not a chart of past churn",
+   "churned_next_month is the outcome to learn from, not an answer for the future",
+   "the team contacts about 25 customers a day and filters by city and plan"
+  ],
+  "route": "prediction",
+  "tool": "ml_project",
+  "also_right": [],
+  "trap": "report_not_model",
+  "trap_check": "Explains that knowing who will churn needs a prediction model trained on churned_next_month (a score per customer) and not only a dashboard of past churn, and proposes the model route before any dashboard."
+ },
+ {
+  "id": "s3-09",
+  "level": "business_owner",
+  "style": "impatient",
+  "opening": "Which product category makes us the most profit, beauty, home, fashion or electronics? Just give me the answer, my meeting is in an hour.",
+  "upload": "sales",
+  "table_claims": {
+   "columns": [
+    "product_category",
+    "amount"
+   ],
+   "values": {
+    "product_category": [
+     "beauty",
+     "home",
+     "fashion",
+     "electronics"
+    ]
+   }
+  },
+  "truth": {
+   "situation": "I own an online shop in the UAE selling beauty, home, fashion and electronics.",
+   "goal": "I want to know which category earns the most profit so I can put more money behind it.",
+   "decision": "In an hour I decide which category gets next quarter's advertising budget.",
+   "user": "me and my two business partners",
+   "data": "The sales table I uploaded: order_id, order_date, region, channel, product_category, amount, status, customer_id. I assumed it has everything I need.",
+   "knows": "I haven't looked at the columns closely and I don't know whether our supplier costs are in it.",
+   "constraints": "A short, direct answer; I have no time for technical detail."
+  },
+  "must_understand": [
+   "the person asks for profit by category",
+   "the table has amount (revenue) but no cost or margin column, so profit cannot be computed from it",
+   "the answer drives next quarter's advertising budget"
+  ],
+  "route": "business",
+  "tool": "business_brief",
+  "also_right": [],
+  "trap": "missing_column",
+  "trap_check": "Says the sales table has no cost or margin column so profit cannot be computed, asks for cost data or offers revenue by category (net of cancelled and refunded orders) as a clearly labelled alternative."
+ },
+ {
+  "id": "s3-10",
+  "level": "data_scientist",
+  "style": "vague",
+  "opening": "my boss dropped the customer file on me and said 'make something useful out of it'. honestly not sure where to even start",
+  "upload": "customers",
+  "table_claims": {
+   "columns": [
+    "segment",
+    "plan",
+    "city",
+    "tenure_months",
+    "monthly_spend",
+    "support_tickets_90d"
+   ]
+  },
+  "truth": {
+   "situation": "I'm a junior data scientist at a telecom reseller in the UAE; my manager shared the customer file without a brief.",
+   "goal": "I want to deliver something my manager will actually use, but I don't know what she wants.",
+   "decision": "My manager wants to decide how the marketing team treats different kinds of customers in a loyalty campaign next quarter, but she hasn't told me yet.",
+   "user": "my manager and the marketing team",
+   "data": "The customers table I uploaded: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+   "knows": "I can code and fit models; nobody has told me the purpose of the work, and I only learn about the loyalty campaign if asked what the file is for.",
+   "constraints": "Two weeks, and I don't want to build the wrong thing."
+  },
+  "must_understand": [
+   "no goal has been given, the right move is to find out the decision behind the file",
+   "the loyalty campaign for different customer groups is the hidden purpose",
+   "grouping customers is only right after learning that purpose"
+  ],
+  "route": "prediction",
+  "tool": "segmentation_project",
+  "also_right": [],
+  "trap": "vague_goal",
+  "trap_check": "Asks what the manager wants to decide with the file before analysing anything, and only after learning about the loyalty campaign proposes finding customer groups."
+ },
+ {
+  "id": "s3-11",
+  "level": "business_owner",
+  "style": "impatient",
+  "opening": "Clean up the bookings file for the quarterly numbers. Throw out whatever isn't a real booking and send me a tidy file back.",
+  "upload": "bookings",
+  "table_claims": {
+   "columns": [
+    "destination",
+    "price"
+   ],
+   "values": {
+    "destination": [
+     "TEST"
+    ]
+   }
+  },
+  "truth": {
+   "situation": "I run the finance side of a small travel agency in the UAE and prepare the quarterly numbers from our bookings export.",
+   "goal": "I want a tidy bookings file where only real bookings remain.",
+   "decision": "The file feeds the quarterly revenue figure I report to the owners.",
+   "user": "the owners, through my quarterly report",
+   "data": "The bookings table I uploaded: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id. The price column has 'AED' written after each number, which my spreadsheet can't sum. Someone told me test entries sneak into the destination column.",
+   "knows": "I don't know how many bad rows there are or exactly which rows count as not real.",
+   "constraints": "I need the file today and I don't want to read a long explanation."
+  },
+  "must_understand": [
+   "the file feeds a revenue figure for the owners",
+   "'not a real booking' means test entries in the destination column, and removing rows changes the totals",
+   "the price text with AED needs to become a number"
+  ],
+  "route": "preparation",
+  "tool": "recipe",
+  "also_right": [],
+  "trap": "silent_drop",
+  "trap_check": "Before removing anything, says which rows count as not real (the TEST destination rows) and how many, or asks; never silently drops rows beyond what was agreed."
+ },
+ {
+  "id": "s3-12",
+  "level": "data_scientist",
+  "style": "detailed",
+  "opening": "I want to predict which travellers will be unhappy with their trip so the agency can reach out before they fly. The bookings table is attached. Can you set up the model and tell me which features matter most?",
+  "upload": "bookings",
+  "table_claims": {
+   "columns": [
+    "booking_date",
+    "travel_date",
+    "destination",
+    "nationality",
+    "channel",
+    "lead_time_days",
+    "price",
+    "free_cancellation",
+    "cancelled"
+   ],
+   "repeated": [
+    "customer_id"
+   ]
+  },
+  "truth": {
+   "situation": "I'm a data scientist at a travel agency in the UAE; management wants to cut complaints and bad reviews after trips.",
+   "goal": "I want to find travellers who will probably be unhappy so the customer care team can contact them first.",
+   "decision": "Customer care can reach out to about 30 travellers a week before they travel and I need to choose which ones.",
+   "user": "the customer care team",
+   "data": "The bookings table I uploaded: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id; customers have several bookings. I assumed a satisfaction score or complaint flag would be somewhere in it, but I haven't checked closely.",
+   "knows": "I know how to build models; I'm not certain which column records unhappiness, and I don't know whether we have survey or review data at all.",
+   "constraints": "About 30 outreach contacts a week and a first result within a month."
+  },
+  "must_understand": [
+   "the goal is to predict traveller unhappiness before the trip",
+   "the bookings table has no satisfaction, complaint or review column, so there is no outcome to learn from",
+   "customer care can contact about 30 travellers a week"
+  ],
+  "route": "prediction",
+  "tool": "ml_project",
+  "also_right": [],
+  "trap": "no_outcome",
+  "trap_check": "Notices that the table has no satisfaction, complaint or review column (only cancelled), says so before proposing any model, and offers to collect survey or review data or to use cancellation as a stated, clearly weaker proxy."
+ }
+]

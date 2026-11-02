@@ -1,0 +1,63 @@
+{
+ "package": "37.11h",
+ "title": "A sealed exam's vault is sealed and listed when the run ends, so its conversations are kept whole, checkable and permanent, and stay out of every training set until the owner releases them",
+ "date": "2026-11-02",
+ "request": "The owner, during the final sealed test: make sure all sealed tests also capture and store, with all detail, their conversations as training data for all models.",
+ "spec": "Every call and conversation of a sealed run is kept whole in its vault; the vault carries its own manifest of counts and hashes, the commit and settings that produced it, and its use; the permanent archive keeps it; it reaches no training set until the owner releases it.",
+ "plan": [
+  "Check what the sealed run captures and where it is kept, by file kinds and counts, without reading any story",
+  "Seal and list the vault when a run ends, and the two earlier vaults afterwards",
+  "Test the sealing, including the failure that must not take the run's result with it",
+  "Keep the vault in the next archive snapshot and off the Mac's only copy"
+ ],
+ "decisions": [
+  {
+   "decision": "The sealed conversations are captured whole and kept permanently, and are not put into any training set",
+   "why": "the frozen sets are what later models are measured against; a model trained on them could no longer be tested by them, and the store's own guard already drops the sealed people's words from training rows. Releasing a spent set to training is a separate act of the owner, after its verdict"
+  },
+  {
+   "decision": "The vault gets a manifest written by the run itself, not by hand afterwards",
+   "why": "a run that ends early or is cut by its cap is still a spent sealed set, so its vault must be listed in every case"
+  },
+  {
+   "decision": "A vault sealed afterwards records the commit it is given, or none, never today's HEAD",
+   "why": "a manifest that names the wrong code is worse than one that names none"
+  },
+  {
+   "decision": "The owner's labels are not part of the listing",
+   "why": "they are written after the run and must be able to grow without breaking the check"
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/conversation_exam/vault.py (seal, verify, listing, counts, the command), __init__.py (seal_after_run called when a sealed run ends); tests/test_conversation_exam_vault.py; MANIFEST.json written into the vaults of CEX-013 and CEX-017",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "A sealed vault had no record of its own, so nothing could say it was still what the run wrote",
+   "scenario": "the vault was captured whole and the archive snapshot kept it inside the workspace copy, but a changed or missing file inside it would not have shown",
+   "cause": "the store counts a vault and never keeps its content by design, and the archive checksums the workspace tar as a whole, not the vault inside it",
+   "fix": "a manifest of counts and SHA-256 per file, written when the run ends; the command verifies it; the two earlier vaults were sealed afterwards",
+   "test": "tests/test_conversation_exam_vault.py (seal, verify, labels may grow, twice keeps the first, the hook and its failure path, the commit given, no story in the manifest)"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the earlier sealed vaults sealed afterwards",
+   "gate": "every file of the vault is listed with its SHA-256, the counts are of calls and conversations only, and the vault verifies as sealed",
+   "fixed_before_run": true,
+   "result": "CEX-013's vault holds 120 conversations and 1646 model calls kept whole, 1458 of them with the model's thinking, about 75 MB; CEX-017's holds 40 conversations and 565 calls whole, 484 with thinking, about 18 MB; both verify as sealed; the vault of the run in progress was left alone",
+   "verdict": "pass","cost_eur": 0.0,
+   "limits": ["calls without thinking are calls where the model chose not to think","the manifest lists what the run wrote, it does not say the data are good"]}
+ ],
+ "outcome": "A sealed run's conversations and calls are kept whole, listed and checkable; the archive keeps them permanently. They are eval-only until the owner releases them.",
+ "lessons": [
+  "A frozen test set is captured whole and kept, but a training set is a different use: release is a decision, not a default",
+  "Seal a record for a run in the same step that ends the run"
+ ],
+ "risks": [
+  "The vault is in the archive's workspace tar and on the Mac, not in the records repository: the next snapshot and its copy on the external drive are what make it permanent",
+  "If the owner wants spent sets to train later models, the store's contamination guard drops the sealed people's words until its blocklist is changed on purpose"
+ ],
+ "commits": []
+}

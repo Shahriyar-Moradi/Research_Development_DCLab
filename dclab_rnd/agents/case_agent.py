@@ -557,6 +557,55 @@ REWRITE_STRICT = ("[DCLab's code] Your message was cut again and the person woul
                   "message only.")
 
 
+# 2026-11-01 (CEX-026 r-13): a data scientist asked for a full script; the number check withheld every sentence with a setting nobody
+# gave, each withheld answer was written again at full length, five of fourteen calls were such rewrites and one conversation cost
+# EUR 0.73 and ended without the code. The check is unchanged (it is the 0 against 139 invented numbers); what is capped is what it
+# costs: a message holds at most SHOWN_WORDS words, and a reply longer than REWRITE_WORDS that loses sentences to the check is not
+# written again by the model (what survived reaches the person, with a plain note).
+SHOWN_WORDS = 300
+REWRITE_WORDS = 150
+CUT_NOTE = "(That is the short version. Ask me about any part and I will go deeper.)"
+WITHHELD_NOTE = ("(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words "
+                 "and I will go through it.)")
+
+
+def word_count(text: str) -> int:
+    return len(str(text or "").split())
+
+
+def shortened(text: str, limit: int = SHOWN_WORDS) -> tuple[str, bool]:
+    """A message cut once it passes ``limit`` words, and whether it really got shorter. It is cut at a sentence; a long block
+    with line breaks and few sentence ends (a script) is cut at a line. The first piece always stays, and a code fence left
+    open by the cut is closed."""
+    text = str(text or "").strip()
+    if word_count(text) <= limit:
+        return text, False
+    units: list[str] = []
+    for n, piece in enumerate(re.split(r"(?<=[.?!])(\s+)", text)):  # sentence, whitespace, sentence, ...
+        if n % 2:
+            units[-1] += piece
+        elif word_count(piece) > max(20, limit // 2) and "\n" in piece:
+            units.extend(re.findall(r"[^\n]*\n|[^\n]+$", piece))
+        else:
+            units.append(piece)
+    kept, used = [], 0
+    for unit in units:
+        size = word_count(unit)
+        if kept and used + size > limit:
+            break
+        kept.append(unit)
+        used += size
+    out = "".join(kept).rstrip()
+    if out.count("```") % 2:
+        out += "\n```"
+    return (out, True) if word_count(out) < word_count(text) else (text, False)
+
+
+REWRITE_SHORT = ("[DCLab's code] Your message was long and most of it was not shown to the person, because its numbers come from nobody: "
+                 "the person did not give them and no tool computed them. Write the answer itself now, in words, in at most 120 words: "
+                 "no digits at all unless they are copied exactly from a tool's result or the person's words. Reply with the message only.")
+
+
 def has_statement(text: str) -> bool:
     """A message that says something, not only asks (2026-11-01: a cut answer left a bare follow-up question)."""
     parts = [p for p in re.split(r"(?<=[.?!])\s+", str(text or "").strip()) if p.strip()]
@@ -614,40 +663,65 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
             state.rewriting = False
         texts = [str(m.get("content") or "").strip() for m in result.messages[again_from + 1:] if m.get("role") == "assistant" and str(m.get("content") or "").strip()]
     dropped: list[str] = []
-    words_out = _unique([checked(t, state, dropped) for t in texts] + [checked(q, state, dropped) for q in state.said])
-    if state.go_ahead or says_yes(str(words)):  # 2026-11-01: after a go-ahead, no question asking the person to confirm again
-        trimmed = [unconfirmed(w) for w in words_out]
-        if any(trimmed):  # a message that was only the question is kept rather than replaced by code's fallback line
-            words_out = trimmed
-    if dropped:  # a refusal comes back to the agent so it can write again (the plan's rule), once: never a silent turn
-        again_from = len(result.messages)
-        result.messages.append({"role": "user", "content": REWRITE.format(dropped="\n".join(f"- {d}" for d in dropped))})
+
+    def again(instruction: str) -> list[str]:
+        """One more model reply, the tools offered (the API needs them beside earlier calls) but none allowed to run."""
+        from_at = len(result.messages)
+        result.messages.append({"role": "user", "content": instruction})
         once = Policy(name="case", system="", tools=TOOL_NAMES, max_steps=POLICY.max_steps, max_replies=1, stop_after=POLICY.stop_after)
-        state.rewriting = True  # the tools stay offered (the API needs them beside earlier tool calls) but none may run
+        state.rewriting = True
         try:
             run_policy(once, client, registry, result.messages, context=state, trace=state.trace)
         finally:
             state.rewriting = False
-        rewritten = [str(m.get("content") or "").strip() for m in result.messages[again_from + 1:] if m.get("role") == "assistant"]
-        fixed = [w for w in (checked(t, state) for t in rewritten if t) if w]
-        kept = sum(len(w) for w in fixed) / max(1, sum(len(t) for t in rewritten if t))
-        if not any(has_statement(w) for w in fixed) or kept < 0.6:  # cut again: one stricter try, so the answer reaches the person
-            strict_from = len(result.messages)
-            result.messages.append({"role": "user", "content": REWRITE_STRICT})
-            state.rewriting = True
-            try:
-                run_policy(once, client, registry, result.messages, context=state, trace=state.trace)
-            finally:
-                state.rewriting = False
-            strict = [str(m.get("content") or "").strip() for m in result.messages[strict_from + 1:] if m.get("role") == "assistant"]
-            again = [w for w in (checked(t, state) for t in strict if t) if w]
-            if any(has_statement(w) for w in again):
-                fixed = again
-        if fixed:
-            words_out = _unique(fixed)
+        return [str(m.get("content") or "").strip() for m in result.messages[from_at + 1:] if m.get("role") == "assistant"]
+
+    def capped(parts: list[str]) -> tuple[list[str], bool]:
+        """The messages of a turn within SHOWN_WORDS in all (an echoed note of code's is taken out first), and whether any was cut."""
+        out, was, left = [], False, SHOWN_WORDS
+        for part in parts:
+            part = str(part or "").replace(CUT_NOTE, "").replace(WITHHELD_NOTE, "").strip()
+            if not part:
+                continue
+            short, c = shortened(part, max(left, 40))
+            was, left = was or c, left - word_count(short)
+            out.append(short)
+        return out, was
+
+    shorts, cut = capped(texts)  # the length cap comes first: a sentence cut for length is never sent back for a rewrite
+    written = sum(word_count(s) for s in shorts)  # how long the reply was as written, not what the check left of it
+    long_reply = written > REWRITE_WORDS
+    answers = [checked(s, state, dropped) for s in shorts]
+    words_out = _unique(answers + [checked(q, state, dropped) for q in state.said])
+    if state.go_ahead or says_yes(str(words)):  # 2026-11-01: after a go-ahead, no question asking the person to confirm again
+        trimmed = [unconfirmed(w) for w in words_out]
+        if any(trimmed):  # a message that was only the question is kept rather than replaced by code's fallback line
+            words_out = trimmed
+    withheld = False
+    if dropped:  # a refusal comes back to the agent so it can write again (the plan's rule), once: never a silent turn
+        survivors = sum(word_count(w) for w in answers)
+        if long_reply and any(has_statement(w) for w in answers) and survivors >= 0.4 * written:
+            withheld = True  # a long reply with most of its answer left is not written again (CEX-026): what survived reaches the person
+        else:
+            rewritten = again(REWRITE_SHORT if long_reply else REWRITE.format(dropped="\n".join(f"- {d}" for d in dropped)))
+            parts, rcut = capped(rewritten)
+            fixed = [w for w in (checked(s, state) for s in parts) if w]
+            kept = sum(len(w) for w in fixed) / max(1, sum(len(r) for r in rewritten if r))
+            if not long_reply and (not any(has_statement(w) for w in fixed) or kept < 0.6):
+                # cut again: one stricter try, so the answer reaches the person (short replies only: a long one has had its one short try)
+                strict = again(REWRITE_STRICT)
+                parts, scut = capped(strict)
+                again_fixed = [w for w in (checked(s, state) for s in parts) if w]
+                if any(has_statement(w) for w in again_fixed):
+                    fixed, rcut = again_fixed, scut
+            if fixed and (not long_reply or any(has_statement(w) for w in fixed)):
+                words_out, cut = _unique(fixed), rcut  # the note follows the text that is shown, not the first draft
+            elif long_reply and any(words_out):
+                withheld = True
+    notes = [n for n, on in ((CUT_NOTE, cut), (WITHHELD_NOTE, withheld)) if on]
     if not any(words_out):  # never a silent turn (the review): code's own line, and the question if one was asked
-        words_out = [FALLBACK_NUMBERS if dropped else FALLBACK] + ([q for q in (checked(q, state) for q in state.said) if q] or [])
-    text = "\n\n".join(w for w in words_out if w)
+        words_out, notes = [FALLBACK_NUMBERS if dropped else FALLBACK] + ([q for q in (checked(q, state) for q in state.said) if q] or []), []
+    text = "\n\n".join([w for w in words_out if w] + notes)
     state.spent_eur += max(0.0, _spent(client) + _spent(state.specialist_client) + _spent(state.route_client) - before)  # 37.8: what this turn cost
     state.turns.append({"role": "assistant", "content": text + ("\n(Options: " + "; ".join(o.title for o in state.shown) + ")" if state.shown else "")})
     if state.checkpoint:  # 37.8: saved after every turn, so a stop or a crash loses nothing
