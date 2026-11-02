@@ -301,6 +301,69 @@ class CaseHomeTests(unittest.TestCase):
             self.assertIsNone(draft.get("build_waiting"), words)
             self.assertNotIn("prediction_moment", draft.get("understanding") or {}, words)
 
+    def _events(self, draft_id, kind=None):
+        return [e for e in self.store.events(draft_id, 0) if kind is None or e["kind"] == kind]
+
+    def test_the_persons_words_are_sent_to_the_page_on_every_path_under_the_lead_agent(self):
+        """The owner, 2026-11-02: no user prompt in the chat. The page draws the chat from what is sent; the lead agent's Home only
+        saved the person's message, so it never showed (and the question's buttons stayed live)."""
+        from dclab_rnd.agents import case_agent as A
+
+        d = self.store.create("predict which members cancel")
+        home, calls = self._home_with_builds()
+        with mock.patch.object(A, "turn", return_value={"text": "Understood."}):
+            home.reply(d["id"], "I would call them before they leave")  # the ordinary path
+        self.store.update(d["id"], lambda x: x.update(build_waiting="prediction moment"))
+        with mock.patch.object(A, "turn", return_value={"text": "Understood."}):
+            home.reply(d["id"], "What do you mean by the moment?")  # a build question's answer path
+        users = [e["data"] for e in self._events(d["id"], "chat") if e["data"].get("role") == "user"]
+        self.assertEqual([u["text"] for u in users], ["I would call them before they leave", "What do you mean by the moment?"])
+        self.assertTrue(all(u.get("id") and u.get("at") and u["kind"] == "text" for u in users))  # as the rules-first Home's own
+
+    def test_a_pick_of_an_option_is_sent_to_the_page_too(self):
+        from dclab_core import case as C
+        from dclab_rnd.agents import case_agent as A
+
+        d = self.store.create("predict which members cancel")
+        home, calls = self._home_with_builds()
+        case = C.new("c", ["x"])
+        case = C.apply(case, "options", [C.CaseOption(title="Rank members", what="w", gets="a list", tradeoff="needs history", effort="a day",
+                                                      track="prediction", tool="ml_project")], by="agent", why="t")
+        from dclab_rnd.agents import case_session
+
+        state = A.CaseState(case=case)
+        self.store.update(d["id"], lambda x: x.update(case_state=case_session.snapshot(state)))
+        with mock.patch.object(A, "pick", return_value={"text": "Starting."}):
+            home.reply(d["id"], "Rank members")
+        users = [e["data"]["text"] for e in self._events(d["id"], "chat") if e["data"].get("role") == "user"]
+        self.assertEqual(users, ["Rank members"])
+
+    def test_a_prediction_route_draws_the_workflow_once_and_other_routes_draw_none(self):
+        """The owner's screenshot: a segment report showed an empty Solution workflow card. The page learns the workflow only from
+        what is sent; a prediction route draws it (once), a report or an analysis does not."""
+        from dclab_core import case as C
+        from dclab_rnd.agents import case_agent as A
+
+        def route(track, tool):
+            def turn(state, client, words):
+                state.case = C.apply(state.case, "route", C.CaseRoute(track=track, tool=tool, by="agent"), by="agent", why="t")
+                return {"text": "Started."}
+            return turn
+
+        d = self.store.create("predict which members cancel")
+        home, calls = self._home_with_builds()
+        with mock.patch.object(A, "turn", route("prediction", "ml_project")):
+            home.reply(d["id"], "go on")
+        self.assertEqual(len(self._events(d["id"], "workflow")), 1)
+        with mock.patch.object(A, "turn", return_value={"text": "More."}):
+            home.reply(d["id"], "and what else")
+        self.assertEqual(len(self._events(d["id"], "workflow")), 1)  # not redrawn on every turn
+        self.assertTrue(self.store.get(d["id"]).get("workflow"))
+        other = self.store.create("break churn down by contract")
+        with mock.patch.object(A, "turn", route("analysis", "query")):
+            home.reply(other["id"], "go on")
+        self.assertEqual(self._events(other["id"], "workflow"), [])
+
     def test_groups_then_a_prediction_asks_for_the_outcome_again(self):
         from dclab_core import case as C
         from dclab_rnd.agents import case_agent as A

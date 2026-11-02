@@ -189,6 +189,56 @@
       "cause": "the checks named one place for each control",
       "fix": "the checks click whichever of the two is on screen (both run the same action)",
       "test": "scripts/browser_e2e.py connect_data, new_chat_button"
+    },
+    {
+      "id": "F16",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "Under the lead agent the person's own messages never showed in the chat",
+      "scenario": "a person answers the agent's question; the chat shows only the agent's replies, and the buttons of the question they answered stay live (the owner's screenshot: no user prompt in the chat)",
+      "cause": "the lead agent's Home saved the person's message to the draft but did not send it to the page; the page draws the chat only from what is sent, so it never showed, even after a reload. The rules-first Home saves and sends. This held in Developer too, since 37.9",
+      "fix": "CaseHome._hear saves and sends it as the rules-first Home does, on all four paths (an ordinary reply, a pick, a build answer, a column check)",
+      "test": "tests/test_case_home.py test_the_persons_words_are_sent_to_the_page_on_every_path_under_the_lead_agent, test_a_pick_of_an_option_is_sent_to_the_page_too"
+    },
+    {
+      "id": "F17",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "The person's first sentence was nowhere in the chat in Data science",
+      "scenario": "a chat opens: the start box that held the sentence steps aside and no bubble holds it",
+      "cause": "the page never drew the problem sentence as a message (Developer keeps it in the start box)",
+      "fix": "Data science draws it as the first bubble from the draft's problem; Developer hides that bubble",
+      "test": "scripts/browser_e2e.py check_ds_mode: the first bubble"
+    },
+    {
+      "id": "F18",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "The lead agent's Home left the Solution workflow card empty, and shown on a segment report",
+      "scenario": "the person asks for a segment report: the agent starts an analysis and the page shows an empty Solution workflow card with blank tags, as the owner's screenshot shows",
+      "cause": "the page learns the workflow and the route only from sent events; the lead agent's Home sent neither, and the page shows the card by default",
+      "fix": "a prediction route draws the workflow once (sent as the rules-first Home sends it); the page shows the card only when the lead agent's route is a prediction",
+      "test": "tests/test_case_home.py test_a_prediction_route_draws_the_workflow_once_and_other_routes_draw_none; a scripted lead agent run on the real server"
+    },
+    {
+      "id": "F19",
+      "source": "owner",
+      "severity": "gap",
+      "defect": "The solution workflow sat under the chat, not beside it",
+      "scenario": "the owner: it must be at the side, as in the dclab code app (WF-01 to WF-10 as tiles in the right panel)",
+      "cause": "the first Data science attempt kept the wide drawing in the main column on purpose: unreadable in a narrow one",
+      "fix": "the workflow card joins the side panel; Data science shows the same blocks as compact tiles by state, the gates and revisits as lines, a tile opens its block as a click on the drawing does; Developer keeps the drawing",
+      "test": "scripts/browser_e2e.py check_ds_mode: ten tiles in the panel, beside the chat, a tile opens its block, Developer keeps its drawing"
+    },
+    {
+      "id": "F20",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "An empty tag was drawn beside the workflow's version",
+      "scenario": "the card's pack name is blank under the lead agent: an empty pill",
+      "cause": "the pack tag is filled only when a pack is read",
+      "fix": "an empty tag is not drawn in Data science",
+      "test": "screenshot of a prediction chat"
     }
   ],
   "measurements": [
@@ -224,7 +274,9 @@
     "A second look over the same pages keeps the functionality the same; a copied page would not",
     "Draw only controls the product has: a picker that does nothing is worse than none",
     "Run the browser check on a fresh workspace too: lists that already had items hid that a new item never appeared",
-    "To show two looks do the same, run the same suite in both and compare every control: the eye found the notebook, the comparison found the missing project switcher"
+    "To show two looks do the same, run the same suite in both and compare every control: the eye found the notebook, the comparison found the missing project switcher",
+    "When the owner shows a screenshot, find the cause in the layer that decides what the page learns (the events the server sends), not only in the look: two of the three gaps were in the server and hit Developer too",
+    "The page draws only what is sent: a new agent for Home must send every event the older one sends (message, status, workflow), checked by a test of the events, not of the saved draft"
   ],
   "risks": [
     "Pages other than Home and the notebook are restyled, not re-laid-out: they read calmer but keep Developer's arrangement",

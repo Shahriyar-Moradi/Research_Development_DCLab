@@ -7702,6 +7702,7 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 [data-mode="ds"] .chip { border-radius: 999px; background: var(--ts-surface); border-color: var(--ts-border); color: var(--ts-text-secondary); }
 [data-mode="ds"] .chip:hover { background: var(--ts-surface-hover); color: var(--ts-text); }
 [data-mode="ds"] .pill { border-radius: 6px; }
+[data-mode="ds"] .pill:empty { display: none; }  /* a tag with nothing to say (the workflow's pack name before one is read) is not drawn */
 [data-mode="ds"] .seg { border-radius: 10px; background: var(--ts-surface-muted); }
 [data-mode="ds"] .seg button { border-radius: 8px; }
 [data-mode="ds"] .seg button[aria-pressed="true"] { background: var(--ts-surface); color: var(--ts-text); }
@@ -7732,7 +7733,6 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 [data-mode="ds"] #view-home [data-pane="overview"] > :not(.ds-rail) { grid-column: 1; min-width: 0; max-width: var(--ds-col); width: 100%; justify-self: center; }
 [data-mode="ds"] #view-home [data-pane="overview"] > :not(.ds-rail) + :not(.ds-rail) { margin-top: 16px; }
 [data-mode="ds"] #view-home [data-pane="overview"] > .g-3-1, [data-mode="ds"] #view-home [data-pane="overview"] > .g-chat { grid-template-columns: minmax(0, 1fr); }
-[data-mode="ds"] #home-sol-graph .graph-svg { min-width: 620px; }
 /* the box: borderless text, its controls under it as small chips, Send as a round arrow */
 [data-mode="ds"] #view-home [data-f="home.composer"] { border: 0; background: none; }
 [data-mode="ds"] #view-home [data-f="home.composer"] > .panel-body { padding: 0; gap: 14px; }
@@ -7754,10 +7754,6 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 [data-mode="ds"] #view-home [data-f="home.pack"] { color: var(--ts-text-faint); }
 /* once a conversation is open it is the page: the greeting and the start box step aside (but for the domain pack, which
    can still change); the reply box sits at the bottom of the window */
-/* the conversation comes first (the workflow drawing and the rest follow it): the same parts in a different order, as Claude
-   keeps the chat on top; the domain pack row stays above it */
-[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-pane="overview"] > .g-3-1 { order: -2; }
-[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-pane="overview"] > #home-lanes { order: -1; }
 /* Home's tabs (Overview, Projects, Activity) stay reachable beside an open conversation */
 [data-mode="ds"] #view-home:has(#home-chat:not([hidden])) > .ptabs { margin-bottom: 14px; }
 [data-mode="ds"] #view-home:has(#home-chat:not([hidden])) > .vh { margin: 0 auto 6px; max-width: var(--ds-col); flex-direction: row; justify-content: flex-start; }
@@ -7789,6 +7785,28 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 /* the folded steps ("Reading the table ▸"): status lines read as Claude's tool steps */
 [data-mode="ds"] .msg .typing { font-size: 14px; color: var(--ts-text-muted); }
 [data-mode="ds"] .msg details > summary { color: var(--ts-text-muted); cursor: pointer; }
+
+/* the solution workflow, in the side panel as small tiles (the owner, 2026-11-02; the dclab code app draws it so): the wide drawing
+   stays in Developer. A tile is a block with its state; the gates and revisits are lines under them */
+[data-mode="ds"] #home-sol-graph { display: none; }
+[data-mode="ds"] .ds-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+[data-mode="ds"] .ds-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; text-align: left; cursor: pointer;
+  padding: 8px 10px; border: 1px solid var(--ts-border); border-radius: 10px; background: var(--ts-surface-sunken); color: var(--ts-text); }
+[data-mode="ds"] .ds-tile:hover { border-color: var(--ts-border-strong); }
+[data-mode="ds"] .ds-tile .id { font-family: var(--font-mono); font-size: 10.5px; color: var(--ts-text-muted); }
+[data-mode="ds"] .ds-tile .nm { font-size: 13px; font-weight: 600; line-height: 1.25; }
+[data-mode="ds"] .ds-tile .st { font-size: 11px; color: var(--ts-text-muted); min-height: 1.2em; }
+[data-mode="ds"] .ds-tile.done { background: var(--ok-soft); border-color: transparent; }
+[data-mode="ds"] .ds-tile.done .st { color: var(--ok); }
+[data-mode="ds"] .ds-tile.current { background: var(--ts-accent-soft); border-color: var(--ts-accent); }
+[data-mode="ds"] .ds-tile.current .st { color: var(--ts-accent-ink); }
+[data-mode="ds"] .ds-tile.blocked { background: var(--warn-soft); border-color: transparent; }
+[data-mode="ds"] .ds-tile.blocked .st { color: var(--warn); }
+[data-mode="ds"] .ds-tile.picked { outline: 2px solid var(--ts-accent); outline-offset: 1px; }
+[data-mode="ds"] .ds-tile-notes { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ts-text-muted); line-height: 1.4; }
+[data-mode="ds"] #home-solution .panel-head .row { flex-wrap: wrap; }
+[data-mode="ds"] #home-solution #home-sol-foot { flex-direction: column; align-items: flex-start; gap: 6px; }
+[data-mode="ds"] #home-solution .legend { flex-wrap: wrap; row-gap: 4px; }
 
 /* the side panel: what needs you, the workspace, what DCLab understood, the team: Claude's right panel. Shown in a
    conversation unless closed; on the start page only when opened */

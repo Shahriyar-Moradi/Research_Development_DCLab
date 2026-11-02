@@ -700,8 +700,9 @@
      every rule scoped to html[data-mode="ds"]): on Home the conversation is the page and its context (what needs you,
      the workspace's numbers, what DCLab understood, the team, Claude beside DCLab) sits in a column on the right. It only moves and
      restyles: no control is removed, and Developer gets every part back where it was. Kept in this browser. */
-  // The workflow map stays in the conversation's column: it is a wide drawing, unreadable in a narrow one
-  const RAIL = ['#home-inbox', '#view-home [data-f="home.kpis"]', '#home-case', '#home-understand', '#home-team', '#home-twin'];
+  // The workflow goes to the side panel too (2026-11-02): its wide drawing stays in Developer; Data science shows the same blocks as
+  // small tiles (home.html drawTiles), which fit a narrow column
+  const RAIL = ['#home-inbox', '#home-solution', '#view-home [data-f="home.kpis"]', '#home-case', '#home-understand', '#home-team', '#home-twin'];
   // Stateless on purpose: each part and the comment marking its place are looked up live every time, so a page that
   // redraws its parts can never leave a stale copy to be put back (found in testing: starting in Data science, then
   // switching to Developer, lost the cards the rail held).

@@ -164,6 +164,9 @@ DC.view('home', {
     function openDraft(draft) {
       S.draft = draft; S.analysis = {}; S.assets = {};
       $('#home-thread', el).innerHTML = '';
+      // Data science puts the start box away once a chat is open, so the person's first sentence is the first bubble (the owner,
+      // 2026-11-02: "no user prompt in the chat"); Developer keeps it in the start box and hides this one
+      if (draft.problem) $('#home-thread', el).insertAdjacentHTML('beforeend', `<div class="msg user ds-only ds-first"><span class="avatar">SM</span><div class="msg-body"><div class="who">You</div><div class="bubble">${esc(draft.problem)}</div></div></div>`);
       $('#home-task', el).value = draft.problem;
       $('#home-chat-sub', el).textContent = draft.project_id
         ? 'The chat this project was built from: read it and go on asking. It does not change the project: change the project on its own pages (Solution & data), or start a new project for new data.'
@@ -426,6 +429,7 @@ DC.view('home', {
       panel.hidden = !c;
       if (!c) return;
       $('#home-understand', el).hidden = true;  // one panel of what was understood: the case's
+      $('#home-solution', el).hidden = !(c.route && c.route.track === 'prediction');  // its workflow is drawn for a prediction only
       const facts = c.facts || {};
       $('#home-case-facts', el).innerHTML = Object.keys(CASE_LABELS).map(f => {
         const v = facts[f];
@@ -1049,14 +1053,30 @@ DC.view('home', {
       $('#home-sol-title', el).textContent = wf.title || 'Solution workflow';
       $('#home-sol-version', el).textContent = 'v' + wf.version + (wf.source === 'model' ? ' · agent' : ' · template');
       $('#home-sol-graph', el).innerHTML = graph.render(wf, { selected: S.node });
+      drawTiles(wf);
       if (rejected && rejected.length) addSystem('DCLab kept the previous workflow: the proposed one ' + rejected.join('; ') + '.');
     }
-    $('#home-sol-graph', el).addEventListener('click', e => {
-      const g = e.target.closest('[data-node]'); if (!g || !S.workflow) return;
-      const n = S.workflow.nodes.find(x => x.id === g.dataset.node); if (!n) return;
+    /* The same workflow as small tiles for Data science's side panel (the owner, 2026-11-02, as the dclab code app draws it): every
+       block with its state, the approval gates and the allowed revisits as lines; a tile opens the block as a click on the drawing does. */
+    function drawTiles(wf) {
+      const box = $('#home-sol-tiles', el); if (!box) return;
+      const words = { done: 'done', current: 'in progress', waiting: 'waiting for data', blocked: 'blocked', todo: '' };
+      const kind = { done: 'done', current: 'current', waiting: 'blocked', blocked: 'blocked', todo: 'todo' };
+      const nodes = wf.nodes || [], code = id => (nodes.find(n => n.id === id) || {}).wf || id;
+      const tiles = nodes.map(n => `<button type="button" class="ds-tile ${kind[n.state] || 'todo'}${n.id === S.node ? ' picked' : ''}" data-tile="${esc(n.id)}" title="${esc(n.label + (n.detail ? ' — ' + n.detail : ''))}" aria-label="${esc(n.wf + ' ' + n.label + (n.state ? ': ' + (words[n.state] || n.state) : ''))}">`
+        + `<span class="id">${esc(n.wf)}</span><span class="nm">${esc(n.label)}</span><span class="st">${esc(words[n.state] || '')}</span></button>`).join('');
+      const gates = (wf.gates || []).map(g => `<li>approval after ${esc(code(g.after))}: ${esc(g.label)}</li>`).join('');
+      const back = (wf.revisits || []).map(r => `<li>${esc(code(r.from))} may go back to ${esc(code(r.to))}: ${esc(r.why)}</li>`).join('');
+      box.innerHTML = `<div class="ds-tiles">${tiles}</div>` + (gates || back ? `<ul class="ds-tile-notes">${gates}${back}</ul>` : '');
+    }
+    function pickNode(id) {
+      if (!S.workflow) return;
+      const n = S.workflow.nodes.find(x => x.id === id); if (!n) return;
       S.node = n.id; drawWorkflow(S.workflow);
       $('#home-sol-node', el).textContent = `${n.wf} · ${n.label}: ${n.detail || ''}`;
-    });
+    }
+    $('#home-sol-graph', el).addEventListener('click', e => { const g = e.target.closest('[data-node]'); if (g) pickNode(g.dataset.node); });
+    $('#home-sol-tiles', el).addEventListener('click', e => { const t = e.target.closest('[data-tile]'); if (t) pickNode(t.dataset.tile); });
 
     /* ---------- talking ---------- */
     async function send(text) {

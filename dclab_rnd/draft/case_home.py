@@ -14,6 +14,7 @@ switch off nothing here runs: the old flow stays the fallback and the open editi
 from __future__ import annotations
 
 import re
+import secrets
 from typing import Any, Optional
 
 from dclab_core import case as C
@@ -21,6 +22,7 @@ from dclab_core import case as C
 from ..agents import case_agent as A
 from ..agents import case_session
 from .chat import HomeAgent, turn
+from .store import now
 
 
 def table_of(store: Any, draft: dict[str, Any]) -> tuple[Optional[dict[str, Any]], Any]:
@@ -67,17 +69,29 @@ class CaseHome(HomeAgent):
     def _client(self, draft_id: str) -> Any:
         return self.models.client(A.PURPOSE, draft_id=draft_id) if self.models is not None else None
 
+    def _hear(self, draft_id: str, text: str) -> None:
+        """The person's words join the conversation as the rules-first Home's do: saved, and sent to the page. The page draws the
+        chat only from what is sent, so before this a person's message never showed under the lead agent (the owner, 2026-11-02:
+        no prompt in the chat) and the buttons of the question they answered stayed live."""
+        msg = {"id": "u" + secrets.token_hex(5), "role": "user", "kind": "text", "text": text.strip()[:2000], "at": now()}
+        self.store.update(draft_id, lambda d: d["messages"].append(msg))
+        self.store.emit(draft_id, "chat", msg)
+
     def _save(self, draft_id: str, state: A.CaseState, out: dict[str, Any]) -> None:
         snapshot = case_session.snapshot(state)
         view = {**C.views(state.case), "findings": [f.model_dump(mode="json") for f in state.case.findings],
                 "route": state.case.route.model_dump(mode="json") if state.case.route else None}
 
+        draw = False  # a prediction route has the solution workflow drawn, once, as the rules-first Home draws it
+
         def put(d: dict[str, Any]) -> None:
+            nonlocal draw
             d["case_state"], d["case"] = snapshot, view
             route = state.case.route
             if route is not None and (d.get("intent") or {}).get("track") != route.track:  # the route is the draft's kind of help
                 d["intent"] = {**(d.get("intent") or {}), "track": route.track, "status": "chosen" if route.by == "person" else "read",
                                "by": "case_agent", "tool": route.tool}
+            draw = route is not None and route.track == "prediction" and not d.get("workflow")
             if route is None or route.tool not in A.BUILDS:  # the review of 37.11: a build question left open after the route moved on
                 d.pop("build_waiting", None)
                 d.pop("moment_said", None)
@@ -88,6 +102,8 @@ class CaseHome(HomeAgent):
                 u.pop("family", None)  # the review: groups chosen, then a prediction: the build asks for the outcome again
                 u.pop("family_by", None)
         self.store.update(draft_id, put)
+        if draw:
+            self.refresh_workflow(draft_id)  # emits "workflow": without it the page's Solution workflow card stays empty
         if out.get("text"):
             self.say(draft_id, out["text"], kind="text", by="case_agent")
         if out.get("options"):
@@ -215,18 +231,18 @@ class CaseHome(HomeAgent):
         if open_question is not None and open_question.get("field") == checks.FIELD:
             # the review of 37.11: the build's column question is answered by code (known, written later, or DCLab's call),
             # then the build goes on, as on the rules-first Home; the agent never reads it
-            self.store.update(draft_id, lambda d: d["messages"].append({"role": "user", "kind": "text", "text": text}))
+            self._hear(draft_id, text)
             return self.take_answer(draft_id, open_question, text)
         if draft.get("build_waiting"):
-            self.store.update(draft_id, lambda d: d["messages"].append({"role": "user", "kind": "text", "text": text}))
+            self._hear(draft_id, text)
             if self._build_answer(draft_id, text):
                 return
             return self._run(draft_id, text)
         offered = [o.get("title") for o in ((draft.get("case_state") or {}).get("case") or {}).get("options") or []]
         if not (draft.get("case_state") or {}).get("case", {}).get("route") and text in offered:
-            self.store.update(draft_id, lambda d: d["messages"].append({"role": "user", "kind": "text", "text": text}))
+            self._hear(draft_id, text)
             return self._run(draft_id, text, pick=text)
-        self.store.update(draft_id, lambda d: d["messages"].append({"role": "user", "kind": "text", "text": text}))
+        self._hear(draft_id, text)
         self._run(draft_id, text)
 
     @turn
