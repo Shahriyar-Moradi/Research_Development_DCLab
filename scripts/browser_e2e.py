@@ -549,7 +549,7 @@ def check_ds_mode(b: Browser) -> str:
     page.reload()  # start in the mode, as a person who chose it before does
     b.view("home", settle=0.8)
     check(page.evaluate("() => document.documentElement.dataset.mode") == "ds", "the kept mode was not applied")
-    cards = "['home-inbox', 'home-solution', 'home-case', 'home-understand', 'home-team', 'home-twin'].map(i => document.querySelectorAll('#' + i).length).join('')"
+    cards = "['home-inbox', 'home-sess', 'home-case', 'home-understand', 'home-team', 'home-twin'].map(i => document.querySelectorAll('#' + i).length).join('')"
     check(page.evaluate(f"() => {cards}") == "111111", "a context card is missing or doubled")
     check(page.evaluate("() => !!document.querySelector('#ds-rail #home-inbox')"), "Needs you is not in the right column")
     for _ in range(2):
@@ -566,22 +566,23 @@ def check_ds_mode(b: Browser) -> str:
     page.wait_for_selector("#home-chat:not([hidden])")
     check(page.locator("#view-home .composer:has(#home-task)").is_hidden(), "the start box stayed beside an open chat")
     # the owner, 2026-11-02: the person's own words are in the chat (the first sentence, since the start box steps aside, and a reply
-    # sent to the page), and the solution workflow is in the side panel as tiles, not below the reply box
+    # sent to the page), and the side panel is one session card like the dclab code app's Jobs panel: the task, the ten workflow
+    # blocks as tiles, no facts card and no workspace counts, and no workflow card under the chat
     first = page.locator("#home-thread .msg.user .bubble").first
     check(first.is_visible() and (first.inner_text() or "").strip() == problem, "the person's first sentence is not the first bubble of the chat")
     page.fill("#home-reply", "Right before we call them")
     page.click("#home-send")
     page.wait_for_function("() => [...document.querySelectorAll('#home-thread .msg.user .bubble')].some(b => b.textContent.trim() === 'Right before we call them')", timeout=30_000)
-    page.wait_for_selector("#ds-rail #home-sol-tiles .ds-tile", timeout=30_000)
-    check(page.locator("#ds-rail #home-sol-tiles .ds-tile").count() == 10, "the workflow's ten blocks are not tiles in the side panel")
-    check(page.locator("#home-sol-graph").is_hidden() and page.locator("#home-solution").is_visible(), "the workflow drawing shows beside its tiles, or the card is gone")
-    page.locator("#ds-rail #home-sol-tiles .ds-tile").nth(1).click()
-    check(len((page.text_content("#home-sol-node") or "").strip()) > 5, "a tile did not open its block as a click on the drawing does")
-    below = page.evaluate("() => { const s = document.querySelector('#home-solution').getBoundingClientRect(), c = document.querySelector('#home-chat').getBoundingClientRect(); return s.left >= c.right - 1; }")
-    check(below, "the workflow card is under the chat, not beside it")
-    check(page.locator('#view-home [data-f="home.pack"]').is_visible(), "the domain pack chooser is gone while a chat is open")
-    shown = page.evaluate("() => [...document.querySelectorAll('#ds-rail > .panel:not([hidden]), #ds-rail > details')].length")
-    check(shown >= 2, f"the right column shows {shown} card(s) during a chat")
+    page.wait_for_selector("#ds-rail #home-sess .ds-tile", timeout=30_000)
+    check(page.locator("#ds-rail #home-sess .ds-tile").count() == 10, "the workflow's ten blocks are not tiles in the session card")
+    title = (page.text_content("#home-sess .ds-sess-title") or "").strip()
+    check(title.startswith(problem[:40]), f"the session card does not name the task: {title!r}")
+    check(page.locator("#home-solution").is_hidden() and page.locator("#home-sess").is_visible(), "the workflow card shows under the chat, or the session card is gone")
+    check(page.locator("#home-case").is_hidden() and page.locator('#view-home [data-f="home.kpis"]').is_hidden(), "the facts card or the workspace counts show in Data science")
+    page.locator("#ds-rail #home-sess .ds-tile").nth(1).click()
+    check(len((page.text_content("#home-sess .ds-node") or "").strip()) > 5, "a tile did not open its block as a click on the drawing does")
+    beside = page.evaluate("() => { const s = document.querySelector('#home-sess').getBoundingClientRect(), c = document.querySelector('#home-chat').getBoundingClientRect(); return s.left >= c.right - 1; }")
+    check(beside, "the session card is under the chat, not beside it")
     gap = page.evaluate("""() => { const p = document.querySelector('#view-home [data-pane="overview"]').getBoundingClientRect();
       const last = Math.max(...[...document.querySelectorAll('#view-home [data-pane="overview"] > *')].map(e => e.getBoundingClientRect().bottom));
       return Math.round(p.bottom - last); }""")
@@ -614,7 +615,8 @@ def check_ds_mode(b: Browser) -> str:
     page.click("[data-ds-look=dev]")
     check(page.evaluate("() => document.documentElement.dataset.mode") == "dev" and page.locator("#ds-settings").is_hidden(), "Settings did not go back to Developer")
     check(page.locator("#ds-recents").is_hidden() and page.locator(".role-pick").is_visible(), "Developer shows a Data science part or lost its own")
-    check(page.locator("#home-sol-tiles").is_hidden() and page.locator("#home-thread .ds-first").first.is_hidden(), "Developer shows the tiles or the first bubble")
+    check(page.locator("#home-sess").is_hidden() and page.locator("#home-thread .ds-first").first.is_hidden(), "Developer shows the session card or the first bubble")
+    check(page.locator("#home-case").is_visible() or page.locator("#home-case").count() == 1, "Developer lost the facts card")
     check(page.locator("#home-sol-graph").is_visible(), "Developer lost the workflow drawing")
     page.click("#mode-switch [data-mode=ds]")
     page.click("#ds-new-chat")

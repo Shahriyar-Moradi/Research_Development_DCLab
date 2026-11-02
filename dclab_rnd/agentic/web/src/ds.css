@@ -262,40 +262,78 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 [data-mode="ds"] .msg .typing { font-size: 14px; color: var(--ts-text-muted); }
 [data-mode="ds"] .msg details > summary { color: var(--ts-text-muted); cursor: pointer; }
 
-/* the solution workflow, in the side panel as small tiles (the owner, 2026-11-02; the dclab code app draws it so): the wide drawing
-   stays in Developer. A tile is a block with its state; the gates and revisits are lines under them */
-[data-mode="ds"] #home-sol-graph { display: none; }
-[data-mode="ds"] .ds-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-[data-mode="ds"] .ds-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; text-align: left; cursor: pointer;
-  padding: 8px 10px; border: 1px solid var(--ts-border); border-radius: 10px; background: var(--ts-surface-sunken); color: var(--ts-text); }
+/* the session card: the side panel's first part, as the dclab code app's Jobs panel (the owner, 2026-11-02). The wide workflow
+   drawing stays in Developer; here the ten blocks are tiles inside the card. */
+[data-mode="ds"] #home-solution { display: none !important; }
+/* not drawn in Data science (the owner, 2026-11-02): the case's facts card and the four workspace counts; Developer keeps both. What is
+   still open and what was assumed stay in the session card's Plan. */
+[data-mode="ds"] #home-case, [data-mode="ds"] #view-home [data-f="home.kpis"] { display: none !important; }
+[data-mode="ds"] .ds-rail > * { flex-shrink: 0; }  /* the panel scrolls; its parts never squeeze (a card that clips its content went to 7 px) */
+[data-mode="ds"] .ds-rail > .ds-sess { border: 1px solid var(--ts-border); border-radius: 16px; background: var(--ts-surface); padding: 0; overflow: hidden; margin-bottom: 12px; }
+[data-mode="ds"] .ds-sess[hidden] { display: none; }
+[data-mode="ds"] .ds-sess-head { display: flex; gap: 12px; align-items: flex-start; padding: 16px 16px 14px; }
+[data-mode="ds"] .ds-sess-ic { flex: none; width: 30px; height: 30px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; margin-top: 1px; }
+[data-mode="ds"] .ds-sess-ic.ok { background: var(--ok-soft); color: var(--ok); }
+[data-mode="ds"] .ds-sess-ic.bad { background: var(--warn-soft); color: var(--warn); }
+[data-mode="ds"] .ds-sess-ic.idle { border: 2px solid var(--ts-border-strong); }
+[data-mode="ds"] .ds-sess-ic.live { border: 3px solid var(--ts-accent-soft); border-top-color: var(--ts-accent); animation: ds-spin .9s linear infinite; }
+@keyframes ds-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { [data-mode="ds"] .ds-sess-ic.live { animation: none; } }
+[data-mode="ds"] .ds-sess-text { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+[data-mode="ds"] .ds-eyebrow { font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ts-text-muted); }
+[data-mode="ds"] .ds-sess-title { font-size: 16px; font-weight: 650; line-height: 1.3; color: var(--ts-text); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+[data-mode="ds"] .ds-sess-state { font-size: 13px; color: var(--ts-text-muted); }
+[data-mode="ds"] .ds-plan { border-top: 1px solid var(--ts-border); }
+[data-mode="ds"] .ds-plan > summary { cursor: pointer; padding: 12px 16px; font-size: 14.5px; font-weight: 600; list-style: none; display: flex; align-items: center; gap: 8px; }
+[data-mode="ds"] .ds-plan > summary::before { content: "▸"; font-size: 12px; color: var(--ts-text-muted); transition: transform .12s; }
+[data-mode="ds"] .ds-plan[open] > summary::before { transform: rotate(90deg); }
+[data-mode="ds"] .ds-plan-body { padding: 0 16px 14px; font-size: 13px; line-height: 1.55; color: var(--ts-text-secondary); max-height: 260px; overflow: auto; }
+[data-mode="ds"] .ds-plan-body ul { margin: 2px 0 8px; padding-left: 18px; }
+[data-mode="ds"] .ds-plan-h { font-size: 12px; font-weight: 600; color: var(--ts-text-muted); margin-top: 4px; }
+[data-mode="ds"] .ds-sec-box { border-top: 1px solid var(--ts-border); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+[data-mode="ds"] .ds-meter-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; }
+[data-mode="ds"] .ds-meter-row .mono { color: var(--ts-text-secondary); }
+[data-mode="ds"] .ds-bar { height: 6px; border-radius: 999px; background: var(--ts-surface-muted); overflow: hidden; margin-top: 5px; }
+[data-mode="ds"] .ds-bar > span { display: block; height: 100%; border-radius: 999px; background: var(--ok); }
+[data-mode="ds"] .ds-bar.warn > span { background: var(--warn); }
+[data-mode="ds"] .ds-bar.bad > span { background: var(--bad); }
+[data-mode="ds"] .ds-meter-note { font-size: 12.5px; color: var(--ts-text-muted); }
+[data-mode="ds"] .ds-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+[data-mode="ds"] .ds-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; min-width: 0; text-align: left; cursor: pointer;
+  padding: 7px 6px 8px; border: 1px solid transparent; border-radius: 9px; background: var(--ts-surface-muted); color: var(--ts-text); }
 [data-mode="ds"] .ds-tile:hover { border-color: var(--ts-border-strong); }
-[data-mode="ds"] .ds-tile .id { font-family: var(--font-mono); font-size: 10.5px; color: var(--ts-text-muted); }
-[data-mode="ds"] .ds-tile .nm { font-size: 13px; font-weight: 600; line-height: 1.25; }
-[data-mode="ds"] .ds-tile .st { font-size: 11px; color: var(--ts-text-muted); min-height: 1.2em; }
-[data-mode="ds"] .ds-tile.done { background: var(--ok-soft); border-color: transparent; }
-[data-mode="ds"] .ds-tile.done .st { color: var(--ok); }
-[data-mode="ds"] .ds-tile.current { background: var(--ts-accent-soft); border-color: var(--ts-accent); }
-[data-mode="ds"] .ds-tile.current .st { color: var(--ts-accent-ink); }
-[data-mode="ds"] .ds-tile.blocked { background: var(--warn-soft); border-color: transparent; }
-[data-mode="ds"] .ds-tile.blocked .st { color: var(--warn); }
-[data-mode="ds"] .ds-tile.picked { outline: 2px solid var(--ts-accent); outline-offset: 1px; }
-[data-mode="ds"] .ds-tile-notes { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ts-text-muted); line-height: 1.4; }
-[data-mode="ds"] #home-solution .panel-head .row { flex-wrap: wrap; }
-[data-mode="ds"] #home-solution #home-sol-foot { flex-direction: column; align-items: flex-start; gap: 6px; }
-[data-mode="ds"] #home-solution .legend { flex-wrap: wrap; row-gap: 4px; }
+[data-mode="ds"] .ds-tile .id { font-family: var(--font-mono); font-size: 10px; color: var(--ts-text-muted); }
+[data-mode="ds"] .ds-tile .nm { font-size: 11px; font-weight: 600; line-height: 1.2; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+[data-mode="ds"] .ds-tile.done { background: var(--ok-soft); }
+[data-mode="ds"] .ds-tile.done .id, [data-mode="ds"] .ds-tile.done .nm { color: var(--ok); }
+[data-mode="ds"] .ds-tile.current { background: var(--ts-surface); border: 2px solid var(--ts-accent); padding: 6px 5px 7px; }
+[data-mode="ds"] .ds-tile.current .nm, [data-mode="ds"] .ds-tile.current .id { color: var(--ts-accent-ink); }
+[data-mode="ds"] .ds-tile.blocked { background: var(--warn-soft); }
+[data-mode="ds"] .ds-tile.blocked .nm, [data-mode="ds"] .ds-tile.blocked .id { color: var(--warn); }
+[data-mode="ds"] .ds-tile.picked { outline: 2px solid var(--ts-text-faint); outline-offset: 1px; }
+[data-mode="ds"] .ds-node { font-size: 12.5px; color: var(--ts-text-secondary); line-height: 1.45; }
+[data-mode="ds"] .ds-steps { border-top: 1px solid var(--ts-border); }
+[data-mode="ds"] .ds-step { display: flex; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--ts-border); }
+[data-mode="ds"] .ds-step:last-child { border-bottom: 0; }
+[data-mode="ds"] .ds-step-ic { flex: none; width: 20px; height: 20px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; background: var(--ok-soft); color: var(--ok); margin-top: 1px; }
+[data-mode="ds"] .ds-step.bad .ds-step-ic { background: var(--bad-soft); color: var(--bad); }
+[data-mode="ds"] .ds-step-body { min-width: 0; }
+[data-mode="ds"] .ds-step-main { font-size: 13px; line-height: 1.4; color: var(--ts-text-secondary); overflow-wrap: anywhere; }
+[data-mode="ds"] .ds-step-main b { color: var(--ts-text); font-size: 12.5px; }
+[data-mode="ds"] .ds-step-sub { font-size: 12px; color: var(--ts-text-muted); margin-top: 1px; }
+[data-mode="ds"] .ds-step-more { padding: 8px 16px; font-size: 12px; color: var(--ts-text-muted); }
 
 /* the side panel: what needs you, the workspace, what DCLab understood, the team: Claude's right panel. Shown in a
    conversation unless closed; on the start page only when opened */
-[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr) 320px; gap: 0 32px; }
+[data-mode="ds"] #view-home:has(#home-chat:not([hidden])) [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr) 380px; gap: 0 32px; }
 [data-mode="ds"][data-ds-rail="open"] #view-home [data-pane="overview"]:not([hidden]),
-[data-mode="ds"][data-ds-needs="1"]:not([data-ds-rail="closed"]) #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr) 320px; gap: 0 32px; }
+[data-mode="ds"][data-ds-needs="1"]:not([data-ds-rail="closed"]) #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr) 380px; gap: 0 32px; }
 [data-mode="ds"] .ds-rail { display: none; }
 [data-mode="ds"] #view-home:has(#home-chat:not([hidden])) .ds-rail, [data-mode="ds"][data-ds-rail="open"] .ds-rail, [data-mode="ds"][data-ds-needs="1"]:not([data-ds-rail="closed"]) #view-home .ds-rail {
   display: flex; flex-direction: column; gap: 4px; grid-column: 2; grid-row: 1 / span 40; position: sticky; top: calc(var(--top-h) + 12px); align-self: start;
   max-height: calc(100vh - var(--top-h) - 24px); overflow: auto; padding: 0 0 8px 20px; border-left: 1px solid var(--ts-border); }
 [data-mode="ds"][data-ds-rail="closed"] #view-home .ds-rail { display: none !important; }
 [data-mode="ds"][data-ds-rail="closed"] #view-home [data-pane="overview"]:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
-[data-mode="ds"] .ds-rail::before { content: "This session"; font-size: 14px; font-weight: 500; color: var(--ts-text); padding: 4px 0 8px; }
 [data-mode="ds"] .ds-rail .panel { border: 0; border-radius: 0; background: none; border-bottom: 1px solid var(--ts-border); padding-bottom: 6px; }
 [data-mode="ds"] .ds-rail .panel-head { padding: 10px 0 0; border: 0; }
 [data-mode="ds"] .ds-rail .panel-head h2, [data-mode="ds"] .ds-rail .panel-head h3 { font-size: 14px; font-weight: 500; }

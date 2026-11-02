@@ -700,9 +700,9 @@
      every rule scoped to html[data-mode="ds"]): on Home the conversation is the page and its context (what needs you,
      the workspace's numbers, what DCLab understood, the team, Claude beside DCLab) sits in a column on the right. It only moves and
      restyles: no control is removed, and Developer gets every part back where it was. Kept in this browser. */
-  // The workflow goes to the side panel too (2026-11-02): its wide drawing stays in Developer; Data science shows the same blocks as
-  // small tiles (home.html drawTiles), which fit a narrow column
-  const RAIL = ['#home-inbox', '#home-solution', '#view-home [data-f="home.kpis"]', '#home-case', '#home-understand', '#home-team', '#home-twin'];
+  // The side panel opens with the session card (2026-11-02, as the dclab code app's Jobs panel): the task, its status, the plan, the
+  // meters, the ten workflow blocks as tiles and the steps (home.html paintSession). The wide workflow drawing stays in Developer.
+  const RAIL = ['#home-sess', '#home-inbox', '#view-home [data-f="home.kpis"]', '#home-case', '#home-understand', '#home-team', '#home-twin'];
   // Stateless on purpose: each part and the comment marking its place are looked up live every time, so a page that
   // redraws its parts can never leave a stale copy to be put back (found in testing: starting in Data science, then
   // switching to Developer, lost the cards the rail held).
@@ -745,6 +745,7 @@
     placeRail(ds);
     if (ds) dsFrame.init();
     dsFrame.paint();
+    document.dispatchEvent(new CustomEvent('dclab:mode', { detail: ds ? 'ds' : 'dev' }));  // Home's session card follows the look
     if (save) { try { localStorage.setItem('dclab-mode', ds ? 'ds' : 'dev'); } catch (e) { /* storage blocked: this visit only */ } }
   }
 
