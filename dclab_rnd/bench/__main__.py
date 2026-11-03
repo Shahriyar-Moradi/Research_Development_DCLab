@@ -11,12 +11,34 @@ from . import COMMANDS, run, summary
 MARK = {"green": "OK  ", "amber": "??  ", "red": "RED ", "thin": "THIN", "empty": "--  "}
 
 
+def _versions(args: argparse.Namespace) -> int:
+    from .versions import timeline
+
+    rows = timeline(args.agent)
+    if args.json:
+        print(json.dumps(rows, indent=1, default=str))
+        return 0
+    for a in rows:
+        if not a["versions"]:
+            continue
+        flag = "measured live" if a["measured_now"] else ("NOT measured live" if a["live_suites"] else "no live suite")
+        print(f"{a['agent']:22} {a['changes']:2} versions  now {a['current']}  {'committed' if a['committed'] else 'UNCOMMITTED'}  {flag}")
+        if args.agent:
+            for v in a["versions"]:
+                print(f"   {v['date'][:16]}  {v['commit']}  {v['hash']}  checks {v['checks']:3}  live {len(v['live']):3} "
+                      f"(pass {v['passed']}, fail {v['failed']}, EUR {v['spent_eur']})  {v['subject'][:70]}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.bench")
-    parser.add_argument("action", choices=("read", "run"))
+    parser.add_argument("action", choices=("read", "run", "versions"))
+    parser.add_argument("--agent", default=None, help="versions: one prompt's timeline (case_agent, home_agent ...)")
     parser.add_argument("--layers", default="", help=f"comma-separated, of {', '.join(COMMANDS)} (run: all when empty)")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
+    if args.action == "versions":
+        return _versions(args)
     if args.action == "run":
         layers = [x.strip() for x in args.layers.split(",") if x.strip()] or None
         print(f"recorded {run(layers)}")

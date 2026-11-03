@@ -440,10 +440,33 @@ DC.view('admin', {
     };
     $('#bn-filter', el).oninput = paint;
     paint();
+    this.loadBenchVersions(el);
     const hist = (r.history || []).slice().reverse();
     if (hist.length) $('#bn-history', el).innerHTML = hist.map(h => `<tr><td class="mono small">${esc(h.at || '')}</td><td class="mono small">${esc(h.commit || '')}${h.dirty ? ' <span class="pill outline">changes</span>' : ''}</td>`
       + `<td class="num mono small">${(Number(h.seconds || 0) / 60).toFixed(1)}</td><td class="small">${Object.entries(h.states || {}).map(([k, v]) => `${esc(k.replace(/_/g, ' '))}: ${esc(v)}`).join(' · ')}</td></tr>`).join('');
     else DC.states.empty($('#bn-history', el), 'No run recorded yet: make bench records one.', { cols: 4 });
+  },
+
+  // B5: each agent's prompt versions, from GET /api/admin/bench/versions
+  async loadBenchVersions(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.adminBenchVersions({ quiet: true }); } catch (e) { DC.states.failed($('#bn-versions', el), e, { retry: () => this.loadBenchVersions(el), cols: 7 }); return; }
+    const rows = (r.agents || []).filter(a => (a.versions || []).length);
+    rows.sort((a, b) => (b.live_suites.length - a.live_suites.length) || a.agent.localeCompare(b.agent));
+    if (!rows.length) { DC.states.empty($('#bn-versions', el), 'No prompt history found.', { cols: 7 }); return; }
+    $('#bn-versions', el).innerHTML = rows.map(a => {
+      const now = a.versions[a.versions.length - 1];
+      const all = a.versions.reduce((n, v) => n + (v.live || []).length, 0);
+      const eur = a.versions.reduce((n, v) => n + (v.spent_eur || 0), 0);
+      const state = !a.live_suites.length ? '<span class="pill outline">no live suite</span>'
+        : !a.committed ? '<span class="pill warn">uncommitted edit</span>'
+        : a.measured_now ? `<span class="pill ok">${now.live.length} runs · ${now.passed} pass · ${now.failed} fail</span>` : '<span class="pill bad">not measured</span>';
+      return `<tr><td class="mono small">${esc(a.agent)}</td><td class="num mono small">${a.changes}</td>`
+        + `<td class="mono small" title="${esc(now.subject || '')}">${esc((now.date || '').slice(0, 10))} · ${esc(now.commit || '')}</td><td>${state}</td>`
+        + `<td class="mono small">${a.last_pass ? esc(a.last_pass.date.slice(0, 10)) + (a.since_last_pass ? ` · ${a.since_last_pass} changes since` : '') : '—'}</td>`
+        + `<td class="num mono small">${all}</td><td class="num mono small">${eur ? '€' + eur.toFixed(2) : '—'}</td></tr>`;
+    }).join('');
   },
 
   async loadEvaluation(el) {

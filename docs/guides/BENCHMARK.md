@@ -93,7 +93,21 @@ later practice run never hides a failed sealed one, and one decision point's pas
 This is the honest state, not a defect of the bench. A track keeps its failure until a later result of the same track
 passes: a retired decision point stays red until it is removed from its campaign or passes again.
 
-## 6. What comes next (the plan)
+## 6. Agent versions (B5)
+
+`python -m dclab_rnd.bench versions [--agent case_agent]`, and the **Agent versions** table on the Benchmark tab
+(`GET /api/admin/bench/versions`). An agent's version is its prompt file's content hash (`prompts.fingerprints()`).
+
+- **History:** every commit that changed the prompt, with the hash it had after it.
+- **Checks:** the scripted suites (`make agent-eval`, the prompt gate) record every prompt's hash, but they send no prompt to a
+  model. A check says a version was checked, never measured.
+- **Live results:** the suites that send the prompt to a model (`SUITE_PROMPTS`: the lead-agent exam, Home, the journeys) record
+  no hash, so each result is placed in the version committed before its date. A run on uncommitted edits lands in the version
+  before them; a suite missing from the map measures no prompt.
+- **Measured now:** a live result on the version in force now. On 2026-11-04 the lead agent's newest version (2 November, the
+  act-first fixes) had none.
+
+## 7. What comes next (the plan)
 
 - **Watch (B4):** OpenTelemetry tracing of session, agent, step, model call and tool, sent to MLflow (always on, light,
   also the ML runs) and to a local Langfuse (agent sessions, on demand). No table cell, no sealed case, consent checked.

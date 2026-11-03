@@ -5,9 +5,13 @@ scope, each as the short content hash ``prompts.fingerprints()`` gives (the same
 puts three records side by side:
 
 - **the history** of each prompt from git: every commit that changed it, with the hash the file had after that commit;
-- **the results** in ``evidence/campaigns`` that ran on each hash (103 results record ``prompt_hashes``), with their verdict
-  read by ``dclab_core.bench.verdict_of``;
-- **the current** hash in the working tree, and whether any result has run on it yet.
+- **the checks**: results in ``evidence/campaigns`` that record each hash (``prompt_hashes``). These are the scripted suites
+  (``make agent-eval``, the prompt gate): they record every prompt's hash but send no prompt to a model, so they say a version
+  was checked, never that it was measured;
+- **the live results**: the suites that do send a prompt to a model (``SUITE_PROMPTS``: the lead-agent exam, Home, the journeys)
+  record no hash, so each of their results is placed in the version that was committed before its date ("linked by date": a
+  run on uncommitted edits is placed in the version before them);
+- **the current** hash in the working tree, and whether a live result has run on it yet (``measured_now``).
 
 So a prompt change shows its date, its commit and the scores before and after it; a current version no suite has run on is
 named, because a prompt is code and it was measured only if a result says so.
@@ -29,6 +33,14 @@ from typing import Any, Optional
 from dclab_core import bench as core
 
 ROOT = Path(__file__).resolve().parents[2]
+# the suites that send these prompts to a model (read from the code that loads them: agents/case_agent.py, the exam's arms,
+# draft/chat.py, intent.py, understand.py, orchestrator.py, business.py, plan.py); a suite not here measures no prompt
+SUITE_PROMPTS: dict[str, tuple[str, ...]] = {
+    "conversation_exam_v1": ("case_agent", "route_check", "exam_plain", "exam_person", "exam_judge"),
+    "home_v1": ("home_agent", "home_intent", "home_understand", "home_orchestrator", "home_business", "home_plan", "home_query"),
+    "journeys_v1": ("home_agent", "home_intent", "home_understand", "home_orchestrator"),
+    "journeys_built_v1": ("home_agent", "home_orchestrator"),
+}
 PROMPTS = "dclab_rnd/prompts"
 CAMPAIGNS = ROOT / "evidence" / "campaigns"
 
@@ -89,6 +101,42 @@ def results_by_hash(campaigns: Path = CAMPAIGNS) -> dict[str, dict[str, list[dic
     return {k: dict(v) for k, v in out.items()}
 
 
+def live_results(campaigns: Path = CAMPAIGNS) -> dict[str, list[dict[str, Any]]]:
+    """For each prompt, the results of the suites that send it (``SUITE_PROMPTS``), oldest first, with what they spent."""
+    out: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for suite, names in SUITE_PROMPTS.items():
+        for path in sorted((Path(campaigns) / suite / "results").glob("*.json")):
+            try:
+                doc = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if not isinstance(doc, dict):
+                continue
+            at = str(doc.get("at") or doc.get("completed_at") or "")
+            if not at:
+                continue  # a result without a date cannot be placed in a version
+            passed, words = core.verdict_of(doc)
+            spent = doc.get("spent_eur")
+            row = {"suite": suite, "ref": path.stem, "at": at, "split": core.split_of(doc, path.stem), "passed": passed,
+                   "verdict": words[:120], "spent_eur": spent if isinstance(spent, (int, float)) else None}
+            for name in names:
+                out[name].append(row)
+    return {k: sorted(v, key=lambda r: (r["at"], r["ref"])) for k, v in out.items()}
+
+
+def _when(text: str) -> str:
+    """A date as UTC text, so a commit's date and a result's date compare."""
+    from datetime import datetime, timezone
+
+    try:
+        stamp = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return text
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    return stamp.astimezone(timezone.utc).isoformat()
+
+
 def current() -> dict[str, str]:
     from ..prompts import fingerprints
 
@@ -101,6 +149,7 @@ def timeline(agent: Optional[str] = None, campaigns: Path = CAMPAIGNS, now: Opti
     head = _git("rev-parse", "HEAD").strip()
     past = history(head)
     runs = results_by_hash(campaigns)
+    live = live_results(campaigns)
     now = now if now is not None else current()
     names = sorted({k.split(":", 1)[1] for k in now if k.startswith("prompt:")} | set(past))
     out = []
@@ -110,19 +159,25 @@ def timeline(agent: Optional[str] = None, campaigns: Path = CAMPAIGNS, now: Opti
         key = f"prompt:{name}"
         on = runs.get(key, {})
         versions = []
-        for v in past.get(name, []):
-            results = sorted(on.get(v["hash"], []), key=lambda r: (r["at"], r["ref"]))
-            versions.append({**v, "results": results, "passed": sum(r["passed"] is True for r in results),
-                             "failed": sum(r["passed"] is False for r in results)})
+        hist = past.get(name, [])
+        for i, v in enumerate(hist):
+            start, end = _when(v["date"]), _when(hist[i + 1]["date"]) if i + 1 < len(hist) else None
+            checks = sorted(on.get(v["hash"], []), key=lambda r: (r["at"], r["ref"]))
+            runs_here = [r for r in live.get(name, []) if _when(r["at"]) >= start and (end is None or _when(r["at"]) < end)]
+            versions.append({**v, "checks": len(checks), "checks_passed": sum(r["passed"] is True for r in checks),
+                             "live": runs_here, "passed": sum(r["passed"] is True for r in runs_here),
+                             "failed": sum(r["passed"] is False for r in runs_here),
+                             "spent_eur": round(sum(r["spent_eur"] or 0 for r in runs_here), 2)})
         here = now.get(key)
         committed = bool(versions) and versions[-1]["hash"] == here
-        measured = bool(on.get(here)) if here else False
+        measured = committed and bool(versions[-1]["live"])  # a live run on the version in force now
         last_pass = next((v for v in reversed(versions) if v["passed"]), None)
         out.append({"agent": name, "current": here, "committed": committed, "measured_now": measured,
+                    "live_suites": [s for s, names in SUITE_PROMPTS.items() if name in names],
                     "versions": versions, "changes": len(versions),
                     "since_last_pass": None if last_pass is None else sum(1 for v in versions if v["date"] > last_pass["date"]),
                     "last_pass": None if last_pass is None else {"hash": last_pass["hash"], "date": last_pass["date"]}})
     return out
 
 
-__all__ = ["history", "results_by_hash", "current", "timeline"]
+__all__ = ["history", "results_by_hash", "live_results", "current", "timeline", "SUITE_PROMPTS"]

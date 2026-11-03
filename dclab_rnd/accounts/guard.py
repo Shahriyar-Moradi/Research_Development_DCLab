@@ -96,6 +96,7 @@ SPECIAL = {
     ("PUT", "/api/twin/settings"): "admin",
     ("GET", "/api/twin/sessions"): "timelines",
     ("GET", "/api/admin/bench"): "admin",
+    ("GET", "/api/admin/bench/versions"): "admin",  # B5: each agent's prompt versions and how each was measured
     ("POST", "/api/admin/password"): "admin",
     ("GET", "/api/platform/audit"): "audit",  # 2026-11-03: any member with accounts; behind the Admin sign-in without them  # A1: a new admin password (the current one too)  # DCLab Bench (2026-11-03): every evaluation of DCLab by layer, the owner's
     ("GET", "/api/evaluation"): "review",  # 25.8: every model's scores, as the decision ledger's summary

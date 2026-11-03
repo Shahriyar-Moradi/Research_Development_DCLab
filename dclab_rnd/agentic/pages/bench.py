@@ -22,4 +22,10 @@ def register(app, ctx) -> None:
 
         return await asyncio.to_thread(bench.summary)
 
+    @router.get("/api/admin/bench/versions", response_model=Page)
+    async def admin_bench_versions():
+        from ...bench import versions
+
+        return {"agents": await asyncio.to_thread(versions.timeline)}
+
     app.include_router(router)

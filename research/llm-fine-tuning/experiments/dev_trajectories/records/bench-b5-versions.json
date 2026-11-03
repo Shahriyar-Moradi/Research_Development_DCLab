@@ -1,0 +1,63 @@
+{
+ "package": "bench-b5-versions",
+ "title": "Agent versions: each prompt's history from git, its scripted checks, and its live results placed by date",
+ "date": "2026-11-04",
+ "request": "The owner asked for the prompt version of each agent and its improvement over time, like the lead agent against Claude alone.",
+ "spec": "For every prompt: its versions from git; the results that recorded its hash; the live results of the suites that send it placed in the version in force on their date; whether the version in force now has a live result; on the command line and the Admin Benchmark tab.",
+ "plan": [
+  "read each prompt's versions from git",
+  "link results by recorded hash",
+  "find that live results record no hash and place them by date",
+  "the map of suites to the prompts they send, read from the code",
+  "the command, the route and the table"
+ ],
+ "decisions": [
+  {
+   "decision": "A scripted suite's hash is a check, not a measurement",
+   "why": "the scripted suites record every prompt's hash for the prompt gate but send no prompt to a model"
+  },
+  {
+   "decision": "Live results are placed in a version by date, through an explicit map of suites to prompts",
+   "why": "the live suites record no prompt hash; without the map every live result would land under every prompt"
+  },
+  {
+   "decision": "An uncommitted edit is never called measured",
+   "why": "a run on uncommitted edits cannot be told apart from the version before them"
+  }
+ ],
+ "change": "dclab_rnd/bench/versions.py (new), dclab_rnd/bench/__main__.py (versions), agentic/pages/bench.py and accounts/guard.py (the owner-only route), views/admin.html (the table), the generated app, docs/guides/BENCHMARK.md, tests/test_bench_versions.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Every prompt read as measured on its current version",
+   "scenario": "the first timeline showed measured now for all prompts",
+   "cause": "the scripted agent suite records every prompt's hash although it sends none of them to a model",
+   "fix": "hashes count as checks; only live results of the suites that send a prompt count as measurements",
+   "test": "tests/test_bench_versions.py test_a_scripted_check_is_a_check_never_a_measurement"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the timeline on the repository",
+   "gate": "read by hand against the commit log",
+   "fixed_before_run": true,
+   "result": "the lead agent's versions show their live runs and spend, and the newest version shows none, as the commit log and the exam results say",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "placing by date is an approximation: a run on uncommitted edits lands in the version before them",
+    "the suite map covers the lead agent, Home and the journeys; other agents show checks only"
+   ]
+  }
+ ],
+ "outcome": "Each agent's prompt versions are shown with how each was measured; a version in force that no live run measured is named.",
+ "lessons": [
+  "check what a record really holds before linking by it: the hashes were in the free suites, not in the paid ones"
+ ],
+ "risks": [
+  "the suite map must be kept current when a suite starts sending another prompt"
+ ],
+ "commits": []
+}
