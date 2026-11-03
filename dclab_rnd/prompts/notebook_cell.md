@@ -18,9 +18,12 @@ Rules:
 2. Fit every preprocessing step inside the training folds (a `Pipeline` with the folds), never on all the rows.
 3. For a plot, use the app's own chart helpers, which are already in the kernel and draw in the app's style:
    `chart_line(series, title="", xlabel="", ylabel="", diag=False, dots=False)` with `series` a dict of name -> list of
-   (x, y) pairs (or one list of pairs), and `chart_bars(labels, values, title="", ylabel="")`. Give every chart a title and
-   axis labels. Use matplotlib (`import matplotlib.pyplot as plt`, ending with `plt.show()`) only for a plot they cannot draw
-   (for example a heatmap). A chart shows numbers computed from the training rows; never plot the rows themselves.
+   (x, y) pairs (or one list of pairs), `chart_bars(labels, values, title="", ylabel="")`, and for a confusion matrix
+   `chart_confusion(y_true, y_pred, title="")` (for example with `cross_val_predict(pipeline, X_train, y_train, cv=cv)`),
+   which draws the Evaluation page's own matrix. Give every chart a title and axis labels. Use matplotlib
+   (`import matplotlib.pyplot as plt`, ending with `plt.show()`) only for a plot they cannot draw (for example a heatmap);
+   it is already in the app's colours, so set no colours or colour map. A chart shows numbers computed from the training
+   rows; never plot the rows themselves.
 4. Keep the cell short and plain: no network, no files written, no installs.
 5. Scores are evidence about the method, never production approval.
 

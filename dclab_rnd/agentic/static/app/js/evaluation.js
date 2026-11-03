@@ -262,6 +262,14 @@ DC.evaluation = (function () {
   const SERIES = ['', 's2', 's3', 's4', 'bad', 'ok'];
   function drawChart(spec) {
     const title = spec.title ? `<h3 class="cell-chart-title">${esc(spec.title)}</h3>` : '';
+    if (spec.kind === 'confusion') {  // the Evaluation page's own matrix: the two-by-two with its words, or one row per class
+      const m = spec.matrix;
+      if (spec.positive === 1 && m.length === 2) {
+        const note = spec.positive_name ? `<p class="xs muted">A real case: ${esc(spec.positive_name)}. Rows are the actual class, columns what the model said.</p>` : '';
+        return title + binaryMatrix({ tn: m[0][0], fp: m[0][1], fn: m[1][0], tp: m[1][1] }) + note;
+      }
+      return title + classMatrix({ labels: spec.labels, matrix: m });
+    }
     if (spec.kind === 'bars') {
       const items = spec.labels.map((l, i) => ({ label: l, value: spec.values[i], valueText: f(spec.values[i], 4) }));
       const lo = Math.min(0, ...spec.values), hi = Math.max(0.0001, ...spec.values) * 1.08;

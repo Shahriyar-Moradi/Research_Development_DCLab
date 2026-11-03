@@ -555,6 +555,11 @@ ul.plain { margin: 0; padding-left: var(--ts-space-6); display: grid; gap: var(-
 .ag-out { border-top: 1px dashed var(--ts-border-strong); padding-top: var(--ts-space-4); display: grid; gap: var(--ts-space-3); }
 .ag-out-label { color: var(--ts-text-muted); }
 .ag-code .code, .ag-code pre { margin: 0; }
+/* a long code line or a wide output scrolls inside its cell: the cells never grow under the companion beside them */
+#nb-agent, .agent-cell, #agent-out > *, .ag-code, .ag-out, .cell-body { min-width: 0; }
+#agent-out, .ag-cell, .ag-out { grid-template-columns: minmax(0, 1fr); }
+.ag-out .cell-out, .ag-out .cell-chart { max-width: 100%; overflow-x: auto; }
+.cell-out.cell-chart { font-family: var(--ts-font-body); white-space: normal; }  /* a drawn chart or matrix, not printed text */
 
 /* ---- the Home orchestrator's team on a built project: its tables, the task board, its suggestions ---- */
 .project-card { border-left: 4px solid var(--ts-brand-deep); }

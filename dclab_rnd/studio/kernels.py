@@ -31,9 +31,10 @@ TIMEOUT_SECONDS = float(os.environ.get("DCLAB_CELL_TIMEOUT", "300") or 300)
 MAX_TEXT = 20_000  # characters of one output sent to the page (the code run keeps it whole)
 MAX_TRACEBACK = 30  # lines of a traceback sent to the page
 CHART = "application/vnd.dclab.chart+json"  # a cell's chart, drawn by the page in the app's own chart style
-MAX_SERIES, MAX_POINTS, MAX_BARS = 8, 500, 60
+MAX_SERIES, MAX_POINTS, MAX_BARS, MAX_CLASSES = 8, 500, 60, 30
 
-# What every kernel starts with: two helpers that show a chart as data (numbers only) instead of a picture; the page draws it
+# What every kernel starts with: three helpers that show a chart as data (numbers only) instead of a picture, which the page
+# draws in its own style (a line, bars, a confusion matrix), and matplotlib in the app's colours for any other picture
 HELPERS = '''
 def _dclab_show(spec):
     from IPython.display import display
@@ -49,6 +50,114 @@ def chart_line(series, title="", xlabel="", ylabel="", diag=False, dots=False):
 def chart_bars(labels, values, title="", ylabel=""):
     """A bar chart in the app's style: one bar per label."""
     _dclab_show({"kind": "bars", "title": str(title), "ylabel": str(ylabel), "labels": [str(l) for l in labels], "values": [float(v) for v in values]})
+
+def chart_confusion(y_true, y_pred, title="", labels=None, display_labels=None):
+    """A confusion matrix in the app's style (the Evaluation page's own): counts only, actual rows, predicted columns.
+    On the notebook's 0/1 target the positive class is 1 (named by POSITIVE when the notebook defines it); on its 0..k-1
+    multiclass target the classes take the names in the notebook's `labels` list."""
+    from numbers import Number
+    from sklearn.metrics import confusion_matrix
+    seen = set(list(y_true)) | set(list(y_pred))
+    if labels is None:
+        if seen <= {0, 1}:  # the notebook's binary target: both classes, even when one never shows
+            labels = [0, 1]
+        else:
+            labels = sorted(seen, key=lambda v: (0, v, "") if isinstance(v, Number) else (1, 0, str(v)))
+    labels = list(labels)
+    m = confusion_matrix(y_true, y_pred, labels=labels)
+    binary = [str(l) for l in labels] in (["0", "1"], ["False", "True"])
+    names = globals().get("labels")  # the exported multiclass notebook's class names, by index
+    if display_labels is None and not binary and isinstance(names, (list, tuple)) and all(isinstance(l, Number) and float(l).is_integer() and 0 <= l < len(names) for l in labels):
+        display_labels = [names[int(l)] for l in labels]
+    shown = [str(l) for l in (display_labels if display_labels is not None else labels)]
+    _dclab_show({"kind": "confusion", "title": str(title), "labels": shown,
+                 "matrix": [[int(v) for v in row] for row in m], "positive": 1 if binary else None,
+                 "positive_name": str(globals().get("POSITIVE", "")) if binary else ""})
+
+def _dclab_theme():
+    """Every matplotlib picture in the app's colours (Claude's: warm paper, clay, quiet axes); a confusion matrix drawn
+    by scikit-learn looks like the Evaluation page's (green on the diagonal, red off it, the row's share in each cell)."""
+    try:
+        import matplotlib
+        import matplotlib.pyplot as plt
+        from matplotlib.colors import LinearSegmentedColormap
+    except Exception:
+        return
+    clay = LinearSegmentedColormap.from_list("dclab", ["#faf9f5", "#f0d5c7", "#d97757", "#b5532e", "#7a3218"])
+    try:
+        matplotlib.colormaps.register(clay, force=True)
+    except Exception:
+        pass
+    from cycler import cycler
+    matplotlib.rcParams.update({
+        "figure.facecolor": "#ffffff", "axes.facecolor": "#ffffff", "savefig.facecolor": "#ffffff", "figure.dpi": 110,
+        "axes.edgecolor": "#d9d6cc", "axes.linewidth": 0.8, "axes.spines.top": False, "axes.spines.right": False,
+        "axes.grid": True, "grid.color": "#ebe8df", "grid.linewidth": 0.8, "axes.axisbelow": True,
+        "axes.titlesize": 12, "axes.titleweight": "bold", "axes.titlelocation": "left", "axes.titlepad": 10,
+        "axes.labelcolor": "#5e5d59", "axes.labelsize": 10, "text.color": "#141413", "axes.titlecolor": "#141413",
+        "xtick.color": "#87867f", "ytick.color": "#87867f", "xtick.labelsize": 9, "ytick.labelsize": 9,
+        "legend.frameon": False, "legend.fontsize": 9, "image.cmap": "dclab", "font.size": 10,
+        "axes.prop_cycle": cycler(color=["#c6613f", "#5b7fa6", "#7d9a5b", "#c49a3a", "#8a6bb0", "#5e5d59"]),
+        "patch.edgecolor": "#ffffff", "patch.linewidth": 0.6,
+    })
+    try:
+        from sklearn.metrics import ConfusionMatrixDisplay
+    except Exception:
+        return
+    import numpy as np
+    from matplotlib.colors import to_rgb
+
+    def plot(self, *, include_values=True, cmap=None, xticks_rotation="horizontal", values_format=None, ax=None, colorbar=True, im_kw=None, text_kw=None):
+        m = np.asarray(self.confusion_matrix)
+        n = m.shape[0]
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(max(4.2, 1.5 * n + 1.6), max(3.4, 1.3 * n + 1.2)))
+        else:
+            fig = ax.figure
+        counts = np.issubdtype(m.dtype, np.integer)  # a normalized matrix (normalize=...) is floats
+        if counts:  # whole counts: each cell's tone and its second line are its share of the actual class
+            rows = m.sum(axis=1, keepdims=True)
+            share = np.divide(m, rows, out=np.zeros(m.shape, dtype=float), where=rows > 0)
+        else:  # already normalized (normalize="true", "pred" or "all"): the value is the share
+            share = np.clip(m.astype(float), 0, 1)
+        paper, good, bad = np.array(to_rgb("#ffffff")), np.array(to_rgb("#2f7a4a")), np.array(to_rgb("#b42318"))
+        rgb = np.zeros((n, n, 3))
+        for i in range(n):
+            for j in range(n):
+                tone = good if i == j else bad
+                level = round(float(share[i, j]) * 5) / 5
+                rgb[i, j] = paper + (tone - paper) * (0.06 + 0.46 * level)
+        self.im_ = ax.imshow(rgb, interpolation="nearest")
+        ax.grid(False)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        ax.set_xticks(np.arange(n + 1) - 0.5, minor=True)
+        ax.set_yticks(np.arange(n + 1) - 0.5, minor=True)
+        ax.grid(which="minor", color="#ffffff", linewidth=4)
+        ax.tick_params(which="both", length=0)
+        self.text_ = None
+        if include_values:
+            self.text_ = np.empty((n, n), dtype=object)
+            kw = {"ha": "center", "va": "center", "fontsize": 11, "color": "#141413", "fontweight": "bold"}
+            kw.update(text_kw or {})  # the person's own text settings win
+            for i in range(n):
+                for j in range(n):
+                    if counts:
+                        value = format(m[i, j], values_format) if values_format else f"{int(m[i, j]):,}"
+                        text = f"{value}\\n{share[i, j]:.0%}"
+                    else:
+                        text = format(m[i, j], values_format or ".2g")
+                    self.text_[i, j] = ax.text(j, i, text, **kw)
+        labels = self.display_labels if self.display_labels is not None else np.arange(n)
+        ax.set(xticks=np.arange(n), yticks=np.arange(n), xticklabels=labels, yticklabels=labels, xlabel="Predicted", ylabel="Actual")
+        ax.set_ylim((n - 0.5, -0.5))
+        plt.setp(ax.get_xticklabels(), rotation=xticks_rotation)
+        self.figure_, self.ax_ = fig, ax
+        return self
+
+    ConfusionMatrixDisplay.plot = plot
+
+_dclab_theme()
 '''
 
 
@@ -65,9 +174,25 @@ def _number(v: Any) -> Optional[float]:
 def clean_chart(spec: Any) -> Optional[dict[str, Any]]:
     """A chart a cell showed, kept only when it is what the page draws: a line or bars, bounded, numbers and short texts.
     Anything else is dropped (the page never draws what a cell merely says is a chart)."""
-    if not isinstance(spec, dict) or spec.get("kind") not in ("line", "bars"):
+    if not isinstance(spec, dict) or spec.get("kind") not in ("line", "bars", "confusion"):
         return None
     text = lambda v, n=80: str(v if v is not None else "")[:n]  # noqa: E731
+    if spec["kind"] == "confusion":  # counts only: a square of whole numbers, one row and one column per label
+        labels, matrix = spec.get("labels"), spec.get("matrix")
+        if not isinstance(labels, list) or not 2 <= len(labels) <= MAX_CLASSES or not isinstance(matrix, list) or len(matrix) != len(labels):
+            return None
+        rows = []
+        for row in matrix:
+            if not isinstance(row, list) or len(row) != len(labels):
+                return None
+            nums = [_number(v) for v in row]
+            if any(n is None or n < 0 or n != int(n) for n in nums):
+                return None
+            rows.append([int(n) for n in nums])
+        positive = spec.get("positive")
+        positive = positive if len(labels) == 2 and positive in (0, 1) and not isinstance(positive, bool) else None
+        return {"kind": "confusion", "title": text(spec.get("title")), "labels": [text(l, 40) for l in labels], "matrix": rows,
+                "positive": positive, "positive_name": text(spec.get("positive_name"), 40) if positive is not None else ""}
     out: dict[str, Any] = {"kind": spec["kind"], "title": text(spec.get("title")), "ylabel": text(spec.get("ylabel"))}
     if spec["kind"] == "bars":
         labels, values = spec.get("labels"), spec.get("values")
@@ -182,7 +307,7 @@ class Kernel:
         self.client.start_channels()
         self.client.wait_for_ready(timeout=60)
         self.used, self.count, self.lock = time.time(), 0, threading.Lock()
-        self.execute(HELPERS, timeout=60)  # chart_line and chart_bars: not a run of the person's, so the kernel still counts as new
+        self.execute(HELPERS, timeout=60)  # the chart helpers and the theme: not a run of the person's, so the kernel still counts as new
         self.count = 0
 
     def execute(self, code: str, timeout: float = TIMEOUT_SECONDS) -> dict[str, Any]:
@@ -227,7 +352,7 @@ class Kernel:
                         if spec:
                             outputs.append({"type": "chart", "spec": spec})
                         else:
-                            outputs.append({"type": "text", "name": "chart", "text": "(a chart this page cannot draw was dropped: use chart_line or chart_bars with numbers)"})
+                            outputs.append({"type": "text", "name": "chart", "text": "(a chart this page cannot draw was dropped: use chart_line, chart_bars or chart_confusion with numbers)"})
                     elif "image/png" in bundle:
                         outputs.append({"type": "image", "png": bundle["image/png"]})
                     elif "text/plain" in bundle:

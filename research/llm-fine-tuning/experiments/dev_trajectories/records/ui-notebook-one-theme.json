@@ -1,0 +1,206 @@
+{
+  "package": "ui-notebook-one-theme",
+  "title": "The notebook's added cells kept in their column and drawn as cards, and every plot and confusion matrix in the app's one theme",
+  "date": "2026-11-03",
+  "request": "The owner: make the UI much cleaner, the layout is not clear, make it more structured; also there are two types of confusion matrix: make all plots and all confusion matrices the same as the theme. With screenshots: the Data science notebook where the agent's cells ran under the Companion column, a cell drawing a blue matplotlib confusion matrix (cmap='Blues'), and the Evaluation page's own matrix (green and pink cells with True negative, False positive and their words).",
+  "spec": "One look for every chart a notebook cell shows: a confusion matrix is the Evaluation page's own component (chart_confusion sends the counts, the page draws them with binaryMatrix or classMatrix); any matplotlib picture starts in the app's colours (warm paper, clay, quiet axes, a clay colour map); a confusion matrix scikit-learn draws takes the same green-on-the-diagonal, red-off-it cells whatever colour map the cell asked for. The added cells never grow wider than their column, in both looks; in Data science they are cards like the notebook's own cells under a heading 'Cells you added', with the request to the agent as a message box at the end and long printed output scrolling in its box.",
+  "plan": [
+    "Reproduce the owner's screenshot on a local server: a built churn project with added cells (a ConfusionMatrixDisplay with cmap='Blues', a long print, a histogram), run in the project's kernel, screenshot at 1440 px",
+    "Measure the overflow: the added cell's width against its column and the companion's left edge",
+    "Find why the cells grow: the grids' automatic columns take the width of the longest code line",
+    "Add chart_confusion to the kernel's helpers and the page's chart drawing, through the server's chart check",
+    "Theme matplotlib at kernel start and redraw scikit-learn's confusion matrix in the app's look",
+    "Tell the agent's prompt to use chart_confusion and set no colours; rerun the scripted suites the prompt gate needs",
+    "Style the added cells in Data science; check Developer keeps its look",
+    "Test, browser checks in both looks, review, record"
+  ],
+  "decisions": [
+    {
+      "decision": "A confusion matrix from a cell is the Evaluation page's own component, sent as counts",
+      "why": "two kinds of matrix was the owner's complaint; one component drawn from numbers is the same everywhere, in both looks and both themes, and never a picture of rows"
+    },
+    {
+      "decision": "Pictures stay possible, in the app's colours",
+      "why": "a person writes matplotlib and scikit-learn as they always do; refusing pictures would break their notebooks, a theme at kernel start keeps them on-brand"
+    },
+    {
+      "decision": "scikit-learn's ConfusionMatrixDisplay.plot is redrawn in the kernel, ignoring cmap, keeping its attributes",
+      "why": "the cell in the owner's screenshot asked for Blues itself; only a redraw makes every confusion matrix match, and keeping im_, text_, ax_ and figure_ keeps code that reads them working"
+    },
+    {
+      "decision": "The positive class of a two-by-two is 1 only for a 0/1 (or False/True) target",
+      "why": "the exported notebook makes y 1 for POSITIVE (dclab_rnd/studio/export.py); other labels have no known positive, so they get the per-class matrix without the words True positive or False negative"
+    },
+    {
+      "decision": "The overflow fix goes into look.css for both looks; the cards and the composer only into Data science",
+      "why": "the overflow is a bug in Developer too; the owner asked to keep Developer's look as it is"
+    },
+    {
+      "decision": "The prompt change is gated like any other",
+      "why": "a prompt is code: make agent-eval and make harness-eval ran on it (scripted, no model, nothing spent)"
+    }
+  ],
+  "change": "dclab_rnd/studio/kernels.py (chart_confusion and _dclab_theme in HELPERS; clean_chart accepts a bounded confusion matrix); dclab_rnd/agentic/web/src/evaluation.js (drawChart draws a confusion spec with the Evaluation page's matrices); src/look.css (the added cells' grids take minmax(0, 1fr) and min-width 0; a drawn chart in the body font); src/ds.css (the added cells as cards, 'Cells you added', the composer, long prints scroll, pictures and matrices framed); dclab_rnd/prompts/notebook_cell.md (chart_confusion, no colours); tests/test_notebook_cells.py; evidence AEV-099 and HRN-101 (the scripted suites rerun for the prompt).",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "The agent's cells ran under the Companion column on the notebook page",
+      "scenario": "a project's notebook with an added cell whose code or output has a long line, in Data science at 1440 px: the cell is 995 px wide in a 660 px column",
+      "cause": "#agent-out and .ag-cell are grids with an automatic column, so a long line inside a pre sets the column's width",
+      "fix": "grid-template-columns minmax(0, 1fr) and min-width 0 on the added cells and their parts, outputs scroll inside their box",
+      "test": "screenshot script measuring the cell's right edge against the companion's left edge, before and after, both looks"
+    },
+    {
+      "id": "F2",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "Two kinds of confusion matrix: a blue matplotlib picture in the notebook and the Evaluation page's green and red cards",
+      "scenario": "the agent writes ConfusionMatrixDisplay.from_predictions(..., cmap='Blues'); the Evaluation page draws its own matrix",
+      "cause": "the kernel had app-style helpers for lines and bars only, the prompt sent the agent to matplotlib for anything else, and matplotlib drew its defaults",
+      "fix": "chart_confusion drawn by the page with the Evaluation page's matrix; ConfusionMatrixDisplay redrawn in the same colours; the prompt names chart_confusion",
+      "test": "tests/test_notebook_cells.py::test_a_confusion_matrix_is_the_evaluation_pages_and_every_picture_takes_the_apps_colours"
+    },
+    {
+      "id": "F3",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "Every other plot was in matplotlib's default blue",
+      "scenario": "a histogram cell shows tab:blue bars and a boxed frame beside the app's clay and paper",
+      "cause": "the kernel started matplotlib with its defaults",
+      "fix": "rcParams at kernel start: paper ground, quiet grid, no top and right spines, titles left and bold, the app's colour cycle, a clay colour map",
+      "test": "the new test reads image.cmap from the kernel; screenshots of a histogram and lines"
+    },
+    {
+      "id": "F4",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The theme printed a font warning in every cell",
+      "scenario": "a cell with a title prints 'findfont: Failed to find font weight semibold for DejaVu Sans' to stderr",
+      "cause": "matplotlib's bundled font has no semibold weight",
+      "fix": "bold for titles and the matrix's numbers",
+      "test": "the new test asserts no findfont text and no stderr output"
+    },
+    {
+      "id": "F5",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The app's matrix inside a cell's output was drawn in the monospace font",
+      "scenario": "chart_confusion's matrix in a cell shows its words in the code font",
+      "cause": ".cell-out sets the mono font and pre-wrap for printed text, and a chart sits in the same box",
+      "fix": ".cell-out.cell-chart uses the body font and normal white space",
+      "test": "screenshot in both looks"
+    },
+    {
+      "id": "F6",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "A long print made one cell taller than the screen several times over",
+      "scenario": "a cell printing a 20 by 20 array and a long sentence",
+      "cause": "the output box had no height limit",
+      "fix": "in Data science a printed output scrolls inside a 360 px box; pictures and charts are never cut",
+      "test": "screenshot"
+    },
+    {
+      "id": "F7",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The test build timed out when the scripted suites ran beside it",
+      "scenario": "make harness-eval running while the local server ran the five stages",
+      "cause": "the sandbox's CPU was shared by both",
+      "fix": "ran them one after the other",
+      "test": "the build finished in about four minutes alone"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Passing text_kw to the redrawn ConfusionMatrixDisplay.plot raised an error",
+      "scenario": "from_predictions(y, p, text_kw={'fontsize': 8}) fails with 'got multiple values for keyword argument fontsize'",
+      "cause": "the redraw passed its own fontsize, colour and weight beside **text_kw",
+      "fix": "one dict of the theme's text settings, updated with the person's text_kw so theirs win",
+      "test": "tests/test_notebook_cells.py: text_kw fontsize 8 is kept"
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A normalized confusion matrix showed wrong percentages and colours",
+      "scenario": "normalize='pred' on counts [[80, 20], [10, 10]] printed 0.888...|57% where the shares are 89% and 67% of the predicted columns",
+      "cause": "the redraw took a row share of values that were already shares, and printed floats at full precision",
+      "fix": "a float matrix is coloured by its own values and printed with '.2g' (scikit-learn's default), with no second line",
+      "test": "tests/test_notebook_cells.py: normalize='pred' prints 0.89|0.67|0.11|0.33"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "include_values=False left text_ as an array of None",
+      "scenario": "code that checks 'if disp.text_ is not None' then loops over it fails with AttributeError",
+      "cause": "text_ was always made an array",
+      "fix": "text_ is None when values are not drawn, as in scikit-learn",
+      "test": "tests/test_notebook_cells.py: text_ is None"
+    },
+    {
+      "id": "F11",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "chart_confusion chose its labels badly in three cases",
+      "scenario": "one class only gave a 1x1 matrix the page drops; ten or more numeric classes sorted 0, 1, 10, 2; a multiclass notebook showed 0, 1, 2 instead of the class names",
+      "cause": "labels were the values seen, sorted as text, and the notebook's labels list was not read",
+      "fix": "a 0/1 target always gives [0, 1]; numbers sort as numbers; an index target takes the names of the notebook's labels list; display_labels names them by hand",
+      "test": "tests/test_notebook_cells.py: [0,0,0] gives 2x2, [2,10,1] sorts 1,2,10, labels cat/dog/eel shown"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "added cell's width against its column, Data science at 1440 px",
+      "gate": "the cell's right edge left of the companion's left edge",
+      "fixed_before_run": true,
+      "result": "before: a 995 px cell in a 660 px column, 0 px from the companion; after: the cells end at the column's edge (980 px), the companion starts at 1004 px",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "headless Chromium in a cloud sandbox",
+        "one churn project with four added cells"
+      ]
+    },
+    {
+      "name": "scripted suites for the prompt change",
+      "gate": "make agent-eval stores a result; make harness-eval passes",
+      "fixed_before_run": true,
+      "result": "AEV-099 stored; HRN-101 17 of 17 right on every step, EUR 0",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "scripted policies, not a live model: whether the model now writes chart_confusion is not measured here"
+      ]
+    },
+    {
+      "name": "browser checks flow, pages, mobile, dsmode in both looks",
+      "gate": "every check passes in both looks",
+      "fixed_before_run": true,
+      "result": "all pass in Data science and in Developer",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "headless Chromium in a cloud sandbox, not the owner's Mac browsers"
+      ]
+    }
+  ],
+  "outcome": "The added cells stay in their column in both looks; in Data science they are cards like the notebook's own, under 'Cells you added', with the request box at the end. Every confusion matrix from a cell is the Evaluation page's own (chart_confusion) or drawn in its colours (scikit-learn's display), and every other plot starts in the app's colours.",
+  "lessons": [
+    "A grid or flex child with long preformatted text needs minmax(0, 1fr) or min-width 0, or the text sets the layout's width",
+    "Two looks of one thing come from two code paths: send the numbers to the one component instead of restyling a picture",
+    "Theme a library at kernel start, then check its warnings: a missing font weight prints in every cell",
+    "Run heavy suites one after another in a shared sandbox; a timeout beside them says nothing about the code",
+    "When replacing a library's method, keep its contract: every argument it takes, every attribute it sets, and what it sets to None"
+  ],
+  "risks": [
+    "Redrawing ConfusionMatrixDisplay.plot changes a person's own picture: a colour map they choose is ignored, and the colorbar is not drawn",
+    "Whether the model now writes chart_confusion is not measured with a live model; the scripted suites only check the prompt gate",
+    "Pictures stay white in the dark theme"
+  ],
+  "commits": []
+}

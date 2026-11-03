@@ -317,6 +317,69 @@ class NotebookCellsTest(unittest.TestCase):
         self.assertTrue(any("could not draw" in o.get("text", "") or "cannot draw" in o.get("text", "") for o in ran["outputs"] if o["type"] == "text"))  # the bad one said so
         self.assertEqual(services.kernels.status(self.pid)["count"] > 0, True)
 
+    def test_a_confusion_matrix_is_the_evaluation_pages_and_every_picture_takes_the_apps_colours(self):
+        """The owner, 2026-11-03: two kinds of confusion matrix (a blue matplotlib picture and the Evaluation page's cards) and
+        plots in matplotlib's default blue. chart_confusion sends the counts the page draws with its own matrix; a picture
+        scikit-learn draws takes the same green and red cells, whatever colour map the cell asked for, and nothing warns."""
+        from dclab_rnd.studio import kernels
+
+        good = {"kind": "confusion", "labels": ["0", "1"], "matrix": [[5, 1], [2, 3]], "positive": 1, "positive_name": "Yes", "title": "T"}
+        self.assertEqual(kernels.clean_chart(good), {**good})
+        self.assertIsNone(kernels.clean_chart({**good, "positive": True})["positive"])  # a boolean is not the class index
+        self.assertIsNone(kernels.clean_chart({**good, "labels": ["a", "b", "c"], "matrix": [[1, 0, 0], [0, 1, 0], [0, 0, 1]]})["positive"])
+        for bad in ({**good, "matrix": [[5, 1], [2]]}, {**good, "matrix": [[5, -1], [2, 3]]}, {**good, "matrix": [[5, 1.5], [2, 3]]},
+                    {**good, "labels": ["0"], "matrix": [[5]]}, {**good, "matrix": [[1, "x"], [2, 3]]},
+                    {**good, "labels": [str(i) for i in range(kernels.MAX_CLASSES + 1)], "matrix": [[0] * (kernels.MAX_CLASSES + 1)] * (kernels.MAX_CLASSES + 1)}):
+            self.assertIsNone(kernels.clean_chart(bad), bad)
+
+        services = self.client.app.state.services
+        services.kernels.restart(self.pid)
+        code = ("chart_confusion([0, 1, 1, 0, 1], [0, 1, 0, 0, 1], title='On the folds')\n"
+                "chart_confusion(['a', 'b', 'c', 'a'], ['a', 'c', 'c', 'a'])\n"
+                "import matplotlib, matplotlib.pyplot as plt\n"
+                "from sklearn.metrics import ConfusionMatrixDisplay\n"
+                "d = ConfusionMatrixDisplay.from_predictions([0, 1, 1, 0], [0, 1, 0, 0], cmap='Blues')\n"
+                "plt.title('picture'); plt.show()\n"
+                "print(matplotlib.rcParams['image.cmap'], matplotlib.colors.to_hex(d.im_.get_array()[0, 0]))")
+        cell = {"id": "a00000000cd", "request": "matrix", "code": code, "explanation": "", "problems": [], "status": "accepted", "at": "t"}
+        project = services.projects.get(self.pid)
+        services.projects.update(self.pid, notebook_agent_cells=list(project.get("notebook_agent_cells") or []) + [cell])
+        ran = self.client.post(f"/api/projects/{self.pid}/notebook/run", json={"cell": cell["id"]}, headers=self.headers).json()
+        self.assertEqual(ran["status"], "ok", json.dumps(ran)[:1500])
+        charts = [o["spec"] for o in ran["outputs"] if o["type"] == "chart"]
+        self.assertEqual([(c["kind"], c["matrix"], c["positive"]) for c in charts],
+                         [("confusion", [[2, 0], [1, 2]], 1), ("confusion", [[2, 0, 0], [0, 0, 1], [0, 0, 1]], None)])
+        self.assertEqual(sum(o["type"] == "image" for o in ran["outputs"]), 1)
+        text = "".join(o.get("text", "") for o in ran["outputs"] if o["type"] == "text")
+        cmap, corner = text.split()
+        self.assertEqual(cmap, "dclab")
+        self.assertNotEqual(corner, "#08306b")  # Blues' darkest: the diagonal is the app's green, not the colour map asked for
+        self.assertNotIn("findfont", text)
+        self.assertFalse([o for o in ran["outputs"] if o.get("name") == "stderr"], ran["outputs"])
+
+        # the person's own scikit-learn arguments keep working (the review's findings): their text settings win, a normalized
+        # matrix shows its own values, no values means text_ is None; one class still gives the two-by-two, numbers sort as numbers
+        code = ("from sklearn.metrics import ConfusionMatrixDisplay\n"
+                "a = ConfusionMatrixDisplay.from_predictions([0, 1, 1, 0], [0, 1, 0, 0], text_kw={'fontsize': 8, 'color': 'k'})\n"
+                "b = ConfusionMatrixDisplay.from_predictions([0]*80 + [0]*20 + [1]*10 + [1]*10, [0]*80 + [1]*20 + [0]*10 + [1]*10, normalize='pred')\n"
+                "c = ConfusionMatrixDisplay.from_predictions([0, 1], [0, 1], include_values=False)\n"
+                "print(a.text_[0, 0].get_fontsize(), '|'.join(t.get_text() for t in b.text_.ravel()), c.text_ is None)\n"
+                "chart_confusion([0, 0, 0], [0, 0, 0])\n"
+                "chart_confusion([2, 10, 1], [2, 10, 1])\n"
+                "labels = ['cat', 'dog', 'eel']\n"
+                "chart_confusion([0, 1, 2], [0, 2, 2])")
+        cell = {"id": "a00000000ce", "request": "matrix", "code": code, "explanation": "", "problems": [], "status": "accepted", "at": "t"}
+        project = services.projects.get(self.pid)
+        services.projects.update(self.pid, notebook_agent_cells=list(project.get("notebook_agent_cells") or []) + [cell])
+        ran = self.client.post(f"/api/projects/{self.pid}/notebook/run", json={"cell": cell["id"]}, headers=self.headers).json()
+        self.assertEqual(ran["status"], "ok", json.dumps(ran)[:1500])
+        printed = "".join(o.get("text", "") for o in ran["outputs"] if o["type"] == "text" and o.get("name") == "stdout").split()
+        self.assertEqual(printed, ["8.0", "0.89|0.67|0.11|0.33", "True"])
+        charts = [o["spec"] for o in ran["outputs"] if o["type"] == "chart"]
+        self.assertEqual([(c["labels"], c["matrix"]) for c in charts],
+                         [(["0", "1"], [[3, 0], [0, 0]]), (["1", "2", "10"], [[1, 0, 0], [0, 1, 0], [0, 0, 1]]),
+                          (["cat", "dog", "eel"], [[1, 0, 0], [0, 0, 1], [0, 0, 1]])])
+
     def test_a_cell_the_person_writes_is_checked_kept_and_run(self):
         url = f"/api/projects/{self.pid}/notebook"
         empty = self.client.post(f"{url}/cells", json={"code": "  "}, headers=self.headers)
