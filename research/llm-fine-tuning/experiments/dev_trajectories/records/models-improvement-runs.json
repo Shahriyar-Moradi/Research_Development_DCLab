@@ -1,0 +1,204 @@
+{
+  "package": "models-improvement-runs",
+  "title": "Every improvement run kept and shown on the Models page, in an Improvements tab and in the models table with an improvement tag",
+  "date": "2026-11-03",
+  "request": "The owner: the improvement (the Experimenter's 'improve the model for me') works fine, but in the Models section we have to see an Improvements tab and store all improvements, and also bring them into the main table of models with a tag of the improvement. With screenshots: the Models page's screen table, and the chat's improvement report saying 2 ways cleared the margin but none can be adopted here ('choose it on the Models page').",
+  "spec": "The project keeps every run of the Experimenter (improvement_runs, numbered, newest last, the latest 50) beside the latest one (improvements, which the chat and the adoption read). The Models page gets an Improvements tab with a count: every run newest first, the model it tried to improve, each way with its score on the folds, gain, folds better and verdict, and what can be done with it here (Adopt for the latest run's adoptable way that cleared; Choose the family for another family that cleared; cannot be adopted yet for other features and a blend), and a button to run the Experimenter again. The models table lists each way's latest result under the ranked families, tagged 'improvement · run N' with its verdict, never ranked by the declared rule.",
+  "plan": [
+    "Read how the Experimenter stores its run: one improvements record, overwritten by each run",
+    "Read the Models page: its panes, the screen table, the override modal",
+    "Check whether the chat's 'choose it on the Models page' is true for each kind of way",
+    "Keep every run in a numbered history with a fallback for projects improved before",
+    "Add the Improvements tab and the table rows; reuse the improve, adopt and override paths",
+    "Test the history, the cap, the legacy fallback and the chat's sentence; screenshot both looks",
+    "Review, record, commit"
+  ],
+  "decisions": [
+    {
+      "decision": "The history is a second field; the latest run stays in improvements",
+      "why": "the chat report, the adoption and the orchestrator read improvements: keeping it unchanged keeps them working"
+    },
+    {
+      "decision": "The table shows each way's latest result, not every run's",
+      "why": "two runs on the same model give the same ways; every run is in the Improvements tab, the table stays one row per way"
+    },
+    {
+      "decision": "Improvement rows sit under the ranked families, with no rank and no adjusted score",
+      "why": "the declared rule ranked the screen before the run; a way chosen afterwards on the same folds is optimistic and must not look selected"
+    },
+    {
+      "decision": "Adopt only from the latest run",
+      "why": "the adoption reads the latest run and its parameters for the current model; an older run's way may belong to a model since replaced"
+    },
+    {
+      "decision": "Choose <family> opens the existing override, preselected",
+      "why": "the graph validator checks that move already; the final stage then tunes the family again, so the candidate's own parameters are not carried"
+    },
+    {
+      "decision": "The chat no longer sends features and blends to the Models page",
+      "why": "no page can adopt another recipe or a blend yet: the sentence said something untrue"
+    }
+  ],
+  "change": "dclab_rnd/studio/improve.py (improvement_runs, run numbers, MAX_RUNS, history(), the adoption marks its run, a truthful error); dclab_rnd/jobs/handlers.py (_not_adoptable: where each kind of way can be used); dclab_rnd/agentic/web/src/views/models.html (the Improvements pane, the table's improvement rows, Adopt, Choose, Try again, the override preselected); src/look.css (the rows' styles); tests/test_improve.py (two tests).",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "Only the latest improvement run was kept",
+      "scenario": "a person asks to improve the model twice: the first run's ways are gone",
+      "cause": "improve.run wrote one improvements record per project, replaced by each run",
+      "fix": "each run also appended to improvement_runs, numbered, the latest 50 kept",
+      "test": "tests/test_improve.py::test_every_run_is_kept_numbered_and_an_adoption_marks_its_run"
+    },
+    {
+      "id": "F2",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "The Models page did not show the improvement runs at all",
+      "scenario": "the chat says to choose a way on the Models page, and the page has no trace of it",
+      "cause": "the page read the models and final records only",
+      "fix": "an Improvements tab with every run, and the ways in the models table with an improvement tag",
+      "test": "screenshots of the tab and the table in both looks; browser checks pages and mobile"
+    },
+    {
+      "id": "F3",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The chat said a feature recipe or a blend that cleared could be chosen on the Models page",
+      "scenario": "two ways cleared (the log_numeric features and a blend): the chat says choose it on the Models page, where nothing can choose them",
+      "cause": "one sentence for every way that is not adoptable, written before the page existed",
+      "fix": "the sentence names another family as choosable on the Models page and says other features and a blend cannot be adopted yet",
+      "test": "tests/test_improve.py::test_the_chat_says_truthfully_where_a_way_that_cleared_can_be_used"
+    },
+    {
+      "id": "F4",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "Each improvement row in the table was very tall",
+      "scenario": "the label, two tags and the gain line wrapped in a narrow first column",
+      "cause": "two pills side by side were wider than the column",
+      "fix": "one tag and the verdict as short coloured text, the first column at least 300 px",
+      "test": "screenshot"
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Choose <family> could preselect the wrong model in the override",
+      "scenario": "run 1 offers Choose lightgbm; after lightgbm is chosen the button stays, and the modal, which drops the chosen model from its options, silently preselects the first other family",
+      "cause": "the button compared with the run's model, not the project's chosen one, and the modal ignored a preselection it could not find",
+      "fix": "the button only for a family that is not the chosen one; the modal refuses a preselection it cannot show, with why",
+      "test": "screenshot; the modal path read"
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Adopt was offered after the project's model changed, and the next final run would ignore the adoption",
+      "scenario": "the latest run improved extra_trees; the person then chose lightgbm; Adopt stored extra_trees settings and the final run reread the holdout without them",
+      "cause": "the page and adopt_candidate did not compare the run's model and features with the project's current ones; the engine uses an adoption only for its own family and recipe",
+      "fix": "the page offers Adopt only on a run of the current setup; adopt_candidate refuses another model or recipe with why",
+      "test": "tests/test_improve.py: a run on another family is refused"
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Runs from an earlier setup were shown in the table as on the same folds",
+      "scenario": "improve, change the recipe or the data and rerun: the table still shows the earlier run's ways",
+      "cause": "runs were filtered by metric only",
+      "fix": "a run is in the table only when its model, recipe, folds and metric are the current ones; in the tab an earlier setup's run is marked and never offered for adoption",
+      "test": "screenshot; the page's filter"
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Choose <family> did not say the way's own settings are not carried",
+      "scenario": "the person expects the improvement's score, the final stage tunes the family again on its own candidates",
+      "cause": "nothing said it, in the modal or the chat",
+      "fix": "one sentence in the modal when opened from an improvement and in the chat's sentence",
+      "test": "tests/test_improve.py: the chat sentence"
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "An adoption during a run could lose a run or its mark",
+      "scenario": "Adopt clicked while an improvement runs: one of the two whole-document writes overwrites the other",
+      "cause": "the run reads its history and writes later; the adoption saves the whole document",
+      "fix": "Adopt hidden while a run goes on, and refused by adopt_candidate while running is improve",
+      "test": "tests/test_improve.py: refused while running"
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The adoption marking was never exercised by the test",
+      "scenario": "the small table never made a way that cleared and was adoptable, so the branch was skipped",
+      "cause": "the test relied on the data producing a winner",
+      "fix": "a cleared adoptable way written into the latest run, adopted, the marks asserted [None, id]",
+      "test": "tests/test_improve.py::test_every_run_is_kept_numbered_and_an_adoption_marks_its_run"
+    },
+    {
+      "id": "F11",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Fifty whole runs make the project document large",
+      "scenario": "about 5 KB per run, rewritten on every save and polled every 3 s while a run goes on",
+      "cause": "each run kept its per-fold lists",
+      "fix": "runs older than the latest five keep means, gains and verdicts, without the per-fold lists",
+      "test": "tests/test_improve.py: an older run has no fold_scores"
+    },
+    {
+      "id": "F12",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Try again said the run appears when done, but the page did not refresh, and a refusal was said only in the draft's chat",
+      "scenario": "the button is pressed, the job starts after the page's reload, no poll starts; a project without a draft never hears a refusal",
+      "cause": "the poll depended on running being set already; the refusal was not logged on the project",
+      "fix": "the page polls until a new run is kept or a refusal is logged on the project, which it shows",
+      "test": "browser: Try again shows Improving and then run 3 without a reload"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "a local churn project improved twice through the API, the Models page in both looks",
+      "gate": "both runs in the tab, its count 2, the ways in the table, no console error",
+      "fixed_before_run": true,
+      "result": "2 runs listed newest first, count 2, 7 ways in the table tagged run 2, no error in either look",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "headless Chromium in a cloud sandbox",
+        "no way of another family cleared on this table, so the Choose button was not seen on a page"
+      ]
+    },
+    {
+      "name": "Try again on the Models page, Data science look",
+      "gate": "the new run appears without a reload",
+      "fixed_before_run": true,
+      "result": "the button said Improving and was disabled; run 3 appeared and the count went to 3 with no page error",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "one local project, a run of about a minute"
+      ]
+    }
+  ],
+  "outcome": "Every improvement run is kept on the project and shown in the Models page's Improvements tab, and each way's latest result is in the models table with an improvement tag and its verdict, never ranked by the rule. The chat now says truthfully where a way can be used.",
+  "lessons": [
+    "Before adding a history, keep the latest record where its readers read it",
+    "A link in a report ('choose it on the Models page') is a promise: check that the page can do it for every case the sentence covers",
+    "A result chosen after the rule ran sits beside the ranked ones, never among them",
+    "A button that acts on a record must check the record still describes the project's current state, on the page and on the server"
+  ],
+  "risks": [
+    "Other features and a blend that clear the margin still cannot be adopted anywhere",
+    "Choosing another family from an improvement re-runs the final stage with its own tuning, not the candidate's parameters",
+    "The held-back cases are read again by any final run after an adoption, which needs a written reason",
+    "Two writes to a project can still race outside the improvement run and the adoption: the project store has no read-change-save under one lock"
+  ],
+  "commits": []
+}

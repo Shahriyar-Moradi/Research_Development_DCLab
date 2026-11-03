@@ -63,6 +63,13 @@
     </div>
   </div>
 
+  <div class="pane" data-pane="improvements" data-label="Improvements" data-count="0">
+    <div class="panel" data-f="models.improvements">
+      <div class="panel-head"><div class="panel-title"><h2>Improvement runs</h2><span class="sub">Every run of the Experimenter on this project, newest first: each way on the training folds only, paired with the model it tried to improve.</span></div><button type="button" class="btn sm primary" id="mo-improve-go" hidden>Try ways to improve</button></div>
+      <div class="panel-body stack" id="mo-improve" data-slot><div class="empty">This is the sample project, which has no improvement run. Open a project and ask on Home "improve the model for me": every run is kept here, and its ways appear in the models table with an improvement tag.</div></div>
+    </div>
+  </div>
+
   <div class="pane" data-pane="context" data-label="Cost & context">
     <div class="grid g2">
       <div class="panel" data-f="models.ops">
@@ -142,6 +149,8 @@ DC.view('models', {
       SLOTS.forEach(([n, html, cls]) => { n.innerHTML = html; n.className = cls; });
       $('#kpen', el).disabled = false; $('#kpen', el).value = '0.25';
       $('#override-btn', el).disabled = false; $('#override-btn', el).title = '';
+      $('#mo-improve-go', el).hidden = true;
+      const n = $('.ptab[data-ptab="improvements"] .n', el); if (n) n.textContent = '0';
       draw();
     };
 
@@ -212,7 +221,28 @@ DC.view('models', {
       return { p, m, f, ev, fe, metric, label: LABEL[metric] || metric, unit: UNIT.has(metric), rule, cols, task,
         k: km ? Number(km[1]) : 0.25, higher: rule ? !/lower is better/i.test(rule) : !LOWER.has(metric),
         rows, selected, chosen, overridden: !!chosen && chosen !== selected, nf, kind, recipe: (ev && ev.feature_recipe) || (fe && fe.feature_recipe) || (fx && ((fx.decision || {}).chosen || (fx.evidence || {}).selected_recipe)) || '',
-        trainRows: (d && d.evidence && d.evidence.train_rows) || (fe && fe.train_rows) || null };
+        trainRows: (d && d.evidence && d.evidence.train_rows) || (fe && fe.train_rows) || null, ...improvements(p, metric) };
+    }
+    /* The Experimenter's runs (the owner, 2026-11-03: keep every improvement, show it here and in the models table): every run kept,
+       oldest first (a project improved before runs were kept has its one latest run); in the table, each way's latest result. */
+    /* A run on the project's current setup (its model, features, folds and metric): its ways compare on the folds the table shows.
+       An earlier setup's run stays in the tab, marked, never in the table. */
+    function current(r, p, metric) {
+      const R = p.records || {}, ev = (R.models || {}).evidence || {}, fx = R.features || {};
+      const family = ((R.models || {}).decision || {}).chosen || ev.selected_model;
+      const recipe = ev.feature_recipe || (fx.decision || {}).chosen || (fx.evidence || {}).selected_recipe;
+      const folds = ((ev.model_results || [])[0] || {}).folds;
+      const c = r.current || {};
+      return (!r.metric || r.metric === metric) && c.family === family && c.recipe === recipe && (!folds || !r.folds || r.folds === folds);
+    }
+    function improvements(p, metric) {
+      let runs = (p.improvement_runs || []).filter(r => r && Array.isArray(r.candidates));
+      if (!runs.length && p.improvements && Array.isArray(p.improvements.candidates)) runs = [{ ...p.improvements, run: p.improvements.run || 1 }];
+      runs = runs.map((r, i) => ({ ...r, run: r.run || i + 1 }));
+      const latest = new Map();
+      runs.filter(r => current(r, p, metric)).forEach(r => (r.candidates || []).forEach(c => latest.set(`${c.id}|${c.label}`, { ...c, run: r.run, nfolds: r.folds, adopted: r.adopted === c.id, current: r.current || {} })));
+      runs.forEach(r => { r.onCurrent = current(r, p, metric); });
+      return { runs, imp: [...latest.values()].sort((a, b) => (b.gain == null ? -Infinity : b.gain) - (a.gain == null ? -Infinity : a.gain)) };
     }
     const rankK = (V, k) => V.rows.map(r => ({ ...r, score: V.higher ? r.mean - k * r.sd : r.mean + k * r.sd }))
       .sort((a, b) => (V.higher ? b.score - a.score : a.score - b.score) || a.t - b.t);
@@ -265,6 +295,7 @@ DC.view('models', {
         $('#mo-fold-note', el).textContent = `Each dot is one fold's ${V.label} from the screen; bars mark the means.${V.higher ? '' : ' Lower is better.'}`;
       } else { $('#fold-chart', el).innerHTML = empty(stageNote(p, 'models', 'the fold scores')); $('#mo-fold-note', el).textContent = ''; }
       paintTuning(V);
+      paintImprovements(V);
       // cost to run
       $('#mo-cost-title', el).innerHTML = `<h3>Cost to run</h3><span class="sub">Measured during the screen: the whole ${V.nf || ''}-fold run and the mean fit per fold</span>`;
       $('#mo-cost-table', el).innerHTML = V.rows.length ? `<table class="data compact"><thead><tr><th>Family</th><th class="num">Run (${V.nf} folds)</th><th class="num">Fit / fold</th></tr></thead><tbody>${V.rows.map(r =>
@@ -282,7 +313,7 @@ DC.view('models', {
         return;
       }
       const r = rankK(V, k), top = r[0], sign = V.higher ? '−' : '+';
-      $('#screen-table tbody', el).innerHTML = r.map((f, i) => `<tr class="${i === 0 ? 'selected' : ''}"><td><span class="cell-main">${esc(f.name)}</span>${i === 0 ? ' <span class="pill accent">selected</span>' : ''}${V.overridden && f.name === V.chosen ? ' <span class="pill warn">chosen by you</span>' : ''}</td><td class="num mono">${num(f.mean)}</td><td class="num mono">±${num(f.sd)}</td><td class="num mono">${num(f.score)}</td>${V.cols.map(([k]) => `<td class="num mono">${num(f.extra[k])}</td>`).join('')}<td class="num mono">${secs(f.t)}</td><td>${i + 1}</td></tr>`).join('');
+      $('#screen-table tbody', el).innerHTML = r.map((f, i) => `<tr class="${i === 0 ? 'selected' : ''}"><td><span class="cell-main">${esc(f.name)}</span>${i === 0 ? ' <span class="pill accent">selected</span>' : ''}${V.overridden && f.name === V.chosen ? ' <span class="pill warn">chosen by you</span>' : ''}</td><td class="num mono">${num(f.mean)}</td><td class="num mono">±${num(f.sd)}</td><td class="num mono">${num(f.score)}</td>${V.cols.map(([k]) => `<td class="num mono">${num(f.extra[k])}</td>`).join('')}<td class="num mono">${secs(f.t)}</td><td>${i + 1}</td></tr>`).join('') + improveRows(V);
       const sc = scale(V.rows.flatMap(f => [f.mean - f.sd, f.mean + f.sd]), V.unit);
       $('#screen-chart', el).innerHTML = charts.barsH(V.rows.map(f => ({ label: f.name, value: f.mean, lo: f.mean - f.sd, hi: f.mean + f.sd, valueText: `${num(f.mean)} ± ${num(f.sd)}`, cls: f.name === top.name ? '' : 'soft', strong: f.name === top.name })),
         { width: 640, labelW: 160, valW: 128, min: sc.min, max: sc.max, rowH: 30, ticks: sc.ticks, tickFmt: sc.fmt, aria: `Mean ${V.label} with fold spread` });
@@ -294,6 +325,81 @@ DC.view('models', {
         : `With k = ${k.toFixed(2)} the rule would select <b>${esc(top.name)}</b>${top.name !== V.selected ? ', a different model' : ''}. The penalty is part of the protocol; changing it after the screen is a protocol change with a written reason.`}</span></div>${declared && gap ? `<p class="xs muted">${esc(gap.statement)}</p>` : ''}`;
       DC.hydrate($('#rule-out', el));
     }
+    /* Each way the Experimenter tried, its latest result, under the ranked families: the same folds, never ranked by the declared rule. */
+    function improveRows(V) {
+      if (!V.imp.length) return '';
+      const span = 6 + V.cols.length;
+      return `<tr class="mo-imp-head"><td colspan="${span}">From the Experimenter's improvement runs · the same folds, scored against the model each run improved, not ranked by the declared rule · <button type="button" class="link-btn small" data-mo-runs>see every run</button></td></tr>`
+        + V.imp.map(c => `<tr class="mo-imp${c.clears ? ' clears' : ''}"><td><span class="cell-main">${esc(c.label)}</span><div class="mo-tags"><span class="pill proof">improvement · run ${esc(String(c.run))}</span><span class="mo-verdict ${c.adopted || c.clears ? 'ok' : ''}">${c.adopted ? 'adopted' : c.clears ? 'clears the margin' : 'within the noise'}</span></div>`
+          + `<div class="cell-sub">${esc(c.aspect)} · ${signed(c.gain)} vs ${esc(c.current.family || 'the model')}${c.folds_better != null ? ` · ${c.folds_better}/${c.nfolds} folds better` : ''}</div></td>`
+          + `<td class="num mono">${num(c.mean)}</td><td class="num mono">${ok(c.std) ? '±' + num(c.std) : '—'}</td><td class="num mono">—</td>${V.cols.map(() => '<td class="num mono">—</td>').join('')}`
+          + `<td class="num mono">${secs(c.seconds)}</td><td><span class="faint">—</span></td></tr>`).join('');
+    }
+    /* The Improvements tab: every run, newest first, each way with what can be done with it here. */
+    function paintImprovements(V) {
+      const { p } = V, box = $('#mo-improve', el), go = $('#mo-improve-go', el);
+      const n = $('.ptab[data-ptab="improvements"] .n', el); if (n) n.textContent = String(V.runs.length);
+      const refused = (p.activity || []).filter(a => a.kind === 'improve_run' && a.payload && a.payload.state === 'refused').pop();
+      if (view.waitImprove && refused && refused.at >= view.waitImprove.since) { toast(refused.payload.why, { ok: false, ms: 8000 }); view.waitImprove = null; }
+      if (view.waitImprove && V.runs.length > view.waitImprove.count) view.waitImprove = null;  // the new run is here
+      const running = p.running === 'improve' || (p.running && p.running.stage === 'improve') || !!view.waitImprove;
+      go.hidden = !V.fe; go.disabled = !!running; go.textContent = running ? 'Improving…' : V.runs.length ? 'Try again' : 'Try ways to improve';
+      if (!V.runs.length) {
+        box.innerHTML = `<div class="empty">${V.fe ? 'No improvement run yet. Ask on Home "improve the model for me", or press Try ways to improve: every way is tried on the training folds only, and every run is kept here.' : esc(stageNote(p, 'final', 'a model to improve'))}</div>`;
+        return;
+      }
+      const options = new Set(((V.m || {}).decision || {}).options ? V.m.decision.options.map(o => o.id) : []);
+      const last = V.runs[V.runs.length - 1];
+      box.innerHTML = V.runs.slice().reverse().map(r => {
+        const cur = r.current || {}, cands = r.candidates || [], clear = cands.filter(c => c.clears).length, isLast = r === last;
+        const use = c => {
+          if (c.id === r.adopted) return '<span class="pill ok">adopted</span>';
+          if (!c.clears) return '';
+          if (c.adoptable) {
+            if (!isLast || !r.onCurrent) return `<span class="xs muted">${r.onCurrent ? 'from an earlier run' : 'for an earlier model'}: run again to adopt</span>`;
+            if (running) return '<span class="xs muted">after the run going on</span>';
+            return r.adopted ? '' : `<button type="button" class="btn sm primary" data-mo-adopt="${esc(c.id)}">Adopt</button>`;
+          }
+          if (c.id !== 'blend' && c.family && c.family !== cur.family && c.family !== V.chosen && options.has(c.family)) return `<button type="button" class="btn sm" data-mo-choose="${esc(c.family)}">Choose ${esc(c.family)}</button>`;
+          if (c.family === V.chosen && c.family !== cur.family) return '<span class="xs muted">now the chosen model</span>';
+          return '<span class="xs muted">cannot be adopted yet</span>';
+        };
+        const rows = cands.map(c => `<tr><td><b>${esc(c.label)}</b><div class="cell-sub">${esc(c.aspect)}</div></td><td class="num mono">${num(c.mean)}</td><td class="num mono">${signed(c.gain)}</td>`
+          + `<td class="num mono">${c.folds_better == null ? '—' : c.folds_better + ' / ' + r.folds}</td><td>${c.clears ? '<span class="pill ok">clears the margin</span>' : '<span class="pill outline">within the noise</span>'}</td><td>${use(c)}</td></tr>`).join('');
+        const when = r.ran_at ? new Date(r.ran_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+        return `<div class="inset stack tight mo-run"><div class="spread"><div><b>Run ${esc(String(r.run))}</b>${when ? ` <span class="muted small">· ${esc(when)}</span>` : ''}${isLast ? ' <span class="pill outline">latest</span>' : ''}${r.onCurrent ? '' : ' <span class="pill warn">earlier setup · not in the table</span>'}</div>`
+          + `<span class="small muted">${cands.length} tried · ${clear} cleared the margin${r.seconds != null ? ' · ' + num(r.seconds, 0) + ' s' : ''}</span></div>`
+          + `<p class="small">Improving <b>${esc(cur.family || '?')}</b> on the <code>${esc(cur.recipe || '?')}</code> features: ${num(cur.mean)} ± ${num(cur.std)} ${esc(LABEL[r.metric] || r.metric || '')} on ${r.folds} training folds. Margin set in advance: ${num(r.margin)}.</p>`
+          + `<div class="table-wrap"><table class="data compact"><thead><tr><th>Way</th><th class="num">Score on the folds</th><th class="num">Gain</th><th class="num">Folds better</th><th>Verdict</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+          + ((r.skipped || []).length ? `<div class="xs muted">Not run: ${esc(r.skipped.join('; '))}</div>` : '') + '</div>';
+      }).join('') + `<p class="xs muted">${esc(last.note || '')}</p>`;
+    }
+    el.addEventListener('click', async e => {
+      if (!real) return;
+      const V = real;
+      const go = e.target.closest('#mo-improve-go');
+      if (go) {
+        go.disabled = true;
+        try {
+          view.waitImprove = { count: V.runs.length, since: new Date(Date.now() - 5000).toISOString(), until: Date.now() + 20 * 60 * 1000 };
+          await DC.client.improveProject(V.p.id);
+          toast('The Experimenter is trying ways to improve the model, on the training folds only. The new run appears here when it is done.', { ms: 6000 });
+          DC.currentProject.clear(); view.enter(el);
+        }
+        catch (err) { view.waitImprove = null; go.disabled = false; toast(err.message, { ok: false }); }
+        return;
+      }
+      const a = e.target.closest('[data-mo-adopt]');
+      if (a) {
+        a.disabled = true;
+        try { const got = await DC.client.adoptImprovement(V.p.id, { body: { candidate: a.dataset.moAdopt } }); toast(got.next, { ms: 9000 }); DC.currentProject.clear(); view.enter(el); }
+        catch (err) { a.disabled = false; toast(err.message, { ok: false }); }
+        return;
+      }
+      if (e.target.closest('[data-mo-runs]')) { DC.selectPane(el, 'improvements'); return; }
+      const c = e.target.closest('[data-mo-choose]');
+      if (c) overrideReal(V, c.dataset.moChoose);
+    });
     function paintTuning(V) {
       const { p, fe } = V;
       const td = fe && fe.tuning_decision, configs = (fe && fe.configuration_results) || [];
@@ -333,16 +439,17 @@ DC.view('models', {
         <div class="callout info"><span class="ic">${icon('info')}</span><span>${diffs.length ? `Paired on the same ${diffs.length} folds, ${esc(shortId(V, td.best_candidate))} against the baseline (positive is better): ${diffs.map(signed).join(', ')}. ` : ''}Candidates tried: ${esc(params)} ${DC.REC['DCLAB-R16'] ? chip('DCLAB-R16') : ''}</span></div>`;
     }
     /* ---------- "Choose a different model": the stage approval with your choice, checked by the graph first ---------- */
-    function overrideReal(V) {
+    function overrideReal(V, pre) {
       if (!V.ev) { toast('Run the models stage first; then there are candidates to choose from.', { ok: false }); return; }
       const opts = ((V.m.decision || {}).options || []).filter(o => o.id !== V.chosen);
       if (!opts.length) { toast('There is no other candidate to choose.', { ok: false }); return; }
+      if (pre && !opts.some(o => o.id === pre)) { toast(pre === V.chosen ? `${pre} is already the chosen model.` : `${pre} is not among the screened models, so it cannot be chosen here.`, { ok: false }); return; }
       DC.modal.open({
         eyebrow: '<span class="eyebrow">Override the rule</span>', title: 'Choose a different model', confirm: 'Approve this choice',
-        html: `<p>The rule picked <b>${esc(V.selected)}</b>${V.overridden ? `; the current choice is <b>${esc(V.chosen)}</b>, made by a person` : ''}. Choosing another candidate approves the models stage with your choice; the workflow log records that a person made it.</p>
+        html: `<p>The rule picked <b>${esc(V.selected)}</b>${V.overridden ? `; the current choice is <b>${esc(V.chosen)}</b>, made by a person` : ''}. Choosing another candidate approves the models stage with your choice; the workflow log records that a person made it.</p>${pre ? `<p class="small muted">From an improvement run: the final stage tunes ${esc(pre)} again on its own candidates, so that way's own settings are not carried over and its score on the folds is not guaranteed.</p>` : ''}
           <div class="field"><label for="ov-model">Model</label><select id="ov-model">${opts.map(o => `<option value="${esc(o.id)}">${esc(o.label || o.id)} · ${num(o.mean)} ± ${num(o.std)}</option>`).join('')}</select></div>
           <div id="ov-check"><div class="xs muted">Checking the move against the workflow graph…</div></div>`,
-        onOpen: mo => { const sel = $('#ov-model', mo), check = () => checkMove(V, sel.value, $('#ov-check', mo)); sel.addEventListener('change', check); check(); },
+        onOpen: mo => { const sel = $('#ov-model', mo), check = () => checkMove(V, sel.value, $('#ov-check', mo)); if (pre && opts.some(o => o.id === pre)) sel.value = pre; sel.addEventListener('change', check); check(); },
         onConfirm: mo => { approve(V, $('#ov-model', mo).value); return false; },
       });
     }
@@ -380,7 +487,8 @@ DC.view('models', {
     if (p) this.renderReal(p); else this.restoreSample();
     this.loadEvaluation(el, p);
     clearTimeout(this.timer);
-    if (p && p.running) this.timer = setTimeout(() => { if (DC.state.view === 'models') { DC.currentProject.clear(); this.enter(el); } }, 3000);
+    if (this.waitImprove && Date.now() > this.waitImprove.until) this.waitImprove = null;
+    if (p && (p.running || this.waitImprove)) this.timer = setTimeout(() => { if (DC.state.view === 'models') { DC.currentProject.clear(); this.enter(el); } }, 3000);
   },
 });
 </script>

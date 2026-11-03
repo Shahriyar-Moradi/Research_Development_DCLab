@@ -559,6 +559,13 @@ ul.plain { margin: 0; padding-left: var(--ts-space-6); display: grid; gap: var(-
 #nb-agent, .agent-cell, #agent-out > *, .ag-code, .ag-out, .cell-body { min-width: 0; }
 #agent-out, .ag-cell, .ag-out { grid-template-columns: minmax(0, 1fr); }
 .ag-out .cell-out, .ag-out .cell-chart { max-width: 100%; overflow-x: auto; }
+/* the models table: the Experimenter's ways under the ranked families, set apart and never ranked */
+#screen-table tr.mo-imp-head td { background: var(--ts-surface-sunken); color: var(--ts-text-muted); font-size: var(--ts-text-sm); padding-top: var(--ts-space-3); padding-bottom: var(--ts-space-3); }
+#screen-table tr.mo-imp td:first-child { min-width: 300px; }
+#screen-table .mo-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 4px 0 2px; }
+#screen-table .mo-verdict { font-size: var(--ts-text-xs); color: var(--ts-text-muted); white-space: nowrap; }
+#screen-table .mo-verdict.ok { color: var(--ts-success-text, var(--ts-success-solid)); font-weight: var(--ts-weight-semibold); }
+.mo-run .table-wrap { margin: 0; }
 .cell-out.cell-chart { font-family: var(--ts-font-body); white-space: normal; }  /* a drawn chart or matrix, not printed text */
 
 /* ---- the Home orchestrator's team on a built project: its tables, the task board, its suggestions ---- */

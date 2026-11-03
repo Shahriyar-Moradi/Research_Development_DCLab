@@ -1050,6 +1050,13 @@
     </div>
   </div>
 
+  <div class="pane" data-pane="improvements" data-label="Improvements" data-count="0">
+    <div class="panel" data-f="models.improvements">
+      <div class="panel-head"><div class="panel-title"><h2>Improvement runs</h2><span class="sub">Every run of the Experimenter on this project, newest first: each way on the training folds only, paired with the model it tried to improve.</span></div><button type="button" class="btn sm primary" id="mo-improve-go" hidden>Try ways to improve</button></div>
+      <div class="panel-body stack" id="mo-improve" data-slot><div class="empty">This is the sample project, which has no improvement run. Open a project and ask on Home "improve the model for me": every run is kept here, and its ways appear in the models table with an improvement tag.</div></div>
+    </div>
+  </div>
+
   <div class="pane" data-pane="context" data-label="Cost & context">
     <div class="grid g2">
       <div class="panel" data-f="models.ops">

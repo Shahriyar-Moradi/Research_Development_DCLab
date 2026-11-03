@@ -4,6 +4,7 @@ current model on the same folds; the held-back cases untouched; a way that clear
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 import numpy as np
@@ -96,6 +97,61 @@ class ImproveTests(unittest.TestCase):
         self.assertTrue(report["candidates"] and report["aspects"] and "optimistic" in report["note"])
         self.assertIn("training folds only", last["text"])
         self.assertIsNone(s.projects.get(pid).get("running"))  # the project is free again
+
+    def test_every_run_is_kept_numbered_and_an_adoption_marks_its_run(self):
+        """The owner, 2026-11-03: keep every improvement run (the Models page shows them all and puts their ways in its table)."""
+        pid = build(self.store)
+        first = improve.run(self.store, pid, budget_seconds=240)
+        second = improve.run(self.store, pid, budget_seconds=240)
+        project = self.store.get(pid)
+        runs = project["improvement_runs"]
+        self.assertEqual([r["run"] for r in runs], [1, 2])
+        self.assertEqual(runs[0]["ran_at"], first["ran_at"])
+        self.assertEqual(project["improvements"]["run"], 2)  # the latest stays where the chat and the adoption read it
+        self.assertEqual(improve.history(project), runs)
+        self.assertNotIn("_oof_pred", str(runs))  # parameters and scores, never a prediction or a row
+        # a way that cleared and is adoptable, written into the latest run (this small table rarely makes one): the adoption marks run 2 only
+        way = {**second["candidates"][0], "id": "test-way", "clears": True, "adoptable": True, "family": second["current"]["family"], "recipe": second["current"]["recipe"]}
+        latest = {**self.store.get(pid)["improvements"], "candidates": [way]}
+        self.store.update(pid, improvements=latest, improvement_runs=[runs[0], latest])
+        self.store.update(pid, running="improve")
+        with self.assertRaises(ValueError):  # never while a run is going on: its write would lose the mark, or the mark its run
+            improve.adopt_candidate(self.store, pid, "test-way")
+        self.store.update(pid, running=None)
+        improve.adopt_candidate(self.store, pid, "test-way")
+        project = self.store.get(pid)
+        self.assertEqual([r.get("adopted") for r in project["improvement_runs"]], [None, "test-way"])
+        self.assertEqual(project["adopted_improvement"]["id"], "test-way")
+        stale = {**latest, "adopted": None, "current": {**latest["current"], "family": "another_family"}}
+        self.store.update(pid, improvements=stale, improvement_runs=[runs[0], stale])
+        with self.assertRaises(ValueError) as said:  # a run on a model the project no longer uses is never adopted from
+            improve.adopt_candidate(self.store, pid, "test-way")
+        self.assertIn("run the improvement again", str(said.exception))
+        self.store.update(pid, improvements=latest, improvement_runs=[runs[0], latest])
+        legacy = {"improvements": {**first, "run": None}}  # a project improved before runs were kept: its one latest run is run 1
+        legacy["improvements"].pop("run")
+        self.assertEqual([r["run"] for r in improve.history(legacy)], [1])
+        self.assertEqual(improve.history({}), [])
+        with unittest.mock.patch.object(improve, "MAX_RUNS", 2), unittest.mock.patch.object(improve, "FULL_RUNS", 1):
+            improve.run(self.store, pid, budget_seconds=240)
+        runs = self.store.get(pid)["improvement_runs"]
+        self.assertEqual([r["run"] for r in runs], [2, 3])  # the oldest goes first
+        self.assertNotIn("fold_scores", runs[0]["candidates"][0])  # an older run keeps its means and verdicts, not its per-fold lists
+        self.assertIn("fold_scores", runs[1]["candidates"][0])
+        self.assertIn("gain", runs[0]["candidates"][0])
+
+    def test_the_chat_says_truthfully_where_a_way_that_cleared_can_be_used(self):
+        from dclab_rnd.jobs import handlers
+
+        record = {"current": {"family": "logistic_regression"}, "candidates": [
+            {"id": "recipe:log_numeric", "family": "logistic_regression", "clears": True, "adoptable": False},
+            {"id": "blend", "family": "logistic_regression", "clears": True, "adoptable": False}]}
+        text = handlers._not_adoptable(record)
+        self.assertIn("cannot be adopted yet", text)
+        self.assertNotIn("Choose a different model", text)  # no family to choose: never sent to the Models page for it
+        record["candidates"].append({"id": "lightgbm:C01", "family": "lightgbm", "clears": True, "adoptable": False})
+        self.assertIn("Choose a different model", handlers._not_adoptable(record))
+        self.assertIn("under Improvements", text)
 
     def test_a_project_without_a_final_stage_cannot_be_improved(self):
         fresh = self.store.create("No models", "general", "x")["id"]

@@ -14,7 +14,9 @@ in advance and the one-sided 90% bound of the fold differences. Because the ways
 a gain here is optimistic: the report says so, and a model adopted from it is scored on the held-back cases only by the final
 stage, which reads them a second time (a written reason, a holdout that is no longer fresh).
 
-The result is the project's ``improvements`` record: counts, rates and parameters, never a row.
+The result is the project's ``improvements`` record (the latest run, which the chat and the adoption read) and the same record
+appended to ``improvement_runs``, every run the project had, numbered, newest last (the owner, 2026-11-03: keep every improvement
+and show them on the Models page): counts, rates and parameters, never a row.
 """
 
 from __future__ import annotations
@@ -30,6 +32,8 @@ from . import engine
 
 MAX_OTHER_FAMILIES = 2
 MAX_PER_FAMILY = 2
+MAX_RUNS = 50  # the runs a project keeps; the oldest goes first
+FULL_RUNS = 5  # the latest runs kept whole; older ones without their per-fold lists, so the project's document stays small
 NOTE = ("Each way was cross-validated on the training folds only, the same folds as the current model, and called a gain only when its paired "
         "gain beats the margin set in advance and the one-sided 90% bound of the fold differences. The ways were chosen on the folds that score "
         "them, so a gain here is optimistic. The held-back cases were not touched; a model adopted from this is scored on them only by the "
@@ -161,9 +165,35 @@ def run(store: Any, project_id: str, *, budget_seconds: float = 300.0, log: Any 
                                                      "std": rn._std(base, metric), "fold_scores": [round(s, 6) for s in base_scores]},
               "candidates": results, "aspects": list(aspects.values()), "best": best["id"] if best else None, "skipped": skipped, "adopted": None,
               "seconds": round(time.perf_counter() - started, 1), "note": NOTE}
-    store.update(project_id, improvements=record)  # its own field only: a cell or a note written meanwhile stays
+    runs = history(store.get(project_id))  # read now: a run adopted meanwhile keeps its mark
+    record["run"] = (max((int(r.get("run") or 0) for r in runs), default=0) + 1)
+    runs = _compact((runs + [record])[-MAX_RUNS:])
+    store.update(project_id, improvements=record, improvement_runs=runs)  # their own fields only: a cell or a note written meanwhile stays
     store.log(project_id, "improve_run", {"tried": len(results), "clear": sum(r["clears"] for r in results), "best": record["best"], "seconds": record["seconds"]})
     return record
+
+
+def _compact(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Runs older than the latest FULL_RUNS keep their ways' scores, gains and verdicts, not the per-fold lists (the page shows the
+    means; the latest runs keep everything)."""
+    out = []
+    for i, r in enumerate(runs):
+        if i < len(runs) - FULL_RUNS:
+            r = {**r, "current": {k: v for k, v in (r.get("current") or {}).items() if k != "fold_scores"},
+                 "candidates": [{k: v for k, v in c.items() if k not in ("fold_scores", "fold_gains")} for c in r.get("candidates") or []]}
+        out.append(r)
+    return out
+
+
+def history(project: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every improvement run the project kept, oldest first, each with its number. A project improved before runs were kept has its
+    one latest run as run 1."""
+    runs = [dict(r) for r in project.get("improvement_runs") or [] if isinstance(r, dict)]
+    if not runs and isinstance(project.get("improvements"), dict) and project["improvements"].get("candidates") is not None:
+        runs = [{**project["improvements"], "run": project["improvements"].get("run") or 1}]
+    for i, r in enumerate(runs, 1):
+        r.setdefault("run", i)
+    return runs
 
 
 def adopt_candidate(store: Any, project_id: str, candidate: str) -> dict[str, Any]:
@@ -176,14 +206,27 @@ def adopt_candidate(store: Any, project_id: str, candidate: str) -> dict[str, An
         raise KeyError("That way is not in the last improvement run.")
     if not found["clears"]:
         raise ValueError("That way did not clear the margin on the folds, so it is not offered for adoption.")
+    if project.get("running") == "improve":
+        raise ValueError("An improvement run is going on: adopt once it has finished, from its new report.")
+    now = {"family": engine.chosen(store.read_stage(project_id, "models"), "selected_model"),
+           "recipe": engine.chosen(store.read_stage(project_id, "features"), "selected_recipe")}
+    cur = rec.get("current") or {}
+    if (cur.get("family"), cur.get("recipe")) != (now["family"], now["recipe"]):
+        raise ValueError(f"That run improved {cur.get('family')} on the {cur.get('recipe')} features, but the project now uses {now['family']} on the "
+                         f"{now['recipe']} features: run the improvement again for the current model.")
     if not found["adoptable"]:
-        raise ValueError("That way changes the model family, the features or is a blend: choose it on the Models page, which re-runs the stages after it.")
+        raise ValueError("That way changes the model family, the features or is a blend: another family is chosen on the Models page (which re-runs the final stage); other features and a blend cannot be adopted yet.")
     project["adopted_improvement"] = {"id": candidate, "family": found["family"], "recipe": found["recipe"], "params": found["params"], "gain": found["gain"],
                                       "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
     rec["adopted"] = candidate
     project["improvements"] = rec
+    runs = history(project)
+    for r in runs:  # the run the way came from carries the mark too (the latest run is the one adopted from)
+        if r.get("run") == rec.get("run", runs[-1]["run"] if runs else None):
+            r["adopted"] = candidate
+    project["improvement_runs"] = _compact(runs)
     store.save(project)
     return project["adopted_improvement"]
 
 
-__all__ = ["run", "adopt_candidate", "NOTE"]
+__all__ = ["run", "adopt_candidate", "history", "NOTE"]

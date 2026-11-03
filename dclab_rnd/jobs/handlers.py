@@ -246,7 +246,8 @@ def _improve_run(s: Any, payload: dict[str, Any]) -> None:
     draft_id = (p.get("draft") or {}).get("id")
     try:
         record = improve.run(s.projects, pid)
-    except ValueError as exc:  # a project that cannot be improved here: said in its chat, not a failed job
+    except ValueError as exc:  # a project that cannot be improved here: said in its chat and on the project (the Models page reads it), not a failed job
+        s.projects.log(pid, "improve_run", {"state": "refused", "why": str(exc)})
         if draft_id:
             s.draft_work.agent(draft_id).say(draft_id, str(exc))
         return
@@ -259,11 +260,24 @@ def _improve_run(s: Any, payload: dict[str, Any]) -> None:
         text = (f"I tried {tried} ways to improve the model, on the training folds only. "
                 + (f"{clear} cleared the margin; the best is {best['label']}, {record['metric']} {best['mean']:.4f} against {record['current']['mean']:.4f} "
                    f"({best['folds_better']} of {record['folds']} folds better). Adopt it to use it in the next final run." if best else
-                   (f"{clear} cleared the margin, but none can be adopted here (another family, other features or a blend: choose it on the Models page)." if clear else
+                   (f"{clear} cleared the margin, but none can be adopted as it is: " + _not_adoptable(record) if clear else
                     "None beat the current model by more than the noise of the folds, so the honest answer is that this model is about as good as these ways can make it: "
                     "more cases, a new column known at the prediction moment, or a cleaner label would be the next step.")))
         s.draft_work.agent(draft_id).say(draft_id, text, kind="improvement_report", report={"project": pid, **{k: record[k] for k in ("metric", "higher_is_better", "folds", "current", "aspects", "best", "skipped", "note", "adopted")},
                                                                                              "candidates": [{k: c[k] for k in ("id", "aspect", "label", "mean", "gain", "folds_better", "clears", "adoptable", "why")} for c in record["candidates"]]})
+
+
+def _not_adoptable(record: dict[str, Any]) -> str:
+    """Where a way that cleared but is not adoptable here can be used, said truthfully: another family is chosen on the Models page;
+    other features and a blend have no place to be adopted yet."""
+    cleared = [c for c in record["candidates"] if c["clears"] and not c["adoptable"]]
+    current = record["current"]["family"]
+    family = any(c["family"] != current and c["id"] != "blend" for c in cleared)
+    other = any(c["family"] == current or c["id"] == "blend" for c in cleared)
+    parts = (["another model family can be chosen on the Models page (Choose a different model; the final stage then tunes it again, so the way's "
+              "own settings are not carried over)"] if family else []) \
+        + (["other features or a blend cannot be adopted yet"] if other else [])
+    return "; ".join(parts) + ". Every run is kept on the Models page, under Improvements, and its ways are in the models table."
 
 
 def _improve_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
