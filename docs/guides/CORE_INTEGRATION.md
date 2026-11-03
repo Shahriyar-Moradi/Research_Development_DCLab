@@ -1291,3 +1291,11 @@ the reason for the agent to read. `case.readiness(case)` decides when options ma
 `case.check_options(options, case, columns=, computed=)` decides which. The main product has no case of its own at the
 pinned commit: it reads the problem card through `case.to_card(case)` and maps it with the card's adapters as before
 (`adapters.main_product.problem_spec`), so a person's correction on the case reaches its ProblemSpec.
+
+## Evaluation results in one shape (DCLab Bench, 2026-11-03)
+
+`dclab_core.bench` (0.153.0) reads any evaluation result into `BenchRow` v1 rows: its verdict (pass, fail or not scored, from
+every shape a suite may write), its `[k, n]` counts with their 95% interval, split, gate, cost, model and prompt; `layer_status`
+says red, amber, thin, green or empty from the latest result of each track (split and decision point) of each suite. The main
+product has no row that maps onto it (`CONTRACT_ADAPTERS`: a library output): it would call `rows_of` on its own evaluation
+results (its experiment reviews, its gates) and keep the rows beside them. Nothing crosses between the repositories.

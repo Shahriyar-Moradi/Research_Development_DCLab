@@ -93,6 +93,7 @@ SPECIAL = {
     ("GET", "/api/twin/settings"): "read",
     ("PUT", "/api/twin/settings"): "admin",
     ("GET", "/api/twin/sessions"): "timelines",
+    ("GET", "/api/admin/bench"): "admin",  # DCLab Bench (2026-11-03): every evaluation of DCLab by layer, the owner's
     ("GET", "/api/evaluation"): "review",  # 25.8: every model's scores, as the decision ledger's summary
     ("PUT", "/api/workspace/budgets/{user_id}"): "admin",  # 25.10: one person's monthly model limit, the owner's
     ("GET", "/api/workspace/budgets"): "admin",

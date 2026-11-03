@@ -4,6 +4,14 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.153.0 (2026-11-03)
+
+- `bench` (new, DCLab Bench B1): `BenchRow` v1, one measurement of one evaluation result (its verdict, a count with its
+  95% interval, or a summary number, with split, gate, cost, model, prompt and commit). `verdict_of` reads every verdict
+  shape the suites wrote (a string, a dict with `pass`, `passed` or `status`, a top-level `result` or `passed`, the
+  `passes` list) into True, False or None, never a silent failure; `counts` reads the `[k, n]` counts with the interval the
+  suite stored or Wilson's; `layer_status` says red, amber, thin, green or empty from each suite's latest result.
+
 ## 0.152.0 (2026-11-01)
 
 - `case.named_tracks` (new) and `case.readiness`: the kind of help a person's own words plainly name ("which bookings are

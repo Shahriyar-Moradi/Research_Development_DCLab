@@ -56,6 +56,44 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(suite["latest"]["summary"]["right"], 9.0)
         self.assertNotIn("note", suite["latest"]["summary"])  # only numbers
 
+    def test_every_verdict_shape_is_read_and_an_old_misread_is_read_again(self):
+        """2026-11-03: a dict verdict (the analyst's, Home conversation's) was read as str(dict) and counted a failure."""
+        results = Path(tempfile.mkdtemp())
+        (results / "analyst_v1" / "results").mkdir(parents=True)
+        (results / "analyst_v1" / "results" / "ANA-004_sealed.json").write_text(json.dumps(
+            {"at": "2026-10-20T10:00:00+00:00", "verdict": {"gate": "analyst_gate_v1", "status": "pass"}}))
+        (results / "analyst_v1" / "results" / "ANA-005_dev.json").write_text(json.dumps(
+            {"at": "2026-10-21T10:00:00+00:00", "verdict": {"gate": "x", "status": "not scored (rules only)"}}))
+        stale = {"at": "2026-10-20T10:00:00+00:00", "agent": "analyst_v1", "source": "eval", "ref": "ANA-004_sealed",
+                 "metric": "eval_pass", "value": 0.0, "n": 1, "extra": {"verdict": "{'gate': 'analyst_gate_v1'"}}
+        target = am.path_of(self.home)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(stale) + "\n")  # what the old reader left in a workspace
+        am.sync_eval(self.home, results)
+        rows = [r for r in am.series(self.home) if r.get("metric") in am.VERDICTS]
+        latest = {}
+        for r in rows:
+            latest[(r["ref"], r["metric"])] = r["value"]
+        self.assertEqual(latest[("ANA-004_sealed", "eval_pass")], 1.0)  # read again, now a pass
+        self.assertIn(("ANA-005_dev", "eval_unscored"), latest)  # not scored is not a failure
+        self.assertNotIn(("ANA-005_dev", "eval_pass"), latest)
+        self.assertEqual(am.sync_eval(self.home, results), 0)  # and only once
+
+    def test_an_old_misread_of_an_unscored_dict_verdict_is_replaced(self):
+        """Review F4: a dict verdict with neither pass nor status had its old 0 left in place forever."""
+        results = Path(tempfile.mkdtemp())
+        (results / "time_decision_v5" / "results").mkdir(parents=True)
+        (results / "time_decision_v5" / "results" / "TDC-901_decision.json").write_text(json.dumps(
+            {"at": "2026-10-20T10:00:00+00:00", "verdict": {"daily": {"x": 1}}}))
+        stale = {"at": "2026-10-20T10:00:00+00:00", "agent": "time_decision_v5", "source": "eval", "ref": "TDC-901_decision",
+                 "metric": "eval_pass", "value": 0.0, "n": 1, "extra": {"verdict": "{'daily': {'x': 1}}"}}
+        target = am.path_of(self.home)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(stale) + "\n")
+        self.assertEqual(am.sync_eval(self.home, results), 1)
+        result = am.scorecard(self.home)["suites"][0]
+        self.assertEqual(result["failed"], 0)
+
     def test_wilson_is_the_known_interval(self):
         lo, hi = am.wilson(8, 10)
         self.assertAlmostEqual(lo, 0.4902, places=3)

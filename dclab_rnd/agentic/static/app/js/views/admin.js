@@ -191,7 +191,7 @@ DC.view('admin', {
     this.S.offset = 0;
     await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadAgents(el),
       // dclab:closed-begin  (the twin, the students, the teams, the datasets and the evaluation board: the full edition's)
-      this.loadDatasets(el), this.loadFailures(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el),
+      this.loadDatasets(el), this.loadFailures(el), this.loadBench(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el),
       // dclab:closed-end
     ]);
   },
@@ -379,6 +379,40 @@ DC.view('admin', {
         await this.loadTwin(el);
       });
     }
+  },
+
+  // DCLab Bench (2026-11-03): every evaluation of DCLab by layer, read from GET /api/admin/bench
+  async loadBench(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.adminBench({ quiet: true }); } catch (e) { DC.states.failed($('#bn-layers', el), e, { retry: () => this.loadBench(el), cols: 5 }); return; }
+    const n = v => Number(v || 0).toLocaleString('en-US');
+    const pill = { red: 'bad', amber: 'warn', thin: 'info', green: 'ok', empty: 'outline' };
+    const verdict = s => s.passed === true ? '<span class="pill ok">pass</span>' : s.passed === false ? '<span class="pill bad">fail</span>' : '<span class="pill outline">not scored</span>';
+    const layers = Object.entries(r.layers || {});
+    $('#bn-stats', el).innerHTML = [[layers.filter(([, l]) => l.status === 'red').length + ' of ' + layers.length, 'layers red'], [n(r.results), 'results read'],
+      [n((r.history || []).length), 'recorded runs'], ['€' + Number(r.spent_eur || 0).toFixed(2), 'spent by the results that say']]
+      .map(([v, l]) => `<div class="stat"><span class="v">${esc(String(v))}</span><span class="l">${esc(l)}</span></div>`).join('');
+    $('#bn-layers', el).innerHTML = layers.map(([name, l]) => `<tr><td class="mono small">${esc(name.replace(/_/g, ' '))}</td><td><span class="pill ${pill[l.status] || 'outline'}">${esc(l.status)}</span></td>`
+      + `<td class="num mono small" title="${n(l.tracks)} tracks: each split and decision point of a suite is judged on its own">${n(l.suite_count)}</td><td class="num mono small">${n(l.cases)}</td>`
+      + `<td class="small">${(l.reasons || []).slice(0, 4).map(x => esc(x)).join('<br>') || '<span class="muted">nothing against it</span>'}${(l.reasons || []).length > 4 ? `<br><span class="muted">and ${(l.reasons.length - 4)} more</span>` : ''}</td></tr>`).join('');
+    const suites = layers.flatMap(([name, l]) => (l.suites || []).map(s => ({ ...s, layer: name })));
+    const row = s => `<tr><td class="mono small">${esc(s.layer.replace(/_/g, ' '))}</td><td class="mono small">${esc(s.suite)}</td><td class="mono small" title="${esc(s.at || '')}">${esc(s.ref)}</td>`
+      + `<td class="small">${esc(s.split)}</td><td title="${esc(s.verdict || '')}">${verdict(s)}</td>`
+      + `<td class="num mono small">${s.count ? `${n(s.count.k)} of ${n(s.count.n)}${s.count.lower != null ? ` (${Number(s.count.lower).toFixed(2)}–${Number(s.count.upper).toFixed(2)})` : ''}` : '—'}</td>`
+      + `<td class="num mono small">${s.cost_eur != null ? '€' + Number(s.cost_eur).toFixed(2) : '—'}</td><td class="num mono small">${n(s.results)}${s.sealed_results ? ` · ${n(s.sealed_results)} sealed` : ''}</td></tr>`;
+    const paint = () => {
+      const q = ($('#bn-filter', el).value || '').toLowerCase();
+      const shown = suites.filter(s => !q || [s.layer, s.suite, s.ref, s.verdict, s.split].join(' ').toLowerCase().includes(q));
+      if (shown.length) $('#bn-suites', el).innerHTML = shown.map(row).join('');
+      else DC.states.empty($('#bn-suites', el), q ? 'No suite matches the filter.' : 'No evaluation result found.', { cols: 8 });
+    };
+    $('#bn-filter', el).oninput = paint;
+    paint();
+    const hist = (r.history || []).slice().reverse();
+    if (hist.length) $('#bn-history', el).innerHTML = hist.map(h => `<tr><td class="mono small">${esc(h.at || '')}</td><td class="mono small">${esc(h.commit || '')}${h.dirty ? ' <span class="pill outline">changes</span>' : ''}</td>`
+      + `<td class="num mono small">${(Number(h.seconds || 0) / 60).toFixed(1)}</td><td class="small">${Object.entries(h.states || {}).map(([k, v]) => `${esc(k.replace(/_/g, ' '))}: ${esc(v)}`).join(' · ')}</td></tr>`).join('');
+    else DC.states.empty($('#bn-history', el), 'No run recorded yet: make bench records one.', { cols: 4 });
   },
 
   async loadEvaluation(el) {

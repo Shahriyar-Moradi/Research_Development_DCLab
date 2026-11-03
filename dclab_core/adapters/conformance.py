@@ -25,6 +25,7 @@ CONTRACT_ADAPTERS: dict[str, str] = {
     "decision_record": "dclab_core.adapters.main_product_ledger:from_semantic_answer",
     "decision_label": "dclab_core.adapters.main_product_ledger:from_semantic_answer",
     "decision_model_card": LIBRARY + " (the library's record of a classifier it fitted)",
+    "bench_row": LIBRARY + " (one measurement of an evaluation result; a host keeps its own evaluation results and reads them with ``bench.rows_of``)",
     "outcome": "dclab_core.adapters.main_product_outcomes:from_experiment",
     "pipeline": "dclab_core.adapters.main_product_pipeline:pipeline_version",
     "problem_map": "dclab_core.adapters.main_product_problem_map:problem_specs",

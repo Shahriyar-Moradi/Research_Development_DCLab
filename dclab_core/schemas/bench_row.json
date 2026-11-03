@@ -1,0 +1,205 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.bench_row.v1.json",
+  "additionalProperties": false,
+  "description": "One measurement of one evaluation result: its verdict, a count with its interval, or a number of its summary.",
+  "properties": {
+    "at": {
+      "default": "",
+      "maxLength": 40,
+      "title": "At",
+      "type": "string"
+    },
+    "commit": {
+      "default": "",
+      "maxLength": 40,
+      "title": "Commit",
+      "type": "string"
+    },
+    "cost_eur": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cost Eur"
+    },
+    "gate": {
+      "default": "",
+      "maxLength": 80,
+      "title": "Gate",
+      "type": "string"
+    },
+    "k": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "K"
+    },
+    "layer": {
+      "enum": [
+        "software",
+        "agents",
+        "lead_agent",
+        "llm_roles",
+        "team",
+        "decision_models",
+        "retrieval_memory",
+        "data_science",
+        "system_tasks",
+        "external"
+      ],
+      "title": "Layer",
+      "type": "string"
+    },
+    "lower": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lower"
+    },
+    "metric": {
+      "default": "verdict",
+      "maxLength": 120,
+      "title": "Metric",
+      "type": "string"
+    },
+    "model": {
+      "default": "",
+      "maxLength": 120,
+      "title": "Model",
+      "type": "string"
+    },
+    "n": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "N"
+    },
+    "passed": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The verdict: True, False, or None when the result was not scored.",
+      "title": "Passed"
+    },
+    "prompt": {
+      "default": "",
+      "maxLength": 80,
+      "title": "Prompt",
+      "type": "string"
+    },
+    "ref": {
+      "description": "The result's id (its file name).",
+      "maxLength": 120,
+      "title": "Ref",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.bench_row.v1",
+      "default": "dclab_core.bench_row.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seconds": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Seconds"
+    },
+    "split": {
+      "default": "unknown",
+      "enum": [
+        "dev",
+        "sealed",
+        "test",
+        "live",
+        "unknown"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "suite": {
+      "description": "The suite (an evidence campaign, or a bench layer's own run).",
+      "maxLength": 80,
+      "title": "Suite",
+      "type": "string"
+    },
+    "upper": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Upper"
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Value"
+    },
+    "verdict": {
+      "default": "",
+      "description": "The result's own verdict words, cut.",
+      "maxLength": 200,
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "suite",
+    "ref",
+    "layer"
+  ],
+  "title": "BenchRow",
+  "type": "object"
+}

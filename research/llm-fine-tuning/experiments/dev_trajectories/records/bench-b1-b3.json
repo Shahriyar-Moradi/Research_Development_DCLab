@@ -1,0 +1,162 @@
+{
+ "package": "bench-b1-b3",
+ "title": "DCLab Bench: one shape for every evaluation result, each campaign in a layer, the free runner and the Admin page's Benchmark tab",
+ "date": "2026-11-03",
+ "request": "The owner asked whether DCLab evaluates itself as a whole (the system, its AI, agents, LLMs and multi-agent team) and for one benchmark of our own, with tracking and improvement over time.",
+ "spec": "Every result in evidence/campaigns read into one row shape with its verdict (pass, fail or not scored, never a silent failure), its counts with intervals, split, gate, cost and model; each campaign in one named layer; each layer judged red, amber, thin, green or empty from its suites' latest results with the reasons; a free runner that records each run once; the same view on the Admin page for the owner.",
+ "plan": [
+  "survey every verdict shape the suites wrote",
+  "the BenchRow contract and the reader in dclab_core",
+  "fix the metrics ledger that read dict verdicts as failures",
+  "map every campaign to a layer and test that none is left out",
+  "a runner of the free suites that records each run once",
+  "the Admin page's Benchmark tab behind an owner-only route"
+ ],
+ "decisions": [
+  {
+   "decision": "No weighted total score: each layer is red, amber, thin, green or empty with its reasons",
+   "why": "a total would let green layers hide a red one; the owner needs to see what fails"
+  },
+  {
+   "decision": "A result without a gate's verdict is not scored (amber), never a failure",
+   "why": "most results are measurements without a gate; counting them as failures was the defect found in the metrics ledger"
+  },
+  {
+   "decision": "The summary is computed when asked, not written as a generated file",
+   "why": "a generated summary would go stale with every new result and make every package rerun it; the recorded runs are the only files"
+  },
+  {
+   "decision": "The runner only runs scripted suites on dev, with live models off",
+   "why": "sealed sets are read once and live runs cost money; a test checks the command list"
+  }
+ ],
+ "change": "dclab_core/bench.py (BenchRow v1, verdict_of, counts, rows_of, layer_status), dclab_core 0.153.0, CHANGELOG, schemas; dclab_rnd/bench/ (LAYER_OF, COMMANDS, evidence_rows, run, summary, the command line); dclab_rnd/agent_metrics.py (eval_rows uses verdict_of, older verdict rows read again once); dclab_rnd/agentic/pages/bench.py and the owner-only route in accounts/guard.py; views/admin.html Benchmark tab; Makefile bench and bench-read; docs/guides/BENCHMARK.md, docs/SYSTEM_EVALUATION.md, CLAUDE.md, the data catalog; tests/test_bench_core.py, tests/test_bench.py, tests/test_agent_metrics.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The metrics ledger counted every dict verdict as a failure",
+   "scenario": "an analyst result with verdict {gate, status: pass} was read as the text of the dict, which does not start with pass, so the scorecard showed a passing suite as failed",
+   "cause": "agent_metrics.eval_rows read str(doc.get('verdict')) and tested startswith('pass')",
+   "fix": "eval_rows reads the verdict with dclab_core.bench.verdict_of; a not-scored result is its own metric; verdict rows an older reader wrote are read again once and the later row wins",
+   "test": "tests/test_agent_metrics.py test_every_verdict_shape_is_read_and_an_old_misread_is_read_again"
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Counts stored under a part of the result were not read, so most layers showed no cases",
+   "scenario": "the agent suite keeps leaks_caught under summary.audit; the first reading found no count for it",
+   "cause": "counts looked only at the top of the result and the top of its summary",
+   "fix": "counts walks up to three levels and keeps at most a fixed number of counts per result",
+   "test": "tests/test_bench_core.py CountTests"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A later dev result hid a failed sealed result, and one decision point's result hid the others",
+   "scenario": "journeys_v1 had sealed v6 failing and later dev runs passing, and the suite read as a pass; decision_models_v1 counted only its last judged point",
+   "cause": "only the newest result of a whole campaign counted, though a campaign holds independent gates side by side",
+   "fix": "each split and decision point of a suite is its own track (track_of), judged by its own newest result",
+   "test": "tests/test_bench_core.py test_each_decision_point_and_split_is_its_own_track; tests/test_bench.py test_a_later_dev_pass_never_hides_a_failed_sealed_result"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An undated result never counted as the newest",
+   "scenario": "search_v3's decision result carried no date and failed, but an older dated result without a verdict was read instead",
+   "cause": "an empty date sorted before every date",
+   "fix": "a track's results are ordered by their number first, then their date",
+   "test": "tests/test_bench_core.py test_an_undated_result_is_ordered_by_its_number"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A verdict made of pass and fail words per part read as not scored",
+   "scenario": "the time decisions wrote verdicts such as pooled fail and daily pass, and their failures showed as amber",
+   "cause": "the reader knew only the pass, passed and status keys of a dict verdict",
+   "fix": "when every text part of a dict verdict reads as pass or fail, any fail is a failure and all passes a pass",
+   "test": "tests/test_bench_core.py test_every_shape_the_suites_wrote"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An old misread verdict stayed in a workspace's ledger forever",
+   "scenario": "a ledger holding the old reader's failure for a dict verdict the new reader cannot score kept showing the suite as failed",
+   "cause": "the new reader wrote nothing for such a verdict, so nothing replaced the old row",
+   "fix": "any verdict the reader cannot score is written as not scored, which replaces the older row",
+   "test": "tests/test_agent_metrics.py test_an_old_misread_of_an_unscored_dict_verdict_is_replaced"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A misspelt layer recorded an empty run",
+   "scenario": "make bench with a layer name that has no suites wrote a run with no commands into the history",
+   "cause": "layers without free suites were silently dropped",
+   "fix": "an unknown or empty choice of layers is refused before anything runs",
+   "test": "tests/test_bench.py test_an_unknown_layer_is_refused_before_anything_runs"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Two runs started in the same second could lose the second run's record after it had run",
+   "scenario": "two make bench runs on one commit in one second: the second fails only when it writes, after its suites ran",
+   "cause": "the record's name held only the second and the commit",
+   "fix": "the record's name also holds the process id",
+   "test": "tests/test_bench.py test_a_run_is_recorded_once_with_each_command_timed"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The route's owner-only rule was untested",
+   "scenario": "without its guard entry any member could read the route, since a read defaults to the read permission",
+   "cause": "no test checked the guard entry",
+   "fix": "a test checks the route needs the admin permission and that only the owner has it",
+   "test": "tests/test_bench.py test_the_route_is_the_owners_only"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A recorded baseline read as a gate passed",
+   "scenario": "the learning campaign's ok, baseline recorded result counted as a pass",
+   "cause": "an ok at the start of a verdict was read as a pass",
+   "fix": "an ok that records a baseline is not scored",
+   "test": "tests/test_bench_core.py test_every_shape_the_suites_wrote"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the first reading of every recorded result",
+   "gate": "a hand count of verdicts against the reader for several campaigns",
+   "fixed_before_run": true,
+   "result": "the decision models campaign reads as its result files say (two passes, the rest failures); the exam's practice runs read as not scored; every campaign has a layer",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the reader trusts each suite's own verdict; it does not judge whether a gate was a good one",
+    "layers with mostly ungated measurements stay amber until those suites get gates"
+   ]
+  }
+ ],
+ "outcome": "DCLab has one view of all its evaluations by layer and track, in the command line and on the Admin page, with the history of recorded runs; the honest first reading shows six layers red.",
+ "lessons": [
+  "read the shapes the data really has before writing the reader: four verdict shapes and three places for counts were all in use",
+  "a dashboard that silently drops what it cannot read lies; unknown shapes must show as not scored",
+  "a campaign is not one measurement: splits and decision points inside it are separate gates, and the newest result of one must never stand for the others"
+ ],
+ "risks": [
+  "the layer of a campaign is a judgment in LAYER_OF and may need the owner's review",
+  "the software layer stays empty until the first make bench run is recorded",
+  "the runner's suites take long on this Mac and share its memory with everything else"
+ ],
+ "commits": []
+}

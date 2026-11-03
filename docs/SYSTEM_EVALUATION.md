@@ -4,28 +4,25 @@ The question is whether the system makes useful, evidence-supported decisions on
 new work. Passing software tests is necessary, but it does not establish that an
 agent's next experiment is a good choice or that a model will work in production.
 
-## Run the audit now
+## Run the audit now (DCLab Bench, 2026-11-03)
 
 ```bash
-make rd-eval
-.venv/bin/python -m dclab_rnd.system_eval \
-  --output output/evaluation/NEW_UNIQUE_REPORT_NAME.json \
-  --markdown-output output/evaluation/NEW_UNIQUE_REPORT_NAME.md
+make bench-read   # every layer's state and why, from the recorded results (no run)
+make bench        # run the free suites of every layer, record the run in evidence/bench/runs/, then read
 ```
 
-The evaluator reads archived Research Studio trajectories and trial files. It does
-not call an LLM, train a model, consume a holdout, or change trial evidence. An
-existing output path is rejected so each report remains an immutable snapshot.
+DCLab Bench reads every result in `evidence/campaigns/` into one shape (`dclab_core.bench.BenchRow`), each campaign in its
+layer (software, agents, lead agent, LLM roles, team, decision models, retrieval and memory, data-science quality, system
+tasks, external), and says each layer red, amber, thin, green or empty with its reasons. There is no total score. Sealed
+results are shown and never rerun. The Admin page's Benchmark tab shows the same. See `docs/guides/BENCHMARK.md`.
 
-## Live specialist and real-notebook pilots
+The commands this page used to name (`make rd-eval`, `dclab_rnd.system_eval`, `make notebook-eval`, `make
+agent-live-eval`, `make agent-trace-eval`) no longer exist; the paragraphs below describe the earlier pilots as history.
 
-Two additive, frozen development suites now test actual behavior rather than
-counting archived experiments as agent competence:
+## Live specialist and real-notebook pilots (history)
 
-```bash
-make notebook-eval
-make agent-live-eval
-```
+Two additive, frozen development suites tested actual behavior rather than
+counting archived experiments as agent competence (their commands were removed):
 
 The notebook suite reads the existing HyperAck classification and churn demo
 notebooks without executing or editing them. `evaluation/notebook_cases_v1.json`

@@ -33,8 +33,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
+from dclab_core import bench
+
 FILE = "agent_metrics.jsonl"
 RATES = ("request_ok", "output_check", "step_ok", "proposal_accepted", "feedback_helpful")  # metrics whose value is 1 or 0
+VERDICTS = ("eval_pass", "eval_unscored")
+READER = 2  # 2026-11-03: dclab_core.bench.verdict_of; a ledger's verdict rows read before it are read again once
 _LOCK = threading.Lock()
 _PROMPTS: dict[str, Optional[str]] = {}
 
@@ -140,10 +144,13 @@ def eval_rows(results: Path) -> list[dict[str, Any]]:
             continue
         suite, ref = path.parent.parent.name, path.stem
         at = str(doc.get("at") or doc.get("created") or datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(timespec="seconds"))
-        verdict = str(doc.get("verdict") or "").lower()
+        passed, verdict = bench.verdict_of(doc)  # every verdict shape; a dict verdict used to read as a failure
         base = {"at": at, "agent": suite, "source": "eval", "ref": ref, "n": 1, "model": None, "run": None, "prompt": None}
-        if verdict:
-            rows.append({**base, "metric": "eval_pass", "value": 1.0 if verdict.startswith(("pass", "ok", "passed")) else 0.0, "extra": {"verdict": verdict[:40]}})
+        if passed is not None:
+            rows.append({**base, "metric": "eval_pass", "value": 1.0 if passed else 0.0, "extra": {"verdict": verdict.lower()[:40], "reader": READER}})
+        elif verdict or doc.get("verdict") not in (None, ""):  # any verdict the reader cannot score replaces an older misread
+            words = verdict or json.dumps(doc.get("verdict"), ensure_ascii=False, default=str)
+            rows.append({**base, "metric": "eval_unscored", "value": 1.0, "extra": {"verdict": words.lower()[:40], "reader": READER}})
         if isinstance(doc.get("spent_eur"), (int, float)):
             rows.append({**base, "metric": "eval_spent_eur", "value": float(doc["spent_eur"])})
         summary = doc.get("summary")
@@ -164,7 +171,8 @@ def sync_eval(home: Any = None, results: Optional[Path] = None) -> int:
     results = results or ROOT / "evidence" / "campaigns"
     if not Path(results).is_dir():
         return 0  # a deployment without the repository's evidence: nothing to read
-    have = {(r.get("ref"), r.get("metric")) for r in series(home) if r.get("source") == "eval"}
+    have = {(r.get("ref"), r.get("metric")) for r in series(home) if r.get("source") == "eval"
+            and (r.get("metric") not in VERDICTS or (r.get("extra") or {}).get("reader") == READER)}  # an older verdict is read again; the later row wins
     fresh = [r for r in eval_rows(results) if (r["ref"], r["metric"]) not in have]
     if not fresh:
         return 0
@@ -190,6 +198,8 @@ def scorecard(home: Any = None, *, days: int = 30, rows: Optional[Iterable[dict[
             res = s["results"].setdefault(str(r.get("ref")), {"ref": r.get("ref"), "at": r.get("at"), "pass": None, "spent_eur": None, "summary": {}})
             if r["metric"] == "eval_pass":
                 res["pass"] = bool(r["value"])
+            elif r["metric"] == "eval_unscored":
+                res["pass"] = None
             elif r["metric"] == "eval_spent_eur":
                 res["spent_eur"] = r["value"]
             elif str(r["metric"]).startswith("summary."):

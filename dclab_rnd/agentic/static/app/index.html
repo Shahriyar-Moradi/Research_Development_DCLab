@@ -2293,6 +2293,30 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
   </div>
 
   <!-- dclab:closed-begin -->
+  <div class="pane" data-pane="bench" data-label="Benchmark">
+    <div class="stats" id="bn-stats">
+      <div class="stat"><span class="v">—</span><span class="l">layers red</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">results read</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">recorded runs</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">spent by the results that say</span></div>
+    </div>
+    <div class="panel" data-f="admin.bench_layers">
+      <div class="panel-head"><div class="panel-title"><h2>DCLab Bench: every layer</h2><span class="sub">Each layer's state from the latest result of each track of its suites (a track is one split and one decision point, so a later practice run never hides a failed sealed one): red when one failed, amber when one has no gate's verdict, thin when fewer than 20 cases stand behind the scored ones. No total score: a red layer is never averaged away. Sealed results are shown, never rerun here. Run the free suites with <code>make bench</code></span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Layer</th><th>State</th><th class="num">Suites</th><th class="num">Cases</th><th>Why</th></tr></thead><tbody id="bn-layers"></tbody></table></div>
+    </div>
+    <div class="panel" data-f="admin.bench_suites">
+      <div class="panel-head"><div class="panel-title"><h2>The latest result of each suite</h2><span class="sub">Its verdict, split, date, its largest count with the 95% interval, cost and how many results it has. Filter by layer, suite or verdict</span></div>
+        <label class="sr-only" for="bn-filter">Filter</label><input type="search" id="bn-filter" placeholder="Filter by layer, suite or verdict" data-style="max-width:240px"></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Layer</th><th>Suite</th><th>Latest</th><th>Split</th><th>Verdict</th><th class="num">Count</th><th class="num">Cost</th><th class="num">Results</th></tr></thead><tbody id="bn-suites"></tbody></table></div>
+    </div>
+    <div class="panel" data-f="admin.bench_history">
+      <div class="panel-head"><div class="panel-title"><h2>Recorded runs</h2><span class="sub">Each <code>make bench</code> run: its commit, whether the tree had changes, how long it took and each layer's state then</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>When</th><th>Commit</th><th class="num">Minutes</th><th>States</th></tr></thead><tbody id="bn-history"></tbody></table></div>
+    </div>
+  </div>
+  <!-- dclab:closed-end -->
+
+  <!-- dclab:closed-begin -->
   <div class="pane" data-pane="evaluation" data-label="Evaluation">
     <div class="stats" id="ev-stats">
       <div class="stat"><span class="v">—</span><span class="l">answerers scored</span></div>

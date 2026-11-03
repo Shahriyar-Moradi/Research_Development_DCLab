@@ -247,6 +247,7 @@
    */
 
   const ROUTES = {
+    adminBench: ["GET", "/admin/bench", [], []],
     me: ["GET", "/auth/me", [], []],
     signIn: ["POST", "/auth/password", [], []],
     signOut: ["POST", "/auth/signout", [], []],
@@ -482,6 +483,12 @@
   }
 
   const client = { path: {}, href: {} };
+  /** GET /api/admin/bench: Admin Bench
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.adminBench = (...args) => call('adminBench', args);
+  client.path.adminBench = (...args) => build('adminBench', args).path;
+  client.href.adminBench = (...args) => '/api' + build('adminBench', args).path;
   /** GET /api/auth/me: Me
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

@@ -221,6 +221,30 @@
   </div>
 
   <!-- dclab:closed-begin -->
+  <div class="pane" data-pane="bench" data-label="Benchmark">
+    <div class="stats" id="bn-stats">
+      <div class="stat"><span class="v">—</span><span class="l">layers red</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">results read</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">recorded runs</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">spent by the results that say</span></div>
+    </div>
+    <div class="panel" data-f="admin.bench_layers">
+      <div class="panel-head"><div class="panel-title"><h2>DCLab Bench: every layer</h2><span class="sub">Each layer's state from the latest result of each track of its suites (a track is one split and one decision point, so a later practice run never hides a failed sealed one): red when one failed, amber when one has no gate's verdict, thin when fewer than 20 cases stand behind the scored ones. No total score: a red layer is never averaged away. Sealed results are shown, never rerun here. Run the free suites with <code>make bench</code></span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Layer</th><th>State</th><th class="num">Suites</th><th class="num">Cases</th><th>Why</th></tr></thead><tbody id="bn-layers"></tbody></table></div>
+    </div>
+    <div class="panel" data-f="admin.bench_suites">
+      <div class="panel-head"><div class="panel-title"><h2>The latest result of each suite</h2><span class="sub">Its verdict, split, date, its largest count with the 95% interval, cost and how many results it has. Filter by layer, suite or verdict</span></div>
+        <label class="sr-only" for="bn-filter">Filter</label><input type="search" id="bn-filter" placeholder="Filter by layer, suite or verdict" data-style="max-width:240px"></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Layer</th><th>Suite</th><th>Latest</th><th>Split</th><th>Verdict</th><th class="num">Count</th><th class="num">Cost</th><th class="num">Results</th></tr></thead><tbody id="bn-suites"></tbody></table></div>
+    </div>
+    <div class="panel" data-f="admin.bench_history">
+      <div class="panel-head"><div class="panel-title"><h2>Recorded runs</h2><span class="sub">Each <code>make bench</code> run: its commit, whether the tree had changes, how long it took and each layer's state then</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>When</th><th>Commit</th><th class="num">Minutes</th><th>States</th></tr></thead><tbody id="bn-history"></tbody></table></div>
+    </div>
+  </div>
+  <!-- dclab:closed-end -->
+
+  <!-- dclab:closed-begin -->
   <div class="pane" data-pane="evaluation" data-label="Evaluation">
     <div class="stats" id="ev-stats">
       <div class="stat"><span class="v">—</span><span class="l">answerers scored</span></div>
@@ -490,7 +514,7 @@ DC.view('admin', {
     this.S.offset = 0;
     await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadAgents(el),
       // dclab:closed-begin  (the twin, the students, the teams, the datasets and the evaluation board: the full edition's)
-      this.loadDatasets(el), this.loadFailures(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el),
+      this.loadDatasets(el), this.loadFailures(el), this.loadBench(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el),
       // dclab:closed-end
     ]);
   },
@@ -678,6 +702,40 @@ DC.view('admin', {
         await this.loadTwin(el);
       });
     }
+  },
+
+  // DCLab Bench (2026-11-03): every evaluation of DCLab by layer, read from GET /api/admin/bench
+  async loadBench(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.adminBench({ quiet: true }); } catch (e) { DC.states.failed($('#bn-layers', el), e, { retry: () => this.loadBench(el), cols: 5 }); return; }
+    const n = v => Number(v || 0).toLocaleString('en-US');
+    const pill = { red: 'bad', amber: 'warn', thin: 'info', green: 'ok', empty: 'outline' };
+    const verdict = s => s.passed === true ? '<span class="pill ok">pass</span>' : s.passed === false ? '<span class="pill bad">fail</span>' : '<span class="pill outline">not scored</span>';
+    const layers = Object.entries(r.layers || {});
+    $('#bn-stats', el).innerHTML = [[layers.filter(([, l]) => l.status === 'red').length + ' of ' + layers.length, 'layers red'], [n(r.results), 'results read'],
+      [n((r.history || []).length), 'recorded runs'], ['€' + Number(r.spent_eur || 0).toFixed(2), 'spent by the results that say']]
+      .map(([v, l]) => `<div class="stat"><span class="v">${esc(String(v))}</span><span class="l">${esc(l)}</span></div>`).join('');
+    $('#bn-layers', el).innerHTML = layers.map(([name, l]) => `<tr><td class="mono small">${esc(name.replace(/_/g, ' '))}</td><td><span class="pill ${pill[l.status] || 'outline'}">${esc(l.status)}</span></td>`
+      + `<td class="num mono small" title="${n(l.tracks)} tracks: each split and decision point of a suite is judged on its own">${n(l.suite_count)}</td><td class="num mono small">${n(l.cases)}</td>`
+      + `<td class="small">${(l.reasons || []).slice(0, 4).map(x => esc(x)).join('<br>') || '<span class="muted">nothing against it</span>'}${(l.reasons || []).length > 4 ? `<br><span class="muted">and ${(l.reasons.length - 4)} more</span>` : ''}</td></tr>`).join('');
+    const suites = layers.flatMap(([name, l]) => (l.suites || []).map(s => ({ ...s, layer: name })));
+    const row = s => `<tr><td class="mono small">${esc(s.layer.replace(/_/g, ' '))}</td><td class="mono small">${esc(s.suite)}</td><td class="mono small" title="${esc(s.at || '')}">${esc(s.ref)}</td>`
+      + `<td class="small">${esc(s.split)}</td><td title="${esc(s.verdict || '')}">${verdict(s)}</td>`
+      + `<td class="num mono small">${s.count ? `${n(s.count.k)} of ${n(s.count.n)}${s.count.lower != null ? ` (${Number(s.count.lower).toFixed(2)}–${Number(s.count.upper).toFixed(2)})` : ''}` : '—'}</td>`
+      + `<td class="num mono small">${s.cost_eur != null ? '€' + Number(s.cost_eur).toFixed(2) : '—'}</td><td class="num mono small">${n(s.results)}${s.sealed_results ? ` · ${n(s.sealed_results)} sealed` : ''}</td></tr>`;
+    const paint = () => {
+      const q = ($('#bn-filter', el).value || '').toLowerCase();
+      const shown = suites.filter(s => !q || [s.layer, s.suite, s.ref, s.verdict, s.split].join(' ').toLowerCase().includes(q));
+      if (shown.length) $('#bn-suites', el).innerHTML = shown.map(row).join('');
+      else DC.states.empty($('#bn-suites', el), q ? 'No suite matches the filter.' : 'No evaluation result found.', { cols: 8 });
+    };
+    $('#bn-filter', el).oninput = paint;
+    paint();
+    const hist = (r.history || []).slice().reverse();
+    if (hist.length) $('#bn-history', el).innerHTML = hist.map(h => `<tr><td class="mono small">${esc(h.at || '')}</td><td class="mono small">${esc(h.commit || '')}${h.dirty ? ' <span class="pill outline">changes</span>' : ''}</td>`
+      + `<td class="num mono small">${(Number(h.seconds || 0) / 60).toFixed(1)}</td><td class="small">${Object.entries(h.states || {}).map(([k, v]) => `${esc(k.replace(/_/g, ' '))}: ${esc(v)}`).join(' · ')}</td></tr>`).join('');
+    else DC.states.empty($('#bn-history', el), 'No run recorded yet: make bench records one.', { cols: 4 });
   },
 
   async loadEvaluation(el) {

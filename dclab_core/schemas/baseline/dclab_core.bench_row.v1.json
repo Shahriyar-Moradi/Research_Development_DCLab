@@ -1,0 +1,178 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "at": {
+      "default": "",
+      "maxLength": 40,
+      "type": "string"
+    },
+    "commit": {
+      "default": "",
+      "maxLength": 40,
+      "type": "string"
+    },
+    "cost_eur": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "gate": {
+      "default": "",
+      "maxLength": 80,
+      "type": "string"
+    },
+    "k": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "layer": {
+      "enum": [
+        "software",
+        "agents",
+        "lead_agent",
+        "llm_roles",
+        "team",
+        "decision_models",
+        "retrieval_memory",
+        "data_science",
+        "system_tasks",
+        "external"
+      ],
+      "type": "string"
+    },
+    "lower": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "metric": {
+      "default": "verdict",
+      "maxLength": 120,
+      "type": "string"
+    },
+    "model": {
+      "default": "",
+      "maxLength": 120,
+      "type": "string"
+    },
+    "n": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "passed": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "prompt": {
+      "default": "",
+      "maxLength": 80,
+      "type": "string"
+    },
+    "ref": {
+      "maxLength": 120,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.bench_row.v1",
+      "default": "dclab_core.bench_row.v1",
+      "type": "string"
+    },
+    "seconds": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "split": {
+      "default": "unknown",
+      "enum": [
+        "dev",
+        "sealed",
+        "test",
+        "live",
+        "unknown"
+      ],
+      "type": "string"
+    },
+    "suite": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "upper": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "verdict": {
+      "default": "",
+      "maxLength": 200,
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "suite",
+    "ref",
+    "layer"
+  ],
+  "type": "object"
+}
