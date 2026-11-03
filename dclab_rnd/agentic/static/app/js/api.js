@@ -250,6 +250,10 @@
     adminBench: ["GET", "/admin/bench", [], []],
     adminBenchMonitors: ["GET", "/admin/bench/monitors", [], ["days"]],
     adminBenchVersions: ["GET", "/admin/bench/versions", [], []],
+    adminControl: ["GET", "/admin/control", [], []],
+    adminControlSet: ["POST", "/admin/control", [], []],
+    adminResumeModels: ["POST", "/admin/control/resume-models", [], []],
+    adminStopJobs: ["POST", "/admin/control/stop-jobs", [], []],
     adminMe: ["GET", "/admin/me", [], []],
     adminPassword: ["POST", "/admin/password", [], []],
     adminSignin: ["POST", "/admin/signin", [], []],
@@ -507,6 +511,27 @@
   client.adminBenchVersions = (...args) => call('adminBenchVersions', args);
   client.path.adminBenchVersions = (...args) => build('adminBenchVersions', args).path;
   client.href.adminBenchVersions = (...args) => '/api' + build('adminBenchVersions', args).path;
+  /** GET /api/admin/control: Admin Control
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.adminControl = (...args) => call('adminControl', args);
+  client.path.adminControl = (...args) => build('adminControl', args).path;
+  client.href.adminControl = (...args) => '/api' + build('adminControl', args).path;
+  /** POST /api/admin/control: Admin Control Set
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.adminControlSet = (...args) => call('adminControlSet', args);
+  client.path.adminControlSet = (...args) => build('adminControlSet', args).path;
+  /** POST /api/admin/control/resume-models: Admin Resume Models
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.adminResumeModels = (...args) => call('adminResumeModels', args);
+  client.path.adminResumeModels = (...args) => build('adminResumeModels', args).path;
+  /** POST /api/admin/control/stop-jobs: Admin Stop Jobs
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.adminStopJobs = (...args) => call('adminStopJobs', args);
+  client.path.adminStopJobs = (...args) => build('adminStopJobs', args).path;
   /** GET /api/admin/me: Admin Me
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

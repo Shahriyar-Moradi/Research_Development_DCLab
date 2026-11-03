@@ -14,6 +14,7 @@ Each module here serves one group of pages and exposes ``register(app, ctx)``:
 - ``twin``      Claude beside the system: the owner's switch and the twin sessions (25.4)
 - ``evaluation`` the evaluation dashboard: Claude and the system, every model's precision, recall, F1 and accuracy (25.8)
 - ``datasets``  the catalog of the training and evaluation sets and their lineage (19.13)
+- ``control``   the Admin page's Control tab: the owner's switches and the machine's state (A3)
 - ``bench``     DCLab Bench: every evaluation of DCLab by layer, with its history (the Admin page's Benchmark tab)
 
 ``ctx`` carries the server's stores so a module never builds its own. A module that is
@@ -26,7 +27,7 @@ import importlib
 from dataclasses import dataclass, field
 from typing import Any
 
-MODULES = ("ops", "lab", "learn", "platform", "evidence", "sessions", "ledger", "consent", "budgets", "datasets", "twin", "evaluation", "students", "team", "bench")
+MODULES = ("ops", "lab", "learn", "platform", "evidence", "sessions", "ledger", "consent", "budgets", "datasets", "twin", "evaluation", "students", "team", "bench", "control")
 
 
 @dataclass

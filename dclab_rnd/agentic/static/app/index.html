@@ -2304,6 +2304,35 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
   </div>
 
   <!-- dclab:closed-begin -->
+  <div class="pane" data-pane="control" data-label="Control">
+    <div class="stats" id="ct-stats">
+      <div class="stat"><span class="v">—</span><span class="l">spent this month</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">running jobs</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">free disk</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">swap in use</span></div>
+    </div>
+    <div class="panel" data-f="admin.control">
+      <div class="panel-head"><div class="panel-title"><h2>Switches</h2><span class="sub">Kept in the workspace (control.json); an environment setting, when present, wins. Changing one asks for the Admin password again when an Admin login is set, and every change is in the audit log</span></div></div>
+      <div class="panel-body stack">
+        <label class="switch"><input type="checkbox" id="ct-live"><span>Live model calls (off: no request reaches a paid provider; the rules serve)</span></label>
+        <label class="field"><span>Monthly cap for the workspace, euro (empty for none)</span><input type="number" min="0" step="1" id="ct-cap" data-style="max-width:160px"></label>
+        <label class="field"><span>Admin password (asked again for these)</span><input type="password" id="ct-pw" autocomplete="current-password" data-style="max-width:260px"></label>
+        <div class="row" data-style="gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn primary" id="ct-save">Save the switches</button>
+          <button type="button" class="btn" id="ct-resume">Resume paused models</button>
+          <button type="button" class="btn danger" id="ct-stop">Stop every job</button>
+        </div>
+        <p class="small" id="ct-note" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+    <div class="panel" data-f="admin.control_state">
+      <div class="panel-head"><div class="panel-title"><h2>The machine now</h2><span class="sub">The nightly store job, the last bench run, the jobs running and the models paused after a refusal</span></div></div>
+      <div class="panel-body small" id="ct-state"></div>
+    </div>
+  </div>
+  <!-- dclab:closed-end -->
+
+  <!-- dclab:closed-begin -->
   <div class="pane" data-pane="bench" data-label="Benchmark">
     <div class="stats" id="bn-stats">
       <div class="stat"><span class="v">—</span><span class="l">layers red</span></div>

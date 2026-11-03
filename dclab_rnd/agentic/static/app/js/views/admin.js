@@ -222,7 +222,7 @@ DC.view('admin', {
     this.S.offset = 0;
     await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadAgents(el),
       // dclab:closed-begin  (the twin, the students, the teams, the datasets and the evaluation board: the full edition's)
-      this.loadDatasets(el), this.loadFailures(el), this.loadBench(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el),
+      this.loadDatasets(el), this.loadFailures(el), this.loadControl(el), this.loadBench(el), this.loadEvaluation(el), this.loadTwin(el), this.loadStudents(el), this.loadTeams(el), this.loadTeamSettings(el),
       // dclab:closed-end
     ]);
   },
@@ -410,6 +410,35 @@ DC.view('admin', {
         await this.loadTwin(el);
       });
     }
+  },
+
+  // A3 (2026-11-03): the owner's switches and the machine's state, from GET /api/admin/control
+  async loadControl(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.adminControl({ quiet: true }); } catch (e) { $('#ct-state', el).textContent = (e && e.message) || 'Could not read the control state.'; return; }
+    const sw = r.switches || {}, sp = r.spend || {}, env = r.environment_wins || {};
+    $('#ct-stats', el).innerHTML = [[sp.month_eur != null ? `€${Number(sp.month_eur).toFixed(2)}${sp.cap_eur ? ' of €' + Number(sp.cap_eur).toFixed(0) : ''}` : '—', 'spent this month'],
+      [(r.jobs || []).length, 'running jobs'], [r.disk_free_gb != null ? r.disk_free_gb + ' GB' : '—', 'free disk'], [r.swap_used_gb != null ? r.swap_used_gb + ' GB' : '—', 'swap in use']]
+      .map(([v, l]) => `<div class="stat"><span class="v">${esc(String(v))}</span><span class="l">${esc(l)}</span></div>`).join('');
+    $('#ct-live', el).checked = sw.live_models !== false;
+    $('#ct-live', el).disabled = !!env.DCLAB_NO_LIVE_MODELS;
+    $('#ct-cap', el).value = sw.workspace_monthly_eur ?? '';
+    $('#ct-cap', el).disabled = !!env.DCLAB_WORKSPACE_MONTHLY_EUR;
+    const st = r.store_job || {}, run = r.last_bench_run;
+    $('#ct-state', el).innerHTML = [`Nightly store job: ${st.loaded ? 'scheduled' : 'not scheduled'}${st.last ? ' · last: ' + esc(st.last) : ''}`,
+      `Last bench run: ${run ? esc(run.at || '') + ' on ' + esc(run.commit || '') : 'none recorded (make bench)'}`,
+      `Models paused after a refusal: ${r.paused_models || 0}`,
+      `Running jobs: ${(r.jobs || []).map(j => esc(`${j.kind} (${j.status})`)).join(', ') || 'none'}`,
+      env.DCLAB_NO_LIVE_MODELS || env.DCLAB_WORKSPACE_MONTHLY_EUR ? 'An environment setting wins over a switch here (DCLAB_NO_LIVE_MODELS or DCLAB_WORKSPACE_MONTHLY_EUR in .env).' : ''].filter(Boolean).map(x => `<div>${x}</div>`).join('');
+    const note = t => { $('#ct-note', el).textContent = t; };
+    const act = async (fn, done) => { try { await fn(); note(done); $('#ct-pw', el).value = ''; this.loadControl(el); } catch (e) { note((e && e.message) || 'Refused.'); } };
+    $('#ct-save', el).onclick = () => {
+      const raw = $('#ct-cap', el).value.trim();
+      act(() => DC.client.adminControlSet({ body: { live_models: $('#ct-live', el).checked, workspace_monthly_eur: raw === '' ? null : Number(raw), password: $('#ct-pw', el).value }, quiet: true }), 'Saved.');
+    };
+    $('#ct-resume', el).onclick = () => act(() => DC.client.adminResumeModels({ quiet: true }), 'Paused models resumed.');
+    $('#ct-stop', el).onclick = () => { if (confirm('Stop every running and queued job?')) act(() => DC.client.adminStopJobs({ body: { password: $('#ct-pw', el).value }, quiet: true }), 'Every job was asked to stop.'); };
   },
 
   // DCLab Bench (2026-11-03): every evaluation of DCLab by layer, read from GET /api/admin/bench

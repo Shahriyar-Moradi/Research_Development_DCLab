@@ -97,7 +97,11 @@ SPECIAL = {
     ("GET", "/api/twin/sessions"): "timelines",
     ("GET", "/api/admin/bench"): "admin",
     ("GET", "/api/admin/bench/versions"): "admin",
-    ("GET", "/api/admin/bench/monitors"): "admin",  # B8: each agent's requests, failures, delay and spend now, and the bug loop  # B5: each agent's prompt versions and how each was measured
+    ("GET", "/api/admin/bench/monitors"): "admin",
+    ("GET", "/api/admin/control"): "admin",  # A3: the owner's switches and the machine's state
+    ("POST", "/api/admin/control"): "admin",
+    ("POST", "/api/admin/control/resume-models"): "admin",
+    ("POST", "/api/admin/control/stop-jobs"): "admin",  # B8: each agent's requests, failures, delay and spend now, and the bug loop  # B5: each agent's prompt versions and how each was measured
     ("POST", "/api/admin/password"): "admin",
     ("GET", "/api/platform/audit"): "audit",  # 2026-11-03: any member with accounts; behind the Admin sign-in without them  # A1: a new admin password (the current one too)  # DCLab Bench (2026-11-03): every evaluation of DCLab by layer, the owner's
     ("GET", "/api/evaluation"): "review",  # 25.8: every model's scores, as the decision ledger's summary

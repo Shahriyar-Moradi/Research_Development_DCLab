@@ -73,10 +73,15 @@ def user_cap(home=None) -> tuple[float | None, str | None]:
     return limits.user_monthly(who.user_id, home), who.user_id  # 25.10: their own limit when the owner set one
 
 
-def workspace_cap() -> float | None:
-    """The workspace's monthly euro cap, DCLAB_WORKSPACE_MONTHLY_EUR (none when unset)."""
+def workspace_cap(home: Any = None) -> float | None:
+    """The workspace's monthly euro cap: DCLAB_WORKSPACE_MONTHLY_EUR when set (it wins), else the owner's cap on the Admin page's
+    Control tab (``control.json``, A3), else none."""
     raw = os.environ.get("DCLAB_WORKSPACE_MONTHLY_EUR", "").strip()
-    return float(raw) if raw else None
+    if raw:
+        return float(raw)
+    from .. import control
+
+    return control.monthly_cap(home)
 
 
 _PRIVATE: contextvars.ContextVar[bool] = contextvars.ContextVar("dclab_private_data", default=False)
@@ -149,7 +154,7 @@ class Gateway:
                     return (f"{purpose} has used its monthly budget: €{spent:.2f} of €{pcap:.2f}, €{max(0.0, pcap - spent):.2f} left; "
                             "a reviewer raises the role's cap on the Models page"), nothing
                 keys.append("r:" + purpose)
-            wcap = workspace_cap()
+            wcap = workspace_cap(getattr(self, "home", None))
             if wcap is not None and since:
                 spent = self.usage.spent(since) + self._held.get("w", 0.0)
                 if spent + estimate > wcap:
@@ -188,7 +193,7 @@ class Gateway:
         pcap = self.purpose_cap(purpose)
         if pcap is not None and self.usage.spent(since, purpose=purpose) >= pcap:
             return f"{purpose} has used its monthly budget of €{pcap:.2f}"
-        wcap = workspace_cap()
+        wcap = workspace_cap(getattr(self, "home", None))
         if wcap is not None and self.usage.spent(since) >= wcap > 0:
             return f"the workspace has used its monthly budget of €{wcap:.2f}"
         ucap, uid = user_cap(getattr(self, "home", None))

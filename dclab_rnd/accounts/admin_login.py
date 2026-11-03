@@ -186,6 +186,20 @@ def sign_out(home: Path | str, token: Optional[str]) -> None:
             _write(home / SESSIONS, sessions)
 
 
+def confirm(home: Path | str, password: str) -> bool:
+    """A3: the password asked again before a dangerous action (stop live models, change the cap, stop every job). True when
+    no admin login is set (nothing to confirm against) or the password is right; a wrong one counts toward the lock."""
+    home = Path(home)
+    if not exists(home):
+        return True
+    name = username(home) or ""
+    try:
+        sign_out(home, sign_in(home, name, password))  # the same check and lock as a sign-in; the session it opens is closed
+        return True
+    except (ValueError, Locked):
+        return False
+
+
 def change_password(home: Path | str, current: str, new: str) -> None:
     """A new password after the current one; every admin session ends (the caller signs in again)."""
     home = Path(home)
@@ -213,5 +227,5 @@ def state(home: Path | str, token: Optional[str]) -> dict[str, Any]:
             "locked_until": until if locked else None, "idle_minutes": IDLE_MINUTES, "max_hours": MAX_HOURS}
 
 
-__all__ = ["COOKIE", "Locked", "exists", "username", "set_login", "remove", "sign_in", "session", "sign_out", "change_password", "state",
+__all__ = ["COOKIE", "Locked", "exists", "username", "set_login", "remove", "sign_in", "session", "sign_out", "change_password", "confirm", "state",
            "IDLE_MINUTES", "MAX_HOURS", "FAILURES", "WINDOW_MINUTES", "LOCK_MINUTES"]

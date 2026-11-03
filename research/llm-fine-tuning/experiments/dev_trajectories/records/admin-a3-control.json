@@ -1,0 +1,61 @@
+{
+ "package": "admin-a3-control",
+ "title": "The Admin page's Control tab: stop live model calls, a monthly cap, resume paused models, stop every job, and the machine's state",
+ "date": "2026-11-04",
+ "request": "The owner asked for a control panel for the owner only.",
+ "spec": "Two switches kept in the workspace (live model calls, a monthly euro cap) that the live-model guard and the gateway read, an environment setting winning; a status of spend against the cap, jobs, disk, swap, the store job and the last bench run; resume paused models; stop every job; the dangerous actions confirmed with the Admin password; every change audited.",
+ "plan": [
+  "the switches in a workspace file",
+  "the guard and the gateway read them",
+  "the routes with the password asked again",
+  "the tab"
+ ],
+ "decisions": [
+  {
+   "decision": "An environment setting wins over a switch",
+   "why": "a deployment or a test pins what it pins; the page shows when a switch is overruled"
+  },
+  {
+   "decision": "A model on this machine is never stopped by the live switch",
+   "why": "the switch is about paid providers; local models cost nothing"
+  },
+  {
+   "decision": "The password asked again goes through the same check and lock as a sign-in",
+   "why": "a confirm step that does not count wrong passwords would be a way around the lock"
+  }
+ ],
+ "change": "dclab_rnd/control.py and agentic/pages/control.py (new); models/live_guard.py, models/gateway.py (read the switches); accounts/admin_login.py (confirm); accounts/guard.py (owner-only routes); agentic/pages/__init__.py; views/admin.html (the Control tab), the generated app; CLAUDE.md; tests/test_control.py, tests/test_experience_log.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "New write routes must say what they record",
+   "scenario": "the three control routes were added",
+   "cause": "the experience test lists every write route",
+   "fix": "the routes are listed as audited owner actions",
+   "test": "tests/test_experience_log.py test_every_write_route_says_what_it_records"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the switches and routes",
+   "gate": "scripted tests",
+   "fixed_before_run": true,
+   "result": "a stopped switch refuses a paid provider and lets a local model through; the environment cap wins; a wrong password is refused and audited; a right one changes the switch",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the paused-model count is this process's only, without PostgreSQL"
+   ]
+  }
+ ],
+ "outcome": "The owner can stop paid model calls, cap the month, resume paused models and stop every job from one tab, with each change audited.",
+ "lessons": [
+  "a switch that lives only in .env is a switch nobody flips in time"
+ ],
+ "risks": [
+  "stopping every job also stops the nightly work that runs as jobs"
+ ],
+ "commits": []
+}
