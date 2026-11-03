@@ -16,6 +16,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
 
 import dclab_rnd.connectors as base  # noqa: E402
 from dclab_rnd.connectors import BadInput, ConnectorError, cloud, db, hf, kaggle  # noqa: E402
@@ -498,6 +499,45 @@ class RouteTests(unittest.TestCase):
             r = c.post(f"/api/drafts/{did}/data/cloud", json={"uri": "s3://acme-data/churn.csv"}, headers=self.h)
         self.assertEqual(r.status_code, 200, r.text)
         self.assertEqual((r.json()["kind"], r.json()["name"]), ("cloud", "s3://acme-data/churn.csv"))
+
+
+class PostgresReadTests(unittest.TestCase):
+    """2026-11-03: on PostgreSQL every query failed ("syntax error at or near SET"): the read-only declaration ran after the
+    connection was switched to streaming. SQLite, which every other test uses, has neither."""
+
+    def setUp(self):
+        import pgtest
+
+        self.url = pgtest.require()
+        import sqlalchemy as sa
+
+        self.table = f"connector_probe_{os.getpid()}"
+        engine = sa.create_engine(self.url)
+        with engine.begin() as conn:
+            conn.execute(sa.text(f"DROP TABLE IF EXISTS {self.table}"))
+            conn.execute(sa.text(f"CREATE TABLE {self.table} (id int, plan text)"))
+            conn.execute(sa.text(f"INSERT INTO {self.table} VALUES (1, 'basic'), (2, 'pro'), (3, 'pro')"))
+        self.addCleanup(self._drop, engine)
+        env = mock.patch.dict(os.environ, {"DCLAB_DB_PG": self.url})
+        env.start()
+        self.addCleanup(env.stop)
+
+    def _drop(self, engine):
+        import sqlalchemy as sa
+
+        with engine.begin() as conn:
+            conn.execute(sa.text(f"DROP TABLE IF EXISTS {self.table}"))
+        engine.dispose()
+
+    def test_a_table_and_a_query_are_read_in_a_read_only_transaction(self):
+        import pandas as pd
+
+        got = db.fetch("pg", tmpdir(), table=self.table)
+        self.assertEqual((got["source"]["rows"], got["source"]["dialect"]), (3, "postgresql"))
+        grouped = db.fetch("pg", tmpdir(), query=f"SELECT plan, COUNT(*) AS n FROM {self.table} GROUP BY plan ORDER BY plan")
+        self.assertEqual(pd.read_parquet(grouped["path"]).to_dict("records"), [{"plan": "basic", "n": 1}, {"plan": "pro", "n": 2}])
+        flag = db.fetch("pg", tmpdir(), query="SELECT current_setting('transaction_read_only') AS ro")
+        self.assertEqual(pd.read_parquet(flag["path"])["ro"].tolist(), ["on"])
 
 
 if __name__ == "__main__":

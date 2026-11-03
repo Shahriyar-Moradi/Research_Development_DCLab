@@ -193,10 +193,10 @@ def fetch(connection: str, directory: Path, table: str | None = None, query: str
             raise ConnectorError(f"Could not connect to the database {name} ({_kind(exc)}). Check that it is reachable "
                                  f"from the server and that the server's {PREFIX}{name.upper()} setting is right.") from None
         with raw as conn:
-            conn = conn.execution_options(stream_results=True)
             try:
                 if dialect == "postgresql":
-                    conn.exec_driver_sql("SET TRANSACTION READ ONLY")
+                    conn.exec_driver_sql("SET TRANSACTION READ ONLY")  # before streaming: a streaming connection runs it as a cursor query and PostgreSQL refuses
+                conn = conn.execution_options(stream_results=True)
                 frame = pd.read_sql(statement, conn, params={"n": limit})
             except (sa_exc.SQLAlchemyError, pd.errors.DatabaseError) as exc:
                 raise ConnectorError(f"The database {name} rejected the query ({_kind(exc)}). Check the table and column "
