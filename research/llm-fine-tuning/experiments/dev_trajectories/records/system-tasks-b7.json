@@ -30,6 +30,16 @@
    "cause": "the campaign recorded decisions per seed and nothing judged them as a suite",
    "fix": "a suite over new seeds with a gate written first",
    "test": "tests/test_system_tasks.py test_the_gate_and_the_seeds_are_fixed"
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Three kinds do not hold every decision on seeds no change was tuned on",
+   "scenario": "the sealed seeds: segmentation on both, uplift and regression on one each",
+   "cause": "not diagnosed yet: the dev seeds passed, so the weak spots show only on other draws of the replicas",
+   "fix": "open: diagnose on new dev seeds, never on the sealed ones; a fresh sealed pair for the next judgement",
+   "test": "none yet"
   }
  ],
  "measurements": [
@@ -44,9 +54,21 @@
     "invented replicas with planted traps, not real data",
     "the engine's rules only, no model"
    ]
+  },
+  {
+   "name": "the sealed seeds, read once",
+   "gate": "system_gate_v1",
+   "fixed_before_run": true,
+   "result": "failed: segmentation missed one decision on both sealed seeds (columns no group uses left out with a reason), uplift missed beating random targeting with an interval on one, regression missed beating the training median by the margin on one",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "limits": [
+    "two sealed seeds per kind",
+    "the sealed seeds are spent: a fix needs new dev seeds and a fresh sealed pair"
+   ]
   }
  ],
- "outcome": "The whole system has a gated suite of its own; the dev seeds pass and predict the sealed run.",
+ "outcome": "The whole system has a gated suite of its own; the dev seeds passed and the sealed seeds failed on three kinds, which are now open work.",
  "lessons": [
   "a gate turns a pile of passing checks into a claim that can fail"
  ],
