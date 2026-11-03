@@ -137,8 +137,8 @@ class RouteTests(unittest.TestCase):
         codes = [self.sign_in("wrong password!!").status_code for _ in range(al.FAILURES)]
         self.assertEqual(codes, [401] * (al.FAILURES - 1) + [429])
         self.assertEqual(self.sign_in().status_code, 429)  # the right one too, while locked
-        text = (self.home / "audit.jsonl").read_text()
-        rows = [json.loads(line) for line in text.splitlines()]
+        _, rows = self.client.app.state.services.audit.query(500, 0)  # files or PostgreSQL, whichever the server writes to
+        text = json.dumps(rows, default=str)
         admin = [r for r in rows if r.get("kind") == "admin"]
         self.assertGreaterEqual(len(admin), al.FAILURES + 1)
         self.assertNotIn(PASSWORD, text)

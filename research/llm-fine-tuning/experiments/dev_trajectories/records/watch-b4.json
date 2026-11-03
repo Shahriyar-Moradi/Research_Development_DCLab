@@ -40,6 +40,16 @@
    "cause": "the experience test checks every write route names what it records",
    "fix": "the three admin routes say they are audited, not steps of solving",
    "test": "tests/test_experience_log.py test_every_write_route_says_what_it_records"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The new tracing settings were not documented, and the data catalog was stale",
+   "scenario": "the nightly full gate: the settings test listed the five new DCLAB_ settings, and the catalog test found the generated catalog older than the code",
+   "cause": "the package added settings without their lines in .env.example and did not rebuild the catalog",
+   "fix": "the settings documented with their safe defaults; make catalog",
+   "test": "tests/test_config.py test_every_setting_the_code_reads_is_documented; tests/test_data_catalog.py"
   }
  ],
  "measurements": [

@@ -182,9 +182,9 @@ Every record of a point leaves under the consent of the event kinds' rule: writt
 | `workflow.stop` | workflow | noul | workflow | Is the work finished, or does it go on? | agents/runtime.py: why an agent's run ended |
 | `workflow.template` | workflow | value | draft, project | Which solution workflow does it follow? | draft/workflow.py: the solution workflow drawn |
 
-## Audit kinds (19)
+## Audit kinds (20)
 
-`move`, `approval`, `approval_used`, `policy`, `routing`, `solution`, `data_import`, `lesson_review`, `memory_removed`, `memory`, `sign_in`, `role_change`, `deletion`, `retention`, `replay`, `data_export`, `brief`, `workspace_chat`, `department`
+`move`, `approval`, `approval_used`, `policy`, `routing`, `solution`, `data_import`, `lesson_review`, `memory_removed`, `memory`, `sign_in`, `role_change`, `deletion`, `retention`, `replay`, `data_export`, `brief`, `workspace_chat`, `department`, `admin`
 
 ## Dataset builders (15)
 
