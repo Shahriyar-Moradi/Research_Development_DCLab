@@ -436,6 +436,30 @@
         "8820"
       ],
       "port": 8820
+    },
+    {
+      "name": "sql-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/9ec7f4d0-9602-4dac-bc26-e511c2861bc4/scratchpad/sql-home",
+        "OPENAI_API_KEY=",
+        "ANTHROPIC_API_KEY=",
+        "DCLAB_NO_LIVE_MODELS=1",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_AUTH=",
+        "DCLAB_DECISION_SHADOW=0",
+        "DCLAB_STUDENTS_LOOP=0",
+        "DCLAB_STORE_LOOP=0",
+        "DCLAB_STORE_CAPTURE=0",
+        "DCLAB_DB_DCLAB=postgresql+psycopg://shahriar@/dclab_dev",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8821"
+      ],
+      "port": 8821
     }
   ]
 }
