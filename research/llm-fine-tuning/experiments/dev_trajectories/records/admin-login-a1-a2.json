@@ -110,6 +110,16 @@
    "cause": "the comparison sat outside the guard that skips a broken entry",
    "fix": "a broken entry is no session",
    "test": "tests/test_admin_login.py test_a_broken_session_file_is_no_session_never_an_error"
+  },
+  {
+   "id": "F9",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The lockout test read the audit from a file that does not exist on PostgreSQL",
+   "scenario": "the nightly full gate's PostgreSQL pass: the audit was written to the database and the test opened audit.jsonl",
+   "cause": "the test assumed the file audit",
+   "fix": "the test reads the audit through the server's own audit log, files or PostgreSQL",
+   "test": "tests/test_admin_login.py test_wrong_passwords_lock_the_sign_in_and_every_attempt_is_audited_without_the_password"
   }
  ],
  "measurements": [
