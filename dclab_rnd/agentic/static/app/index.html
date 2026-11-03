@@ -2320,6 +2320,11 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
         <label class="sr-only" for="bn-filter">Filter</label><input type="search" id="bn-filter" placeholder="Filter by layer, suite or verdict" data-style="max-width:240px"></div>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Layer</th><th>Suite</th><th>Latest</th><th>Split</th><th>Verdict</th><th class="num">Count</th><th class="num">Cost</th><th class="num">Results</th></tr></thead><tbody id="bn-suites"></tbody></table></div>
     </div>
+    <div class="panel" data-f="admin.bench_monitors">
+      <div class="panel-head"><div class="panel-title"><h2>Monitors, last 7 days</h2><span class="sub">Each agent's model requests: failures with their interval, delay, spend. Red when the failure rate's lower bound is above 5% on 20 requests or more; amber when 95% of requests take over a minute or it spends over EUR 5 a day. Below: where flagged sessions stand on their way to becoming regression cases</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Agent</th><th>Mark</th><th class="num">Requests</th><th class="num">Failed</th><th class="num">p50 · p95 s</th><th class="num">Spent</th><th>Why</th></tr></thead><tbody id="bn-monitors"></tbody></table></div>
+      <div class="panel-foot" id="bn-bugloop"></div>
+    </div>
     <div class="panel" data-f="admin.bench_versions">
       <div class="panel-head"><div class="panel-title"><h2>Agent versions</h2><span class="sub">Each prompt's versions from git. Checks are the scripted suites that record a version (they send no prompt to a model); live results are the runs of the suites that send it, placed in the version in force on their date. "Not measured" means no live run on the version in force now</span></div></div>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Agent prompt</th><th class="num">Versions</th><th>Now</th><th>Live runs on it</th><th>Last live pass</th><th class="num">Live runs, all versions</th><th class="num">Spent</th></tr></thead><tbody id="bn-versions"></tbody></table></div>

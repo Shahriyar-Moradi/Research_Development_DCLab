@@ -441,10 +441,26 @@ DC.view('admin', {
     $('#bn-filter', el).oninput = paint;
     paint();
     this.loadBenchVersions(el);
+    this.loadBenchMonitors(el);
     const hist = (r.history || []).slice().reverse();
     if (hist.length) $('#bn-history', el).innerHTML = hist.map(h => `<tr><td class="mono small">${esc(h.at || '')}</td><td class="mono small">${esc(h.commit || '')}${h.dirty ? ' <span class="pill outline">changes</span>' : ''}</td>`
       + `<td class="num mono small">${(Number(h.seconds || 0) / 60).toFixed(1)}</td><td class="small">${Object.entries(h.states || {}).map(([k, v]) => `${esc(k.replace(/_/g, ' '))}: ${esc(v)}`).join(' · ')}</td></tr>`).join('');
     else DC.states.empty($('#bn-history', el), 'No run recorded yet: make bench records one.', { cols: 4 });
+  },
+
+  // B8: each agent's requests now, and the bug loop, from GET /api/admin/bench/monitors
+  async loadBenchMonitors(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.adminBenchMonitors({ quiet: true }); } catch (e) { DC.states.failed($('#bn-monitors', el), e, { retry: () => this.loadBenchMonitors(el), cols: 7 }); return; }
+    const pill = { red: 'bad', amber: 'warn', ok: 'ok' };
+    const rows = (r.agents || []).slice().sort((a, b) => ({ red: 0, amber: 1, ok: 2 }[a.mark] - { red: 0, amber: 1, ok: 2 }[b.mark]) || b.requests - a.requests);
+    if (rows.length) $('#bn-monitors', el).innerHTML = rows.map(a => `<tr><td class="mono small">${esc(a.purpose)}</td><td><span class="pill ${pill[a.mark] || 'outline'}">${esc(a.mark)}</span></td>`
+      + `<td class="num mono small">${a.requests}</td><td class="num mono small">${a.failed}</td><td class="num mono small">${a.p50_seconds ?? '—'} · ${a.p95_seconds ?? '—'}</td>`
+      + `<td class="num mono small">€${Number(a.eur || 0).toFixed(2)}</td><td class="small">${(a.reasons || []).map(x => esc(x)).join('<br>')}</td></tr>`).join('');
+    else DC.states.empty($('#bn-monitors', el), 'No model request in the last 7 days.', { cols: 7 });
+    const b = r.bug_loop || {};
+    $('#bn-bugloop', el).textContent = `Bug loop: ${b.candidates || 0} flagged sessions as candidates, ${b.waiting_review || 0} waiting for review, ${b.accepted || 0} accepted, ${b.rejected || 0} rejected, ${b.regression_cases || 0} replayed as regression cases. ${b.how || ''}`;
   },
 
   // B5: each agent's prompt versions, from GET /api/admin/bench/versions

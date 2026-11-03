@@ -28,4 +28,10 @@ def register(app, ctx) -> None:
 
         return {"agents": await asyncio.to_thread(versions.timeline)}
 
+    @router.get("/api/admin/bench/monitors", response_model=Page)
+    async def admin_bench_monitors(days: int = 7):
+        from ...bench import monitors
+
+        return await asyncio.to_thread(monitors.summary, ctx.store.home, max(1, min(days, 90)), getattr(ctx.models, "usage", None))
+
     app.include_router(router)

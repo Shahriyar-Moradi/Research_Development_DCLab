@@ -11,6 +11,23 @@ from . import COMMANDS, run, summary
 MARK = {"green": "OK  ", "amber": "??  ", "red": "RED ", "thin": "THIN", "empty": "--  "}
 
 
+def _monitors(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from ..settings import Settings
+    from .monitors import summary as monitor_summary
+
+    s = monitor_summary(Path(Settings.load().agent_home), days=args.days)
+    if args.json:
+        print(json.dumps(s, indent=1, default=str))
+        return 0
+    for a in s["agents"]:
+        print(f"{a['mark']:5} {a['purpose']:24} requests {a['requests']:5}  failed {a['failed']:4}  p95 {a['p95_seconds']} s  EUR {a['eur']:.2f}"
+              + (f"  - {'; '.join(a['reasons'])}" if a["reasons"] else ""))
+    print("bug loop:", s["bug_loop"])
+    return 0
+
+
 def _compare(args: argparse.Namespace) -> int:
     from .compare import run as compare_run
 
@@ -50,7 +67,8 @@ def _versions(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.bench")
-    parser.add_argument("action", choices=("read", "run", "versions", "compare"))
+    parser.add_argument("action", choices=("read", "run", "versions", "compare", "monitors"))
+    parser.add_argument("--days", type=int, default=7, help="monitors: the last N days")
     parser.add_argument("--result", default=None, help="compare: SUITE/RESULT, e.g. conversation_exam_v1/CEX-032_sealed_v3")
     parser.add_argument("--a", default=None, help="compare: the arm compared against (e.g. plain: Claude alone)")
     parser.add_argument("--b", default=None, help="compare: the arm judged (e.g. case: the lead agent)")
@@ -63,6 +81,8 @@ def main(argv: list[str] | None = None) -> int:
         return _versions(args)
     if args.action == "compare":
         return _compare(args)
+    if args.action == "monitors":
+        return _monitors(args)
     if args.action == "run":
         layers = [x.strip() for x in args.layers.split(",") if x.strip()] or None
         print(f"recorded {run(layers)}")

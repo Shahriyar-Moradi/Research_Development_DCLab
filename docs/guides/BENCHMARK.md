@@ -119,7 +119,18 @@ On sealed v3 (12 people), the lead agent against Claude alone: 16.5 fewer safety
 more questions (0.998 to 3.67 more), 0.83 more questions already answered, and EUR 0.13 more per person; understanding and the
 right route are higher but their intervals include no difference.
 
-## 8. What comes next (the plan)
+## 8. Monitors and the bug loop (B8)
+
+`python -m dclab_rnd.bench monitors [--days 7]` and the **Monitors** panel (`GET /api/admin/bench/monitors`): per agent purpose,
+from the gateway's usage log, the requests, failures with the failure rate's Wilson interval, the median and 95th-percentile
+seconds, tokens and euro. Fixed rules: red when the failure rate's lower bound is above 5% on 20 requests or more; amber when
+95% of requests take over a minute or it spends over EUR 5 a day.
+
+The bug loop's stations: `make datasets` turns sessions the failure detectors flagged into candidates; a reviewer accepts or
+rejects each in `datasets/failures/reviews.json`; `make harness-eval` replays the accepted ones as regression cases. The panel
+counts each station. On 2026-11-04 the loop was empty: no candidates had been built yet.
+
+## 9. What comes next (the plan)
 
 - **Watch (B4):** OpenTelemetry tracing of session, agent, step, model call and tool, sent to MLflow (always on, light,
   also the ML runs) and to a local Langfuse (agent sessions, on demand). No table cell, no sealed case, consent checked.

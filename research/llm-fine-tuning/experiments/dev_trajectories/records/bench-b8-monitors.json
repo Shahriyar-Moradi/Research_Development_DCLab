@@ -1,0 +1,57 @@
+{
+ "package": "bench-b8-monitors",
+ "title": "Monitors of every agent's model requests under fixed rules, and the stations of the bug loop",
+ "date": "2026-11-04",
+ "request": "The owner asked for monitoring that helps find bugs and track the agents and models over time.",
+ "spec": "Per agent purpose over recent days: requests, failures with an interval, median and high-percentile delay, tokens and euro, marked red or amber by rules fixed in code; and how many flagged sessions are candidates, waiting, accepted, rejected and replayed as regression cases.",
+ "plan": [
+  "read the usage log through its own interface",
+  "the per-purpose numbers and the fixed rules",
+  "count the bug loop's stations from the existing files",
+  "the command, the route and the panel"
+ ],
+ "decisions": [
+  {
+   "decision": "Rules fixed in code before any reading, with a minimum of requests for red",
+   "why": "a red mark on three requests would be noise; a rule moved after a reading would be no rule"
+  },
+  {
+   "decision": "Reuse the existing candidates, reviews and regression replay instead of a new loop",
+   "why": "the pieces existed; what was missing was seeing where each case stands"
+  }
+ ],
+ "change": "dclab_rnd/bench/monitors.py (new), bench/__main__.py (monitors), agentic/pages/bench.py and accounts/guard.py (the owner-only route), views/admin.html (the panel), the generated app, docs/guides/BENCHMARK.md, tests/test_bench_monitors.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The bug loop had no candidates",
+   "scenario": "the first reading of the workspace counted no flagged session as a candidate",
+   "cause": "the candidates are built by make datasets, which had not run on the current records",
+   "fix": "not a code fix: the panel names the command that builds them",
+   "test": "tests/test_bench_monitors.py test_the_bug_loop_counts_where_each_case_stands"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the first reading of the workspace's last days",
+   "gate": "the fixed rules in code",
+   "fixed_before_run": true,
+   "result": "the lead agent marked amber for its daily spend; the campaign marked amber for slow requests; Home's failures under the red line",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "the usage log of one workspace on one machine"
+   ]
+  }
+ ],
+ "outcome": "The owner sees which agent fails, slows or spends too much, and where each flagged session stands on its way to a regression test.",
+ "lessons": [
+  "a loop that exists in pieces is invisible until someone counts its stations"
+ ],
+ "risks": [
+  "the rules' thresholds are a first choice; a change must be a new rule, written before the next reading"
+ ],
+ "commits": []
+}
