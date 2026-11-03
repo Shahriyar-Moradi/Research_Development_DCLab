@@ -471,6 +471,7 @@
     "analyse-category-combinations",
     "bench-b1-b3",
     "bench-b5-versions",
+    "bench-b6-compare",
     "build-flagged-time-column",
     "built-chat-answers",
     "capture-campaign-team",
@@ -632,14 +633,14 @@
     "username-login",
     "watch-b4"
   ],
-  "total": 6486,
-  "train": 5140,
+  "total": 6489,
+  "train": 5143,
   "val": 1346,
   "by_task": {
-    "fix_finding": 4064,
+    "fix_finding": 4065,
     "judge_measurement": 798,
-    "plan_package": 622,
-    "retrospective": 611,
+    "plan_package": 623,
+    "retrospective": 612,
     "review_change": 391
   },
   "val_packages": [
@@ -777,6 +778,12 @@
     "thinking every call",
     "ui-ds-claude"
   ],
-  "refused": [],
+  "refused": [
+    {
+      "package": "bench-b6-compare",
+      "task": "judge_measurement",
+      "why": "a number the prompt does not give"
+    }
+  ],
   "validation_policy": "whole packages held out by the hash of their id (about 20%)"
 }

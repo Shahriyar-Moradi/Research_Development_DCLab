@@ -1299,3 +1299,7 @@ every shape a suite may write), its `[k, n]` counts with their 95% interval, spl
 says red, amber, thin, green or empty from the latest result of each track (split and decision point) of each suite. The main
 product has no row that maps onto it (`CONTRACT_ADAPTERS`: a library output): it would call `rows_of` on its own evaluation
 results (its experiment reviews, its gates) and keep the rows beside them. Nothing crosses between the repositories.
+
+`bench.paired` (0.154.0) compares two arms on the same cases (both means, the signed difference with a bootstrap interval,
+wins, losses, ties, McNemar for yes/no): the main product can compare two of its own model versions on one evaluation set
+the same way. Nothing crosses.

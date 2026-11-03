@@ -11,6 +11,24 @@ from . import COMMANDS, run, summary
 MARK = {"green": "OK  ", "amber": "??  ", "red": "RED ", "thin": "THIN", "empty": "--  "}
 
 
+def _compare(args: argparse.Namespace) -> int:
+    from .compare import run as compare_run
+
+    if not (args.result and args.a and args.b):
+        print("compare needs --result, --a and --b")
+        return 2
+    target = compare_run(args.result, args.a, args.b, args.gate)
+    doc = json.loads(target.read_text())
+    print(f"{doc['b']} against {doc['a']} on {doc['result']} ({doc['split']}), recorded in {target.name}")
+    for metric, m in doc["metrics"].items():
+        lo, hi = m["interval"]
+        print(f"  {metric:18} n {m['n']:3}  {doc['a']} {m['mean_a']}  {doc['b']} {m['mean_b']}  difference {m['difference']} "
+              f"[{lo}, {hi}]  wins {m['wins_b']} losses {m['losses_b']} ties {m['ties']}" + (f"  McNemar p {m['mcnemar_p']}" if m["mcnemar_p"] is not None else ""))
+    if "verdict" in doc:
+        print("  gate:", doc["verdict"])
+    return 0
+
+
 def _versions(args: argparse.Namespace) -> int:
     from .versions import timeline
 
@@ -32,13 +50,19 @@ def _versions(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.bench")
-    parser.add_argument("action", choices=("read", "run", "versions"))
+    parser.add_argument("action", choices=("read", "run", "versions", "compare"))
+    parser.add_argument("--result", default=None, help="compare: SUITE/RESULT, e.g. conversation_exam_v1/CEX-032_sealed_v3")
+    parser.add_argument("--a", default=None, help="compare: the arm compared against (e.g. plain: Claude alone)")
+    parser.add_argument("--b", default=None, help="compare: the arm judged (e.g. case: the lead agent)")
+    parser.add_argument("--gate", default=None, help="compare: a gate file written before the run")
     parser.add_argument("--agent", default=None, help="versions: one prompt's timeline (case_agent, home_agent ...)")
     parser.add_argument("--layers", default="", help=f"comma-separated, of {', '.join(COMMANDS)} (run: all when empty)")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     if args.action == "versions":
         return _versions(args)
+    if args.action == "compare":
+        return _compare(args)
     if args.action == "run":
         layers = [x.strip() for x in args.layers.split(",") if x.strip()] or None
         print(f"recorded {run(layers)}")

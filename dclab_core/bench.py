@@ -245,5 +245,33 @@ def layer_status(rows: Iterable[BenchRow], thin: int = THIN) -> dict[str, Any]:
             "passed": sum(r.passed is True for r in verdicts), "failed": len(failed), "unscored": len(unscored)}
 
 
-__all__ = ["BenchRow", "LAYERS", "SPLITS", "STATUSES", "THIN", "verdict_of", "split_of", "counts", "rows_of", "track_of", "order_of",
+def paired(a: dict[str, float], b: dict[str, float], higher_is_better: bool = True, draws: int = 2000, seed: int = 0) -> dict[str, Any]:
+    """Arm B against arm A on the same cases (B6 of the 2026-11-03 plan, the lead agent against Claude alone made general):
+    only cases both answered count. The mean of each, B's mean difference (signed so that positive is better), its 95%
+    bootstrap interval over cases, B's wins, losses and ties, and for yes/no scores the exact McNemar p-value of the discordant
+    pairs. Fewer than 2 shared cases: no interval."""
+    import numpy as np
+
+    shared = sorted(set(a) & set(b))
+    x = np.array([float(a[k]) for k in shared])
+    y = np.array([float(b[k]) for k in shared])
+    sign = 1.0 if higher_is_better else -1.0
+    d = sign * (y - x)
+    out: dict[str, Any] = {"n": len(shared), "only_a": len(set(a) - set(b)), "only_b": len(set(b) - set(a)),
+                           "mean_a": round(float(x.mean()), 4) if len(x) else None, "mean_b": round(float(y.mean()), 4) if len(y) else None,
+                           "difference": round(float(d.mean()), 4) if len(d) else None, "interval": [None, None],
+                           "wins_b": int((d > 0).sum()), "losses_b": int((d < 0).sum()), "ties": int((d == 0).sum()),
+                           "higher_is_better": higher_is_better, "mcnemar_p": None}
+    if len(d) >= 2:
+        rng = np.random.default_rng(seed)
+        means = d[rng.integers(0, len(d), (draws, len(d)))].mean(axis=1)
+        out["interval"] = [round(float(np.percentile(means, 2.5)), 4), round(float(np.percentile(means, 97.5)), 4)]
+    if len(x) and set(np.unique(np.concatenate([x, y]))) <= {0.0, 1.0}:
+        b_only, a_only = int(((y == 1) & (x == 0)).sum()), int(((x == 1) & (y == 0)).sum())
+        k, m = min(b_only, a_only), b_only + a_only
+        out["mcnemar_p"] = 1.0 if m == 0 else round(min(1.0, 2 * sum(math.comb(m, i) for i in range(k + 1)) / 2 ** m), 4)
+    return out
+
+
+__all__ = ["paired", "BenchRow", "LAYERS", "SPLITS", "STATUSES", "THIN", "verdict_of", "split_of", "counts", "rows_of", "track_of", "order_of",
            "layer_status", "wilson"]

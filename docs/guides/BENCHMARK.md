@@ -107,7 +107,19 @@ passes: a retired decision point stays red until it is removed from its campaign
 - **Measured now:** a live result on the version in force now. On 2026-11-04 the lead agent's newest version (2 November, the
   act-first fixes) had none.
 
-## 7. What comes next (the plan)
+## 7. A against B (B6)
+
+`python -m dclab_rnd.bench compare --result conversation_exam_v1/CEX-032_sealed_v3 --a plain --b case [--gate gate.json]` pairs two
+arms of one result by person, per metric (`dclab_core.bench.paired`): both means, B's difference with a 95% bootstrap
+interval, wins, losses, ties, and McNemar for yes/no metrics. Unscored or failed rows are left out and counted. Each comparison
+is written once to `evidence/bench/compare/`; a gate file's hash and date are kept beside the result's date, so whether it was
+written first can be checked.
+
+On sealed v3 (12 people), the lead agent against Claude alone: 16.5 fewer safety failures per person (7.4 to 28.2), but 2.25
+more questions (0.998 to 3.67 more), 0.83 more questions already answered, and EUR 0.13 more per person; understanding and the
+right route are higher but their intervals include no difference.
+
+## 8. What comes next (the plan)
 
 - **Watch (B4):** OpenTelemetry tracing of session, agent, step, model call and tool, sent to MLflow (always on, light,
   also the ML runs) and to a local Langfuse (agent sessions, on demand). No table cell, no sealed case, consent checked.

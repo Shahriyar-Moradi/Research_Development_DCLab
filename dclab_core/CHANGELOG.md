@@ -4,6 +4,11 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.154.0 (2026-11-04)
+
+- `bench.paired` (B6): arm B against arm A on the same cases: both means, B's signed mean difference with a 95% bootstrap
+  interval over cases, wins, losses and ties, and the exact McNemar p-value for yes/no scores. No contract changed shape.
+
 ## 0.153.0 (2026-11-03)
 
 - `bench` (new, DCLab Bench B1): `BenchRow` v1, one measurement of one evaluation result (its verdict, a count with its

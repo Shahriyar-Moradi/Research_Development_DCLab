@@ -1,0 +1,58 @@
+{
+ "package": "bench-b6-compare",
+ "title": "A against B: any two arms of one result paired by case, with the difference, its interval, wins, losses and McNemar",
+ "date": "2026-11-04",
+ "request": "The owner asked for comparisons like the lead agent against Claude alone, for every agent and model.",
+ "spec": "Two arms of one result paired by case per metric: both means, the signed difference with a bootstrap interval, wins, losses, ties, McNemar for yes/no; unscored rows left out and counted; a gate judged with its file's hash and date kept; each comparison recorded once and sent to MLflow when on.",
+ "plan": [
+  "the paired statistics in dclab_core",
+  "read the arms of an exam result",
+  "the gate and the record",
+  "the command"
+ ],
+ "decisions": [
+  {
+   "decision": "Pair by case and leave out unscored or failed rows, counting them",
+   "why": "an arm's failure must not count as a loss or a win of the other; how many were left out is part of the result"
+  },
+  {
+   "decision": "Keep the gate file's hash and date instead of claiming it was fixed first",
+   "why": "for results that already exist, only the dates can show which came first"
+  }
+ ],
+ "change": "dclab_core/bench.py (paired), dclab_core 0.154.0 and CHANGELOG, dclab_rnd/bench/compare.py (new), bench/__main__.py (compare), docs/guides/BENCHMARK.md, docs/guides/CORE_INTEGRATION.md, tests/test_bench_compare.py, the first record in evidence/bench/compare/.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A test expected a gate to pass on four people",
+   "scenario": "a difference of a quarter on four people with a lower bound required above zero",
+   "cause": "the test's expectation, not the code: a bootstrap over four cases can draw no difference",
+   "fix": "the test expects the gate to refuse, naming the check that failed",
+   "test": "tests/test_bench_compare.py test_a_comparison_is_recorded_once_with_its_unscored_rows_counted"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the lead agent against Claude alone on the sealed exam",
+   "gate": "none: a reading of a result already judged",
+   "fixed_before_run": true,
+   "result": "far fewer safety failures, more questions and more already-answered ones, higher cost; understanding and the right route not separated from Claude alone",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "limits": [
+    "twelve people",
+    "a reading of a sealed result already spent, not a new run"
+   ]
+  }
+ ],
+ "outcome": "Any two arms of a result can be compared with intervals and recorded; the lead agent's trade-off against Claude alone is now one command.",
+ "lessons": [
+  "a comparison of a dozen people says where the difference is large and is silent where it is small; the interval says which"
+ ],
+ "risks": [
+  "the comparison reads the exam's row shape; another suite needs its rows in the same shape"
+ ],
+ "commits": []
+}
