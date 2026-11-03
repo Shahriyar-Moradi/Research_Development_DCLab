@@ -5,7 +5,7 @@ a whole run is due (the conductor's own rule: the last one an hour ago or more),
 server's worker is not running (it runs the store itself), and at least 2 GB of disk is free; while it runs, it is stopped (SIGINT, so it records where it was) when free disk falls
 under 2 GB. No live model is ever called (``DCLAB_NO_LIVE_MODELS=1``, as ``make capture``).
 
-``--install`` writes ``~/Library/LaunchAgents/ai.dclab.store.plist`` (every 6 hours) and loads it; ``--uninstall``
+``--install`` writes ``~/Library/LaunchAgents/ai.dclab.store.plist`` (every night at 01:30) and loads it; ``--uninstall``
 unloads and removes it; ``--status`` says whether it is installed and what the last scheduled run did. The log is
 ``~/Library/Logs/dclab/store-scheduled.log``.
 """
@@ -28,9 +28,9 @@ ROOT = Path(__file__).resolve().parents[1]
 LABEL = "ai.dclab.store"
 PLIST = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
 LOG = Path.home() / "Library" / "Logs" / "dclab" / "store-scheduled.log"
-EVERY_SECONDS = 6 * 3600
+NIGHT = {"Hour": 1, "Minute": 30}  # the owner, 2026-11-03: every night, not every 6 hours
 MIN_FREE = 2 * 1024 ** 3
-MAX_SWAP = 4 * 1024 ** 3  # 2026-11-03: a run that does not fit in memory swaps onto the same disk and fills it; stopped before that
+MAX_SWAP = 6 * 1024 ** 3  # the owner, 2026-11-03: up to 6 GB of swap is fine; the 2 GB free-disk guard still stops a run first if the swap fills the disk
 
 
 def log(line: str) -> None:
@@ -116,13 +116,13 @@ def run_once() -> int:
 
     threading.Thread(target=watch, daemon=True).start()
     code = child.wait()
-    log(f"ended: exit {code}" + (" (stopped: free disk under 2 GB)" if stopped["low_disk"] else "") + (" (stopped: swap over 4 GB, the run does not fit in memory)" if stopped["swap"] else ""))
+    log(f"ended: exit {code}" + (" (stopped: free disk under 2 GB)" if stopped["low_disk"] else "") + (" (stopped: swap over 6 GB, the run does not fit in memory)" if stopped["swap"] else ""))
     return code
 
 
 def plist() -> dict:
     return {"Label": LABEL, "ProgramArguments": [sys.executable, str(Path(__file__).resolve())], "WorkingDirectory": str(ROOT),
-            "StartInterval": EVERY_SECONDS, "RunAtLoad": False, "LowPriorityIO": True, "ProcessType": "Background",
+            "StartCalendarInterval": NIGHT, "RunAtLoad": False, "LowPriorityIO": True, "ProcessType": "Background",
             "StandardOutPath": str(LOG), "StandardErrorPath": str(LOG)}
 
 
@@ -134,7 +134,7 @@ def install() -> int:
     with open(PLIST, "wb") as fh:
         plistlib.dump(plist(), fh)
     r = subprocess.run(["launchctl", "load", str(PLIST)], capture_output=True, text=True)
-    print(f"installed {PLIST} (every {EVERY_SECONDS // 3600} hours)" if r.returncode == 0 else f"written {PLIST}, but launchctl said: {r.stderr.strip()}")
+    print(f"installed {PLIST} (every night at 01:30)" if r.returncode == 0 else f"written {PLIST}, but launchctl said: {r.stderr.strip()}")
     return r.returncode
 
 
@@ -150,7 +150,7 @@ def uninstall() -> int:
 
 def status() -> int:
     loaded = subprocess.run(["launchctl", "list", LABEL], capture_output=True).returncode == 0
-    print(f"installed: {PLIST.exists()}, loaded: {loaded}, every {EVERY_SECONDS // 3600} hours")
+    print(f"installed: {PLIST.exists()}, loaded: {loaded}, every night at 01:30")
     if LOG.exists():
         print("last lines of", LOG)
         print("".join(LOG.read_text(encoding="utf-8").splitlines(keepends=True)[-5:]), end="")

@@ -29,7 +29,7 @@ class StoreScheduledTest(unittest.TestCase):
     def test_the_launchd_job(self):
         p = mod.plist()
         self.assertEqual(p["Label"], "ai.dclab.store")
-        self.assertEqual(p["StartInterval"], 6 * 3600)
+        self.assertEqual(p["StartCalendarInterval"], {"Hour": 1, "Minute": 30})
         self.assertFalse(p["RunAtLoad"])
         self.assertEqual(p["ProgramArguments"][1], str(ROOT / "scripts" / "store_scheduled.py"))
         self.assertEqual(p["WorkingDirectory"], str(ROOT))
@@ -64,6 +64,9 @@ class GuardTests(unittest.TestCase):
             first = Child(sg.SIGINT)
             ss.stop_child(first)
         self.assertEqual(first.sent, [sg.SIGINT])  # an interrupt that works is the only signal sent
+
+    def test_six_gb_of_swap_is_allowed(self):
+        self.assertEqual(mod.MAX_SWAP, 6 * 1024 ** 3)
 
     def test_swap_in_use_is_read_in_bytes_and_zero_when_unreadable(self):
         ss = mod
