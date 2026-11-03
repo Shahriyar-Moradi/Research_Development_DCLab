@@ -184,7 +184,8 @@ def session(agent: str, run_id: Optional[str] = None, store: Any = None, state: 
     conversation = current.run_id if agent.split(".")[0] in ("home", "intern") else None
     from .. import observe
 
-    with observe.span():  # 23.11: the run is a span; its steps, its end and what it asks are spans or events of one trace
+    with observe.span(name=f"agent_run {agent}"[:120], **{"dclab.agent": agent, "dclab.run": current.run_id,  # B4: a session in Langfuse
+                                                          "session.id": conversation or current.run_id, "langfuse.trace.name": agent}):  # 23.11: the run is a span; its steps, its end and what it asks are spans or events of one trace
         try:
             with experience.bind(run=current.run_id, conversation=conversation):  # what it asks (a role, a model) joins its run
                 yield current

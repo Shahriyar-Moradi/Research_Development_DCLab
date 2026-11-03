@@ -1,0 +1,67 @@
+{
+ "package": "watch-b4",
+ "title": "DCLab Watch: DCLab's own spans sent to MLflow and a local Langfuse as OpenTelemetry traces, and its model trainings as MLflow runs",
+ "date": "2026-11-03",
+ "request": "The owner asked for tracing and tracking of DCLab, its agents, LLMs and multi-agent team, with Langfuse and MLflow both, the code ready even before Docker runs.",
+ "spec": "Every request, job, agent run, agent step, tool call and model request already had a W3C trace and span id; each becomes an OpenTelemetry span with those ids, a name, and its names and numbers (model, tokens, euro, seconds, verdict), sent in batches to the targets DCLAB_TRACE_EXPORT names; nothing by default; never a table cell, a prompt, an answer or a sealed span; a target that is down never slows or breaks DCLab; trainings and bench runs as MLflow runs.",
+ "plan": [
+  "the exporter: allowed keys only, a bounded queue, protobuf with DCLab's ids, both targets",
+  "name the existing spans and let a span be annotated while it runs",
+  "the model request's numbers on its span; the request as the root span",
+  "MLflow runs from model cards and bench runs through its REST interface",
+  "the scripts and the Langfuse override for this Mac"
+ ],
+ "decisions": [
+  {
+   "decision": "Send DCLab's own spans with their own ids rather than a second tracing library's",
+   "why": "the ids already join events, logs and the experience record; one trace id everywhere"
+  },
+  {
+   "decision": "An allow-list of attribute keys and short values, nothing else",
+   "why": "a viewer outside DCLab's records must never receive a table cell, a prompt or a person's words"
+  },
+  {
+   "decision": "MLflow through its REST interface, no MLflow package in DCLab",
+   "why": "the server runs with uvx; DCLab stays light and its dependencies unchanged"
+  },
+  {
+   "decision": "Langfuse runs on demand, its database on 5433 and every port on this machine",
+   "why": "this Mac has 8 GB and DCLab's PostgreSQL on 5432; the owner chose not to run Docker now"
+  }
+ ],
+ "change": "dclab_rnd/tracing.py, dclab_rnd/watch_mlflow.py, scripts/watch.py, deploy/langfuse/ (new); dclab_rnd/observe.py (span name and attributes, annotate, export); models/gateway.py (span names, the request's numbers); agents/harness.py, agents/runtime.py, experience/hooks.py, jobs/worker.py (span names); agentic/server.py (the request's root span); CLAUDE.md; tests/test_trace_export.py, tests/test_watch_mlflow.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "New write routes did not say what they record",
+   "scenario": "the admin sign-in routes were added without an entry in the write-route list",
+   "cause": "the experience test checks every write route names what it records",
+   "fix": "the three admin routes say they are audited, not steps of solving",
+   "test": "tests/test_experience_log.py test_every_write_route_says_what_it_records"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the exporter against a local receiver",
+   "gate": "scripted tests",
+   "fixed_before_run": true,
+   "result": "both targets receive the batch; the ids, nesting and attributes survive; a planted prompt with a table value is dropped; a sealed span is refused; a target that is down is counted",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "not run against a real MLflow or Langfuse server yet: the owner chose not to start Docker; MLflow's OTLP endpoint is assumed from its documentation"
+   ]
+  }
+ ],
+ "outcome": "DCLab can send every span and training to MLflow and Langfuse with one setting; it sends nothing until that setting is made.",
+ "lessons": [
+  "send what already exists before adding a second tracing system: DCLab's spans had the ids, they lacked only names and an exporter"
+ ],
+ "risks": [
+  "MLflow's OTLP ingestion and Langfuse's attribute mapping are untested against real servers",
+  "the agent step span opens after the step has run, so its duration is not the step's"
+ ],
+ "commits": []
+}

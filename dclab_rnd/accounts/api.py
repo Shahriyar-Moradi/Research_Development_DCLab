@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from typing import Any
 
 from fastapi import HTTPException, Request
@@ -30,6 +31,57 @@ from .roles import LABELS, ROLES
 from .store import SESSION_MAX_DAYS, AccountError, Accounts, digest
 
 router = Router()
+
+# A2 (2026-11-03): wrong passwords for one login lock it for a while (there was no limit at all). Kept in this process: a
+# restart forgets the count, and several server processes count apart; enough against a guesser at one browser.
+FAILURES, WINDOW_SECONDS, LOCK_SECONDS = 5, 15 * 60, 15 * 60
+MAX_LOGINS = 10_000  # logins counted at once: the keys are what a caller sends, so the table is bounded
+_FAILED: dict[str, list[float]] = {}
+_LOCKED: dict[str, float] = {}
+
+
+def _key(login: str) -> str:
+    return login.strip().lower()[:254]
+
+
+def _prune(now: float) -> None:
+    for login in [k for k, times in _FAILED.items() if not times or now - times[-1] >= WINDOW_SECONDS]:
+        _FAILED.pop(login, None)
+    for login in [k for k, until in _LOCKED.items() if until <= now]:
+        _LOCKED.pop(login, None)
+    while len(_FAILED) > MAX_LOGINS:
+        _FAILED.pop(next(iter(_FAILED)))
+
+
+def _attempt(login: str, now: float) -> float | None:
+    """Count an attempt before its password is checked, so guesses sent at once are counted too; the lock's end when this
+    one reaches the limit (the attempt is then refused unchecked). A right password takes its attempt back (``_succeeded``)."""
+    if len(_FAILED) > MAX_LOGINS:
+        _prune(now)
+    return _failed(login, now)
+
+
+def _succeeded(login: str) -> None:
+    _FAILED.pop(login, None)
+
+
+def _locked_until(login: str, now: float) -> float | None:
+    until = _LOCKED.get(login)
+    if until and until > now:
+        return until
+    _LOCKED.pop(login, None)
+    return None
+
+
+def _failed(login: str, now: float) -> float | None:
+    """Count one wrong password for ``login``; the time the lock ends when this one makes the limit."""
+    recent = [t for t in _FAILED.get(login, []) if now - t < WINDOW_SECONDS] + [now]
+    if len(recent) >= FAILURES:
+        _FAILED.pop(login, None)
+        _LOCKED[login] = now + LOCK_SECONDS
+        return _LOCKED[login]
+    _FAILED[login] = recent
+    return None
 
 
 def _settings(request: Request):
@@ -60,6 +112,10 @@ async def sign_in(payload: AnyObject, request: Request):
         raise HTTPException(404, "This server signs in through the company's identity provider")
     body = _body(payload)
     login = str(body.get("login") or body.get("username") or body.get("email") or "")  # a username, or an email
+    key, now = _key(login), time.time()
+    if _locked_until(key, now) or _attempt(key, now):  # counted before the check: a burst of guesses is counted too
+        _auth_event(getattr(context.services(), "workspace_id", None), "auth.sign_in_failed", {"reason": "locked", "via": "password"}, request=request)
+        raise HTTPException(429, "Too many wrong passwords for this login: wait 15 minutes and try again")
     user = await asyncio.to_thread(accounts.check_password, login, str(body.get("password") or ""))
     if user is None:
         await asyncio.sleep(0.3)  # a wrong password costs the guesser time
@@ -69,6 +125,7 @@ async def sign_in(payload: AnyObject, request: Request):
     if not spaces:
         _auth_event(getattr(context.services(), "workspace_id", None), "auth.sign_in_failed", {"reason": "no_workspace", "via": "password"}, user["id"], request)
         raise HTTPException(403, "This account is not a member of any workspace yet")
+    _succeeded(key)
     token, csrf = await asyncio.to_thread(accounts.start_session, user["id"], spaces[0][0])
     _audit_account(spaces[0][0], "sign_in", "sign_in", user, {"via": "password"})
     _auth_event(spaces[0][0], "auth.sign_in", {"via": "password", "session": digest(token)}, user["id"], request)  # the session's id is the token's digest

@@ -276,6 +276,12 @@ class Gateway:
         if self.usage is None:
             return eur
         try:
+            from .. import observe as _obs  # B4: the model request's span says what it cost (names and numbers only)
+
+            _obs.annotate(**{"dclab.purpose": purpose, "dclab.tier": tier, "gen_ai.request.model": model, "gen_ai.usage.input_tokens": tokens_in,
+                             "gen_ai.usage.output_tokens": tokens_out, "gen_ai.usage.cost": eur, "dclab.outcome": outcome,
+                             "dclab.seconds": round(seconds, 3), "dclab.attempts": attempts, "langfuse.observation.type": "generation",
+                             "langfuse.observation.model.name": model})
             self.usage.record({"at": now(), "purpose": purpose, "tier": tier, "model": model, "endpoint": public["endpoint"],
                                "project_id": project_id, "draft_id": draft_id, "input_tokens": tokens_in, "output_tokens": tokens_out,
                                "seconds": round(seconds, 2), "attempts": attempts, "outcome": outcome,
@@ -437,7 +443,7 @@ class Bound:
         snapshot = copy.deepcopy(messages) if self._shadow_tier else None  # the caller appends to its list after the answer
         from .. import observe
 
-        with observe.span():  # 23.11: a model request is a span of the trace it was made in; its event carries the ids
+        with observe.span(name="model_request"):  # 23.11: a model request is a span of the trace it was made in; its event carries the ids
             out = self._call(lambda: self._transport.complete(messages, tools, max_tokens, **options), messages, can_retry=lambda: True,
                              max_tokens=max_tokens, tools=tools)
         if snapshot is not None:
@@ -450,7 +456,7 @@ class Bound:
         messages = [{"role": "user", "content": t} for t in texts]
         from .. import observe
 
-        with observe.span():  # 23.11: an embedding request is a span of its own, like a completion
+        with observe.span(name="embedding_request"):  # 23.11: an embedding request is a span of its own, like a completion
             return self._call(lambda: self._transport.embed(texts), messages, can_retry=lambda: True, max_tokens=1)
 
     def stream(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, on_text=None) -> dict[str, Any]:
@@ -471,7 +477,7 @@ class Bound:
         # once a word has reached the user a retry would repeat it, so only a stream that sent nothing is retried
         from .. import observe
 
-        with observe.span():  # 23.11: a streamed request is a span of its own: two streams of one turn are two spans, not the turn's
+        with observe.span(name="model_stream"):  # 23.11: a streamed request is a span of its own: two streams of one turn are two spans, not the turn's
             out = self._call(lambda: send(messages, tools, max_tokens, on_text=relay), messages, can_retry=lambda: not heard.is_set(),
                              max_tokens=max_tokens, tools=tools)
         if snapshot is not None:

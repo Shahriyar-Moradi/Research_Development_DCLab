@@ -33,6 +33,8 @@ from typing import Any
 REQUEST_ID: contextvars.ContextVar[str | None] = contextvars.ContextVar("dclab_request_id", default=None)
 # 23.11: (trace id, the span now, the span it runs inside) of whatever is running: a request, a job, a model call, an agent step
 TRACE: contextvars.ContextVar[tuple[str, str, str | None] | None] = contextvars.ContextVar("dclab_trace", default=None)
+# B4 (2026-11-03): what the span now running says about itself (names and numbers), sent by dclab_rnd.tracing when it is on
+SPAN_ATTRS: contextvars.ContextVar[dict[str, Any] | None] = contextvars.ContextVar("dclab_span_attrs", default=None)
 _VALID_ID = re.compile(r"[A-Za-z0-9._-]{8,64}")
 
 log = logging.getLogger("dclab")
@@ -107,18 +109,45 @@ def request_id(offered: str | None) -> str:
 
 
 @contextlib.contextmanager
-def span(trace_id: str | None = None, parent: str | None = None):
+def span(trace_id: str | None = None, parent: str | None = None, name: str = "span", **attrs: Any):
     """A span of the trace now running (a new trace when none runs and none is given): events and log lines inside carry its ids,
-    and the span it ran inside as its parent. A job passes the trace and the span of the request that queued it."""
-    from dclab_core import tracing
+    and the span it ran inside as its parent. A job passes the trace and the span of the request that queued it. B4: ``name``
+    and ``attrs`` (names and numbers; :func:`annotate` adds more while it runs) are sent as an OpenTelemetry span when
+    ``DCLAB_TRACE_EXPORT`` names a target (``dclab_rnd.tracing``); otherwise nothing more happens."""
+    from dclab_core import tracing as ids
 
     current = TRACE.get()
-    trace = trace_id or (current[0] if current else tracing.new_trace_id())
-    token = TRACE.set((trace, tracing.new_span_id(), parent or (current[1] if current else None)))
+    trace = trace_id or (current[0] if current else ids.new_trace_id())
+    token = TRACE.set((trace, ids.new_span_id(), parent or (current[1] if current else None)))
+    attr_token = SPAN_ATTRS.set(dict(attrs))
+    start, failed = time.time_ns(), False
     try:
         yield TRACE.get()
+    except BaseException:
+        failed = True
+        raise
     finally:
+        here, said = TRACE.get(), SPAN_ATTRS.get() or {}
         TRACE.reset(token)
+        SPAN_ATTRS.reset(attr_token)
+        _export(here, name, start, said, failed)
+
+
+def annotate(**attrs: Any) -> None:
+    """Add names and numbers to the span now running (a model request's tokens and cost, a tool's verdict)."""
+    said = SPAN_ATTRS.get()
+    if said is not None:
+        said.update(attrs)
+
+
+def _export(here: Any, name: str, start: int, attrs: dict[str, Any], failed: bool) -> None:
+    try:
+        from . import tracing
+
+        if here and tracing.targets():
+            tracing.record(here[0], here[1], here[2], name, start, time.time_ns(), attrs, error=failed)
+    except Exception:  # noqa: BLE001 - a trace that cannot be sent never stops the work it describes
+        pass
 
 
 def json_lines() -> bool:

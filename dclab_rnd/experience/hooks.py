@@ -175,7 +175,9 @@ def from_trace(row: dict[str, Any]) -> None:
 
     from .. import observe
 
-    with observe.span():  # 23.11: the step is a span; its tool call, below, a span inside it
+    step = {"dclab.agent": str(row.get("agent") or "")[:80], "dclab.step": row.get("n"), "dclab.tool": row.get("tool"),
+            "dclab.verdict": row.get("verdict"), "dclab.seconds": row.get("seconds")}  # B4: names and numbers, never the state or the reply
+    with observe.span(name="agent_step", **{k: v for k, v in step.items() if v is not None}):  # 23.11: the step is a span; its tool call, below, a span inside it
         record("agent.step", "agent", {"agent": row.get("agent"), "n": row.get("n"), "state": str(row.get("state") or "")[:300] or None,
                                        "reply": text if isinstance(text := row.get("reply_text"), str) and text else None, "tool": row.get("tool"),
                                        "verdict": row.get("verdict"), "seconds": row.get("seconds"),
@@ -184,7 +186,8 @@ def from_trace(row: dict[str, Any]) -> None:
         if row.get("tool"):
             arguments = row.get("arguments")
             names = sorted(arguments)[:50] if isinstance(arguments, dict) else None
-            with observe.span():
+            with observe.span(name=f"tool {row.get('tool')}"[:120], **{"dclab.tool": row.get("tool"), "dclab.verdict": row.get("verdict"),
+                                                                       "langfuse.observation.type": "tool"}):
                 record("tool.call", "agent", {"tool": row.get("tool"), "argument_names": names, "arguments": arguments if isinstance(arguments, dict) else None,
                                               "verdict": row.get("verdict"), "result": row.get("result")}, **ids)
 

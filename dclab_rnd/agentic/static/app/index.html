@@ -2077,7 +2077,18 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <h1>Admin</h1>
       <p class="lede">The R&amp;D's rules, visible as settings with an audit trail. The core ones are locked: no workspace can switch off "the holdout opens once".</p>
     </div>
+    <button type="button" class="btn ghost small" id="admin-signout" hidden>Sign out of Admin</button>
   </header>
+
+  <div class="panel" id="admin-lock" hidden data-style="max-width:440px">
+    <div class="panel-head"><div class="panel-title"><h2>Admin sign-in</h2><span class="sub">This area is the owner's. Sign in with the Admin username and password set on this machine (<code>python -m dclab_rnd.accounts admin-set</code>). A session ends after 30 minutes without use.</span></div></div>
+    <form class="panel-body stack" id="admin-lock-form" autocomplete="on">
+      <label class="field"><span>Username</span><input type="text" name="username" autocomplete="username" required></label>
+      <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+      <p class="small" id="admin-lock-note" role="status" aria-live="polite"></p>
+      <button type="submit" class="btn primary">Sign in</button>
+    </form>
+  </div>
 
   <div class="pane" data-pane="overview" data-label="Overview">
     <div class="stats" id="admin-stats">

@@ -248,6 +248,10 @@
 
   const ROUTES = {
     adminBench: ["GET", "/admin/bench", [], []],
+    adminMe: ["GET", "/admin/me", [], []],
+    adminPassword: ["POST", "/admin/password", [], []],
+    adminSignin: ["POST", "/admin/signin", [], []],
+    adminSignout: ["POST", "/admin/signout", [], []],
     me: ["GET", "/auth/me", [], []],
     signIn: ["POST", "/auth/password", [], []],
     signOut: ["POST", "/auth/signout", [], []],
@@ -489,6 +493,27 @@
   client.adminBench = (...args) => call('adminBench', args);
   client.path.adminBench = (...args) => build('adminBench', args).path;
   client.href.adminBench = (...args) => '/api' + build('adminBench', args).path;
+  /** GET /api/admin/me: Admin Me
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.adminMe = (...args) => call('adminMe', args);
+  client.path.adminMe = (...args) => build('adminMe', args).path;
+  client.href.adminMe = (...args) => '/api' + build('adminMe', args).path;
+  /** POST /api/admin/password: Admin Password
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.adminPassword = (...args) => call('adminPassword', args);
+  client.path.adminPassword = (...args) => build('adminPassword', args).path;
+  /** POST /api/admin/signin: Admin Signin
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.adminSignin = (...args) => call('adminSignin', args);
+  client.path.adminSignin = (...args) => build('adminSignin', args).path;
+  /** POST /api/admin/signout: Admin Signout
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.adminSignout = (...args) => call('adminSignout', args);
+  client.path.adminSignout = (...args) => build('adminSignout', args).path;
   /** GET /api/auth/me: Me
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

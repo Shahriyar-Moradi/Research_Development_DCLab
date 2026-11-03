@@ -108,7 +108,7 @@ def _in_span(fn: Callable[..., Any]) -> Callable[..., Any]:
     def wrapped(*args: Any, **kwargs: Any) -> Any:
         from .. import observe
 
-        with observe.span():
+        with observe.span(name=f"agent_loop {getattr(fn, '__name__', 'run')}"):
             return fn(*args, **kwargs)
     return wrapped
 

@@ -1,0 +1,138 @@
+{
+ "package": "admin-login-a1-a2",
+ "title": "The Admin area's own username and password on a machine without accounts, and a lockout on every password sign-in",
+ "date": "2026-11-03",
+ "request": "The owner asked for an admin-only section, behind only a username and a password, for the owner alone.",
+ "spec": "Once an admin login is set in the workspace folder, the owner-only permissions (admin, timelines) need its session; everything else stays as it is; with no login set nothing changes. The password is a hash, the session a hashed token in an HttpOnly, SameSite=Strict cookie that ends when idle or old; wrong passwords lock the sign-in; every sign-in, failure, lock, sign-out and change is audited without the password.",
+ "plan": [
+  "the login, session and lockout module with its tests",
+  "the guard: a locked local owner is refused the owner-only permissions",
+  "the sign-in routes and the command line admin-set",
+  "the sign-in card on the Admin page",
+  "the same lockout on the account sign-in"
+ ],
+ "decisions": [
+  {
+   "decision": "A separate admin login in the workspace folder, not the accounts system",
+   "why": "the owner chose to keep local work as it is; the accounts need PostgreSQL and change every page"
+  },
+  {
+   "decision": "With no admin login file nothing changes",
+   "why": "the tests, a clean checkout and the command line keep working as the local owner"
+  },
+  {
+   "decision": "The login is created only from the command line",
+   "why": "nothing in a browser can create the first admin on an open machine"
+  },
+  {
+   "decision": "The lockout counts by login, not by address",
+   "why": "locally every request comes from this machine, so an address count would mean nothing"
+  }
+ ],
+ "change": "dclab_rnd/accounts/admin_login.py and admin_api.py (new); accounts/principal.py (admin_locked); accounts/guard.py (PUBLIC sign-in routes, ADMIN_ONLY, identify, demand); accounts/__main__.py (admin-set, admin-remove); accounts/api.py (lockout of the account sign-in); audit.py (kind admin); agentic/server.py (the router); views/admin.html and look.css (the sign-in card), the generated app; CLAUDE.md; tests/test_admin_login.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The account sign-in had no limit on wrong passwords",
+   "scenario": "with DCLAB_AUTH=password a guesser could try passwords without end; only a short sleep slowed each one",
+   "cause": "the sign-in route counted nothing",
+   "fix": "five wrong passwords for one login within fifteen minutes lock it for fifteen minutes",
+   "test": "tests/test_admin_login.py AccountLockoutTests"
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "On a machine without accounts every page and every owner-only route was open to anyone at the browser",
+   "scenario": "another person at the Mac, or another browser tab, could open the Admin page, the session records and the routing switches",
+   "cause": "without DCLAB_AUTH every request was the owner",
+   "fix": "an admin login set from the command line makes the owner-only permissions need its session",
+   "test": "tests/test_admin_login.py RouteTests"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A burst of guesses skipped the account lockout",
+   "scenario": "many password guesses for one login sent at once all passed the lock check before the first failure was counted, and a right one inside the burst was accepted",
+   "cause": "the attempt was counted only after its password was checked",
+   "fix": "each attempt is counted before its password is checked; the attempt that reaches the limit is refused unchecked",
+   "test": "tests/test_admin_login.py test_a_burst_of_guesses_is_counted_before_any_is_checked"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The failure table could grow without end",
+   "scenario": "wrong passwords for ever new login strings each added an entry that was never removed",
+   "cause": "the table was keyed by what callers send and pruned only on a lock or a success",
+   "fix": "logins are cut to a fixed length and the table is pruned and capped",
+   "test": "tests/test_admin_login.py test_the_failure_table_stays_bounded"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The routing switches and the audit trail stayed open without the admin session",
+   "scenario": "another person at the machine could switch a model's tier or read the audit while the Admin area was locked",
+   "cause": "the gate covered the admin and timelines permissions only; these need review or read",
+   "fix": "review and a new audit permission are guarded too on a machine without accounts; with accounts every member still reads the audit",
+   "test": "tests/test_admin_login.py SwitchTests"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The admin username was given to anyone before sign-in",
+   "scenario": "the public me route returned the username, half of the credential",
+   "cause": "state returned it whether signed in or not",
+   "fix": "the username only after sign-in",
+   "test": "tests/test_admin_login.py test_the_username_is_never_given_before_sign_in"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A leftover admin login asked for a second sign-in on a server with accounts, and could be locked by strangers",
+   "scenario": "with DCLAB_AUTH set the page showed the card and the public sign-in route counted failures",
+   "cause": "the admin routes did not know accounts were on",
+   "fix": "with accounts on, me says nothing is required and sign-in answers not found",
+   "test": "tests/test_admin_login.py RouteTests"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A hand-edited session file could make every request fail",
+   "scenario": "a time without a time zone in the session file raised inside identify, which runs on every request",
+   "cause": "the comparison sat outside the guard that skips a broken entry",
+   "fix": "a broken entry is no session",
+   "test": "tests/test_admin_login.py test_a_broken_session_file_is_no_session_never_an_error"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the sign-in in the browser",
+   "gate": "the flow by hand on the preview server",
+   "fixed_before_run": true,
+   "result": "the card hides the Admin tabs; a wrong password is refused; the right one opens them; sign-out locks them again and the benchmark route refuses; the audit keeps the sign-ins and no password",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "one browser on this machine; the lockout of the account sign-in is kept in one server process and a restart forgets it"
+   ]
+  }
+ ],
+ "outcome": "The owner can lock the Admin area with a username and password of their own; the rest of DCLab works as before.",
+ "lessons": [
+  "a protection that only hides a page is not one: the routes behind it must refuse too, and a test must call them",
+  "a lock counted after the check it guards lets a burst through: count first, then check"
+ ],
+ "risks": [
+  "it does not protect against someone who can read the workspace folder or the database",
+  "the account lockout is per process, not shared between server processes"
+ ],
+ "commits": []
+}

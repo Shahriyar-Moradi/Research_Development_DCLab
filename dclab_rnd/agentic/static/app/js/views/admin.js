@@ -179,7 +179,38 @@ DC.view('admin', {
     DC.hydrate(el);
   },
 
+  // A1 (2026-11-03): with an admin login set on this machine, nothing owner-only is fetched before its sign-in
+  async adminGate(el) {
+    const { $, $$, esc } = DC;
+    let me = { required: false, signed_in: true };
+    try { me = await DC.client.adminMe({ quiet: true }); } catch (e) { /* an older server: no admin login there */ }
+    const locked = !!(me.required && !me.signed_in);
+    $('#admin-lock', el).hidden = !locked;
+    $('#admin-signout', el).hidden = !(me.required && me.signed_in);
+    $$(':scope > .pane, :scope > .ptabs', el).forEach(x => { x.classList.toggle('admin-hidden', locked); });
+    if (locked) {
+      if (me.locked_until) $('#admin-lock-note', el).textContent = `Too many wrong passwords: try again after ${me.locked_until}.`;
+      const form = $('#admin-lock-form', el);
+      form.onsubmit = async ev => {
+        ev.preventDefault();
+        const data = new FormData(form);
+        $('#admin-lock-note', el).textContent = 'Signing in…';
+        try {
+          await DC.client.adminSignin({ body: { username: data.get('username'), password: data.get('password') }, quiet: true });
+          form.reset();
+          $('#admin-lock-note', el).textContent = '';
+          await this.enter(el);
+        } catch (e) {
+          $('#admin-lock-note', el).textContent = (e && e.message) || 'The username or the password is not right.';
+        }
+      };
+    }
+    $('#admin-signout', el).onclick = async () => { try { await DC.client.adminSignout({ quiet: true }); } catch (e) { /* signed out anyway */ } this.enter(el); };
+    return !locked;
+  },
+
   async enter(el) {
+    if (!(await this.adminGate(el))) return;
     const [pol, lim, intern, gw] = await Promise.allSettled([DC.client.platformPolicies(), DC.client.platformLimits(), DC.client.internStatus(), DC.client.modelOverview()]);
     if (pol.status !== 'fulfilled') { DC.markSample(true); return; }
     this.S.real = true;

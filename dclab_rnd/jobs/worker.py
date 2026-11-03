@@ -125,7 +125,8 @@ def _acting(env: Any, job: dict[str, Any]):
     payload = job.get("payload") or {}
     from .. import observe
 
-    stack.enter_context(observe.span(trace_id=origin.get("trace"), parent=origin.get("span")))  # 23.11: the job runs in the request's trace, in a span of its own
+    stack.enter_context(observe.span(trace_id=origin.get("trace"), parent=origin.get("span"), name=f"job {job.get('kind')}"[:120],
+                                     **{"dclab.job_kind": job.get("kind"), "dclab.job": job["id"]}))  # 23.11: the job runs in the request's trace, in a span of its own
     stack.enter_context(experience.bind(visit=origin.get("visit"), request=origin.get("request"), job=job["id"], project=payload.get("project_id"),
                                         conversation=payload.get("draft_id") or payload.get("session_id")))
     if origin.get("channel"):  # A7: a job an external chat's call queued records as that chat's (its turns, surface mcp)

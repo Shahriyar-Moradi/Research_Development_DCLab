@@ -7533,6 +7533,9 @@ ul.plain { margin: 0; padding-left: var(--ts-space-6); display: grid; gap: var(-
 .msg-body ol.plain-list, .msg-body ul.plain-list { margin: var(--ts-space-2) 0; padding-left: var(--ts-space-7); display: grid; gap: var(--ts-space-2); }
 .msg-body > p + p { margin-top: var(--ts-space-3); }
 
+/* A1 (2026-11-03): the Admin area's panes and tabs stay hidden until its own sign-in */
+.admin-hidden { display: none !important; }
+
 /* ===== ds.css ===== */
 /* Data science mode (the owner, 2026-11-01: "Claude's style, beside the old one"): the same product, pages, scripts and
    API, drawn the way the Claude desktop app draws a working session. Developer mode is the product as it is and is never touched: every rule here is scoped to

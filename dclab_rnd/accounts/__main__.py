@@ -4,6 +4,8 @@
     python -m dclab_rnd.accounts passwd --username you     a new password for a person (asked for twice, never an argument)
     python -m dclab_rnd.accounts list [--workspace ID]
     python -m dclab_rnd.accounts workspaces
+    python -m dclab_rnd.accounts admin-set --username you   the Admin area's own sign-in on a machine without accounts (no PostgreSQL)
+    python -m dclab_rnd.accounts admin-remove               remove it: the Admin area is open again on this machine
 
 The password is read from DCLAB_NEW_PASSWORD, or asked for (never an argument: it would stay in the shell history).
 The workspace defaults to the server's own (DCLAB_AGENT_HOME). Needs DCLAB_DATABASE_URL.
@@ -16,6 +18,31 @@ import getpass
 import os
 import sys
 from pathlib import Path
+
+
+def _admin(args: argparse.Namespace) -> int:
+    """A1 (2026-11-03): the Admin area's own sign-in, in the workspace folder; it needs no database."""
+    from dotenv import load_dotenv
+
+    from ..settings import ROOT, Settings
+    from . import admin_login
+
+    load_dotenv(ROOT / ".env", override=False)
+    home = Path(Settings.load().agent_home)
+    if args.command == "admin-remove":
+        print("removed: the Admin area is open again on this machine" if admin_login.remove(home) else "no admin login was set")
+        return 0
+    new = os.environ.get("DCLAB_NEW_PASSWORD") or getpass.getpass(f"Admin password for {args.username} (10 characters or more): ")
+    if not os.environ.get("DCLAB_NEW_PASSWORD") and new != getpass.getpass("Again: "):
+        print("The two passwords differ: nothing changed.", file=sys.stderr)
+        return 2
+    try:
+        admin_login.set_login(home, args.username, new)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    print(f"The Admin area now asks for {args.username} and the password (workspace {home}); every admin session ended.")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -34,7 +61,12 @@ def main(argv: list[str] | None = None) -> int:
     show = sub.add_parser("list", help="the members of a workspace")
     show.add_argument("--workspace", default=None)
     sub.add_parser("workspaces", help="every workspace")
+    adm = sub.add_parser("admin-set", help="the Admin area's username and password on this machine (asked for twice; DCLAB_NEW_PASSWORD skips the questions)")
+    adm.add_argument("--username", required=True)
+    sub.add_parser("admin-remove", help="remove the Admin area's sign-in on this machine")
     args = parser.parse_args(argv)
+    if args.command in ("admin-set", "admin-remove"):
+        return _admin(args)
 
     from dotenv import load_dotenv
 

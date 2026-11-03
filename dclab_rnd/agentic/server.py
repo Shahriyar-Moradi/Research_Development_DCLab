@@ -21,6 +21,7 @@ from .catalog import ROOT
 from .current import Current
 from .pool import Pool
 from .. import context, experience, limits, observe
+from ..accounts import admin_api
 from ..accounts import api as accounts_api
 from ..accounts.guard import identify
 from ..accounts.principal import ANONYMOUS, LOCAL_OWNER, reset_current, set_current
@@ -202,7 +203,7 @@ def create_app(home=None) -> FastAPI:
             rid = offered.trace_id[:16]  # no request id offered: the trace names it
         trace = offered.trace_id if offered else tracing.trace_id_for(rid)
         span_id = tracing.new_span_id()
-        token, clock, status = observe.REQUEST_ID.set(rid), time.perf_counter(), 500
+        token, clock, status, began = observe.REQUEST_ID.set(rid), time.perf_counter(), 500, time.time_ns()
         trace_token = observe.TRACE.set((trace, span_id, offered.parent_span if offered else None))
         try:
             try:
@@ -225,12 +226,15 @@ def create_app(home=None) -> FastAPI:
                 who = getattr(request.state, "who", None)
                 observe.request_line(status, method=method, route=route, ms=round(seconds * 1000, 1),
                               user=getattr(who, "user_id", None), workspace=getattr(who, "workspace_id", None))
+                observe._export((trace, span_id, offered.parent_span if offered else None), f"{method} {route}", began,  # B4: the request as the trace's root span
+                                {"dclab.route": route, "dclab.method": method, "dclab.status": status, "dclab.request": rid}, status >= 500)
             observe.REQUEST_ID.reset(token)
             observe.TRACE.reset(trace_token)
 
     for router in ROUTERS:
         app.include_router(router)
     app.include_router(accounts_api.router)
+    app.include_router(admin_api.router)  # A1 (2026-11-03): the Admin area's own sign-in on a machine without accounts
     # the draft routes and the pages hold stand-ins: each use reaches the request's workspace (agentic/current.py)
     c = {name: Current(name, s) for name in ("store", "projects", "drafts", "intern_sessions", "gateway", "draft_tasks", "traces", "jobs",
                                              "intern_jobs", "draft_jobs", "job_store", "audit", "experience", "ledger")}

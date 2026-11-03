@@ -26,6 +26,7 @@ class Principal:
     session_id: str | None = None
     csrf: str | None = None          # the session's request token (writes from a browser carry it)
     workspaces: tuple = field(default_factory=tuple)  # (id, name, role) of every workspace the user belongs to
+    admin_locked: bool = False       # 2026-11-03: the local owner without the Admin area's sign-in (accounts.admin_login)
 
     @property
     def signed_in(self) -> bool:

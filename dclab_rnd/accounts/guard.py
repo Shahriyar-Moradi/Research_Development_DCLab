@@ -22,7 +22,9 @@ COOKIE = "dclab_session"
 PUBLIC = {("GET", "/healthz"), ("GET", "/readyz"),  # a load balancer's probes (12.4): no data, no session
           ("GET", "/"), ("GET", "/guide"), ("GET", "/favicon.ico"),  # the page shells: no data; their API calls are checked
           ("GET", "/api/config"), ("POST", "/api/auth/password"), ("POST", "/api/auth/signout"), ("GET", "/api/auth/me"),
-          ("GET", "/api/auth/oidc/start"), ("GET", "/api/auth/oidc/callback")}
+          ("GET", "/api/auth/oidc/start"), ("GET", "/api/auth/oidc/callback"),
+          ("POST", "/api/admin/signin"), ("POST", "/api/admin/signout"), ("GET", "/api/admin/me")}  # the Admin area's own sign-in (A1)
+ADMIN_ONLY = ("admin", "timelines", "review", "audit")  # what the Admin area's sign-in guards on a machine without accounts (its owner is its only reviewer: the routing switches)
 SPECIAL = {
     ("POST", "/api/projects/{project_id}/approvals"): "approve_gate",
     ("POST", "/api/projects/{project_id}/stages/{stage}/approve"): "approve_stage",
@@ -93,7 +95,9 @@ SPECIAL = {
     ("GET", "/api/twin/settings"): "read",
     ("PUT", "/api/twin/settings"): "admin",
     ("GET", "/api/twin/sessions"): "timelines",
-    ("GET", "/api/admin/bench"): "admin",  # DCLab Bench (2026-11-03): every evaluation of DCLab by layer, the owner's
+    ("GET", "/api/admin/bench"): "admin",
+    ("POST", "/api/admin/password"): "admin",
+    ("GET", "/api/platform/audit"): "audit",  # 2026-11-03: any member with accounts; behind the Admin sign-in without them  # A1: a new admin password (the current one too)  # DCLab Bench (2026-11-03): every evaluation of DCLab by layer, the owner's
     ("GET", "/api/evaluation"): "review",  # 25.8: every model's scores, as the decision ledger's summary
     ("PUT", "/api/workspace/budgets/{user_id}"): "admin",  # 25.10: one person's monthly model limit, the owner's
     ("GET", "/api/workspace/budgets"): "admin",
@@ -112,6 +116,8 @@ def permission(method: str, path: str) -> str:
 def demand(needed: str, what: str = "this") -> Principal:
     """Refuse unless the person may ``needed``: 401 when signed out, 403 when their role may not."""
     who = current() or LOCAL_OWNER
+    if needed in ADMIN_ONLY and who.admin_locked:
+        raise HTTPException(401, {"error": "admin_login", "message": "This is the owner's: sign in on the Admin page first (its own username and password)"})
     if not allows(who.role, needed):
         if not who.signed_in:
             raise HTTPException(401, "Sign in first")
@@ -128,7 +134,7 @@ def require(*needed: str):
     return check
 
 
-ROUTE_WORDS = {"read": "read this workspace", "write": "change this workspace", "approve_stage": "approve a stage",
+ROUTE_WORDS = {"audit": "read the audit trail", "read": "read this workspace", "write": "change this workspace", "approve_stage": "approve a stage",
                "approve_gate": "approve a gate", "review": "review this", "admin": "change this setting",
                "timelines": "read the sessions' record"}
 
@@ -139,6 +145,13 @@ def identify(headers: dict[str, str], cookies: dict[str, str], settings: Any, de
     """The person behind a request: an API token (``Authorization: Bearer dclab_…``), else the session cookie; the
     local owner when no sign-in is configured; anonymous otherwise."""
     if settings.auth == "none":
+        from . import admin_login
+
+        home = getattr(settings, "agent_home", None)
+        if home is not None and admin_login.exists(home):  # A2: once an admin login is set, the owner-only parts need its session
+            if admin_login.session(home, cookies.get(admin_login.COOKIE)):
+                return Principal(role="owner", workspace_id=default_workspace, via="admin")
+            return Principal(role="owner", workspace_id=default_workspace, via="local", admin_locked=True)
         return Principal(role="owner", workspace_id=default_workspace, via="local")
     from .store import Accounts
 

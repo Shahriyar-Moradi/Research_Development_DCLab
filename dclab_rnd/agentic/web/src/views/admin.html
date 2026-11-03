@@ -5,7 +5,18 @@
       <h1>Admin</h1>
       <p class="lede">The R&amp;D's rules, visible as settings with an audit trail. The core ones are locked: no workspace can switch off "the holdout opens once".</p>
     </div>
+    <button type="button" class="btn ghost small" id="admin-signout" hidden>Sign out of Admin</button>
   </header>
+
+  <div class="panel" id="admin-lock" hidden data-style="max-width:440px">
+    <div class="panel-head"><div class="panel-title"><h2>Admin sign-in</h2><span class="sub">This area is the owner's. Sign in with the Admin username and password set on this machine (<code>python -m dclab_rnd.accounts admin-set</code>). A session ends after 30 minutes without use.</span></div></div>
+    <form class="panel-body stack" id="admin-lock-form" autocomplete="on">
+      <label class="field"><span>Username</span><input type="text" name="username" autocomplete="username" required></label>
+      <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+      <p class="small" id="admin-lock-note" role="status" aria-live="polite"></p>
+      <button type="submit" class="btn primary">Sign in</button>
+    </form>
+  </div>
 
   <div class="pane" data-pane="overview" data-label="Overview">
     <div class="stats" id="admin-stats">
@@ -502,7 +513,38 @@ DC.view('admin', {
     DC.hydrate(el);
   },
 
+  // A1 (2026-11-03): with an admin login set on this machine, nothing owner-only is fetched before its sign-in
+  async adminGate(el) {
+    const { $, $$, esc } = DC;
+    let me = { required: false, signed_in: true };
+    try { me = await DC.client.adminMe({ quiet: true }); } catch (e) { /* an older server: no admin login there */ }
+    const locked = !!(me.required && !me.signed_in);
+    $('#admin-lock', el).hidden = !locked;
+    $('#admin-signout', el).hidden = !(me.required && me.signed_in);
+    $$(':scope > .pane, :scope > .ptabs', el).forEach(x => { x.classList.toggle('admin-hidden', locked); });
+    if (locked) {
+      if (me.locked_until) $('#admin-lock-note', el).textContent = `Too many wrong passwords: try again after ${me.locked_until}.`;
+      const form = $('#admin-lock-form', el);
+      form.onsubmit = async ev => {
+        ev.preventDefault();
+        const data = new FormData(form);
+        $('#admin-lock-note', el).textContent = 'Signing in…';
+        try {
+          await DC.client.adminSignin({ body: { username: data.get('username'), password: data.get('password') }, quiet: true });
+          form.reset();
+          $('#admin-lock-note', el).textContent = '';
+          await this.enter(el);
+        } catch (e) {
+          $('#admin-lock-note', el).textContent = (e && e.message) || 'The username or the password is not right.';
+        }
+      };
+    }
+    $('#admin-signout', el).onclick = async () => { try { await DC.client.adminSignout({ quiet: true }); } catch (e) { /* signed out anyway */ } this.enter(el); };
+    return !locked;
+  },
+
   async enter(el) {
+    if (!(await this.adminGate(el))) return;
     const [pol, lim, intern, gw] = await Promise.allSettled([DC.client.platformPolicies(), DC.client.platformLimits(), DC.client.internStatus(), DC.client.modelOverview()]);
     if (pol.status !== 'fulfilled') { DC.markSample(true); return; }
     this.S.real = true;
