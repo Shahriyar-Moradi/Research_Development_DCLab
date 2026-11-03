@@ -31,14 +31,35 @@ class SwitchTests(unittest.TestCase):
         (self.home / control.FILE).write_text("{broken")
         self.assertTrue(control.live_allowed(self.home))  # a broken file is the defaults, never an error
 
-    def test_the_live_guard_refuses_a_paid_provider_when_stopped_and_lets_a_local_model_through(self):
+    def test_the_gateway_refuses_every_paid_request_when_stopped_even_from_a_client_built_before(self):
+        """Review finding 1: the switch was checked only when a client was first built, so a running session kept calling."""
+        from types import SimpleNamespace
+
+        from dclab_rnd.models.gateway import Gateway
+
+        gw = Gateway()
+        gw.home = self.home
+        paid = SimpleNamespace(tier={"base_url": "https://api.anthropic.com"}, run_limit_eur=None, spent_eur=0.0, reserved_eur=0.0)
+        local = SimpleNamespace(tier={"base_url": "http://127.0.0.1:11434/v1"}, run_limit_eur=None, spent_eur=0.0, reserved_eur=0.0)
+        self.assertIsNone(gw.stopped(paid))
+        control.set_values(self.home, live_models=False)  # turned off after the client exists
+        self.assertIn("stopped on the Admin page", gw.stopped(paid))
+        self.assertIn("stopped on the Admin page", gw.reserve(None, paid, 0.01)[0])
+        self.assertIsNone(gw.stopped(local))  # a model on this machine is never stopped
+
+    def test_the_owners_switch_never_reaches_the_tests_guard(self):
+        """Review finding 2: the guard read the default workspace's switch, so pressing Stop made the test suite fail."""
         from dclab_rnd.models import live_guard
 
         control.set_values(self.home, live_models=False)
-        with mock.patch.dict(os.environ, {"DCLAB_AGENT_HOME": str(self.home), live_guard.ALLOW: "1"}):
-            with self.assertRaises(live_guard.ProviderBlocked):
+        with mock.patch.dict(os.environ, {"DCLAB_AGENT_HOME": str(self.home)}):
+            with self.assertRaises(live_guard.LiveModelInTest):  # the tests' own guard, not the owner's switch
                 live_guard.check("anthropic", "https://api.anthropic.com")
-            live_guard.check("ollama", "http://127.0.0.1:11434")  # a model on this machine is not a paid call
+
+    def test_only_a_real_true_or_false_switches(self):
+        """Review finding 3: the text "false" left models on with no error."""
+        with self.assertRaises(ValueError):
+            control.set_values(self.home, live_models="false")
 
     def test_the_environment_cap_wins_over_the_switch(self):
         from dclab_rnd.models.gateway import workspace_cap
@@ -67,6 +88,8 @@ class RouteTests(unittest.TestCase):
         admin_login.set_login(self.home, "owner", PASSWORD)
         token = admin_login.sign_in(self.home, "owner", PASSWORD)
         self.client.cookies.set(admin_login.COOKIE, token)
+        text = self.client.post("/api/admin/control", json={"live_models": "false", "password": PASSWORD}, headers=self.h)
+        self.assertEqual(text.status_code, 422)
         bad = self.client.post("/api/admin/control", json={"live_models": False, "password": "wrong password!!"}, headers=self.h)
         self.assertEqual(bad.status_code, 403)
         self.assertTrue(control.live_allowed(self.home))
@@ -79,10 +102,24 @@ class RouteTests(unittest.TestCase):
         self.assertIn(("control_set", "refused"), moves)
         self.assertNotIn(PASSWORD, json.dumps(rows, default=str))
 
-    def test_resume_and_stop_every_job(self):
-        self.assertEqual(self.client.post("/api/admin/control/resume-models", headers=self.h).json(), {"resumed": True})
-        self.assertIn("stopped", self.client.post("/api/admin/control/stop-jobs", json={}, headers=self.h).json())
+    def test_resume_and_stop_every_job_counting_only_the_jobs_it_stopped(self):
+        """Review finding 6: every active job was counted, and a job ending meanwhile made the route fail."""
+        from types import SimpleNamespace
 
+        self.assertEqual(self.client.post("/api/admin/control/resume-models", headers=self.h).json(), {"resumed": True})
+        jobs = [{"id": "a", "status": "queued"}, {"id": "b", "status": "running", "cancel_requested": True}, {"id": "c", "status": "running"}]
+
+        def cancel(job_id):
+            if job_id == "c":
+                raise KeyError(job_id)  # it ended between the list and the stop
+            return {"id": job_id, "status": "cancelled", "cancel_requested": True}
+
+        from dclab_rnd.agentic.pages.control import stop_all
+
+        self.assertEqual(stop_all(SimpleNamespace(list=lambda *a, **k: jobs, cancel=cancel)), 1)
+        r = self.client.post("/api/admin/control/stop-jobs", json={"password": ""}, headers=self.h)
+        self.assertEqual(r.status_code, 200, r.text)
+  # a: stopped; b: already asked; c: ended meanwhile
 
 if __name__ == "__main__":
     unittest.main()

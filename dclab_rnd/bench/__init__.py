@@ -21,6 +21,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -60,7 +61,7 @@ COMMANDS: dict[str, list[tuple[str, list[str]]]] = {
                ("journeys-dev", ["make", "journeys", "SPLIT=dev"])],
     "retrieval_memory": [("retrieval-eval", ["make", "retrieval-eval"])],
     "data_science": [("kinds-check", ["make", "kinds-check"])],
-    "system_tasks": [("system-tasks-dev", [".venv/bin/python", "-m", "dclab_rnd.agent_eval.system_tasks", "--split", "dev"])],
+    "system_tasks": [("system-tasks-dev", [sys.executable, "-m", "dclab_rnd.agent_eval.system_tasks", "--split", "dev"])],
 }
 TIMEOUT = 1800  # seconds a command may take before it is stopped and counted as failed
 

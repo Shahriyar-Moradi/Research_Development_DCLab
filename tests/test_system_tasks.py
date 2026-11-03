@@ -49,11 +49,20 @@ class SystemTaskTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             st.run("sealed", yes=True, runner=runner(), campaign=self.campaign)
 
+    def test_a_sealed_run_stopped_halfway_still_counts(self):
+        def stops(kind, seed):
+            raise KeyboardInterrupt
+        with self.assertRaises(KeyboardInterrupt):
+            st.run("sealed", yes=True, runner=stops, campaign=self.campaign)
+        with self.assertRaises(FileExistsError):
+            st.run("sealed", yes=True, runner=runner(), campaign=self.campaign)
+
     def test_the_gate_and_the_seeds_are_fixed(self):
         self.assertEqual(st.GATE["version"], "system_gate_v1")
         self.assertTrue(set(st.SPLITS["dev"]).isdisjoint({0, 1, 2}))  # the kinds campaign's seeds are never reused
         self.assertTrue(set(st.SPLITS["sealed"]).isdisjoint(st.SPLITS["dev"]))
-        self.assertEqual(len(st.SEALED_SHA), 64)
+        stored = json.loads((ROOT / "evidence" / "campaigns" / "system_tasks_v1" / "results" / "SYS-002_sealed.json").read_text())
+        self.assertEqual(st.SEALED_SHA, stored["sealed_sha256"])  # review finding 8: the kinds and seeds the sealed run read
 
 
 if __name__ == "__main__":

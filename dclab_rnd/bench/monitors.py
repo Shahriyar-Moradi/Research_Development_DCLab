@@ -106,8 +106,11 @@ def summary(home: Path, days: int = 7, usage: Any = None) -> dict[str, Any]:
         from ..models.usage import open_usage
 
         usage = open_usage(Path(home))
-    rows = usage.recent(LIMIT)
-    return {"days": days, "rules": RULES, "agents": agents(rows, days), "bug_loop": bug_loop(Path(home))}
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    window = getattr(usage, "window", None)
+    rows = window(since, LIMIT) if callable(window) else [r for r in usage.recent(LIMIT) if str(r.get("at") or "") >= since]
+    return {"days": days, "rules": RULES, "agents": agents(rows, days), "bug_loop": bug_loop(Path(home)),
+            "truncated": len(rows) >= LIMIT}
 
 
 __all__ = ["agents", "bug_loop", "summary", "RULES"]

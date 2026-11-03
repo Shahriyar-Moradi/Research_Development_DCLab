@@ -31,6 +31,16 @@
    "cause": "the candidates are built by make datasets, which had not run on the current records",
    "fix": "not a code fix: the panel names the command that builds them",
    "test": "tests/test_bench_monitors.py test_the_bug_loop_counts_where_each_case_stands"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Every page load read the whole recent log with its prompt texts",
+   "scenario": "on PostgreSQL each load could move many prompt texts and silently undercount past its limit",
+   "cause": "the monitors read the recent rows whole and filtered them afterwards",
+   "fix": "the usage logs read only the window, without the prompt column, and the summary says when it was cut",
+   "test": "tests/test_bench_monitors.py test_the_summary_reads_only_the_window_without_prompt_text"
   }
  ],
  "measurements": [

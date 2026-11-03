@@ -301,7 +301,7 @@ def _spend() -> dict[str, Any]:
     t = gateway.usage.totals(since=month_start()) if gateway.usage else None
     priced = sorted(load())
     return {"tracked": gateway.usage is not None, "eur_this_month": t["eur"] if t else None, "unpriced_this_month": t["unpriced"] if t else None,
-            "workspace_cap": workspace_cap(), "priced_models": priced,
+            "workspace_cap": workspace_cap(getattr(gateway, "home", None)), "priced_models": priced,
             "note": ("Model requests are metered through the gateway: each project's wizard budget is its monthly cap, an intern session can carry "
                      "its own cap, and DCLAB_WORKSPACE_MONTHLY_EUR caps the workspace. A request that would pass a cap is refused before it is sent. "
                      + ("Prices are configured for: " + ", ".join(priced) + "." if priced else

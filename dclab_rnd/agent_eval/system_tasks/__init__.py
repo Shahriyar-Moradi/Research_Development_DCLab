@@ -77,8 +77,10 @@ def run(split: str = "dev", yes: bool = False, runner: Optional[Callable[[str, i
     if split == "sealed":
         if not yes:
             raise ValueError("the sealed seeds are read once: pass --yes when the dev runs are what they should be")
-        if any(results.glob("SYS-*_sealed.json")):
-            raise FileExistsError("the sealed seeds were already run: a second sealed run is refused")
+        if any(results.glob("SYS-*_sealed.json")) or (results / "SEALED_STARTED").exists():
+            raise FileExistsError("the sealed seeds were already run (or a run was started and stopped): a second sealed run is refused")
+        results.mkdir(parents=True, exist_ok=True)
+        (results / "SEALED_STARTED").write_text(datetime.now(timezone.utc).isoformat(timespec="seconds") + "\n")  # a stopped run still counts
     runner = runner or _runner
     rows = []
     for kind, seed in tasks(split):

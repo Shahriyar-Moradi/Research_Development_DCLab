@@ -35,6 +35,46 @@
    "cause": "the experience test lists every write route",
    "fix": "the routes are listed as audited owner actions",
    "test": "tests/test_experience_log.py test_every_write_route_says_what_it_records"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Stopping live models did not stop a client that already existed",
+   "scenario": "an intern session sent one request, the owner turned calls off, and every later request still reached the provider",
+   "cause": "the switch was checked only when a provider client was first built",
+   "fix": "the gateway checks the switch of its own workspace before every request; a model on this machine is never stopped",
+   "test": "tests/test_control.py test_the_gateway_refuses_every_paid_request_when_stopped_even_from_a_client_built_before"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The switch was written in the request's workspace and read from the default one",
+   "scenario": "with several workspaces a switch in one did nothing there and the default one's stopped all; pressing Stop on the owner's server made the test suite fail",
+   "cause": "the guard read the switch without a workspace",
+   "fix": "the switch is read by the gateway with its own workspace; the guard keeps only its environment rules",
+   "test": "tests/test_control.py test_the_owners_switch_never_reaches_the_tests_guard"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The text false left models on with no error",
+   "scenario": "a request sending the text false as the switch answered ok and changed nothing",
+   "cause": "the value was turned into a flag by truth, and any non-empty text is true",
+   "fix": "only a real true or false is accepted; anything else is refused",
+   "test": "tests/test_control.py test_only_a_real_true_or_false_switches"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Stop every job counted every job and could fail",
+   "scenario": "a job already asked to stop was counted again; a job ending between the list and the stop made the route fail",
+   "cause": "the job store returns the job, which is always true, and raises when the job is gone",
+   "fix": "only jobs this call changed are counted; a job that ended meanwhile is skipped",
+   "test": "tests/test_control.py test_resume_and_stop_every_job_counting_only_the_jobs_it_stopped"
   }
  ],
  "measurements": [

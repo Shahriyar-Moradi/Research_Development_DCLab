@@ -35,6 +35,9 @@ from dclab_core import bench as core
 ROOT = Path(__file__).resolve().parents[2]
 # the suites that send these prompts to a model (read from the code that loads them: agents/case_agent.py, the exam's arms,
 # draft/chat.py, intent.py, understand.py, orchestrator.py, business.py, plan.py); a suite not here measures no prompt
+# the conversation exam names its arms: a prompt is measured by a result only when an arm that sends it ran there
+ARM_PROMPTS: dict[str, tuple[str, ...]] = {"case": ("case_agent", "route_check"), "plain": ("exam_plain",)}
+EVERY_ARM = ("exam_person", "exam_judge")  # the written person and the judge take part in every arm's conversations
 SUITE_PROMPTS: dict[str, tuple[str, ...]] = {
     "conversation_exam_v1": ("case_agent", "route_check", "exam_plain", "exam_person", "exam_judge"),
     "home_v1": ("home_agent", "home_intent", "home_understand", "home_orchestrator", "home_business", "home_plan", "home_query"),
@@ -65,7 +68,7 @@ def history(head: str) -> dict[str, list[dict[str, Any]]]:
     """Every prompt's versions from git, oldest first: the commit, its date and subject, and the file's hash after it (a deletion
     has no hash). ``head`` keys the cache: a new commit reads it again."""
     out: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    log = _git("log", "--reverse", "--format=@@%H|%aI|%s", "--name-only", "--", PROMPTS)
+    log = _git("log", "--reverse", "--format=@@%H|%cI|%s", "--name-only", "--", PROMPTS)  # the commit date: when it reached the branch
     commit = None
     for line in log.splitlines():
         if line.startswith("@@"):
@@ -119,9 +122,21 @@ def live_results(campaigns: Path = CAMPAIGNS) -> dict[str, list[dict[str, Any]]]
             spent = doc.get("spent_eur")
             row = {"suite": suite, "ref": path.stem, "at": at, "split": core.split_of(doc, path.stem), "passed": passed,
                    "verdict": words[:120], "spent_eur": spent if isinstance(spent, (int, float)) else None}
-            for name in names:
+            for name in _sent(suite, doc, names):
                 out[name].append(row)
     return {k: sorted(v, key=lambda r: (r["at"], r["ref"])) for k, v in out.items()}
+
+
+def _sent(suite: str, doc: dict[str, Any], names: tuple[str, ...]) -> tuple[str, ...]:
+    """The prompts a result really sent: for the exam, those of the arms that ran there (a relabelling or a pair check without
+    arms sent none); for the other suites, the mapped prompts when the result ran conversations (it has scores or arms)."""
+    arms = doc.get("arms") or (list(doc["scores"]) if isinstance(doc.get("scores"), dict) else None)
+    if not arms:
+        return ()
+    if suite != "conversation_exam_v1":
+        return names
+    sent = {p for a in arms for p in ARM_PROMPTS.get(str(a), ())} | set(EVERY_ARM)
+    return tuple(n for n in names if n in sent)
 
 
 def _when(text: str) -> str:
@@ -175,7 +190,7 @@ def timeline(agent: Optional[str] = None, campaigns: Path = CAMPAIGNS, now: Opti
         out.append({"agent": name, "current": here, "committed": committed, "measured_now": measured,
                     "live_suites": [s for s, names in SUITE_PROMPTS.items() if name in names],
                     "versions": versions, "changes": len(versions),
-                    "since_last_pass": None if last_pass is None else sum(1 for v in versions if v["date"] > last_pass["date"]),
+                    "since_last_pass": None if last_pass is None else sum(1 for v in versions if _when(v["date"]) > _when(last_pass["date"])),
                     "last_pass": None if last_pass is None else {"hash": last_pass["hash"], "date": last_pass["date"]}})
     return out
 

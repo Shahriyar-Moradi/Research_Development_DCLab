@@ -15,8 +15,8 @@ from dclab_rnd.bench import monitors  # noqa: E402
 NOW = datetime(2026, 11, 4, 12, tzinfo=timezone.utc)
 
 
-def row(purpose, outcome="ok", seconds=2.0, eur=0.001, days_ago=1):
-    return {"at": (NOW - timedelta(days=days_ago)).isoformat(), "purpose": purpose, "outcome": outcome, "seconds": seconds,
+def row(purpose, outcome="ok", seconds=2.0, eur=0.001, days_ago=1, now=None):
+    return {"at": ((now or NOW) - timedelta(days=days_ago)).isoformat(), "purpose": purpose, "outcome": outcome, "seconds": seconds,
             "cost_eur": eur, "model": "claude-sonnet-5-5", "input_tokens": 100, "output_tokens": 20}
 
 
@@ -44,6 +44,18 @@ class MonitorTests(unittest.TestCase):
         (home / "datasets" / "failures" / "reviews.json").write_text(json.dumps({"s0": {"verdict": "accept"}, "s1": {"verdict": "reject"}}))
         loop = monitors.bug_loop(home)
         self.assertEqual((loop["candidates"], loop["waiting_review"], loop["accepted"], loop["rejected"]), (3, 1, 1, 1))
+
+    def test_the_summary_reads_only_the_window_without_prompt_text(self):
+        """Review finding 7: every page load read 50,000 rows with their prompt text."""
+        class Usage:
+            def window(self, since, limit):
+                return [row("home_agent", now=datetime.now(timezone.utc))]
+
+            def recent(self, limit):
+                raise AssertionError("the whole log must not be read")
+
+        s = monitors.summary(Path(tempfile.mkdtemp()), days=7, usage=Usage())
+        self.assertEqual((s["agents"][0]["purpose"], s["truncated"]), ("home_agent", False))
 
 
 if __name__ == "__main__":

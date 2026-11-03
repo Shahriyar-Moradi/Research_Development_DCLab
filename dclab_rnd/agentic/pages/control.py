@@ -43,6 +43,22 @@ def _store_job() -> dict[str, Any]:
     return {"loaded": loaded, "last": last[0][:200] if last else None}
 
 
+def stop_all(job_store: Any) -> int:
+    """Ask every active job to stop; the count is the jobs this call changed (one already asked, or one that ended between the
+    list and the stop, is not counted and is no error)."""
+    stopped = 0
+    for j in job_store.list(None, None, True, 200):
+        if j.get("cancel_requested"):
+            continue
+        try:
+            after = job_store.cancel(j["id"])
+        except KeyError:
+            continue
+        if after and (after.get("cancel_requested") or after.get("status") == "cancelled"):
+            stopped += 1
+    return stopped
+
+
 def register(app, ctx) -> None:
     router = Router()
 
@@ -111,8 +127,7 @@ def register(app, ctx) -> None:
         confirmed(body, "stop_jobs")
         if ctx.job_store is None:
             return {"stopped": 0}
-        jobs = await asyncio.to_thread(ctx.job_store.list, None, None, True, 200)
-        stopped = sum(1 for j in jobs if ctx.job_store.cancel(j["id"]))
+        stopped = await asyncio.to_thread(stop_all, ctx.job_store)
         audit("stop_jobs", stopped=stopped)
         return {"stopped": stopped}
 

@@ -131,6 +131,9 @@ class Gateway:
         same time cannot together pass a cap. A model without a price (estimate None) cannot be stopped in euros.
         """
         nothing = lambda: None  # noqa: E731
+        stopped = self.stopped(run)
+        if stopped:
+            return stopped, nothing
         if estimate is None:
             return self.refusal(project_id, run, purpose), nothing  # only "already over" can be said without a price
         with self._lock:
@@ -180,8 +183,24 @@ class Gateway:
                     run.reserved_eur = max(0.0, run.reserved_eur - estimate)
         return None, release
 
+    def stopped(self, run: "Bound | None" = None) -> str | None:
+        """A3 (2026-11-03): the owner stopped live model calls for this workspace (the Admin page's Control tab, ``control.json`` in
+        the gateway's own workspace). Checked before every request, so a client built earlier (an intern's session) stops too;
+        a model on this machine is never stopped."""
+        from .. import control
+
+        if control.live_allowed(getattr(self, "home", None)):
+            return None
+        base = str((getattr(run, "tier", None) or {}).get("base_url") or "")
+        if base and settings.is_local(base):
+            return None
+        return "live model calls are stopped on the Admin page (Control): the rules answer instead"
+
     def refusal(self, project_id: str | None, run: "Bound | None" = None, purpose: str | None = None) -> str | None:
         """The cap is already reached (used where no estimate is possible: an unpriced model, a client the gateway does not send for)."""
+        stopped = self.stopped(run)
+        if stopped:
+            return stopped
         if run is not None and run.run_limit_eur is not None and run.run_limit_eur > 0 and run.spent_eur >= run.run_limit_eur:
             return f"this run has used its budget: €{run.spent_eur:.2f} of €{run.run_limit_eur:.2f}"
         if self.usage is None:

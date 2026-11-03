@@ -26,8 +26,8 @@ def write(folder: Path, suite: str, ref: str, doc: dict) -> None:
 class VersionTests(unittest.TestCase):
     def setUp(self):
         self.campaigns = Path(tempfile.mkdtemp())
-        write(self.campaigns, "conversation_exam_v1", "CEX-001_dev", {"at": "2026-10-31T12:00:00+00:00", "verdict": "fail", "spent_eur": 2.0})
-        write(self.campaigns, "conversation_exam_v1", "CEX-002_dev", {"at": "2026-11-01T12:00:00+00:00", "verdict": "pass", "spent_eur": 1.0})
+        write(self.campaigns, "conversation_exam_v1", "CEX-001_dev", {"at": "2026-10-31T12:00:00+00:00", "verdict": "fail", "spent_eur": 2.0, "arms": ["case"]})
+        write(self.campaigns, "conversation_exam_v1", "CEX-002_dev", {"at": "2026-11-01T12:00:00+00:00", "verdict": "pass", "spent_eur": 1.0, "arms": ["case"]})
         write(self.campaigns, "agent_eval_v1", "AEV-001", {"at": "2026-11-02T12:00:00+00:00", "verdict": "pass",
                                                           "prompt_hashes": {"prompt:case_agent": "h3"}})
         self.patch = mock.patch.object(versions, "history", return_value=HISTORY)
@@ -63,6 +63,17 @@ class VersionTests(unittest.TestCase):
         for suite, prompts in versions.SUITE_PROMPTS.items():
             self.assertTrue(set(prompts) <= names, suite)
 
+
+
+class ArmTests(unittest.TestCase):
+    """Review finding 4: every exam result was credited to every exam prompt, even one whose arm never ran."""
+
+    def test_an_exam_result_measures_only_the_prompts_of_its_arms(self):
+        sent = versions._sent
+        self.assertEqual(sent("conversation_exam_v1", {"arms": ["plain"]}, versions.SUITE_PROMPTS["conversation_exam_v1"]),
+                         ("exam_plain", "exam_person", "exam_judge"))
+        self.assertIn("case_agent", sent("conversation_exam_v1", {"scores": {"case": [], "plain": []}}, versions.SUITE_PROMPTS["conversation_exam_v1"]))
+        self.assertEqual(sent("conversation_exam_v1", {"verdict": "relabelled"}, versions.SUITE_PROMPTS["conversation_exam_v1"]), ())
 
 if __name__ == "__main__":
     unittest.main()

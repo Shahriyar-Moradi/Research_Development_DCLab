@@ -36,6 +36,26 @@
    "cause": "the scripted agent suite records every prompt's hash although it sends none of them to a model",
    "fix": "hashes count as checks; only live results of the suites that send a prompt count as measurements",
    "test": "tests/test_bench_versions.py test_a_scripted_check_is_a_check_never_a_measurement"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Live results were credited to prompts they never sent",
+   "scenario": "exam relabellings and runs with only Claude alone counted as runs of the lead agent's prompt",
+   "cause": "every result of a suite was given to every prompt mapped to the suite",
+   "fix": "an exam result counts only for the prompts of the arms that ran there, and a result without arms counts for none",
+   "test": "tests/test_bench_versions.py test_an_exam_result_measures_only_the_prompts_of_its_arms"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Dates in mixed time zones were compared as text",
+   "scenario": "the changes since the last pass were counted on text dates with different offsets",
+   "cause": "the comparison skipped the conversion to universal time",
+   "fix": "dates are converted before they are compared, and a version's date is its commit date",
+   "test": "tests/test_bench_versions.py test_a_scripted_check_is_a_check_never_a_measurement"
   }
  ],
  "measurements": [

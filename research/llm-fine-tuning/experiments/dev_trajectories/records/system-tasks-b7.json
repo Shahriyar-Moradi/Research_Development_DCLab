@@ -40,6 +40,36 @@
    "cause": "not diagnosed yet: the dev seeds passed, so the weak spots show only on other draws of the replicas",
    "fix": "open: diagnose on new dev seeds, never on the sealed ones; a fresh sealed pair for the next judgement",
    "test": "none yet"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The test of the fixed seeds could not fail",
+   "scenario": "changing the kinds or the sealed seeds passed the test",
+   "cause": "it checked only the hash's length",
+   "fix": "the hash is compared with the one the sealed run recorded",
+   "test": "tests/test_system_tasks.py test_the_gate_and_the_seeds_are_fixed"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A sealed run stopped halfway allowed a second one",
+   "scenario": "an interrupted sealed run read the seeds but left no result file",
+   "cause": "the guard looked only for the result file",
+   "fix": "a marker is written before the sealed seeds are read",
+   "test": "tests/test_system_tasks.py test_a_sealed_run_stopped_halfway_still_counts"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The bench ran the suite with a fixed interpreter path",
+   "scenario": "where no .venv exists the run was recorded as failed",
+   "cause": "the command named .venv/bin/python",
+   "fix": "the command uses the running interpreter",
+   "test": "tests/test_bench.py test_the_runner_never_runs_a_sealed_or_live_suite"
   }
  ],
  "measurements": [

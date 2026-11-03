@@ -63,7 +63,9 @@ def set_values(home: Any, **values: Any) -> dict[str, Any]:
         raise ValueError("no workspace folder")
     doc = get(folder)
     if "live_models" in values:
-        doc["live_models"] = bool(values["live_models"])
+        if not isinstance(values["live_models"], bool):
+            raise ValueError("live_models is true or false")
+        doc["live_models"] = values["live_models"]
     if "workspace_monthly_eur" in values:
         cap = values["workspace_monthly_eur"]
         if cap is not None and (not isinstance(cap, (int, float)) or isinstance(cap, bool) or cap <= 0):

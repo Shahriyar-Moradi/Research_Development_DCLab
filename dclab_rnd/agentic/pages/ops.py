@@ -406,7 +406,7 @@ class Jobs:
             note = "Every model request this month is priced" + (" (local models cost nothing)" if t["local"] else "") + ". Jobs on this machine are not billed."
         return {"metered": metered, "eur": t["eur"], "requests": t["requests"], "priced": t["priced"], "local": t["local"], "unpriced": t["unpriced"],
                 "input_tokens": t["input_tokens"], "output_tokens": t["output_tokens"], "by_project": by_project, "by_purpose": t["by_purpose"],
-                "workspace_cap": workspace_cap(), "note": note}
+                "workspace_cap": workspace_cap(getattr(gateway, "home", None)), "note": note}
 
     def failures(self, limit: int = 20) -> list[dict[str, Any]]:
         """The latest jobs that failed or were interrupted (package 12.4), from the job table: what it was, why, how

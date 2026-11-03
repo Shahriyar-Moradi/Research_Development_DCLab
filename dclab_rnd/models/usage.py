@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Protocol
 
+WINDOW_FIELDS = ("at", "purpose", "model", "outcome", "seconds", "cost_eur", "input_tokens", "output_tokens")  # B8: never the prompt
 FIELDS = ("at", "purpose", "tier", "model", "endpoint", "project_id", "draft_id", "input_tokens", "output_tokens",
           "seconds", "attempts", "outcome", "prompt", "cost_eur", "cost_basis", "user_id", "cache_read_tokens", "cache_write_tokens")
 
@@ -126,6 +127,11 @@ class FileUsage:
     def recent(self, limit: int = 50) -> list[dict[str, Any]]:
         return list(reversed(self._all()[-limit:]))
 
+    def window(self, since: str, limit: int = 50_000) -> list[dict[str, Any]]:
+        """B8: the rows since a time, without the kept prompt text (the monitors need names and numbers only)."""
+        rows = [r for r in self._all() if str(r.get("at") or "") >= since][-limit:]
+        return [{k: r.get(k) for k in WINDOW_FIELDS} for r in rows]
+
     def record_check(self, entry: dict[str, Any]) -> None:
         line = json.dumps({k: entry.get(k) for k in CHECK_FIELDS}, ensure_ascii=False, default=str)
         with self._lock, self.checks.open("a", encoding="utf-8") as handle:
@@ -213,6 +219,17 @@ class PgUsage:
 
     def recent(self, limit: int = 50) -> list[dict[str, Any]]:
         return self._query(limit=limit)
+
+    def window(self, since: str, limit: int = 50_000) -> list[dict[str, Any]]:
+        """B8: the rows since a time, newest first, without the prompt column."""
+        import sqlalchemy as sa
+
+        from ..storage.models import model_request as t
+
+        q = (sa.select(*[t.c[k] for k in WINDOW_FIELDS]).where(t.c.workspace_id == self.workspace_id, t.c.at >= since)
+             .order_by(t.c.id.desc()).limit(limit))
+        with self.engine.connect() as c:
+            return [dict(r._mapping) for r in c.execute(q)]
 
     def record_check(self, entry: dict[str, Any]) -> None:
         import sqlalchemy as sa

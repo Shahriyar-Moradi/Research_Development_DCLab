@@ -99,12 +99,6 @@ def check(provider: str, endpoint: str = "") -> None:
     who = blocked(endpoint)
     if who:
         raise ProviderBlocked(f"{who} is blocked on this machine ({BLOCK} in .env): no request is sent to {urlparse(endpoint).hostname}")
-    host = (urlparse(endpoint).hostname or "") if endpoint else ""
-    if host not in ("localhost", "127.0.0.1", "::1"):
-        from .. import control  # A3 (2026-11-03): the owner's switch on the Admin page's Control tab
-
-        if not control.live_allowed():
-            raise ProviderBlocked(f"live model calls are stopped on the Admin page (Control): no request is sent to {provider}")
     if os.environ.get(ALLOW) == "1" or not in_test():
         return
     where = f" at {endpoint}" if endpoint else ""
