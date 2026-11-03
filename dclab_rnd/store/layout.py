@@ -18,6 +18,14 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT = ROOT / "training_records" / "store"
 CATALOG_COPY = ROOT / "training_records" / "STORE_CATALOG.json"  # the R&D repository's view of the store
 TIERS = ("raw", "records", "sets")
+
+
+def owns_repository_copy(root: Path | str) -> bool:
+    """Whether the store at ``root`` is the owner's own: the default folder AND a clone of ``dclab-records`` (it has a ``.git``).
+    On a fresh checkout or a cloud session the default folder is absent (it is gitignored); a run there makes an empty store, and
+    its view must never replace the committed ``STORE_CATALOG.json``."""
+    root = Path(root)
+    return root.resolve() == DEFAULT.resolve() and (root / ".git").exists()
 _PART = re.compile(r"^[a-z0-9][a-z0-9_.\-]{0,119}$")
 
 

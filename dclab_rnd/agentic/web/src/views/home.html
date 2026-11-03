@@ -720,7 +720,7 @@ DC.view('home', {
           + (v && v.quote ? `<div class="xs muted">“${esc(String(v.quote).slice(0, 160))}”</div>` : '') + '</div>';
       }).join('');
       const r = c.readiness || {};
-      const ready = $('#home-case-ready', el); ready.hidden = false; ready.textContent = r.ready ? 'ready to propose' : 'still understanding';
+      const ready = $('#home-case-ready', el); ready.hidden = false; ready.textContent = c.route ? 'work started' : r.ready ? 'ready to propose' : 'still understanding';
       const list = (title, items) => items.length ? `<div><b>${esc(title)}</b><ul>${items.map(i => `<li>${i}</li>`).join('')}</ul></div>` : '';
       $('#home-case-more', el).innerHTML = list('Assumed, to confirm', (c.assumptions || []).map(a => esc(a.value)))
         + list('Still open', (c.unknowns || []).map(u => esc(u.question)))
@@ -1023,7 +1023,7 @@ DC.view('home', {
       } else if (m.kind === 'notebook_cell' && m.cell) {
         body = notebookCellCard(m.cell, m.project);
       } else {
-        body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}${m.actions.includes('confirm_map') ? '<button type="button" class="btn primary sm" data-map-build="1">Confirm the map and build</button>' : ''}</div>${m.actions.includes('show_map') ? '<div class="stack tight" data-map-box="1"></div>' : ''}` : ''}`;
+        body = `${m.by === 'case_agent' ? mdLite(m.text) : `<p>${esc(m.text)}</p>`}${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}${m.actions.includes('confirm_map') ? '<button type="button" class="btn primary sm" data-map-build="1">Confirm the map and build</button>' : ''}</div>${m.actions.includes('show_map') ? '<div class="stack tight" data-map-box="1"></div>' : ''}` : ''}`;
       }
       // 19.9: was this answer helpful? It joins the session record, never changes the conversation
       const rate = m.id ? `<div class="row xs muted" data-style="gap:6px;margin-top:4px"><button type="button" class="link-btn" data-rate="helpful" data-ref="${esc(m.id)}" aria-label="Helpful">👍</button><button type="button" class="link-btn" data-rate="unhelpful" data-ref="${esc(m.id)}" aria-label="Not helpful">👎</button><button type="button" class="link-btn" data-edit="${esc(m.id)}" aria-label="Write my own version of this reply">✏</button></div>` : '';

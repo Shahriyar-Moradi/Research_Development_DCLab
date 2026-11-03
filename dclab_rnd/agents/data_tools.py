@@ -31,22 +31,41 @@ def _floor() -> int:
     return floor()
 
 
-def query(frame: pd.DataFrame, group_by: Optional[list[str]] = None, measures: Optional[list[Mapping[str, Any]]] = None,
-          filters: Optional[list[Mapping[str, Any]]] = None, sort: Optional[list[Mapping[str, Any]]] = None,
-          seen: Optional[set[str]] = None) -> dict[str, Any]:
-    """``seen``: the group names the case has already been shown; an answer that would take it past MAX_NAMES is refused."""
+def plan_of(frame: pd.DataFrame, group_by: Optional[list[str]] = None, measures: Optional[list[Mapping[str, Any]]] = None,
+            filters: Optional[list[Mapping[str, Any]]] = None, sort: Optional[list[Mapping[str, Any]]] = None,
+            personal: Optional[set[str]] = None) -> tuple[Any, list[str], dict[str, Any]]:
+    """The checked plan an agent's arguments mean, and what was made right in them (``Q.repair``); or ``(None, [], {"error": ...})``
+    with the reasons, and how to write it. One reading for a query, an answer card and a dashboard tile."""
     from dclab_core import query as Q
 
     if len(group_by or []) > MAX_GROUP_BY:
-        return {"error": f"group by at most {MAX_GROUP_BY} columns at a time"}
+        return None, [], {"error": f"group by at most {MAX_GROUP_BY} columns at a time"}
     try:
         plan = Q.QueryPlan(group_by=list(group_by or []), measures=[Q.Measure(**m) for m in measures or [{"name": "rows", "op": "count"}]],
                            filters=[Q.Filter(**f) for f in filters or []], sort=[Q.Sort(**s) for s in sort or []], limit=500)  # dclab_core.query's most
     except (TypeError, ValueError) as error:
-        return {"error": f"the question could not be read: {error}"}
+        return None, [], {"error": f"the question could not be read: {error}"}
+    plan, counted = Q.repair(plan, frame)  # a plain misreading is made right and said, never silently
     problems = Q.validate(plan, frame)
     if problems:
-        return {"error": "; ".join(problems), "columns": list(map(str, frame.columns))}
+        return None, [], {"error": "; ".join(problems), "columns": list(map(str, frame.columns))}
+    used = {*plan.group_by, *(f.column for f in plan.filters), *(m.column for m in plan.measures if m.column),
+            *(m.where.column for m in plan.measures if m.where), *([plan.period.column] if plan.period else [])}
+    if personal and used & personal:  # the studio marks these columns personal: no answer, chart or tile uses them (the review of 37.11j)
+        return None, [], {"error": f"{', '.join(sorted(used & personal))} holds personal data: DCLab does not answer with it. Use another column."}
+    return plan, counted, {}
+
+
+def query(frame: pd.DataFrame, group_by: Optional[list[str]] = None, measures: Optional[list[Mapping[str, Any]]] = None,
+          filters: Optional[list[Mapping[str, Any]]] = None, sort: Optional[list[Mapping[str, Any]]] = None,
+          seen: Optional[set[str]] = None, keep: Optional[list[Any]] = None, personal: Optional[set[str]] = None) -> dict[str, Any]:
+    """``seen``: the group names the case has already been shown; an answer that would take it past MAX_NAMES is refused.
+    ``keep``: a list the checked plan is appended to when the query ran (the lead agent's answer card is drawn from it)."""
+    from dclab_core import query as Q
+
+    plan, counted, refused = plan_of(frame, group_by, measures, filters, sort, personal)
+    if plan is None:
+        return refused
     try:
         result = Q.execute(plan, frame, floor=_floor())
     except (ValueError, TypeError) as error:  # the review: a plan valid on paper that cannot run is a refusal, never a crash
@@ -57,9 +76,29 @@ def query(frame: pd.DataFrame, group_by: Optional[list[str]] = None, measures: O
         return {"error": f"this case has seen {len(seen)} group names; this answer would pass {MAX_NAMES}: narrow it with a filter"}
     if seen is not None:
         seen |= names
-    return {"columns": result.columns, "rows": rows, "groups_not_shown": max(0, len(result.rows) - MAX_GROUPS),
-            "groups_hidden_under_the_floor": result.suppressed_groups, "rows_scanned": result.rows_scanned, "note": NO_SPLIT,
-            "exposure": Q.exposure(plan)}
+    if keep is not None:
+        keep.append(plan)
+    out = {"columns": result.columns, "rows": rows, "as_said": _as_said(plan, rows), "groups_not_shown": max(0, len(result.rows) - MAX_GROUPS),
+           "groups_hidden_under_the_floor": result.suppressed_groups, "rows_scanned": result.rows_scanned, "note": NO_SPLIT,
+           "exposure": Q.exposure(plan)}
+    if counted:
+        out["counted"] = counted
+    return out
+
+
+def _as_said(plan: Any, rows: list[list[Any]]) -> list[list[str]]:
+    """Each row as it may be said to the person: a share as a percentage with one decimal (26.5%), a count with its thousands
+    separated. These strings are what the guard compares a sentence with, so a correct sentence is never dropped for rounding."""
+    keys = len(plan.group_by)
+    ops = [m.op for m in plan.measures]
+    out = []
+    for row in rows:
+        said = [str(v) for v in row[:keys]]
+        for op, v in zip(ops, row[keys:]):
+            said.append("withheld" if v is None else f"{v * 100:.1f}%" if op == "rate" else f"{v:,}" if isinstance(v, int)
+                        else f"{v:,.2f}".rstrip("0").rstrip("."))
+        out.append(said)
+    return out
 
 
 def leakage(frame: pd.DataFrame, outcome: str, moment: Optional[str] = None) -> dict[str, Any]:
@@ -129,7 +168,9 @@ SCHEMAS = {
 }
 DESCRIPTIONS = {
     "query": "Ask the shared table an aggregate question: counts, rates, means, sums by group. DCLab's code computes it; only "
-             "aggregates come back, never a row, and small groups are hidden.",
+             "aggregates come back, never a row, and small groups are hidden. A share is {name, op:'rate', where:{column, op:'eq', "
+             "value}} (the condition is the where; the measure has no column); the rows meeting a condition are {name, op:'count', "
+             "where:{...}}. Say a result's numbers exactly as 'as_said' gives them.",
     "leakage": "Check which columns look written after the outcome (they would leak the answer). DCLab's code tests them.",
     "preview_step": "Preview what a cleaning step would do to the table: rows before and after, and whether it needs the person's "
                     "yes. Nothing is applied.",

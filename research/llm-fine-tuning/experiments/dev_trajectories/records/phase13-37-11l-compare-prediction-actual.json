@@ -1,0 +1,54 @@
+{
+ "package": "37.11l",
+ "title": "A question that compares predictions with the actual outcomes on the test data goes to the evaluator and answers in right and wrong",
+ "date": "2026-11-02",
+ "request": "The owner, in the built project's chat: 'compare the prediction and actual value of test data' got the data reader's card (training rows, held-back rows, split) and no comparison.",
+ "spec": "A question about predicted against actual, right and wrong, or mistakes on the test data is answered by the evaluator, with the four kinds of case in plain words and no single case listed.",
+ "plan": [
+  "read the project chat's routing words",
+  "route the comparison words to the evaluator and keep 'test data' away from the data reader",
+  "add right and wrong rows to the evaluation card",
+  "a routing test and a card test"
+ ],
+ "decisions": [
+  {
+   "decision": "The comparison is the confusion matrix in plain words, not a row listing",
+   "why": "no single case is ever listed in the chat; the project kept a confusion matrix at its cutoff"
+  }
+ ],
+ "change": "dclab_rnd/draft/orchestrator.py (WORDS for show_evaluation and show_data; show_evaluation's facts and description), tests/test_home_orchestrator.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "A comparison of predictions with actual values on the test data answered with the data summary",
+   "scenario": "'compare the prediction and actual value of test data' matched only the data reader's word 'data'",
+   "cause": "the evaluator's words had no actual, true value, right and wrong, mistakes; 'test data' matched the data reader",
+   "fix": "the evaluator's words cover them, 'test data' no longer reads as data, and the evaluation card says the four kinds of case in words",
+   "test": "tests/test_home_orchestrator.py ReporterTests"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "routing and card tests",
+   "gate": "scripted tests",
+   "fixed_before_run": true,
+   "result": "the four phrasings plan the evaluator and not the data reader; the card shows right and wrong for a stored matrix",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "rules path only: a model-driven plan was not run live",
+    "the owner's real project keeps a matrix at its cutoff, so its card would show the four rows"
+   ]
+  }
+ ],
+ "outcome": "The owner's comparison question now reaches the evaluator, which shows how many predictions were right and wrong, by kind, on the held-back cases.",
+ "lessons": [
+  "a question's words need a home in the router: 'test data' meant the held-back cases, not the table"
+ ],
+ "risks": [
+  "a model-driven plan may still choose another tool for an unusual phrasing"
+ ],
+ "commits": []
+}

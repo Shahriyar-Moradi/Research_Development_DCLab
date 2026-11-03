@@ -1030,12 +1030,12 @@ class HomeAgent:
         from . import dashboard as boards
 
         draft = self.store.get(draft_id)
-        if self.track(draft) != "reporting" or self.pending(draft) is not None:
-            return None
-        active = draft.get("active_asset")
-        if not any(m.get("kind") == "analysis" and m.get("asset") == active for m in draft.get("messages") or []):
-            return None
         kept = draft.get("dashboard") or {}
+        if (self.track(draft) != "reporting" and not (kept.get("board") and self.track(draft) == "analysis")) or self.pending(draft) is not None:
+            return None  # a board the lead agent drew beside an answer is refreshed on the analysis track too
+        active = draft.get("active_asset")
+        if not kept.get("board") and not any(m.get("kind") == "analysis" and m.get("asset") == active for m in draft.get("messages") or []):
+            return None  # a board already built is refreshed whatever the page holds (the lead agent builds boards without an analysis card)
         told = (((draft.get("track_brief") or {}).get("reporting") or {}).get("kpis") or {})
         said = str(told.get("value")) if told.get("source") == "user" and told.get("value") else None  # their answer to "Which numbers?"
         if not kept.get("board") and kept.get("missing_for") == active and kept.get("said") == said:
@@ -1060,7 +1060,15 @@ class HomeAgent:
                                           + "; ".join(unread) + ".", kind="text")
             board = D.Dashboard(title=spec["title"], audience=spec["audience"], refresh=spec["refresh"], kpis=spec["kpis"],
                                 floor=home_query.floor())
-        refreshed = bool(kept.get("board"))
+        return self.publish_board(draft_id, board, frame, version, unread, bool(kept.get("board")))
+
+    def publish_board(self, draft_id: str, board: Any, frame: Any, version: str | None, unread: list[str], refreshed: bool) -> dict[str, Any]:
+        """The second half of H10, shared with the lead agent's dashboard (2026-11-02): run every tile on the table, keep the board
+        (so the Refresh button works), record what the tiles related, and say it as a ``dashboard`` message."""
+        from .. import home_chart, home_query
+        from dclab_core import dashboard as D
+
+        draft = self.store.get(draft_id)
         from dclab_core import query as Q
 
         board, tiles = D.refresh(board, frame, data_version=version, at=now(), floor=home_query.floor(), chart=home_chart.spec)

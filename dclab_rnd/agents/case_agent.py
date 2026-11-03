@@ -30,7 +30,7 @@ from .runtime import Policy
 PROMPT = "case_agent"
 PURPOSE = "case_agent"
 SWITCH = "DCLAB_CASE_AGENT"
-TOOLS = ("read_table", "query", "check_leakage", "preview_step", "note", "add_unknown", "resolve", "confirm_assumption", "ask", "propose",
+TOOLS = ("read_table", "query", "answer", "dashboard", "check_leakage", "preview_step", "note", "add_unknown", "resolve", "confirm_assumption", "ask", "propose",
          "start", "request_build", "consult")  # 37.6: the guard layer's tools; 37.7: consult sends a specialist
 BUILDS = ("ml_project", "segmentation_project")  # what a build request starts: a project
 ENDS_TURN = ("ask",)  # a question ends the turn; after options or a start the agent writes its message (CEX-005: both came bare)
@@ -134,17 +134,26 @@ NOT_NOW = re.compile(r"\b(?:no|not|don'?t|do not|wait|hold|later|stop|never|canc
 
 # 2026-10-31 (the sealed run: 17 questions about what the person had said, most right after "go ahead" or "run it")
 GO_AHEAD = re.compile(r"\b(?:go ahead|send (?:it|the|me|them)|run (?:it|the|this|that)|do it|just do|stop asking|proceed|build it|start (?:it|now|the)|"
+                      
                       r"let'?s go|yes,? please|now,? please)\b", re.I)
-HOLD = re.compile(r"\b(?:don'?t|do not|not yet|wait|hold on|hold off|later|never)\b", re.I)
+HOLD = re.compile(r"\b(?:don'?t|do not|not yet|not now|wait|hold on|hold off|later|never|until|once|after|tomorrow|next week|won'?t|can'?t|cannot|rather not|no need)\b", re.I)
 CONFIRMS = re.compile(r"\b(?:does (?:that|this|it) (?:match|sound|work|fit)|can you confirm|could you confirm|do you want me to|"
                       r"would you like me to|want me to|shall i|should i|is (?:that|this) (?:right|ok|okay|correct|what you)|"
                       r"sound good|are you happy|ready (?:for me )?to|okay to|ok to)\b", re.I)
 
 
-def goes_ahead(words: str) -> bool:
-    """The person tells the agent to act now: a go-ahead with no hold in the same message ("stop asking" counts)."""
+ASKS_NOW = re.compile(r"\b(?:show|give|send|make|draw|do)\b|\bi (?:asked|sked)\b|\bnow\b", re.I)  # an order for a figure, a chart or a report
+BARE_YES = re.compile(r"^\W*(?:yes|yeah|yep|ok(?:ay)?|sure|go|go on|do it|right|yes,? right|yes,? please|please)\W*$", re.I)
+
+
+def goes_ahead(words: str, asking: bool = False) -> bool:
+    """The person tells the agent to act now: a go-ahead with no hold in the same message ("stop asking" counts). Since
+    2026-11-02 also an order for figures ("show me the report", "give plot", "now show my dashboard") and a bare yes or go
+    that answers the agent's own question."""
     w = str(words or "")
-    return bool(GO_AHEAD.search(w)) and not HOLD.search(w)
+    if HOLD.search(w) or REFUSES_BUILDING.search(w):  # a delegation or an order inside a refusal ("no model please, whatever you think") is none
+        return False
+    return bool(PAGE_BUILD.match(w)) or bool(GO_AHEAD.search(w)) or orders_model(w) or bool(DELEGATE.search(w)) or (C.wants_figures(w) and bool(ASKS_NOW.search(w))) or (asking and bool(BARE_YES.match(w)))
 
 
 # 2026-11-01: a long yes with conditions ("Yes, start the build ... hold the holdout until ...") failed on a word such as "hold"
@@ -152,8 +161,26 @@ def goes_ahead(words: str) -> bool:
 # the build; only a refusal aimed at building (or a leading no or wait) still refuses.
 LEADING_YES = re.compile(r"^\W*(?:yes|yeah|yep|sure|ok(?:ay)?|go ahead|please (?:build|start|go ahead))\b", re.I)
 BUILD_YES = re.compile(r"\b(?:start the build|go ahead with the build|build it|start building|build now|start it now)\b", re.I)
-REFUSE_BUILD = re.compile(r"\b(?:don'?t|do not|not yet|wait|hold off|later|never|cancel)\b[^.!?]{0,40}\b(?:build|start|go ahead)|"
-                          r"\bhold off\b|^\W*(?:no|not yet|wait)\b", re.I)
+# 2026-11-02 (the owner's second Telco session): an order to build a model is the person's yes ("now build model", "make prediction models"),
+# and "you decide" is a decision handed over; a question about building is neither.
+ORDER_MODEL = re.compile(r"^\W*(?:(?:please|now|ok(?:ay)?|yes|then|just|so|and|alright)[\s,]+)*(?:build|make|create|train|run|start)(?: me| us)?(?: a| the| my| some)?"
+                         r"(?: prediction| predictive| churn| ml| machine learning)?(?: model| models| classifier| predictor)\b(?!\s+(?:of|in|from|using|with)\b)", re.I)
+NEGATING = re.compile(r"\b(?:not|no|never|cannot|rather|need|until|once|after|before|if|without|neither|nor|tomorrow|next|instead|skip|said|asked|later|when|unless|maybe|perhaps|first|only|but)\b|n't", re.I)
+ASKING = re.compile(r"^\W*(?:how|can|could|should|what|why|is|are|do you|would|will)\b", re.I)
+DELEGATE = re.compile(r"\b(?:you decide|your call|up to you|whatever you (?:think|prefer|like)|choose for me|you choose|as you see fit|i don'?t mind)\b", re.I)
+
+
+def orders_model(words: str) -> bool:
+    """An order to build a model: the message opens with the verb, is short, and holds no question, no negation and no delay
+    (the review of 37.11k: "I won't build a model until ..." and "build a model tomorrow" are not orders)."""
+    w = str(words or "")
+    return (len(w.split()) <= 9 and bool(ORDER_MODEL.match(w)) and "?" not in w and not ASKING.match(w) and not NEGATING.search(w) and not HOLD.search(w))
+
+PAGE_BUILD = re.compile(r"^\W*create a project from this chat\W*$", re.I)  # the page's "Build this chat as a project" button sends exactly this
+REFUSE_AIMED = (r"\b(?:don'?t|do not|not yet|not now|wait|hold off|later|never|cancel|tomorrow|next week|won'?t|can'?t|cannot|rather not|no need)\b"
+                r"[^.!?]{0,40}\b(?:build|start|go ahead|create|train|model)|\bno (?:model|models)\b|\bhold off\b")  # a delay or a no aimed at building
+REFUSE_BUILD = re.compile(REFUSE_AIMED + r"|^\W*(?:no|not yet|not now|wait)\b", re.I)
+REFUSES_BUILDING = re.compile(REFUSE_AIMED, re.I)
 
 
 def says_yes(words: str) -> bool:
@@ -162,7 +189,16 @@ def says_yes(words: str) -> bool:
     w = str(words or "")
     if REFUSE_BUILD.search(w):
         return False
-    return bool(LEADING_YES.search(w) or BUILD_YES.search(w)) or (bool(YES_BUILD.search(w)) and not NOT_NOW.search(w))
+    return (bool(PAGE_BUILD.match(w) or LEADING_YES.search(w) or BUILD_YES.search(w) or orders_model(w) or BARE_YES.match(w))
+            or (bool(YES_BUILD.search(w)) and not NOT_NOW.search(w)))
+
+
+NO_MORE = re.compile(r"\b(?:no more questions|stop asking|i (?:told|said) you|i don'?t need|just show|don'?t ask)\b", re.I)
+
+
+def says_no_more(words: str) -> bool:
+    """The person has said they want no more questions (or that they already answered)."""
+    return bool(NO_MORE.search(str(words or "")))
 
 
 def declines(words: str) -> bool:
@@ -200,7 +236,11 @@ class CaseState:
     asking: bool = False  # the last turn ended on a question
     wants_options: bool = False  # the person asked, in this message, to see what DCLab can do
     go_ahead: bool = False  # the person told the agent, in this message, to go ahead: no confirmation question (2026-10-31)
-    queries: int = 0  # the table queries in this turn (at most QUERIES_A_TURN)
+    personal: set[str] = field(default_factory=set)  # the columns the studio marks as personal: no query, answer or dashboard tile uses them
+    cards: list[dict[str, Any]] = field(default_factory=list)  # 2026-11-02: this turn's answers and dashboards, drawn by Home under the message
+    wants_figures: bool = False  # the person asked, in this message, for figures of the shared table: no question before they are shown
+    queries: int = 0  # the table queries that ran in this turn (at most QUERIES_A_TURN): a refused one is never counted
+    query_errors: int = 0  # the table queries refused in this turn (at most QUERY_ERRORS_A_TURN)
     budget_reached: bool = False  # 2026-11-01: three turns with the goal and the data known: propose or start, no more asking
     route_client: Any = None  # 2026-11-01: the cheap second reading of the route (purpose route_check); None: no check
     route_told: list[str] = field(default_factory=list)  # the plan's step 1: each route doubt (a move and what it pointed to) told once
@@ -266,7 +306,8 @@ def _read_table(state: CaseState) -> dict[str, Any]:
     return out
 
 
-QUERIES_A_TURN = 2  # the prompt's "one or two questions of the table", kept by code
+QUERIES_A_TURN = 4  # questions of the table that ran in one turn, kept by code (the owner's Telco session, 2026-11-02: two was too few
+QUERY_ERRORS_A_TURN = 3  # to repair a refusal and still answer); a refused question is not counted, but three refusals end the tries
 
 
 def _data(state: CaseState, name: str, **arguments: Any) -> dict[str, Any]:
@@ -279,11 +320,18 @@ def _data(state: CaseState, name: str, **arguments: Any) -> dict[str, Any]:
         return {"error": "No table has been shared: ask the person to share it, or work without numbers."}
     if name == "query":
         if state.queries >= QUERIES_A_TURN:  # CEX-014: queries took over the turns once the table was read by code
-            return {"error": f"you have asked the table twice this turn: write to the person now with what you found, and ask "
-                             f"more of the table next turn if it is still needed"}
-        state.queries += 1
+            return {"error": f"the table has been asked {state.queries} times this turn: write to the person now with what you found"}
+        if state.query_errors >= QUERY_ERRORS_A_TURN:
+            return {"error": "three questions of the table were refused this turn: tell the person in plain words what did not work "
+                             "and what you found without it; do not say you will try again later"}
         arguments["seen"] = state.group_names
+        arguments["personal"] = state.personal
     out = data_tools.TOOLS[name](state.frame, **arguments)
+    if name == "query":
+        if "error" in out:
+            state.query_errors += 1
+        else:
+            state.queries += 1
     if "error" not in out:
         if out.get("exposure"):
             state.exposure.append(out["exposure"])
@@ -296,6 +344,70 @@ def _query(state: CaseState, group_by: Optional[list[str]] = None, measures: Opt
     return _data(state, "query", group_by=group_by, measures=measures, filters=filters, sort=sort)
 
 
+MAX_TILES = 6  # a dashboard's tiles: a page the person can read
+
+
+def _worked(state: CaseState, track: str, tool: str) -> None:
+    """The figures asked for were shown: that is the work, and the case says so (the route the panel and the record read). Only for a
+    person whose words ask for figures and no model, and never over a route already started or picked."""
+    route = state.case.route
+    moves = route is not None and tool == "dashboard" and route.by == "agent" and route.tool == "query"  # a board after an answer: the Refresh button reads this
+    if (route is None or moves) and not state.case.chosen and state.wants_figures:
+        state.case = C.apply(state.case, "route", C.CaseRoute(track=track, tool=tool, by="agent"), by="agent", why="the figures asked for were shown")
+
+
+def _model_work(state: CaseState) -> bool:
+    """The person's latest message is about a model (an order to build, a delegation, a model's words) and does not ask for figures, or a
+    build is the work and this message does not ask for figures: no report is drawn again (the owner's second Telco session)."""
+    latest = state.case.words[-1] if state.case.words else ""
+    ordered = orders_model(latest) or bool(DELEGATE.search(latest))  # an order or a delegation, not a mention of risk or a score (the review of 37.11k)
+    building = state.case.route is not None and state.case.route.tool in BUILDS
+    return (ordered or building) and not state.wants_figures
+
+
+NOT_NOW_CARD = {"error": "a model is the work now: tell the person what happens next in words; draw a report or a dashboard only when they ask for numbers"}
+
+
+def _answer(state: CaseState, group_by: Optional[list[str]] = None, measures: Optional[list[dict[str, Any]]] = None,
+            filters: Optional[list[dict[str, Any]]] = None, sort: Optional[list[dict[str, Any]]] = None) -> dict[str, Any]:
+    """Ask the table and show the person the answer: a chart and its numbers, drawn by code from this very result (the owner's
+    Telco session, 2026-11-02: a report was promised and nothing was ever shown). The numbers come back to the agent too."""
+    if _model_work(state):
+        return NOT_NOW_CARD
+    kept: list[Any] = []
+    out = _data(state, "query", group_by=group_by, measures=measures, filters=filters, sort=sort, keep=kept)
+    if "error" in out or not kept:
+        return out
+    state.cards.append({"kind": "answer", "plan": kept[-1].model_dump(mode="json")})
+    _worked(state, "analysis", "query")
+    return {**out, "shown": "a chart and the numbers are drawn under your message; now say in two or three sentences what they show, "
+                            "with the numbers exactly as as_said gives them, and do not draw anything yourself"}
+
+
+def _dashboard(state: CaseState, tiles: Optional[list[dict[str, Any]]] = None, title: Optional[str] = None) -> dict[str, Any]:
+    """A dashboard of up to six tiles, each a question of the table; code runs every tile and draws its chart. The agent sees no
+    number from it: ask the table (query) for the numbers it will say."""
+    from . import data_tools
+
+    if state.frame is None:
+        return {"error": "No table has been shared: ask the person to share it first."}
+    if _model_work(state):
+        return NOT_NOW_CARD
+    if not tiles or len(tiles) > MAX_TILES:
+        return {"error": f"a dashboard has one to {MAX_TILES} tiles, each {{group_by, measures}}: for example one tile per segment column"}
+    plans = []
+    for n, tile in enumerate(tiles, 1):
+        plan, _, refused = data_tools.plan_of(state.frame, (tile or {}).get("group_by"), (tile or {}).get("measures"), (tile or {}).get("filters"),
+                                              (tile or {}).get("sort"), state.personal)
+        if plan is None:
+            return {"error": f"tile {n}: {refused['error']}", **({"columns": refused["columns"]} if "columns" in refused else {})}
+        plans.append(plan.model_dump(mode="json"))
+    state.cards.append({"kind": "dashboard", "title": str(title or "Your dashboard")[:120], "plans": plans})
+    _worked(state, "reporting", "dashboard")
+    return {"shown": f"a dashboard of {len(plans)} tiles is drawn under your message; say which numbers it holds, and quote a figure "
+                     "only if a query gave it to you"}
+
+
 def _check_leakage(state: CaseState, outcome: str) -> dict[str, Any]:
     return _data(state, "leakage", outcome=outcome)
 
@@ -305,18 +417,42 @@ def _preview_step(state: CaseState, kind: str, columns: Optional[list[str]] = No
     return _data(state, "preview_step", kind=kind, columns=columns, filters=filters, keys=keys)
 
 
-def _request_build(state: CaseState, quote: str) -> dict[str, Any]:
-    """A build only on a project route, a ready case (or the person's own choice), and the person's yes in their latest words."""
+BUILD_QUESTION = re.compile(r"\b(?:build|train|create|start|model|project)\b", re.I)
+
+
+def _asked_to_build(state: CaseState) -> bool:
+    """The agent's last message before this one asked, with a question mark, about building (a model, a project)."""
+    before = [t for t in state.turns[:-1] if t.get("role") == "assistant"]
+    last = str(before[-1].get("content") or "") if before else ""
+    return "?" in last and bool(BUILD_QUESTION.search(last))
+
+
+def _request_build(state: CaseState, quote: str, outcome: Optional[str] = None) -> dict[str, Any]:
+    """A build only on a project route, a ready case (or the person's own choice), and the person's yes in their latest words (an
+    order to build a model counts, and so does a bare yes: the quote may be the whole of a short message). ``outcome``: the column
+    the model learns, accepted only when the table has it and the person's words (or an assumption they confirmed) name it."""
     route = state.case.route
     if route is None or route.tool not in BUILDS:
-        return {"error": "a build starts a project: start a prediction or segmentation first, with the person's choice"}
+        return {"error": "a build starts a project: start a prediction or segmentation first (start, quoting the person's latest words)"}
     r = C.readiness(state.case)
-    if not r.ready and not state.case.chosen:
-        return {"error": "the case is not ready: " + "; ".join(r.reasons)}
     latest = state.case.words[-1] if state.case.words else ""
-    if latest.startswith("I pick:") or not says_yes(latest) or not (quote and C.quote_ok(quote, quote, [latest])):
-        return {"error": "a build needs the person's yes to building, in their latest message: ask them plainly, and pass their words as quote"}
-    state.build = {"tool": route.tool, "quote": quote}
+    if not r.ready and not state.case.chosen and not orders_model(latest):  # an order to build a model needs no interview first (the owner's Telco session)
+        return {"error": "the case is not ready: " + "; ".join(r.reasons)}
+    bare = bool(quote) and not C.quote_ok(quote, quote, [latest]) and C.whole_short_message(quote, [latest])  # "yes": quotable only whole
+    if bare and not orders_model(latest) and not _asked_to_build(state):  # a yes to a question about something else is not a yes to building
+        return {"error": "their yes answers your last question, which was not about building: ask whether to build, then request it on their yes"}
+    if latest.startswith("I pick:") or not says_yes(latest) or not (quote and (C.quote_ok(quote, quote, [latest]) or C.whole_short_message(quote, [latest]))):
+        return {"error": "a build needs the person's yes to building in their latest message (a yes to your question, or an order such as "
+                         "'build the model'): pass their own words as quote, the whole message when it is short. Never ask them to type a particular phrase."}
+    column = None
+    if outcome:
+        names = [str(c.get("name")) for c in (state.table or {}).get("columns") or []]
+        column = next((n for n in names if n.casefold() == str(outcome).casefold()), None)
+        if column is None:
+            return {"error": f"the table has no column {outcome!r}: the columns are {', '.join(names[:30])}"}
+        if column not in C.grounded_columns(state.case, [column]):
+            return {"error": f"the person has not named {column}: ask which column is the outcome, or leave outcome out"}
+    state.build = {"tool": route.tool, "quote": quote, **({"outcome": column} if column else {})}
     try:  # the case file keeps the person's yes with their words (v2)
         state.case = C.apply(state.case, "build", C.CaseBuild(tool=route.tool, quote=quote), by="person", why="the person said yes to the build")
     except C.CaseRefused as error:
@@ -390,6 +526,12 @@ def _ask(state: CaseState, question: str) -> dict[str, Any]:
     if state.budget_reached and not any(u.blocks == "all" for u in state.case.unknowns):
         return {"error": f"after {TURN_BUDGET} turns you know the goal and the data: propose or start now, stating anything still "
                          "open as an assumption the person can correct"}
+    if state.wants_figures and state.queries == 0 and not state.cards and state.query_errors < QUERY_ERRORS_A_TURN and not any(u.blocks == "all" for u in state.case.unknowns):
+        return {"error": "the person asked for figures of their table: ask the table now (query) and write what it shows; "
+                         "ask a question only after the figures are in your message, and only one"}
+    if state.go_ahead and DECISION_Q.search(str(question)):
+        return {"error": "the person told you to go ahead or decided for you: do it now, state what you assumed about what they will do with "
+                         "it, and ask nothing about it"}
     if state.go_ahead and CONFIRMS.search(str(question)):
         return {"error": "the person told you to go ahead: act now (start the work, or request_build if they said yes to building) "
                          "and tell them what you did; do not ask them to confirm again. Ask only about something the work cannot "
@@ -446,6 +588,9 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     if doubt:
         return {"error": doubt}
     state.case = C.apply(state.case, "route", C.CaseRoute(track=track, tool=tool, by="agent"), by="agent", why="work started")
+    if tool in ("query", "dashboard"):  # 2026-11-02: "work started" showed nothing; the figures are shown by this very turn
+        return {"started": f"{track}/{tool}", "next": "nothing is shown yet: ask the table (query), show it with answer or dashboard, then "
+                                                      "say what it shows; do not say anything is ready before a tool returned it"}
     return {"started": f"{track}/{tool}", "next": "now tell the person in a few sentences what happens next, then stop"}
 
 
@@ -476,10 +621,18 @@ def register(registry: Registry) -> None:
 
     defs = [
         ("query", data_tools.DESCRIPTIONS["query"], data_tools.SCHEMAS["query"]["properties"], [], _query, "read"),
+        ("answer", "Ask the table one aggregate question and SHOW the person the answer as a chart with its numbers table (a report: "
+                   "which segment loses most, how many by group). Same arguments as query, and the numbers come back to you. Use it "
+                   "when they ask to see, show, plot or report something.",
+         data_tools.SCHEMAS["query"]["properties"], [], _answer, "read"),
+        ("dashboard", "Show the person a dashboard: one to six tiles, each a question of the table ({group_by, measures}, as in query), "
+                      "drawn as charts and kept so it can be refreshed. You see no number from it: query for the numbers you will say.",
+         {"title": S, "tiles": {"type": "array", "minItems": 1, "maxItems": MAX_TILES, "items": data_tools.SCHEMAS["query"]}}, ["tiles"], _dashboard, "read"),
         ("check_leakage", data_tools.DESCRIPTIONS["leakage"], data_tools.SCHEMAS["leakage"]["properties"], ["outcome"], _check_leakage, "read"),
         ("preview_step", data_tools.DESCRIPTIONS["preview_step"], data_tools.SCHEMAS["preview_step"]["properties"], ["kind"], _preview_step, "read"),
-        ("request_build", "Ask DCLab to build the project the person chose, once they said yes: pass their words as quote.",
-         {"quote": S}, ["quote"], _request_build, "write"),
+        ("request_build", "Ask DCLab to build the project the person chose, once they said yes or ordered it: pass their words as quote "
+                          "(the whole message when it is short, like yes). If the person named the outcome column (or confirmed it), pass it as outcome.",
+         {"quote": S, "outcome": S}, ["quote"], _request_build, "write"),
         ("consult", "Send a specialist with the case when a question needs depth: data_investigator (what the table can answer), "
                     "leakage_auditor (columns known only after the decision), critic (what is weak before you propose), "
                     "domain_expert (what matters in this kind of business), solution_designer (how started work should be set up). "
@@ -517,11 +670,46 @@ TOOL_NAMES = tuple(f"case_{t}" for t in TOOLS)
 POLICY = Policy(name="case", system="", tools=TOOL_NAMES, max_steps=14, max_replies=8, stop_after=tuple(f"case_{t}" for t in ENDS_TURN))
 
 
+DECISION_Q = re.compile(r"\b(?:what (?:will|would|do) you (?:do|want to do)|are you deciding|what (?:decision|is the decision)|how will you use|"
+                        r"what will (?:this|the answer|it) be used for|do you already offer|who (?:will|would) (?:use|read|act on))\b", re.I)
+
+
+def without_decision_questions(text: str) -> str:
+    """The message without its questions about what the person will do with the answer (the owner's Telco session: asked twice and
+    declined, the figures wanted first). Said after an order for figures or once already, such a question is not asked again."""
+    parts = re.split(r"(?<=[.?!])\s+", str(text or "").strip())
+    kept, dropped_last = [], False
+    for p in parts:
+        asks = p.rstrip().endswith("?") and bool(DECISION_Q.search(p))
+        if asks or (dropped_last and re.match(r"(?:for example|e\.g\.|such as)\b", p, re.I)):  # its examples go with it
+            dropped_last = True
+            continue
+        dropped_last = False
+        kept.append(p)
+    return " ".join(kept)
+
+
 def unconfirmed(text: str) -> str:
     """A message without its sentences that ask the person to confirm again (said after they told the agent to go ahead)."""
     parts = re.split(r"(?<=[.?!])\s+", str(text or "").strip())
     kept = [p for p in parts if not (p.rstrip().endswith("?") and CONFIRMS.search(p)) and not re.search(r"\ba plain yes\b", p, re.I)]
     return " ".join(kept) if kept else ""
+
+
+BARS = re.compile(r"[\u2580-\u259f]{2,}")  # blocks drawn as a chart: the model's own, never code's (a chart comes from answer or dashboard)
+
+
+def without_bars(text: str) -> str:
+    """The message without charts drawn in characters (the owner's Telco session: black blocks beside collapsed labels). A line
+    that is only such a chart goes; a sentence that merely holds blocks loses them."""
+    out = []
+    for line in str(text or "").split("\n"):
+        if BARS.search(line):
+            line = re.sub(r" {2,}", " ", BARS.sub("", line))
+            if len(line.strip()) <= 60:  # only labels were left: "Month-to-month  One year  Two year"
+                continue
+        out.append(line)
+    return "\n".join(out)
 
 
 def checked(text: str, state: CaseState, dropped: Optional[list[str]] = None) -> str:
@@ -531,7 +719,7 @@ def checked(text: str, state: CaseState, dropped: Optional[list[str]] = None) ->
 
     sources = [*state.case.words, *state.computed]
     kept = []
-    for s in re.split(r"(?<=[.?!])\s+", str(text or "").strip()):
+    for s in re.split(r"(?<=[.?!])\s+", without_bars(text).strip()):
         if not s:
             continue
         unsaid = cited.unsaid(s, sources)
@@ -632,8 +820,11 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
         state.case = C.declined(state.case)
     state.case = C.hear(state.case, words)
     state.wants_options = bool(WANTS_OPTIONS.search(str(words)))  # this message only (the review: it stayed on for the case)
-    state.go_ahead = goes_ahead(str(words))  # this message only
-    state.queries = 0
+    state.go_ahead = goes_ahead(str(words), asking=state.asking)  # this message only (asking: the last turn ended on a question)
+    state.wants_figures = (bool(state.table) and C.wants_figures([str(words)])  # this message only: figures first, unless it is a model or a decision
+                           and not ({"prediction", "business"} & set(C.named_tracks([str(words)]))))  # asked for (what was said before does not count)
+    state.queries = state.query_errors = 0
+    state.cards = []
     if state.table and not any(str(c).startswith('{"table": ') for c in state.computed):  # 2026-10-31: code reads the shared
         _read_table(state)  # table (again after a restore), so no model call is spent on it and its counts may be said
     if state.trace is None:
@@ -697,6 +888,11 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
         trimmed = [unconfirmed(w) for w in words_out]
         if any(trimmed):  # a message that was only the question is kept rather than replaced by code's fallback line
             words_out = trimmed
+    asked_before = any(t.get("role") == "assistant" and DECISION_Q.search(str(t.get("content") or "")) for t in state.turns)
+    if state.go_ahead or state.wants_figures or asked_before and says_no_more(str(words)):  # 2026-11-02: the figures first; never asked again
+        trimmed = [without_decision_questions(w) for w in words_out]
+        if any(trimmed):
+            words_out = trimmed
     withheld = False
     if dropped:  # a refusal comes back to the agent so it can write again (the plan's rule), once: never a silent turn
         survivors = sum(word_count(w) for w in answers)
@@ -726,7 +922,7 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     state.turns.append({"role": "assistant", "content": text + ("\n(Options: " + "; ".join(o.title for o in state.shown) + ")" if state.shown else "")})
     if state.checkpoint:  # 37.8: saved after every turn, so a stop or a crash loses nothing
         case_session.save(state, state.checkpoint)
-    return {"text": text, "options": list(state.shown), "route": state.case.route, "asking": state.asking}
+    return {"text": text, "options": list(state.shown), "route": state.case.route, "asking": state.asking, "cards": list(state.cards)}
 
 
 def _spent(client: Any) -> float:

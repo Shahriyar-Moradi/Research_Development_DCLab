@@ -1,0 +1,67 @@
+[
+ {
+  "ref": "906f8632b4",
+  "person": {
+   "truth": {
+    "situation": "I run a small internet reseller in Sharjah. Customers keep leaving and I do not have time for long talks; I type fast and with mistakes.",
+    "goal": "I want to know which group of my customers I lose the most, counted in how many customers left, not in percent. Then maybe change what I offer.",
+    "decision": "Maybe which group gets a better offer, but I have not decided and do not want to be asked about it before I see numbers.",
+    "user": "Only me.",
+    "data": "The customer table I shared: segment, city, plan, tenure, spend, support tickets and churned_next_month (1 means the customer left).",
+    "knows": "I only know that churned_next_month = 1 means a customer left. I will get annoyed if asked what I will do with the answer before seeing numbers, and I will say 'just show me the report and dashboard'.",
+    "constraints": "None. I want it now."
+   },
+   "level": "business_owner",
+   "style": "impatient",
+   "must_understand": [
+    "wants the number of customers lost per group, not the share",
+    "churned_next_month = 1 is a lost customer",
+    "wants to see the figures, a report or a dashboard, without a long interview"
+   ],
+   "trap": "clear_request",
+   "trap_check": "Shows counts of lost customers by segment, plan or city from the table within its first two replies instead of asking what they will do with the answer."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "I face losing my customer I want know which segment of my customer I lost more [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "[DCLab drew a chart with its numbers table above this message]\n\nIs \"segment\" the grouping you meant, or would you rather see losses by plan or city? I'm reading churned_next_month = 1 as a customer who left. What will you do with this?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "segment. just show me the numbers, count not percent. dont ask what i will do yet, i told you i have not decided. i want to see the report and dashboard",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "[DCLab drew a chart with its numbers table and a dashboard above this message]\n\nThe report and a two-tile dashboard are shown below. I'm reading churned_next_month = 1 as a customer who left. You lost more customers in the consumer segment: 174, against 35 in business. The dashboard's second tile shows how many customers each segment has: 961 consumer and 239 business. Do you want me to break the losses down further, for example by plan or city?",
+    "choices": []
+   },
+   {
+    "role": "person",
+    "text": "ok that is what i needed. consumer lost 174, business 35. thanks, thats enough for now",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "You're welcome. Consumer lost 174 customers and business lost 35. The report and dashboard stay in this chat if you want to come back to them. When you decide what to do next, I can break the losses down by plan or city.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]

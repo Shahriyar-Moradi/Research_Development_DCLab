@@ -275,7 +275,8 @@ LABELS = {"f1": "F1", "roc_auc": "ROC AUC", "average_precision": "Average precis
 
 def show_evaluation(t: Turn, /, rows: str = "holdout", **_: Any) -> dict[str, Any]:
     """The evaluation's measures (accuracy, precision, recall, F1, the curves' areas) and the confusion matrix, on the held-back cases
-    (``rows`` "holdout") or the training folds' out-of-fold predictions ("validation")."""
+    (``rows`` "holdout") or the training folds' out-of-fold predictions ("validation"): how the predictions compare with the actual
+    outcomes (right and wrong, by kind). Single cases are never listed."""
     from dclab_core import model_evaluation as me
 
     final = t.stage("final")
@@ -304,6 +305,8 @@ def show_evaluation(t: Turn, /, rows: str = "holdout", **_: Any) -> dict[str, An
     if matrix and len(matrix["matrix"]) == 2:  # the totals a reply names ("flagged 13, 6 right"): actual and predicted positives, all cases
         (tn, fp), (fn, tp) = matrix["matrix"]
         facts += [["Flagged as positive", tp + fp], ["Actual positives", tp + fn], ["Actual negatives", tn + fp]]
+        facts += [["Predicted positive, was positive (right)", tp], ["Predicted positive, was negative (wrong: a false alarm)", fp],  # prediction against actual, in words
+                  ["Predicted negative, was positive (wrong: a miss)", fn], ["Predicted negative, was negative (right)", tn]]
     if got.get("cutoff") is not None:
         facts.append(["Cutoff", _r(got["cutoff"])])
     facts.append(["Cases", got.get("n")])
@@ -1431,12 +1434,14 @@ WORDS = [  # a read named by its words, in this order
     ("show_notebook", re.compile(r"\b(?:notebook'?s? cells|cells? (?:added|written|so far)|what cells)\b", re.I)),
     ("show_activity", re.compile(r"\b(?:activity|history|what happened|log of|timeline)\b", re.I)),
     ("show_improvements", re.compile(r"\b(?:improvement run|last run|what did you try|ways? (?:you )?tried|the report|results? of the improvement)\b", re.I)),
-    ("show_evaluation", re.compile(r"\b(?:evaluat\w*|precision|recall|f1|f-1|confusion|accuracy|auc|roc|true positives?|false (?:positives?|alarms?|negatives?)|metrics?)\b", re.I)),
+    ("show_evaluation", re.compile(r"\b(?:evaluat\w*|precision|recall|f1|f-1|confusion|accuracy|auc|roc|true positives?|false (?:positives?|alarms?|negatives?)|metrics?|"
+                                   r"actual|true (?:values?|labels?|outcomes?)|real (?:values?|outcomes?)|ground truth|predict\w* (?:vs?\.?|versus|against|and|compared|with)\b|"
+                                   r"(?:right|correct(?:ly)?) (?:and|or|vs\.?) (?:wrong|incorrect(?:ly)?)|how many (?:are |were |did it get )?(?:right|wrong|correct)|mistakes?|misclassif\w*)\b", re.I)),
     ("show_models", re.compile(r"\b(?:models?|algorithms?|famil(?:y|ies)|trained|traimed|train\w*|best(?: one)?|which one|winner|top one|leaderboard|lightgbm|xgboost|logistic|random forest|boosting)\b", re.I)),
     ("show_result", re.compile(r"\b(?:holdout|held[- ]back|final (?:score|result)|results?|score|how good|performance|trust|interval|baseline)\b", re.I)),
     ("show_features", re.compile(r"\b(?:features?|recipes?|engineer\w*|columns? used|inputs?)\b", re.I)),
     ("show_leakage", re.compile(r"\b(?:leak\w*|forbidden|after the outcome|unavailable)\b", re.I)),
-    ("show_data", re.compile(r"\b(?:data(?:set)?|rows?|table|outcome|target|missing|drift|duplicates?)\b", re.I)),
+    ("show_data", re.compile(r"\b(?:(?<!test )(?<!held-back )(?<!holdout )data(?:set)?|rows?|table|outcome|target|missing|drift|duplicates?)\b", re.I)),  # "test data" is the held-back cases, read by the evaluator
     ("show_stages", re.compile(r"\b(?:stages?|status|progress|running|done yet|finished)\b", re.I)),
 ]
 CHIPS = {"data_gaps": ["Show the data", "Write the report for my manager"], "propose_data_change": ["Yes, confirm it", "No, keep the data as it is"],

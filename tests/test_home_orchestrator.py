@@ -631,6 +631,25 @@ class ReporterTests(unittest.TestCase):  # "write me the report for my manager",
             if other:
                 self.assertIn(other, planned, said)
 
+    def test_prediction_against_actual_on_the_test_data_goes_to_the_evaluator_not_the_data_reader(self):  # the owner, 2026-11-02
+        for said in ("compare the prediction and actual value of test data", "how many were right and wrong on the test data?",
+                     "predicted vs actual", "show me the mistakes the model made"):
+            planned = [n for n, _ in orch.plan(said, None)]
+            self.assertIn("show_evaluation", planned, said)
+            self.assertNotIn("show_data", planned, said)
+        self.assertIn("show_data", [n for n, _ in orch.plan("show me the data", None)])  # the data reader still has its own words
+        from types import SimpleNamespace
+
+        kept = SimpleNamespace(model_dump=lambda mode=None: {"metrics": {"roc_auc": 0.84}, "n": 1409, "confusion": {"tp": 212, "fp": 110, "fn": 162, "tn": 925}})
+        with mock.patch("dclab_core.model_evaluation.from_record", return_value=kept):
+            chat = Chat(self)
+            card = next(m for m in chat.since("compare the prediction and actual value of test data") if m["kind"] == "project_card")["card"]
+        rows = {f[0]: f[1] for f in card["facts"]}
+        self.assertEqual(rows["Predicted positive, was positive (right)"], 212)
+        self.assertEqual(rows["Predicted positive, was negative (wrong: a false alarm)"], 110)
+        self.assertEqual(rows["Predicted negative, was positive (wrong: a miss)"], 162)
+        self.assertEqual(rows["Predicted negative, was negative (right)"], 925)
+
     def test_without_the_final_stage_the_reporter_says_what_is_missing(self):
         chat = Chat(self)
         with mock.patch.dict(RECORDS):

@@ -5,7 +5,7 @@ a whole run is due (the conductor's own rule: the last one an hour ago or more),
 server's worker is not running (it runs the store itself), and at least 2 GB of disk is free; while it runs, it is stopped (SIGINT, so it records where it was) when free disk falls
 under 2 GB. No live model is ever called (``DCLAB_NO_LIVE_MODELS=1``, as ``make capture``).
 
-``--install`` writes ``~/Library/LaunchAgents/ai.dclab.store.plist`` (every 6 hours) and loads it; ``--uninstall``
+``--install`` writes ``~/Library/LaunchAgents/ai.dclab.store.plist`` (every night at 01:30) and loads it; ``--uninstall``
 unloads and removes it; ``--status`` says whether it is installed and what the last scheduled run did. The log is
 ``~/Library/Logs/dclab/store-scheduled.log``.
 """
@@ -28,8 +28,9 @@ ROOT = Path(__file__).resolve().parents[1]
 LABEL = "ai.dclab.store"
 PLIST = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
 LOG = Path.home() / "Library" / "Logs" / "dclab" / "store-scheduled.log"
-EVERY_SECONDS = 6 * 3600
+NIGHT = {"Hour": 1, "Minute": 30}  # the owner, 2026-11-03: every night, not every 6 hours
 MIN_FREE = 2 * 1024 ** 3
+MAX_SWAP = 6 * 1024 ** 3  # the owner, 2026-11-03: up to 6 GB of swap is fine; the 2 GB free-disk guard still stops a run first if the swap fills the disk
 
 
 def log(line: str) -> None:
@@ -65,6 +66,27 @@ def decide(due: bool, free_bytes: int, running: bool, worker: bool = False) -> t
     return True, "due"
 
 
+def swap_used() -> int:
+    """Bytes of swap in use (macOS ``sysctl vm.swapusage``); 0 where it cannot be read."""
+    out = subprocess.run(["sysctl", "-n", "vm.swapusage"], capture_output=True, text=True).stdout
+    import re
+
+    m = re.search(r"used = ([\d.]+)([MG])", out)
+    return int(float(m.group(1)) * (1024 ** 3 if m.group(2) == "G" else 1024 ** 2)) if m else 0
+
+
+def stop_child(child: subprocess.Popen) -> None:
+    """Interrupt, then terminate, then kill: a run that swaps does not answer an interrupt for many minutes (2026-11-02: ten minutes of
+    SIGINT with no effect, SIGTERM ended it in twenty seconds). The store writes through atomic replaces, so the last step is safe."""
+    for sig, wait in ((signal.SIGINT, 30), (signal.SIGTERM, 30), (signal.SIGKILL, 0)):
+        if child.poll() is not None:
+            return
+        child.send_signal(sig)
+        deadline = time.time() + wait
+        while time.time() < deadline and child.poll() is None:
+            time.sleep(1)
+
+
 def run_once() -> int:
     sys.path.insert(0, str(ROOT))
     from dclab_rnd.store import conductor
@@ -78,25 +100,29 @@ def run_once() -> int:
     python = ROOT / ".venv" / "bin" / "python"
     child = subprocess.Popen(["nice", "-n", "10", str(python if python.exists() else sys.executable), "-m", "dclab_rnd.store", "run"],
                              cwd=ROOT, env=env, stdout=open(LOG, "a"), stderr=subprocess.STDOUT)
-    stopped = {"low_disk": False}
+    stopped = {"low_disk": False, "swap": False}
 
     def watch() -> None:
         while child.poll() is None:
             if shutil.disk_usage(Path.home()).free < MIN_FREE:
                 stopped["low_disk"] = True
-                child.send_signal(signal.SIGINT)
+                stop_child(child)
+                return
+            if swap_used() > MAX_SWAP:
+                stopped["swap"] = True
+                stop_child(child)
                 return
             time.sleep(30)
 
     threading.Thread(target=watch, daemon=True).start()
     code = child.wait()
-    log(f"ended: exit {code}" + (" (stopped: free disk under 2 GB)" if stopped["low_disk"] else ""))
+    log(f"ended: exit {code}" + (" (stopped: free disk under 2 GB)" if stopped["low_disk"] else "") + (" (stopped: swap over 6 GB, the run does not fit in memory)" if stopped["swap"] else ""))
     return code
 
 
 def plist() -> dict:
     return {"Label": LABEL, "ProgramArguments": [sys.executable, str(Path(__file__).resolve())], "WorkingDirectory": str(ROOT),
-            "StartInterval": EVERY_SECONDS, "RunAtLoad": False, "LowPriorityIO": True, "ProcessType": "Background",
+            "StartCalendarInterval": NIGHT, "RunAtLoad": False, "LowPriorityIO": True, "ProcessType": "Background",
             "StandardOutPath": str(LOG), "StandardErrorPath": str(LOG)}
 
 
@@ -108,7 +134,7 @@ def install() -> int:
     with open(PLIST, "wb") as fh:
         plistlib.dump(plist(), fh)
     r = subprocess.run(["launchctl", "load", str(PLIST)], capture_output=True, text=True)
-    print(f"installed {PLIST} (every {EVERY_SECONDS // 3600} hours)" if r.returncode == 0 else f"written {PLIST}, but launchctl said: {r.stderr.strip()}")
+    print(f"installed {PLIST} (every night at 01:30)" if r.returncode == 0 else f"written {PLIST}, but launchctl said: {r.stderr.strip()}")
     return r.returncode
 
 
@@ -124,7 +150,7 @@ def uninstall() -> int:
 
 def status() -> int:
     loaded = subprocess.run(["launchctl", "list", LABEL], capture_output=True).returncode == 0
-    print(f"installed: {PLIST.exists()}, loaded: {loaded}, every {EVERY_SECONDS // 3600} hours")
+    print(f"installed: {PLIST.exists()}, loaded: {loaded}, every night at 01:30")
     if LOG.exists():
         print("last lines of", LOG)
         print("".join(LOG.read_text(encoding="utf-8").splitlines(keepends=True)[-5:]), end="")

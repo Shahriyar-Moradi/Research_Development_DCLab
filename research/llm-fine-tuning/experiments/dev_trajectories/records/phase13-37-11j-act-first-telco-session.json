@@ -1,0 +1,185 @@
+{
+ "package": "37.11j",
+ "title": "The lead agent delivers what the person asked for: the owner's Telco session fixed (figures first, a lookup that repairs itself, real charts and dashboards)",
+ "date": "2026-11-02",
+ "request": "The owner tried Home (the lead agent, default since 37.11) by hand on the Telco churn CSV: 12 messages, 9 questions, no figure, 'my table check failed, I'll retry next turn', a dashboard claimed but never drawn, a chart drawn with block characters. 'It's horrible. Fix all.' Budget for tests: $2 if necessary.",
+ "spec": "A person who asks for a number, ranking, report or chart of a table they shared gets it in the same turn, drawn by code; questions come after, at most one; nothing is said to be shown before a tool returned it; a lookup refused by code can be repaired in the same turn.",
+ "plan": [
+  "read the owner's real draft (dclab_dev) and the stored model calls: find the real tool calls and their refusals",
+  "trace the lookup tool, the turn loop, the prompt, the report/dashboard path with two read-only agents",
+  "fix the query engine and tool (count where, yes/no, repair hints, said numbers)",
+  "fix the caps and the asking rules (code and prompt)",
+  "give the lead agent answer and dashboard tools that reuse Home's renderers",
+  "exam: new practice set dev_real and three delivery rows",
+  "replay the owner's session live once, then practice runs inside $2"
+ ],
+ "decisions": [
+  {
+   "decision": "A refused lookup is not counted toward the turn's cap; the cap is four lookups that ran, three refusals end the tries",
+   "why": "two malformed lookups had closed the turn, and the cap's own error text told the model to retry next turn"
+  },
+  {
+   "decision": "For a descriptive request (figures, report, chart, no model asked for) readiness needs only the goal and the data",
+   "why": "decision and user were required for every route, so a report was never proposed until they were said; they stay open as assumptions"
+  },
+  {
+   "decision": "The figures shown are the work: the case's route is set to analysis/query or reporting/dashboard only when the person's words asked for figures and no model",
+   "why": "an answered request left route None, which the exam read as a wrong route and the panel as 'still understanding'; a prediction asked as a 'report' keeps its trap"
+  },
+  {
+   "decision": "No sealed run; practice only; sealed v3's verdict is unchanged",
+   "why": "fixes were found by reading the owner's session, not the sealed conversations"
+  }
+ ],
+ "change": "dclab_core/query.py (count with where, yes/no repair, refusals carry the fix), dclab_core/case.py (asks_for_figures, wants_figures, descriptive readiness), dclab_rnd/agents/data_tools.py (plan_of, as_said, counted), dclab_rnd/agents/case_agent.py (caps, go-ahead, no repeated decision questions, answer and dashboard tools, block-character charts dropped, create-a-project is a yes), dclab_rnd/prompts/case_agent.md, dclab_rnd/draft/case_home.py (_card), dclab_rnd/draft/chat.py (publish_board), agentic/web/src/views/home.html (line breaks, panel), conversation_exam (people_dev_real, delivery rows), scripts/live_home_telco_replay.py, scripts/offload_folders.py, tests.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Failed lookups used up the two-a-turn cap, and the cap error told the model to ask next turn",
+   "scenario": "the model wrote a share as {op: rate, column: Churn}; both parallel queries were refused; the cap closed; the person read 'I'll retry next turn' for six messages",
+   "cause": "state.queries was incremented before validation (case_agent._data); error text said 'ask more of the table next turn'",
+   "fix": "count only queries that ran; refusal text says how to write it; cap four, three refusals end the tries",
+   "test": "tests/test_case_agent.py QueryCapTests"
+  },
+  {
+   "id": "F2",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "A count with a condition silently ignored the condition",
+   "scenario": "{op: count, where: Churn=Yes} returned the size of each group, so month-to-month's 3,875 customers read as customers lost",
+   "cause": "dclab_core.query._measure counted len(rows) for count and validate skipped it",
+   "fix": "count honours where; a where on any other op is refused with the way to write it",
+   "test": "tests/test_query_repair.py"
+  },
+  {
+   "id": "F3",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Nine questions and no figure: decision and user were needed before anything was proposed, for every route",
+   "scenario": "'which segment do I lose most' answered with 'what will you do with the answer' twice",
+   "cause": "READY_NEEDS = goal, decision, user, data; prompt said end each turn with a question",
+   "fix": "descriptive readiness needs goal and data; figures first; decision questions never asked twice or after an order for figures; prompt rewritten",
+   "test": "tests/test_case_agent.py ActFirstTests"
+  },
+  {
+   "id": "F4",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "'I've switched your report into a dashboard' with nothing on the page",
+   "scenario": "case_start only wrote case.route; no lead-agent tool drew a chart or a dashboard",
+   "cause": "CaseHome never called the renderers Home already had (give_answer, build_dashboard)",
+   "fix": "case_answer and case_dashboard tools; CaseHome._card draws them with the existing renderers (publish_board split out of build_dashboard)",
+   "test": "tests/test_case_home.py CardsTests (the owner's session replayed)"
+  },
+  {
+   "id": "F5",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "A chart typed in block characters, its lines collapsed into one",
+   "scenario": "'Month-to-month ██████ One year ███'",
+   "cause": "no chart tool, and the page drew agent text without line breaks",
+   "fix": "block-character lines dropped by code; agent text drawn with mdLite",
+   "test": "tests/test_case_agent.py"
+  },
+  {
+   "id": "F6",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "The number guard dropped true sentences that said a share as a percentage",
+   "scenario": "rate returned 0.4269; 'month-to-month lost 42.7%' held a token no source had",
+   "cause": "only exact tokens of tool results are sources",
+   "fix": "query results carry as_said ('42.7%', '1,655') and the prompt says to use them",
+   "test": "tests/test_query_repair.py"
+  },
+  {
+   "id": "F7",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "An answered descriptive request kept no route, so the conversation ran 8 turns of goodbyes and the exam scored a wrong route",
+   "scenario": "q-01 and q-02: figures at reply 0, then six 'bye' turns at EUR 0.03 each",
+   "cause": "the route was only set by case_start",
+   "fix": "the shown figures set the route when the person's words asked for figures and no model",
+   "test": "tests/test_case_agent.py ActFirstTests"
+  },
+  {
+   "id": "F8",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The snapshot offload refused a snapshot because Finder had rewritten three .DS_Store files, and two snapshots of one day shared a tar name",
+   "scenario": "20261101T214104Z 'different 3'",
+   "cause": "hard-linked live files and Finder; date-only tar names",
+   "fix": ".DS_Store ignored in the check; a second snapshot of a day gets its own tar name",
+   "test": "run on the drive"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A dashboard tile and an answer card skipped the personal-column check",
+   "scenario": "the agent asks a tile grouped by a column the studio marks personal; the board is drawn and refreshed with its group values",
+   "cause": "plan_of validated the plan but not its columns' sensitivity; publish_board checks nothing",
+   "fix": "personal columns refused in plan_of for every query, answer and tile, and again where cards are drawn",
+   "test": "tests/test_case_agent.py test_a_personal_column_is_refused_before_any_number_is_seen"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A question counted as a yes to building; a count with a condition could show one row; a prediction in disguise was read as figures; Refresh failed after an answer",
+   "scenario": "'How do I create a project?' accepted by says_yes; count where on a near-unique value returned 1; 'rank my customers by risk' got descriptive readiness; a dashboard after an answer left the draft on analysis so Refresh returned 409",
+   "cause": "an unanchored phrase in BUILD_YES, no floor on the conditional count, a short MODEL_WORDS list, a route set once",
+   "fix": "the page's button text matched exactly; a conditional count under the floor is withheld; more model and advice words; a dashboard moves a route the figures set; build_dashboard refreshes a kept board on analysis",
+   "test": "tests/test_case_agent.py, tests/test_query_repair.py"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "owner's Telco session, live replay (run1)",
+   "fixed_before_run": true,
+   "result": "figures at the second message (the first had no table), 1 question, 0 stalling phrases, a dashboard and 4 answer cards drawn",
+   "cost_eur": 0.197,
+   "limits": [
+    "one scripted person, one run",
+    "the model chose three dashboards in three turns: noisy"
+   ],
+   "gate": "practice scorecard of 2026-11-02 (acts when asked, no stalling, questions before figures)",
+   "verdict": "pass"
+  },
+  {
+   "name": "practice dev_real CEX-033 (case and Claude alone, stopped by the cap after 3 people)",
+   "result": "case: figures by reply 0 for 3 of 3, 0 questions before figures, 0 stalling; Claude alone: 16 safety failures; case understanding 0.67 on 2 judged vs 1.0 for Claude alone (n=2, one judge slip)",
+   "cost_eur": 0.863,
+   "limits": [
+    "3 people",
+    "the route was not yet set by the figures shown"
+   ],
+   "gate": "practice scorecard of 2026-11-02 (acts when asked, no stalling, questions before figures)",
+   "verdict": "not scored"
+  },
+  {
+   "name": "practice dev_real CEX-034 (case, 4 people, stopped by the cap after 1)",
+   "result": "q-01: route right, figures at reply 0, 2 person turns instead of 8, understanding 1.0; the clear-request trap still failed (a decision question in the first reply; fixed after the run)",
+   "cost_eur": 0.331,
+   "limits": [
+    "1 person scored"
+   ],
+   "gate": "practice scorecard of 2026-11-02 (acts when asked, no stalling, questions before figures)",
+   "verdict": "not scored"
+  }
+ ],
+ "outcome": "The owner's own session now ends in figures, a chart and a dashboard in the first turns, with one question and no stalling, at about half the earlier cost. The practice evidence is thin (4 people scored, cap reached twice) and the understanding score on dev_real is not shown to hold: it needs the remaining people when budget allows. Sealed v3's verdict stands.",
+ "lessons": [
+  "an exam that rewards good questions will not catch an agent that never delivers: measure what the person got",
+  "a cap that counts refusals teaches the model to give up; count what ran",
+  "a tool refusal must say how to write the call, not only the rule",
+  "when the page has renderers, a new agent must call them: a route with no tool behind it is a promise"
+ ],
+ "risks": [
+  "understanding may fall when questions stop gating answers (scorecard allows 0.03; not yet measured on enough people)",
+  "the dashboard tiles come from the model's guess of useful splits; the person may get several boards in a row",
+  "the estimate for the exam underestimates a conversation that runs long (cap hit twice)"
+ ],
+ "commits": []
+}

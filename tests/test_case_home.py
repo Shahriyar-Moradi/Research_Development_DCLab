@@ -13,6 +13,8 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from dclab_core import case as C  # noqa: E402
+from dclab_rnd.agents import case_agent as A  # noqa: E402
 from dclab_rnd.draft.case_home import CaseHome  # noqa: E402
 from dclab_rnd.draft.chat import HomeAgent  # noqa: E402
 from dclab_rnd.draft.store import DraftStore  # noqa: E402
@@ -142,7 +144,7 @@ class CaseHomeTests(unittest.TestCase):
         self.assertEqual(calls, ["build"])
         self.assertEqual(self.store.get(d["id"]).get("build_waiting"), "outcome column")
         texts = [m.get("text") for m in self.store.get(d["id"])["messages"]]
-        self.assertIn("Which column is the outcome the model should learn?", texts)
+        self.assertTrue(any(t.startswith("Which column is the outcome the model should learn?") for t in texts), texts)  # the table's own candidates are named now
         with mock.patch.object(A, "turn", side_effect=AssertionError("the agent must not read the build's answer")):
             home.reply(d["id"], "the outcome is Churned")
         draft = self.store.get(d["id"])
@@ -489,6 +491,200 @@ class CaseHomeTests(unittest.TestCase):
         draft = self.store.get(d["id"])
         self.assertEqual(draft["case"]["facts"]["user"]["value"], "the club managers")
         self.assertEqual(len(draft["case_state"]["turns"]), 4)  # two turns of the person and the agent, kept across instances
+
+
+def telco_frame():
+    import pandas as pd
+
+    rows = []
+    for contract, total, left in (("Month-to-month", 40, 20), ("One year", 30, 6), ("Two year", 30, 1)):
+        rows += [{"customerID": f"{contract[:2]}{i:03d}", "Contract": contract, "Churn": "Yes" if i < left else "No", "tenure": i + 1} for i in range(total)]
+    return pd.DataFrame(rows)
+
+
+class CardsTests(unittest.TestCase):
+    """2026-11-02 (the owner's Telco session): "show my report and give dashboard" ended in "I've switched your report into a
+    dashboard" and nothing on the page. Now an answer or a dashboard the agent asks for is drawn by Home's renderers under its
+    message, from what code computed."""
+
+    def setUp(self):
+        from dclab_rnd import ledger
+        from dclab_rnd.draft import pipeline
+
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder, True)
+        self.store = DraftStore(self.folder / "drafts")
+        ledger.install(ledger.FileLedger(self.folder / "ledger", "wtest"))
+        self.addCleanup(ledger.install, None)
+        self.draft = self.store.create("I face losing my customer I want know which segment of my customer I lost more")
+        path = Path(self.store.data_dir(self.draft["id"]))
+        path.mkdir(parents=True, exist_ok=True)
+        telco_frame().to_csv(path / "telco.csv", index=False)
+        asset = pipeline.new_asset(self.store, self.draft["id"], "upload", "telco.csv", "telco.csv")
+        pipeline.run(self.store, self.draft["id"], asset["id"], HomeAgent(self.store, None, on_request=lambda *a: None), None)
+
+    def home(self, *replies):
+        return CaseHome(self.store, Models(Script(*replies)), on_request=lambda *a: None)
+
+    def kinds(self):
+        return [m.get("kind") for m in self.store.get(self.draft["id"])["messages"] if m.get("role") == "agent"]
+
+    SHARE = {"group_by": ["Contract"], "measures": [{"name": "customers", "op": "count"}, {"name": "churn_rate", "op": "rate", "column": "Churn"}],
+             "sort": [{"by": "churn_rate", "desc": True}]}
+
+    def test_an_answer_the_agent_asks_for_is_drawn_as_a_chart_before_its_words(self):
+        home = self.home(("", [("answer", self.SHARE)]), ("Month-to-month loses the most: 50.0% of its 40 customers left.", []))
+        home._run(self.draft["id"], "which segment do I lose most? show me")
+        messages = [m for m in self.store.get(self.draft["id"])["messages"] if m.get("role") == "agent"][-2:]  # the pipeline's own cards come before
+        self.assertEqual([m["kind"] for m in messages], ["answer", "text"])  # the card first, then what it shows
+        chart = messages[0]["answer"]["chart"]
+        self.assertEqual(chart["kind"], "bar")
+        self.assertEqual(chart["x"][0], "Month-to-month")
+        self.assertIn("50.0%", messages[1]["text"])  # said exactly as the result gave it: not dropped by the number guard
+
+    def test_a_dashboard_the_agent_asks_for_is_drawn_and_kept_so_it_can_be_refreshed(self):
+        tiles = [{"group_by": ["Contract"], "measures": [{"name": "customers", "op": "count"}]},
+                 {"group_by": ["Contract"], "measures": [{"name": "churn_rate", "op": "rate", "column": "Churn"}]}]
+        home = self.home(("", [("dashboard", {"title": "Where we lose customers", "tiles": tiles})]), ("Two tiles by contract: customers and the share that left.", []))
+        home._run(self.draft["id"], "now show my report and give dashboard")
+        draft = self.store.get(self.draft["id"])
+        self.assertEqual(self.kinds()[-2:], ["dashboard", "text"])
+        board = next(m for m in draft["messages"] if m.get("kind") == "dashboard")["dashboard"]
+        self.assertEqual([t["chart"]["kind"] for t in board["tiles"]], ["bar", "bar"])
+        self.assertTrue(draft["dashboard"]["board"])  # the Refresh button has its board
+        home._run(self.draft["id"], "show it again")  # the same board is not drawn twice
+        self.assertEqual(self.kinds().count("dashboard"), 1)
+
+    def test_the_owners_telco_session_ends_in_figures_and_a_dashboard_not_in_questions(self):
+        """The 12 messages of 2026-11-02, replayed with a model that does what the real one did: it asks first, writes a share as
+        {op: rate, column: Churn}, and promises a dashboard. Now the question is refused, the share is read as Churn = Yes, the
+        chart is drawn in the first turn, and the dashboard exists when it is asked for."""
+        said = "I face losing my customer I want know which segment of my customer I lost more"
+        home = self.home(
+            ("", [("note", {"field": "goal", "value": "which segment of my customer I lost more", "status": "said", "quote": "which segment of my customer"}),
+                  ("ask", {"question": "What will you do with the answer: a retention offer, a price change, or something else?"})]),
+            ("", [("answer", self.SHARE)]),
+            ("Month-to-month loses the most: 50.0% of its 40 customers left, against 20.0% of 30 on one year.", []),
+            ("", [("dashboard", {"title": "Where we lose customers", "tiles": [
+                {"group_by": ["Contract"], "measures": [{"name": "customers", "op": "count"}]},
+                {"group_by": ["Contract"], "measures": [{"name": "churn_rate", "op": "rate", "column": "Churn"}]}]})]),
+            ("The dashboard shows customers and the share that left, by contract.", []))
+        home._run(self.draft["id"], said)
+        first = [m for m in self.store.get(self.draft["id"])["messages"] if m.get("role") == "agent"][-2:]
+        self.assertEqual([m["kind"] for m in first], ["answer", "text"])  # figures in the first turn
+        self.assertNotIn("?", first[1]["text"])
+        home._run(self.draft["id"], "now show my report and give dashboard")
+        draft = self.store.get(self.draft["id"])
+        self.assertEqual([m["kind"] for m in draft["messages"] if m.get("role") == "agent"][-2:], ["dashboard", "text"])
+        every = " ".join(m.get("text") or "" for m in draft["messages"] if m.get("role") == "agent")
+        for stalling in ("next turn", "reply \"go\"", "Reply go", "I'll retry", "\u2588"):
+            self.assertNotIn(stalling, every)
+        self.assertEqual(draft["case"]["facts"]["goal"]["status"], "said")
+        self.assertLessEqual(draft["case_state"]["case"]["asked"], 0)  # the one question was refused until the figures were shown
+
+    def test_a_tile_the_table_refuses_is_a_refusal_the_agent_reads_and_nothing_is_drawn(self):
+        bad = [{"group_by": ["Plan"], "measures": [{"name": "n", "op": "count"}]}]
+        home = self.home(("", [("dashboard", {"tiles": bad})]), ("I could not use that column.", []))
+        home._run(self.draft["id"], "give dashboard")
+        self.assertNotIn("dashboard", self.kinds())
+
+
+
+class BuildFlowTests(CardsTests):
+    """2026-11-02 (the owner's second Telco session): "now build model" redrew the report, "make prediction models" got "Shall I build
+    it now?", a bare "yes" got "reply build the model", and the build asked for the outcome the person had confirmed."""
+
+    SAID = ("which segment of my customer I lost more, churn is the column that says who left, I decide about contract deals myself")
+
+    def home_with_builds(self, *replies):
+        calls = []
+
+        def on_request(draft_id, what, args):
+            calls.append(what)
+            return {"refused": "At what moment will the prediction be made?", "rule": "prediction moment"}
+        return CaseHome(self.store, Models(Script(*replies)), on_request=on_request), calls
+
+    def prepare(self, home):
+        """The report first (the figures asked for), the case ready with the decision and the user said."""
+        home._run(self.draft["id"], self.SAID)
+
+    NOTES = [("note", {"field": "goal", "value": "which segment of my customer I lost more", "status": "said", "quote": "which segment of my customer"}),
+             ("note", {"field": "decision", "value": "contract deals", "status": "said", "quote": "about contract deals"}),
+             ("note", {"field": "user", "value": "I decide myself", "status": "said", "quote": "I decide about contract deals"}),
+             ("answer", CardsTests.SHARE)]
+
+    def test_an_order_to_build_a_model_starts_the_build_at_once_with_the_outcome_the_person_named_and_draws_no_report(self):
+        home, calls = self.home_with_builds(
+            ("", self.NOTES), ("Month-to-month loses the most: 50.0% of its 40 customers left.", []),
+            ("", [("answer", self.SHARE), ("start", {"track": "prediction", "tool": "ml_project", "quote": "now build model"}),
+                  ("request_build", {"quote": "now build model", "outcome": "Churn"})]),
+            ("Your order is recorded and the build starts now.", []))
+        self.prepare(home)
+        before = self.kinds().count("answer")
+        home._run(self.draft["id"], "now build model")
+        draft = self.store.get(self.draft["id"])
+        self.assertEqual(calls, ["build"])
+        self.assertEqual(self.kinds().count("answer"), before)  # no report drawn again
+        self.assertEqual(draft["understanding"]["target"], "Churn")  # not asked again
+        self.assertEqual(draft.get("build_waiting"), "prediction moment")  # the moment keeps its protocol
+
+    def test_a_bare_yes_after_the_agents_question_starts_the_build_and_asks_for_no_phrase(self):
+        home, calls = self.home_with_builds(
+            ("", self.NOTES), ("Month-to-month loses the most.", []),
+            ("", [("start", {"track": "prediction", "tool": "ml_project", "quote": "a model predict who leaves"})]),
+            ("A model would score each customer's chance of leaving.", [("ask", {"question": "Shall I build one for you?"})]),
+            ("", [("request_build", {"quote": "yes", "outcome": "Churn"})]), ("The build starts now.", []))
+        self.prepare(home)
+        home._run(self.draft["id"], "could a model predict who leaves?")
+        self.assertEqual(calls, [])
+        home._run(self.draft["id"], "yes")
+        self.assertEqual(calls, ["build"])
+        every = " ".join(m.get("text") or "" for m in self.store.get(self.draft["id"])["messages"] if m.get("role") == "agent")
+        self.assertNotIn('reply "build the model"', every.lower())
+
+    def test_make_prediction_models_is_an_order_so_the_agent_may_not_ask_whether_to_build(self):
+        home, calls = self.home_with_builds(
+            ("", self.NOTES), ("Month-to-month loses the most.", []),
+            ("", [("ask", {"question": "Shall I build it now?"})]),
+            ("", [("start", {"track": "prediction", "tool": "ml_project", "quote": "make prediction models"}),
+                  ("request_build", {"quote": "make prediction models", "outcome": "Churn"})]), ("The build starts now.", []))
+        self.prepare(home)
+        home._run(self.draft["id"], "make prediction models")
+        self.assertEqual(calls, ["build"])  # the question was refused; the agent acted on the order
+
+    def test_you_decide_on_the_outcome_question_uses_the_one_column_the_persons_words_name(self):
+        home, calls = self.home_with_builds(("", self.NOTES), ("Month-to-month loses the most.", []))
+        self.prepare(home)
+        self.store.update(self.draft["id"], lambda d: d.update(build_waiting="outcome column"))
+        with mock.patch.object(A, "turn", side_effect=AssertionError("the agent must not read the answer to the build's question")):
+            home.reply(self.draft["id"], "you decide")
+        draft = self.store.get(self.draft["id"])
+        self.assertEqual(draft["understanding"]["target"], "Churn")
+        self.assertEqual(calls, ["build"])
+
+    def test_you_decide_inside_a_refusal_builds_nothing(self):
+        home, calls = self.home_with_builds(("", self.NOTES), ("Month-to-month loses the most.", []), ("Understood, I will wait.", []))
+        self.prepare(home)
+        self.store.update(self.draft["id"], lambda d: d.update(build_waiting="outcome column"))
+        home.reply(self.draft["id"], "don't build anything yet, up to you")
+        self.assertEqual(calls, [])
+        self.assertFalse(self.store.get(self.draft["id"]).get("understanding", {}).get("target"))
+
+    def test_a_column_only_mentioned_is_never_the_outcome(self):
+        home, calls = self.home_with_builds(("", self.NOTES), ("Month-to-month loses the most.", []))
+        self.store.update(self.draft["id"], lambda d: d.update(case_state={"case": C.hear(C.new("c"), "Is it different by gender? Which contract loses most?").model_dump(mode="json")}))
+        home._build(self.draft["id"])
+        self.assertFalse(self.store.get(self.draft["id"]).get("understanding", {}).get("target"))
+        self.assertEqual(calls, ["build"])  # asked the build's own question, with the table's candidates
+
+    def test_with_no_column_named_the_outcome_question_names_the_tables_own_candidates(self):
+        home, calls = self.home_with_builds()
+        asset = self.store.get(self.draft["id"])["active_asset"]
+        self.store.update(self.draft["id"], lambda d: d.update(case_state={"case": C.new("c").model_dump(mode="json")}))
+        home._build(self.draft["id"])
+        texts = [m.get("text") or "" for m in self.store.get(self.draft["id"])["messages"] if m.get("role") == "agent"]
+        self.assertFalse(self.store.get(self.draft["id"]).get("understanding", {}).get("target"))
+        self.assertEqual(calls, ["build"])
 
 
 if __name__ == "__main__":

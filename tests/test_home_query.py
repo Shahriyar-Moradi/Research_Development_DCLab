@@ -73,5 +73,19 @@ class HomeQueryTests(unittest.TestCase):
         self.assertEqual(home_query.write_plan(None, "trend", draft)[0], None)
 
 
+class ConditionalCountText(unittest.TestCase):
+    """2026-11-02: a chart of customers LOST was titled "Number of rows by Contract": the title ignored the condition."""
+
+    def test_a_count_with_a_condition_says_what_it_counts_in_the_title_and_the_header_but_never_in_the_models_text(self):
+        from dclab_core import query as Q
+        from dclab_rnd import home_chart, home_query
+
+        plan = Q.QueryPlan(group_by=["Contract"], measures=[Q.Measure(name="lost", op="count", where=Q.Filter(column="Churn", op="eq", value=True))])
+        self.assertEqual(home_query.describe(plan), "Number of rows where Churn = True by Contract")
+        result = Q.QueryResult(columns=["Contract", "lost"], rows=[["Month-to-month", 1655], ["Two year", 48]], rows_scanned=100, plan_hash="x")
+        self.assertEqual(home_chart.spec(plan, result)["table"]["columns"], ["Contract", "rows where Churn = True"])
+        self.assertNotIn("True", home_query.model_text(plan))  # the model never reads a value
+
+
 if __name__ == "__main__":
     unittest.main()

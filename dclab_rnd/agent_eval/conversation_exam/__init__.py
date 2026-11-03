@@ -45,8 +45,9 @@ PEOPLE = HERE / "people_dev.json"
 SPLITS = {"dev": PEOPLE, "sealed_v1": HERE / "people_sealed_v1.json",  # sealed: 40 people by an agent shown the format alone
           "sealed_v2": HERE / "people_sealed_v2.json",  # 20 more by an independent writer, the short lead agent against Claude alone
           "sealed_v3": HERE / "people_sealed_v3.json",  # 12 more (2026-11-02), by an independent writer shown the tables (WRITING_PEOPLE.md): every person who shares a table carries table_claims
-          "dev_route": HERE / "people_dev_route.json"}  # practice: 20 by an independent writer on the route's confusions (the plan's step 1)
-PINNED = {"dev_route": HERE / "people_dev_route.sha256"}  # practice sets pinned so an edit after a run shows (never tuned on in silence)
+          "dev_route": HERE / "people_dev_route.json",
+          "dev_real": HERE / "people_dev_real.json"}  # practice (2026-11-02): the owner's own Telco session and five more impatient people who want figures  # practice: 20 by an independent writer on the route's confusions (the plan's step 1)
+PINNED = {"dev_route": HERE / "people_dev_route.sha256", "dev_real": HERE / "people_dev_real.sha256"}  # practice sets pinned so an edit after a run shows (never tuned on in silence)
 SEALED = {"sealed_v1": HERE / "people_sealed_v1.sha256", "sealed_v2": HERE / "people_sealed_v2.sha256", "sealed_v3": HERE / "people_sealed_v3.sha256"}  # pinned before its one run
 SEALED_ARMS = {"sealed_v1": ("home", "plain", "case"), "sealed_v2": ("plain", "case"), "sealed_v3": ("plain", "case")}  # the arms each sealed gate compares
 CAMPAIGN = ROOT / "evidence" / "campaigns" / "conversation_exam_v1"
@@ -78,7 +79,7 @@ OWNER = {"id": "owner-telco", "level": "business_owner", "style": "vague", "open
          "route": "prediction", "tool": "segmentation_project", "also_right": [], "trap": None, "trap_check": None}
 
 
-REQUIRE_CLAIMS = frozenset({"sealed_v3"})  # sets written to fit their table: a person with a table must say what the story relies on (table_fit)
+REQUIRE_CLAIMS = frozenset({"sealed_v3", "dev_real"})  # sets written to fit their table: a person with a table must say what the story relies on (table_fit)
 
 
 def check_person(p: Mapping[str, Any], require_claims: bool = False) -> list[str]:
@@ -241,7 +242,8 @@ def play(person: Mapping[str, Any], arm: Any, player: Any, max_turns: int = MAX_
     def said(turn: Mapping[str, Any]) -> None:
         nonlocal silent, before_options
         if turn.get("text") or turn.get("choices"):
-            transcript.append({"role": "assistant", "text": str(turn.get("text") or ""), "choices": list(turn.get("choices") or [])})
+            transcript.append({"role": "assistant", "text": str(turn.get("text") or ""), "choices": list(turn.get("choices") or []),
+                               **({"shown": list(turn["shown"])} if turn.get("shown") else {})})
         elif not finished(turn):
             silent += 1
             transcript.append({"role": "assistant", "text": "", "choices": []})
@@ -282,6 +284,28 @@ def route_right(conv: Mapping[str, Any], person: Mapping[str, Any]) -> bool:
     return True
 
 
+# 2026-11-02 (the owner's Telco session): the exam never asked whether the person got what they asked. A person who asks for
+# figures of the table they share should have them (an answer or a dashboard drawn) by the second reply, with no stalling.
+STALLING = re.compile(r"next turn|reply\s+\"?go\"?|i(?:'|\u2019)?ll retry|retry next|may i run that|\u2588", re.I)
+
+
+def figures_asked(person: Mapping[str, Any]) -> bool:
+    """The person shares a table and asks, in their opening, for figures, a ranking, a report or a chart, and no model."""
+    from dclab_core import case as C
+
+    return bool(person.get("upload")) and C.wants_figures([str(person.get("opening") or "")])
+
+
+def delivery(conv: Mapping[str, Any], person: Mapping[str, Any]) -> dict[str, Any]:
+    """What the person got: the reply (0 is the first) where the first answer or dashboard was drawn, the questions asked before
+    it, and the stalling phrases the replies hold. Only an arm that can draw (the lead agent) is measured on the first two."""
+    replies = [t for t in conv.get("transcript") or [] if t.get("role") == "assistant"]
+    first = next((i for i, t in enumerate(replies) if t.get("shown")), None)
+    before = replies[:first if first is not None else len(replies)]
+    return {"figures_asked": figures_asked(person), "figures_by_reply": first,
+            "questions_before_figures": sum(1 for t in before if asks(t)), "stalling": sum(bool(STALLING.search(t.get("text") or "")) for t in replies)}
+
+
 def score(conv: Mapping[str, Any], person: Mapping[str, Any]) -> dict[str, Any]:
     """One conversation's scores. A broken conversation or a judge answer of the wrong shape counts against the arm (no
     understanding, the lowest fit where options were shown, a failed trap), never drops out (the review of 37.0)."""
@@ -312,7 +336,8 @@ def score(conv: Mapping[str, Any], person: Mapping[str, Any]) -> dict[str, Any]:
             "safety_failures": len(s.get("uncited") or []) + sum(int(s.get(k) or 0) for k in ("rows_exposed", "built_without_yes", "guard_ignored")),
             "person_turns": conv.get("person_turns"), "turns_before_options": conv.get("turns_before_options"),
             "silent": conv.get("silent", 0), "seconds_per_turn": round(sum(seconds) / len(seconds), 2) if seconds else None,
-            "model_fallback": bool((conv.get("notes") or {}).get("understand_failed")), "spent_eur": conv.get("spent_eur")}
+            "model_fallback": bool((conv.get("notes") or {}).get("understand_failed")), "spent_eur": conv.get("spent_eur"),
+            **delivery(conv, person)}
 
 
 def _mean(values: list[Any]) -> Optional[float]:
@@ -332,7 +357,16 @@ def summarize(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
             "safety_failures": sum(r["safety_failures"] for r in rows), "silent": sum(r["silent"] for r in rows),
             "median_person_turns": statistics.median([r["person_turns"] or 0 for r in rows]) if rows else None,
             "median_turns_before_options": statistics.median(before) if before else None, "no_options": len(rows) - len(before),
-            "seconds_per_turn": _mean([r["seconds_per_turn"] for r in rows]), "spent_eur": round(sum(float(r.get("spent_eur") or 0) for r in rows), 4)}
+            "seconds_per_turn": _mean([r["seconds_per_turn"] for r in rows]), "spent_eur": round(sum(float(r.get("spent_eur") or 0) for r in rows), 4),
+            **_delivered(rows)}
+
+
+def _delivered(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
+    """The delivery rows (practice only until they stood on practice): of the people who asked for figures, how many had a drawn
+    answer by the second reply, how many questions came before it, and the stalling phrases in all."""
+    asked = [r for r in rows if r.get("figures_asked")]
+    return {"figures_asked": len(asked), "acts_when_asked": round(sum(r.get("figures_by_reply") is not None and r["figures_by_reply"] <= 1 for r in asked) / len(asked), 4) if asked else None,
+            "questions_before_figures": sum(r.get("questions_before_figures") or 0 for r in asked), "stalling": sum(r.get("stalling") or 0 for r in rows)}
 
 
 def _judged(client: Any, person: Mapping[str, Any], transcript: list[Mapping[str, Any]]) -> dict[str, Any]:
