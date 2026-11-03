@@ -1,0 +1,57 @@
+{
+ "package": "system-tasks-b7",
+ "title": "System tasks: every supported kind end to end on new seeds, under a gate fixed before any run, with sealed seeds read once",
+ "date": "2026-11-04",
+ "request": "The owner asked for a benchmark of the whole system as one.",
+ "spec": "Each supported kind's acceptance (project, five stages, every decision checked) on dev seeds new to every earlier run and on sealed seeds read once, judged by system_gate_v1 written in code first; no model, no euro.",
+ "plan": [
+  "reuse the kinds' acceptance as the task",
+  "fix the kinds, the seeds and the gate in code",
+  "dev first, then the sealed seeds once"
+ ],
+ "decisions": [
+  {
+   "decision": "Reuse the kinds' acceptance instead of writing new tasks",
+   "why": "each acceptance is already a whole-system task with planted traps; new invented tasks would repeat it"
+  },
+  {
+   "decision": "Seeds new to the kinds campaign and a sealed pair read once",
+   "why": "the kinds campaign had seen its own seeds; a gate is only evidence on cases no change was tuned on"
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/system_tasks/ (new), evidence/campaigns/system_tasks_v1/ (manifest, SYS-001 dev), dclab_rnd/bench/__init__.py (the layer and the free runner), docs/guides/BENCHMARK.md, tests/test_system_tasks.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The kinds campaign had no gate",
+   "scenario": "the bench read kinds_v1 as measurements without a verdict",
+   "cause": "the campaign recorded decisions per seed and nothing judged them as a suite",
+   "fix": "a suite over new seeds with a gate written first",
+   "test": "tests/test_system_tasks.py test_the_gate_and_the_seeds_are_fixed"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the dev seeds",
+   "gate": "system_gate_v1",
+   "fixed_before_run": true,
+   "result": "every task passed, every kind on both seeds",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "invented replicas with planted traps, not real data",
+    "the engine's rules only, no model"
+   ]
+  }
+ ],
+ "outcome": "The whole system has a gated suite of its own; the dev seeds pass and predict the sealed run.",
+ "lessons": [
+  "a gate turns a pile of passing checks into a claim that can fail"
+ ],
+ "risks": [
+  "the replicas plant the traps each kind expects; real data hides traps nobody planted"
+ ],
+ "commits": []
+}

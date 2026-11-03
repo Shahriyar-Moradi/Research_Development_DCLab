@@ -130,7 +130,25 @@ The bug loop's stations: `make datasets` turns sessions the failure detectors fl
 rejects each in `datasets/failures/reviews.json`; `make harness-eval` replays the accepted ones as regression cases. The panel
 counts each station. On 2026-11-04 the loop was empty: no candidates had been built yet.
 
-## 9. What comes next (the plan)
+## 9. System tasks (B7)
+
+`python -m dclab_rnd.agent_eval.system_tasks --split dev|sealed` (campaign `system_tasks_v1`, the system tasks layer). Each task
+is one supported kind's acceptance on one seed: a project built from a seeded replica with that kind's traps planted, the five
+stages run by the engine under the workflow graph, and every decision checked. No model, no euro.
+
+- The kinds that count are the 15 supported when the suite was written, fixed in code (`KINDS`).
+- Dev seeds 3 and 4 are new to every earlier run (the kinds campaign used 0, 1 and 2). Sealed seeds 731 and 732 are pinned by a
+  hash and read once; a second sealed run is refused.
+- `system_gate_v1`, fixed in code before any run: a task passes when every decision of its kind holds; the suite passes when the
+  share of tasks passed has a 95% Wilson lower bound of 0.8 or more and no kind fails on every seed.
+
+## 10. External benchmarks
+
+`python -m dclab_rnd.bench external check|plan`. A real MLE-bench run needs the MLE-bench grader, the competitions' data (Kaggle,
+the owner's key), at least 20 GB free and competitions chosen in `dclab_rnd/bench/external/tasks.json`; `check` names what is
+missing (on 2026-11-04: all of it) and a run is refused until everything is here and the owner gives `--yes` and `--cap-eur`.
+
+## 11. What comes next (the plan)
 
 - **Watch (B4):** OpenTelemetry tracing of session, agent, step, model call and tool, sent to MLflow (always on, light,
   also the ML runs) and to a local Langfuse (agent sessions, on demand). No table cell, no sealed case, consent checked.

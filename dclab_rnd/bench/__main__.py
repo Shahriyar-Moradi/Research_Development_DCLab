@@ -67,7 +67,8 @@ def _versions(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.bench")
-    parser.add_argument("action", choices=("read", "run", "versions", "compare", "monitors"))
+    parser.add_argument("action", choices=("read", "run", "versions", "compare", "monitors", "external"))
+    parser.add_argument("what", nargs="?", default="check", help="external: check or plan")
     parser.add_argument("--days", type=int, default=7, help="monitors: the last N days")
     parser.add_argument("--result", default=None, help="compare: SUITE/RESULT, e.g. conversation_exam_v1/CEX-032_sealed_v3")
     parser.add_argument("--a", default=None, help="compare: the arm compared against (e.g. plain: Claude alone)")
@@ -83,6 +84,11 @@ def main(argv: list[str] | None = None) -> int:
         return _compare(args)
     if args.action == "monitors":
         return _monitors(args)
+    if args.action == "external":
+        from . import external
+
+        print(json.dumps(external.plan() if args.what == "plan" else external.check(), indent=1))
+        return 0
     if args.action == "run":
         layers = [x.strip() for x in args.layers.split(",") if x.strip()] or None
         print(f"recorded {run(layers)}")
