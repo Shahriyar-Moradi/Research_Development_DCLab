@@ -129,6 +129,49 @@ def grounded_columns(case: "CaseFile", columns: Iterable[str]) -> list[str]:
     return found
 
 
+CHIPS = {"prediction": "Model", "business": "Plan", "reporting": "Report", "analysis": "Analyze", "preparation": "Prepare",
+         "advice": "Learn"}  # Home's chips (the owner, 2026-11-04): the person picks the kind of help before writing
+
+
+PAST = re.compile(r"\b(?:what (?:was|were)|how (?:many|much) \w+ (?:did|were|was)|last (?:month|week|quarter|year)|(?:in|over) the (?:past|previous|last) "
+                  r"\w+|so far this|year to date|per (?:plan|region|month|segment|product|channel|customer type)|by (?:plan|region|month|segment|product|channel))\b", re.I)
+# a request about cases not yet known; a bare "prediction" or "forecast" is not one (the report-not-model trap names one, as NAMED says)
+FUTURE = re.compile(r"\b(?:(?:who|which|they|customers?|clients?|users?|members?|people) (?:\w+ )?will|going to|likely|next (?:month|week|quarter|year)|"
+                    r"predict (?:which|who|whether|if|how)|forecast (?:the|our|next|how|which)|before they|at risk|who might)\b", re.I)
+MODEL_VERB = re.compile(r"\b(?:predict|forecast|score|train)\b", re.I)  # a model asked for (the noun "prediction" alone is not one)
+BUILD_MODEL = re.compile(r"\b(?:build|train|make|fit|create)\b(?: \w+){0,3} model\b", re.I)  # an order for a model names prediction
+CHANGE_WORDS = re.compile(r"\b(?:instead|actually|rather|never ?mind|switch|change of plan|not a model|forget the)\b", re.I)  # a change of mind
+LIST_ASKED = re.compile(r"\b(?:send|give|export|pull)(?: me| us)? (?:the |a )?(?:list|ids|names|rows)\b", re.I)  # rows of what happened
+
+
+def _named(words: list[str]) -> list[str]:
+    """The kinds of help the words name, with an order for a model counted as naming prediction."""
+    named = list(named_tracks(words))
+    if "prediction" not in named and any(BUILD_MODEL.search(w) for w in words):
+        named.append("prediction")
+    return named
+
+
+def chip_conflict(chosen: str, words: Iterable[str]) -> Optional[str]:
+    """The kind of help the person's words clearly point to when it is not the chip they picked, else None. Clear only: the words
+    name another kind of help and not the chosen one ("send me the list of who churned" under Model), or a Model chip with
+    figures of the table and no model words ("what was our churn per plan last month"). The chip wins otherwise."""
+    words = [str(w) for w in words]
+    latest = _named(words[-1:])  # a change of mind in the latest message wins over what was said before
+    if latest and chosen not in latest:
+        return next(iter(latest))
+    named = _named(words)
+    if chosen in named:
+        return None
+    text = " ".join(words)
+    if chosen == "prediction" and not FUTURE.search(text) and not MODEL_VERB.search(text) and (wants_figures(words) or PAST.search(text) or LIST_ASKED.search(text)):
+        return "reporting" if "reporting" in named else "analysis"  # what happened, not who will: a report-not-model trap
+    if chosen not in ("analysis", "reporting") and LIST_ASKED.search(text) and not FUTURE.search(text):
+        return "analysis"
+    others = [t for t in named if t != chosen]
+    return others[0] if others else None
+
+
 def named_tracks(words: Iterable[str]) -> dict[str, str]:
     """The kinds of help the person's own words name, each with the phrase that names it (the first one found)."""
     found: dict[str, str] = {}

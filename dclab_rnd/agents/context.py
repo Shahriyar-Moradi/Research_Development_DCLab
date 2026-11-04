@@ -58,10 +58,10 @@ def table_text(table: Optional[Mapping[str, Any]]) -> str:
 
 
 def build(case: C.CaseFile, turns: list[Mapping[str, str]], table: Optional[Mapping[str, Any]] = None,
-          memory: Iterable[str] = (), evidence: Iterable[str] = (), budget: int = BUDGET_CHARS) -> dict[str, Any]:
+          memory: Iterable[str] = (), evidence: Iterable[str] = (), budget: int = BUDGET_CHARS, notes: Iterable[str] = ()) -> dict[str, Any]:
     """The turn's context: ``state`` (always whole) and the recent ``turns`` that fit, oldest first, with how many were
     dropped. ``turns`` are {"role": "user"|"assistant", "content"} in order, ending on the person's latest words."""
-    parts = [case_text(case), table_text(table)]
+    parts = [case_text(case) + "".join(f"\n- {n}" for n in notes if n), table_text(table)]  # notes: code's word on the route (a chip)
     memory, evidence = [m for m in memory if m], [e for e in evidence if e]
     if memory:
         parts.append("What DCLab remembers about this person and project:\n" + "\n".join(f"- {m}" for m in memory))

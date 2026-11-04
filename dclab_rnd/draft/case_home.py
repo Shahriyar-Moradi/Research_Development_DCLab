@@ -21,6 +21,7 @@ from dclab_core import case as C
 
 from ..agents import case_agent as A
 from ..agents import case_session
+from . import intent as intents
 from .chat import HomeAgent, turn
 from .store import now
 
@@ -64,11 +65,38 @@ class CaseHome(HomeAgent):
         from .. import home_query
         from . import brief as briefs
 
+        intent = draft.get("intent") or {}
+        if (state.case.route is None and intent.get("source") == "user" and intent.get("track") in C.TRACKS
+                and intent["track"] != state.chip_intent):  # 2026-11-04: a chip pressed (first or again) before any work started;
+            state.chip, state.chip_checked, state.chip_intent = intent["track"], False, intent["track"]  # a change of mind in words stays
         state.personal = {c["name"] for c in briefs.columns_of(draft) if str(c.get("sensitivity") or "none") in home_query.SENSITIVE}
         state.specialist_client = self.models.client("case_specialist", draft_id=draft["id"]) if self.models is not None else None
         # the plan's step 1: Home gets the cheap route check the exam measured (before, only the exam's arm had it)
         state.route_client = self.models.client("route_check", draft_id=draft["id"], model=A.ROUTE_MODEL) if self.models is not None else None
         return state
+
+    def choose_intent(self, draft_id: str, track: str, *, by_person: bool = True) -> dict[str, Any]:
+        """A chip pressed in an open chat (2026-11-04 review): with the lead agent, the choice is kept as the person's and read as
+        the chip on their next message; the rules-first track is never opened inside the lead agent's chat. Once work has
+        started the press changes nothing (the route changes only through the person's words)."""
+        if self._client(draft_id) is None:
+            return super().choose_intent(draft_id, track, by_person=by_person)
+        with self.store.turn(draft_id):
+            draft = self.store.get(draft_id)
+            before = draft.get("intent") or {}
+            if ((draft.get("case_state") or {}).get("case") or {}).get("route"):
+                return before
+            value = intents.chosen(track, before)
+            if by_person:
+                from ..ledger import capture
+
+                capture.intent_chosen(before.get("record"), track)
+            def put(d: dict[str, Any]) -> None:
+                d["intent"] = value
+                if isinstance(d.get("case_state"), dict):
+                    d["case_state"]["chip_intent"] = None  # a press is always read, even the same chip again
+            self.store.update(draft_id, put)
+            return value
 
     def _client(self, draft_id: str) -> Any:
         return self.models.client(A.PURPOSE, draft_id=draft_id) if self.models is not None else None
@@ -94,6 +122,7 @@ class CaseHome(HomeAgent):
             route = state.case.route
             if route is not None and (d.get("intent") or {}).get("track") != route.track:  # the route is the draft's kind of help
                 d["intent"] = {**(d.get("intent") or {}), "track": route.track, "status": "chosen" if route.by == "person" else "read",
+                               "source": "user" if route.by == "person" else "case_agent",  # never a person's choice the agent made
                                "by": "case_agent", "tool": route.tool}
             draw = route is not None and route.track == "prediction" and not d.get("workflow")
             if route is None or route.tool not in A.BUILDS:  # the review of 37.11: a build question left open after the route moved on

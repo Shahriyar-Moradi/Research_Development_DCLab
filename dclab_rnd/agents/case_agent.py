@@ -243,6 +243,9 @@ class CaseState:
     query_errors: int = 0  # the table queries refused in this turn (at most QUERY_ERRORS_A_TURN)
     budget_reached: bool = False  # 2026-11-01: three turns with the goal and the data known: propose or start, no more asking
     route_client: Any = None  # 2026-11-01: the cheap second reading of the route (purpose route_check); None: no check
+    chip: Optional[str] = None  # 2026-11-04: the kind of help the person picked on Home before writing (a track): the route
+    chip_intent: Optional[str] = None  # the draft's chosen track the chip was last read from (a press, not every difference, resets it)
+    chip_checked: bool = False  # the one question asked when their words pointed elsewhere (asked once, then their pick decides)
     route_told: list[str] = field(default_factory=list)  # the plan's step 1: each route doubt (a move and what it pointed to) told once
     route_seen: Optional[tuple[int, Optional[str]]] = None  # the second reading for the words heard so far: read again on new words only
     rewriting: bool = False  # the agent is rewriting dropped sentences: no move may run (the review: a question counted twice)
@@ -352,6 +355,8 @@ def _worked(state: CaseState, track: str, tool: str) -> None:
     person whose words ask for figures and no model, and never over a route already started or picked."""
     route = state.case.route
     moves = route is not None and tool == "dashboard" and route.by == "agent" and route.tool == "query"  # a board after an answer: the Refresh button reads this
+    if state.chip and track != state.chip:
+        return  # 2026-11-04: the person picked another kind of help on Home; figures shown on the way do not change it
     if (route is None or moves) and not state.case.chosen and state.wants_figures:
         state.case = C.apply(state.case, "route", C.CaseRoute(track=track, tool=tool, by="agent"), by="agent", why="the figures asked for were shown")
 
@@ -542,9 +547,51 @@ def _ask(state: CaseState, question: str) -> dict[str, Any]:
     return {"asked": True}
 
 
+CHIP_NEEDS_TABLE = ("prediction", "analysis", "reporting", "preparation")  # the kinds of help that run on a shared table
+
+
+def changed_mind(state: CaseState) -> Optional[str]:
+    """The kind of help the person's latest message asks for instead of their chip, from their second message on (the first
+    message is the one the chip was picked with: a conflict there is asked once, never taken as a change of mind), only before
+    any work started and only when that message says it is a change (instead, actually, rather ...)."""
+    if not state.chip or len(state.case.words) < 2 or state.case.route is not None:
+        return None  # once work has started, a change goes through the route's own quote rule
+    latest = state.case.words[-1]
+    if not C.CHANGE_WORDS.search(latest):
+        return None  # "first, what was churn last month?" or "also a chart" is part of the same work, never a change of mind
+    return C.chip_conflict(state.chip, [latest])
+
+
+def chip_note(state: CaseState) -> Optional[str]:
+    """What the agent is told about a chip: the route, and the one check when the words point elsewhere. Once work has
+    started the route's own quote rule governs: no note (the third review, 2026-11-04)."""
+    if not state.chip or state.case.chosen or state.case.route is not None:
+        return None
+    other = C.chip_conflict(state.chip, state.case.words)
+    label = C.CHIPS.get(state.chip, state.chip)
+    latest = changed_mind(state)
+    if latest:
+        return (f"the person picked {label} ({state.chip}) on Home, but their latest words ask for {latest}: start {latest} with their "
+                "words as the quote, or propose the two once if unsure")
+    if state.chip == "advice" and data_work(state) and not state.chip_checked:
+        return "the person picked Learn (advice) on Home, but their words ask for work on data: propose advice and that work once"
+    if other and not state.chip_checked:
+        return (f"the person picked {label} ({state.chip}) on Home, but their words point to {other}: propose exactly two options, one "
+                f"{state.chip} and one {other}, and let them pick; ask nothing else")
+    return f"the person picked {label} ({state.chip}) on Home: that is the route. Start it now; never ask which kind of help they want"
+
+
 def _propose(state: CaseState, options: list[dict[str, Any]]) -> dict[str, Any]:
     r = C.readiness(state.case)
-    if not r.may_propose and not state.case.chosen and not state.wants_options and not state.budget_reached:
+    chip_other = C.chip_conflict(state.chip, state.case.words) if state.chip and not state.case.chosen and state.case.route is None else None
+    if state.chip and not state.case.chosen:  # 2026-11-04: a chip is the person's choice; options only inside it, or the one check
+        latest_other = changed_mind(state)
+        advice_data = {"analysis", "prediction", "reporting", "preparation"} if state.chip == "advice" and data_work(state) else set()
+        allowed = {state.chip} | ({chip_other} if chip_other and not state.chip_checked else set()) | ({latest_other} if latest_other else set()) | advice_data
+        tracks = {str(o.get("track")) for o in options or []}
+        if not tracks <= allowed:
+            return {"error": f"the person picked {C.CHIPS.get(state.chip, state.chip)}: offer only {', '.join(sorted(allowed))}"}
+    if not r.may_propose and not state.case.chosen and not state.wants_options and not state.budget_reached and not state.chip:
         return {"error": "not yet: " + "; ".join(r.reasons) + ". Ask about what is missing, or propose once the ceiling is reached."}
     try:
         offered = [C.CaseOption(**{k: v for k, v in o.items() if k in C.CaseOption.model_fields}) for o in options or []]
@@ -554,9 +601,11 @@ def _propose(state: CaseState, options: list[dict[str, Any]]) -> dict[str, Any]:
     kept, refused = C.check_options(offered, state.case, columns=columns, computed=state.computed)
     if len(kept) < 2:
         return {"error": "fewer than two options passed the checks", "refused": refused}
-    doubt = None if state.case.chosen else route_doubt(state, "propose", {o.track for o in kept})
+    doubt = None if (state.case.chosen or state.chip) else route_doubt(state, "propose", {o.track for o in kept})
     if doubt:
         return {"error": doubt}
+    if state.chip and {o.track for o in kept} != {state.chip}:
+        state.chip_checked = True  # the one question about the chip is this choice: asked once
     state.case = C.apply(state.case, "options", kept, by="agent", why="proposed")
     state.shown = kept
     return {"shown": [o.title for o in kept], "refused": refused,
@@ -576,6 +625,29 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
                              "latest message: pass their words as quote. A first step on the way (a base rate) is part of the same work."}
         state.case = C.apply(state.case, "route", C.CaseRoute(track=track, tool=tool, by="person"), by="person", why=f"the person asked: {quote}")
         return {"started": f"{track}/{tool}", "next": "tell the person the work changed as they asked"}
+    if state.chip and not state.case.chosen:  # 2026-11-04: the person picked the kind of help on Home: it is the route
+        latest = changed_mind(state)
+        if latest and track == latest and quote and C.quote_ok(quote, quote, state.case.words[-1:]):
+            state.chip, state.chip_checked = track, True  # they changed their mind in their latest words: that is their choice now
+        elif state.chip == "advice" and track == "advice" and data_work(state):
+            return {"error": "they picked Learn, but their words ask for work on data: propose the two once (advice and the work they "
+                             "describe) and let them pick"}
+    if state.chip and not state.case.chosen:
+        if track in CHIP_NEEDS_TABLE and track == state.chip and state.table is None:
+            return {"error": f"they want {C.CHIPS.get(state.chip, state.chip)} ({state.chip}): ask them to share the table it runs on, then start it"}
+        if track != state.chip:
+            return {"error": f"the person picked {C.CHIPS.get(state.chip, state.chip)} ({state.chip}): start {state.chip}, or, when their words "
+                             "point elsewhere, propose the two kinds of help once"}
+        other = C.chip_conflict(state.chip, state.case.words)
+        if other and not state.chip_checked:
+            return {"error": f"their words point to {other}, not the {C.CHIPS.get(state.chip, state.chip)} they picked: propose the two once "
+                             f"({state.chip} and {other}) and let them pick"}
+        state.case = C.apply(state.case, "route", C.CaseRoute(track=track, tool=tool, by="person"), by="person",
+                             why=f"the person picked {C.CHIPS.get(state.chip, state.chip)} on Home")
+        if tool in ("query", "dashboard"):
+            return {"started": f"{track}/{tool}", "next": "nothing is shown yet: ask the table (query), show it with answer or dashboard, then "
+                                                          "say what it shows; do not say anything is ready before a tool returned it"}
+        return {"started": f"{track}/{tool}", "next": "now tell the person in a few sentences what happens next, then stop"}
     r = C.readiness(state.case)
     if track in NO_DATA_WORK and not state.case.chosen and not r.ready and not state.budget_reached and data_work(state):
         return {"error": "the person's need points to data work (a shared table, or a list, report, model or cleaning): advice "
@@ -836,7 +908,7 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     person_turns = sum(1 for t in state.turns if t.get("role") == "user")
     state.budget_reached = (person_turns > TURN_BUDGET and C.known(state.case.goal) and C.known(state.case.data)
                             and state.case.route is None and not state.case.chosen)  # the review: off once work started or was picked
-    built = ctx.build(state.case, state.turns, state.table)
+    built = ctx.build(state.case, state.turns, state.table, notes=[n for n in (chip_note(state),) if n])
     messages = ctx.messages(prompts.text(PROMPT), built)
     start = len(messages)
     before = _spent(client) + _spent(state.specialist_client) + _spent(state.route_client)  # the review: the route check counts too

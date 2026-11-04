@@ -4,6 +4,12 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.155.0 (2026-11-04)
+
+- `case.CHIPS` and `case.chip_conflict` (the owner's chips on Home): the kind of help a person picks before writing, and the
+  track their words clearly point to when it is another one (another kind of help named, or a Model chip with figures and no
+  model words). No contract changed shape.
+
 ## 0.154.0 (2026-11-04)
 
 - `bench.paired` (B6): arm B against arm A on the same cases: both means, B's signed mean difference with a 95% bootstrap

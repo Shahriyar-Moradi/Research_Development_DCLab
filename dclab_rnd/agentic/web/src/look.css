@@ -582,3 +582,11 @@ ul.plain { margin: 0; padding-left: var(--ts-space-6); display: grid; gap: var(-
 
 /* A1 (2026-11-03): the Admin area's panes and tabs stay hidden until its own sign-in */
 .admin-hidden { display: none !important; }
+
+/* 2026-11-04: the kind of help the person picks before writing (Home), one at a time; the route of the lead agent */
+.help-kinds { display: flex; flex-wrap: wrap; gap: var(--ts-space-3); justify-content: center; }
+.help-kind { padding: 7px 16px; border-radius: 12px; border: 1px solid var(--ts-border); background: var(--ts-surface); color: var(--ts-text);
+  font-size: var(--ts-text-md); font-weight: var(--ts-weight-semibold); cursor: pointer; box-shadow: var(--ts-shadow-card); }
+.help-kind:hover { background: var(--ts-surface-hover); }
+.help-kind[aria-pressed="true"] { border-color: var(--ts-accent); background: var(--ts-accent-soft); color: var(--ts-accent-ink); }
+.help-kind:focus-visible { outline: var(--ts-focus-ring); outline-offset: 2px; }

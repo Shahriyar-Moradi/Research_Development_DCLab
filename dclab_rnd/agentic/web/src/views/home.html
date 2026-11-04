@@ -46,6 +46,14 @@
                 <button type="button" class="btn primary send" id="home-start">Draft the solution<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
               </div>
             </div>
+            <div class="help-kinds" data-f="home.help_kinds" role="group" aria-label="The kind of help you want (optional)">
+              <button type="button" class="help-kind" data-help="prediction" aria-pressed="false" title="A model that predicts what has not happened yet">Model</button>
+              <button type="button" class="help-kind" data-help="business" aria-pressed="false" title="A decision or a plan: what to do, who to call">Plan</button>
+              <button type="button" class="help-kind" data-help="reporting" aria-pressed="false" title="A report or a dashboard of what happened">Report</button>
+              <button type="button" class="help-kind" data-help="analysis" aria-pressed="false" title="Figures and answers from your table">Analyze</button>
+              <button type="button" class="help-kind" data-help="preparation" aria-pressed="false" title="Clean, join or reshape your data">Prepare</button>
+              <button type="button" class="help-kind" data-help="advice" aria-pressed="false" title="An answer or an explanation, no work on data">Learn</button>
+            </div>
             <div class="row small muted" data-f="home.quickstarts">
               <span>Examples:</span>
               <div class="chips">
@@ -435,7 +443,8 @@ DC.view('home', {
       }
       const problem = $('#home-task', el).value.trim();
       if (problem.length < 8) { toast('Describe the problem in one sentence first.', { ok: false }); $('#home-task', el).focus(); throw new Error('no problem'); }
-      S.draft = await DC.client.createDraft({ body: { problem, pack: S.pack } }); S.fresh = false;
+      const help = (el.querySelector('.help-kind[aria-pressed="true"]') || {}).dataset;  // 2026-11-04: the kind of help the person picked
+      S.draft = await DC.client.createDraft({ body: { problem, pack: S.pack, ...(help && help.help ? { intent: help.help } : {}) } }); S.fresh = false;
       remember(S.draft.id);
       openDraft(S.draft);
       return S.draft;
@@ -625,6 +634,16 @@ DC.view('home', {
         keep.disabled = true;
         try { const d = await DC.client.saveAnswer(S.draft.id, Number(keep.dataset.answerSave), { body: { saved: true } }); S.draft.answers = d.answers; keep.textContent = 'Saved'; toast('Saved: it is in the notebook of saved answers.'); }
         catch (err) { keep.disabled = false; toast(err.message, { ok: false }); }
+        return;
+      }
+      const hk = e.target.closest('.help-kind');
+      if (hk) {  // one kind of help at a time; the same one again clears it (then DCLab reads the words, as before)
+        const on = hk.getAttribute('aria-pressed') !== 'true';
+        el.querySelectorAll('.help-kind').forEach(b => b.setAttribute('aria-pressed', 'false'));
+        hk.setAttribute('aria-pressed', String(on));
+        if (on && S.draft && S.draft.id && !((S.draft.case || {}).route)) {  // a chat open and no work started: the chip changes its kind of help
+          DC.client.chooseIntent(S.draft.id, { body: { track: hk.dataset.help } }).then(d => { S.draft = d; drawIntent(d.intent); }).catch(err => toast(err.message, { ok: false }));
+        }
         return;
       }
       const ex = e.target.closest('[data-example]');
@@ -1629,6 +1648,7 @@ DC.view('home', {
       $('#home-reply', el).value = '';
       showDraftPanels(false);
       creating(false);
+      el.querySelectorAll('.help-kind').forEach(b => b.setAttribute('aria-pressed', 'false'));  // a new chat starts without a chip
       const box = $('#home-task', el);
       box.value = '';
       box.scrollIntoView({ behavior: 'smooth', block: 'center' });

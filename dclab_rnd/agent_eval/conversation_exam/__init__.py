@@ -59,7 +59,7 @@ STYLES = ("vague", "detailed", "impatient")
 TRAPS = ("clear_request", "report_not_model", "real_prediction", "missing_column", "rows_request", "silent_drop", "no_outcome", "vague_goal")
 ROUTE_TRAPS = ("clear_request", "report_not_model", "real_prediction")  # a trap about the route needs the route right too
 TRUTH = ("situation", "goal", "decision", "user", "data", "knows", "constraints")
-ARMS = ("home", "plain", "case", "safe")  # safe: Claude alone with DCLab's safety layer (2026-11-01)
+ARMS = ("home", "plain", "case", "safe", "case_chip")  # case_chip (2026-11-04): the lead agent with the person's true chip, the best case  # safe: Claude alone with DCLab's safety layer (2026-11-01)
 READY_ARMS = ("home", "plain")  # the default arms; add case with --arms home,plain,case
 PURPOSES_CASE = "case_agent"
 PURPOSES = {"plain": "exam_plain", "person": "exam_person", "judge": "exam_judge"}
@@ -550,7 +550,7 @@ def next_id() -> str:
 
 # per conversation, measured on the practice runs of 2026-11-01 (the judge was priced at 0.08 before and the estimate read 4.3 for a run that
 # cost 1.7); a technical advice conversation costs more than these. Replaced by each run's measured spend.
-ESTIMATE_EUR = {"home": 0.08, "plain": 0.05, "case": 0.10, "safe": 0.06, "person": 0.005, "judge": 0.025}
+ESTIMATE_EUR = {"home": 0.08, "plain": 0.05, "case": 0.10, "safe": 0.06, "case_chip": 0.10, "person": 0.005, "judge": 0.025}
 
 
 def seal_after_run(vault: Path, run: str, split: str, arms: list[str], spent: float, cap: Optional[float], incomplete: Optional[str]) -> Optional[dict[str, Any]]:
@@ -652,6 +652,9 @@ def main(argv: Optional[list[str]] = None) -> int:
                "case": lambda pid, folder: CaseArm(budget.client(f"{tag}case-{pid}", PURPOSES_CASE),
                                                    budget.client(f"{tag}case-{pid}", "case_specialist"), folder,
                                                    budget.client(f"{tag}case-{pid}", "route_check", _case_agent.ROUTE_MODEL)),
+               "case_chip": lambda pid, folder: CaseArm(budget.client(f"{tag}case_chip-{pid}", PURPOSES_CASE),  # 2026-11-04: with the person's chip
+                                                        budget.client(f"{tag}case_chip-{pid}", "case_specialist"), folder,
+                                                        budget.client(f"{tag}case_chip-{pid}", "route_check", _case_agent.ROUTE_MODEL), chip=True),
                "safe": lambda pid, folder: SafeArm(budget.client(f"{tag}safe-{pid}", PURPOSES["plain"]))}
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
     result = measure(people, {a: arm_for[a] for a in arms},

@@ -156,7 +156,8 @@ DC.view('home', {
       }
       const problem = $('#home-task', el).value.trim();
       if (problem.length < 8) { toast('Describe the problem in one sentence first.', { ok: false }); $('#home-task', el).focus(); throw new Error('no problem'); }
-      S.draft = await DC.client.createDraft({ body: { problem, pack: S.pack } }); S.fresh = false;
+      const help = (el.querySelector('.help-kind[aria-pressed="true"]') || {}).dataset;  // 2026-11-04: the kind of help the person picked
+      S.draft = await DC.client.createDraft({ body: { problem, pack: S.pack, ...(help && help.help ? { intent: help.help } : {}) } }); S.fresh = false;
       remember(S.draft.id);
       openDraft(S.draft);
       return S.draft;
@@ -346,6 +347,16 @@ DC.view('home', {
         keep.disabled = true;
         try { const d = await DC.client.saveAnswer(S.draft.id, Number(keep.dataset.answerSave), { body: { saved: true } }); S.draft.answers = d.answers; keep.textContent = 'Saved'; toast('Saved: it is in the notebook of saved answers.'); }
         catch (err) { keep.disabled = false; toast(err.message, { ok: false }); }
+        return;
+      }
+      const hk = e.target.closest('.help-kind');
+      if (hk) {  // one kind of help at a time; the same one again clears it (then DCLab reads the words, as before)
+        const on = hk.getAttribute('aria-pressed') !== 'true';
+        el.querySelectorAll('.help-kind').forEach(b => b.setAttribute('aria-pressed', 'false'));
+        hk.setAttribute('aria-pressed', String(on));
+        if (on && S.draft && S.draft.id && !((S.draft.case || {}).route)) {  // a chat open and no work started: the chip changes its kind of help
+          DC.client.chooseIntent(S.draft.id, { body: { track: hk.dataset.help } }).then(d => { S.draft = d; drawIntent(d.intent); }).catch(err => toast(err.message, { ok: false }));
+        }
         return;
       }
       const ex = e.target.closest('[data-example]');
@@ -1350,6 +1361,7 @@ DC.view('home', {
       $('#home-reply', el).value = '';
       showDraftPanels(false);
       creating(false);
+      el.querySelectorAll('.help-kind').forEach(b => b.setAttribute('aria-pressed', 'false'));  // a new chat starts without a chip
       const box = $('#home-task', el);
       box.value = '';
       box.scrollIntoView({ behavior: 'smooth', block: 'center' });

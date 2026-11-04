@@ -14,8 +14,9 @@ from typing import Any, Iterable, Mapping, Optional
 
 from . import CAMPAIGN
 
-ARMS = ("home", "plain", "safe", "case")  # safe: Claude alone with DCLab's safety layer (its rows were missing, 2026-11-01)
-NAMES = {"home": "Home today", "plain": "Claude alone", "safe": "Claude alone + DCLab safety", "case": "lead agent"}
+ARMS = ("home", "plain", "safe", "case", "case_chip")  # safe: Claude alone with DCLab's safety layer (its rows were missing, 2026-11-01)
+NAMES = {"home": "Home today", "plain": "Claude alone", "safe": "Claude alone + DCLab safety", "case": "lead agent",
+         "case_chip": "lead agent with the person's chip"}
 EXAM_PURPOSES = ("case_agent", "case_specialist", "exam_plain", "exam_person", "exam_judge", "home_agent", "home_intent",
                  "home_understand", "home_query")
 

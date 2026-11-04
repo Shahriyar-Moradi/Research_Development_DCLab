@@ -1,0 +1,216 @@
+{
+ "package": "home-chips-routing",
+ "title": "Home's chips: the person picks the kind of help before writing, and the lead agent routes by it with one check",
+ "date": "2026-11-04",
+ "request": "The owner proposed six chips under Home's message box (Model, Plan, Report, Analyze, Prepare, Learn) so routing is the person's choice instead of the lead agent's guess.",
+ "spec": "The chosen chip is sent as the draft's kind of help; the lead agent starts that route at once without the readiness wait or the route doubt, refuses another kind of help, and asks once with two options only when the person's words clearly point elsewhere; no chip keeps today's routing.",
+ "plan": [
+  "the core rule for a clear conflict between a chip and the words",
+  "the lead agent reads the chip from the draft and routes by it",
+  "the chips on the page, sent with the draft",
+  "one paragraph in the prompt",
+  "the exam's chip arm"
+ ],
+ "decisions": [
+  {
+   "decision": "The chip wins, with one check",
+   "why": "the owner's choice: a chip removes the guessing, and a report-not-model trap (a Model chip with last month's figures) is still caught by one two-option question"
+  },
+  {
+   "decision": "A bare prediction or forecast word is not a request about the future",
+   "why": "the report-not-model trap names a prediction and asks for past rates; the future must be about cases not yet known"
+  },
+  {
+   "decision": "Plan means a business decision and Learn means advice",
+   "why": "the owner's mapping onto DCLab's six kinds of help"
+  }
+ ],
+ "change": "dclab_core/case.py (CHIPS, chip_conflict, PAST, FUTURE), dclab_core 0.155.0; dclab_rnd/agents/case_agent.py (chip, chip_checked, chip_note, propose and start by the chip); agents/case_session.py (kept); agents/context.py (notes); draft/case_home.py (the chip from the draft); prompts/case_agent.md; views/home.html, look.css, ds.css and the generated app; agent_eval/conversation_exam (the chip arm); tests/test_case_chips.py, tests/test_case_home.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A person's chosen kind of help never reached the lead agent and was overwritten by its own route",
+   "scenario": "a draft created with a chosen intent: the lead agent guessed the route from the words and wrote its guess over the choice",
+   "cause": "the lead agent's host never read the draft's intent",
+   "fix": "the host starts the case with the chip, and the agent routes by it",
+   "test": "tests/test_case_home.py test_the_chip_the_person_picked_on_home_routes_the_lead_agent"
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The report-not-model trap passed the chip check",
+   "scenario": "a Model chip with: need a churn prediction for the board, what our churn was per plan last month",
+   "cause": "the word prediction counted as a request about the future",
+   "fix": "the future means a request about cases not yet known; past-period figures under a Model chip point to an analysis",
+   "test": "tests/test_case_chips.py test_the_words_disagree_only_when_they_clearly_point_elsewhere"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Once a chip was set the person could not change their mind in words",
+   "scenario": "Model chip, then 'actually I want a dashboard of churn by plan instead': every start of reporting was refused",
+   "cause": "the conflict rule read all the words, and the chip blocked any other track",
+   "fix": "from the second message on, a track the latest message names wins when the agent quotes it; the first message's conflict is still asked once",
+   "test": "tests/test_case_chips.py ReviewFixTests test_the_person_can_change_their_mind_in_their_latest_words"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A Learn chip let advice answer a request for work on data",
+   "scenario": "Learn chip with 'send me the list of customers who churned last month': advice started at once",
+   "cause": "the chip path skipped the data-work check that guards advice",
+   "fix": "a Learn chip with data work asks once between advice and the work; a list asked for counts as a conflict",
+   "test": "tests/test_case_chips.py ReviewFixTests test_a_learn_chip_with_data_work_asks_once"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The past-period rule flagged real model requests",
+   "scenario": "Model chip with 'forecast sales by region' was treated as a report-not-model trap",
+   "cause": "the past pattern matched 'by region' and nothing checked for a model verb; 'will' alone counted as future",
+   "fix": "a model verb (predict, forecast, score, train) turns the past rule off; 'will' counts only with a subject such as customers",
+   "test": "tests/test_case_chips.py ReviewFixTests test_a_model_asked_for_by_its_verb_is_not_the_past_trap"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Figures shown on the way moved a chip's route to the agent's choice",
+   "scenario": "Model chip, the agent shows a base rate with a query: the route became analysis by the agent, and the draft kept source user",
+   "cause": "the figures rule had no chip check, and the draft's intent kept source user for an agent route",
+   "fix": "figures never move a chip's route; an agent route is saved with source case_agent",
+   "test": "tests/test_case_chips.py ReviewFixTests test_figures_shown_on_the_way_never_move_a_chips_route"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A chip changed after the first turn was ignored",
+   "scenario": "the person pressed another chip while the chat was open: the case kept the old chip",
+   "cause": "the host read the intent only when no chip was set",
+   "fix": "while no route has started, a changed user intent replaces the chip and reopens its check",
+   "test": "tests/test_case_home.py test_a_chip_changed_before_any_work_is_read_and_its_check_reopened"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A data chip with no table started work that cannot run",
+   "scenario": "Model chip and no table shared: the model project started on nothing",
+   "cause": "the chip skipped the readiness check that waits for data",
+   "fix": "a data chip with no table tells the agent to ask for the table; the chip stands",
+   "test": "tests/test_case_chips.py ReviewFixTests test_a_data_chip_with_no_table_asks_for_it"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The Home page kept a pressed chip in a new chat and never sent a changed chip",
+   "scenario": "New chat after a Report chat started with Report still pressed",
+   "cause": "newChat did not clear the chips; pressing one with a draft open only changed the button",
+   "fix": "newChat clears the chips; pressing one with a draft open calls chooseIntent",
+   "test": "tests/test_web_build.py (the page builds); checked by reading the built page"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The benchmark page did not list the chip arm",
+   "scenario": "the exam could run case_chip but the benchmark's arms left it out",
+   "cause": "the arm list was written in two places",
+   "fix": "case_chip added to the benchmark's arms",
+   "test": "tests/test_case_chips.py ReviewFixTests test_the_benchmark_page_lists_the_chip_arm"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "My first change-of-mind fix skipped the one check on the first message",
+   "scenario": "Model chip with 'what was our churn per plan last month' as the only message: the agent could start analysis without asking",
+   "cause": "the latest message and the whole conversation are the same when there is one message",
+   "fix": "a change of mind counts only from the second message (changed_mind)",
+   "test": "tests/test_case_chips.py test_a_conflict_asks_once_with_two_options_then_the_pick_decides"
+  },
+  {
+   "id": "Q1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The change-of-mind fix moved the person off their chip on any later mention of another kind of help",
+   "scenario": "Model chip, prediction started, then 'first, what was our churn rate last month?': the note told the agent to start analysis and the route flipped",
+   "cause": "changed_mind counted any track the latest message named, even after work started",
+   "fix": "a change of mind needs a change word (instead, actually, rather) and counts only before any route",
+   "test": "tests/test_case_chips.py SecondReviewTests test_a_base_rate_or_an_also_after_the_chip_started_is_not_a_change_of_mind"
+  },
+  {
+   "id": "Q2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An order for a model under another chip was not seen as a conflict, so the person was locked in",
+   "scenario": "Analyze chip, 'actually, build me a churn model instead': prediction was refused at start and in the options",
+   "cause": "the named-track patterns did not match 'build ... model'",
+   "fix": "an order for a model counts as naming prediction in chip_conflict",
+   "test": "tests/test_case_chips.py SecondReviewTests test_an_order_for_a_model_under_another_chip_is_a_conflict"
+  },
+  {
+   "id": "Q3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A change of mind to a kind needing a table was lost on the next turn",
+   "scenario": "Analyze chip, no table, 'predict which customers will churn instead': the next turn reset the chip to Analyze",
+   "cause": "the host re-read the chip whenever the draft's intent differed from it",
+   "fix": "the host re-reads only when the person pressed a chip (chip_intent records the last press read)",
+   "test": "tests/test_case_chips.py SecondReviewTests test_a_change_to_a_kind_needing_a_table_is_kept_until_the_table_comes"
+  },
+  {
+   "id": "Q4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Pressing a chip in an open chat ran the rules-first Home inside the lead agent's chat",
+   "scenario": "open lead-agent draft, press Model: the rules-first opening question appeared and the lead agent did not run",
+   "cause": "CaseHome inherited choose_intent, which opens the rules-first track",
+   "fix": "CaseHome.choose_intent keeps the choice for the next message and changes nothing once work started; the page sends a press only before a route",
+   "test": "tests/test_case_home.py test_a_chip_pressed_in_an_open_lead_agent_chat_is_kept_and_never_opens_the_rules_track"
+  },
+  {
+   "id": "Q5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "After a chip's work started, the agent was still told to stop and offer two options",
+   "scenario": "Model chip, prediction started, then 'can you also show me a chart of churn by plan?': the note asked for two options, prediction and analysis",
+   "cause": "the note and the options check gave up only when the person had picked an option, not when a route existed",
+   "fix": "no chip note and no chip conflict once a route exists; a press clears chip_intent so the same chip pressed again is read",
+   "test": "tests/test_case_chips.py SecondReviewTests test_a_base_rate_or_an_also_after_the_chip_started_is_not_a_change_of_mind"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the chip routing",
+   "gate": "scripted tests",
+   "fixed_before_run": true,
+   "result": "a chip starts its route at once, another kind is refused, a conflict gets one two-option choice, no chip changes nothing, the chip survives a saved case",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "not measured on the exam with a live model yet: the chip arm hands people their true kind of help, the best case"
+   ]
+  }
+ ],
+ "outcome": "The person can say the kind of help they want before writing; the lead agent routes by it and checks once when the words disagree.",
+ "lessons": [
+  "the cheapest routing fix is to ask the person, as long as a clear contradiction is still caught",
+  "A rule that lets a choice win must still let the person change it in words later, but not on the message the choice was made with.",
+  "Every shortcut past a check (readiness, data work) needs its own small check in the shortcut.",
+  "A fix for one review finding can overshoot: test the case it should not catch (a base rate after the chip) beside the case it should."
+ ],
+ "risks": [
+  "people without a chip keep today's guessing",
+  "a wrong chip with words that look consistent routes wrong"
+ ],
+ "commits": []
+}

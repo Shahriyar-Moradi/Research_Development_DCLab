@@ -40,7 +40,8 @@ def snapshot(state: Any) -> dict[str, Any]:
             "cap_eur": float(getattr(state, "cap_eur", cap_eur())), "waiting_on_budget": bool(getattr(state, "waiting_on_budget", False)),
             "consulted": list(getattr(state, "consulted", []) or []), "run_id": getattr(getattr(state, "trace", None), "run_id", None),
             "group_names": sorted(getattr(state, "group_names", set()) or set()), "exposure": list(getattr(state, "exposure", []) or []),
-            "route_told": list(getattr(state, "route_told", []) or []), "trace_n": getattr(getattr(state, "trace", None), "n", 0), "trace_reply": getattr(getattr(state, "trace", None), "last_reply", -1)}
+            "route_told": list(getattr(state, "route_told", []) or []), "chip": getattr(state, "chip", None), "chip_intent": getattr(state, "chip_intent", None),
+            "chip_checked": bool(getattr(state, "chip_checked", False)), "trace_n": getattr(getattr(state, "trace", None), "n", 0), "trace_reply": getattr(getattr(state, "trace", None), "last_reply", -1)}
 
 
 def save(state: Any, path: Path) -> Path:
@@ -79,7 +80,8 @@ def restore(state: Any, doc: dict[str, Any]) -> None:
 
     state.group_names = set(doc.get("group_names") or [])
     state.exposure = list(doc.get("exposure") or [])
-    state.route_told = list(doc.get("route_told") or [])  # the plan's step 1: a route doubt is told once a case, across turns
+    state.route_told = list(doc.get("route_told") or [])
+    state.chip, state.chip_checked, state.chip_intent = doc.get("chip"), bool(doc.get("chip_checked")), doc.get("chip_intent")  # 2026-11-04: the person's chip on Home  # the plan's step 1: a route doubt is told once a case, across turns
     if doc.get("run_id"):
         trace = tracer("case", run_id=doc["run_id"])
         trace.n = int(doc.get("trace_n") or 0)

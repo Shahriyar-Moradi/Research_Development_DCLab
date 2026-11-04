@@ -443,6 +443,52 @@ class CaseHomeTests(unittest.TestCase):
         self.assertIn("last_login", draft["understanding"]["column_checks"])
         self.assertEqual(calls, ["build"])
 
+    def test_the_chip_the_person_picked_on_home_routes_the_lead_agent(self):
+        """2026-11-04: the draft's chosen kind of help was ignored by the lead agent and overwritten by its own route."""
+        from dclab_rnd.draft import intent as intents
+
+        d = self.store.create("A weekly summary of orders and revenue per channel for my manager")
+        self.store.update(d["id"], lambda x: x.update(intent=intents.chosen("reporting")))
+        script = Script(("Share the table it runs on.", [("start", {"track": "reporting", "tool": "dashboard"})]))
+        CaseHome(self.store, Models(script)).start(d["id"])  # no table yet: the chip stands and the agent is told to ask for it
+        self.assertIsNone(self.store.get(d["id"])["case"]["route"])
+        from dclab_rnd.draft import case_home as H
+
+        table = (A.table_of("orders.csv", [{"name": "channel", "kind": "category"}, {"name": "revenue", "kind": "number"}], 900), None)
+        script = Script(("A weekly report it is.", [("start", {"track": "reporting", "tool": "dashboard"})]))
+        with mock.patch.object(H, "table_of", return_value=table):
+            CaseHome(self.store, Models(script)).reply(d["id"], "here is the orders table")
+        draft = self.store.get(d["id"])
+        self.assertEqual(draft["case_state"]["chip"], "reporting")
+        self.assertEqual((draft["case"]["route"]["track"], draft["case"]["route"]["by"]), ("reporting", "person"))
+        self.assertEqual((draft["intent"]["source"], draft["intent"]["track"]), ("user", "reporting"))
+
+    def test_a_chip_changed_before_any_work_is_read_and_its_check_reopened(self):
+        from dclab_rnd.draft import intent as intents
+
+        d = self.store.create("churn per plan")
+        self.store.update(d["id"], lambda x: x.update(intent=intents.chosen("prediction")))
+        CaseHome(self.store, Models(Script(("Which do you want?", [])))).start(d["id"])
+        self.store.update(d["id"], lambda x: x.update(intent=intents.chosen("analysis"), case_state={**x["case_state"], "chip_checked": True}))
+        CaseHome(self.store, Models(Script(("On it.", [])))).reply(d["id"], "go on")
+        state = self.store.get(d["id"])["case_state"]
+        self.assertEqual((state["chip"], state["chip_checked"]), ("analysis", False))
+
+    def test_a_chip_pressed_in_an_open_lead_agent_chat_is_kept_and_never_opens_the_rules_track(self):
+        d = self.store.create("churn per plan")
+        home = CaseHome(self.store, Models(Script(("Which table?", []))))
+        home.start(d["id"])
+        n = len(self.store.get(d["id"])["messages"])
+        value = home.choose_intent(d["id"], "reporting")
+        draft = self.store.get(d["id"])
+        self.assertEqual((value["source"], draft["intent"]["track"]), ("user", "reporting"))
+        self.assertEqual(len(draft["messages"]), n)  # no rules-first opening inside the lead agent's chat
+        home.models.script = Script(("On it.", []))
+        home.reply(d["id"], "go on")
+        self.assertEqual(self.store.get(d["id"])["case_state"]["chip"], "reporting")
+        self.store.update(d["id"], lambda x: x["case_state"]["case"].update(route={"track": "reporting", "tool": "dashboard", "by": "person"}))
+        self.assertEqual(home.choose_intent(d["id"], "prediction")["track"], "reporting")  # work started: a press changes nothing
+
     def test_a_turn_writes_the_agents_words_the_case_file_and_its_state(self):
         d = self.store.create("our members keep cancelling and I do not know who will go next")
         script = Script(("You want to know who will cancel next.", [("note", {"field": "goal", "value": "know who will cancel",

@@ -354,8 +354,9 @@ class CaseArm:
 
     name = "case"
 
-    def __init__(self, client: Any, specialist_client: Any = None, folder: Any = None, route_client: Any = None):
+    def __init__(self, client: Any, specialist_client: Any = None, folder: Any = None, route_client: Any = None, chip: bool = False):
         self.client, self.specialist_client, self.folder, self.route_client = client, specialist_client, folder, route_client
+        self.chip = chip  # 2026-11-04: the person picks their true kind of help as a chip on Home before writing (the best case)
         self.state: Any = None
         self.choices: list[dict[str, Any]] = []
 
@@ -370,6 +371,8 @@ class CaseArm:
         self.state = A.CaseState(case=C.new(f"exam-{person['id']}"), table=table, frame=tables.build(upload) if upload else None,
                                  specialist_client=self.specialist_client, route_client=self.route_client,
                                  checkpoint=(Path(self.folder) / "case_checkpoint.json") if self.folder else None)
+        if self.chip and person.get("route") in C.TRACKS:
+            self.state.chip = person["route"]
         opening = str(person["opening"]) + (f"\n\n(I shared a table: {upload}.csv)" if upload else "")
         return self._out(A.turn(self.state, self.client, opening))
 

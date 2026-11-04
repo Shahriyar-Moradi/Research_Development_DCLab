@@ -536,3 +536,8 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
   background: color-mix(in srgb, var(--ts-surface) 88%, transparent); backdrop-filter: blur(24px) saturate(1.3); -webkit-backdrop-filter: blur(24px) saturate(1.3);
   box-shadow: inset 0 1px 0 var(--ds-edge), 0 24px 64px -24px rgba(20, 32, 40, .45); }
 [data-mode="ds"] .ds-settings-wrap, [data-mode="ds"] .palette { background: color-mix(in srgb, #1c2428 22%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+/* 2026-11-04: Home's kinds of help, drawn like the rest of the glass */
+[data-mode="ds"] #view-home .help-kinds { margin-top: 4px; }
+[data-mode="ds"] #view-home .help-kind { border-radius: 14px; padding: 9px 18px; backdrop-filter: var(--ds-glass-blur); -webkit-backdrop-filter: var(--ds-glass-blur);
+  box-shadow: inset 0 1px 0 var(--ds-edge), 0 6px 18px -14px rgba(30, 44, 52, .35); }
+[data-mode="ds"] #view-home .help-kind[aria-pressed="true"] { border-color: var(--ts-brand-deep); color: var(--ts-accent-ink); }
