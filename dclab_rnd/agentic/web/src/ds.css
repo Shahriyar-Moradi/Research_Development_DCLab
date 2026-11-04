@@ -541,3 +541,23 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
 [data-mode="ds"] #view-home .help-kind { border-radius: 14px; padding: 9px 18px; backdrop-filter: var(--ds-glass-blur); -webkit-backdrop-filter: var(--ds-glass-blur);
   box-shadow: inset 0 1px 0 var(--ds-edge), 0 6px 18px -14px rgba(30, 44, 52, .35); }
 [data-mode="ds"] #view-home .help-kind[aria-pressed="true"] { border-color: var(--ts-brand-deep); color: var(--ts-accent-ink); }
+
+/* Home, calmer (the owner, 2026-11-04): the tabs sit right under the top bar; the project picker and New project, smaller, on
+   the right just above the message box; the box a little lower; who drives, the budget and the domain pack hidden here
+   (Developer keeps them: the intern and its budget are chosen there). Only moved or hidden, nothing removed. */
+[data-mode="ds"] #view-home:not([hidden]) { display: flex; flex-direction: column; }
+[data-mode="ds"] #view-home > .ptabs { order: -1; margin: 0 0 8px; }
+[data-mode="ds"] #view-home > .vh { margin-top: calc(7vh + 34px); margin-bottom: 10px; }
+[data-mode="ds"] #view-home > .vh .vh-actions { align-self: stretch; justify-content: flex-end; gap: 6px; margin-top: 18px; }
+[data-mode="ds"] #view-home .vh-actions .btn { height: 30px; padding: 0 10px; gap: 6px; font-size: calc(12.5px * var(--font-scale, 1)); border-radius: 9px; }
+[data-mode="ds"] #view-home .vh-actions .btn svg { width: 14px; height: 14px; }
+[data-mode="ds"] #view-home .vh-actions .proj-switch .ps-label { font-size: calc(10.5px * var(--font-scale, 1)); }
+[data-mode="ds"] #view-home #home-mode, [data-mode="ds"] #view-home #home-budget,
+[data-mode="ds"] #view-home [data-f="home.pack"], [data-mode="ds"] #view-home #home-packs { display: none !important; }
+[data-mode="ds"] #view-home .composer textarea::placeholder { font-size: calc(16px * var(--font-scale, 1) - 1px); }
+@media (max-width: 640px) {
+  [data-mode="ds"] #view-home .vh-actions { flex-wrap: nowrap; }
+  [data-mode="ds"] #view-home .vh-actions .ps-wrap { width: auto; min-width: 0; }
+  [data-mode="ds"] #view-home .vh-actions .btn.proj-switch { width: auto; }
+  [data-mode="ds"] #view-home .vh-actions .btn { flex: 0 0 auto; }
+}

@@ -1,0 +1,45 @@
+{
+ "package": "home-calmer-layout",
+ "title": "Home in Data science mode, calmer: tabs under the top bar, a smaller project picker beside the message box, fewer controls",
+ "date": "2026-11-04",
+ "request": "Remove who drives and the budget; move the project picker and New project to the right of the chat box, smaller; move the Overview, Projects and Activity tabs under the top bar; remove two examples and the domain pack row; move the box a little down; placeholder one pixel smaller.",
+ "spec": "The owner's screenshot of Home, 2026-11-04",
+ "plan": [
+  "Hide who drives, the budget and the domain pack in Data science mode only (Developer keeps the intern and its budget).",
+  "Delete the two examples from the page.",
+  "Reorder Home in Data science mode with CSS only: tabs first, the actions right-aligned above the box.",
+  "Check desktop, an open chat and phone width in the browser."
+ ],
+ "decisions": [
+  {
+   "decision": "Hide in Data science mode, never delete",
+   "why": "the page's code reads the domain pack button, and Developer mode still needs the intern's controls"
+  },
+  {
+   "decision": "Keep the picker small on phones too",
+   "why": "a shared phone rule made it full width; a Data science phone rule keeps both buttons on one row"
+  }
+ ],
+ "change": "dclab_rnd/agentic/web/src/ds.css, dclab_rnd/agentic/web/src/views/home.html, rebuilt into static/app by make web.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "On a phone the smaller project picker stretched across the whole width",
+   "scenario": "Data science mode at 375 px wide: the picker filled the row and New project dropped below it",
+   "cause": "the shared phone rule sets the picker to width 100%",
+   "fix": "a Data science phone rule keeps both buttons their own size on one row",
+   "test": "checked in the browser at 375 px: no sideways scroll, both buttons on one row"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Home in Data science mode shows the heading, a small picker row and the message box with the six kinds of help and five examples; nothing was removed from Developer mode.",
+ "lessons": [
+  "Moving a control in one look of the page needs a check at phone width, where shared rules can undo it."
+ ],
+ "risks": [
+  "Starting the intern from Home now needs Developer mode."
+ ],
+ "commits": []
+}
