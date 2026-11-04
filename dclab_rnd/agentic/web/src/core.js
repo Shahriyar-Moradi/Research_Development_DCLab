@@ -1450,10 +1450,10 @@
     projectSwitch.wire();
     const h0 = parseHash();
     show(h0.view, h0.pane);
-    let mode0 = 'dev';  // the look kept in this browser, applied once the first page is up
-    try { mode0 = localStorage.getItem('dclab-mode') === 'ds' ? 'ds' : 'dev'; } catch (e) { /* storage blocked */ }
+    let mode0 = 'ds', kept = null;  // Data science is the default look (the owner, 2026-11-04); Developer when this browser kept it
+    try { kept = localStorage.getItem('dclab-mode'); mode0 = kept === 'dev' ? 'dev' : 'ds'; } catch (e) { /* storage blocked */ }
     setMode(mode0, false);
-    if (mode0 === 'ds') ui.note('ui.action', { view: state.view || 'home', name: 'mode-ds', target: 'saved' });  // a visit that starts in the kept mode is recorded too
+    if (mode0 === 'ds') ui.note('ui.action', { view: state.view || 'home', name: 'mode-ds', target: kept === 'ds' ? 'saved' : 'default' });  // a visit that starts in the kept mode is recorded too
     // dclab:closed-begin  (the blueprint layer: the full edition's)
     if (bpOn) setBlueprint(true);
     // dclab:closed-end
