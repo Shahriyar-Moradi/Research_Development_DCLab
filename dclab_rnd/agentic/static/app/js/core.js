@@ -781,14 +781,7 @@
       this.pages(pages, false);
       if (rail) this.rail(rail === 'open', false);
       document.addEventListener('dclab:project', () => this.recents());
-      // what needs the person (Home's inbox count) opens the side panel on the start page too, unless they closed it: a pending
-      // decision must not hide behind a button
-      const pill = $('#home-inbox .pill');
-      if (pill) {
-        const sync = () => { document.documentElement.dataset.dsNeeds = (parseInt(pill.textContent, 10) || 0) > 0 ? '1' : '0'; };
-        if (window.MutationObserver) new MutationObserver(sync).observe(pill, { childList: true, characterData: true, subtree: true });
-        sync();
-      }
+      // 2026-11-04: Home's "Needs you" card is not shown in Data science (the owner), so its count no longer opens the side panel
       // a conversation that opens on Home (a new draft, or one reopened) joins Recents at once, not on the next page change
       const chat = $('#home-chat');
       if (chat && window.MutationObserver) new MutationObserver(() => { if (!chat.hidden) this.recents(); }).observe(chat, { attributes: true, attributeFilter: ['hidden'] });

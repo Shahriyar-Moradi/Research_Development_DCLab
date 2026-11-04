@@ -563,3 +563,5 @@ html:not([data-mode="ds"]) .ds-only { display: none !important; }
   [data-mode="ds"] #view-home .vh-actions .btn.proj-switch { width: auto; }
   [data-mode="ds"] #view-home .vh-actions .btn { flex: 0 0 auto; }
 }
+/* The owner (2026-11-04): Home's "Needs you" and "The team" cards are not shown in Data science; Developer keeps both. */
+[data-mode="ds"] #home-inbox, [data-mode="ds"] #home-team { display: none !important; }
