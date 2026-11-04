@@ -314,6 +314,11 @@ def draft_table(store: Any, draft: dict[str, Any]) -> Any:
     return frame
 
 
+# How Home names a kind of help the person picked (the chips' words, never "my data")
+CHOSEN_AS = {"prediction": "a model", "business": "a plan for a business question", "reporting": "a report or dashboard",
+             "analysis": "an analysis of your data", "preparation": "preparing your data", "advice": "an answer to learn from"}
+
+
 class HomeAgent:
     def __init__(self, store: DraftStore, client=None, on_request: Callable[[str, str, dict[str, Any]], None] | None = None,
                  registry: Registry | None = None, traces: Any = None, reader: Callable[..., Any] | None = None,
@@ -815,6 +820,8 @@ class HomeAgent:
             opening = f"I understood: “{need.rstrip('.')}”."
         elif need:
             opening = f"I understood: you want to {need[:1].lower() + need[1:].rstrip('.')}."
+        elif (draft.get("intent") or {}).get("source") == "user":  # 2026-11-04: the person picked it (a chip on Home): never "I read"
+            opening = f"You picked {CHOSEN_AS.get(track, intents.LABELS[track].lower())}: “{draft['problem']}”."
         else:
             opening = f"I read this as {intents.LABELS[track].lower()}: “{draft['problem']}”."
         said_need = str((draft.get("intent") or {}).get("need") or "")

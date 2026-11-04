@@ -182,8 +182,19 @@ class AgentTests(unittest.TestCase):
             self.assertEqual([q for q in d["questions"] if not q.get("brief")], [], track)  # H4: only the track's brief asks
             said = " ".join(m.get("text") or "" for m in d["messages"] if m.get("role") == "agent")  # H4: a brief question may follow
             self.assertIn(intent.NEXT[track], said)
-            if track == "advice":  # every other track is served in the chat now (H7, H9, H10, H11): advice goes to the library
-                self.assertIn("Evidence library", said)  # never a promise of what does not exist
+            if track == "advice":  # 2026-11-04: advice is answered in the chat from the library (advise), never sent away
+                self.assertNotIn("Ask it in the Evidence library", said)
+                self.assertGreater(len([m for m in d["messages"] if m.get("role") == "agent"]), 1, said)  # the answer, or that nothing covers it
+
+    def test_a_kind_of_help_the_person_picked_is_said_as_their_choice(self):
+        """2026-11-04: a chip on Home: Home said "I read this as ...", as if it had guessed."""
+        for track in ("analysis", "preparation", "reporting", "business", "advice"):
+            d = self.store.create("Help me with our customer subscriptions data please")
+            self.store.update(d["id"], lambda x, t=track: x.update(intent=intent.chosen(t)))
+            HomeAgent(self.store, None).start(d["id"])
+            first = next(m["text"] for m in self.store.get(d["id"])["messages"] if m.get("role") == "agent")
+            self.assertTrue(first.startswith("You picked "), first)
+            self.assertNotIn("I read this", first)
 
     def test_a_chosen_pack_means_a_prediction(self):
         d = self.store.create(BY_TRACK["analysis"][0], pack="imbalanced")

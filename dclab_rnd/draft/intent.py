@@ -150,7 +150,7 @@ NEXT = {
                  "whenever the table changes; a list of single rows is never a tile.",
     "business": "Upload or connect the table and I'll show where a number changed between the periods you name, and what moved it "
                 "most; the data shows association, not cause. If part of the question is a prediction, change the type of help above.",
-    "advice": "Ask it in the Evidence library: its answers cite DCLab's recorded experiments.",
+    "advice": "I'll answer here from DCLab's recorded experiments and show their sources; nothing runs on your data.",
 }
 
 

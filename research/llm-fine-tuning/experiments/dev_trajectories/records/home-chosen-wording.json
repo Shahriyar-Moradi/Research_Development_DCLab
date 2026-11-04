@@ -1,0 +1,49 @@
+{
+ "package": "home-chosen-wording",
+ "title": "Home says 'You picked' for a chosen kind of help, and Learn answers in the chat",
+ "date": "2026-11-04",
+ "request": "Fix the two wording problems found while checking the six chips: 'I read this as' for a picked chip, and Learn sending the person to another page.",
+ "spec": "The free check of the six chips on the local server, 2026-11-04",
+ "plan": [
+  "Say 'You picked ...' when the draft's kind of help is the person's own choice.",
+  "Make Learn's first line promise the answer that follows in the chat."
+ ],
+ "decisions": [
+  {
+   "decision": "Chip words, not the old labels",
+   "why": "the label 'Numbers from my data' reads badly after 'You picked'; a small table of the chips' words is used"
+  }
+ ],
+ "change": "dclab_rnd/draft/chat.py (CHOSEN_AS and the opening), dclab_rnd/draft/intent.py (NEXT for advice), tests/test_home_intent.py.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A picked chip was said as a guess",
+   "scenario": "Report chip with a vague sentence: Home said 'I read this as a report or dashboard'",
+   "cause": "the opening never looked at the intent's source",
+   "fix": "an intent with source user opens with 'You picked ...'",
+   "test": "tests/test_home_intent.py test_a_kind_of_help_the_person_picked_is_said_as_their_choice"
+  },
+  {
+   "id": "S2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Learn's first line sent the person to the Evidence library although the answer follows in the chat",
+   "scenario": "Learn chip: 'Ask it in the Evidence library', then the closest records appeared in the chat",
+   "cause": "the advice line was written before advise answered in the chat",
+   "fix": "the line says the answer comes here, with its sources, and that nothing runs on their data",
+   "test": "tests/test_home_intent.py test_another_track_gets_no_pack_workflow_or_ml_question"
+  }
+ ],
+ "measurements": [],
+ "outcome": "On the local server, Report opens with 'You picked a report or dashboard' and Learn with 'You picked an answer to learn from', followed by the closest records.",
+ "lessons": [
+  "Check what a person sees right after a choice: a reply written for a guess reads wrong after a choice."
+ ],
+ "risks": [
+  "Without a model, Learn shows the closest records by word search, which can be far from the question."
+ ],
+ "commits": []
+}
