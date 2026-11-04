@@ -1,0 +1,678 @@
+{
+  "$defs": {
+    "AcceptanceCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "artifact",
+            "lineage",
+            "guard",
+            "approval",
+            "workflow_criterion"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "description"
+      ],
+      "type": "object"
+    },
+    "CapabilityBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "type": "string"
+        },
+        "schema_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "project",
+            "draft",
+            "session",
+            "campaign",
+            "workspace",
+            "home",
+            "chat",
+            "case"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "scope",
+        "schema_fingerprint"
+      ],
+      "type": "object"
+    },
+    "SourceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "pattern": "^(?:[0-9a-f]{16}|[0-9a-f]{64})$",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "problem_card",
+            "problem_map",
+            "solution",
+            "solution_plan",
+            "solution_workflow",
+            "solution_map",
+            "data_card",
+            "dataset",
+            "approval"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "fingerprint"
+      ],
+      "type": "object"
+    },
+    "TaskEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "grouping",
+            "dependency"
+          ],
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "target": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "TaskNode": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "capability": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "action"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "acceptance_checks": {
+                "minItems": 1
+              },
+              "capability": {
+                "not": {
+                  "type": "null"
+                }
+              },
+              "scope": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            },
+            "required": [
+              "capability",
+              "scope",
+              "acceptance_checks"
+            ]
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "blocker_reason": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "blocked"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "blocker_reason": {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              }
+            },
+            "required": [
+              "blocker_reason"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "gate",
+                  "verification"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "acceptance_checks": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "acceptance_checks"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "project"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "project"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "draft"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "draft"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "session"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "session"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "campaign"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "campaign"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "workspace"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "workspace"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "home"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "home"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "chat"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "chat"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "case"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "case"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "acceptance_checks": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AcceptanceCheck"
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "blocker_reason": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "capability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CapabilityBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dependencies": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "group",
+            "action",
+            "gate",
+            "verification",
+            "blocked"
+          ],
+          "type": "string"
+        },
+        "needs": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "objective": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "type": "string"
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "produces": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "project",
+                "draft",
+                "session",
+                "campaign",
+                "workspace",
+                "home",
+                "chat",
+                "case"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source_step_ids": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 64,
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "objective",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "TaskProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "enum": [
+            "deterministic",
+            "human",
+            "model"
+          ],
+          "type": "string"
+        },
+        "producer_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+          "type": "string"
+        },
+        "reference_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "reference_id",
+        "producer_version"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "edges": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/TaskEdge"
+      },
+      "maxItems": 1024,
+      "type": "array"
+    },
+    "fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "graph_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/TaskNode"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "type": "array"
+    },
+    "objective": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "pattern": "\\S",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/TaskProvenance"
+    },
+    "revision": {
+      "maximum": 1000000,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.task_graph.v1",
+      "default": "dclab_core.task_graph.v1",
+      "type": "string"
+    },
+    "solution_fingerprint": {
+      "pattern": "^(?:[0-9a-f]{16}|[0-9a-f]{64})$",
+      "type": "string"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "#/$defs/SourceReference"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "type": "array"
+    },
+    "workflow_fingerprint": {
+      "pattern": "^(?:[0-9a-f]{16}|[0-9a-f]{64})$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "graph_id",
+    "revision",
+    "objective",
+    "source_refs",
+    "workflow_fingerprint",
+    "solution_fingerprint",
+    "fingerprint",
+    "nodes",
+    "provenance"
+  ],
+  "type": "object"
+}

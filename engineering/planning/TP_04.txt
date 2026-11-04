@@ -1,0 +1,86 @@
+You are working in the current local checkout of
+Shahriyar-Moradi/Research_Development_DCLab.
+
+Before editing, inspect git status, current HEAD, README, CLAUDE.md,
+relevant modules, their call sites, existing tests, and current API/schema
+conventions. The remote review observed 81e8a900 on 2026-11-04 but the
+repository may have advanced. Prefer the actual current checkout.
+Never overwrite unrelated edits. Do not silently reset or stash user work.
+
+Scope only the package in the current prompt. Use the smallest cohesive
+changes, keep compatibility with existing file and PostgreSQL stores,
+maintain the no-live-model test guarantees, and follow existing conventions.
+Write tests that fail before the implementation and pass after. If a proposed
+file/function is obsolete or not present, discover the correct current owner,
+explain the adjustment, and do not create a duplicate.
+
+Hard invariants
+1. An LLM may propose a plan, never execute during planning.
+2. No new unguarded write path or arbitrary code/network/file execution.
+3. Existing registry tool schema, scope and authorization are authoritative.
+4. Existing studio.graph / programme / engine own holdout, approvals, splits,
+   leakage, model selection and final scoring.
+5. No holdout rereads or mutable 'finished' artifact reuse after input changes.
+6. Preserve human decisions and their provenance; a model cannot erase gates.
+7. Task completion requires measured evidence, not agent self-report.
+8. Do not store raw table values, secrets, personal values, sealed benchmark
+   rows or hidden reasoning in task logs/traces.
+9. Keep offline/no-model mode functional and backward compatible.
+10. No default rollout or new dependency without demonstrated necessity.
+11. No repeated side effects after checkpoint/resume or ambiguous failures.
+12. No production-readiness claim from unit tests or synthetic results.
+
+Run focused tests after each package, the repository's check-quick gate where
+possible, and report exactly what ran and what was skipped. Never execute
+live-model or sealed benchmark runs without the owner's explicit approval.
+At the end of every package report changed files, public contract changes,
+new tests, commands/outputs, blockers, open risks, and a proposed single
+reviewable commit. Do not push a branch without authorization.
+
+--- PACKAGE SPECIFIC TASK ---
+
+Goal
+Execute one validated TaskExecutionPlan at a time, using existing
+registered tools and the original studio guard. Add durable task
+progress and safe resume without duplicating side effects.
+
+Architecture
+- Inspect SolutionTeam, Intern, Registry, studio.graph,
+  studio.programme, jobs/checkpoints, harness/traces and the existing
+  project stores. Choose ONE existing orchestration host for the first
+  binary-use-case integration. Explain why before edits.
+- Do not build a second general scheduler or LangGraph graph. Introduce
+  a small dependency-ready task dispatcher only if the existing host
+  has no appropriate equivalent.
+- Keep structural TaskGraph immutable. Store task attempts and
+  transitions through current event/project persistence conventions.
+- A task attempt records graph/plan versions, source and input hashes,
+  declared tool actions, observed results, timestamps, decision IDs,
+  evidence references, budget consumption, and checkpoint pointer.
+- Before every action recheck current project state, input fingerprints,
+  registry schema version, write guard and human approvals.
+- All calls go through Registry.call/acall with the intended scope.
+  No direct studio writes by the new task runtime.
+- Prevent a retry from repeating an unknown-completion action. After
+  timeouts/crashes reconcile project state and evidence before any
+  repeat. Document each action's safe repeat/idempotency policy.
+- Respect stop/pause/resume and existing job budgets.
+- Sequential only, no fan-out/parallelism.
+- Programmes are atomic existing operations unless a future package
+  proves their leaves can be safely checkpointed individually.
+- Do not call final/holdout early. Never run another holdout read to
+  recover from a failed task.
+
+Acceptance demonstration
+- The Telco binary workflow is represented as a task graph.
+- Dispatcher runs permitted stages in dependency order through real
+  existing tools using a temp isolated project fixture.
+- Each stage leaves a task attempt and existing stage evidence.
+- Process interruption at several boundaries resumes from saved
+  state. No valid completed stage is rerun and no double writes occur.
+- A denied guard prevents the call, records a blocker and preserves
+  original state.
+- A stale graph or changed dataset is refused before dispatch.
+
+Add integration tests on file store and PostgreSQL where provisioned.
+Keep off by default. No new user-facing API without a strong need.

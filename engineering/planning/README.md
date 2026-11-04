@@ -1,0 +1,166 @@
+# README
+
+# DCLab Hierarchical Planning
+
+## Overview
+
+This directory contains the architecture, implementation roadmap, and Codex instructions for DCLab's hierarchical task planning system.
+
+The goal is to extend DCLab's existing planning capabilities so it can decompose validated solutions into executable tasks, plan each task, execute through existing tools, verify results, and recover safely from failures.
+
+This initiative must extend the current architecture rather than introduce a parallel orchestration framework.
+
+## Project goals
+
+- Convert validated solution workflows into hierarchical task graphs.
+- Represent task dependencies, expected outputs, and acceptance criteria.
+- Generate detailed execution plans for individual tasks.
+- Execute tasks through the existing guarded tool registry.
+- Verify task completion using actual evidence.
+- Support bounded retries and dynamic replanning.
+- Preserve completed work when dependencies and inputs remain unchanged.
+- Maintain existing leakage, approval, and holdout protections.
+- Evaluate the new planner against the existing workflow before rollout.
+
+## Directory structure
+
+```text
+engineering/planning/
+├── README.md
+├── DCLab_Hierarchical_Planning_Codex_Pack.md
+├── R_01.txt
+├── TP_01A.txt
+├── TP_01B.txt
+├── TP_01C.txt
+├── TP_01D.txt
+├── TP_01E.txt
+├── TP_02.txt
+├── TP_03.txt
+├── TP_04.txt
+├── TP_05.txt
+├── TP_06.txt
+├── TP_07.txt
+└── TP_01A_EVIDENCE.json  # static source/capability audit, not a runtime contract
+```
+
+## Implementation roadmap
+
+| Package | Description | Status |
+|---|---|---|
+| R-01 | Audit and stabilize Home routing | Pending verification |
+| TP-01A | Architecture and capability mapping | Complete — source coverage, 360 focused tests, check-quick and adversarial review passed (2026-11-04) |
+| TP-01B | Task contracts and frozen schemas | Complete — core 0.156.0, 23 new tests, schema/wheel/compatibility checks, check-quick and review passed (2026-11-04) |
+| TP-01C | Graph validation and fingerprints | Complete — core 0.157.0, 40 new tests, unchanged schemas, wheel/review and full check-quick passed (2026-11-04) |
+| TP-01D | Deterministic workflow adapter | Not started |
+| TP-01E | Regression tests and foundation acceptance | Not started |
+| TP-02 | Model-assisted task decomposition | Not started |
+| TP-03 | Task-level execution planning | Not started |
+| TP-04 | Guarded execution and task progression | Not started |
+| TP-05 | Verification, recovery, and replanning | Not started |
+| TP-06 | Evaluation and release gates | Not started |
+| TP-07 | Product integration and rollout | Not started |
+
+Update this table only when implementation and required validation are complete.
+
+## TP-01A review artifacts
+
+- [Architecture and decisions](../../docs/guides/TASK_PLANNING_ARCHITECTURE.md)
+- [Workflow and registered tool mapping](../../docs/guides/TASK_CAPABILITY_MATRIX.md)
+- [Acceptance, actual verification and next-package handoff](../../docs/guides/TASK_PLANNING_ACCEPTANCE.md)
+- [Expanded source audit](TP_01A_EVIDENCE.json): all mandatory family/step pairs and exact registry schemas at the reviewed commit.
+
+The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B and TP-01C are complete; TP-01D and later packages have not started.
+
+## TP-01B contracts and verification
+
+[Task contracts acceptance](../../docs/guides/TASK_CONTRACTS_ACCEPTANCE.md) records the new v1 contracts, frozen schemas, compatibility checks, review fixes, exact test results and handoff. This package adds typed document validation; graph generation, semantic/hash validation and execution remain later work.
+
+## TP-01C validation and verification
+
+[Task validation acceptance](../../docs/guides/TASK_VALIDATION_ACCEPTANCE.md) records the pure validation APIs,
+host metadata requirements, canonical fingerprints, review findings and execution-time checks. TP-01C does not
+generate graphs or execute tasks. Verification passed: 63 combined task tests; 187 focused tests (one optional
+wheel skip covered by the real wheel check); check-quick with 5,265 file tests (11 skips), 827 PostgreSQL tests
+(two skips), all 10 gates and all five product flows. Final review passed. See the acceptance guide for skip reasons
+and runtime limits. TP-01D is ready for a separate session.
+
+The owner requested committing and pushing all changes on 2026-11-05, including repository agent instructions.
+The required full `make rd-check JOBS=3` passed: 5,305 tests across 463 files, 14 existing skips, no failures, and all
+10 evidence/freshness gates. This commit verification is separate from each package's recorded acceptance results.
+
+## Implementation rules
+
+1. Read the complete master specification before implementing a package.
+2. Inspect the current repository before making changes.
+3. Reuse existing contracts, tools, execution engines, validators, and checkpoints.
+4. Implement only one package per Codex session.
+5. Preserve backward compatibility and existing safety invariants.
+6. Keep model-generated proposals separate from deterministic validation.
+7. Never treat an agent's claim of completion as sufficient verification.
+8. Run applicable tests after every package.
+9. Record failures and incomplete requirements rather than hiding them.
+10. Do not proceed automatically to the next package.
+
+## Existing architecture to preserve
+
+- `dclab_core/problem_map.py`
+- `dclab_core/plan.py`
+- `dclab_core/solution_workflow.py`
+- `dclab_core/solution_map.py`
+- `dclab_core/workflow_run.py`
+- `dclab_core/programme.py`
+- `dclab_rnd/agents/registry.py`
+- `dclab_rnd/agents/harness.py`
+- `dclab_rnd/intern/loop.py`
+- `dclab_rnd/orchestra/solution.py`
+- `dclab_rnd/studio/graph.py`
+- `dclab_rnd/studio/engine.py`
+
+These components remain authoritative for their existing responsibilities.
+
+## How to run with Codex
+
+Start by reading the master specification and the selected package prompt.
+
+For the first planning package, give Codex the following instruction.
+
+```text
+Read engineering/planning/README.md.
+
+Read the master specification at
+engineering/planning/DCLab_Hierarchical_Planning_Codex_Pack.md.
+
+Then read
+engineering/planning/TP_01A.txt.
+
+Inspect the current repository and implement TP-01A only.
+
+Run the relevant tests, report the actual results,
+and document architectural decisions.
+
+Do not continue to TP-01B automatically.
+```
+
+After TP-01A passes its acceptance requirements, move to TP-01B and continue in dependency order.
+
+R-01 is an independent routing verification package. It does not block the deterministic task planning foundation unless its findings reveal a shared integration issue.
+
+## Definition of done
+
+A package is complete only when
+
+- Its required functionality is implemented.
+- Its acceptance criteria pass.
+- Existing safety protections remain intact.
+- Relevant regression tests pass.
+- Source and contract changes are documented.
+- Known limitations and blockers are recorded.
+- The implementation is ready for review.
+
+A package with unresolved critical failures remains incomplete.
+
+## Final objective
+
+DCLab should be able to take a validated solution, break it into meaningful tasks, create safe execution plans, run tasks using existing capabilities, verify their outputs, and replan when necessary.
+
+The result must be more reliable and useful than the current workflow, not merely more complicated.

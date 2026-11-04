@@ -1,0 +1,101 @@
+You are working in the current local checkout of
+Shahriyar-Moradi/Research_Development_DCLab.
+
+Before editing, inspect git status, current HEAD, README, CLAUDE.md,
+relevant modules, their call sites, existing tests, and current API/schema
+conventions. The remote review observed 81e8a900 on 2026-11-04 but the
+repository may have advanced. Prefer the actual current checkout.
+Never overwrite unrelated edits. Do not silently reset or stash user work.
+
+Scope only the package in the current prompt. Use the smallest cohesive
+changes, keep compatibility with existing file and PostgreSQL stores,
+maintain the no-live-model test guarantees, and follow existing conventions.
+Write tests that fail before the implementation and pass after. If a proposed
+file/function is obsolete or not present, discover the correct current owner,
+explain the adjustment, and do not create a duplicate.
+
+Hard invariants
+1. An LLM may propose a plan, never execute during planning.
+2. No new unguarded write path or arbitrary code/network/file execution.
+3. Existing registry tool schema, scope and authorization are authoritative.
+4. Existing studio.graph / programme / engine own holdout, approvals, splits,
+   leakage, model selection and final scoring.
+5. No holdout rereads or mutable 'finished' artifact reuse after input changes.
+6. Preserve human decisions and their provenance; a model cannot erase gates.
+7. Task completion requires measured evidence, not agent self-report.
+8. Do not store raw table values, secrets, personal values, sealed benchmark
+   rows or hidden reasoning in task logs/traces.
+9. Keep offline/no-model mode functional and backward compatible.
+10. No default rollout or new dependency without demonstrated necessity.
+11. No repeated side effects after checkpoint/resume or ambiguous failures.
+12. No production-readiness claim from unit tests or synthetic results.
+
+Run focused tests after each package, the repository's check-quick gate where
+possible, and report exactly what ran and what was skipped. Never execute
+live-model or sealed benchmark runs without the owner's explicit approval.
+At the end of every package report changed files, public contract changes,
+new tests, commands/outputs, blockers, open risks, and a proposed single
+reviewable commit. Do not push a branch without authorization.
+
+--- PACKAGE SPECIFIC TASK ---
+
+Goal
+Implement pure graph and plan validation with reproducible structural
+fingerprints. No scheduler, tool execution or model calls in this step.
+
+Prerequisite
+Contracts and schema baselines from TP-01B must be green.
+
+Suggested owner
+- dclab_core/task_graph.py and task_execution_plan.py or small
+  pure companion modules if necessary.
+- tests/test_task_graph.py, tests/test_task_execution_plan.py.
+
+Functions to define after matching repository conventions
+- validate_graph(graph, source_workflow=None, source_solution_map=None)
+  -> list of actionable problems.
+- ready_tasks(graph, observed_state) or equivalent PURE dependency
+  traversal. Observed_state is supplied by the host, never fetched.
+- graph_fingerprint(graph) and plan_fingerprint(plan), stable hashes
+  over canonical semantic content, excluding volatile timestamps,
+  transient statuses, raw user data, and the hash field itself.
+- validate_execution_plan(plan, graph, known_capabilities) -> issues;
+  the core receives a pure capability snapshot, not a runtime registry.
+
+Requirements
+1. Reject duplicate IDs, absent parents, parent cycles, dependency
+   cycles, self-dependencies, dependencies on unknown/invalid nodes.
+2. Reject executable group nodes and dependencies that cannot be
+   satisfied with the requested outputs/artifacts.
+3. Preserve source-workflow provenance. Mandatory steps must be
+   accounted for by action, guard, explicit gate, evidence check or
+   blocked node. The adapter may use a justified many-to-one mapping
+   but must never silently omit a mandatory safety step.
+4. Enforce temporal constraints from existing SolutionWorkflow
+   validation, including leakage-before-model-selection, human gate,
+   single final holdout read, and reporting after final evaluation.
+5. Prohibit model execution intents before approval and tools outside
+   the provided capability snapshot/scope. A core validator should
+   never invoke a tool or import studio/agents.
+6. Prevent multiple nodes from scheduling the same non-idempotent
+   engine effect, especially final score and programme run.
+7. Deterministic ordering when multiple nodes are ready; no parallel
+   execution in v1. No node is marked complete by validation.
+8. Clearly distinguish a changed revision from a changed input artifact.
+9. Fingerprints must be stable across dictionary insertion order,
+   restarts, file vs PostgreSQL storage, and round-trip serialization.
+10. Fingerprint mismatch must be explicit and refused; never silently
+    rewrite the old graph or plan. Preserve old revision for audit.
+
+Red-team tests
+- cycle of length 2 and 3, missing parent, dangling dependency,
+  duplicate executable action, final-before-approval, holdout twice,
+  missing leakage, cross-scope tool, missing capability, inconsistent
+  input artifact reference, stale fingerprint, benign reordering.
+- A valid binary case passes and has deterministic topological order.
+
+Document exactly which conditions are enforced by the pure planning
+validator and which must be rechecked by the authoritative runtime
+at execution time to avoid time-of-check/time-of-use vulnerabilities.
+
+Run focused tests and schema checks, report precise failures.

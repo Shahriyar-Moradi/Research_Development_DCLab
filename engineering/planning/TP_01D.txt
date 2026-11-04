@@ -1,0 +1,103 @@
+You are working in the current local checkout of
+Shahriyar-Moradi/Research_Development_DCLab.
+
+Before editing, inspect git status, current HEAD, README, CLAUDE.md,
+relevant modules, their call sites, existing tests, and current API/schema
+conventions. The remote review observed 81e8a900 on 2026-11-04 but the
+repository may have advanced. Prefer the actual current checkout.
+Never overwrite unrelated edits. Do not silently reset or stash user work.
+
+Scope only the package in the current prompt. Use the smallest cohesive
+changes, keep compatibility with existing file and PostgreSQL stores,
+maintain the no-live-model test guarantees, and follow existing conventions.
+Write tests that fail before the implementation and pass after. If a proposed
+file/function is obsolete or not present, discover the correct current owner,
+explain the adjustment, and do not create a duplicate.
+
+Hard invariants
+1. An LLM may propose a plan, never execute during planning.
+2. No new unguarded write path or arbitrary code/network/file execution.
+3. Existing registry tool schema, scope and authorization are authoritative.
+4. Existing studio.graph / programme / engine own holdout, approvals, splits,
+   leakage, model selection and final scoring.
+5. No holdout rereads or mutable 'finished' artifact reuse after input changes.
+6. Preserve human decisions and their provenance; a model cannot erase gates.
+7. Task completion requires measured evidence, not agent self-report.
+8. Do not store raw table values, secrets, personal values, sealed benchmark
+   rows or hidden reasoning in task logs/traces.
+9. Keep offline/no-model mode functional and backward compatible.
+10. No default rollout or new dependency without demonstrated necessity.
+11. No repeated side effects after checkpoint/resume or ambiguous failures.
+12. No production-readiness claim from unit tests or synthetic results.
+
+Run focused tests after each package, the repository's check-quick gate where
+possible, and report exactly what ran and what was skipped. Never execute
+live-model or sealed benchmark runs without the owner's explicit approval.
+At the end of every package report changed files, public contract changes,
+new tests, commands/outputs, blockers, open risks, and a proposed single
+reviewable commit. Do not push a branch without authorization.
+
+--- PACKAGE SPECIFIC TASK ---
+
+Goal
+Convert one validated binary-classification SolutionWorkflow into an
+accurate, non-executing TaskGraph. Prove real integration without any
+new ML computation or new project writes.
+
+Prerequisites
+TP-01A capability map, TP-01B contracts and TP-01C validator.
+
+Suggested file
+- dclab_rnd/tasks/adapter.py (and __init__.py)
+- tests/test_task_adapter.py
+- fixture based on the existing Telco churn or another verified
+  binary-classification sample in the repository.
+
+Inputs
+- Validated existing SolutionWorkflow, source SolutionPlan,
+  current project/data/solution metadata and, when applicable,
+  verified capability snapshot from the live registry.
+- Return TaskGraph + structured mapping report, no side effects.
+
+Approach
+1. Build a deterministic mapping from existing Step.id, Step.block,
+   Step.kind, Step.inputs/outputs, decision/check/gate and required
+   family steps to group/action/gate/check nodes.
+2. Tie each actually runnable unit to an EXISTING tool or stage. For
+   example the stage owner may be run_stage(data, leakage, features,
+   models, final) but resolve the exact schema from the registry.
+   Treat split locking as existing guarded engine behavior, not a
+   second 'lock_split' operation. Use the precise actual call mapping.
+3. Represent many-to-one coverage when one studio engine run
+   implements multiple abstract workflow steps. One physical
+   side effect = one action task with several source step IDs.
+4. If a required capability is missing, represent a blocked task
+   naming why; do not invent tools, mark complete, or guess data.
+5. Carry artifact lineage and stable hashes, not full table rows.
+6. Do not open holdout, fit, query raw values, or set approvals.
+7. Use deterministic topological order for v1, with no concurrency.
+8. Keep Programme execution as an atomic existing capability when
+   implementing complex cases later. Do not decompose its leaves into
+   new independently scheduled writes here.
+
+Positive scenario
+- Generate a valid current classification workflow from the
+  existing core builder.
+- Run the adapter twice and compare semantic fingerprints.
+- Validate that mandatory steps, guards and gates are represented.
+- Show the resulting task tree and mapping without any execution.
+
+Negative scenarios
+- Missing dataset/solution or unknown family blocks appropriately.
+- An unconfirmed label/outcome never becomes a runnable modeling task.
+- A planted invalid workflow is refused before adaptation.
+- No phantom registered tools; no duplicate final-stage action.
+- Changing the data or solution changes the relevant source hash.
+- Do not mutate the original workflow or project.
+
+Add a simple read-only CLI/developer inspection path ONLY if there is
+already an appropriate pattern. Otherwise keep the adapter callable in
+Python and exercised by tests. Do not add product API or UI here.
+
+Deliver example JSON in tests/fixtures or docs, source mapping summary,
+tests, exact commands and output. No runtime defaults changed.

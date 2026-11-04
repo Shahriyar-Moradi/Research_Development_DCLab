@@ -1,0 +1,144 @@
+{
+  "package": "TP-01B",
+  "title": "Immutable task graph and execution-plan contracts",
+  "date": "2026-11-04",
+  "request": "Continue after TP-01A by implementing only the minimal typed task contracts and frozen schemas, preserving the existing runtime, host authorization and scientific safety owners.",
+  "spec": "engineering/planning/TP_01B.txt; pure additive contracts and schema registration only. No graph traversal, canonical hash computation, task execution or model requests.",
+  "plan": [
+    "Recheck current core ownership against TP-01A and preserve the earlier uncommitted package.",
+    "Write failing contract and adversarial input tests before implementation.",
+    "Add immutable bounded contracts, metadata-only capability bindings and typed ordered argument references.",
+    "Generate only additive current and baseline schemas, release metadata and main-product conformance reasons.",
+    "Run core, schema, installed-wheel and package checks, review the diff, record results and stop before TP-01C."
+  ],
+  "decisions": [
+    {
+      "decision": "Use tuples and nested frozen Contract models throughout both new documents.",
+      "why": "The shared frozen base does not freeze lists or dictionaries. Structural plans need detached immutable collections without changing the global base."
+    },
+    {
+      "decision": "Arguments contain typed input/output references, with no literal values or expressions.",
+      "why": "The first supported stage slice can take project and stage arguments from fingerprinted host inputs. Earlier-output references support later composition without evaluating model text."
+    },
+    {
+      "decision": "Keep fingerprints as required declared identities and capability bindings as metadata references.",
+      "why": "Canonical hash verification, graph semantics, actual registry membership and human approval are later validator/host responsibilities. A shape-ready contract must not grant execution authority."
+    },
+    {
+      "decision": "Register new modules through the existing schema-generation import pattern.",
+      "why": "Each module self-registers in contracts.CONTRACTS. Explicit schema imports ensure complete generation while avoiding a new circular import in the global base; both fresh import orders are tested."
+    },
+    {
+      "decision": "Keep both new contracts library-only in adapter conformance.",
+      "why": "The pinned main-product inventory has no corresponding fields. Existing adapter outputs remain unchanged rather than inventing a host mapping."
+    }
+  ],
+  "change": "Added TaskGraph and TaskExecutionPlan v1, supporting immutable typed models, local Python and JSONSchema rules, tests, installed-wheel smoke checks and additive package documentation/release metadata. No host runtime or dependency changes.",
+  "findings": [
+    {
+      "id": "schema-parity",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The initial JSON schemas accepted non-action nodes with callable bindings, whitespace objectives and blocked plans retaining actions even though Python rejected them.",
+      "scenario": "A host validating only JSON could accept a callable group or a blocked plan that still contains effects.",
+      "cause": "Pydantic local validators were not represented in generated JSON Schema.",
+      "fix": "Added nonblank patterns and schema conditionals for node kinds, scope agreement and ready/noop/blocked states before finalizing the unpublished v1 baselines.",
+      "test": "Added JSONSchema rejection tests first and observed 15 failing subcases; after the fix all task contract tests passed.",
+      "open": "Cross-reference uniqueness, ordered reference/type checks and cross-field numeric comparisons still require Python or equivalent host semantic checks."
+    },
+    {
+      "id": "catalog-freshness",
+      "source": "test",
+      "severity": "gap",
+      "defect": "The new core version and two registered contracts left the generated data catalog stale.",
+      "scenario": "The broad package run rejects the committed inventory because its version and contract list still describe the older core release.",
+      "cause": "The package initially regenerated JSON schemas but omitted the separate data catalog generator.",
+      "fix": "Ran make catalog to rebuild both generated catalog files; the diff contains only the core version, the contract count and the two new contract rows.",
+      "test": "The original broad run failed the catalog freshness test. After regeneration all 17 catalog tests and all 10 repository evidence/freshness gates passed."
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Initial task contract tests",
+      "gate": "TaskGraph and TaskExecutionPlan must be importable and support the specified validation boundaries before acceptance.",
+      "result": "The first run failed with two module import errors because neither contract existed.",
+      "verdict": "fail",
+      "next": "Implement the contracts and run the focused suite."
+    },
+    {
+      "name": "JSONSchema local-rule regression",
+      "gate": "Published schemas must reject callable non-action nodes, blank objectives and nonexecuting plan states containing actions.",
+      "result": "Two new negative tests exposed 15 failing schema subcases before the fix; all passed after adding local schema rules.",
+      "verdict": "pass",
+      "limits": [
+        "JSONSchema cannot compare arbitrary reference values or perform registry authorization."
+      ]
+    },
+    {
+      "name": "Focused contract and compatibility suite",
+      "gate": "New task contracts and existing core, adapter, conformance and wheel metadata tests must pass; any skipped optional wheel test must be covered by a real standalone installed-wheel run.",
+      "result": "91 tests ran across six files in 20.2 seconds: 90 passed and one opt-in wheel unittest skipped. All 23 new task tests passed. The standalone installed-wheel check passed separately.",
+      "verdict": "pass",
+      "limits": [
+        "Does not implement graph traversal, canonical hash verification or runtime authorization."
+      ]
+    },
+    {
+      "name": "Existing schema byte compatibility",
+      "gate": "Every pre-existing current or historical baseline JSON schema must remain byte-identical; only the two new current and two new baseline schemas may be added.",
+      "result": "All 258 previous schema files were unchanged; four new schema files added; registry count increased from 105 to 107.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Installed core wheel",
+      "gate": "The built wheel must install and run from an unrelated directory in isolated Python 3.12 with only declared dependencies; both new contracts and schemas must roundtrip and no host runtime may load.",
+      "result": "Core 0.156.0 passed on isolated Python 3.12.13 with four direct dependencies, no unexpected distributions, both v1 task documents and frozen schemas verified. The initial sandbox cache access failed before build; approved final execution passed.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Adversarial contract review",
+      "gate": "No unresolved correctness finding after reviewing the final source, frozen schemas and adversarial tests.",
+      "result": "PASS after the schema-parity fix; all 23 task tests passed and the reviewer reported no remaining correctness issue.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Generated catalog correction",
+      "gate": "The committed catalog must exactly match the generator for the current core version and registered contracts; all catalog tests and freshness gates must pass after regeneration.",
+      "result": "The broad run exposed one stale-catalog test failure. make catalog updated only the version and new contract entries; all 17 catalog tests and all 10 rd-gates passed afterward.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Initial complete package run",
+      "gate": "All affected file-backed tests, PostgreSQL checks, product flows and evidence/freshness gates must pass on the final package state.",
+      "result": "5225 tests ran across 449 files and 678 execution units in 2977.8 seconds. One catalog freshness test failed and 11 cases skipped. All five product flows passed. PostgreSQL did not start because the file recipe failed. Catalog correction passed separately and a complete gate rerun is running.",
+      "verdict": "fail",
+      "next": "Finish the full gate rerun after the catalog regeneration; do not mark the package complete before verified results.",
+      "limits": [
+        "The first run retains its historical failure even though the cause has been corrected."
+      ]
+    },
+    {
+      "name": "Final complete package gate",
+      "gate": "After all introduced failures are corrected, the full applicable check-quick gate must pass file and PostgreSQL regressions, all freshness/evidence gates and all product flows.",
+      "result": "make check-quick JOBS=4 passed. 5225 tests ran across 449 file-backed files in 3044.4 seconds with 11 skips; 827 tests ran across 58 PostgreSQL files in 652.7 seconds with two skips. All 10 rd-gates and all five product flows passed.",
+      "verdict": "pass",
+      "limits": [
+        "Skipped existing PostgreSQL-only and file-only cases are covered by the other backend pass. Three notebook cases lack a frozen manifest; two NOOA cases belong to the isolated agent environment. The skipped opt-in wheel unittest is covered by the real standalone wheel run. No new task test skipped.",
+        "This validates contracts and backward compatibility, not a task planner or executor that has not been implemented."
+      ]
+    }
+  ],
+  "outcome": "TP-01B complete: immutable task proposal contracts and four new schema files are implemented in core 0.156.0. All 23 new tests, installed-wheel and compatibility checks, final adversarial review and complete corrected package gate passed. All 258 previous schema files remain unchanged. The introduced JSONSchema parity and stale-catalog findings were fixed and verified. TP-01C remains unstarted and is the next separate package. Changes remain uncommitted; a reviewable commit is proposed, with no push.",
+  "lessons": [
+    "Frozen outer models need immutable nested collections too.",
+    "Python validators do not automatically become JSON Schema conditions.",
+    "A capability reference or ready plan is a proposal, never permission to run.",
+    "A new core version or contract also requires regenerating the separate data catalog, not only JSON schemas."
+  ],
+  "risks": [
+    "New v1 schemas could freeze an incomplete cross-language safety shape.",
+    "A later dispatcher could mistake a declared fingerprint or capability for validated authorization.",
+    "Global registration changes could create circular imports or alter old contract schemas."
+  ],
+  "commits": []
+}

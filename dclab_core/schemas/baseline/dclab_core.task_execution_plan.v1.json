@@ -1,0 +1,518 @@
+{
+  "$defs": {
+    "AcceptanceCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "artifact",
+            "lineage",
+            "guard",
+            "approval",
+            "workflow_criterion"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "description"
+      ],
+      "type": "object"
+    },
+    "ArgumentBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/ArgumentReference"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "type": "object"
+    },
+    "ArgumentReference": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "input",
+            "output"
+          ],
+          "type": "string"
+        },
+        "ref_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "value_type": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean",
+            "artifact"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "ref_id",
+        "value_type"
+      ],
+      "type": "object"
+    },
+    "CapabilityBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "type": "string"
+        },
+        "schema_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "project",
+            "draft",
+            "session",
+            "campaign",
+            "workspace",
+            "home",
+            "chat",
+            "case"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "scope",
+        "schema_fingerprint"
+      ],
+      "type": "object"
+    },
+    "DeclaredOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "value_type": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean",
+            "artifact"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "action_id",
+        "value_type"
+      ],
+      "type": "object"
+    },
+    "ExpectedInput": {
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "value_type": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean",
+            "artifact"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "fingerprint",
+        "value_type"
+      ],
+      "type": "object"
+    },
+    "PlannedAction": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ArgumentBinding"
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "capability_name": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "project",
+            "draft",
+            "session",
+            "campaign",
+            "workspace",
+            "home",
+            "chat",
+            "case"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "capability_name",
+        "scope"
+      ],
+      "type": "object"
+    },
+    "TaskBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "max_cost_eur": {
+          "default": 0.0,
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "number"
+        },
+        "max_seconds": {
+          "default": 0,
+          "maximum": 3600,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_tool_calls": {
+          "default": 0,
+          "maximum": 100,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "TaskProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "enum": [
+            "deterministic",
+            "human",
+            "model"
+          ],
+          "type": "string"
+        },
+        "producer_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+          "type": "string"
+        },
+        "reference_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "reference_id",
+        "producer_version"
+      ],
+      "type": "object"
+    },
+    "TaskStopPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "compensation": {
+          "default": "none",
+          "enum": [
+            "none",
+            "escalate"
+          ],
+          "type": "string"
+        },
+        "max_retries": {
+          "default": 0,
+          "maximum": 3,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "on_failure": {
+          "default": "stop",
+          "enum": [
+            "stop",
+            "escalate"
+          ],
+          "type": "string"
+        },
+        "on_unknown": {
+          "const": "block",
+          "default": "block",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "noop",
+              "blocked"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actions": {
+            "maxItems": 0
+          },
+          "declared_outputs": {
+            "maxItems": 0
+          },
+          "reason": {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "selected_capabilities": {
+            "maxItems": 0
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ready"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "acceptance_checks": {
+            "minItems": 1
+          },
+          "actions": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "actions",
+          "acceptance_checks"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "acceptance_checks": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AcceptanceCheck"
+      },
+      "maxItems": 32,
+      "type": "array"
+    },
+    "actions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PlannedAction"
+      },
+      "maxItems": 32,
+      "type": "array"
+    },
+    "budget": {
+      "$ref": "#/$defs/TaskBudget"
+    },
+    "declared_outputs": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/DeclaredOutput"
+      },
+      "maxItems": 128,
+      "type": "array"
+    },
+    "expected_inputs": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ExpectedInput"
+      },
+      "maxItems": 128,
+      "type": "array"
+    },
+    "fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "graph_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "graph_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+      "type": "string"
+    },
+    "graph_revision": {
+      "maximum": 1000000,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "plan_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+      "type": "string"
+    },
+    "policy": {
+      "$ref": "#/$defs/TaskStopPolicy"
+    },
+    "provenance": {
+      "$ref": "#/$defs/TaskProvenance"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "maxLength": 1000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "revision": {
+      "maximum": 1000000,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.task_execution_plan.v1",
+      "default": "dclab_core.task_execution_plan.v1",
+      "type": "string"
+    },
+    "selected_capabilities": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/CapabilityBinding"
+      },
+      "maxItems": 32,
+      "type": "array"
+    },
+    "status": {
+      "default": "draft",
+      "enum": [
+        "draft",
+        "ready",
+        "noop",
+        "blocked"
+      ],
+      "type": "string"
+    },
+    "task_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "graph_id",
+    "graph_revision",
+    "graph_fingerprint",
+    "task_id",
+    "plan_id",
+    "revision",
+    "fingerprint",
+    "provenance"
+  ],
+  "type": "object"
+}

@@ -4,6 +4,29 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.157.0 (2026-11-04)
+
+- TP-01C: pure `task_validation.validate_graph`, `ready_tasks` and `validate_execution_plan`, plus canonical graph,
+  plan, workflow and capability identities in `task_fingerprints`. They check source coverage and ordering,
+  dependency/artifact validity, approved current inputs, scoped capabilities, duplicate effects and verified host
+  receipts. Readiness returns at most one action and never records completion or executes it.
+- Changed or missing fingerprints, stale source/input evidence, ambiguous effects and unsupported source mappings
+  are refused explicitly. Existing workflow/map validators remain authoritative; complex programmes stay atomic.
+- Existing task v1 contracts, all published schemas and adapter field mappings are unchanged. No registry access,
+  persistence, model call, scheduler, dispatcher, workflow conversion or default rollout is added. Hosts must still
+  recheck current authorization, inputs, approvals, guards, stop/budget controls and holdout accounting at dispatch.
+
+## 0.156.0 (2026-11-04)
+
+- TP-01B: additive `task_graph.TaskGraph` v1 and `task_execution_plan.TaskExecutionPlan` v1, with bounded immutable
+  structural nodes/edges, source and capability references, evidence checks, ordered action proposals, typed argument
+  references, budgets and conservative stop/escalation policy. No execution, source authorization or canonical hash
+  computation is added. Those checks belong to later packages.
+- Both new documents require an explicit supported `schema_version` on construction/validation as well as `read`.
+  Existing contract readers, versions and schema bytes are unchanged. All new collections are immutable tuples.
+- Two current schemas and two v1 baselines are added. Main-product conformance lists both as library-only proposals;
+  the pinned host has no corresponding fields. No host adapter invents a mapping or changes execution behavior.
+
 ## 0.155.0 (2026-11-04)
 
 - `case.CHIPS` and `case.chip_conflict` (the owner's chips on Home): the kind of help a person picks before writing, and the

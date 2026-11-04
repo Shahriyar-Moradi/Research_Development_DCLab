@@ -19,6 +19,8 @@ LIBRARY = "library output: no row of the main product maps onto it; the host ren
 
 #: contract name -> ``module:function`` of the adapter that fills it from the main product's rows, or the reason it has none
 CONTRACT_ADAPTERS: dict[str, str] = {
+    "task_graph": LIBRARY + " (TP-01B structural task proposal; no TaskGraph field in the pinned host contracts)",
+    "task_execution_plan": LIBRARY + " (TP-01B action proposal; host authorization and execution adoption are deferred)",
     "experience_event": "dclab_core.adapters.main_product_experience:events",
     "experience_session": LIBRARY + " (``experience.session_card`` over adapted events)",
     "run_record": "dclab_core.adapters.main_product_lineage:from_experiment",

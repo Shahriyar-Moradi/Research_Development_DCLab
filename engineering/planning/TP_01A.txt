@@ -1,0 +1,107 @@
+You are working in the current local checkout of
+Shahriyar-Moradi/Research_Development_DCLab.
+
+Before editing, inspect git status, current HEAD, README, CLAUDE.md,
+relevant modules, their call sites, existing tests, and current API/schema
+conventions. The remote review observed 81e8a900 on 2026-11-04 but the
+repository may have advanced. Prefer the actual current checkout.
+Never overwrite unrelated edits. Do not silently reset or stash user work.
+
+Scope only the package in the current prompt. Use the smallest cohesive
+changes, keep compatibility with existing file and PostgreSQL stores,
+maintain the no-live-model test guarantees, and follow existing conventions.
+Write tests that fail before the implementation and pass after. If a proposed
+file/function is obsolete or not present, discover the correct current owner,
+explain the adjustment, and do not create a duplicate.
+
+Hard invariants
+1. An LLM may propose a plan, never execute during planning.
+2. No new unguarded write path or arbitrary code/network/file execution.
+3. Existing registry tool schema, scope and authorization are authoritative.
+4. Existing studio.graph / programme / engine own holdout, approvals, splits,
+   leakage, model selection and final scoring.
+5. No holdout rereads or mutable 'finished' artifact reuse after input changes.
+6. Preserve human decisions and their provenance; a model cannot erase gates.
+7. Task completion requires measured evidence, not agent self-report.
+8. Do not store raw table values, secrets, personal values, sealed benchmark
+   rows or hidden reasoning in task logs/traces.
+9. Keep offline/no-model mode functional and backward compatible.
+10. No default rollout or new dependency without demonstrated necessity.
+11. No repeated side effects after checkpoint/resume or ambiguous failures.
+12. No production-readiness claim from unit tests or synthetic results.
+
+Run focused tests after each package, the repository's check-quick gate where
+possible, and report exactly what ran and what was skipped. Never execute
+live-model or sealed benchmark runs without the owner's explicit approval.
+At the end of every package report changed files, public contract changes,
+new tests, commands/outputs, blockers, open risks, and a proposed single
+reviewable commit. Do not push a branch without authorization.
+
+--- PACKAGE SPECIFIC TASK ---
+
+Goal
+Produce a factually verified architecture/capability mapping for a new
+hierarchical task planning layer. This is investigation and design ONLY.
+Do not modify the execution runtime or any public contract.
+
+Read in depth
+- dclab_core/problem_map.py, mapping.py, plan.py, solution_workflow.py,
+  solution_map.py, programme.py, workflow_run.py, orchestra.py,
+  contracts.py and relevant schema registrations.
+- dclab_rnd/studio/graph.py, engine.py, programme.py,
+  solution.py, store.py, and stage/run APIs.
+- dclab_rnd/intern/loop.py and tools.py, agents/registry.py,
+  agents/runtime.py, agents/harness.py, agents/traces.py,
+  orchestra/solution.py, orchestra/checkpoints.py.
+- Relevant test files, Makefile, core-wheel check, BENCHMARK docs.
+
+Deliver an auditable matrix for EACH mandatory SolutionWorkflow step.
+Fields
+  step_id, family, WF block, prerequisites, artifacts consumed,
+  expected outputs, parent business goal, suggested task group,
+  existing authority, actual callable action, guard, approval,
+  verification record, dependency, failure meaning, replay safety,
+  runnable classification.
+Classifications
+  'direct_tool', 'engine_implicit', 'guard_only', 'human_gate',
+  'evidence_only', 'programme_atomic', 'unsupported'.
+Document when one engine run covers several conceptual steps. Do not
+make duplicate side-effect nodes for the same engine operation.
+
+Add an independent capability inventory using the actual registry.
+List tool name, scope, effect, schema requirements, permissions,
+handler, studio.graph move, and whether safe to repeat. Determine
+which calls can be checked without invoking the tool and which
+already have side effects. Inventory status of project, artifact,
+tracing, event stores and checkpoints in both file and PostgreSQL
+modes. Document the differences between a flat project and a
+complex programme.
+
+Architectural decisions to settle explicitly
+1. What belongs in a task graph vs the SolutionWorkflow, SolutionMap,
+   WorkflowRun and Programme? Define one representative case of each.
+2. What is the graph's structural source of truth and what stores
+   mutable execution status? Explain the data model for revision and
+   crash recovery without a duplicate database.
+3. Which object owns user intent, tool authorization, run state,
+   human approvals, the holdout read count, and all model results?
+4. How is task execution prevented before an approved solution exists?
+5. What fields are essential to v1 and what remains deferred?
+6. How does one task bind to a real capability or become blocked?
+7. What are the exact compatibility and upgrade requirements for the
+   existing dclab_core wheel and main-product adapters?
+
+Produce three artifacts
+- docs/guides/TASK_PLANNING_ARCHITECTURE.md, target architecture,
+  boundaries, integration diagram, threat model, design decisions.
+- docs/guides/TASK_CAPABILITY_MATRIX.md, existing step and tool maps.
+- docs/guides/TASK_PLANNING_ACCEPTANCE.md, cross-phase hard gates,
+  benchmark plan, scope and exclusions.
+
+Include a first implementation slice, one binary classification / Telco
+churn scenario using a currently supported sample. Identify exactly
+which existing stage produces each artifact and which operations are
+only checks. Cite source file and function for each mapping.
+
+No implementation, no new dependency, no new datastore, no new agent.
+Report unresolved ambiguity instead of inventing a contract.

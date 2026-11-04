@@ -1,0 +1,226 @@
+{
+  "package": "TP-01C",
+  "title": "Pure hierarchical task validation and canonical identities",
+  "date": "2026-11-04",
+  "request": "Continue the hierarchical planning foundation with TP-01C only. Validate graph structure, source safety, approved execution intents and stable identities without executing tools or changing app behavior.",
+  "spec": "engineering/planning/TP_01C.txt; retain the existing task v1 contracts and execution owners, add pure checks and adversarial tests, document runtime rechecks and verify the package before completion.",
+  "plan": [
+    "Inspect the current source owners and prior task contracts using the existing architecture review.",
+    "Write failing tests for graph semantics, canonical hashes, source provenance, safe readiness and execution intents.",
+    "Implement pure companion modules and reuse existing workflow and map validators.",
+    "Run adversarial review, fix findings with red-first tests, verify schemas and installed wheel.",
+    "Run the complete applicable package gate and record exact results before updating completion status."
+  ],
+  "decisions": [
+    {
+      "decision": "Use pure companion modules with JSON-only host snapshots.",
+      "why": "Core remains independent of model providers, persistence and runtime registries; document shapes do not need another version."
+    },
+    {
+      "decision": "Keep complex programmes atomic and bind their existing map identity.",
+      "why": "Leaf workflows repeat unqualified source step IDs and already defer final scoring to the existing composition owner; flattening them would invent unsafe effect boundaries."
+    },
+    {
+      "decision": "Require independent current host receipts before dependency completion.",
+      "why": "Model status flags and a syntactically ready plan cannot establish that a guarded operation succeeded on current inputs."
+    },
+    {
+      "decision": "Bind capability identity to its entire descriptor, including schema, scope, effect, permission and replay policy.",
+      "why": "An unchanged argument schema alone cannot prove that a capability retains its guard or permission."
+    },
+    {
+      "decision": "Return at most one eligible action, in stable ID order, without mutating any record.",
+      "why": "Sequential planning is the package boundary; execution, crash recovery and durable state remain later packages."
+    },
+    {
+      "decision": "Refuse hash mismatch rather than repairing a stored document.",
+      "why": "Old revisions and stale input evidence must remain auditable and cannot silently acquire new identities."
+    }
+  ],
+  "change": "Adds task_fingerprints and task_validation helpers, forty adversarial and positive tests, manual metadata fixtures, installed-wheel smoke coverage and integration/acceptance documentation. Core moves to 0.157.0 without changing a contract schema or any host execution path.",
+  "findings": [
+    {
+      "id": "initial-contract-gap",
+      "source": "test",
+      "defect": "Task documents had shape validation but no semantic traversal or canonical identity verification.",
+      "scenario": "A syntactically valid graph could contain a cycle, omit safety coverage or claim a stale hash.",
+      "cause": "TP-01B intentionally supplied structural contracts only.",
+      "fix": "Add pure graph, readiness and execution-plan validators plus deterministic identities.",
+      "test": "Initial tests failed on missing modules; the combined task suite now passes.",
+      "severity": "gap"
+    },
+    {
+      "id": "approval-and-retry",
+      "source": "test",
+      "defect": "Early readiness admitted incomplete source approvals and could repeat a failed attempt.",
+      "scenario": "An approval bound only a solution hash, or a failed task was treated like an unstarted action.",
+      "cause": "The first draft did not require the full current source and input bindings or stop on failed observations.",
+      "fix": "Bind approvals to project, workflow, every non-approval source and current inputs; stop on failed, blocked, stale, running or unknown outcomes.",
+      "test": "Safety and approval red suites reproduced failures before the fix; approval and attempt regressions pass.",
+      "severity": "behaviour"
+    },
+    {
+      "id": "capability-property-loss",
+      "source": "reviewer",
+      "defect": "Canonical capability identity dropped schema properties whose names were description or title.",
+      "scenario": "A tool changed the type of its description argument while retaining the old identity.",
+      "cause": "Recursive annotation filtering treated property names as ignorable schema annotations.",
+      "fix": "Hash the entire parameter schema without recursively dropping keys.",
+      "test": "ReviewRegressionTests changes a property named description and verifies that its capability identity changes.",
+      "severity": "latent"
+    },
+    {
+      "id": "training-before-lock",
+      "source": "reviewer",
+      "defect": "Training-only analysis could be covered before holdout locking.",
+      "scenario": "An otherwise covered graph put train_only_analysis upstream of lock_holdout.",
+      "cause": "The temporal chain initially did not include training analysis.",
+      "fix": "Require locking before training analysis, allowing the same existing atomic data operation to cover both.",
+      "test": "ReviewRegressionTests rejects the early analysis graph and the valid binary case remains accepted.",
+      "severity": "leakage"
+    },
+    {
+      "id": "weak-evidence",
+      "source": "test",
+      "defect": "Equal truthy flags could masquerade as artifact hashes or evidence references.",
+      "scenario": "A receipt and artifact both used true instead of a digest; a revision used a boolean instead of integer one.",
+      "cause": "Value equality alone did not validate evidence types.",
+      "fix": "Require opaque reference strings, real digests and strict integer revisions.",
+      "test": "EvidenceShapeTests rejects flag hashes, flag approval references and boolean revisions.",
+      "severity": "latent"
+    },
+    {
+      "id": "callback-snapshot",
+      "source": "test",
+      "defect": "A capability snapshot could retain a runtime callback object.",
+      "scenario": "A handler was embedded beside a valid capability descriptor.",
+      "cause": "The initial snapshot copy accepted general mappings without proving JSON-only content.",
+      "fix": "Copy snapshots through strict JSON and refuse live callbacks or non-JSON values without invoking them.",
+      "test": "PurityAndIdentityTests rejects the supplied callback; no runtime handler is called.",
+      "severity": "latent"
+    },
+    {
+      "id": "wf10-ordering",
+      "source": "reviewer",
+      "defect": "Family-specific WF-10 evidence could be scheduled before final scoring.",
+      "scenario": "An uplift qini read depended only on the data stage instead of the final operation.",
+      "cause": "The first implementation checked report_limits but not every source step declared at WF-10.",
+      "fix": "Require every WF-10 source owner to follow final_once, permitting evidence inside the same final operation.",
+      "test": "PostFinalSourceTests rejects early qini evidence and accepts it inside the existing final stage.",
+      "severity": "behaviour"
+    },
+    {
+      "id": "orphan-output-retry",
+      "source": "self",
+      "defect": "Existing outputs without a verified task receipt could allow the producer to become ready again.",
+      "scenario": "A host supplied produced artifacts but had lost the verified attempt receipt.",
+      "cause": "Readiness originally checked dependency receipts but did not explicitly detect orphan output artifacts.",
+      "fix": "Refuse scheduling and require owner reconciliation whenever an unverified action has existing declared outputs.",
+      "test": "The dedicated red-first orphan-output test failed before the check and now passes.",
+      "severity": "behaviour",
+      "open": "Durable attempt persistence and atomic crash reconciliation belong to later guarded execution packages."
+    },
+    {
+      "id": "generated-corpus-damage",
+      "source": "test",
+      "defect": "The generated development corpus failed its freshness comparison because one file contained NUL bytes.",
+      "scenario": "The focused compatibility run found 16384 NUL bytes in train.alpaca.jsonl despite the generator command having exited successfully.",
+      "cause": "Damage was observed in a generated file; the process that introduced the bytes was not established. No task validator source failure was found.",
+      "fix": "Rebuild the corpus through make sft-dev, verify that generated files contain no NUL bytes, and rerun the complete focused suite.",
+      "test": "The initial focused run failed one freshness test; the corrected run executed 187 tests with one optional wheel skip and no failures.",
+      "severity": "flaky",
+      "open": "The origin of the generated-file damage remains unconfirmed; freshness tests guard against recurrence."
+    },
+    {
+      "id": "issue-order-review-note",
+      "source": "reviewer",
+      "defect": "A documentation review suggested removing the statement that validation issues are sorted.",
+      "scenario": "The reviewer described a previous draft using insertion-order deduplication, while the current helper already used sorted unique issues.",
+      "cause": "The note referred to an earlier implementation rather than the final source.",
+      "fix": "Keep the accurate documentation after checking that current _issues returns sorted(set(items)) with a bounded length. No code change is needed.",
+      "test": "Direct inspection of the final helper and the passing deterministic validation suite establish the current behavior.",
+      "severity": "gap",
+      "verdict": "declined"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Combined task suite",
+      "gate": "All new semantic tests and the existing task v1 contract tests must execute and pass with no skips.",
+      "result": "63 tests ran in 5.380 seconds: all passed; forty semantic tests and twenty-three contract tests.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Schema byte compatibility",
+      "gate": "All current and historical schema files from TP-01B must remain byte-identical with no new contract shape or registration.",
+      "result": "All 262 schema files were byte-identical after regeneration; registered contract count remained 107.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Adversarial source review",
+      "gate": "No unresolved correctness finding after the final source delta and regression tests are reviewed.",
+      "result": "Reviewer PASS after fixes for schema property hashing, training-before-lock, all WF-10 ordering and orphan-output reconciliation; all 63 tests passed.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Initial focused compatibility run",
+      "gate": "All focused task, workflow/map, adapter, contract, wheel metadata and development-record tests must pass.",
+      "result": "187 tests ran across ten files in 16.7 seconds. One development-corpus freshness test failed on NUL bytes in a generated file; one opt-in wheel test skipped. The task and compatibility tests otherwise passed.",
+      "verdict": "fail",
+      "next": "Regenerate the damaged corpus and rerun the complete focused selection."
+    },
+    {
+      "name": "Final focused compatibility run",
+      "gate": "All focused tests must pass after the generated corpus is rebuilt; any optional wheel skip must be covered by the standalone installed-wheel run.",
+      "result": "187 tests ran across ten files in 23.4 seconds: 186 passed and one opt-in wheel unittest skipped. The standalone installed-wheel check passed.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Installed core wheel",
+      "gate": "The wheel must install in isolated Python 3.12 with only declared dependencies and exercise the new pure helpers without importing the host runtime.",
+      "result": "Core 0.157.0 passed on Python 3.12.13 with four direct dependencies and no unexpected distributions. Canonical graph/plan roundtrips and unadmitted-source refusal passed.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Evidence and generated-file preflight",
+      "gate": "All repository evidence, registry, knowledge, prompt/evaluation and generated-file freshness gates must pass.",
+      "result": "All ten make rd-gates checks passed on the versioned source and regenerated catalog.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Complete package gate",
+      "gate": "The full applicable check-quick gate must pass affected file-backed tests, PostgreSQL regression tests, repository gates and product flows before completion.",
+      "result": "make check-quick JOBS=3 passed. File backend: 5265 tests across 450 files and 679 units in 2288.5 seconds, eleven skips and no failures. PostgreSQL: 827 tests across 58 files and 112 units in 611.2 seconds, two skips and no failures. All ten repository gates and all five product flows passed.",
+      "verdict": "pass",
+      "limits": [
+        "Five file-pass skips are PostgreSQL-specific; three notebook cases lack the frozen manifest, two NOOA cases belong to the isolated agent environment, and the optional wheel unittest was covered by the actual wheel check. The PostgreSQL pass skips two file-specific cases. No new semantic test skipped.",
+        "Pure validators trust authenticated host snapshots and cannot make a later write atomic. No live-model or sealed benchmark run was performed."
+      ]
+    },
+    {
+      "name": "Owner-requested full commit gate",
+      "gate": "Before creating a commit, make rd-check must pass the full offline test suite and every evidence/freshness gate.",
+      "result": "On 2026-11-05, make rd-check JOBS=3 passed all ten gates and ran 5305 tests across 463 files and 692 execution units in 2198.2 seconds, with fourteen existing skips and no failures. No new semantic test skipped.",
+      "verdict": "pass",
+      "limits": [
+        "The full suite retains existing backend-specific, missing-manifest and isolated-agent-environment skips, the optional wheel skip, and three placeholder evaluation tests whose modules are not committed: replay_compare, system_eval and agentic.trace_eval. The actual isolated wheel and both package backends passed separately.",
+        "The owner explicitly requested committing and pushing all changes after the original uncommitted package handoff."
+      ]
+    }
+  ],
+  "outcome": "TP-01C complete. Pure graph/plan validation, canonical identities and sequential readiness are implemented in core 0.157.0 with no contract or schema change. Forty new semantic tests, all sixty-three combined task tests, the focused compatibility suite, isolated installed wheel, unchanged schema bytes, final review and complete check-quick gate pass. The generated-corpus failure was corrected; its origin remains unconfirmed. Host execution owners and app behavior are unchanged. TP-01D is ready for a separate session and has not started. Changes remain uncommitted with one proposed review commit and no push.",
+  "lessons": [
+    "Hash complete capability semantics; recursive annotation filtering can erase real argument names.",
+    "Check temporal constraints for every source safety step, including family-specific post-final evidence.",
+    "Independent host evidence must bind project, source identities and current inputs, not merely a done flag.",
+    "Lost evidence is a reconciliation requirement, never automatic permission to repeat a write.",
+    "Regenerate the data catalog whenever the core version changes."
+  ],
+  "risks": [
+    "Untrusted model metadata could be mistaken for authenticated host observations.",
+    "Pure checks cannot make a later guarded write atomic or prove the absence of an unrecorded attempt.",
+    "Flattening complex leaf source identifiers could duplicate holdout effects.",
+    "A changed source or input could otherwise be silently reused behind an old approval."
+  ],
+  "commits": []
+}

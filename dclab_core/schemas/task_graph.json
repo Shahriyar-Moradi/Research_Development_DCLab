@@ -1,0 +1,745 @@
+{
+  "$defs": {
+    "AcceptanceCheck": {
+      "additionalProperties": false,
+      "description": "Declarative evidence requirement. The host's deterministic verifier owns its interpretation.",
+      "properties": {
+        "description": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "artifact",
+            "lineage",
+            "guard",
+            "approval",
+            "workflow_criterion"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "description"
+      ],
+      "title": "AcceptanceCheck",
+      "type": "object"
+    },
+    "CapabilityBinding": {
+      "additionalProperties": false,
+      "description": "A selected host capability's identity. This declaration does not grant permission to use it.",
+      "properties": {
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "schema_fingerprint": {
+          "description": "SHA-256 of the host tool schema supplied to planning; not a copied schema.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Schema Fingerprint",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "project",
+            "draft",
+            "session",
+            "campaign",
+            "workspace",
+            "home",
+            "chat",
+            "case"
+          ],
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "scope",
+        "schema_fingerprint"
+      ],
+      "title": "CapabilityBinding",
+      "type": "object"
+    },
+    "SourceReference": {
+      "additionalProperties": false,
+      "description": "Opaque metadata identity, not a path, URL, table value or proof of human consent.",
+      "properties": {
+        "fingerprint": {
+          "pattern": "^(?:[0-9a-f]{16}|[0-9a-f]{64})$",
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "problem_card",
+            "problem_map",
+            "solution",
+            "solution_plan",
+            "solution_workflow",
+            "solution_map",
+            "data_card",
+            "dataset",
+            "approval"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "fingerprint"
+      ],
+      "title": "SourceReference",
+      "type": "object"
+    },
+    "TaskEdge": {
+      "additionalProperties": false,
+      "description": "Grouping runs parent \u2192 child; dependency runs prerequisite \u2192 dependent. Neither edge executes work.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "grouping",
+            "dependency"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "kind"
+      ],
+      "title": "TaskEdge",
+      "type": "object"
+    },
+    "TaskNode": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "properties": {
+              "capability": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "action"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "acceptance_checks": {
+                "minItems": 1
+              },
+              "capability": {
+                "not": {
+                  "type": "null"
+                }
+              },
+              "scope": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            },
+            "required": [
+              "capability",
+              "scope",
+              "acceptance_checks"
+            ]
+          }
+        },
+        {
+          "else": {
+            "properties": {
+              "blocker_reason": {
+                "type": "null"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "blocked"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "blocker_reason": {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              }
+            },
+            "required": [
+              "blocker_reason"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "gate",
+                  "verification"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "acceptance_checks": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "acceptance_checks"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "project"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "project"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "draft"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "draft"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "session"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "session"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "campaign"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "campaign"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "workspace"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "workspace"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "home"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "home"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "chat"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "chat"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "case"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capability": {
+                "properties": {
+                  "scope": {
+                    "const": "case"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "A group, one bounded action, a human gate, an evidence check or an explicit unsupported requirement.\n\nNon-action kinds have no callable binding. A group only organizes work; gate and verification nodes describe\nchecks; blocked nodes require a reason. No kind executes merely because its document validates.",
+      "properties": {
+        "acceptance_checks": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AcceptanceCheck"
+          },
+          "maxItems": 32,
+          "title": "Acceptance Checks",
+          "type": "array"
+        },
+        "blocker_reason": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Blocker Reason"
+        },
+        "capability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CapabilityBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dependencies": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "group",
+            "action",
+            "gate",
+            "verification",
+            "blocked"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "needs": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Needs",
+          "type": "array"
+        },
+        "objective": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Objective",
+          "type": "string"
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Id"
+        },
+        "produces": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Produces",
+          "type": "array"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "project",
+                "draft",
+                "session",
+                "campaign",
+                "workspace",
+                "home",
+                "chat",
+                "case"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope"
+        },
+        "source_step_ids": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Source Step Ids",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "objective",
+        "kind"
+      ],
+      "title": "TaskNode",
+      "type": "object"
+    },
+    "TaskProvenance": {
+      "additionalProperties": false,
+      "description": "Reference to an existing human, rule or model proposal record; no raw prompt or thinking text.",
+      "properties": {
+        "method": {
+          "enum": [
+            "deterministic",
+            "human",
+            "model"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "producer_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+          "title": "Producer Version",
+          "type": "string"
+        },
+        "reference_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Reference Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "reference_id",
+        "producer_version"
+      ],
+      "title": "TaskProvenance",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.task_graph.v1.json",
+  "additionalProperties": false,
+  "description": "Immutable structural proposal. Runtime status and measured completion live outside this contract.\n\nTP-01C must verify the supplied fingerprint, source identities, capability membership and edge semantics.\nLocal shape validation here is deliberately not a claim of executable or approved graph validity.",
+  "properties": {
+    "edges": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/TaskEdge"
+      },
+      "maxItems": 1024,
+      "title": "Edges",
+      "type": "array"
+    },
+    "fingerprint": {
+      "description": "Declared structural SHA-256; semantic verification belongs to TP-01C.",
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "graph_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+      "title": "Graph Id",
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/TaskNode"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Nodes",
+      "type": "array"
+    },
+    "objective": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Objective",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/TaskProvenance"
+    },
+    "revision": {
+      "maximum": 1000000,
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.task_graph.v1",
+      "default": "dclab_core.task_graph.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solution_fingerprint": {
+      "pattern": "^(?:[0-9a-f]{16}|[0-9a-f]{64})$",
+      "title": "Solution Fingerprint",
+      "type": "string"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "#/$defs/SourceReference"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Source Refs",
+      "type": "array"
+    },
+    "workflow_fingerprint": {
+      "pattern": "^(?:[0-9a-f]{16}|[0-9a-f]{64})$",
+      "title": "Workflow Fingerprint",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "graph_id",
+    "revision",
+    "objective",
+    "source_refs",
+    "workflow_fingerprint",
+    "solution_fingerprint",
+    "fingerprint",
+    "nodes",
+    "provenance"
+  ],
+  "title": "TaskGraph",
+  "type": "object"
+}

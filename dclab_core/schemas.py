@@ -22,6 +22,8 @@ import dclab_core.experience  # noqa: F401  (registers the experience contracts)
 import dclab_core.outcomes  # noqa: F401  (23.5: the outcome contract)
 import dclab_core.case  # noqa: F401  (37.1: the case file)
 import dclab_core.bench  # noqa: F401  (B1 of 2026-11-03: one shape for every evaluation result)
+import dclab_core.task_graph  # noqa: F401  (TP-01B: structural task contracts)
+import dclab_core.task_execution_plan  # noqa: F401  (TP-01B: bounded action proposals)
 from dclab_core.contracts import CONTRACTS
 
 SCHEMA_DIR = Path(__file__).resolve().parent / "schemas"

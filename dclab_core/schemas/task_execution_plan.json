@@ -1,0 +1,587 @@
+{
+  "$defs": {
+    "AcceptanceCheck": {
+      "additionalProperties": false,
+      "description": "Declarative evidence requirement. The host's deterministic verifier owns its interpretation.",
+      "properties": {
+        "description": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "artifact",
+            "lineage",
+            "guard",
+            "approval",
+            "workflow_criterion"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "description"
+      ],
+      "title": "AcceptanceCheck",
+      "type": "object"
+    },
+    "ArgumentBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/ArgumentReference"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "ArgumentBinding",
+      "type": "object"
+    },
+    "ArgumentReference": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "input",
+            "output"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "value_type": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean",
+            "artifact"
+          ],
+          "title": "Value Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "ref_id",
+        "value_type"
+      ],
+      "title": "ArgumentReference",
+      "type": "object"
+    },
+    "CapabilityBinding": {
+      "additionalProperties": false,
+      "description": "A selected host capability's identity. This declaration does not grant permission to use it.",
+      "properties": {
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "schema_fingerprint": {
+          "description": "SHA-256 of the host tool schema supplied to planning; not a copied schema.",
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Schema Fingerprint",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "project",
+            "draft",
+            "session",
+            "campaign",
+            "workspace",
+            "home",
+            "chat",
+            "case"
+          ],
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "scope",
+        "schema_fingerprint"
+      ],
+      "title": "CapabilityBinding",
+      "type": "object"
+    },
+    "DeclaredOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "value_type": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean",
+            "artifact"
+          ],
+          "title": "Value Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "action_id",
+        "value_type"
+      ],
+      "title": "DeclaredOutput",
+      "type": "object"
+    },
+    "ExpectedInput": {
+      "additionalProperties": false,
+      "properties": {
+        "fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "value_type": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean",
+            "artifact"
+          ],
+          "title": "Value Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "fingerprint",
+        "value_type"
+      ],
+      "title": "ExpectedInput",
+      "type": "object"
+    },
+    "PlannedAction": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ArgumentBinding"
+          },
+          "maxItems": 32,
+          "title": "Arguments",
+          "type": "array"
+        },
+        "capability_name": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Capability Name",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "project",
+            "draft",
+            "session",
+            "campaign",
+            "workspace",
+            "home",
+            "chat",
+            "case"
+          ],
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "capability_name",
+        "scope"
+      ],
+      "title": "PlannedAction",
+      "type": "object"
+    },
+    "TaskBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "max_cost_eur": {
+          "default": 0.0,
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Max Cost Eur",
+          "type": "number"
+        },
+        "max_seconds": {
+          "default": 0,
+          "maximum": 3600,
+          "minimum": 0,
+          "title": "Max Seconds",
+          "type": "integer"
+        },
+        "max_tool_calls": {
+          "default": 0,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Max Tool Calls",
+          "type": "integer"
+        }
+      },
+      "title": "TaskBudget",
+      "type": "object"
+    },
+    "TaskProvenance": {
+      "additionalProperties": false,
+      "description": "Reference to an existing human, rule or model proposal record; no raw prompt or thinking text.",
+      "properties": {
+        "method": {
+          "enum": [
+            "deterministic",
+            "human",
+            "model"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "producer_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+          "title": "Producer Version",
+          "type": "string"
+        },
+        "reference_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+          "title": "Reference Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "reference_id",
+        "producer_version"
+      ],
+      "title": "TaskProvenance",
+      "type": "object"
+    },
+    "TaskStopPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "compensation": {
+          "default": "none",
+          "enum": [
+            "none",
+            "escalate"
+          ],
+          "title": "Compensation",
+          "type": "string"
+        },
+        "max_retries": {
+          "default": 0,
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Max Retries",
+          "type": "integer"
+        },
+        "on_failure": {
+          "default": "stop",
+          "enum": [
+            "stop",
+            "escalate"
+          ],
+          "title": "On Failure",
+          "type": "string"
+        },
+        "on_unknown": {
+          "const": "block",
+          "default": "block",
+          "title": "On Unknown",
+          "type": "string"
+        }
+      },
+      "title": "TaskStopPolicy",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.task_execution_plan.v1.json",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "noop",
+              "blocked"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actions": {
+            "maxItems": 0
+          },
+          "declared_outputs": {
+            "maxItems": 0
+          },
+          "reason": {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "selected_capabilities": {
+            "maxItems": 0
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ready"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "acceptance_checks": {
+            "minItems": 1
+          },
+          "actions": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "actions",
+          "acceptance_checks"
+        ]
+      }
+    }
+  ],
+  "description": "A proposal, including explicit no-op/blocked outcomes; none of its states asserts task completion.\n\n``selected_capabilities`` are the proposed authorized subset supplied by the host. Membership here only ties\nactions to that declaration: registry schema, permissions, source approval and hash validation remain required\nbefore any future dispatch. ``ready`` means shape-ready, never permission to run.",
+  "properties": {
+    "acceptance_checks": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AcceptanceCheck"
+      },
+      "maxItems": 32,
+      "title": "Acceptance Checks",
+      "type": "array"
+    },
+    "actions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PlannedAction"
+      },
+      "maxItems": 32,
+      "title": "Actions",
+      "type": "array"
+    },
+    "budget": {
+      "$ref": "#/$defs/TaskBudget"
+    },
+    "declared_outputs": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/DeclaredOutput"
+      },
+      "maxItems": 128,
+      "title": "Declared Outputs",
+      "type": "array"
+    },
+    "expected_inputs": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ExpectedInput"
+      },
+      "maxItems": 128,
+      "title": "Expected Inputs",
+      "type": "array"
+    },
+    "fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "graph_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Graph Fingerprint",
+      "type": "string"
+    },
+    "graph_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+      "title": "Graph Id",
+      "type": "string"
+    },
+    "graph_revision": {
+      "maximum": 1000000,
+      "minimum": 1,
+      "title": "Graph Revision",
+      "type": "integer"
+    },
+    "plan_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "policy": {
+      "$ref": "#/$defs/TaskStopPolicy"
+    },
+    "provenance": {
+      "$ref": "#/$defs/TaskProvenance"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "maxLength": 1000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    },
+    "revision": {
+      "maximum": 1000000,
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.task_execution_plan.v1",
+      "default": "dclab_core.task_execution_plan.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_capabilities": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/CapabilityBinding"
+      },
+      "maxItems": 32,
+      "title": "Selected Capabilities",
+      "type": "array"
+    },
+    "status": {
+      "default": "draft",
+      "enum": [
+        "draft",
+        "ready",
+        "noop",
+        "blocked"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "task_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+      "title": "Task Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "graph_id",
+    "graph_revision",
+    "graph_fingerprint",
+    "task_id",
+    "plan_id",
+    "revision",
+    "fingerprint",
+    "provenance"
+  ],
+  "title": "TaskExecutionPlan",
+  "type": "object"
+}

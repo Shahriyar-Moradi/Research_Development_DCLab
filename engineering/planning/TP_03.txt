@@ -1,0 +1,82 @@
+You are working in the current local checkout of
+Shahriyar-Moradi/Research_Development_DCLab.
+
+Before editing, inspect git status, current HEAD, README, CLAUDE.md,
+relevant modules, their call sites, existing tests, and current API/schema
+conventions. The remote review observed 81e8a900 on 2026-11-04 but the
+repository may have advanced. Prefer the actual current checkout.
+Never overwrite unrelated edits. Do not silently reset or stash user work.
+
+Scope only the package in the current prompt. Use the smallest cohesive
+changes, keep compatibility with existing file and PostgreSQL stores,
+maintain the no-live-model test guarantees, and follow existing conventions.
+Write tests that fail before the implementation and pass after. If a proposed
+file/function is obsolete or not present, discover the correct current owner,
+explain the adjustment, and do not create a duplicate.
+
+Hard invariants
+1. An LLM may propose a plan, never execute during planning.
+2. No new unguarded write path or arbitrary code/network/file execution.
+3. Existing registry tool schema, scope and authorization are authoritative.
+4. Existing studio.graph / programme / engine own holdout, approvals, splits,
+   leakage, model selection and final scoring.
+5. No holdout rereads or mutable 'finished' artifact reuse after input changes.
+6. Preserve human decisions and their provenance; a model cannot erase gates.
+7. Task completion requires measured evidence, not agent self-report.
+8. Do not store raw table values, secrets, personal values, sealed benchmark
+   rows or hidden reasoning in task logs/traces.
+9. Keep offline/no-model mode functional and backward compatible.
+10. No default rollout or new dependency without demonstrated necessity.
+11. No repeated side effects after checkpoint/resume or ambiguous failures.
+12. No production-readiness claim from unit tests or synthetic results.
+
+Run focused tests after each package, the repository's check-quick gate where
+possible, and report exactly what ran and what was skipped. Never execute
+live-model or sealed benchmark runs without the owner's explicit approval.
+At the end of every package report changed files, public contract changes,
+new tests, commands/outputs, blockers, open risks, and a proposed single
+reviewable commit. Do not push a branch without authorization.
+
+--- PACKAGE SPECIFIC TASK ---
+
+Goal
+Plan HOW to execute one dependency-ready leaf task. Produce a typed
+TaskExecutionPlan with authorized calls, concrete expected results,
+verification and recovery guidance. Planning never calls a write tool.
+
+Read dclab_rnd/agents/registry.py, intern/tools.py, agents/runtime.py,
+models/gateway and the TaskExecutionPlan contract at HEAD.
+
+Design
+1. Input is one task plus current project state, declared artifact
+   hashes, allowed registry tool schemas for that scope, remaining
+   budget and past failures. It cannot see unrelated workspace data.
+2. Registry metadata is the single authority for tool names, JSON
+   argument schemas, read/write effects, scopes and project moves.
+3. Create bounded ordered action intents and explicit artifact
+   bindings to earlier outputs. Unknown capabilities are blockers.
+4. Validate all static arguments through the existing registry.check
+   or a pure schema snapshot. Revalidate resolved arguments immediately
+   before runtime execution. Do not execute here.
+5. Prohibit side effects from trying to 'preview' a write. Read-only
+   tools may be used only when already permitted by agent policy.
+6. The output requires preconditions, acceptance checks, budget,
+   selected steps, failure classifications and stop/escalation rules.
+7. An existing task may have no tool action because it is a gate or
+   verification. Never falsely mark it as completed.
+8. Scripted fallback produces deterministic plans for existing five
+   studio stages. Model planning is behind an off-by-default flag.
+9. The existing workflow and programme guards remain authoritative.
+10. Track model/tool schema hashes in the plan so stale plans cannot
+    run after changed permissions or tool definitions.
+
+Tests
+- Good plan for each supported stage, missing required tool args,
+  arbitrary tool, wrong scope, write without move, forbidden data,
+  missing artifact, invalid binding, stale capability hash, timeout,
+  overbudget, model refusal, changed user intent.
+- Confirm 0 write-tool calls during planning and no extra holdout
+  accesses. Confirm fallback if model is down.
+
+Integrate with the shared harness and gateway, not another agent loop.
+Deliver code, tests and a DEV plan validity comparison. No scheduler.

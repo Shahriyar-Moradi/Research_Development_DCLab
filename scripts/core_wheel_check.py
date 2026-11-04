@@ -158,6 +158,52 @@ curve = data_value.learning_curve(fy, list(StratifiedKFold(3, shuffle=True, rand
                                   lambda a, b: LogisticRegression().fit(fx[a], fy[a]).predict_proba(fx[b])[:, 1], roc_auc_score,
                                   metric="roc_auc", strata=fy, bootstrap=40)
 assert curve.answer in data_value.ANSWERS and not curve.holdout_read and data_value.DataValue.model_validate_json(curve.model_dump_json()) == curve
+# TP-01B: task contracts and both frozen schemas are usable from the installed wheel, without the agent runtime.
+from pathlib import Path
+from dclab_core.task_graph import TaskGraph
+from dclab_core.task_execution_plan import TaskExecutionPlan
+from dclab_core import schemas as task_schemas
+provenance = {"method": "deterministic", "reference_id": "wheel", "producer_version": "v1"}
+graph = TaskGraph.read({
+    "schema_version": "dclab_core.task_graph.v1", "graph_id": "churn", "revision": 1,
+    "objective": "Understand churn before retention action", "fingerprint": "a" * 64,
+    "workflow_fingerprint": "b" * 16, "solution_fingerprint": "c" * 64,
+    "source_refs": [{"kind": "problem_card", "id": "problem", "fingerprint": "d" * 16}],
+    "nodes": [{"id": "labels", "kind": "blocked", "title": "Resolve missing labels", "objective": "Confirm labels",
+               "blocker_reason": "Labels are missing"}], "provenance": provenance})
+task_plan = TaskExecutionPlan.read({
+    "schema_version": "dclab_core.task_execution_plan.v1", "graph_id": graph.graph_id, "graph_revision": graph.revision,
+    "graph_fingerprint": graph.fingerprint, "task_id": "labels", "plan_id": "labels_plan", "revision": 1,
+    "fingerprint": "e" * 64, "status": "blocked", "reason": "Labels are missing", "provenance": provenance})
+assert TaskGraph.read(graph.model_dump_json()) == graph
+assert TaskExecutionPlan.read(task_plan.model_dump_json()) == task_plan
+# TP-01C: pure helpers ship in the wheel, keep documents unchanged and refuse an unadmitted source.
+from dclab_core.task_fingerprints import graph_fingerprint, plan_fingerprint
+from dclab_core.task_validation import validate_graph, validate_execution_plan, ready_tasks
+original = graph.model_dump_json()
+graph_body = graph.model_dump(mode="json")
+graph_body["fingerprint"] = graph_fingerprint(graph_body)
+sealed_graph = TaskGraph.read(graph_body)
+assert graph.model_dump_json() == original
+assert graph_fingerprint(TaskGraph.read(sealed_graph.model_dump_json())) == sealed_graph.fingerprint
+plan_body = task_plan.model_dump(mode="json")
+plan_body["graph_fingerprint"] = sealed_graph.fingerprint
+plan_body["fingerprint"] = plan_fingerprint(plan_body)
+sealed_plan = TaskExecutionPlan.read(plan_body)
+assert plan_fingerprint(TaskExecutionPlan.read(sealed_plan.model_dump_json())) == sealed_plan.fingerprint
+assert validate_graph(sealed_graph), "A source-free proposal must be refused"
+assert validate_execution_plan(sealed_plan, sealed_graph, {}), "A plan cannot bypass source admission"
+try:
+    ready_tasks(sealed_graph, {})
+except ValueError:
+    pass
+else:
+    raise AssertionError("Readiness requires a current host snapshot")
+for name in ("task_graph", "task_execution_plan"):
+    current = json.loads((Path(dclab_core.__file__).parent / "schemas" / (name + ".json")).read_text())
+    baseline = json.loads((Path(dclab_core.__file__).parent / "schemas" / "baseline" / (task_schemas.version_of(name) + ".json")).read_text())
+    assert task_schemas.normalize(current) == baseline == task_schemas.normalize(task_schemas.generate()[name])
+assert "dclab_rnd" not in sys.modules
 def norm(name):
     return re.sub(r"[-_.]+", "-", name).lower()
 dists = sorted(f"{norm(d.metadata['Name'])}=={d.version}" for d in metadata.distributions())
@@ -187,6 +233,8 @@ print(json.dumps({
     "experience": event.kind,
     "lineage": run.fingerprint,
     "ledger": rec.point,
+    "task_contracts": [graph.schema_version, task_plan.schema_version],
+    "task_validation": "canonical roundtrips and unadmitted-source refusal passed",
 }))
 '''
 

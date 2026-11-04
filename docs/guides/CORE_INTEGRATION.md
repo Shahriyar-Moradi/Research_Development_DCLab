@@ -1303,3 +1303,51 @@ results (its experiment reviews, its gates) and keep the rows beside them. Nothi
 `bench.paired` (0.154.0) compares two arms on the same cases (both means, the signed difference with a bootstrap interval,
 wins, losses, ties, McNemar for yes/no): the main product can compare two of its own model versions on one evaluation set
 the same way. Nothing crosses.
+
+## Structural task proposals (TP-01B, dclab-core 0.156.0)
+
+Import `TaskGraph` from `dclab_core.task_graph` and `TaskExecutionPlan` from
+`dclab_core.task_execution_plan`. Each is an additive v1 contract with an explicit required `schema_version`, frozen
+nested models/tuples, bounded IDs/collections, metadata-only source/capability references and published schemas.
+Read persisted JSON with `.read`; schema validation alone does not replace the local Python cross-reference checks
+or the later semantic/authorization validator. Existing contracts and their schema versions are unchanged.
+
+The main-product field inventory has no TaskGraph or TaskExecutionPlan field. `adapters.conformance.CONTRACT_ADAPTERS`
+therefore lists both as library outputs with an explicit reason. There is no new mapping into ExperimentPlan or any
+other host contract. Do not persist a new property by guessing a name, and do not treat plan status `ready` as an
+execution grant. Adoption needs its own reviewed host field inventory, storage/revision semantics and governed API
+integration. This package changes neither the pinned inventory nor the existing adapter field/value outputs.
+
+A host may deserialize and inspect these proposals after pinning 0.156.0. Before future execution it must validate
+current source approval, source/fingerprint identity, edge semantics, actual tool/schema/scope authorization,
+declared artifact types/evidence, budget limits and original studio/programme guards. Unknown final completion
+remains blocked. No tool resolution, scheduling, model request, scoring, retry or database access is implemented in
+these contracts. TP-01C supplies separate pure graph/hash validators, described below. The workflow adapter remains
+the next package, TP-01D.
+
+## Pure task validation (TP-01C, dclab-core 0.157.0)
+
+The same TaskGraph and TaskExecutionPlan v1 documents now have separate pure validators in
+`dclab_core.task_validation` and identity helpers in `dclab_core.task_fingerprints`. A host supplies exactly one
+current SolutionWorkflow or SolutionMap, metadata extracted from its real capability registry, and its own
+authenticated observed state. No registry callbacks, database objects, table rows or model text belong in these
+snapshots. All current and historical contract schemas and adapter field mappings remain unchanged.
+
+Call `validate_graph(graph, source_workflow=..., known_capabilities=..., external_artifacts=...)` before accepting a
+graph. Use `source_solution_map=...` instead for an atomic complex programme. Call
+`ready_tasks(graph, observed_state, source_workflow=...)` to obtain at most one next action. It raises ValueError on
+malformed/stale identities or unverifiable receipts and returns an empty list for a blocked/in-flight/waiting graph.
+Call `validate_execution_plan(plan, graph, known_capabilities, source_workflow=..., observed_state=...)` before
+considering its intents. Both validation functions return issue strings; an empty list grants no runtime permission.
+
+An existing graph or plan whose computed identity differs is refused, never silently rewritten. A changed graph
+revision invalidates its old plans/receipts. Changed artifact hashes invalidate the current inputs and approvals
+even when the graph revision is unchanged. Any host integration needs durable attempt reconciliation before retry
+and atomic dispatch-time rechecks of current registry authorization, argument schemas, inputs, human approval,
+stop/spend controls, original graph/programme guards and the holdout counter. Validation alone cannot make a
+check and a later write atomic.
+
+The pinned main-product inventory still has no task fields. This is library-only functionality, so no adapter
+property is invented and no route/store is wired in this repository or the main product. TP-01D will build the
+deterministic workflow adapter separately. The exact snapshot format and pure/runtime boundary are documented in
+`docs/guides/TASK_VALIDATION_ACCEPTANCE.md`; manual test fixtures are examples, not a supported host adapter.

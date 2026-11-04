@@ -1,0 +1,151 @@
+{
+  "package": "TP-01A",
+  "title": "Map existing hierarchical planning and guarded execution boundaries",
+  "date": "2026-11-04",
+  "request": "Read the complete planning package and inspect the current DCLab repository. Complete TP-01A architecture and capability mapping only, without runtime or contract implementation or proceeding to TP-01B.",
+  "spec": "engineering/planning/TP_01A.txt; the current repository is authoritative. Deliver three guides, exact mandatory workflow and registry inventories, ownership and recovery decisions, a Telco binary design slice, acceptance gates and a verified handoff.",
+  "plan": [
+    "Read the README, master and every implementation prompt in order; inspect the current checkout and preserve unrelated work.",
+    "Trace planning contracts, engine and programme calls, registry guards, human gates, storage, checkpoints and evidence readback.",
+    "Produce a static source audit and readable guides; distinguish conceptual checks from physical stage actions.",
+    "Cross-check the inventory against runtime metadata without invoking handlers, run focused regressions and the package gate, and obtain adversarial review.",
+    "Record actual outcomes, update only the TP-01A tracker and stop with a TP-01B contract handoff."
+  ],
+  "decisions": [
+    {
+      "decision": "Keep TP-01A documentation and source investigation only.",
+      "why": "Its specific instructions forbid runtime and public contract changes. A missing-document precheck and metadata coverage checks are appropriate; a toy runtime implementation would exceed scope."
+    },
+    {
+      "decision": "Reuse SolutionTeam, Registry, studio graph and engine, atomic Programme, existing stores and checkpoints.",
+      "why": "They already own dispatch, human gates, science and persistence. Task planning must add evidence-backed structure without a parallel engine or database."
+    },
+    {
+      "decision": "Separate immutable structural graph revisions from mutable execution attempts and receipts.",
+      "why": "Checkpoint state and descriptive workflow steps do not prove a side effect completed. Recovery must compare current inputs with durable owner evidence."
+    },
+    {
+      "decision": "Treat shared conceptual steps as checks attached to one stage action.",
+      "why": "Data prepares the split and summaries, models chooses on validation, and final includes threshold and the protected score. Separate actions for each concept could duplicate fits or holdout reads."
+    },
+    {
+      "decision": "Require current approved source admission and block unknown final outcomes on the future opt-in path.",
+      "why": "Legacy optional approval flags and saved counters do not provide complete revision binding or a durable receipt after every crash boundary. Contracts may describe these blockers but cannot claim safe automatic retry."
+    }
+  ],
+  "change": "Added architecture, capability matrix and acceptance guides, an expanded static source audit, corrected the planning README paths and prepared a TP-01A progress handoff. No existing runtime or public contract was modified.",
+  "findings": [
+    {
+      "id": "paths",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The planning README pointed to a missing codex directory and a master filename that did not match the supplied files.",
+      "scenario": "A later session follows the documented path and cannot open the next package even though its prompt is present in the flat directory.",
+      "cause": "The delivered directory shape differed from the README example.",
+      "fix": "Updated README links and directory shape to the actual flat inputs instead of creating duplicate prompts.",
+      "test": "Documentation link and source existence checks pass after correcting the source references."
+    },
+    {
+      "id": "approval-gap",
+      "source": "self",
+      "severity": "gap",
+      "defect": "A mandatory workflow human gate is stronger than the unchanged legacy runtime defaults and legacy approvals lack complete current input binding.",
+      "scenario": "A future task runner treats a valid workflow or an unused older approval as current permission to execute final scoring.",
+      "cause": "Workflow validation, solution signature and execution permission are separate existing mechanisms.",
+      "fix": "Documented explicit approved-source admission and current revision binding as requirements before future dispatch; preserved legacy behavior.",
+      "test": "Existing graph regression tests and source review establish current behavior; new admission tests belong to the later dispatch package.",
+      "verdict": "open",
+      "open": "Later dispatch must implement revision-bound admission through the existing approval owner."
+    },
+    {
+      "id": "ambiguous-final",
+      "source": "self",
+      "severity": "latent",
+      "defect": "A crash after final scoring but before durable counter and evidence persistence can leave an ambiguous read outcome in unchanged execution code.",
+      "scenario": "A future resume path sees a failed stage and a zero saved count, retries final, and reads the protected holdout again.",
+      "cause": "Checkpoint, scientific effect and project counter writes are not one durable transaction or receipt protocol.",
+      "fix": "Recorded a mandatory unknown-outcome blocker and owner-level intent, receipt and reconciliation requirements for execution and recovery packages.",
+      "test": "Source inspection of engine and programme write ordering; no deliberate holdout crash run was performed in this design-only package.",
+      "verdict": "open",
+      "open": "Automatic final retry must remain blocked until the original execution owners expose sufficient durable proof."
+    },
+    {
+      "id": "split-proof",
+      "source": "self",
+      "severity": "gap",
+      "defect": "Normal tabular split evidence records source, settings and seed but does not persist a dedicated membership digest for every kind.",
+      "scenario": "A verifier claims immutable split membership from a descriptive lock step even though only reproducibility metadata is stored.",
+      "cause": "Workflow acceptance wording is stricter than the evidence available on some existing paths.",
+      "fix": "Documented evidence-specific limits and required blockers instead of asserting a guarantee or adding a second split action.",
+      "test": "Mandatory step inventory cross-checks actual producer fields and source references.",
+      "verdict": "open",
+      "open": "Later verification must obtain adequate split proof through its owner or block the strict criterion."
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Initial documentation acceptance",
+      "gate": "All three required TP-01A guide files must exist before acceptance.",
+      "result": "All three required guides were absent before this package.",
+      "verdict": "fail",
+      "next": "Create the guides and verify complete source-linked coverage."
+    },
+    {
+      "name": "Existing planning and guard regressions",
+      "gate": "The seven selected contract, workflow, mapping, graph and runtime test files must pass without live model calls.",
+      "result": "256 tests passed across seven files with no skips in 26.0 seconds.",
+      "verdict": "pass",
+      "limits": [
+        "Existing tests do not measure a task planner that has not been implemented."
+      ]
+    },
+    {
+      "name": "Source-linked architecture coverage",
+      "gate": "Every mandatory family-step pair and registered tool must match live metadata and every audited source hash must still match, without invoking any tool handler.",
+      "result": "105 mandatory pairs, 28 step IDs, 18 audit columns, 105 tools and 105 contracts matched; 54 audited source hashes and document links passed.",
+      "verdict": "pass",
+      "limits": [
+        "This checks the mapping against this checkout, not future execution effectiveness."
+      ]
+    },
+    {
+      "name": "Adversarial architecture review",
+      "gate": "The repository reviewer must find no unresolved correctness issue in the TP-01A mapping and authority boundaries.",
+      "result": "Reviewer independently matched the step, tool, source and contract inventories and returned PASS with no correctness findings.",
+      "verdict": "pass",
+      "limits": [
+        "Future runtime fixes and execution receipts have not been implemented."
+      ]
+    },
+    {
+      "name": "Existing adapter and execution-boundary regressions",
+      "gate": "All selected adapter, workflow readback, programme and SolutionTeam tests must pass offline without skips.",
+      "result": "104 tests passed across four files and 72 execution units in 274.5 seconds with no skips. The first sandbox attempt was blocked before execution by the local multiprocessing socket; the identical approved local run passed.",
+      "verdict": "pass",
+      "limits": [
+        "Fixture runs do not establish safe crash recovery for the new task layer."
+      ]
+    },
+    {
+      "name": "Repository package gate",
+      "gate": "make check-quick must pass applicable tests on file storage and PostgreSQL plus all freshness and evidence gates.",
+      "result": "23 tests on file storage and 10 tests on PostgreSQL passed without skips; all 10 rd-gates passed. Product flows were not reached by this documentation-only change.",
+      "verdict": "pass",
+      "limits": [
+        "Full rd-check, core wheel rebuild and comparative or sealed benchmarks were not run for this design-only package."
+      ]
+    }
+  ],
+  "outcome": "TP-01A complete: source coverage, 360 focused regression tests, the repository package gate and adversarial review passed. Only documentation, static audit and development trajectory/generated corpus changed. TP-01B remains unstarted and is ready for pure additive contract work; automatic execution remains blocked by the documented future receipt and approval requirements. A single reviewable commit is proposed; no commit or push was performed.",
+  "lessons": [
+    "Trace actual execution boundaries before translating descriptive workflow steps into actions.",
+    "A registry read label does not establish a pure planning operation.",
+    "Distinguish workflow validity, human approval, completed evidence and a safely retryable effect."
+  ],
+  "risks": [
+    "Repeated side effects if conceptual steps are mapped one-to-one to existing stage calls.",
+    "False completion from stale evidence or mutable checkpoint status.",
+    "Scope expansion into runtime work before the design package is accepted."
+  ],
+  "commits": []
+}
