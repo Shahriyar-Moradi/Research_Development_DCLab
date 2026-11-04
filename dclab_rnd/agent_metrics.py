@@ -33,8 +33,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
-from dclab_core import bench
-
 FILE = "agent_metrics.jsonl"
 RATES = ("request_ok", "output_check", "step_ok", "proposal_accepted", "feedback_helpful")  # metrics whose value is 1 or 0
 VERDICTS = ("eval_pass", "eval_unscored")
@@ -144,6 +142,8 @@ def eval_rows(results: Path) -> list[dict[str, Any]]:
             continue
         suite, ref = path.parent.parent.name, path.stem
         at = str(doc.get("at") or doc.get("created") or datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(timespec="seconds"))
+        from dclab_core import bench  # here, not at the top: the campaign agent's environment has no numpy, which dclab_core loads
+
         passed, verdict = bench.verdict_of(doc)  # every verdict shape; a dict verdict used to read as a failure
         base = {"at": at, "agent": suite, "source": "eval", "ref": ref, "n": 1, "model": None, "run": None, "prompt": None}
         if passed is not None:

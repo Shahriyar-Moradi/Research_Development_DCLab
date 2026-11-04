@@ -131,6 +131,16 @@
    "cause": "an ok at the start of a verdict was read as a pass",
    "fix": "an ok that records a baseline is not scored",
    "test": "tests/test_bench_core.py test_every_shape_the_suites_wrote"
+  },
+  {
+   "id": "F11",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The campaign agent's tests failed to load in their own environment",
+   "scenario": "the nightly full gate ran tests/test_agentic.py under .venv-agent and every test failed on a missing numpy",
+   "cause": "agent_metrics imported dclab_core at load time to read verdicts, and the package loads numpy, which the agent environment does not have",
+   "fix": "the import is made where verdicts are read, not when the module loads",
+   "test": "tests/test_agentic.py under .venv-agent"
   }
  ],
  "measurements": [
