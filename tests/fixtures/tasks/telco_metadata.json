@@ -1,0 +1,277 @@
+{
+  "fixture_note": "Authored project metadata based on SAMPLE_META.telco_churn. Dataset digest and human signoff are explicit test fixtures, not real file evidence or an approval made by the adapter.",
+  "project": {
+    "id": "telco_task_fixture",
+    "goal": "Predict which customers will churn, from their current account and billing fields.",
+    "solution": {
+      "target": "Churn",
+      "task": "binary",
+      "positive_label": "Yes",
+      "prediction_moment": "Before customer cancellation, using current account and billing fields.",
+      "forbidden": [],
+      "identifiers": [
+        "customerID"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "text_columns": [],
+      "metric": "roc_auc",
+      "notes": "",
+      "labels": "complete",
+      "label_provenance": "",
+      "alert_budget": null,
+      "kind": null,
+      "kind_fields": {},
+      "decision": null,
+      "spatial": null,
+      "label_source_column": null,
+      "confirmed_sources": [],
+      "capacity_k": null,
+      "capacity_period": null
+    },
+    "data": {
+      "sha256": "ede70ffff6ff73b86b3dadbb52e143e093877b91f7e6e6cf461fd8ba643108e1",
+      "columns": [
+        "customerID",
+        "tenure",
+        "MonthlyCharges",
+        "Churn"
+      ]
+    },
+    "signoff": {
+      "by": "fixture-person",
+      "at": "2026-11-05T00:00:00Z",
+      "solution_hash": "9be76dbc63731324"
+    },
+    "name": "Telco customer churn",
+    "industry": "telecom",
+    "settings": {
+      "max_rows": 20000,
+      "quick": false,
+      "share_for_training": false
+    }
+  },
+  "source_plan": {
+    "schema_version": "dclab_core.solution_plan.v1",
+    "task": "binary",
+    "decisions": [
+      {
+        "schema_version": "dclab_core.decision.v1",
+        "key": "metric.primary",
+        "choice": "roc_auc",
+        "reason": "Set in the project's solution and signed by fixture-person on 2026-11-05.",
+        "cites": [],
+        "alternatives": [],
+        "source": "person",
+        "status": "accepted"
+      },
+      {
+        "schema_version": "dclab_core.decision.v1",
+        "key": "features.identifiers",
+        "choice": [
+          "customerID"
+        ],
+        "reason": "Set in the project's solution and signed by fixture-person on 2026-11-05.",
+        "cites": [],
+        "alternatives": [],
+        "source": "person",
+        "status": "accepted"
+      },
+      {
+        "schema_version": "dclab_core.decision.v1",
+        "key": "target.positive_label",
+        "choice": "Yes",
+        "reason": "Set in the project's solution and signed by fixture-person on 2026-11-05.",
+        "cites": [],
+        "alternatives": [],
+        "source": "person",
+        "status": "accepted"
+      }
+    ],
+    "risks": [],
+    "would_change": []
+  },
+  "workflow": {
+    "schema_version": "dclab_core.solution_workflow.v1",
+    "family": "classification",
+    "steps": [
+      {
+        "id": "class_balance",
+        "block": "WF-03",
+        "name": "Keep the class balance",
+        "purpose": "Stratify the folds by the outcome.",
+        "inputs": [
+          "table"
+        ],
+        "outputs": [],
+        "decision": "split.strategy",
+        "check": "Each fold holds every class at its share",
+        "rule": "a fold without a class cannot score it",
+        "rests_on": [],
+        "columns": [],
+        "kind": "family",
+        "gate": false
+      },
+      {
+        "id": "lock_holdout",
+        "block": "WF-03",
+        "name": "Lock the holdout",
+        "purpose": "Set aside the rows the final score is read on, before any choice looks at the data.",
+        "inputs": [
+          "table"
+        ],
+        "outputs": [
+          "training rows",
+          "holdout"
+        ],
+        "decision": "split.strategy",
+        "check": "The holdout's rows are fixed and fingerprinted before any analysis or model",
+        "rule": "the holdout is used once",
+        "rests_on": [],
+        "columns": [],
+        "kind": "safety",
+        "gate": false
+      },
+      {
+        "id": "train_only_analysis",
+        "block": "WF-04",
+        "name": "Analyse the training rows",
+        "purpose": "Read the data for the decisions on the training rows only.",
+        "inputs": [
+          "training rows"
+        ],
+        "outputs": [
+          "findings"
+        ],
+        "decision": null,
+        "check": "Every finding about the target is computed on the training rows",
+        "rule": "no choice reads the holdout",
+        "rests_on": [],
+        "columns": [],
+        "kind": "safety",
+        "gate": false
+      },
+      {
+        "id": "leakage_audit",
+        "block": "WF-05",
+        "name": "Audit leakage",
+        "purpose": "Check every column against the prediction moment before any model sees it.",
+        "inputs": [
+          "training rows",
+          "findings"
+        ],
+        "outputs": [
+          "columns kept"
+        ],
+        "decision": "features.forbidden",
+        "check": "Each column kept is known at the prediction moment, each one dropped has its reason",
+        "rule": "a column written after the moment is never a feature",
+        "rests_on": [],
+        "columns": [],
+        "kind": "safety",
+        "gate": false
+      },
+      {
+        "id": "choose_on_validation",
+        "block": "WF-07",
+        "name": "Choose on validation",
+        "purpose": "Compare model families on the training rows' folds and choose.",
+        "inputs": [
+          "training rows",
+          "columns kept"
+        ],
+        "outputs": [
+          "chosen model"
+        ],
+        "decision": "model.families",
+        "check": "The choice is made on folds of the training rows, with each score's spread",
+        "rule": "the holdout never chooses",
+        "rests_on": [],
+        "columns": [],
+        "kind": "safety",
+        "gate": false
+      },
+      {
+        "id": "threshold",
+        "block": "WF-08",
+        "name": "Choose the operating point",
+        "purpose": "Pick the threshold from what an alert costs, on validation folds.",
+        "inputs": [
+          "training rows",
+          "chosen model"
+        ],
+        "outputs": [],
+        "decision": "threshold.policy",
+        "check": "The threshold is chosen on the training rows' folds",
+        "rule": "the holdout never chooses",
+        "rests_on": [],
+        "columns": [],
+        "kind": "family",
+        "gate": false
+      },
+      {
+        "id": "holdout_gate",
+        "block": "WF-09",
+        "name": "The holdout gate",
+        "purpose": "A person signs that the solution is final before the holdout is read.",
+        "inputs": [
+          "chosen model"
+        ],
+        "outputs": [
+          "approval"
+        ],
+        "decision": null,
+        "check": "The approval is recorded before the final score",
+        "rule": "a person decides when the holdout is spent",
+        "rests_on": [],
+        "columns": [],
+        "kind": "safety",
+        "gate": true
+      },
+      {
+        "id": "final_once",
+        "block": "WF-09",
+        "name": "Score the holdout once",
+        "purpose": "Read the holdout once, with an interval.",
+        "inputs": [
+          "chosen model",
+          "holdout",
+          "approval"
+        ],
+        "outputs": [
+          "holdout score"
+        ],
+        "decision": "metric.primary",
+        "check": "The holdout is read once; a second read needs a person's reason and is flagged",
+        "rule": "the holdout is used once",
+        "rests_on": [],
+        "columns": [],
+        "kind": "safety",
+        "gate": false
+      },
+      {
+        "id": "report_limits",
+        "block": "WF-10",
+        "name": "Report with limits",
+        "purpose": "Say the score with its uncertainty and what it does not show.",
+        "inputs": [
+          "holdout score",
+          "findings"
+        ],
+        "outputs": [
+          "report"
+        ],
+        "decision": "risk.check",
+        "check": "Every number traces to its record; never called production-ready from benchmark evidence",
+        "rule": "report results with uncertainty and limits",
+        "rests_on": [],
+        "columns": [],
+        "kind": "safety",
+        "gate": false
+      }
+    ],
+    "findings_used": [],
+    "source": "template",
+    "problems": []
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "package": "TP-01E",
+  "title": "Verify and close the task planning foundation",
+  "date": "2026-11-05",
+  "request": "Continue TP-01E only: verify the complete hierarchical planning foundation, repair gate-required issues, and decide whether the model-proposal package may begin.",
+  "spec": "engineering/planning/TP_01E.txt and all nine items in the master TP-01 acceptance checklist. No task execution, model purpose, UI or default rollout.",
+  "plan": [
+    "Recheck the current source inventories and portable contract boundary.",
+    "Exercise the actual lean agent environment and prevent eager ML imports.",
+    "Strengthen adapter zero-call evidence and verify it detects swallowed runtime attempts.",
+    "Run the installed wheel, schemas, existing compatibility regressions and provisioned package/milestone gates.",
+    "Obtain independent review, record exact results and publish validated development-corpus output."
+  ],
+  "decisions": [
+    {
+      "decision": "Retain the already-lazy agent_metrics import rather than refactoring it.",
+      "why": "The observed historical regression was already fixed; only a missing regression test needed work."
+    },
+    {
+      "decision": "Use fresh subprocesses with an import blocker in both Python environments.",
+      "why": "The suite preloads ML modules before forking; an ordinary in-process test could hide an accidental eager import."
+    },
+    {
+      "decision": "Assert zero calls on actual stored registry handlers and runtime owners, in addition to raising on invocation.",
+      "why": "A caught exception or blocked fallback could conceal a forbidden planning side effect."
+    },
+    {
+      "decision": "Keep every item in the actual nine-row master checklist.",
+      "why": "The E prompt says seven items but the supplied master actually lists nine; dropping two would weaken acceptance."
+    },
+    {
+      "decision": "Keep scientific owners, schemas, public contract versions and app defaults unchanged.",
+      "why": "This is foundation verification, not another execution or orchestration implementation."
+    }
+  ],
+  "change": "Adds two import-boundary tests and strengthens two adapter purity tests. Documents combined architecture, ownership, contract identities and honest gate results. Production code is unchanged in TP-01E.",
+  "findings": [
+    {
+      "id": "purity-spy-blind-spot",
+      "source": "self",
+      "severity": "latent",
+      "defect": "Existing adapter purity tests could miss a forbidden call if its raised exception was caught.",
+      "scenario": "A metadata helper attempted a project write, caught the test spy exception and continued to return a mapped graph.",
+      "cause": "The original tests installed raising spies but discarded the mapping result and did not assert zero calls.",
+      "fix": "Require mapped output and valid graph, spy stored handlers, registry, guards, both storage writers, table and holdout owners and gateway, and assert every call count is zero.",
+      "test": "A controlled swallowed-write fault now makes the strengthened purity test fail as expected; unmodified source passes all forty-one adapter tests."
+    },
+    {
+      "id": "lean-import-regression-coverage",
+      "source": "test",
+      "severity": "gap",
+      "defect": "There was no fresh-process regression test preventing the historical eager core import in the lean harness.",
+      "scenario": "A future top-level core import in agent_metrics would load unavailable ML libraries in the separate campaign environment, while preloaded suite workers might conceal it.",
+      "cause": "The production import was already lazy but the lean separation lacked explicit negative-control coverage.",
+      "fix": "Add subprocess tests that forbid even attempted core and ML imports while importing the harness and using in-memory metrics.",
+      "test": "Two tests passed in both provided environments. Deliberate eager core, numpy and sklearn imports fail with the blocker marker."
+    },
+    {
+      "id": "checklist-wording",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The E prompt describes seven checklist items, but the master contains nine.",
+      "scenario": "A literal seven-row report would omit honest regression reporting and the final readiness decision.",
+      "cause": "The prompt count is inconsistent with its referenced checklist.",
+      "fix": "Preserve all nine master items and explain the discrepancy in the report.",
+      "test": "Manual source comparison confirms all nine criteria appear in the acceptance table."
+    },
+    {
+      "id": "runner-invocation",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The initial focused command used tests-directory paths that the current runner does not accept.",
+      "scenario": "The runner rejected all requested names before collecting any tests.",
+      "cause": "The current runner expects file basenames, optionally without the Python suffix.",
+      "fix": "Read the current runner parser and rerun with its accepted basename format.",
+      "test": "The rejected command ran no tests; corrected focused results are recorded separately."
+    },
+    {
+      "id": "workflow-run-ownership",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The drafted report grouped WorkflowRun with owners of mutable execution state.",
+      "scenario": "A reader could treat its derived report-done status as proof that a physical export was produced.",
+      "cause": "The report grouped an evidence readback contract with orchestration and checkpoint controllers.",
+      "fix": "Document WorkflowRun separately as derived readback and retain stage/programme records, jobs and orchestration/checkpoints as mutable owners.",
+      "test": "The reviewer checked the current builder and confirmed that the corrected report resolves the finding; no production source change was needed."
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Adapter and import boundary",
+      "gate": "Every focused adapter and new boundary test must execute successfully.",
+      "result": "43 tests passed in 3.685 seconds; no skips.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Actual lean import boundary",
+      "gate": "The harness and metrics must work in the provided environment without ML dependencies or attempted eager core imports.",
+      "result": "2 tests passed in 0.843 seconds on Python 3.13.7 without numpy, pandas or sklearn. The same 2 tests passed in the ML environment.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Deliberate swallowed-write negative control",
+      "gate": "An attempted forbidden call must be detected even if the adapter dependency catches its exception.",
+      "result": "The controlled test failed on the zero-call assertion as expected. No real project store was accessed.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Lean offline campaign suite",
+      "gate": "Scripted campaign tests must run in their actual provided environment without live models.",
+      "result": "12 passed, 1 skipped in 15.61 seconds; the server test requires pandas and is not claimed passed in the lean environment.",
+      "verdict": "pass",
+      "limits": [
+        "One existing Starlette deprecation warning; product-server coverage belongs to the ML suite."
+      ]
+    },
+    {
+      "name": "Installed core wheel and frozen schemas",
+      "gate": "The cached isolated wheel must expose both contracts with only the declared direct dependencies; schema generation must not alter any released file.",
+      "result": "Core 0.157.0 passed on Python 3.12.13 with both task contracts, hash/admission smoke and no unexpected distribution. All 262 schemas remained unchanged; 107 contracts loaded through the schema registry.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Independent interim source review",
+      "gate": "The required adversarial reviewer must find no unresolved correctness issue in the E test changes.",
+      "result": "Reviewer reported no actionable finding and independently passed 43 ML-environment and 2 lean tests. Broad gate/report review is pending.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Focused foundation compatibility",
+      "gate": "New contracts, validator, adapter and existing workflow, Programme, orchestration, graph, harness, intern, Home, storage and experience checks must all pass.",
+      "result": "370 tests passed in 15 files and 40 units in 306.5 seconds with no skips.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Required package gate",
+      "gate": "Affected file and PostgreSQL tests, all ten freshness/evidence gates and all five offline product flows must pass.",
+      "result": "make check-quick JOBS=3 passed: 266 file tests in 23 files in 143.0 seconds with one existing NOOA skip; 96 PostgreSQL tests in six files in 67.4 seconds, no skips; ten gates and five flows all passed.",
+      "verdict": "pass",
+      "limits": [
+        "The NOOA path passed separately in its actual lean environment; no live model or real sealed benchmark was run."
+      ]
+    },
+    {
+      "name": "Interim development corpus publication",
+      "gate": "All generated JSON and JSONL bytes must parse with no NULs and remain fresh against the current trajectory records.",
+      "result": "Five staged generator outputs parsed and retained their hashes after atomic publication; four devlog tests passed in 5.488 seconds.",
+      "verdict": "pass",
+      "limits": [
+        "Final milestone record changes require another generation and freshness check."
+      ]
+    },
+    {
+      "name": "Source inventory recheck",
+      "gate": "Every previously mapped canonical registry tool and mandatory family/step pair must still match current sources.",
+      "result": "All 105 tool identities, descriptions, schemas, aliases, scopes, effects and moves match the architecture audit; all 105 mandatory family/step pairs match current builders.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Lean offline evaluation graders",
+      "gate": "The grader tests skipped in the ML environment must run in the provided lean environment without a model request.",
+      "result": "All 3 pure supplied-answer grader tests passed in 0.001 seconds with no skips; no live evaluation or model call occurred.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Complete foundation milestone gate",
+      "gate": "The full file and PostgreSQL suites, ten evidence/freshness gates, offline campaign tests and all five product flows must pass.",
+      "result": "make check-all JOBS=3 passed. File suite: 5348 tests across 465 files and 529 units in 6470.3 seconds, 14 existing skips, zero failures. Nested make test-pg: 5350 tests across 465 files and 728 units in 2892.6 seconds, 11 existing skips, zero failures. All ten gates and five flows passed; the nested lean campaign suite passed 12 tests with one server-only skip in 9.06 seconds. Stored run records both report success and zero signal retries.",
+      "verdict": "pass",
+      "limits": [
+        "No new task or import-boundary test skipped.",
+        "File-mode PostgreSQL skips were covered by the actual PostgreSQL run; PostgreSQL-mode file-lock and file-store route skips were covered by the file run.",
+        "Two NOOA wrappers were run separately in the lean environment; the optional wheel wrapper was covered by the real installed-wheel check.",
+        "Three absent notebook-manifest cases and three absent legacy-module wrappers remain pre-existing repository gaps, not claimed passed.",
+        "Every rd-check component and the actual nested test-pg target ran inside check-all; standalone duplicate commands were not repeated.",
+        "Elapsed time reflects this machine, not a product or planner performance measurement. No live model, real sealed benchmark or external API ran."
+      ]
+    },
+    {
+      "name": "Final independent foundation review",
+      "gate": "The final reviewer must confirm source correctness, all nine checklist items, exact gate results, classified skips and the bounded TP-02 handoff.",
+      "result": "Reviewer PASS with no correctness finding. Both stored broad-run results, skip counts and reasons match the report. All nine items are covered; the WorkflowRun correction is retained and no runtime execution is authorized. Completion corpus freshness is the remaining publication check.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Reviewed completion corpus refresh",
+      "gate": "After the final review, all five generator outputs must parse without NUL bytes, preserve their hashes on publication and pass all four record/freshness tests.",
+      "result": "All five staged generator outputs parsed and retained their hashes after each atomic replacement. All four devlog validation and freshness tests passed in 3.860 seconds with no skips.",
+      "verdict": "pass",
+      "limits": [
+        "The origin of the prior package's generated-file damage remains unconfirmed; this package uses the existing supported generator with validated staged output."
+      ]
+    },
+    {
+      "name": "Final foundation acceptance",
+      "gate": "Focused compatibility, complete package/milestone gates, final review and corpus freshness must all pass before completion.",
+      "result": "All nine TP-01 checklist criteria are satisfied: source and ownership mapping, frozen contracts, pure safety validation and fingerprints, nonexecuting binary adapter, lean compatibility, complete applicable gates and honest skips, final reviewed report and verified development corpus.",
+      "verdict": "pass"
+    }
+  ],
+  "outcome": "TP-01E complete. The whole TP-01 architecture/contracts/validation/metadata-adapter foundation is verified. The full file suite ran 5348 tests with 14 existing skips; PostgreSQL ran 5350 with 11 existing skips; no failures or new skipped tests. Focused, package, schema, isolated wheel, actual lean environment and final independent review checks pass. Reviewed records were regenerated through validated staged output and all four corpus checks passed; the final record is regenerated and checked again before publication. Core 0.157.0, runtime owners, model purposes, dependencies, Home/Lead Agent behavior and defaults are unchanged. TP-02 may begin as a separate proposal-only package and has not started. Execution, durable recovery, runtime identity/approval checks and full measured evidence remain later work. The unrelated store catalog edit is preserved.",
+  "lessons": [
+    "A raising test spy is insufficient when application code may catch exceptions; assert the call count.",
+    "Use fresh interpreters for import-boundary tests in a suite that preloads libraries before forking.",
+    "Do not duplicate a historical fix that is already present in the current source.",
+    "Read the actual checklist rather than trusting an inconsistent item count."
+  ],
+  "risks": [
+    "A mapped graph could be mistaken for execution permission or completed evidence.",
+    "Lean imports could accidentally acquire ML dependencies.",
+    "Incomplete reporting could hide skipped or failed environment checks.",
+    "The prior generated-corpus byte damage has an unconfirmed origin; validate staged generator output before publishing."
+  ],
+  "commits": []
+}

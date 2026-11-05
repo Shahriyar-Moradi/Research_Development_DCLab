@@ -51,8 +51,8 @@ engineering/planning/
 | TP-01A | Architecture and capability mapping | Complete — source coverage, 360 focused tests, check-quick and adversarial review passed (2026-11-04) |
 | TP-01B | Task contracts and frozen schemas | Complete — core 0.156.0, 23 new tests, schema/wheel/compatibility checks, check-quick and review passed (2026-11-04) |
 | TP-01C | Graph validation and fingerprints | Complete — core 0.157.0, 40 new tests, unchanged schemas, wheel/review and full check-quick passed (2026-11-04) |
-| TP-01D | Deterministic workflow adapter | Not started |
-| TP-01E | Regression tests and foundation acceptance | Not started |
+| TP-01D | Deterministic workflow adapter | Complete — 41 new tests, generated Telco preview, wheel/compatibility and applicable check-quick/review passed; corpus freshness repaired and verified (2026-11-05) |
+| TP-01E | Regression tests and foundation acceptance | Complete — all nine criteria satisfied; full check-all (5,348 file / 5,350 PostgreSQL tests), final review and completion corpus checks passed; existing skips documented (2026-11-05) |
 | TP-02 | Model-assisted task decomposition | Not started |
 | TP-03 | Task-level execution planning | Not started |
 | TP-04 | Guarded execution and task progression | Not started |
@@ -69,7 +69,7 @@ Update this table only when implementation and required validation are complete.
 - [Acceptance, actual verification and next-package handoff](../../docs/guides/TASK_PLANNING_ACCEPTANCE.md)
 - [Expanded source audit](TP_01A_EVIDENCE.json): all mandatory family/step pairs and exact registry schemas at the reviewed commit.
 
-The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B and TP-01C are complete; TP-01D and later packages have not started.
+The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 and later packages have not started.
 
 ## TP-01B contracts and verification
 
@@ -87,6 +87,27 @@ and runtime limits. TP-01D is ready for a separate session.
 The owner requested committing and pushing all changes on 2026-11-05, including repository agent instructions.
 The required full `make rd-check JOBS=3` passed: 5,305 tests across 463 files, 14 existing skips, no failures, and all
 10 evidence/freshness gates. This commit verification is separate from each package's recorded acceptance results.
+
+## TP-01D workflow preview
+
+[Binary workflow adapter acceptance](../../docs/guides/TASK_ADAPTER_ACCEPTANCE.md) records the source/stage mapping,
+the metadata-only Python API, the Telco example, unsupported inputs, review fixes and actual verification results.
+The adapter generates a task preview only. No product route, UI, workflow execution or approval writer is added.
+Verification passed: 41 new adapter tests, 104 combined foundation tests, 249 focused compatibility tests, isolated
+core wheel, unchanged schemas and final independent review. Applicable check-quick passed 264 file tests (one
+existing NOOA skip), 55 PostgreSQL tests, all 10 gates and all five product flows. The adapter does not execute tasks.
+TP-01E now verifies the combined foundation; it adds no task execution or product rollout.
+
+## TP-01E foundation acceptance
+
+[Foundation acceptance report](../../docs/guides/TASK_PLANNING_TP01_REPORT.md) records all nine master checklist
+items, the current ownership and execution boundaries, schema/wheel compatibility, actual offline and lean tests,
+skip reasons and outstanding runtime limits. All nine criteria are satisfied. Full check-all passed: 5,348 file
+tests (14 existing skips) and 5,350 PostgreSQL tests (11 existing skips), all ten gates and all five product flows.
+The real lean agent/import tests, installed core wheel, frozen schemas, final independent review and all four
+completion-corpus validation/freshness checks passed. No task or new boundary test skipped. Core remains 0.157.0;
+Home, Lead Agent and execution defaults are unchanged. TP-02 may begin as a separate proposal-only package and
+has not started. Task execution, durable recovery and rollout remain later work.
 
 ## Implementation rules
 

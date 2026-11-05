@@ -1,0 +1,236 @@
+{
+  "package": "TP-01D",
+  "title": "Metadata-only binary workflow to guarded task preview",
+  "date": "2026-11-05",
+  "request": "Continue with TP-01D only: convert a validated basic binary classification workflow into an accurate, non-executing TaskGraph using existing source plans, project metadata and registered capabilities.",
+  "spec": "engineering/planning/TP_01D.txt and the hierarchical planning master package; no new ML computation, project writes, approvals, UI, runtime defaults or later package implementation.",
+  "plan": [
+    "Inspect current source owners and reuse the prior contracts, validators and registry.",
+    "Write failing adapter and safety tests; author a clearly labelled Telco metadata fixture.",
+    "Compile exact source coverage into existing physical stages and a separate human gate.",
+    "Bind source, project, dataset, capability and execution-context identities without copying values.",
+    "Run adversarial review, fix reproduced findings, deliver a generated preview and documentation.",
+    "Verify focused compatibility and applicable package gates before completion."
+  ],
+  "decisions": [
+    {
+      "decision": "Keep the adapter in dclab_rnd.tasks and reuse unchanged core contracts and validators.",
+      "why": "This compiler binds R&D-specific project and registry metadata; putting host dependencies in the portable core would violate its dependency boundary."
+    },
+    {
+      "decision": "Accept supplied metadata and a detached capability snapshot, never a store or runtime context.",
+      "why": "Planning must not load raw tables, fit, call tools or models, save a project or create human approvals."
+    },
+    {
+      "decision": "Read canonical registry schemas and require an explicit host allowlist and project guard.",
+      "why": "Registry membership is not permission; copied local schemas or aliases could invent an unsupported execution path."
+    },
+    {
+      "decision": "Use one data action for class balance, holdout lock and training analysis; one final action for threshold selection and final evaluation.",
+      "why": "These are the existing physical owners. Splitting them would duplicate training or holdout effects."
+    },
+    {
+      "decision": "Retain the required features action with no invented source step.",
+      "why": "The studio engine needs that stage even though the abstract classification workflow has no generic feature step."
+    },
+    {
+      "decision": "Support the real portable plan projection and block extra unadopted solver decisions.",
+      "why": "The engine does not implement every portable plan choice; it consumes saved threshold and label policies narrowly. A proposal cannot silently change the owner or claim adoption."
+    },
+    {
+      "decision": "Preserve the signed Solution hash and add an independent execution-context digest.",
+      "why": "Human signature compatibility must remain intact, while sampling, packs, recipes and other actual execution inputs must invalidate stale graph identities."
+    },
+    {
+      "decision": "Use actual ProblemCard identity and existing final record paths.",
+      "why": "Opaque references must name the right source type and evidence fields must exist on their declared owner."
+    },
+    {
+      "decision": "Return no graph when essential identity is absent; otherwise retain explicit blocked task diagnostics.",
+      "why": "Inventing a dataset hash, capability or approval is unsafe. A blocked diagnostic graph is not admitted for readiness and preserves current core rejection rules."
+    },
+    {
+      "decision": "Use authored Telco metadata with explicitly synthetic digests and signoff.",
+      "why": "It proves current builder/registry/contract integration without implying that a real table was opened or a real approval granted."
+    }
+  ],
+  "change": "Adds the host adapter and registry snapshot helper, forty-one adapter tests, authored Telco metadata and an adapter-generated task preview. Documents exact source mapping, input identities, conservative unsupported scope and future runtime verification. Core remains 0.157.0 with the same contracts and schemas.",
+  "findings": [
+    {
+      "id": "missing-adapter",
+      "source": "test",
+      "defect": "No supported workflow-to-task adapter existed in the current checkout.",
+      "scenario": "The first positive and failure-path suite could not import dclab_rnd.tasks.",
+      "cause": "Prior packages intentionally stopped at contracts and pure validation.",
+      "fix": "Add a metadata-only compiler with exact stage ownership and explicit blockers.",
+      "test": "Initial suite failed with ModuleNotFoundError; positive source builder and real registry tests now pass.",
+      "severity": "gap"
+    },
+    {
+      "id": "runtime-plan-identity",
+      "source": "test",
+      "defect": "The first draft could compile a supplied plan while the saved runtime plan contained different threshold policies.",
+      "scenario": "A signed Solution stayed unchanged but project.plan added an expected-cost threshold policy unseen by the supplied source plan.",
+      "cause": "The existing signature covers Solution fields only; the first draft did not bind the separately consumed runtime plan.",
+      "fix": "Require exact source/runtime plan identity when present, retain its source hash, and block unadopted choices.",
+      "test": "The saved runtime-plan mismatch test failed before the change and now blocks all actions.",
+      "severity": "behaviour"
+    },
+    {
+      "id": "logical-artifact-links",
+      "source": "test",
+      "defect": "Initial mapping copied logical artifact names without linking them to existing owner records.",
+      "scenario": "A final step consumed the logical holdout without an explicit data_record reference in the mapping report.",
+      "cause": "Only node-level lineage was initially represented.",
+      "fix": "Add input/output artifact references without inventing separate training/holdout files or outputs for steps that declare none.",
+      "test": "Source artifact mapping tests failed on missing keys and now verify every required role.",
+      "severity": "gap"
+    },
+    {
+      "id": "schema-reference-io",
+      "source": "self",
+      "defect": "Generic JSON Schema validation could implicitly fetch a referenced remote or local schema.",
+      "scenario": "A capability parameter used a remote or file reference during a supposedly non-executing preview.",
+      "cause": "The installed validator supports automatic reference retrieval.",
+      "fix": "Block all schema references before validation rather than allowing resolver I/O.",
+      "test": "A red test with a mocked retrieval function reproduced resolution; current tests verify zero retrieval attempts and blocked operations.",
+      "severity": "privacy"
+    },
+    {
+      "id": "execution-context-identity",
+      "source": "reviewer",
+      "defect": "Sampling settings, effective pack and other owner-consumed context were absent from the graph identity.",
+      "scenario": "Changing quick/max_rows or an imbalanced pack initially retained the same mapped graph hash.",
+      "cause": "The first adapter bound Solution and dataset but overlooked separate preparation, recipe, threshold and disclosure inputs.",
+      "fix": "Hash an explicit metadata projection as a separate execution-context source and required input. Resolve the actual kind; block nonbasic programmes, splits, tables and unclassified sensitivity rather than reading values.",
+      "test": "Reviewer-context regressions failed before the change. Settings, pack fallback, feature programs, plan, brief, exposure, adopted changes, proposal modifiers, categorical and sensitivity metadata now affect identity or block appropriately.",
+      "severity": "latent"
+    },
+    {
+      "id": "wrong-problem-reference",
+      "source": "reviewer",
+      "defect": "A ProblemBrief digest was labelled as a ProblemCard source reference.",
+      "scenario": "Reading the referenced document as ProblemCard failed its contract.",
+      "cause": "The adapter reused the brief helper but labelled it with the available card reference kind.",
+      "fix": "Build the actual pure ProblemCard from the supplied brief metadata and hash that contract.",
+      "test": "A red test compared the source against the real ProblemCard reader and now passes.",
+      "severity": "behaviour"
+    },
+    {
+      "id": "wrong-final-evidence",
+      "source": "reviewer",
+      "defect": "The first mapping named a metrics field that does not exist on actual final stage records.",
+      "scenario": "A verifier following the suggested final evidence path would find no field.",
+      "cause": "Generic metric terminology was used instead of the existing record schema.",
+      "fix": "Use evidence.holdout_metrics, holdout_primary_metric_ci, holdout_consumed, holdout_uses_in_this_project and run.",
+      "test": "Final evidence path regression failed before the correction and now checks real field names.",
+      "severity": "behaviour"
+    },
+    {
+      "id": "implicit-settings-default",
+      "source": "self",
+      "defect": "A caller could omit execution settings and still receive a mapped preview.",
+      "scenario": "A sparse metadata projection hid the actual sampling/fold settings.",
+      "cause": "The first context projection hashed missing values without requiring the current settings object.",
+      "fix": "Require current settings metadata and block instead of guessing defaults; the fixture uses current pure project defaults.",
+      "test": "The dedicated missing-settings red test failed before the guard and now blocks all actions.",
+      "severity": "latent"
+    },
+    {
+      "id": "test-source-enum",
+      "source": "test",
+      "defect": "One new test used a Decision.source value outside the existing contract.",
+      "scenario": "The self-confirmation test failed during construction before reaching adapter logic.",
+      "cause": "The test used model instead of the existing advisor source enum.",
+      "fix": "Correct the fixture to the current advisor enum, without changing the contract or weakening the assertion.",
+      "test": "The corrected test reaches the adapter and confirms that model acceptance cannot replace human signoff.",
+      "severity": "behaviour"
+    },
+    {
+      "id": "completion-corpus-damage",
+      "source": "test",
+      "defect": "Final regeneration damaged a generated training file with embedded NUL bytes, causing the development-corpus freshness check to fail.",
+      "scenario": "After make sft-dev exited successfully, train.chat.jsonl contained NUL bytes and differed from a clean build.",
+      "cause": "The producer of the byte damage was not established. The same class of generated-file damage had previously occurred before this adapter package; no adapter source test failed.",
+      "fix": "Run the existing devlog generator with its supported --out option in a separate temporary directory, validate every JSON/JSONL file, then atomically replace the published generated files and rerun freshness tests.",
+      "test": "The initial completion refresh ran four tests with one freshness failure. Rebuilding with the supported --out generator, validating all five files and atomically publishing them passed all four tests in 3.893 seconds; all files contained zero NUL bytes.",
+      "severity": "flaky",
+      "open": "The process that introduced the file damage remains unconfirmed; source generator behavior is outside this adapter package."
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Combined adapter and task foundation suite",
+      "gate": "All new adapter tests and existing task contract/validator tests must execute and pass without skipped new cases.",
+      "result": "104 tests ran in 5.992 seconds and passed: forty-one adapter tests and sixty-three existing task tests.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Final independent package review",
+      "gate": "No unresolved correctness finding in final source, metadata fixtures, published preview or documentation; final source tests must pass independently.",
+      "result": "Reviewer PASS after fixing all three source findings. Independent final run: 104 tests passed. The settings guard and generated preview were verified. Documentation scope and pending gate claims were accurate.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Focused compatibility suite",
+      "gate": "Adapter, task foundation, portable contracts/plans, main-product adapter/conformance, source workflow/map and development-record tests must all pass.",
+      "result": "249 tests ran across eleven files in 17.8 seconds, with no skips or failures.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Installed portable core wheel",
+      "gate": "The unchanged core must still install and execute in isolated Python with only declared dependencies, independent of the new host module.",
+      "result": "Core 0.157.0 passed on Python 3.12.13 with four direct dependencies, no unexpected distributions, task contract/hash smoke coverage and no host runtime import.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Frozen schema compatibility",
+      "gate": "No existing contract, current schema, historical baseline or registration count may change.",
+      "result": "All 262 schema files were byte-identical to HEAD and registry count remained 107. No core Python contract file was changed.",
+      "verdict": "pass"
+    },
+    {
+      "name": "Complete applicable package gate",
+      "gate": "The repository-selected affected file and PostgreSQL regressions, all evidence/freshness gates and all product flows must pass before completion.",
+      "result": "make check-quick JOBS=3 passed. File backend: 264 tests in 22 files/units in 100.6 seconds, one existing NOOA skip. PostgreSQL: 55 tests in five files/units in 37.9 seconds, no skips. All ten gates and all five product flows passed. No new adapter test skipped. Preflight rd-gates also passed.",
+      "verdict": "pass",
+      "limits": [
+        "The existing skipped NOOA module belongs to the isolated agent environment and is not claimed passed.",
+        "This package validates metadata planning only. No live-model or sealed benchmark run, new task persistence backend, runtime dispatch or product rollout was performed.",
+        "Runtime still owns ambient code/runner/routing identity, authenticated approvals, current bytes, attempts, concurrency, budgets and scientific guards."
+      ]
+    },
+    {
+      "name": "Initial completion corpus refresh",
+      "gate": "Completion records and generated development corpus must match the existing generator exactly, with all four validation/freshness tests passing.",
+      "result": "Four tests ran in 4.612 seconds; one freshness test failed on embedded NUL bytes in train.chat.jsonl after make sft-dev.",
+      "verdict": "fail",
+      "next": "Rebuild through the existing --out generator in a temporary directory, publish validated files atomically and rerun freshness."
+    },
+    {
+      "name": "Staged completion corpus repair",
+      "gate": "Rebuilt files must parse as valid JSON/JSONL without NUL bytes, preserve generator bytes through atomic publication, and pass all four development-record/freshness tests.",
+      "result": "All five generator files parsed, contained zero NUL bytes and retained their verified hashes after atomic replacement. All four development-record/freshness tests passed in 3.893 seconds.",
+      "verdict": "pass",
+      "limits": [
+        "The process that introduced the earlier file damage remains unconfirmed. This repair publishes exact generator output and does not change the generator or adapter source."
+      ]
+    }
+  ],
+  "outcome": "TP-01D complete: the basic binary metadata adapter produces an accurate non-executing TaskGraph and mapping report using existing owners and real registry metadata. Forty-one adapter tests, 104 combined foundation tests, 249 focused compatibility tests, installed core wheel, unchanged schemas, final review and full applicable check-quick gate pass. The final generated-corpus corruption was repaired by staged generator output and verified atomic publication; all four freshness tests then passed. The damage origin remains unconfirmed. Core contracts, runtime owners, model purposes and app defaults are unchanged. TP-01E is ready for a separate package and has not started. Changes remain uncommitted with one proposed review commit. The unrelated pre-existing store catalog edit is preserved.",
+  "lessons": [
+    "A signed Solution is not a signature over every separately stored threshold or execution policy.",
+    "Graph identity must include every supplied input that changes preparation, recipes or disclosure.",
+    "Do not let schema validation perform network or file resolution during planning.",
+    "Source references must match the actual contract type, and evidence paths must match real records.",
+    "Expected evidence and artifact declarations are obligations, not proof that work was done.",
+    "Keep blocked diagnostics visibly distinct from an admitted graph and from execution permission."
+  ],
+  "risks": [
+    "A planner could mistake tool membership for permission or a mapped graph for completion.",
+    "Splitting existing atomic engine stages could duplicate the holdout read.",
+    "Incomplete source fingerprints could allow stale settings or policies to reuse old plans.",
+    "Opaque metadata could accidentally copy table previews or imply nonexistent evidence."
+  ],
+  "commits": []
+}

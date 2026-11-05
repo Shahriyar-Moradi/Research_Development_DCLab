@@ -1348,6 +1348,38 @@ stop/spend controls, original graph/programme guards and the holdout counter. Va
 check and a later write atomic.
 
 The pinned main-product inventory still has no task fields. This is library-only functionality, so no adapter
-property is invented and no route/store is wired in this repository or the main product. TP-01D will build the
-deterministic workflow adapter separately. The exact snapshot format and pure/runtime boundary are documented in
-`docs/guides/TASK_VALIDATION_ACCEPTANCE.md`; manual test fixtures are examples, not a supported host adapter.
+property is invented and no route/store is wired in this repository or the main product. The exact snapshot format
+and pure/runtime boundary are documented in `docs/guides/TASK_VALIDATION_ACCEPTANCE.md`. The TP-01D host adapter
+below supplies the first supported source conversion.
+
+## Binary workflow preview in the R&D host (TP-01D)
+
+`dclab_rnd.tasks.adapter.adapt_workflow(workflow, source_plan, project_metadata, capabilities=..., revision=1)`
+returns `(TaskGraph | None, mapping_report)`. It uses the existing core workflow validator, TaskGraph v1, canonical
+fingerprints and graph validator. Core version 0.157.0, schemas and adapter field mappings remain unchanged.
+
+The adapter accepts a basic classification workflow, a portable SolutionPlan already represented by the signed
+studio solution, and supplied project metadata. Registry membership alone is insufficient: the host explicitly
+allows tools when extracting `capability_snapshot(registry, allowed_tools=...)`. The helper copies canonical schema,
+scope, move, effect and guard presence. No tool, guard, store, model, table or network request is invoked.
+
+The data action covers class balance, holdout locking and training analysis together. Final covers OOF threshold
+selection and the one holdout read together. Human approval is a separate gate. The existing features stage remains
+required without inventing a workflow source step. Reports use registered export_notebook and its legacy artifacts;
+they do not pretend to be canonical SolutionReport output. Missing proof is not completion.
+
+Source references bind the real current Solution hash, actual derived ProblemCard, portable/source runtime plan,
+workflow and dataset identities. A separate `solution` reference named `execution_context` identifies the host's
+execution configuration, not a second signed Solution document. It also becomes a required input artifact. It
+hashes settings, effective pack, categorical/sensitivity metadata, feature programs, plans, brief, exposure and
+adopted changes without returning their raw contents. Runner/code/routing identity and current bytes/permissions
+still require dispatch-time host rechecks. Existing solution signature semantics are not changed.
+
+Missing identities or unsupported source variants return no graph plus a blocked report. With identities present,
+missing capabilities or unconfirmed source decisions become explicit blocked nodes; their diagnostic graph is not
+admitted for readiness. No TaskExecutionPlan, scheduler, store/API integration, execution approval or UI is added.
+The supported scope and runnable inspection example are in `docs/guides/TASK_ADAPTER_ACCEPTANCE.md`.
+
+This host adapter is not in the portable wheel and is not automatically reusable in the main product. Its project
+metadata/registry/artifact owners are R&D-specific. Main-product adoption still needs its own reviewed field and
+capability mapping; the pinned field inventory has no task fields and none are invented here.

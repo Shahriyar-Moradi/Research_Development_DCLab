@@ -1,0 +1,957 @@
+{
+  "fixture_note": "Authored project metadata based on SAMPLE_META.telco_churn. Dataset digest and human signoff are explicit test fixtures, not real file evidence or an approval made by the adapter.",
+  "graph": {
+    "schema_version": "dclab_core.task_graph.v1",
+    "graph_id": "binary_24374883ca510a1f",
+    "revision": 1,
+    "objective": "Solve the confirmed binary outcome using the current saved solution and its guarded workflow.",
+    "source_refs": [
+      {
+        "kind": "solution",
+        "id": "project_solution",
+        "fingerprint": "9be76dbc63731324"
+      },
+      {
+        "kind": "solution_plan",
+        "id": "source_plan",
+        "fingerprint": "bb15c79f35afb8ab65e535cad0d630c49f6847aab3c9bfdbcb87ea29c999f63f"
+      },
+      {
+        "kind": "solution_workflow",
+        "id": "workflow",
+        "fingerprint": "224a0b16117a5767c96c70392ad069fb0c44b9eb05dc66ac4624137f3d7b4d10"
+      },
+      {
+        "kind": "problem_card",
+        "id": "problem_context",
+        "fingerprint": "6dde94d54a3e789a71903d9f1df509c5a3f7d75799ed932c6346e11c6b4b4839"
+      },
+      {
+        "kind": "solution",
+        "id": "execution_context",
+        "fingerprint": "83d6a3b996e787dc933360b4457bef1651db2008d26c2f8ea6423c94d2c48335"
+      },
+      {
+        "kind": "dataset",
+        "id": "table",
+        "fingerprint": "ede70ffff6ff73b86b3dadbb52e143e093877b91f7e6e6cf461fd8ba643108e1"
+      },
+      {
+        "kind": "approval",
+        "id": "solution_signoff",
+        "fingerprint": "09e8382f78568387fd488188390c16fa684bcbf6cc8990d61f2ee519650c0267"
+      }
+    ],
+    "workflow_fingerprint": "224a0b16117a5767c96c70392ad069fb0c44b9eb05dc66ac4624137f3d7b4d10",
+    "solution_fingerprint": "9be76dbc63731324",
+    "fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4",
+    "nodes": [
+      {
+        "id": "root",
+        "parent_id": null,
+        "title": "Binary classification solution",
+        "objective": "Solve the confirmed binary outcome using the current saved solution and its guarded workflow.",
+        "source_step_ids": [],
+        "kind": "group",
+        "needs": [],
+        "produces": [],
+        "dependencies": [],
+        "acceptance_checks": [],
+        "capability": null,
+        "scope": null,
+        "blocker_reason": null
+      },
+      {
+        "id": "preparation",
+        "parent_id": "root",
+        "title": "Prepare locked training data",
+        "objective": "Prepare locked training data",
+        "source_step_ids": [],
+        "kind": "group",
+        "needs": [],
+        "produces": [],
+        "dependencies": [],
+        "acceptance_checks": [],
+        "capability": null,
+        "scope": null,
+        "blocker_reason": null
+      },
+      {
+        "id": "selection",
+        "parent_id": "root",
+        "title": "Select on training validation",
+        "objective": "Select on training validation",
+        "source_step_ids": [],
+        "kind": "group",
+        "needs": [],
+        "produces": [],
+        "dependencies": [],
+        "acceptance_checks": [],
+        "capability": null,
+        "scope": null,
+        "blocker_reason": null
+      },
+      {
+        "id": "evaluation",
+        "parent_id": "root",
+        "title": "Human approval and one final score",
+        "objective": "Human approval and one final score",
+        "source_step_ids": [],
+        "kind": "group",
+        "needs": [],
+        "produces": [],
+        "dependencies": [],
+        "acceptance_checks": [],
+        "capability": null,
+        "scope": null,
+        "blocker_reason": null
+      },
+      {
+        "id": "reporting",
+        "parent_id": "root",
+        "title": "Report the final evidence and limits",
+        "objective": "Report the final evidence and limits",
+        "source_step_ids": [],
+        "kind": "group",
+        "needs": [],
+        "produces": [],
+        "dependencies": [],
+        "acceptance_checks": [],
+        "capability": null,
+        "scope": null,
+        "blocker_reason": null
+      },
+      {
+        "id": "data",
+        "parent_id": "preparation",
+        "title": "data",
+        "objective": "Read the data for the decisions on the training rows only.",
+        "source_step_ids": [
+          "class_balance",
+          "lock_holdout",
+          "train_only_analysis"
+        ],
+        "kind": "action",
+        "needs": [
+          "table",
+          "project_context",
+          "execution_context"
+        ],
+        "produces": [
+          "data_record"
+        ],
+        "dependencies": [],
+        "acceptance_checks": [
+          {
+            "id": "source_class_balance",
+            "kind": "workflow_criterion",
+            "description": "Each fold holds every class at its share",
+            "evidence_refs": [
+              "data_record"
+            ]
+          },
+          {
+            "id": "source_lock_holdout",
+            "kind": "workflow_criterion",
+            "description": "The holdout's rows are fixed and fingerprinted before any analysis or model",
+            "evidence_refs": [
+              "data_record"
+            ]
+          },
+          {
+            "id": "source_train_only_analysis",
+            "kind": "workflow_criterion",
+            "description": "Every finding about the target is computed on the training rows",
+            "evidence_refs": [
+              "data_record"
+            ]
+          },
+          {
+            "id": "data_lineage",
+            "kind": "lineage",
+            "description": "Current owner evidence binds the source dataset, solution and declared operation",
+            "evidence_refs": [
+              "data_record"
+            ]
+          }
+        ],
+        "capability": {
+          "name": "run_stage",
+          "scope": "project",
+          "schema_fingerprint": "6a8a2917c040e64d95883457b7c841dd05352830fec6f93251a78c1ca3be6063"
+        },
+        "scope": "project",
+        "blocker_reason": null
+      },
+      {
+        "id": "leakage",
+        "parent_id": "preparation",
+        "title": "leakage",
+        "objective": "Check every column against the prediction moment before any model sees it.",
+        "source_step_ids": [
+          "leakage_audit"
+        ],
+        "kind": "action",
+        "needs": [
+          "table",
+          "project_context",
+          "data_record",
+          "execution_context"
+        ],
+        "produces": [
+          "leakage_record"
+        ],
+        "dependencies": [
+          "data"
+        ],
+        "acceptance_checks": [
+          {
+            "id": "source_leakage_audit",
+            "kind": "workflow_criterion",
+            "description": "Each column kept is known at the prediction moment, each one dropped has its reason",
+            "evidence_refs": [
+              "leakage_record"
+            ]
+          },
+          {
+            "id": "leakage_lineage",
+            "kind": "lineage",
+            "description": "Current owner evidence binds the source dataset, solution and declared operation",
+            "evidence_refs": [
+              "leakage_record"
+            ]
+          }
+        ],
+        "capability": {
+          "name": "run_stage",
+          "scope": "project",
+          "schema_fingerprint": "6a8a2917c040e64d95883457b7c841dd05352830fec6f93251a78c1ca3be6063"
+        },
+        "scope": "project",
+        "blocker_reason": null
+      },
+      {
+        "id": "features",
+        "parent_id": "preparation",
+        "title": "features",
+        "objective": "Use the existing engine's training-only feature selection stage.",
+        "source_step_ids": [],
+        "kind": "action",
+        "needs": [
+          "table",
+          "project_context",
+          "data_record",
+          "leakage_record",
+          "execution_context"
+        ],
+        "produces": [
+          "features_record"
+        ],
+        "dependencies": [
+          "leakage"
+        ],
+        "acceptance_checks": [
+          {
+            "id": "engine_features",
+            "kind": "guard",
+            "description": "The existing features stage selects on training validation only",
+            "evidence_refs": [
+              "features_record"
+            ]
+          },
+          {
+            "id": "features_lineage",
+            "kind": "lineage",
+            "description": "Current owner evidence binds the source dataset, solution and declared operation",
+            "evidence_refs": [
+              "features_record"
+            ]
+          }
+        ],
+        "capability": {
+          "name": "run_stage",
+          "scope": "project",
+          "schema_fingerprint": "6a8a2917c040e64d95883457b7c841dd05352830fec6f93251a78c1ca3be6063"
+        },
+        "scope": "project",
+        "blocker_reason": null
+      },
+      {
+        "id": "models",
+        "parent_id": "selection",
+        "title": "models",
+        "objective": "Compare model families on the training rows' folds and choose.",
+        "source_step_ids": [
+          "choose_on_validation"
+        ],
+        "kind": "action",
+        "needs": [
+          "table",
+          "project_context",
+          "data_record",
+          "leakage_record",
+          "features_record",
+          "execution_context"
+        ],
+        "produces": [
+          "models_record"
+        ],
+        "dependencies": [
+          "features"
+        ],
+        "acceptance_checks": [
+          {
+            "id": "source_choose_on_validation",
+            "kind": "workflow_criterion",
+            "description": "The choice is made on folds of the training rows, with each score's spread",
+            "evidence_refs": [
+              "models_record"
+            ]
+          },
+          {
+            "id": "models_lineage",
+            "kind": "lineage",
+            "description": "Current owner evidence binds the source dataset, solution and declared operation",
+            "evidence_refs": [
+              "models_record"
+            ]
+          }
+        ],
+        "capability": {
+          "name": "run_stage",
+          "scope": "project",
+          "schema_fingerprint": "6a8a2917c040e64d95883457b7c841dd05352830fec6f93251a78c1ca3be6063"
+        },
+        "scope": "project",
+        "blocker_reason": null
+      },
+      {
+        "id": "holdout",
+        "parent_id": "evaluation",
+        "title": "holdout",
+        "objective": "A person signs that the solution is final before the holdout is read.",
+        "source_step_ids": [
+          "holdout_gate"
+        ],
+        "kind": "gate",
+        "needs": [
+          "models_record",
+          "execution_context"
+        ],
+        "produces": [
+          "holdout_permission"
+        ],
+        "dependencies": [
+          "models"
+        ],
+        "acceptance_checks": [
+          {
+            "id": "source_holdout_gate",
+            "kind": "approval",
+            "description": "The approval is recorded before the final score",
+            "evidence_refs": [
+              "holdout_permission"
+            ]
+          },
+          {
+            "id": "holdout_lineage",
+            "kind": "lineage",
+            "description": "Current owner evidence binds the source dataset, solution and declared operation",
+            "evidence_refs": [
+              "holdout_permission"
+            ]
+          }
+        ],
+        "capability": null,
+        "scope": null,
+        "blocker_reason": null
+      },
+      {
+        "id": "final",
+        "parent_id": "evaluation",
+        "title": "final",
+        "objective": "Read the holdout once, with an interval.",
+        "source_step_ids": [
+          "threshold",
+          "final_once"
+        ],
+        "kind": "action",
+        "needs": [
+          "table",
+          "project_context",
+          "data_record",
+          "models_record",
+          "holdout_permission",
+          "execution_context"
+        ],
+        "produces": [
+          "final_record"
+        ],
+        "dependencies": [
+          "holdout"
+        ],
+        "acceptance_checks": [
+          {
+            "id": "source_threshold",
+            "kind": "workflow_criterion",
+            "description": "The threshold is chosen on the training rows' folds",
+            "evidence_refs": [
+              "final_record"
+            ]
+          },
+          {
+            "id": "source_final_once",
+            "kind": "workflow_criterion",
+            "description": "The holdout is read once; a second read needs a person's reason and is flagged",
+            "evidence_refs": [
+              "final_record"
+            ]
+          },
+          {
+            "id": "final_lineage",
+            "kind": "lineage",
+            "description": "Current owner evidence binds the source dataset, solution and declared operation",
+            "evidence_refs": [
+              "final_record"
+            ]
+          }
+        ],
+        "capability": {
+          "name": "run_stage",
+          "scope": "project",
+          "schema_fingerprint": "6a8a2917c040e64d95883457b7c841dd05352830fec6f93251a78c1ca3be6063"
+        },
+        "scope": "project",
+        "blocker_reason": null
+      },
+      {
+        "id": "report",
+        "parent_id": "reporting",
+        "title": "report",
+        "objective": "Say the score with its uncertainty and what it does not show.",
+        "source_step_ids": [
+          "report_limits"
+        ],
+        "kind": "action",
+        "needs": [
+          "project_context",
+          "data_record",
+          "final_record",
+          "execution_context"
+        ],
+        "produces": [
+          "report_files"
+        ],
+        "dependencies": [
+          "final"
+        ],
+        "acceptance_checks": [
+          {
+            "id": "source_report_limits",
+            "kind": "workflow_criterion",
+            "description": "Every number traces to its record; never called production-ready from benchmark evidence",
+            "evidence_refs": [
+              "report_files"
+            ]
+          },
+          {
+            "id": "report_lineage",
+            "kind": "lineage",
+            "description": "Current owner evidence binds the source dataset, solution and declared operation",
+            "evidence_refs": [
+              "report_files"
+            ]
+          }
+        ],
+        "capability": {
+          "name": "export_notebook",
+          "scope": "project",
+          "schema_fingerprint": "209abb6abc6c0ae6cc90814a9855ed6c0616917d5c0183ef97f287564035e3b1"
+        },
+        "scope": "project",
+        "blocker_reason": null
+      }
+    ],
+    "edges": [
+      {
+        "source": "root",
+        "target": "preparation",
+        "kind": "grouping"
+      },
+      {
+        "source": "root",
+        "target": "selection",
+        "kind": "grouping"
+      },
+      {
+        "source": "root",
+        "target": "evaluation",
+        "kind": "grouping"
+      },
+      {
+        "source": "root",
+        "target": "reporting",
+        "kind": "grouping"
+      },
+      {
+        "source": "preparation",
+        "target": "data",
+        "kind": "grouping"
+      },
+      {
+        "source": "preparation",
+        "target": "leakage",
+        "kind": "grouping"
+      },
+      {
+        "source": "preparation",
+        "target": "features",
+        "kind": "grouping"
+      },
+      {
+        "source": "selection",
+        "target": "models",
+        "kind": "grouping"
+      },
+      {
+        "source": "evaluation",
+        "target": "holdout",
+        "kind": "grouping"
+      },
+      {
+        "source": "evaluation",
+        "target": "final",
+        "kind": "grouping"
+      },
+      {
+        "source": "reporting",
+        "target": "report",
+        "kind": "grouping"
+      },
+      {
+        "source": "data",
+        "target": "leakage",
+        "kind": "dependency"
+      },
+      {
+        "source": "leakage",
+        "target": "features",
+        "kind": "dependency"
+      },
+      {
+        "source": "features",
+        "target": "models",
+        "kind": "dependency"
+      },
+      {
+        "source": "models",
+        "target": "holdout",
+        "kind": "dependency"
+      },
+      {
+        "source": "holdout",
+        "target": "final",
+        "kind": "dependency"
+      },
+      {
+        "source": "final",
+        "target": "report",
+        "kind": "dependency"
+      }
+    ],
+    "provenance": {
+      "method": "deterministic",
+      "reference_id": "binary_workflow_adapter",
+      "producer_version": "tp01d.v1"
+    }
+  },
+  "mapping_report": {
+    "adapter_version": "tp01d.v1",
+    "status": "mapped",
+    "blockers": [],
+    "source_mapping": [
+      {
+        "source_step_id": "class_balance",
+        "task_id": "data",
+        "block": "WF-03",
+        "kind": "family",
+        "decision": "split.strategy",
+        "gate": false,
+        "inputs": [
+          "table"
+        ],
+        "outputs": [],
+        "check": "Each fold holds every class at its share",
+        "rule": "a fold without a class cannot score it",
+        "rests_on": [],
+        "columns": [],
+        "input_artifact_refs": {
+          "table": "table"
+        },
+        "output_artifact_refs": {}
+      },
+      {
+        "source_step_id": "lock_holdout",
+        "task_id": "data",
+        "block": "WF-03",
+        "kind": "safety",
+        "decision": "split.strategy",
+        "gate": false,
+        "inputs": [
+          "table"
+        ],
+        "outputs": [
+          "training rows",
+          "holdout"
+        ],
+        "check": "The holdout's rows are fixed and fingerprinted before any analysis or model",
+        "rule": "the holdout is used once",
+        "rests_on": [],
+        "columns": [],
+        "input_artifact_refs": {
+          "table": "table"
+        },
+        "output_artifact_refs": {
+          "training rows": "data_record",
+          "holdout": "data_record"
+        }
+      },
+      {
+        "source_step_id": "train_only_analysis",
+        "task_id": "data",
+        "block": "WF-04",
+        "kind": "safety",
+        "decision": null,
+        "gate": false,
+        "inputs": [
+          "training rows"
+        ],
+        "outputs": [
+          "findings"
+        ],
+        "check": "Every finding about the target is computed on the training rows",
+        "rule": "no choice reads the holdout",
+        "rests_on": [],
+        "columns": [],
+        "input_artifact_refs": {
+          "training rows": "data_record"
+        },
+        "output_artifact_refs": {
+          "findings": "data_record"
+        }
+      },
+      {
+        "source_step_id": "leakage_audit",
+        "task_id": "leakage",
+        "block": "WF-05",
+        "kind": "safety",
+        "decision": "features.forbidden",
+        "gate": false,
+        "inputs": [
+          "training rows",
+          "findings"
+        ],
+        "outputs": [
+          "columns kept"
+        ],
+        "check": "Each column kept is known at the prediction moment, each one dropped has its reason",
+        "rule": "a column written after the moment is never a feature",
+        "rests_on": [],
+        "columns": [],
+        "input_artifact_refs": {
+          "training rows": "data_record",
+          "findings": "data_record"
+        },
+        "output_artifact_refs": {
+          "columns kept": "leakage_record"
+        }
+      },
+      {
+        "source_step_id": "choose_on_validation",
+        "task_id": "models",
+        "block": "WF-07",
+        "kind": "safety",
+        "decision": "model.families",
+        "gate": false,
+        "inputs": [
+          "training rows",
+          "columns kept"
+        ],
+        "outputs": [
+          "chosen model"
+        ],
+        "check": "The choice is made on folds of the training rows, with each score's spread",
+        "rule": "the holdout never chooses",
+        "rests_on": [],
+        "columns": [],
+        "input_artifact_refs": {
+          "training rows": "data_record",
+          "columns kept": "leakage_record"
+        },
+        "output_artifact_refs": {
+          "chosen model": "models_record"
+        }
+      },
+      {
+        "source_step_id": "holdout_gate",
+        "task_id": "holdout",
+        "block": "WF-09",
+        "kind": "safety",
+        "decision": null,
+        "gate": true,
+        "inputs": [
+          "chosen model"
+        ],
+        "outputs": [
+          "approval"
+        ],
+        "check": "The approval is recorded before the final score",
+        "rule": "a person decides when the holdout is spent",
+        "rests_on": [],
+        "columns": [],
+        "input_artifact_refs": {
+          "chosen model": "models_record"
+        },
+        "output_artifact_refs": {
+          "approval": "holdout_permission"
+        }
+      },
+      {
+        "source_step_id": "threshold",
+        "task_id": "final",
+        "block": "WF-08",
+        "kind": "family",
+        "decision": "threshold.policy",
+        "gate": false,
+        "inputs": [
+          "training rows",
+          "chosen model"
+        ],
+        "outputs": [],
+        "check": "The threshold is chosen on the training rows' folds",
+        "rule": "the holdout never chooses",
+        "rests_on": [],
+        "columns": [],
+        "input_artifact_refs": {
+          "training rows": "data_record",
+          "chosen model": "models_record"
+        },
+        "output_artifact_refs": {}
+      },
+      {
+        "source_step_id": "final_once",
+        "task_id": "final",
+        "block": "WF-09",
+        "kind": "safety",
+        "decision": "metric.primary",
+        "gate": false,
+        "inputs": [
+          "chosen model",
+          "holdout",
+          "approval"
+        ],
+        "outputs": [
+          "holdout score"
+        ],
+        "check": "The holdout is read once; a second read needs a person's reason and is flagged",
+        "rule": "the holdout is used once",
+        "rests_on": [],
+        "columns": [],
+        "input_artifact_refs": {
+          "chosen model": "models_record",
+          "holdout": "data_record",
+          "approval": "holdout_permission"
+        },
+        "output_artifact_refs": {
+          "holdout score": "final_record"
+        }
+      },
+      {
+        "source_step_id": "report_limits",
+        "task_id": "report",
+        "block": "WF-10",
+        "kind": "safety",
+        "decision": "risk.check",
+        "gate": false,
+        "inputs": [
+          "holdout score",
+          "findings"
+        ],
+        "outputs": [
+          "report"
+        ],
+        "check": "Every number traces to its record; never called production-ready from benchmark evidence",
+        "rule": "report results with uncertainty and limits",
+        "rests_on": [],
+        "columns": [],
+        "input_artifact_refs": {
+          "holdout score": "final_record",
+          "findings": "data_record"
+        },
+        "output_artifact_refs": {
+          "report": "report_files"
+        }
+      }
+    ],
+    "operations": [
+      {
+        "task_id": "data",
+        "capability": "run_stage",
+        "move": "run_stage",
+        "stage": "data",
+        "status": "mapped",
+        "argument_refs": {
+          "project_id": "project_context",
+          "stage": "stage_data"
+        },
+        "evidence_paths": [
+          "evidence.holdout_split",
+          "evidence.cv_protocol",
+          "evidence.target_summary",
+          "provenance"
+        ]
+      },
+      {
+        "task_id": "leakage",
+        "capability": "run_stage",
+        "move": "run_stage",
+        "stage": "leakage",
+        "status": "mapped",
+        "argument_refs": {
+          "project_id": "project_context",
+          "stage": "stage_leakage"
+        },
+        "evidence_paths": [
+          "evidence",
+          "provenance"
+        ]
+      },
+      {
+        "task_id": "features",
+        "capability": "run_stage",
+        "move": "run_stage",
+        "stage": "features",
+        "status": "mapped",
+        "argument_refs": {
+          "project_id": "project_context",
+          "stage": "stage_features"
+        },
+        "evidence_paths": [
+          "evidence",
+          "provenance"
+        ]
+      },
+      {
+        "task_id": "models",
+        "capability": "run_stage",
+        "move": "run_stage",
+        "stage": "models",
+        "status": "mapped",
+        "argument_refs": {
+          "project_id": "project_context",
+          "stage": "stage_models"
+        },
+        "evidence_paths": [
+          "evidence",
+          "provenance"
+        ]
+      },
+      {
+        "task_id": "final",
+        "capability": "run_stage",
+        "move": "run_stage",
+        "stage": "final",
+        "status": "mapped",
+        "argument_refs": {
+          "project_id": "project_context",
+          "stage": "stage_final"
+        },
+        "evidence_paths": [
+          "evidence.task_assessment.threshold",
+          "evidence.holdout_metrics",
+          "evidence.holdout_primary_metric_ci",
+          "evidence.holdout_consumed",
+          "evidence.holdout_uses_in_this_project",
+          "run"
+        ]
+      },
+      {
+        "task_id": "report",
+        "capability": "export_notebook",
+        "move": "capture",
+        "stage": null,
+        "status": "mapped",
+        "argument_refs": {
+          "project_id": "project_context"
+        },
+        "evidence_paths": [
+          "notebook.ipynb",
+          "report.md",
+          "source final record and artifact hashes"
+        ]
+      }
+    ],
+    "external_artifacts": {
+      "table": {
+        "fingerprint": "ede70ffff6ff73b86b3dadbb52e143e093877b91f7e6e6cf461fd8ba643108e1",
+        "value_type": "artifact"
+      },
+      "execution_context": {
+        "fingerprint": "83d6a3b996e787dc933360b4457bef1651db2008d26c2f8ea6423c94d2c48335",
+        "value_type": "artifact"
+      },
+      "project_context": {
+        "fingerprint": "24374883ca510a1fb267cacaf44aada27a6d4393dd4abbcc814d5d353c5c1859",
+        "value_type": "string"
+      },
+      "stage_data": {
+        "fingerprint": "519b3ed503c6a825347f28dfd269c0a422e3b923858410e3abbab2d2a99837f2",
+        "value_type": "string"
+      },
+      "stage_leakage": {
+        "fingerprint": "182c7b6b14990f3c1f9a90f9429b8b9e39f7a9d9454b05607c3ada8057e7fb61",
+        "value_type": "string"
+      },
+      "stage_features": {
+        "fingerprint": "d19048bc03682d2d7cfd0ba2a1527ca1942160f7e94d927a075d1fa1b34446c5",
+        "value_type": "string"
+      },
+      "stage_models": {
+        "fingerprint": "ccdcc28ad0a2be5e4010e5069c3d240ff2b09d16b2af35b5c046458c0e26729f",
+        "value_type": "string"
+      },
+      "stage_final": {
+        "fingerprint": "eaa25c327f22b7b002b224771775c9fad7cc0d1dbc30acdd0dfb2b44c2f6755b",
+        "value_type": "string"
+      }
+    },
+    "topological_order": [
+      "data",
+      "leakage",
+      "features",
+      "models",
+      "holdout",
+      "final",
+      "report"
+    ],
+    "validation_issues": [],
+    "execution_authorized": false,
+    "verification_limits": [
+      {
+        "source_step_id": "class_balance",
+        "task_id": "data",
+        "limit": "The protocol and target summary do not persist per-fold class counts; a verifier must require measured proof, not infer completion."
+      },
+      {
+        "source_step_id": "threshold",
+        "task_id": "final",
+        "limit": "OOF threshold proof is optional in task_assessment; missing proof blocks verification and never authorizes another final read."
+      },
+      {
+        "source_step_id": "report_limits",
+        "task_id": "report",
+        "limit": "The registered export writes legacy report.md and notebook.ipynb, not canonical SolutionReport; export success alone does not prove its limits or numeric lineage."
+      }
+    ]
+  }
+}

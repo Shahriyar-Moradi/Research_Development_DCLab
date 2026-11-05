@@ -76,3 +76,8 @@ The host supplies authenticated metadata, not model-written claims or table rows
 tool schemas, approvals, inputs, engine guards, budgets and holdout consumption immediately before execution.
 No workflow conversion, host integration or execution is added here. Context formats, canonicalization rules,
 runtime boundaries and verified acceptance are in `docs/guides/TASK_VALIDATION_ACCEPTANCE.md`.
+
+The R&D host's TP-01D adapter (`dclab_rnd.tasks.adapter`) converts one basic binary SolutionWorkflow plus current
+saved project/plan metadata and a detached capability snapshot into a non-executing TaskGraph and mapping report.
+It reuses the pure core checks above; it is not part of the portable wheel. Extra source work or unsupported host
+policies remain blocked. See `docs/guides/TASK_ADAPTER_ACCEPTANCE.md` for the input boundary and inspection example.
