@@ -13,10 +13,11 @@ import importlib
 import pkgutil
 from typing import Any
 
-from .base import BASE_TASKS, NoFields, ProblemKind, default_split
+from .base import BASE_TASKS, KNOWN_UNSUPPORTED_TASKS, NoFields, ProblemKind, UnsupportedTaskBlocker, default_split
 
-__all__ = ["BASE_TASKS", "NoFields", "ProblemKind", "all_kinds", "default_split", "describe_all", "detect", "for_pack", "get",
-           "register", "resolve", "unregister"]
+__all__ = ["BASE_TASKS", "KNOWN_UNSUPPORTED_TASKS", "NoFields", "ProblemKind", "UnsupportedTaskBlocker",
+           "all_kinds", "default_split", "describe_all", "detect", "for_pack", "get",
+           "register", "resolve", "unregister", "validate_task_capability"]
 
 _REGISTRY: dict[str, ProblemKind] = {}
 
@@ -105,6 +106,35 @@ def detect(problem: str, profile: dict[str, Any] | None = None) -> dict[str, Any
         if why:
             return {"key": kind.key, "why": why}
     return {"key": "binary", "why": "nothing points elsewhere, so DCLab starts from binary classification"}
+
+
+def validate_task_capability(task_or_kind: str) -> UnsupportedTaskBlocker | None:
+    """Validate whether a task or problem kind is supported, emitting an explicit blocker if not (SCI-04)."""
+    norm = str(task_or_kind or "").strip().lower()
+    if norm in KNOWN_UNSUPPORTED_TASKS:
+        item = KNOWN_UNSUPPORTED_TASKS[norm]
+        return UnsupportedTaskBlocker(
+            task_or_kind=task_or_kind,
+            status="unsupported",
+            reason=item["reason"],
+            missing_components=item["missing_components"],
+            supported_alternatives=item["supported_alternatives"],
+            suggestion=item["suggestion"],
+        )
+    if norm in _REGISTRY or norm in BASE_TASKS:
+        return None
+    for k in _REGISTRY.values():
+        if norm == k.key or norm in k.tasks or norm == k.base_task:
+            return None
+    supported = sorted(_REGISTRY.keys())
+    return UnsupportedTaskBlocker(
+        task_or_kind=task_or_kind,
+        status="unsupported",
+        reason=f"Problem kind or task {task_or_kind!r} is not registered in DCLab's capability registry.",
+        missing_components=["data_adapter", "target_evaluator", "model_family_recipes", "validation_split_policy"],
+        supported_alternatives=supported[:5],
+        suggestion=f"Map the problem to one of the supported kinds: {', '.join(supported)}.",
+    )
 
 
 def describe_all() -> list[dict[str, Any]]:

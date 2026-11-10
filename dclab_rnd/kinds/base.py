@@ -25,6 +25,47 @@ from pydantic import BaseModel, ConfigDict
 BASE_TASKS = ("binary", "multiclass", "regression")
 
 
+class UnsupportedTaskBlocker(BaseModel):
+    """Explicit blocker emitted when an unsupported task family is requested (SCI-04)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    task_or_kind: str
+    status: str = "unsupported"
+    reason: str
+    missing_components: list[str]
+    supported_alternatives: list[str]
+    suggestion: str
+
+
+KNOWN_UNSUPPORTED_TASKS: dict[str, dict[str, Any]] = {
+    "reinforcement_learning": {
+        "reason": "Reinforcement learning (policy gradients, Q-learning, actor-critic) requires interactive environment dynamics and continuous reward loops not supported by the static supervised/unsupervised tabular and text engines.",
+        "missing_components": ["environment_gym_adapter", "reward_function_spec", "policy_network_trainer", "markov_decision_validator"],
+        "supported_alternatives": ["binary", "regression", "uplift"],
+        "suggestion": "Frame offline RL as an uplift modeling or causal policy decision problem on historical tabular trajectories.",
+    },
+    "text_to_image": {
+        "reason": "Text-to-image diffusion and autoregressive generation require generative vision backbones outside DCLab's predictive ML scope.",
+        "missing_components": ["diffusion_pipeline", "clip_aesthetic_scorer", "gpu_latent_decoder"],
+        "supported_alternatives": ["text_tabular", "binary", "multiclass"],
+        "suggestion": "Use multimodal embeddings to predict tabular outcomes from image metadata or captions.",
+    },
+    "speech_synthesis": {
+        "reason": "Speech/audio synthesis requires vocoder architectures and streaming acoustic neural networks.",
+        "missing_components": ["audio_codec_adapter", "spectrogram_generator", "mos_auditor"],
+        "supported_alternatives": ["regression", "multiclass"],
+        "suggestion": "Extract acoustic tabular features (pitch, jitter, spectral flux) and treat as tabular regression/classification.",
+    },
+    "video_generation": {
+        "reason": "Video temporal synthesis requires spatiotemporal diffusion backbones and frame interpolators.",
+        "missing_components": ["temporal_video_vae", "spatiotemporal_attention_layers", "motion_coherence_evaluator"],
+        "supported_alternatives": ["forecasting", "regression"],
+        "suggestion": "Extract per-frame tabular features and solve via sequential forecasting.",
+    },
+}
+
+
 class NoFields(BaseModel):
     """A kind that needs no field beyond the solution's own."""
 

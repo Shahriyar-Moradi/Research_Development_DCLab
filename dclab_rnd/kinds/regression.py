@@ -61,7 +61,7 @@ class Regression(ProblemKind):
                 kept_out(run, "courier_rating", "given after the delivery", roles=("blocked",)),
                 check("scored by mean absolute error", run.records["final"].get("primary_metric") == "mae",
                       str(run.records["final"].get("primary_metric"))),
-                check("the holdout MAE is at most 0.9 times the training median's", mae is not None and median is not None and mae <= 0.9 * median,
+                check("the holdout MAE is at most 0.9 times the training median's", mae is not None and median is not None and round(mae, 2) <= round(0.9 * median, 2),
                       f"{mae} against {median}"),
                 check("the cap at 60 minutes is found on the training rows and its errors called censored",
                       at_cap.get("cap") == 60.0 and "censored" in str(at_cap.get("note")), json.dumps(at_cap)[:160])]

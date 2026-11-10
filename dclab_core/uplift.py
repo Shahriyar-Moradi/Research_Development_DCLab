@@ -124,7 +124,7 @@ def _hgb(kind: str):
     from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
 
     cls = HistGradientBoostingClassifier if kind == "classifier" else HistGradientBoostingRegressor
-    return cls(max_iter=100, learning_rate=0.05, max_leaf_nodes=8, min_samples_leaf=100, random_state=0)
+    return cls(max_iter=100, learning_rate=0.05, max_leaf_nodes=6, min_samples_leaf=200, random_state=0)
 
 
 def _propensity(X: np.ndarray, t: np.ndarray) -> np.ndarray:

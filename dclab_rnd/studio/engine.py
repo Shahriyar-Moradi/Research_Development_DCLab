@@ -719,12 +719,28 @@ def stage_leakage(p: Prepared, eid: str) -> tuple[dict, list, str]:
         unsafe = rn.cross_validate(bundle, recipe, audit_model, include_blocked=declared, config_id="unsafe_all_blocked")
         lift = rn.oriented_gain(rn._mean(unsafe, metric), rn._mean(safe, metric), higher)
         comparison["unsafe"], comparison["apparent_lift"] = unsafe, lift
+        per_lifts: dict[str, float] = {}
         if 1 < len(declared) <= 6:
             comparison["per_column"] = {}
             for column in declared:
                 single = rn.cross_validate(bundle, recipe, audit_model, include_blocked=[column], config_id=f"unsafe_{column}")
+                col_lift = rn.oriented_gain(rn._mean(single, metric), rn._mean(safe, metric), higher)
                 comparison["per_column"][column] = {"metric_mean": rn._mean(single, metric),
-                                                    "apparent_lift": rn.oriented_gain(rn._mean(single, metric), rn._mean(safe, metric), higher)}
+                                                    "apparent_lift": col_lift}
+                per_lifts[column] = col_lift
+        from dclab_core.leakage_contrast import build_leakage_contrast
+        contrast = build_leakage_contrast(
+            project=spec.key,
+            target=spec.target,
+            leakage_features=declared,
+            metric=metric,
+            higher_is_better=higher,
+            clean_cv_metric=float(rn._mean(safe, metric)),
+            leakage_cv_metric=float(rn._mean(unsafe, metric)),
+            per_feature_cv_lift=per_lifts,
+            decision_time_contract=spec.decision_time_contract,
+        )
+        comparison["leakage_contrast"] = contrast.model_dump()
     non_declared = [f for f in findings if "declared_post_outcome_or_contested" not in f["reasons"]]
     evidence: dict[str, Any] = {
         "declared_leakage_features": declared,
@@ -735,6 +751,7 @@ def stage_leakage(p: Prepared, eid: str) -> tuple[dict, list, str]:
                             "identifier_like": "unique_ratio >= 0.98 and non-numeric or integer-valued", "rows_scanned": int(len(sample_X))},
         "top_univariate_signals": ranking, "detector_canary": canary, "detector_canary_passed": bool(canary.get("passed", False)),
         "safe_vs_unsafe_training_cv": comparison, "apparent_lift": float(lift), "apparent_lift_metric": metric,
+        "leakage_contrast": comparison.get("leakage_contrast"),
         "cv_protocol": bundle.cv_description,
         "warning": "Name, univariate-signal, identity and uniqueness rules propose a review; only decision-time semantics confirm leakage.",
     }
@@ -1560,6 +1577,37 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
     top_features = [{"feature": k, "normalized_importance": v} for k, v in sorted(importance.items(), key=lambda kv: -kv[1])[:20]
                     if not any(k.startswith(f"{name}=") for name in getattr(p, "personal", ()))]  # "diagnosis=flu" names a value of a sensitive column
     cv_mean, holdout_value = rn._mean(selected, metric), holdout[metric]
+    leakage_contrast: dict[str, Any] | None = None
+    declared_leakage = [c for c in spec.blocked_features if c in bundle.X_train.columns]
+    if declared_leakage:
+        try:
+            shadow_final = rn.fit_and_predict(bundle, recipe, family, selected["model_params"] or None,
+                                               bundle.X_train, bundle.y_train, bundle.X_test,
+                                               include_blocked=declared_leakage)
+            shadow_holdout = rn.compute_metrics(task, y_test, shadow_final["predictions"], n_classes=n_classes, detail=False)
+            shadow_val = shadow_holdout.get(metric)
+            if shadow_val is not None and holdout_value is not None:
+                from dclab_core.leakage_contrast import build_leakage_contrast
+                unsafe_cv = rn.cross_validate(bundle, recipe, family, selected["model_params"] or None,
+                                               include_blocked=declared_leakage, config_id="unsafe_cv_final")
+                unsafe_cv_val = float(rn._mean(unsafe_cv, metric))
+                contrast_obj = build_leakage_contrast(
+                    project=spec.key,
+                    target=spec.target,
+                    leakage_features=declared_leakage,
+                    metric=metric,
+                    higher_is_better=higher,
+                    clean_cv_metric=float(cv_mean),
+                    leakage_cv_metric=unsafe_cv_val,
+                    clean_holdout_metric=float(holdout_value),
+                    leakage_holdout_metric=float(shadow_val),
+                    clean_metrics={metric: float(holdout_value)},
+                    leakage_metrics={metric: float(shadow_val)},
+                    decision_time_contract=spec.decision_time_contract,
+                )
+                leakage_contrast = contrast_obj.model_dump()
+        except Exception:
+            leakage_contrast = None
     evidence: dict[str, Any] = {
         "feature_recipe": recipe, "model": family, "configuration_results": [baseline, *tuned], "optimization_search_space": candidates,
         "tuning_decision": decision, "selected_optimization": selected["config_id"], "selected_model_params": selected["model_params"],
@@ -1575,6 +1623,7 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
         "cv_to_holdout_gap": rn.oriented_gain(holdout_value, cv_mean, higher) if holdout_value is not None else None,
         "baselines": baselines, "top_final_features": top_features,
         "sampling": bundle.sampling, "production_approved": False,
+        **({"leakage_contrast": leakage_contrast} if leakage_contrast else {}),
         **({"capacity": capacity_block} if capacity_block else {}),
         **({"success_bar": bar} if bar else {}),
         **({"label_sources": {"rows": p.labels_by_source, "judged_on": sorted(s.lower() for s in (p.solution.confirmed_sources or ()))

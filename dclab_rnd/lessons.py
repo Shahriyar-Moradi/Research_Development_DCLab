@@ -73,10 +73,69 @@ def scope_of(project: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
     rows = (evidence.get("train_rows") or 0) + (evidence.get("holdout_rows") or 0)
     from .studio.trajectories import problem_kind
 
-    return {"project": project.get("name"), "project_id": project.get("id"), "dataset": (record.get("provenance") or {}).get("filename"),
-            "task": record.get("task_type") or record.get("task"), "metric": record.get("primary_metric"), "rows": rows or None,
-            "split": evidence.get("holdout_split") or (record.get("provenance") or {}).get("holdout"),
-            "problem_kind": problem_kind(project)}  # 16.14: a lesson is filed by the kind its project ran as
+    scope = {
+        "project": project.get("name"),
+        "project_id": project.get("id"),
+        "dataset": (record.get("provenance") or {}).get("filename"),
+        "task": record.get("task_type") or record.get("task"),
+        "metric": record.get("primary_metric"),
+        "rows": rows or None,
+        "split": evidence.get("holdout_split") or (record.get("provenance") or {}).get("holdout"),
+        "problem_kind": problem_kind(project),
+    }
+    scope["applicability"] = applicability_of(scope)
+    return scope
+
+
+def applicability_of(scope: dict[str, Any]) -> dict[str, Any]:
+    """Preconditions for applying a lesson (MEM-02). Guards against improper cross-task transfer."""
+    task = scope.get("task")
+    kind = scope.get("problem_kind")
+    split = str(scope.get("split") or "").lower()
+    rows = scope.get("rows")
+    return {
+        "allowed_tasks": [task] if task else [],
+        "problem_kind": kind,
+        "requires_time": "time" in split,
+        "requires_groups": "group" in split,
+        "min_rows": int(rows * 0.1) if rows else 50,
+        "max_rows": int(rows * 10) if rows else None,
+        "confidence": 0.85,
+    }
+
+
+def check_applicability(lesson: dict[str, Any], context: dict[str, Any]) -> tuple[bool, str]:
+    """Verify whether a lesson is applicable to the target problem context (MEM-02)."""
+    scope = lesson.get("scope") or {}
+    app = lesson.get("applicability") or scope.get("applicability") or applicability_of(scope)
+
+    target_task = context.get("task") or context.get("task_type")
+    allowed_tasks = app.get("allowed_tasks") or ([scope.get("task")] if scope.get("task") else [])
+    if target_task and allowed_tasks and target_task not in allowed_tasks:
+        return False, f"Incompatible task: lesson holds for {allowed_tasks}, target is {target_task}."
+
+    target_kind = context.get("problem_kind") or context.get("kind")
+    lesson_kind = app.get("problem_kind") or scope.get("problem_kind")
+    if target_kind and lesson_kind and target_kind != lesson_kind:
+        if str(target_kind).split("_")[0] != str(lesson_kind).split("_")[0]:
+            return False, f"Incompatible problem kind: lesson is for {lesson_kind}, target is {target_kind}."
+
+    if app.get("requires_time") and not context.get("has_time") and not context.get("time_column"):
+        return False, "Lesson requires temporal structure/time-ordering, but target dataset has no time ordering."
+
+    if app.get("requires_groups") and not context.get("has_groups") and not context.get("group_column"):
+        return False, "Lesson requires grouped entity structure, but target problem is unclustered."
+
+    target_rows = context.get("rows")
+    if target_rows is not None:
+        min_rows = app.get("min_rows")
+        if min_rows and target_rows < min_rows:
+            return False, f"Insufficient sample size: lesson requires at least {min_rows} rows (target has {target_rows})."
+        max_rows = app.get("max_rows")
+        if max_rows and target_rows > max_rows:
+            return False, f"Sample size exceeds lesson scope: lesson holds up to {max_rows} rows (target has {target_rows})."
+
+    return True, "Lesson is applicable to the target problem context."
 
 
 def scope_line(scope: dict[str, Any]) -> str:
