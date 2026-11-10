@@ -124,14 +124,47 @@ def wilson(hits: int, n: int, z: float = 1.959964) -> Optional[list[float]]:
     return [_r(max(0.0, centre - half), 3), _r(min(1.0, centre + half), 3)]
 
 
+class HierarchicalModel:
+    """Agglomerative hierarchical clustering with Ward linkage and nearest-centroid projection."""
+
+    def __init__(self, k: int):
+        self.k = k
+        self.cluster_centers_ = None
+        self.labels_ = None
+
+    def fit(self, X: np.ndarray):
+        from sklearn.cluster import AgglomerativeClustering
+        agg = AgglomerativeClustering(n_clusters=self.k, linkage="ward")
+        self.labels_ = agg.fit_predict(X)
+        centers = []
+        for g in range(self.k):
+            mask = self.labels_ == g
+            if np.any(mask):
+                centers.append(X[mask].mean(axis=0))
+            else:
+                centers.append(X.mean(axis=0))
+        self.cluster_centers_ = np.array(centers)
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        if self.cluster_centers_ is None:
+            raise ValueError("HierarchicalModel is not fitted")
+        diff = X[:, None, :] - self.cluster_centers_[None, :, :]
+        dists = np.linalg.norm(diff, axis=-1)
+        return np.argmin(dists, axis=1)
+
+
 def _fit(method: str, k: int, X: np.ndarray, seed: int):
     from sklearn.cluster import KMeans
     from sklearn.mixture import GaussianMixture
 
     if method == "kmeans":
         return KMeans(n_clusters=k, init="k-means++", n_init=4, random_state=seed).fit(X)
+    if method == "hierarchical":
+        return HierarchicalModel(k).fit(X)
     # reg_covar keeps a component's variance away from zero on one-hot columns (standardised data: 0.05 of a unit)
     return GaussianMixture(n_components=k, covariance_type="diag", reg_covar=0.05, n_init=2, random_state=seed).fit(X)
+
 
 
 def unscaled_centroids(model: Any, record: dict[str, Any]) -> dict[int, dict[str, float]]:
@@ -221,27 +254,141 @@ def profiles(frame: pd.DataFrame, labels: np.ndarray, columns: Sequence[str], to
     return out
 
 
+def clusterability(X: np.ndarray, sample_size: int = 1000, seed: int = 0) -> dict[str, Any]:
+    """Assess whether data has natural clustering tendency using the Hopkins statistic (H).
+    H near 0.5 indicates uniform spatial noise; H near 1.0 indicates strong clustering."""
+    from sklearn.neighbors import NearestNeighbors
+
+    if len(X) < 10 or X.shape[1] == 0:
+        return {"hopkins": 0.5, "tendency": "uniform_noise", "description": "Insufficient rows to evaluate clustering tendency"}
+
+    rng = np.random.default_rng(seed)
+    m = min(sample_size, len(X) // 2)
+    m = max(5, min(m, len(X) - 1))
+
+    # Sample m real points from X without replacement
+    sample_indices = rng.choice(len(X), m, replace=False)
+    X_sample = X[sample_indices]
+
+    # Generate m uniform synthetic points over bounding box of X
+    low = np.quantile(X, 0.01, axis=0)
+    high = np.quantile(X, 0.99, axis=0)
+    span = np.where(high > low, high - low, 1.0)
+    low_adj = np.where(high > low, low, low - 0.5)
+    high_adj = low_adj + span
+    Y_synth = rng.uniform(low_adj, high_adj, (m, X.shape[1]))
+
+    # Fit NearestNeighbors on full X
+    nn = NearestNeighbors(n_neighbors=2).fit(X)
+
+    # u_i = distance from synthetic points Y to nearest real point in X
+    u_dists, _ = nn.kneighbors(Y_synth, n_neighbors=1)
+    u_sum = float(np.sum(u_dists))
+
+    # w_i = distance from real sample points X_sample to nearest neighbor in X \ {x_i}
+    w_dists, _ = nn.kneighbors(X_sample, n_neighbors=2)
+    w_sum = float(np.sum(w_dists[:, 1]))
+
+    denom = u_sum + w_sum
+    h = float(u_sum / denom) if denom > 1e-12 else 0.5
+    h_val = _r(h, 3)
+
+    if h >= 0.70:
+        tendency = "high"
+        desc = f"Hopkins statistic {h_val} indicates strong natural cluster structure in the feature space"
+    elif h >= 0.55:
+        tendency = "moderate"
+        desc = f"Hopkins statistic {h_val} indicates moderate clustering structure"
+    else:
+        tendency = "uniform_noise"
+        desc = f"Hopkins statistic {h_val} indicates uniform distribution with weak natural clustering tendency"
+
+    return {"hopkins": h_val, "tendency": tendency, "description": desc}
+
+
+def recommend_clustering_strategy(frame: pd.DataFrame, X: np.ndarray, record: dict[str, Any], seed: int = 0) -> dict[str, Any]:
+    """Examine dataset topology, categorical proportions, noise level, and sample size to recommend
+    and rank suitable clustering techniques (KMeans, GMM, HDBSCAN, Hierarchical)."""
+    from sklearn.cluster import HDBSCAN
+
+    n_rows, n_dim = X.shape
+    total_cols = len(record.get("spans", {})) or 1
+    cat_cols = len(record.get("categories", {}))
+    cat_ratio = cat_cols / total_cols
+
+    # Outlier noise check using HDBSCAN on a subsample
+    sub_n = min(n_rows, 1000)
+    rng = np.random.default_rng(seed)
+    sub_idx = rng.choice(n_rows, sub_n, replace=False) if n_rows > sub_n else np.arange(n_rows)
+    hdb_noise = 0.0
+    if sub_n >= 30:
+        dl = HDBSCAN(min_cluster_size=max(10, sub_n // 50)).fit(X[sub_idx]).labels_
+        hdb_noise = float(np.mean(dl == -1))
+
+    c_info = clusterability(X, seed=seed)
+
+    candidates = ["kmeans", "mixture"]
+    rationales = {
+        "kmeans": "Standardized continuous feature space; fast centroid baseline with unscaled center interpretability.",
+        "mixture": "Gaussian mixture handles ellipsoidal clusters, varying covariances, and provides soft probabilistic assignment confidence.",
+    }
+
+    if n_rows <= 3000 and n_dim <= 60:
+        candidates.append("hierarchical")
+        rationales["hierarchical"] = f"Sample size (N={n_rows}) is well-suited for Agglomerative hierarchical clustering with Ward linkage; deterministic tree structure."
+
+    if hdb_noise > 0.10:
+        rationales["density_note"] = f"High background noise detected ({hdb_noise:.1%}); density-based view (HDBSCAN) is recommended to isolate outlier rows."
+    else:
+        rationales["density_note"] = f"Low background noise ({hdb_noise:.1%}); compact centroid-based groupings are supported."
+
+    if cat_ratio > 0.40:
+        rationales["categorical_note"] = f"High categorical feature ratio ({cat_ratio:.1%}); one-hot dimensions are scaled by 1/sqrt(levels) to prevent category dominance."
+
+    if hdb_noise > 0.15:
+        top_rec = "mixture" if "mixture" in candidates else "kmeans"
+    elif n_rows <= 1000 and "hierarchical" in candidates and c_info["tendency"] == "high":
+        top_rec = "hierarchical"
+    else:
+        top_rec = "kmeans"
+
+    return {
+        "recommended_methods": candidates,
+        "top_recommendation": top_rec,
+        "clusterability": c_info,
+        "data_profile": {
+            "rows": n_rows,
+            "dimensions": n_dim,
+            "categorical_ratio": _r(cat_ratio, 3),
+            "outlier_noise_share": _r(hdb_noise, 3),
+        },
+        "rationales": rationales,
+    }
+
+
 def segment(frame: pd.DataFrame, *, columns: Optional[Sequence[str]] = None, ks: Sequence[int] = range(2, 9), min_stability: float = 0.75,
-            resamples: int = 20, outcome: Optional[str] = None, seed: int = 0, sample: int = 3000) -> dict[str, Any]:
+            resamples: int = 20, outcome: Optional[str] = None, seed: int = 0, sample: int = 3000,
+            methods: Optional[Sequence[str]] = None) -> dict[str, Any]:
     """Segments with their stability, separation and profiles, the choice of k explained, and the no-ground-truth limit."""
     cols = [c for c in (columns if columns is not None else frame.columns) if c != outcome]
     ks = [k for k in ks if 2 <= k < len(frame)]
     if not ks:
         raise ValueError(f"{len(frame)} rows cannot be split into the numbers of segments asked for")
-    found = search(frame, cols, ks, min_stability=min_stability, resamples=resamples, seed=seed, sample=sample)
+    found = search(frame, cols, ks, min_stability=min_stability, resamples=resamples, seed=seed, sample=sample, methods=methods)
     out = _report(frame, found["final"], found["kept"], ks, min_stability, outcome, seed=seed)
     out["preprocessing"]["left_out"].update(found["unused"])
     out["passes"] = {"first": {"columns": cols, "chosen": found["first"]["chosen"]}, "unused_columns": found["unused"]}
     return out
 
 
+
 def search(frame: pd.DataFrame, cols: Sequence[str], ks: Sequence[int], *, min_stability: float = 0.75, resamples: int = 20, seed: int = 0,
-           sample: int = 3000) -> dict[str, Any]:
+           sample: int = 3000, methods: Optional[Sequence[str]] = None) -> dict[str, Any]:
     """The choice of segments, never reading an outcome: a first pass over ``cols``, the columns no plausible grouping
     uses left out, and a second pass without them (16.15 B: the engine's models stage). ``final`` is the pass chosen
     from, ``kept`` its columns."""
     cols = list(cols)
-    first = _search(frame, cols, ks, min_stability, resamples, seed, sample)
+    first = _search(frame, cols, ks, min_stability, resamples, seed, sample, methods=methods)
     unused = {}
     good = [v for v in first["table"].values() if v["stable"] and v["separated"]]
     top = max((v["silhouette"] for v in good), default=None)
@@ -256,7 +403,9 @@ def search(frame: pd.DataFrame, cols: Sequence[str], ks: Sequence[int], *, min_s
                 unused[c] = (f"none of the {len(candidates)} plausible groupings of the first pass explains more than {max(shares):.1%} "
                              "of its spread: no group uses it")
     kept = [c for c in cols if c not in unused]
-    final = _search(frame, kept, ks, min_stability, resamples, seed, sample) if unused and len(kept) >= 2 else first
+    final = _search(frame, kept, ks, min_stability, resamples, seed, sample, methods=methods) if unused and len(kept) >= 2 else first
+    if "strategy" not in final and "strategy" in first:
+        final["strategy"] = first["strategy"]
     return {"first": first, "final": final, "kept": kept if final is not first else cols, "unused": unused}
 
 
@@ -288,15 +437,17 @@ def _between_share(block: np.ndarray, labels: np.ndarray) -> float:
     return float(between / total)
 
 
-def _search(frame, cols, ks, min_stability, resamples, seed, sample) -> dict[str, Any]:
+def _search(frame, cols, ks, min_stability, resamples, seed, sample, methods: Optional[Sequence[str]] = None) -> dict[str, Any]:
     from sklearn.metrics import calinski_harabasz_score, davies_bouldin_score, silhouette_score
 
     X, record = prepare(frame, cols)
+    strategy = recommend_clustering_strategy(frame, X, record, seed=seed)
+    methods_to_run = tuple(methods) if methods is not None else ("kmeans", "mixture")
     rng = np.random.default_rng(seed)
     probe = rng.choice(len(X), min(sample, len(X)), replace=False)
     table: dict[str, dict[str, Any]] = {}
     labels_of: dict[tuple[str, int], np.ndarray] = {}
-    for method in ("kmeans", "mixture"):
+    for method in methods_to_run:
         for k in ks:
             st = stability(method, k, X, resamples=resamples, seed=seed)
             labs = st.pop("labels")
@@ -328,7 +479,7 @@ def _search(frame, cols, ks, min_stability, resamples, seed, sample) -> dict[str
             }
     stable = [v for v in table.values() if v["stable"] and v["separated"]]
     chosen = max(stable, key=lambda v: (v["silhouette"] or -1, -v["k"])) if stable else None
-    return {"X": X, "record": record, "table": table, "labels_of": labels_of, "chosen": chosen}
+    return {"X": X, "record": record, "table": table, "labels_of": labels_of, "chosen": chosen, "strategy": strategy}
 
 
 def _report(frame, found, cols, ks, min_stability, outcome, seed: int = 0) -> dict[str, Any]:
@@ -347,6 +498,8 @@ def _report(frame, found, cols, ks, min_stability, outcome, seed: int = 0) -> di
     out: dict[str, Any] = {"preprocessing": record, "candidates": table, "rejected_as_unstable": rejected, "rejected_as_not_separated": not_separated,
                            "density_view": {"method": "hdbscan", "groups": int(len(set(dl) - {-1})), "noise_share": _r(np.mean(dl == -1), 3),
                                             "rows": int(len(rows))},
+                           "strategy_recommendation": found.get("strategy"),
+                           "clusterability": (found.get("strategy") or {}).get("clusterability"),
                            "limit": NO_GROUND_TRUTH, "min_stability": min_stability}
     if chosen is None:
         out.update({"chosen": None, "why": f"no number of segments in {list(ks)} is both stable (lower bound {min_stability}) and better "

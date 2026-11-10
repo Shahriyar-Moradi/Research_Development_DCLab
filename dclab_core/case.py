@@ -503,9 +503,10 @@ CLEAR_SUBJECT = re.compile(
 )
 
 CLEAR_GOAL_OR_ROUTE = re.compile(
-    r"\b(?:predict\w*|forecast\w*|rank\w*|score|classify|clean|dedup\w*|merge|combine|dashboard|report|"
+    r"\b(?:predict\w*|forecast\w*|rank\w*|score|classify|segment\w*|cluster\w*|clean|dedup\w*|merge|combine|dashboard|report|"
     r"compare|analyse|analyze|break ?down|list|show me|send me)\b", re.I
 )
+
 
 
 def is_clear_on_arrival(case: CaseFile, table: Optional[Mapping[str, Any]] = None) -> bool:

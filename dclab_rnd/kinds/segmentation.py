@@ -30,17 +30,25 @@ class Segmentation(ProblemKind):
     task_type = "segmentation"
     specificity = 15
     packs = ()
-    words = (r"\b(segment(?:ation)? (?:of )?(?:our |the |my )?(?:customers|users|clients|stores|shoppers|members)"
-             r"|(?:customer|user|shopper) segments?|cluster(?:ing)? (?:of )?(?:our |the )?(?:customers|users|clients|stores)"
-             r"|personas?|groups? of (?:customers|users|stores) (?:that|who) behave)\b")
+    words = (r"\b(segment(?:ation)? (?:of )?(?:our |the |my )?(?:customers|users|clients|stores|shoppers|members|entities|accounts)"
+             r"|(?:customer|user|shopper|behavioral|behavioural) segments?"
+             r"|cluster(?:ing)? (?:of )?(?:our |the |my )?(?:data|customers|users|clients|stores|accounts)"
+             r"|personas?|archetypes?|cohorts?"
+             r"|groups? of (?:customers|users|stores|clients|accounts) (?:that|who) behave"
+             r"|natural (?:groupings?|groups?|clusters?|segments?)"
+             r"|unsupervised (?:grouping|clustering|segmentation)"
+             r"|divide (?:our |the |my )?(?:customers|users|records|accounts) (?:into|by) (?:behavior|behaviour|groups|clusters|segments))\b")
     PREDICTS = r"\b(predict\w*|forecast\w*|estimat\w*|will (?:\w+ )?(?:churn|buy|cancel|pay|leave|default))\b"
+    AGGREGATES = r"\b(how many|count of|total number|sum of|average of)\b[^.;]*\b(by|in|per)\b"
+    RARE_EVENTS = r"\b(fraud|fraudulent|anomaly|anomalies|anomalous|rare event)\b"
     questions = ("Which rows are grouped (customers, stores), and which columns describe how they behave?",
                  "Is there a later outcome to describe the groups with (a renewal, a spend)? It will not be used to form them.",
                  "At most how many segments could the team act on?")
     metrics = (("stability", "Bootstrap stability (adjusted Rand)"), ("silhouette", "Silhouette"))
     baselines = ()
     checks = ()
-    reliability = ("stability interval per number of segments", "columns no group uses", "density view and its noise share")
+    reliability = ("stability interval per number of segments", "columns no group uses", "density view and its noise share",
+                   "clusterability (Hopkins statistic)", "multi-metric validation (Davies-Bouldin, Calinski-Harabasz)")
     evidence_track = "data-science-foundations"  # 16.14: the research track whose evidence agents cite for this kind
     aliases = ('clustering', 'customer segments', 'personas', 'unsupervised grouping')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     stratify = False
@@ -69,9 +77,33 @@ class Segmentation(ProblemKind):
     def detect(self, problem: str, profile: dict[str, Any] | None = None) -> str | None:
         import re
 
-        if re.search(self.PREDICTS, (problem or "").lower()):  # "predict churn, reported per segment" is a prediction
+        prob = (problem or "").lower()
+        # Disambiguation 1: If predicting an outcome, this is a prediction problem, not segmentation
+        if re.search(self.PREDICTS, prob):
             return None
-        return super().detect(problem, profile)
+        # Disambiguation 2: If finding rare fraud or anomalies, route to rare event/anomaly detection
+        if re.search(self.RARE_EVENTS, prob):
+            return None
+        # Disambiguation 3: Simple aggregation or count query
+        if re.search(self.AGGREGATES, prob) and not re.search(r"\b(cluster|segment|persona|latent)\b", prob):
+            return None
+
+        # Lexical trigger matching
+        lexical = super().detect(problem, profile)
+        if lexical:
+            return lexical
+
+        # Data profile-driven detection: targetless table with behavioral features
+        if profile is not None:
+            has_target = bool(profile.get("target") or profile.get("target_column") or profile.get("outcome_column"))
+            cols = profile.get("columns") or profile.get("numeric_columns") or []
+            # Check for latent grouping intent or open-ended exploratory patterns
+            exploratory = re.search(r"\b(divide|group|patterns?|types of|profiles?|behaviou?r|cohorts?|natural|structure)\b", prob)
+            if not has_target and exploratory and len(cols) >= 3:
+                return "the problem seeks natural user or entity groupings and the dataset has behavioral features with no target column"
+
+        return None
+
 
     def applies(self, solution: Any) -> bool:
         return _get(solution, "kind") == self.key
@@ -246,18 +278,23 @@ class SegmentationMachine(Machine):
         f = self.fields
         found = segment.search(self.training_rows().reset_index(drop=True), self._features(previous), range(2, f["max_segments"] + 1), resamples=12)
         table, chosen = found["final"]["table"], found["final"]["chosen"]
+        strategy = found["final"].get("strategy")
+        clusterability_info = (strategy or {}).get("clusterability")
         good = sorted((v for v in table.values() if v["stable"] and v["separated"]), key=lambda v: -(v["silhouette"] or -1))
         ranking = [{"model": f"{v['method']}:{v['k']}", "mean": v["stability"]["mean"], "std": 0.0, "silhouette": v["silhouette"],
                     "davies_bouldin": v.get("davies_bouldin"), "calinski_harabasz": v.get("calinski_harabasz"), "inertia": v.get("inertia")} for v in good]
         best = f"{chosen['method']}:{chosen['k']}" if chosen else None
         why = "the best separated of the stable choices (lower end of the 90% stability interval at least 0.75, silhouette above data with no groups)"
         chosen_dict = {k: chosen[k] for k in ("method", "k", "stability", "silhouette", "null_silhouette", "davies_bouldin", "calinski_harabasz", "inertia", "mean_assignment_confidence") if k in chosen} if chosen else None
+        notes_text = ("Stable and separated: " + "; ".join(f"{r['model']} (stability {r['mean']}, silhouette {r['silhouette']})" for r in ranking)) if ranking else "No grouping is both stable and separated."
+        if clusterability_info and clusterability_info.get("description"):
+            notes_text += f" {clusterability_info['description']}."
         evidence = {"selected_model": best, "ranking": ranking, "chosen": chosen_dict, "columns_used": found["kept"], "unused_columns": found["unused"],
+                    "strategy_recommendation": strategy, "clusterability": clusterability_info,
                     "candidates": {k: {kk: v[kk] for kk in ("method", "k", "stability", "silhouette", "null_silhouette", "stable", "separated", "davies_bouldin", "calinski_harabasz", "inertia", "balanced") if kk in v}
                                    for k, v in table.items()}, "selection_rule": why,
                     "notes_for_person": [{"title": f"{best or 'no grouping'} chosen on the training rows", "proof": ["DCLAB-R13", "DCLAB-R17"],
-                                          "text": ("Stable and separated: " + "; ".join(f"{r['model']} (stability {r['mean']}, silhouette {r['silhouette']})"
-                                                                                      for r in ranking)) if ranking else "No grouping is both stable and separated."}]}
+                                          "text": notes_text}]}
         decision = {"kind": "model", "selected": best, "chosen": best, "rule": why,
                     "options": [{"id": r["model"], "label": r["model"], "mean": r["mean"], "std": r["std"]} for r in ranking]}
         claims = [claim(f"{eid}-C1", "fact", f"Chosen on the training rows: {best or 'none: the data shows no stable groups'}.", ["evidence.chosen"])]
@@ -303,12 +340,15 @@ class SegmentationMachine(Machine):
                     "baselines": {"no_groups": {"silhouette": round(null, 3) if null is not None else None}},
                     "holds_on_holdout": holds, "labels": labels.tolist(), "profiles": segment.profiles(self.data_frame, labels, cols, centroids=unscaled),
                     "unscaled_centroids": unscaled, "holdout_mean_confidence": mean_conf,
+                    "strategy_recommendation": models.get("strategy_recommendation"),
+                    "clusterability": models.get("clusterability"),
                     "outcome": outcome, "limit": segment.NO_GROUND_TRUTH, "holdout_split": self.holdout_description(),
                     "holdout_rows": int(len(self.holdout)), "train_rows": int(len(self.train)),
                     "selection_rule": "the grouping chosen on the training rows, assigned to the held-out rows once",
                     "notes_for_person": [{"title": f"{chosen}: the held-out rows {'keep' if holds else 'do not keep'} the separation", "proof": ["DCLAB-R17"],
                                           "text": f"Held-out silhouette {sil and round(sil, 3)} against {null and round(null, 3)} on data with no groups. "
                                                   + segment.NO_GROUND_TRUTH}]}
+
         claims = [claim(f"{eid}-C1", "fact", f"{chosen}, formed on the training rows, assigned to {len(self.holdout)} held-out rows: silhouette "
                         f"{sil and round(sil, 3)} against {null and round(null, 3)} on data with no groups.", ["evidence.holdout_metrics"],
                         [segment.NO_GROUND_TRUTH, "Not approved for production from this evidence alone."])]
