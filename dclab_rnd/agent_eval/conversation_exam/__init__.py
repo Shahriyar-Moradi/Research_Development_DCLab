@@ -63,7 +63,8 @@ ARMS = ("home", "plain", "case", "safe", "case_chip")  # case_chip (2026-11-04):
 READY_ARMS = ("home", "plain")  # the default arms; add case with --arms home,plain,case
 PURPOSES_CASE = "case_agent"
 PURPOSES = {"plain": "exam_plain", "person": "exam_person", "judge": "exam_judge"}
-MODELS = {"person": "claude-haiku-5-5", "judge": "claude-opus-5-5"}  # the arms use the product's model (Sonnet 5.5)
+# MODELS = {"person": "claude-haiku-5-5", "judge": "claude-opus-5-5"}  # the arms use the product's model (Sonnet 5.5)
+MODELS = {"person": "qwen/qwen3.8-flash", "judge": "qwen/qwen3.8-flash"}  # OpenRouter qwen/qwen3.8-flash for all exam roles
 MAX_PERSON_TURNS = 8
 WHY = ("written people played by a model from their hidden truth, and judged by a model: their words and picks are a "
        "simulation's, never a person's label; the arms' replies are the systems' own")
@@ -641,9 +642,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         mark_invented_tables(gateway, args.split)
         practice_effort()
     standard = str((_settings.tier("standard") or {}).get("model") or "")
-    if not standard.startswith("claude"):
-        print(f"refused: the exam's arms run on the product's Claude model; the standard tier serves {standard!r}", file=sys.stderr)
+    on_openrouter = _settings.openrouter_default() or _settings._host(str((_settings.tier("standard") or {}).get("base_url") or "")) == _settings.OPENROUTER_HOST
+    if not (standard.startswith("claude") or on_openrouter):
+        print(f"refused: the exam's arms run on the product's Claude or OpenRouter model; the standard tier serves {standard!r}", file=sys.stderr)
         return 2
+    person_model = standard if on_openrouter else MODELS["person"]
+    judge_model = standard if on_openrouter else MODELS["judge"]
+    route_model = _case_agent.route_model() if on_openrouter else _case_agent.ROUTE_MODEL
     budget = Budget(gateway, args.cap_eur)
     keep = (vault / "conversations") if sealed else KEEP_ROOT / f"{datetime.now(timezone.utc):%Y-%m-%d}-conversation-exam" / run
     tag = f"{EXAM}{run}:"  # every call names its run, so two runs' calls on the same person are never confused
@@ -651,20 +656,20 @@ def main(argv: Optional[list[str]] = None) -> int:
                "plain": lambda pid, folder: PlainArm(budget.client(f"{tag}plain-{pid}", PURPOSES["plain"])),
                "case": lambda pid, folder: CaseArm(budget.client(f"{tag}case-{pid}", PURPOSES_CASE),
                                                    budget.client(f"{tag}case-{pid}", "case_specialist"), folder,
-                                                   budget.client(f"{tag}case-{pid}", "route_check", _case_agent.ROUTE_MODEL)),
+                                                   budget.client(f"{tag}case-{pid}", "route_check", route_model)),
                "case_chip": lambda pid, folder: CaseArm(budget.client(f"{tag}case_chip-{pid}", PURPOSES_CASE),  # 2026-11-04: with the person's chip
                                                         budget.client(f"{tag}case_chip-{pid}", "case_specialist"), folder,
-                                                        budget.client(f"{tag}case_chip-{pid}", "route_check", _case_agent.ROUTE_MODEL), chip=True),
+                                                        budget.client(f"{tag}case_chip-{pid}", "route_check", route_model), chip=True),
                "safe": lambda pid, folder: SafeArm(budget.client(f"{tag}safe-{pid}", PURPOSES["plain"]))}
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
     result = measure(people, {a: arm_for[a] for a in arms},
-                     lambda key, p: ModelPerson(budget.client(f"{tag}person:{key}", PURPOSES["person"], MODELS["person"]), p),
-                     lambda pid, arm: budget.client(f"{tag}judge:{arm}-{pid}", PURPOSES["judge"], MODELS["judge"]), keep=keep,
+                     lambda key, p: ModelPerson(budget.client(f"{tag}person:{key}", PURPOSES["person"], person_model), p),
+                     lambda pid, arm: budget.client(f"{tag}judge:{arm}-{pid}", PURPOSES["judge"], judge_model), keep=keep,
                      exhausted=lambda: budget.spent_eur() >= 0.98 * budget.cap_eur,
                      spent_for=lambda pid, arm: {"arm": budget.spent_eur(f"{tag}{arm}-{pid}"), "person": budget.spent_eur(f"{tag}person:{arm}-{pid}"),
                                                  "judge": budget.spent_eur(f"{tag}judge:{arm}-{pid}")})
     kept_at = str(keep.relative_to(ROOT)) if keep.is_relative_to(ROOT) else f"<workspace>/exam_vault/{run}_{args.split}/conversations"
-    record = {"id": run, "split": args.split, "at": started, "arms": arms, "models": {"arms": "claude-sonnet-5-5 (the product's)", **MODELS},
+    record = {"id": run, "split": args.split, "at": started, "arms": arms, "models": {"arms": f"{standard} (the product's)", "person": person_model, "judge": judge_model},
               "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur, "kept": kept_at, "gate_for_37_10": _gate.gate_for(args.split), **result}
     if sealed:  # the verdict, read once; the conversations stay in the vault (never in a file a set could read)
         record.pop("conversations", None)

@@ -1,0 +1,380 @@
+{
+ "id": "SYS-006",
+ "campaign_id": "system_tasks_v1",
+ "kind": "system_tasks",
+ "status": "completed",
+ "at": "2026-11-09T22:40:59+00:00",
+ "split": "dev",
+ "seeds": [
+  3,
+  4
+ ],
+ "kinds": [
+  "rare_event",
+  "entity_tables",
+  "forecasting",
+  "matching",
+  "ranking",
+  "segmentation",
+  "time_to_event",
+  "uplift",
+  "streams",
+  "places",
+  "text_tabular",
+  "anomaly",
+  "binary",
+  "multiclass",
+  "regression"
+ ],
+ "gate": {
+  "version": "system_gate_v1",
+  "task": "every decision of the kind holds on the seed",
+  "suite_lower_bound": 0.8,
+  "no_kind_fails_every_seed": true
+ },
+ "sealed_sha256": null,
+ "spent_eur": 0.0,
+ "tasks": [
+  30,
+  30
+ ],
+ "tasks_ci95": [
+  0.8865,
+  1.0
+ ],
+ "verdict": "pass: 30 of 30 tasks (95% 0.8865 to 1.0)",
+ "kinds_failing_every_seed": [],
+ "rows": [
+  {
+   "kind": "rare_event",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    16,
+    16
+   ],
+   "missing": [],
+   "seconds": 41.7
+  },
+  {
+   "kind": "rare_event",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    16,
+    16
+   ],
+   "missing": [],
+   "seconds": 41.1
+  },
+  {
+   "kind": "entity_tables",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    10,
+    10
+   ],
+   "missing": [],
+   "seconds": 4.9
+  },
+  {
+   "kind": "entity_tables",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    10,
+    10
+   ],
+   "missing": [],
+   "seconds": 4.9
+  },
+  {
+   "kind": "forecasting",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    10,
+    10
+   ],
+   "missing": [],
+   "seconds": 26.5
+  },
+  {
+   "kind": "forecasting",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    10,
+    10
+   ],
+   "missing": [],
+   "seconds": 25.5
+  },
+  {
+   "kind": "matching",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    9,
+    9
+   ],
+   "missing": [],
+   "seconds": 48.8
+  },
+  {
+   "kind": "matching",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    9,
+    9
+   ],
+   "missing": [],
+   "seconds": 49.2
+  },
+  {
+   "kind": "ranking",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    12,
+    12
+   ],
+   "missing": [],
+   "seconds": 5.9
+  },
+  {
+   "kind": "ranking",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    12,
+    12
+   ],
+   "missing": [],
+   "seconds": 5.6
+  },
+  {
+   "kind": "segmentation",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    12,
+    12
+   ],
+   "missing": [],
+   "seconds": 19.2
+  },
+  {
+   "kind": "segmentation",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    12,
+    12
+   ],
+   "missing": [],
+   "seconds": 19.3
+  },
+  {
+   "kind": "time_to_event",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    11,
+    11
+   ],
+   "missing": [],
+   "seconds": 1.6
+  },
+  {
+   "kind": "time_to_event",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    11,
+    11
+   ],
+   "missing": [],
+   "seconds": 1.2
+  },
+  {
+   "kind": "uplift",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    12,
+    12
+   ],
+   "missing": [],
+   "seconds": 17.9
+  },
+  {
+   "kind": "uplift",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    12,
+    12
+   ],
+   "missing": [],
+   "seconds": 17.9
+  },
+  {
+   "kind": "streams",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    11,
+    11
+   ],
+   "missing": [],
+   "seconds": 12.0
+  },
+  {
+   "kind": "streams",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    11,
+    11
+   ],
+   "missing": [],
+   "seconds": 11.8
+  },
+  {
+   "kind": "places",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    5,
+    5
+   ],
+   "missing": [],
+   "seconds": 5.1
+  },
+  {
+   "kind": "places",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    5,
+    5
+   ],
+   "missing": [],
+   "seconds": 5.0
+  },
+  {
+   "kind": "text_tabular",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    8,
+    8
+   ],
+   "missing": [],
+   "seconds": 3.0
+  },
+  {
+   "kind": "text_tabular",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    8,
+    8
+   ],
+   "missing": [],
+   "seconds": 3.6
+  },
+  {
+   "kind": "anomaly",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    8,
+    8
+   ],
+   "missing": [],
+   "seconds": 6.6
+  },
+  {
+   "kind": "anomaly",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    8,
+    8
+   ],
+   "missing": [],
+   "seconds": 6.6
+  },
+  {
+   "kind": "binary",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    7,
+    7
+   ],
+   "missing": [],
+   "seconds": 2.4
+  },
+  {
+   "kind": "binary",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    7,
+    7
+   ],
+   "missing": [],
+   "seconds": 2.4
+  },
+  {
+   "kind": "multiclass",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    7,
+    7
+   ],
+   "missing": [],
+   "seconds": 11.7
+  },
+  {
+   "kind": "multiclass",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    7,
+    7
+   ],
+   "missing": [],
+   "seconds": 11.7
+  },
+  {
+   "kind": "regression",
+   "seed": 3,
+   "passed": true,
+   "checks": [
+    6,
+    6
+   ],
+   "missing": [],
+   "seconds": 2.4
+  },
+  {
+   "kind": "regression",
+   "seed": 4,
+   "passed": true,
+   "checks": [
+    6,
+    6
+   ],
+   "missing": [],
+   "seconds": 2.4
+  }
+ ],
+ "rule": "The engine's own decisions on seeded replicas with planted traps, no model: evidence that DCLab decides well on these invented problems, not about real data nor production readiness."
+}

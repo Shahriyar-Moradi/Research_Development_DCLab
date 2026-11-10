@@ -43,7 +43,22 @@ DATA_WORK = re.compile(r"\b(?:build|make|give|send|create|prepare|set up|get)\b[
 JUST_ANSWER = re.compile(r"\b(?:no data work|just (?:the )?answer|quick q(?:uestion)?|in general|in theory)\b", re.I)
 HELP = re.compile(r"\b(?:can you help|help me|help us|what can you do|how can you help|i need help)\b", re.I)
 TURN_BUDGET = 3  # the person's turns after which, with the goal and the data known, the agent proposes or starts
-ROUTE_MODEL = "claude-haiku-5-5"  # the cheap second reading of the route
+# ROUTE_MODEL = "claude-haiku-5-5"  # the cheap second reading of the route (Anthropic Claude, kept commented)
+ROUTE_MODEL = "qwen/qwen3.8-flash"  # the cheap second reading of the route (OpenRouter Qwen)
+
+
+def route_model() -> str:
+    """The model for the second reading of the route: DCLAB_ROUTE_MODEL when set, the cheap tier's model when running on
+    OpenRouter (qwen/qwen3.8-flash by default), else ROUTE_MODEL."""
+    from ..models import settings as model_settings
+
+    explicit = os.environ.get("DCLAB_ROUTE_MODEL", "").strip()
+    if explicit:
+        return explicit
+    cheap = model_settings.tier("cheap")
+    if model_settings.openrouter_default() or model_settings._host(str(cheap.get("base_url") or "")) == model_settings.OPENROUTER_HOST:
+        return str(cheap.get("model") or model_settings.OPENROUTER_DEFAULT_MODEL)
+    return ROUTE_MODEL
 
 
 def route_now(state: "CaseState") -> Optional[str]:
@@ -90,7 +105,12 @@ def data_work(state: "CaseState") -> bool:
     words = " ".join(state.case.words)
     if JUST_ANSWER.search(words):
         return False
-    if DATA_WORK.search(words):
+    if DATA_WORK.search(words) or (C.CLEAR_GOAL_OR_ROUTE.search(words) and C.CLEAR_SUBJECT.search(words)):
+        return True
+    if state.chip in CHIP_NEEDS_TABLE:
+        return True
+    named = set(C.named_tracks(state.case.words)) - {"advice"}
+    if named:
         return True
     if state.table is None:
         return False
@@ -246,6 +266,7 @@ class CaseState:
     chip: Optional[str] = None  # 2026-11-04: the kind of help the person picked on Home before writing (a track): the route
     chip_intent: Optional[str] = None  # the draft's chosen track the chip was last read from (a press, not every difference, resets it)
     chip_checked: bool = False  # the one question asked when their words pointed elsewhere (asked once, then their pick decides)
+    clear_on_arrival: bool = False  # request is crystal-clear on arrival (goal, subject/target and table known)
     route_told: list[str] = field(default_factory=list)  # the plan's step 1: each route doubt (a move and what it pointed to) told once
     route_seen: Optional[tuple[int, Optional[str]]] = None  # the second reading for the words heard so far: read again on new words only
     rewriting: bool = False  # the agent is rewriting dropped sentences: no move may run (the review: a question counted twice)
@@ -357,7 +378,8 @@ def _worked(state: CaseState, track: str, tool: str) -> None:
     moves = route is not None and tool == "dashboard" and route.by == "agent" and route.tool == "query"  # a board after an answer: the Refresh button reads this
     if state.chip and track != state.chip:
         return  # 2026-11-04: the person picked another kind of help on Home; figures shown on the way do not change it
-    if (route is None or moves) and not state.case.chosen and state.wants_figures:
+    figures_wanted = state.wants_figures or (bool(state.table) and C.wants_figures(state.case.words) and not _model_work(state))
+    if (route is None or moves) and not state.case.chosen and figures_wanted:
         state.case = C.apply(state.case, "route", C.CaseRoute(track=track, tool=tool, by="agent"), by="agent", why="the figures asked for were shown")
 
 
@@ -591,7 +613,7 @@ def _propose(state: CaseState, options: list[dict[str, Any]]) -> dict[str, Any]:
         tracks = {str(o.get("track")) for o in options or []}
         if not tracks <= allowed:
             return {"error": f"the person picked {C.CHIPS.get(state.chip, state.chip)}: offer only {', '.join(sorted(allowed))}"}
-    if not r.may_propose and not state.case.chosen and not state.wants_options and not state.budget_reached and not state.chip:
+    if not r.may_propose and not state.case.chosen and not state.wants_options and not state.budget_reached and not state.chip and not state.clear_on_arrival:
         return {"error": "not yet: " + "; ".join(r.reasons) + ". Ask about what is missing, or propose once the ceiling is reached."}
     try:
         offered = [C.CaseOption(**{k: v for k, v in o.items() if k in C.CaseOption.model_fields}) for o in options or []]
@@ -652,6 +674,8 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     if track in NO_DATA_WORK and not state.case.chosen and not r.ready and not state.budget_reached and data_work(state):
         return {"error": "the person's need points to data work (a shared table, or a list, report, model or cleaning): advice "
                          "answers a question with no work on data. Propose or start the work their need calls for."}
+    if track in CHIP_NEEDS_TABLE and state.table is None:
+        return {"error": f"they want {track}: ask them to share or upload the table it runs on, then start it"}
     # a clear person is proposed to at once (readiness), never started on before the case is ready: "send me the customers who
     # churned ... call list by friday" is both a go-ahead and a named analysis, on a real-prediction trap (the second review of step 1)
     if not state.case.chosen and not r.ready and not state.budget_reached and track not in NO_DATA_WORK:
@@ -906,9 +930,13 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     state.turns.append({"role": "user", "content": str(words)})
     state.said, state.shown, state.asking = [], [], False
     person_turns = sum(1 for t in state.turns if t.get("role") == "user")
+    state.clear_on_arrival = C.is_clear_on_arrival(state.case, state.table)
     state.budget_reached = (person_turns > TURN_BUDGET and C.known(state.case.goal) and C.known(state.case.data)
                             and state.case.route is None and not state.case.chosen)  # the review: off once work started or was picked
-    built = ctx.build(state.case, state.turns, state.table, notes=[n for n in (chip_note(state),) if n])
+    clear_note = ("The person's request is crystal-clear on arrival (goal, subject/target, and data are already established). "
+                  "Do NOT ask clarifying questions or reflective questions on Turn 1; immediately propose actionable options (propose) "
+                  "or start the requested work (start/query/answer).") if (state.clear_on_arrival and person_turns == 1) else None
+    built = ctx.build(state.case, state.turns, state.table, notes=[n for n in (chip_note(state), clear_note) if n])
     messages = ctx.messages(prompts.text(PROMPT), built)
     start = len(messages)
     before = _spent(client) + _spent(state.specialist_client) + _spent(state.route_client)  # the review: the route check counts too

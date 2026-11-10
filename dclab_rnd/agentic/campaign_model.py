@@ -19,7 +19,7 @@ CLAUDE_TYPED = "claude-sonnet-5"
 
 
 def choice() -> Optional[dict[str, Any]]:
-    """The provider, its model, its endpoint and the key for litellm, or None when neither is configured."""
+    """The provider, its model, its endpoint and the key for litellm, or None when none is configured."""
     from ..models import settings as model_settings
     from ..models.live_guard import blocked
 
@@ -28,6 +28,11 @@ def choice() -> Optional[dict[str, Any]]:
         if t.get("provider") == "anthropic" and t.get("api_key") and t.get("model"):
             model = os.environ.get("DCLAB_CAMPAIGN_MODEL", "").strip() or typed(t["model"])
             return {"provider": "anthropic", "model": model, "base_url": t["base_url"], "api_key": t["api_key"]}
+    if model_settings.openrouter_default():
+        t = model_settings.tier("standard")
+        if t.get("api_key") and t.get("model") and not blocked(t.get("base_url") or ""):
+            model = os.environ.get("DCLAB_CAMPAIGN_MODEL", "").strip() or t["model"]
+            return {"provider": "openrouter", "model": model, "base_url": t["base_url"], "api_key": t["api_key"]}
     if os.environ.get("OPENAI_API_KEY"):
         url = os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
         if blocked(url):
@@ -38,16 +43,16 @@ def choice() -> Optional[dict[str, Any]]:
 
 def why_not() -> str:
     """What to set when the campaign has no model to call."""
-    return ("The research campaign needs a model: the product's Claude (DCLAB_LLM_PROVIDER=anthropic and ANTHROPIC_API_KEY "
-            "in .env), or an OpenAI-compatible endpoint (OPENAI_API_KEY) that is not blocked; restart after setting it. "
-            "Never paste a key in a research goal.")
+    return ("The research campaign needs a model: OpenRouter (DCLAB_LLM_PROVIDER=openrouter and OPENROUTER_API_KEY in .env), "
+            "Claude (DCLAB_LLM_PROVIDER=anthropic and ANTHROPIC_API_KEY in .env), or an OpenAI-compatible endpoint "
+            "(OPENAI_API_KEY) that is not blocked; restart after setting it. Never paste a key in a research goal.")
 
 
 def priced(model: str) -> bool:
     """Whether the gateway prices this model: an unpriced one is never counted by the euro caps, so it is not run."""
     from ..models.prices import price_of
 
-    return price_of(bare(model)) is not None
+    return price_of(model) is not None or price_of(bare(model)) is not None
 
 
 def typed(model: str) -> str:
@@ -58,6 +63,8 @@ def typed(model: str) -> str:
 def model_for(requested: str, picked: dict[str, Any]) -> str:
     """The model a run uses: the request's when it belongs to the chosen provider (a Claude that answers typed questions),
     else the provider's own."""
+    if picked["provider"] == "openrouter":
+        return requested if ("/" in requested and priced(requested)) else picked["model"]
     claude = requested.startswith("claude-")
     if (picked["provider"] == "anthropic") == claude:
         if not claude:
@@ -69,9 +76,9 @@ def model_for(requested: str, picked: dict[str, Any]) -> str:
 
 def client_args(model: str, provider: Optional[str] = None) -> tuple[str, dict[str, Any]]:
     """litellm's model name and extra settings for NOOA's client: ``anthropic/<model>`` with the key (and fields only
-    OpenAI takes dropped), or ``openai/<model>``. ``provider``: the one the run began on; a run never moves to another
-    (its model belongs to it). The live guard refuses a blocked provider, and a real client inside a test; litellm's own
-    HTTP client never passes through the gateway's, so the guard is asked here."""
+    OpenAI takes dropped), ``openrouter/<model>``, or ``openai/<model>``. ``provider``: the one the run began on; a run
+    never moves to another (its model belongs to it). The live guard refuses a blocked provider, and a real client inside
+    a test; litellm's own HTTP client never passes through the gateway's, so the guard is asked here."""
     from ..models import live_guard
 
     picked = choice()
@@ -80,10 +87,13 @@ def client_args(model: str, provider: Optional[str] = None) -> tuple[str, dict[s
     if provider and provider != picked["provider"]:
         raise RuntimeError(f"This run began on {provider}; the campaign now runs on {picked['provider']}: start a new run")
     live_guard.check(picked["provider"], picked["base_url"])
-    if picked["provider"] == "anthropic" and not priced(model):
-        raise RuntimeError(f"{bare(model)} has no price, so the euro caps could not count it: name a priced Claude model")
+    if picked["provider"] in ("anthropic", "openrouter") and not priced(model):
+        raise RuntimeError(f"{bare(model)} has no price, so the euro caps could not count it: name a priced {picked['provider']} model")
     if picked["provider"] == "anthropic":
         return "anthropic/" + bare(model), {"api_key": picked["api_key"], "drop_params": True}
+    if picked["provider"] == "openrouter":
+        name = model if model.startswith("openrouter/") else "openrouter/" + model
+        return name, {"api_key": picked["api_key"], "api_base": picked["base_url"]}
     return "openai/" + bare(model), {}
 
 

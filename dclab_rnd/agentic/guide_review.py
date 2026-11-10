@@ -190,7 +190,8 @@ async def run(model):
 def main():
     from ..models import for_workspace, install
     install(for_workspace())  # count this tool's model requests in the workspace's usage log
-    parser=argparse.ArgumentParser();parser.add_argument("--model",default=os.environ.get("OPENAI_MODEL","gpt-5.6-terra"));args=parser.parse_args()
+    # parser=argparse.ArgumentParser();parser.add_argument("--model",default=os.environ.get("OPENAI_MODEL","gpt-5.6-terra"));args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument("--model",default=os.environ.get("OPENROUTER_MODEL",os.environ.get("OPENAI_MODEL","qwen/qwen3.8-flash")));args=parser.parse_args()
     try:
         payload=asyncio.run(run(args.model))
     except Exception as exc:

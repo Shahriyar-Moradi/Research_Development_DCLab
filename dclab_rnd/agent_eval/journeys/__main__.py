@@ -197,9 +197,11 @@ def _debate_seats(args):
     the challenger and the judge on the cheap tier (Haiku 5.5 unless the workspace names another), each with its share of
     the cap; None when a seat has no model."""
     from dclab_rnd.core_advisor import GatewayAdvisor
+    from dclab_rnd.models import settings as model_settings
     from dclab_rnd.models.gateway import for_workspace
 
-    os.environ.setdefault("DCLAB_TIER_CHEAP_MODEL", "claude-haiku-5-5")
+    # os.environ.setdefault("DCLAB_TIER_CHEAP_MODEL", "claude-haiku-5-5")
+    os.environ.setdefault("DCLAB_TIER_CHEAP_MODEL", "qwen/qwen3.8-flash")
     gateway = for_workspace()
     from dclab_rnd.models.gateway import mark_invented_tables
     mark_invented_tables(gateway, "journeys (replicas)")  # every table here is invented by code

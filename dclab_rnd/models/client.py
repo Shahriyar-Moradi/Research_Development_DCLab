@@ -113,10 +113,33 @@ class ChatClient:
         self.max_tokens_floor = int(max_tokens_floor) if max_tokens_floor else None
 
     def _extra(self, kwargs: dict[str, Any]) -> dict[str, Any]:
-        """The endpoint's chat-template setting on every request, in ``extra_body`` beside whatever the caller put there."""
+        """The endpoint's chat-template setting on every request, in ``extra_body`` beside whatever the caller put there.
+        On OpenRouter (``openrouter.ai``), ``"reasoning": {"enabled": True}`` is sent unless turned off."""
+        thinking = kwargs.pop("thinking", getattr(self, "thinking", None))
+        extra = dict(kwargs.get("extra_body") or {})
         if self.chat_template_kwargs:
-            kwargs["extra_body"] = {**(kwargs.get("extra_body") or {}), "chat_template_kwargs": dict(self.chat_template_kwargs)}
+            extra["chat_template_kwargs"] = dict(self.chat_template_kwargs)
+        if urlparse(str(getattr(self, "base_url", "") or "")).hostname == "openrouter.ai":
+            env_off = (
+                os.environ.get("OPENROUTER_REASONING", "1").strip().lower() in ("0", "off", "none", "false")
+                or os.environ.get("DCLAB_THINKING", "").strip().lower() in ("0", "off", "none", "false")
+            )
+            think_off = str(thinking or "").strip().lower() in ("0", "off", "false")
+            if not think_off and not env_off and "reasoning" not in extra:
+                extra["reasoning"] = {"enabled": True}
+        if extra:
+            kwargs["extra_body"] = extra
         return kwargs
+
+    def _reasoning_details(self, message: Any) -> list[Any] | None:
+        """OpenRouter's ``reasoning_details`` array on an assistant message or delta, normalized to plain dicts/items so it
+        can be passed back unmodified in the next turn's ``assistant_message``."""
+        raw = getattr(message, "reasoning_details", None)
+        if raw is None and isinstance(message, dict):
+            raw = message.get("reasoning_details")
+        if not raw or not isinstance(raw, list):
+            return None
+        return [d.model_dump() if hasattr(d, "model_dump") else (dict(d) if isinstance(d, dict) else d) for d in raw]
 
     def _reasoning(self, message: Any) -> str:
         """The reasoning a reply (or a stream's delta) carries: under this endpoint's field, or, with none configured, under
@@ -126,12 +149,19 @@ class ChatClient:
             value = getattr(message, field, None)
             if value:
                 return str(value)
+        details = self._reasoning_details(message)
+        if details:
+            text = "".join(str((d.get("text") if isinstance(d, dict) else getattr(d, "text", None)) or "") for d in details)
+            if text:
+                return text
         return ""
 
-    def _reply(self, content: str, calls: list[dict[str, Any]], finish: Any, usage: Any, reasoning: str, note: dict[str, Any]) -> dict[str, Any]:
+    def _reply(self, content: str, calls: list[dict[str, Any]], finish: Any, usage: Any, reasoning: str, note: dict[str, Any],
+               reasoning_details: list[Any] | None = None) -> dict[str, Any]:
         """What ``complete`` and ``stream`` return: the reply parsed (``tool_calls`` with dict arguments; ``reasoning`` and
         ``thinking`` when the model reasoned, in the shape the exchange log keeps) and ``assistant_message`` as the next
-        request sends it back: the reasoning under the endpoint's field, the tool arguments as its template wants them."""
+        request sends it back: the reasoning under the endpoint's field (and ``reasoning_details`` unmodified when returned
+        by OpenRouter), the tool arguments as its template wants them."""
         if not reasoning and "</think>" in (content or ""):  # a model that writes its reasoning inline: kept apart, out of the reply
             opened = content.lstrip().startswith("<think>")
             # only at the reply's start ("<think>...</think>"), or a lone closing tag with no opening one anywhere (the template
@@ -142,6 +172,8 @@ class ChatClient:
         message: dict[str, Any] = {"role": "assistant", "content": content}
         if reasoning and self.reasoning_field:
             message[self.reasoning_field] = reasoning
+        if reasoning_details:
+            message["reasoning_details"] = reasoning_details
         if calls:
             message["tool_calls"] = [{"id": c["id"], "type": "function",
                                       "function": {"name": c["name"], "arguments": c["arguments"] if self.tool_arguments == "object" else json.dumps(c["arguments"])}}
@@ -152,6 +184,8 @@ class ChatClient:
         if reasoning:
             out["reasoning"] = reasoning
             out["thinking"] = [{"text": reasoning}]
+        if reasoning_details:
+            out["reasoning_details"] = reasoning_details
         return out
 
     def _fields_seen(self, message: Any) -> dict[str, Any]:
@@ -213,11 +247,11 @@ class ChatClient:
     @property
     def client(self):
         if self._client is None:
-            import openai
-
             from .live_guard import check
 
             check("OpenAI-compatible", self.base_url)  # D3: never from a test, unless the test asked
+            import openai
+
             self._client = openai.OpenAI(base_url=self.base_url, api_key=self.api_key, timeout=self.timeout, max_retries=self.max_retries)
         return self._client
 
@@ -235,6 +269,7 @@ class ChatClient:
         self._extra(kwargs)
         text: list[str] = []
         thought: list[str] = []
+        details: list[Any] = []
         pieces: dict[int, dict[str, Any]] = {}
         finish, usage = None, None
         self._ready()
@@ -254,6 +289,9 @@ class ChatClient:
                 piece = self._reasoning(delta)
                 if piece:
                     thought.append(piece)
+                delta_details = self._reasoning_details(delta)
+                if delta_details:
+                    details.extend(delta_details)
                 for call in getattr(delta, "tool_calls", None) or []:
                     piece = pieces.setdefault(call.index, {"id": "", "name": "", "arguments": ""})
                     piece["id"] = call.id or piece["id"]
@@ -271,7 +309,7 @@ class ChatClient:
             except json.JSONDecodeError:
                 arguments = {"_raw": piece["arguments"]}
             calls.append({"id": piece["id"] or f"call_{index}", "name": piece["name"], "arguments": arguments})
-        return self._reply("".join(text), calls, finish, usage, "".join(thought), note)
+        return self._reply("".join(text), calls, finish, usage, "".join(thought), note, reasoning_details=details or None)
 
     def embed(self, texts: list[str]) -> dict[str, Any]:
         """Embeddings of the texts, in order: {"vectors": [[...]], "usage": {"input_tokens", "output_tokens": 0}}."""
@@ -309,4 +347,5 @@ class ChatClient:
                     arguments = {"_raw": call.function.arguments}
             calls.append({"id": call.id, "name": call.function.name, "arguments": arguments if isinstance(arguments, dict) else {"_raw": arguments}})
         return {**self._reply(choice.message.content or "", calls, choice.finish_reason, getattr(response, "usage", None),
-                              self._reasoning(choice.message), note), **self._fields_seen(choice.message)}
+                              self._reasoning(choice.message), note, reasoning_details=self._reasoning_details(choice.message)),
+                **self._fields_seen(choice.message)}

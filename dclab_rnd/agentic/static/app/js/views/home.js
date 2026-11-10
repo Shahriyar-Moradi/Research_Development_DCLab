@@ -246,6 +246,9 @@ DC.view('home', {
       reporting: 'A report or dashboard', business: 'A business question', advice: 'Advice or an explanation' };
     function drawIntent(intent) {
       const box = $('#home-intent', el), chips = $('#home-intent-change', el);
+      el.querySelectorAll('.help-kind').forEach(b => {
+        b.setAttribute('aria-pressed', String(Boolean(intent && intent.source === 'user' && b.dataset.help === intent.track)));
+      });
       if (!intent) { box.hidden = true; $('#home-create', el).hidden = false; return; }  // a draft from before H2: a prediction
       if (S.draft) S.draft.intent = intent;
       const asked = intent.status === 'asked';
@@ -354,8 +357,8 @@ DC.view('home', {
         const on = hk.getAttribute('aria-pressed') !== 'true';
         el.querySelectorAll('.help-kind').forEach(b => b.setAttribute('aria-pressed', 'false'));
         hk.setAttribute('aria-pressed', String(on));
-        if (on && S.draft && S.draft.id && !((S.draft.case || {}).route)) {  // a chat open and no work started: the chip changes its kind of help
-          DC.client.chooseIntent(S.draft.id, { body: { track: hk.dataset.help } }).then(d => { S.draft = d; drawIntent(d.intent); }).catch(err => toast(err.message, { ok: false }));
+        if (S.draft && S.draft.id && !((S.draft.case || {}).route)) {  // a chat open and no work started: the chip changes or clears its kind of help
+          DC.client.chooseIntent(S.draft.id, { body: { track: on ? hk.dataset.help : null } }).then(d => { S.draft = d; drawIntent(d.intent); }).catch(err => toast(err.message, { ok: false }));
         }
         return;
       }

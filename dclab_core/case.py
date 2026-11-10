@@ -86,8 +86,8 @@ NAMED = {
 FIGURES = re.compile(
     r"\bwhich (?:\w+ ){0,2}(?:segments?|groups?|types?|kinds?|categor(?:y|ies)|regions?|plans?|products?|channels?|contracts?|cohorts?)\b|"
     r"\bhow many\b|\bwhat (?:share|percent\w*|proportion|number|rate|fraction)\b|\bbreak ?down\b|\bcompare\b|\brank\w*\b|"
-    r"\b(?:report|dashboard|plot|chart|graph|ranking)\b|\b(?:show|give|send|make|draw)(?: me| us)? (?:my |the |a |an )?(?:\w+ )?"
-    r"(?:table|numbers|figures|summary|totals?|counts?)\b", re.I)
+    r"\b(?:report|dashboard|plot|chart|graph|ranking)\b|\b(?:show|give|send|make|draw)(?: me| us)? (?:my |the |a |an )?(?:\w+ ){0,2}"
+    r"(?:table|numbers?|figures?|summary|totals?|counts?|rates?|ratios?|averages?)\b", re.I)
 
 
 def asks_for_figures(words: Iterable[str] | str) -> bool:
@@ -496,7 +496,44 @@ def known(fact: Optional[CaseFact]) -> bool:
     return fact is not None and fact.status in KNOWN
 
 
-def readiness(case: CaseFile) -> Readiness:
+CLEAR_SUBJECT = re.compile(
+    r"\b(?:customers?|clients?|users?|members?|subscribers?|orders?|transactions?|bookings?|patients?|"
+    r"accounts?|leads?|products?|items?|sales|revenue|churn\w*|renew\w*|cancell?ations?|fraud\w*|defaults?|"
+    r"retention|duplicates?)\b", re.I
+)
+
+CLEAR_GOAL_OR_ROUTE = re.compile(
+    r"\b(?:predict\w*|forecast\w*|rank\w*|score|classify|clean|dedup\w*|merge|combine|dashboard|report|"
+    r"compare|analyse|analyze|break ?down|list|show me|send me)\b", re.I
+)
+
+
+def is_clear_on_arrival(case: CaseFile, table: Optional[Mapping[str, Any]] = None) -> bool:
+    """True when Turn 1 + attached data already settle the goal/route, unit/target, and table."""
+    if not case.words or any(u.blocks == "all" for u in case.unknowns):
+        return False
+    text = " ".join(case.words)
+    has_table = (table is not None and bool(table.get("columns"))) or known(case.data)
+    named = named_tracks(case.words)
+
+    # Pure conceptual / advice without data
+    if not has_table:
+        return ("advice" in named or bool(NAMED["advice"].search(text))) and not bool(CLEAR_SUBJECT.search(text))
+
+    # With table: check goal/route + subject/column grounding
+    col_names = [str(c.get("name") if isinstance(c, Mapping) else getattr(c, "name", c))
+                 for c in (table.get("columns") or [])] if table else []
+    grounded = grounded_columns(case, col_names) if col_names else []
+
+    has_route = bool(named) or bool(CLEAR_GOAL_OR_ROUTE.search(text)) or bool(BUILD_MODEL.search(text))
+    has_subject = bool(grounded) or bool(CLEAR_SUBJECT.search(text)) or any(
+        re.search(r"(?<!\w)" + re.escape(c) + r"(?!\w)", text, re.I) for c in col_names
+    )
+
+    return bool(has_route and has_subject)
+
+
+def readiness(case: CaseFile, table: Optional[Mapping[str, Any]] = None) -> Readiness:
     """Ready to propose: the goal and the decision it serves are known, who uses the result is known, the data is known or
     its absence is, and no unknown blocks every option. Known means said, computed or confirmed: never assumed. The
     ceiling (about six questions, or two declined) lets the agent propose before, with what is open stated."""
@@ -513,10 +550,14 @@ def readiness(case: CaseFile) -> Readiness:
     if ceiling and not ready:
         reasons.append("the question ceiling is reached: propose, stating what is still open as assumptions")
     named = {t: p for t, p in named.items() if t != "advice"}  # advice words are too weak a sign to skip questions on
-    clear = known(case.goal) and bool(named) and not blocking  # 0.152.0: a clear person is not made to answer what they said
+    clear_arrival = is_clear_on_arrival(case, table)
+    clear = (known(case.goal) and bool(named) and not blocking) or (clear_arrival and not blocking)  # a clear person is not made to answer what they said
     if clear and not ready and not ceiling:
-        reasons.append("the person said their goal and named the help they want (" + ", ".join(f"{t}: \"{p}\"" for t, p in named.items())
-                       + "): propose now, stating what is open as assumptions")
+        if clear_arrival and not known(case.goal):
+            reasons.append("the request is clear on arrival: propose now, stating what is open as assumptions")
+        else:
+            reasons.append("the person said their goal and named the help they want (" + ", ".join(f"{t}: \"{p}\"" for t, p in named.items())
+                           + "): propose now, stating what is open as assumptions")
     return Readiness(ready=ready, missing=missing, blocking=blocking, may_propose=ready or ceiling or clear, reasons=reasons)
 
 
@@ -627,6 +668,6 @@ def views(case: CaseFile) -> Mapping[str, Any]:
 CONTRACTS["case_file"] = CaseFile  # its schema is published with the others
 
 __all__ = ["CaseFile", "CaseFact", "CaseChange", "CaseFinding", "CaseBuild", "CaseOption", "CaseRoute", "Unknown", "Readiness", "CaseRefused", "CEILING", "TOOLS",
-           "TRACKS", "TRACK_OF_TOOL", "new", "apply", "hear", "confirm", "asked", "declined", "known", "readiness", "check_fact", "check_options",
+           "TRACKS", "TRACK_OF_TOOL", "new", "apply", "hear", "confirm", "asked", "declined", "known", "readiness", "is_clear_on_arrival", "check_fact", "check_options",
            "numbers_unsaid", "quote_ok", "rebuild",
            "from_card", "to_card", "views"]

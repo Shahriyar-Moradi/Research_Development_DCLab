@@ -1876,6 +1876,31 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
         decision: dict[str, Any] | None = None
         from .machine import MachinePrepared
 
+        receipt_path = store.data_dir(project_id) / "holdout_receipt.json"
+        receipt = None
+        fp = None
+        if stage == "final":
+            from dclab_core.holdout import check_receipt, mark_consumed, record_intent, split_fingerprint
+
+            if hasattr(p, "bundle") and hasattr(p.bundle, "train_indices") and hasattr(p.bundle, "holdout_indices"):
+                fp = split_fingerprint(p.bundle.train_indices, p.bundle.holdout_indices)
+            elif isinstance(p, MachinePrepared):
+                tr = getattr(p.machine, "train_rows", None)
+                ho = getattr(p.machine, "holdout_rows", None)
+                if tr is not None and ho is not None:
+                    fp = split_fingerprint(tr, ho)
+                else:
+                    fp = split_fingerprint(range(len(p.frame)), [])
+            else:
+                fp = split_fingerprint([], [])
+
+            allowed, reason = check_receipt(receipt_path, fp, reuse_reason=reuse_reason)
+            if not allowed:
+                raise ValueError(reason)
+
+            uses = int(project.get("holdout_uses", 0)) + 1
+            receipt = record_intent(receipt_path, project_id, fp, holdout_uses=uses, stage=stage, reuse_reason=reuse_reason)
+
         if isinstance(p, MachinePrepared):  # 16.15: the kind's machine, stage by stage
             params = {"machine": p.kind.key}
             if stage == "final":
@@ -1884,8 +1909,15 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
                 evidence, claims, summary, decision = p.machine.run(stage, eid, previous)
             if stage == "data":  # 30.10: a kind's own machine records its recipe too (its metric, and that it splits itself)
                 from dclab_rnd import recipes as recipe_registry
+                from dclab_core.holdout import split_fingerprint
 
                 evidence["recipe"] = recipe_registry.record_for(p.kind, p.solution, None, machine=p)
+                tr = getattr(p.machine, "train_rows", None)
+                ho = getattr(p.machine, "holdout_rows", None)
+                if tr is not None and ho is not None:
+                    evidence["split_fingerprint"] = split_fingerprint(tr, ho)
+                else:
+                    evidence["split_fingerprint"] = split_fingerprint(range(len(p.frame)), [])
             if stage == "final":
                 evidence["holdout_uses_in_this_project"] = project["holdout_uses"]
                 if reuse_reason:
@@ -1904,7 +1936,11 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
                     evidence["holdout_exposure"] = seen
                     mark_claims(claims, seen)
         elif stage == "data":
+            from dclab_core.holdout import split_fingerprint
+
             evidence, claims, summary = stage_data(p, eid)
+            if hasattr(p, "bundle") and hasattr(p.bundle, "train_indices") and hasattr(p.bundle, "holdout_indices"):
+                evidence["split_fingerprint"] = split_fingerprint(p.bundle.train_indices, p.bundle.holdout_indices)
         elif stage == "leakage":
             evidence, claims, summary = stage_leakage(p, eid)
         elif stage == "features":
@@ -1942,6 +1978,13 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
                 evidence["holdout_reuse_reason"] = str(reuse_reason)[:500]
             decision = {"kind": "final", "selected": evidence["selected_optimization"], "chosen": evidence["selected_optimization"], "rule": evidence["selection_rule"], "options": []}
         if stage == "final":  # 30.15: G4, honest and usable, with where a failure sends the work back
+            if receipt is not None:
+                from dclab_core.holdout import mark_consumed
+
+                mark_consumed(receipt_path, receipt)
+                evidence["holdout_receipt_id"] = receipt.receipt_id
+                if fp:
+                    evidence["holdout_split_fingerprint"] = fp
             from . import workflow_run as wrun
 
             evidence["gate_g4"] = wrun.g4_of(p, evidence, project)

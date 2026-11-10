@@ -540,6 +540,9 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         """H2: the person's choice of the kind of help wins over Home's reading and labels it."""
         get(draft_id)
         track = dump(payload).get("track")
+        if track in (None, ""):
+            await asyncio.to_thread(agent(draft_id).clear_intent, draft_id)
+            return drafts.get(draft_id)
         if track not in intents.TRACKS:
             raise HTTPException(422, "Unknown type of help: " + ", ".join(intents.TRACKS))
         await asyncio.to_thread(agent(draft_id).choose_intent, draft_id, track)

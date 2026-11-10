@@ -224,7 +224,8 @@ def keep_claude(point: str, rows: list[dict[str, Any]], got: dict[str, Any], mod
 
 def exam_claude(points: tuple[str, ...], per_point: int, advisor: Any, manifest: dict[str, Any], seed: int = 0, workers: int = 6,
                 fresh: Path = FRESH, students: Path = STUDENTS, campaign: Path = CAMPAIGN, lake: Optional[Path] = None,
-                full: Optional[Path] = None, model: str = "claude-sonnet-5-5") -> Path:
+                # full: Optional[Path] = None, model: str = "claude-sonnet-5-5") -> Path:
+                full: Optional[Path] = None, model: str = "qwen/qwen3.8-flash") -> Path:
     """Evaluation only: Claude asked a fair sample of each point's fresh sealed decisions; on that sample, every member,
     the committee and the committee with Claude (its weight fixed in the manifest before any sealed row was read)."""
     from concurrent.futures import ThreadPoolExecutor

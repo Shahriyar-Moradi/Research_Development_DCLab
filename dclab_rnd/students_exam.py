@@ -109,7 +109,8 @@ def sample(per_point: int, points: Optional[list[str]] = None, seed: int = 0, se
 def cost_estimate(n: int) -> float:
     from .models import prices
 
-    price = prices.price_of("claude-sonnet-5-5")
+    # price = prices.price_of("claude-sonnet-5-5")
+    price = prices.price_of("qwen/qwen3.8-flash") or prices.price_of("claude-sonnet-5-5")
     return round(n * (TOKENS_IN * price.input + TOKENS_OUT * price.output) / 1e6, 2)
 
 
@@ -191,7 +192,8 @@ class Whole:
         return getattr(self.inner, name)
 
 
-def run(rows: list[dict[str, Any]], advisor: Any, students: Optional[dict[str, Any]] = None, model: str = "claude-sonnet-5-5",
+# def run(rows: list[dict[str, Any]], advisor: Any, students: Optional[dict[str, Any]] = None, model: str = "claude-sonnet-5-5",
+def run(rows: list[dict[str, Any]], advisor: Any, students: Optional[dict[str, Any]] = None, model: str = "qwen/qwen3.8-flash",
         lake: Optional[Path] = None, workers: int = 1, full: Optional[Path] = None) -> dict[str, Any]:
     """Ask Claude every sampled decision through ``advisor`` (the gateway's, capped), read GLiNER's captured answers,
     score all four, keep Claude's answers."""
@@ -400,9 +402,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     apart = Counter(r["point"] for r in rows if r["_student"] is not None and r["_student"] != r.get("value_used"))
     estimate = cost_estimate(len(rows))
     print(f"Plan: {len(rows)} dev decisions ({', '.join(f'{p} {n} ({apart[p]} where the student and the rule disagree)' for p, n in sorted(by_point.items()))}); "
-          f"Claude Sonnet 5.5 through decision_answer, about EUR {estimate}; GLiNER's captured answers read, not re-asked.")
+          f"qwen/qwen3.8-flash through decision_answer, about EUR {estimate}; GLiNER's captured answers read, not re-asked.")
     if args.rescore:
-        doc = {"model": "claude-sonnet-5-5", "per_point": args.per_point, "seed": args.seed, "decisions": len(rows), "rescored_from": args.rescore,
+        # doc = {"model": "claude-sonnet-5-5", "per_point": args.per_point, "seed": args.seed, "decisions": len(rows), "rescored_from": args.rescore,
+        doc = {"model": "qwen/qwen3.8-flash", "per_point": args.per_point, "seed": args.seed, "decisions": len(rows), "rescored_from": args.rescore,
                **rescore(rows)}
         print(json.dumps(doc["scores"], indent=1, default=str))
         print(write(doc))
@@ -426,7 +429,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 2
     home = Path(os.environ.get("DCLAB_AGENT_HOME") or ROOT / "agent_runs")
     result = run(rows, GatewayAdvisor(gateway, max_tokens=300, cap_eur=args.cap_eur), workers=args.workers, full=home / "answers" / "answers.jsonl")
-    doc = {"model": "claude-sonnet-5-5", "cap_eur": args.cap_eur, "estimate_eur": estimate, "per_point": args.per_point, "seed": args.seed,
+    # doc = {"model": "claude-sonnet-5-5", "cap_eur": args.cap_eur, "estimate_eur": estimate, "per_point": args.per_point, "seed": args.seed,
+    doc = {"model": "qwen/qwen3.8-flash", "cap_eur": args.cap_eur, "estimate_eur": estimate, "per_point": args.per_point, "seed": args.seed,
            "decisions": len(rows), **result}
     print(json.dumps(doc["scores"], indent=1, default=str))
     print(write(doc))

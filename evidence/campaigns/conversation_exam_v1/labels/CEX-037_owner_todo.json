@@ -1,0 +1,47 @@
+[
+ {
+  "ref": "fe7eec79b6",
+  "person": {
+   "truth": {
+    "situation": "I'm a data scientist at an online travel agency in Abu Dhabi.",
+    "goal": "I want the same cleaning applied every week without doing it by hand.",
+    "decision": "The clean table becomes the weekly input of my cancellation model training.",
+    "user": "me, every Monday",
+    "data": "The bookings table I uploaded: booking_id, booking_date, travel_date, destination, nationality, channel, lead_time_days, price, free_cancellation, cancelled, customer_id.",
+    "knows": "I know data cleaning and modelling well.",
+    "constraints": "It must run on each Monday's new export with the same columns."
+   },
+   "level": "data_scientist",
+   "style": "detailed",
+   "must_understand": [
+    "a recipe that reruns weekly, not a one-off clean",
+    "drop TEST rows and parse price into numbers",
+    "cancelled stays unchanged because it is the model's outcome"
+   ],
+   "trap": "clear_request",
+   "trap_check": "goes to options or the route within one exchange instead of asking what was already said"
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "Please build a rerunnable cleaning recipe for the bookings table: drop rows with destination TEST, parse price strings like '1200 AED' into a numeric price_aed column, keep cancelled unchanged, and output one clean table. I'll rerun it every Monday on the new export before training my model. [shares bookings.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Recipe started. Here's what DCLab will do, in that order:\n\n1. 2. **Parse price** — strip the currency text (`'1200 AED'` → `1200`) and write a numeric `price_aed`. Any value that doesn't parse stays empty rather than turning into a 0, so bad rows are visible instead of silently skewing your model. 3. **Leave `cancelled` exactly as it is** — no recoding, no reordering, and no other column dropped. Output is one clean table, and the steps are saved as a recipe you rerun on Monday's new export with the same settings — which is what keeps each week's training data comparable. You'll get the cleaned table plus a short before/after count so you can see the drop and any prices that failed to parse.\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]

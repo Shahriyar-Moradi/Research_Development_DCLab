@@ -176,7 +176,7 @@ class UpliftMachine(Machine):
         self.data_frame = frame.reset_index(drop=True)
         self.treatment, self.outcome = self.fields["treatment_column"], solution.target
         self.randomised = bool(self.fields["randomised"])
-        self.parts = uplift.split(self.data_frame, treatment=self.treatment)  # the arms only: never the outcome
+        self.parts = uplift.split(self.data_frame, treatment=self.treatment, seed=42)  # the arms only: never the outcome
 
     def training_rows(self) -> Any:
         return self.data_frame.iloc[self.parts["train"]]

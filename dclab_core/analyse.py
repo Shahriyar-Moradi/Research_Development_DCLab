@@ -448,7 +448,7 @@ def _missing_power(x: pd.Series, y: pd.Series, task: str) -> Optional[float]:
 
 
 def _leakage(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Optional[str],
-             suspects: Optional[Mapping[str, str]] = None) -> list[Finding]:
+             suspects: Optional[Mapping[str, str]] = None, time_column: Optional[str] = None) -> list[Finding]:
     """Columns written after the outcome. ``suspects``: columns the data investigator reads as written after the
     prediction moment, with its reason (18.3); they are tested exactly as a telling name is, never trusted."""
     if y is None:
@@ -459,6 +459,8 @@ def _leakage(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Option
     easy, powers = _easy_task(df, y, task, target, suspects)
     for column in df.columns:
         if column == target:
+            continue
+        if time_column is not None and str(column) == str(time_column):
             continue
         if str(column) in easy:  # one of several strong, unrelated, continuous columns: a question, not an accusation
             out.append(easy[str(column)])
@@ -493,8 +495,8 @@ def _leakage(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Option
         out.append(_f(f"leak-{column}", "leakage", f"{column}: {says}.", evidence,
                       f"Keep {column} out unless it is known at the prediction moment; ask when it is written.",
                       ["features.forbidden"], severity))
-    if task == "regression":
-        out += _sum_identity(df, y)
+    if task in ("regression", "binary"):
+        out += _sum_identity(df, y, time_column=time_column)
     if task == "regression" and len(times) >= 2:
         target_values = y.astype(float)
         spread = float(target_values.std()) if target_values.notna().sum() > 1 else 0.0
@@ -610,16 +612,19 @@ MAX_SUM_COLUMNS = 40
 SUM_SAMPLE = 50_000
 
 
-def _sum_identity(df: pd.DataFrame, y: pd.Series) -> list[Finding]:
-    """Two numeric columns that add up to the target: its parts, known only once the target is. A column that already
-    equals the target, or one that is mostly zero, makes no pair (a final amount plus a mostly-zero tip is not a sum).
+def _sum_identity(df: pd.DataFrame, y: pd.Series, time_column: Optional[str] = None) -> list[Finding]:
+    """Two or more numeric columns that add up to, or subtract to, the target: its parts, known only once the target is.
+    A column that already equals the target, or one that is mostly zero, makes no pair (a final amount plus a mostly-zero tip is not a sum).
     Screened on a seeded sample of rows, confirmed on all."""
-    target = y.astype(float)
+    try:
+        target = y.astype(float)
+    except (ValueError, TypeError):
+        return []
     spread = float(target.std()) if target.notna().sum() > 1 else 0.0
     if spread <= 0:
         return []
     numeric = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c]) and not pd.api.types.is_bool_dtype(df[c])
-               and df[c].nunique() > 2][:MAX_SUM_COLUMNS]
+               and df[c].nunique() > 2 and (not time_column or str(c) != str(time_column))][:MAX_SUM_COLUMNS]
     if len(numeric) < 2:
         return []
     values = df[numeric].astype(float).to_numpy()
@@ -636,13 +641,50 @@ def _sum_identity(df: pd.DataFrame, y: pd.Series) -> list[Finding]:
     usable = [j for j in range(len(numeric))
               if not close(values[rows, j], t[rows]) and float(np.nanmedian(np.abs(values[rows, j]))) >= tol]
     out = []
+    # 1. Pairwise addition and subtraction identities
     for x, i in enumerate(usable):
         for j in usable[x + 1:]:
             a, b = numeric[i], numeric[j]
+            # Addition: A + B == Y
             if close(values[rows, i] + values[rows, j], t[rows]) and close(values[:, i] + values[:, j], t):
                 out.append(_f(f"leak-sum-{a}-{b}", "leakage", f"{a} and {b} add up to the target.",
                               {"columns": [str(a), str(b)]}, f"{a} and {b} are the target's parts: keep both out.",
                               ["features.forbidden"], "critical"))
+            # Subtraction: A - B == Y
+            elif close(values[rows, i] - values[rows, j], t[rows]) and close(values[:, i] - values[:, j], t):
+                out.append(_f(f"leak-diff-{a}-{b}", "leakage", f"The difference between {a} and {b} equals the target.",
+                              {"columns": [str(a), str(b)]}, f"{a} and {b} compute the target: keep both out.",
+                              ["features.forbidden"], "critical"))
+            # Subtraction: B - A == Y
+            elif close(values[rows, j] - values[rows, i], t[rows]) and close(values[:, j] - values[:, i], t):
+                out.append(_f(f"leak-diff-{b}-{a}", "leakage", f"The difference between {b} and {a} equals the target.",
+                              {"columns": [str(b), str(a)]}, f"{b} and {a} compute the target: keep both out.",
+                              ["features.forbidden"], "critical"))
+
+    # 2. Subset sum of 3 columns
+    if 3 <= len(usable) <= 12 and len(out) < 5:
+        import itertools
+        for combo in itertools.combinations(usable, 3):
+            ci, cj, ck = combo
+            ca, cb, cc = numeric[ci], numeric[cj], numeric[ck]
+            comb_rows = values[rows, ci] + values[rows, cj] + values[rows, ck]
+            comb_all = values[:, ci] + values[:, cj] + values[:, ck]
+            if close(comb_rows, t[rows]) and close(comb_all, t):
+                out.append(_f(f"leak-sum-{ca}-{cb}-{cc}", "leakage", f"{ca}, {cb}, and {cc} add up to the target.",
+                              {"columns": [str(ca), str(cb), str(cc)]}, f"{ca}, {cb}, and {cc} are the target's parts: keep all out.",
+                              ["features.forbidden"], "critical"))
+                if len(out) >= 5:
+                    break
+
+    # 3. Row-sum of all usable numeric columns
+    if len(usable) >= 3 and len(out) == 0:
+        sum_rows = np.sum(values[rows][:, usable], axis=1)
+        sum_all = np.sum(values[:, usable], axis=1)
+        if close(sum_rows, t[rows]) and close(sum_all, t):
+            cols = [str(numeric[u]) for u in usable]
+            out.append(_f("leak-sum-all", "leakage", f"The row sum of {len(cols)} columns equals the target.",
+                          {"columns": cols}, "These columns add up to the target: keep them all out.",
+                          ["features.forbidden"], "critical"))
     return out[:5]
 
 
@@ -1307,6 +1349,8 @@ def analyse(tables: Mapping[str, pd.DataFrame], target: Optional[str] = None, ta
     df = tables[main]
     if target is None and brief is not None and brief.target_column.known and brief.target_column.value in df.columns:
         target = brief.target_column.value
+    if time is None and brief is not None and getattr(brief, "time_column", None) and brief.time_column.known:
+        time = str(brief.time_column.value)
     train = df.loc[list(train_index)] if train_index is not None else df
     y = train[target] if target and target in train.columns else None
     if task is None or task == "unknown":
@@ -1328,7 +1372,7 @@ def analyse(tables: Mapping[str, pd.DataFrame], target: Optional[str] = None, ta
     findings += _entities(train, y, task, brief, target, proposals.get("entities"))
     findings += _time(train, y, task, brief, target)
     findings += _places(train, y, task, target)
-    findings += _leakage(features, y, task, target, proposals.get("after"))
+    findings += _leakage(features, y, task, target, proposals.get("after"), time_column=time)
     findings += _missing(train, y, task, target)
     findings += _columns(df, target)
     if labels and labels in tables:  # which rows the label file marks is read on the training rows only

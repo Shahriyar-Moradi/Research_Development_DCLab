@@ -22,10 +22,10 @@ configs:
 
 Decisions DCLab makes while building a model, each with its label: benchmark labels of the invented tables, image sets and written journeys.
 
-- 81570 decisions from 4217 groups (a group, one table or project, never spans two splits)
-- by point: column.category_code 3620, column.group 6154, column.is_identifier 6154, column.semantic_role 5430, column.time 6154, data.cases_table 1936, data.cleaning_step 11256, feature.leakage_suspect 6154, image.flip_safe 62, image.label_suspect 21320, image.near_copy 7440, problem.family 236, problem.ready 280, solution.route 220, split.strategy 1924, task.framing 1910, workflow.next_question 1320
-- by split: dev 21106, train 60464
-- labels by source: benchmark 81570
+- 33666 decisions from 181 groups (a group, one table or project, never spans two splits)
+- by point: column.category_code 3620, column.group 6154, column.is_identifier 6154, column.semantic_role 5430, column.time 6154, feature.leakage_suspect 6154
+- by split: dev 6882, train 26784
+- labels by source: benchmark 33666
 
 Each row's user turn holds the question, what is known about the decision's subject (a column's bands and name tokens, a table's, an image set's or a conversation's counts, flags and codes; never a value of the table) and the options; the assistant's turn the answer as JSON. The sealed partition is not here: it is read once, to compare a tuned model with the rules and the classical classifiers on the same gate.
 

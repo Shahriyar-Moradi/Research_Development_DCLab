@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     openai_model: str = Field("gpt-5.6-terra", alias="OPENAI_MODEL", description="the research campaign's default model")
     openai_key_set: bool = Field(False, description="whether OPENAI_API_KEY is set (the key itself is never kept here)")
     no_live_models: bool = Field(False, alias="DCLAB_NO_LIVE_MODELS", description="tests and the end-to-end flows: no request reaches a live model")
+    case_cap_eur: float = Field(1.50, alias="DCLAB_CASE_CAP_EUR", description="soft euro cap per Lead Agent case before asking to continue")
     workspace_monthly_eur: float | None = Field(None, alias="DCLAB_WORKSPACE_MONTHLY_EUR")
     port: int = Field(8765, alias="DCLAB_PORT")
     allowed_hosts: str = Field("", alias="DCLAB_ALLOWED_HOSTS", description="host names the server answers to besides 127.0.0.1 and localhost, comma separated")

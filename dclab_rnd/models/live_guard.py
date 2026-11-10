@@ -32,7 +32,7 @@ TEST_FRAMES = ("/unittest/case.py", "/unittest/main.py", "/_pytest/")
 
 BLOCK = "DCLAB_BLOCK_PROVIDERS"
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
-BLOCKED_HOSTS = {"openai": ("openai.com",), "anthropic": ("anthropic.com",)}  # a provider by its hosts: a local server is never blocked
+BLOCKED_HOSTS = {"openai": ("openai.com",), "anthropic": ("anthropic.com",), "openrouter": ("openrouter.ai",)}  # a provider by its hosts: a local server is never blocked
 
 
 class LiveModelInTest(RuntimeError):
@@ -55,9 +55,16 @@ def _dotenv() -> dict[str, str]:
     if _ENV_CACHE.get("stamp") != stamp:
         try:
             from dotenv import dotenv_values
+
+            parsed = {k: str(v or "") for k, v in dotenv_values(ENV_FILE).items()}
         except ImportError:
-            return {}
-        _ENV_CACHE.update(stamp=stamp, values={k: str(v or "") for k, v in dotenv_values(ENV_FILE).items()})
+            parsed = {}
+            for raw_line in ENV_FILE.read_text(encoding="utf-8").splitlines():
+                line = raw_line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    parsed[k.strip()] = v.strip().strip("'\"")
+        _ENV_CACHE.update(stamp=stamp, values=parsed)
     return dict(_ENV_CACHE.get("values") or {})
 
 

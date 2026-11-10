@@ -143,19 +143,20 @@ def _verdict(client: Any, ok: bool, reason: str) -> None:
 
 
 def review(profile: dict[str, Any], moment: str | None, flagged: list[dict[str, Any]], target: str | None = None,
-           identifiers: list[str] | None = None, client: Any = None) -> dict[str, Any]:
+           identifiers: list[str] | None = None, client: Any = None, time_column: str | None = None) -> dict[str, Any]:
     """The review: the audit's flags (ticked), and the columns the moment or a model says are written after it
     (shown, never ticked). A model's "available" for a flagged column is reported, and the flag stays."""
     records = known_records()
     columns = columns_of(profile)
     items = from_audit(flagged, records)
     flagged_names = {i["column"] for i in items}
-    skip = flagged_names | {target or ""} | set(identifiers or [])
+    skip = flagged_names | {target or ""} | set(identifiers or []) | ({time_column} if time_column else set())
     items += from_moment(columns, moment, skip)
     mode, dropped, disagreements, verdicts = "rules", 0, [], []
     if client is not None and str(moment or "").strip():  # without a written moment there is nothing to judge the columns against
         try:
-            proposed, dropped = from_model(client, columns, moment, flagged, target, records)
+            model_cols = [c for c in columns if str(c.get("name")) != str(time_column)] if time_column else columns
+            proposed, dropped = from_model(client, model_cols, moment, flagged, target, records)
             mode = "model"
             verdicts = [{"column": i["column"], "verdict": i["verdict"]} for i in proposed]  # 19.7: every column it judged
         except Exception:  # noqa: BLE001 — no model, no problem: the audit and the moment rule still answer
@@ -190,7 +191,7 @@ def measure(samples: list[str] | None = None, client_for: Any = None) -> dict[st
         profile = studio_data.profile_table(frame)
         proposal = studio_solution.propose(frame, profile, suggestion["target"])
         out = review(profile, suggestion.get("prediction_moment"), proposal["forbidden"], suggestion["target"], proposal["identifiers"],
-                     client_for(entry["key"]) if client_for else None)
+                     client_for(entry["key"]) if client_for else None, time_column=suggestion.get("time_column"))
         rd = {f["column"] for f in suggestion.get("forbidden") or []}
         proposed = {i["column"] for i in out["items"] if i["verdict"] == "after the moment"}
         rows.append({"sample": entry["key"], "rd_forbidden": sorted(rd), "found": sorted(rd & proposed), "missed": sorted(rd - proposed),

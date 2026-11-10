@@ -164,6 +164,7 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
     count = steps_used
     reply = -1
     nudged = False
+    consecutive_length_hits = 0
     if trace is not None:
         trace.next_call()  # a tracer reused across run() calls continues its reply numbers
 
@@ -184,6 +185,15 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
         else:
             out = client.complete(messages, schemas)
         reply += 1
+        finish_reason = str(out.get("finish_reason") or "").lower()
+        if finish_reason in ("length", "max_tokens", "max_output_tokens"):
+            consecutive_length_hits += 1
+            if consecutive_length_hits >= 2:
+                result.final = (out.get("content") or "").strip()
+                result.stopped = "max_output_tokens"
+                return result
+        else:
+            consecutive_length_hits = 0
         made = getattr(client, "last_request", None)  # the request this reply came from: its tool calls are its acts
         tokens = {key: int((out.get("usage") or {}).get(key) or 0) for key in ("input_tokens", "output_tokens")}
         for key in tokens:

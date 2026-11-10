@@ -1,0 +1,115 @@
+{
+ "id": "SEX-006",
+ "experiment_id": "SEX-006",
+ "campaign_id": "students_exam_v1",
+ "kind": "students_exam",
+ "status": "completed",
+ "at": "2026-11-09T22:28:19+00:00",
+ "model": "qwen/qwen3.8-flash",
+ "cap_eur": 0.1,
+ "estimate_eur": 0.0,
+ "per_point": 2,
+ "seed": 0,
+ "decisions": 4,
+ "scores": {
+  "column.is_identifier": {
+   "decisions": 2,
+   "answered_by": {
+    "rule": 2,
+    "student": 0,
+    "claude": 1,
+    "gliner2.5-decide": 0
+   },
+   "compared": [
+    "rule",
+    "claude"
+   ],
+   "common": 1,
+   "on_common": {
+    "rule": {
+     "n": 1,
+     "accuracy": 1.0,
+     "accuracy_ci": [
+      0.2065,
+      1.0
+     ],
+     "precision": null,
+     "recall": null
+    },
+    "claude": {
+     "n": 1,
+     "accuracy": 1.0,
+     "accuracy_ci": [
+      0.2065,
+      1.0
+     ],
+     "precision": null,
+     "recall": null
+    }
+   },
+   "student_vs_rule": {
+    "disagreements": 0,
+    "right": {
+     "rule": 0,
+     "student": 0,
+     "claude": 0,
+     "gliner2.5-decide": 0
+    },
+    "answered": {
+     "rule": 0,
+     "student": 0,
+     "claude": 0,
+     "gliner2.5-decide": 0
+    }
+   }
+  },
+  "feature.leakage_suspect": {
+   "decisions": 2,
+   "answered_by": {
+    "rule": 2,
+    "student": 0,
+    "claude": 0,
+    "gliner2.5-decide": 0
+   },
+   "compared": [
+    "rule"
+   ],
+   "common": 2,
+   "on_common": {
+    "rule": {
+     "n": 2,
+     "accuracy": 0.5,
+     "accuracy_ci": [
+      0.0945,
+      0.9055
+     ],
+     "precision": null,
+     "recall": 0.0
+    }
+   },
+   "student_vs_rule": {
+    "disagreements": 0,
+    "right": {
+     "rule": 0,
+     "student": 0,
+     "claude": 0,
+     "gliner2.5-decide": 0
+    },
+    "answered": {
+     "rule": 0,
+     "student": 0,
+     "claude": 0,
+     "gliner2.5-decide": 0
+    }
+   }
+  }
+ },
+ "claude_errors": 3,
+ "kept": 4,
+ "prompt": "f5b2a86d3563f712",
+ "abstained": {
+  "column.is_identifier": 1,
+  "feature.leakage_suspect": 2
+ },
+ "rule": "The generated sets' dev decisions (never the sealed partition), answered by the recorded rule, the student, Claude through decision_answer (bands and name tokens, never values) and GLiNER2.5-Decide (captured by 26.9), against the planted truth. Dev only: nothing here is a sealed verdict, and nothing is used or trained on."
+}

@@ -118,7 +118,8 @@ def main():
     from ..models import installed
     if installed().client("campaign") is None:
         parser.error("no model serves the campaign: set the provider's key in .env (never on the command line)")
-    model = args.model or os.environ.get("OPENAI_MODEL", "gpt-5.6-terra")
+    # model = args.model or os.environ.get("OPENAI_MODEL", "gpt-5.6-terra")
+    model = args.model or os.environ.get("OPENROUTER_MODEL", os.environ.get("OPENAI_MODEL", "qwen/qwen3.8-flash"))
     manifest_bytes = args.manifest.read_bytes()
     manifest = json.loads(manifest_bytes)
     records = asyncio.run(evaluate(manifest, model, args.limit))

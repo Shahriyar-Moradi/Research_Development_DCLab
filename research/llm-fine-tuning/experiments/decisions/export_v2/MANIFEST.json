@@ -1,29 +1,18 @@
 {
  "name": "DCLab decisions v2 (every point with a set)",
  "source": "decisions/{generated_v1,generated_v2,generated_images_v1,workflow_v1} (rows.jsonl; sealed.jsonl not read)",
- "rows": 81570,
+ "rows": 33666,
  "by_point": {
   "column.category_code": 3620,
   "column.group": 6154,
   "column.is_identifier": 6154,
   "column.semantic_role": 5430,
   "column.time": 6154,
-  "feature.leakage_suspect": 6154,
-  "data.cases_table": 1936,
-  "data.cleaning_step": 11256,
-  "split.strategy": 1924,
-  "task.framing": 1910,
-  "image.flip_safe": 62,
-  "image.label_suspect": 21320,
-  "image.near_copy": 7440,
-  "problem.family": 236,
-  "problem.ready": 280,
-  "solution.route": 220,
-  "workflow.next_question": 1320
+  "feature.leakage_suspect": 6154
  },
  "by_split": {
-  "train": 60464,
-  "dev": 21106
+  "train": 26784,
+  "dev": 6882
  },
  "by_point_split": {
   "column.category_code": {
@@ -46,59 +35,15 @@
    "train": 4896,
    "dev": 1258
   },
-  "data.cases_table": {
-   "train": 1406,
-   "dev": 530
-  },
-  "data.cleaning_step": {
-   "train": 8472,
-   "dev": 2784
-  },
   "feature.leakage_suspect": {
    "train": 4896,
    "dev": 1258
-  },
-  "image.flip_safe": {
-   "dev": 20,
-   "train": 42
-  },
-  "image.label_suspect": {
-   "dev": 6876,
-   "train": 14444
-  },
-  "image.near_copy": {
-   "dev": 2400,
-   "train": 5040
-  },
-  "problem.family": {
-   "train": 160,
-   "dev": 76
-  },
-  "problem.ready": {
-   "train": 196,
-   "dev": 84
-  },
-  "solution.route": {
-   "train": 154,
-   "dev": 66
-  },
-  "split.strategy": {
-   "train": 1406,
-   "dev": 518
-  },
-  "task.framing": {
-   "train": 1424,
-   "dev": 486
-  },
-  "workflow.next_question": {
-   "train": 936,
-   "dev": 384
   }
  },
  "by_label_source": {
-  "benchmark": 81570
+  "benchmark": 33666
  },
- "groups": 4217,
+ "groups": 181,
  "formats": {
   "chat": [
    "train.chat.jsonl",

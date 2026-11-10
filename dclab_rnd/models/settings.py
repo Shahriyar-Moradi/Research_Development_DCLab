@@ -267,19 +267,32 @@ def is_local(url: str, tier_name: str | None = None) -> bool:
 
 
 ANTHROPIC_HOST = "api.anthropic.com"
+OPENROUTER_HOST = "openrouter.ai"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+OPENROUTER_DEFAULT_MODEL = "qwen/qwen3.8-flash"
 
 
 def provider(base_url: str) -> str:
     """Which API an endpoint speaks: "anthropic" (the Messages API, at Anthropic's host with no path) or "openai" (chat
-    completions; Anthropic's OpenAI-compatible endpoint ``https://api.anthropic.com/v1`` is one)."""
+    completions; Anthropic's OpenAI-compatible endpoint ``https://api.anthropic.com/v1`` and OpenRouter ``https://openrouter.ai/api/v1`` are "openai")."""
     parsed = urlparse(base_url)
     return "anthropic" if (parsed.hostname or "") == ANTHROPIC_HOST and parsed.path.strip("/") == "" else "openai"
 
 
+def _openrouter_model() -> str:
+    return owner_value("OPENROUTER_MODEL").strip() or OPENROUTER_DEFAULT_MODEL
+
+
 def default_model(base_url: str) -> str:
-    """OpenAI's own endpoint keeps its default model; any other endpoint (Ollama, vLLM, a gateway) has no default, since
-    a vendor's model name sent there fails in a way that is hard to read: the tier is then unavailable until a model is named."""
-    return DEFAULT_MODEL if _host(base_url) == "api.openai.com" else ""
+    """OpenAI's own endpoint and OpenRouter keep their default models; any other endpoint (Ollama, vLLM, a gateway) has
+    no default, since a vendor's model name sent there fails in a way that is hard to read: the tier is then unavailable
+    until a model is named."""
+    host = _host(base_url)
+    if host == "api.openai.com":
+        return DEFAULT_MODEL
+    if host == OPENROUTER_HOST:
+        return _openrouter_model()
+    return ""
 
 
 def _claude_model() -> str:
@@ -290,6 +303,15 @@ def _claude_model() -> str:
 
 def anthropic_default() -> bool:
     return owner_value("DCLAB_LLM_PROVIDER").strip().lower() == "anthropic"
+
+
+def openrouter_default() -> bool:
+    prov = owner_value("DCLAB_LLM_PROVIDER").strip().lower()
+    if prov == "openrouter":
+        return True
+    if prov in ("anthropic", "openai"):
+        return False
+    return bool(owner_value("OPENROUTER_API_KEY").strip())
 
 
 EMBEDDING_LOCAL = "embedding_local"  # 35.5: the local embedding model, serving the memory_embedding purpose only
@@ -334,12 +356,19 @@ def tier(name: str) -> dict[str, Any]:
         base_url = BASE_URL
         model = _env(name, "MODEL") or _claude_model()
         key = _env(name, "API_KEY") or owner_value("ANTHROPIC_API_KEY").strip()
+    elif name == "standard" and openrouter_default() and not _env(name, "BASE_URL"):
+        base_url = os.environ.get("OPENROUTER_BASE_URL", "").strip() or OPENROUTER_BASE_URL
+        model = _env(name, "MODEL") or os.environ.get("DCLAB_INTERN_MODEL") or _openrouter_model()
+        key = _env(name, "API_KEY") or owner_value("OPENROUTER_API_KEY").strip() or os.environ.get("OPENAI_API_KEY") or ""
     elif name == "standard":
         base_url = _env(name, "BASE_URL") or os.environ.get("DCLAB_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
         model = _env(name, "MODEL") or (_claude_model() if provider(base_url) == "anthropic" else
-                                         os.environ.get("DCLAB_INTERN_MODEL") or os.environ.get("OPENAI_MODEL") or default_model(base_url))
+                                         os.environ.get("DCLAB_INTERN_MODEL") or
+                                         (_openrouter_model() if _host(base_url) == OPENROUTER_HOST and not os.environ.get("OPENAI_MODEL") else None) or
+                                         os.environ.get("OPENAI_MODEL") or default_model(base_url))
         key = _env(name, "API_KEY") or (os.environ.get("ANTHROPIC_API_KEY", "").strip() if provider(base_url) == "anthropic"
-                                         else os.environ.get("OPENAI_API_KEY") or "")
+                                         else (owner_value("OPENROUTER_API_KEY").strip() if _host(base_url) == OPENROUTER_HOST else "")
+                                         or os.environ.get("OPENAI_API_KEY") or "")
     else:
         standard = tier("standard")
         own_url = _env(name, "BASE_URL")
@@ -349,6 +378,8 @@ def tier(name: str) -> dict[str, Any]:
             model = _env(name, "MODEL")
         elif own_url and provider(own_url) == "anthropic" != standard["provider"]:
             model = _claude_model()
+        elif own_url and _host(own_url) == OPENROUTER_HOST and not same_host:
+            model = _openrouter_model()
         elif not same_host:  # another server: never the standard tier's model name (a vendor's model sent to Ollama fails unreadably)
             model = os.environ.get("DCLAB_INTERN_MODEL") or default_model(own_url)
         else:
@@ -356,6 +387,8 @@ def tier(name: str) -> dict[str, Any]:
         key = _env(name, "API_KEY") or (standard["api_key"] if same_host else "")
         if not key and provider(base_url) == "anthropic":
             key = owner_value("ANTHROPIC_API_KEY").strip()
+        if not key and _host(base_url) == OPENROUTER_HOST:
+            key = owner_value("OPENROUTER_API_KEY").strip()
     if not key and is_local(base_url, name):
         key = "local"  # a local server (Ollama, LM Studio) needs no key; the SDK still wants one
     who = blocked(base_url)

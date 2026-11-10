@@ -69,10 +69,12 @@ class CaseHome(HomeAgent):
         if (state.case.route is None and intent.get("source") == "user" and intent.get("track") in C.TRACKS
                 and intent["track"] != state.chip_intent):  # 2026-11-04: a chip pressed (first or again) before any work started;
             state.chip, state.chip_checked, state.chip_intent = intent["track"], False, intent["track"]  # a change of mind in words stays
+        elif state.case.route is None and intent.get("source") != "user":
+            state.chip, state.chip_checked, state.chip_intent = None, False, None
         state.personal = {c["name"] for c in briefs.columns_of(draft) if str(c.get("sensitivity") or "none") in home_query.SENSITIVE}
         state.specialist_client = self.models.client("case_specialist", draft_id=draft["id"]) if self.models is not None else None
         # the plan's step 1: Home gets the cheap route check the exam measured (before, only the exam's arm had it)
-        state.route_client = self.models.client("route_check", draft_id=draft["id"], model=A.ROUTE_MODEL) if self.models is not None else None
+        state.route_client = self.models.client("route_check", draft_id=draft["id"], model=A.route_model()) if self.models is not None else None
         return state
 
     def choose_intent(self, draft_id: str, track: str, *, by_person: bool = True) -> dict[str, Any]:
@@ -97,6 +99,25 @@ class CaseHome(HomeAgent):
                     d["case_state"]["chip_intent"] = None  # a press is always read, even the same chip again
             self.store.update(draft_id, put)
             return value
+
+    def clear_intent(self, draft_id: str) -> dict[str, Any]:
+        """A chip deselected in Home: clear user intent and chip selection."""
+        if self._client(draft_id) is None:
+            super().clear_intent(draft_id)
+            return {}
+        with self.store.turn(draft_id):
+            draft = self.store.get(draft_id)
+            before = draft.get("intent") or {}
+            if ((draft.get("case_state") or {}).get("case") or {}).get("route"):
+                return before
+            def put(d: dict[str, Any]) -> None:
+                d["intent"] = None
+                if isinstance(d.get("case_state"), dict):
+                    d["case_state"]["chip"] = None
+                    d["case_state"]["chip_intent"] = None
+                    d["case_state"]["chip_checked"] = False
+            self.store.update(draft_id, put)
+            return {}
 
     def _client(self, draft_id: str) -> Any:
         return self.models.client(A.PURPOSE, draft_id=draft_id) if self.models is not None else None

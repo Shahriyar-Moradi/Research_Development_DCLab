@@ -151,7 +151,14 @@ def _thinking(blocks: Any) -> str:
     """The API thinking summary as text: each returned block's text, in order (never its signature)."""
     if isinstance(blocks, str):
         return blocks.strip()
-    parts = [str(b.get("text") or b.get("thinking") or "") for b in blocks or [] if isinstance(b, dict)]
+    if not blocks:
+        return ""
+    parts = []
+    for b in blocks or []:
+        if isinstance(b, dict):
+            parts.append(str(b.get("text") or b.get("thinking") or b.get("reasoning") or ""))
+        elif isinstance(b, str):
+            parts.append(b)
     return "".join(parts).strip()
 
 
@@ -177,7 +184,7 @@ def exchanges(layout: Layout, purposes: set[str]) -> list[dict[str, Any]]:
         key = (str(prov.get("workspace")), str(b.get("model_request") or r.get("id")))
         out.setdefault(key, {"workspace": key[0], "request": b.get("model_request"), "purpose": b.get("purpose"), "draft": b.get("draft"),
                              "at": _at(b.get("at")), "model": b.get("model"), "user": _user(b.get("messages")), "reply": b.get("reply"),
-                             "thinking": _thinking(b.get("thinking")), "whole": bool(b.get("whole")), "prov": prov})
+                             "thinking": _thinking(b.get("thinking") or b.get("reasoning") or b.get("reasoning_details")), "whole": bool(b.get("whole")), "prov": prov})
         out[key]["asked"] = _asked(out[key]["user"])
     return list(out.values())
 

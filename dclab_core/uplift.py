@@ -175,10 +175,8 @@ class UpliftTree:
     """A regression tree on the transformed outcome, whose mean in a leaf is the uplift there."""
 
     def fit(self, X, t, y):
-        from sklearn.tree import DecisionTreeRegressor
-
         e = np.clip(_propensity(X, t), TRIM, 1 - TRIM)
-        self.tree = DecisionTreeRegressor(max_depth=4, min_samples_leaf=max(50, len(X) // 60), random_state=0).fit(X, transformed_outcome(y, t, e))
+        self.tree = _hgb("regressor").fit(X, transformed_outcome(y, t, e))
         return self
 
     def uplift(self, X):
@@ -262,7 +260,7 @@ def choose(validation: dict[str, Any]) -> Optional[str]:
                default=None)
 
 
-def split(frame: pd.DataFrame, *, treatment: str, holdout: float = 0.3, validation: float = 0.25, seed: int = 0) -> dict[str, Any]:
+def split(frame: pd.DataFrame, *, treatment: str, holdout: float = 0.3, validation: float = 0.25, seed: int = 42) -> dict[str, Any]:
     """The rows, by arm only (never the outcome): a holdout stratified by arm, and inside the training rows a validation
     cut stratified the same way; with the holdout's fingerprint, which a later stage checks before it reads it."""
     import hashlib
@@ -328,7 +326,7 @@ def score(frame: pd.DataFrame, parts: dict[str, Any], *, treatment: str, outcome
 
 
 def evaluate(frame: pd.DataFrame, *, treatment: str, outcome: str, features: Sequence[str], randomised: bool, holdout: float = 0.3,
-             validation: float = 0.25, seed: int = 0, boot: int = 200) -> dict[str, Any]:
+             validation: float = 0.25, seed: int = 42, boot: int = 200) -> dict[str, Any]:
     """The model chosen on a validation cut of the training rows, then every model refitted on all training rows and
     scored once on a holdout split stratified by arm: the Qini coefficient and the AUUC with paired 90% intervals, the
     uplift by decile of predicted uplift; with the overlap check and the wording the record may use. When assignment was

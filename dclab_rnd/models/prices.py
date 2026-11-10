@@ -58,6 +58,8 @@ PRICES: dict[str, Price] = {  # only checked prices belong here, with the date a
     "claude-haiku-5-5": Price(0.10, 0.50, "2026-10-15", "platform.claude.com/docs/en/about-claude/pricing, prompts up to 100,000 tokens, USD per 1M tokens entered as EUR",
                               cache_read=0.1),  # the prompt-caching page, 2026-10-20: most models read at 0.1
     "gpt-6-luna": Price(0.10, 0.50, "2026-10-07", "developers.openai.com/api/docs/pricing, standard tier, USD per 1M tokens entered as EUR"),
+    "qwen/qwen3.8-flash": Price(0.05, 0.40, "2026-11-09", "openrouter.ai/qwen/qwen3.8-flash, base input and output, USD per 1M tokens entered as EUR"),
+    "qwen3.8-flash": Price(0.05, 0.40, "2026-11-09", "openrouter.ai/qwen/qwen3.8-flash, base input and output, USD per 1M tokens entered as EUR"),
 }
 
 

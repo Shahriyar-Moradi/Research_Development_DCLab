@@ -50,9 +50,12 @@ def _transport(t: dict[str, Any], p: settings.Purpose) -> ChatClient:
         from .anthropic_client import AnthropicClient
 
         return AnthropicClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=_timeout(t, p), max_retries=0)
-    return ChatClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=_timeout(t, p), max_retries=0,
-                      reasoning_field=t.get("reasoning_field"), chat_template_kwargs=t.get("chat_template_kwargs"),
-                      tool_arguments=t.get("tool_arguments") or "json", max_tokens_floor=t.get("max_tokens_floor"))
+    client = ChatClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=_timeout(t, p), max_retries=0,
+                        reasoning_field=t.get("reasoning_field"), chat_template_kwargs=t.get("chat_template_kwargs"),
+                        tool_arguments=t.get("tool_arguments") or "json", max_tokens_floor=t.get("max_tokens_floor"))
+    if settings._host(str(t.get("base_url") or "")) == settings.OPENROUTER_HOST:
+        client.thinking = None  # Bound._think() sets this to settings.thinking_for(purpose)
+    return client
 
 
 NO_EMBEDDINGS = ("anthropic",)  # providers that serve no embeddings: the embedding purpose is not offered on them
@@ -584,6 +587,10 @@ class Bound:
             may_leave = bool(getattr(self.p, "keeps_text", False))
             whole = experience.model_text_allowed() and not shown_cells
             thinking = (out or {}).get("thinking") or []
+            reasoning = (out or {}).get("reasoning")
+            reasoning_details = (out or {}).get("reasoning_details")
+            if not thinking and reasoning:
+                thinking = [{"text": reasoning}]
             import hashlib
 
             system = next((str(m.get("content") or "") for m in messages if m.get("role") == "system"), "")
@@ -595,6 +602,10 @@ class Bound:
                                    "may_leave": may_leave,
                                    "tool_names": [str((t.get("function") or {}).get("name") or t.get("name") or "") for t in tools or []],
                                    "tools_sha256": hashlib.sha256(json.dumps(tools, sort_keys=True, default=str).encode()).hexdigest()[:16] if tools else None}
+            if reasoning:
+                doc["reasoning"] = reasoning
+            if reasoning_details:
+                doc["reasoning_details"] = reasoning_details
             if asked is ...:  # the served call: its own transport's setting
                 asked = _asked_of(getattr(self, "_transport", None))
             doc["thinking_asked"] = asked

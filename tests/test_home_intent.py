@@ -415,7 +415,7 @@ class ApiTests(unittest.TestCase):
             from dclab_rnd.agentic.server import create_app
         except ImportError as error:
             self.skipTest(f"Studio dependencies not installed: {error}")
-        env = mock.patch.dict(os.environ, {"OPENAI_API_KEY": "", "DCLAB_LLM_BASE_URL": "https://api.openai.com/v1"})
+        env = mock.patch.dict(os.environ, {"OPENAI_API_KEY": "", "OPENROUTER_API_KEY": "", "DCLAB_NO_LIVE_MODELS": "1", "DCLAB_LLM_BASE_URL": "https://api.openai.com/v1"})
         env.start()
         self.addCleanup(env.stop)
         self.client = TestClient(create_app(Path(tempfile.mkdtemp())))

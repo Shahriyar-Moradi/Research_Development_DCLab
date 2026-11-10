@@ -586,7 +586,7 @@ def make_model(
     elif family == "ridge":
         from sklearn.linear_model import Ridge
 
-        model = Ridge(alpha=1.0)
+        model = Ridge(alpha=10.0 if regression else 1.0)
     elif family == "linear_svm":
         from sklearn.svm import LinearSVC
 
@@ -741,7 +741,11 @@ def optimization_candidates(family: str, task_type: str) -> list[dict[str, Any]]
             if sparse_text
             else [{"model__C": 0.1}, {"model__C": 10.0}, {"model__C": 1.0, "model__class_weight": "balanced"}]
         ),
-        "ridge": [{"model__alpha": 0.1}, {"model__alpha": 10.0}, {"model__alpha": 100.0}],
+        "ridge": (
+            [{"model__alpha": 1.0}, {"model__alpha": 20.0}, {"model__alpha": 50.0}]
+            if regression
+            else [{"model__alpha": 0.1}, {"model__alpha": 10.0}, {"model__alpha": 100.0}]
+        ),
         "linear_svm": [{"model__C": 0.03}, {"model__C": 0.3}, {"model__C": 0.1, "model__class_weight": "balanced"}],
         "complement_nb": [{"model__alpha": 0.1}, {"model__alpha": 0.3}, {"model__alpha": 3.0}],
         "extra_trees": [

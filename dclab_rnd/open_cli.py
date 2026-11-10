@@ -116,7 +116,8 @@ def _write_env(values: dict[str, str]) -> Path:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     keep = []
     if CONFIG_ENV.exists():  # every line that is not a model setting stays
-        model_keys = ("DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "OPENAI_API_KEY", "OPENAI_MODEL", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL")
+        model_keys = ("DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "OPENAI_API_KEY", "OPENAI_MODEL", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL",
+                      "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "OPENROUTER_BASE_URL")
         keep = [line for line in CONFIG_ENV.read_text(encoding="utf-8").splitlines() if not line.split("=", 1)[0].strip() in model_keys]
     lines = keep + [f"{k}={v}" for k, v in values.items() if v]
     fd = os.open(CONFIG_ENV, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)  # private from the first byte, never readable for a moment
@@ -132,7 +133,7 @@ def init() -> int:
     if found:
         print(f"Ollama is running here with {len(found)} model(s): {', '.join(found[:8])}")
     print("  1. Ollama on this machine (local, open models; no key)\n  2. Any OpenAI-compatible endpoint (URL, key, model)\n"
-          "  3. Claude (an Anthropic key)\n  4. No model: every agent runs on its rules")
+          "  3. Claude (an Anthropic key)\n  4. No model: every agent runs on its rules\n  5. OpenRouter (qwen/qwen3.8-flash by default)")
     choice = _ask("Your choice", "1" if found else "4")
     values: dict[str, str] = {}
     if choice == "1":
@@ -146,6 +147,9 @@ def init() -> int:
     elif choice == "3":
         values = {"DCLAB_LLM_PROVIDER": "anthropic", "ANTHROPIC_API_KEY": getpass.getpass("Anthropic key (not shown): ").strip(),
                   "ANTHROPIC_MODEL": _ask("Claude model name")}
+    elif choice == "5":
+        values = {"DCLAB_LLM_PROVIDER": "openrouter", "OPENROUTER_API_KEY": getpass.getpass("OpenRouter key (not shown): ").strip(),
+                  "OPENROUTER_MODEL": _ask("OpenRouter model name", "qwen/qwen3.8-flash")}
     path = _write_env(values)
     print(f"Saved to {path} (only you can read it).")
     if values and _ask("Check it now with `dclab doctor`? (y/n)", "y").lower().startswith("y"):

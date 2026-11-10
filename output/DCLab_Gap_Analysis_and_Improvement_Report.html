@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DCLab Gap Analysis &amp; Improvement Playbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#f3f6fb; --paper:#ffffff; --ink:#18263a; --muted:#56657a; --rule:#d9e1ec;
+  --accent:#2457a6; --accent-soft:#e3ecfa; --sun-soft:#fdf3d8; --good:#1f7a4d; --good-soft:#e3f5ec;
+  --warn:#9a5b00; --warn-soft:#fef3c7; --bad:#b4442c; --bad-soft:#fde8e4;
+  --font:"Lexend","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15.5px/1.68 var(--font);padding:32px 16px 72px}
+.doc{max-width:920px;margin:0 auto;background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:48px clamp(20px,5vw,56px)}
+h1,h2,h3,h4{line-height:1.25;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.85rem,4vw,2.45rem);font-weight:700}
+h2{font-size:1.38rem;font-weight:700;margin-top:42px;padding-top:18px;border-top:2px solid var(--rule)}
+h3{font-size:1.12rem;font-weight:600;margin-top:24px;color:var(--ink)}
+h4{font-size:.98rem;font-weight:600;margin-top:14px;color:var(--accent)}
+p,ul,ol,table,dl{margin:10px 0 0}
+ul,ol{padding-inline-start:1.35em}
+li{margin:5px 0}
+a{color:var(--accent);text-decoration:none}
+code{font-size:.86em;background:var(--accent-soft);color:var(--ink);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.kicker{font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.meta{color:var(--muted);font-size:.9rem;margin-top:12px}
+.statement{font-size:1.15rem;font-weight:500;line-height:1.52;border-inline-start:4px solid var(--accent);padding:4px 0 4px 18px;margin-top:20px}
+.box{border-radius:10px;padding:12px 16px;margin-top:14px}
+.example{background:var(--sun-soft)}
+.note{background:var(--accent-soft)}
+.caution{background:var(--bad-soft)}
+.goodbox{background:var(--good-soft)}
+.toc{columns:2;column-gap:32px;padding-inline-start:1.2em;font-size:.93rem;margin-top:12px}
+.tablebox{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:.88rem;margin:0}
+th,td{border-bottom:1px solid var(--rule);padding:8px 10px;text-align:start;vertical-align:top}
+th{font-weight:600;background:var(--accent-soft);color:var(--ink)}
+.gap-card{border:1px solid var(--rule);border-inline-start:5px solid var(--accent);border-radius:12px;padding:16px 20px;margin-top:20px;background:#fff}
+.gap-card.critical{border-inline-start-color:var(--bad)}
+.gap-card.high{border-inline-start-color:var(--warn)}
+.gap-card.medium{border-inline-start-color:var(--accent)}
+.gap-card h3{margin:0;font-size:1.14rem}
+.gap-card .sub{font-weight:500;color:var(--muted);margin-top:4px;font-size:.92rem}
+.gap-card dl{display:grid;grid-template-columns:10.5em minmax(0,1fr);gap:8px 14px;margin-top:12px}
+.gap-card dt{font-weight:600;color:var(--accent);font-size:.9rem}
+.gap-card dd{margin:0;font-size:.93rem}
+.gap-card dd ul, .gap-card dd ol{margin:0}
+.badge{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 9px;border-radius:999px;margin-inline-start:8px;vertical-align:middle;text-transform:uppercase;letter-spacing:.04em}
+.badge.crit{background:var(--bad-soft);color:var(--bad)}
+.badge.high{background:var(--warn-soft);color:var(--warn)}
+.badge.med{background:var(--accent-soft);color:var(--accent)}
+.badge.good{background:var(--good-soft);color:var(--good)}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:14px}
+.chain span.p{border:1px solid var(--accent);background:var(--accent-soft);border-radius:8px;padding:6px 10px;font-weight:600;font-size:.86rem}
+.chain span.a{color:var(--accent);font-weight:700}
+@page{size:A4;margin:14mm 14mm}
+@media print{
+  :root{--bg:#fff;--paper:#fff;color-scheme:light}
+  html{font-size:11.2px}
+  body{padding:0;font-size:1rem;line-height:1.55;background:#fff}
+  .doc{border:0;padding:0;max-width:none}
+  h2{break-after:avoid;margin-top:24px}
+  h3{break-after:avoid}
+  .box,tr,.chain,.gap-card{break-inside:avoid}
+  a{color:inherit;text-decoration:none}
+}
+</style>
+</head>
+<body>
+<article class="doc">
+
+<p class="kicker">DCLab R&amp;D · Comprehensive Gap Analysis &amp; Improvement Playbook</p>
+<h1>What Is Still Missing in DCLab—and Exactly How to Fix It</h1>
+<p class="statement">Setting aside Hierarchical Task Planning (<code>TP-01</code> to <code>TP-07</code>) as an ongoing track, this report explains every remaining gap across DCLab's product, agents, ML engine, models, benchmarks, and infrastructure—in plain, simple words, with concrete step-by-step fixes.</p>
+<p class="meta">Date: 9 November 2026 · Checkout: <code>08c7bac</code> (<code>dclab-core 0.157.0</code>) · Scope: Entire repository excluding ongoing Hierarchical Task Planning</p>
+
+<h3>Contents</h3>
+<ol class="toc">
+  <li><a href="#big-picture">1. The Big Picture in Plain Words</a></li>
+  <li><a href="#summary-table">2. All 18 Gaps at a Glance</a></li>
+  <li><a href="#cat-agents">3. Category A: Home, Lead Agent &amp; Routing Gaps</a></li>
+  <li><a href="#cat-engine">4. Category B: ML Engine, Problem Kinds &amp; Safety Gaps</a></li>
+  <li><a href="#cat-models">5. Category C: DCLab's Own Models &amp; Training Data Gaps</a></li>
+  <li><a href="#cat-vision">6. Category D: Product &amp; Vision Gaps (Phases 14–19)</a></li>
+  <li><a href="#cat-infra">7. Category E: Benchmarks, Sandbox &amp; Open-Source Gaps</a></li>
+  <li><a href="#roadmap">8. Step-by-Step Improvement Order (What to Do First)</a></li>
+</ol>
+
+<h2 id="big-picture">1. The Big Picture in Plain Words</h2>
+<p>Over Phases 1 to 13, DCLab built an extraordinary foundation: a 19-page studio, a portable solving library (<code>dclab_core</code>), 17 problem kinds, deterministic leakage checks, a single-read holdout lock, a 77-point decision ledger, unified agent memory, an 8-model training store, and a Claude-first Lead Agent.</p>
+<p>If we set aside <b>Hierarchical Task Planning</b> (<code>TP-01A..TP-07</code>) as an already-active track, what is holding DCLab back today falls into <b>five simple truths</b>:</p>
+<ol>
+  <li><b>The front door (Home &amp; Lead Agent) is 100% safe, but talks too much when the user is already clear, costs ~2.3× too much, and misses the route ~20% of the time.</b></li>
+  <li><b>The ML engine runs 15 problem kinds, but 3 kinds fail their sealed end-to-end test (segmentation, uplift, regression), 14 kinds are still marked "experimental", and the leakage scanner misses multi-column math leaks when column names are hidden.</b></li>
+  <li><b>DCLab has collected ~100,000+ training records, but 0 of its 17 small decision "students" are trusted enough to act in the product yet, and the owner's ~8B Solver LLM has not been trained on a GPU yet.</b></li>
+  <li><b>Everything built for the long-term Vision (decision cards, live monitoring, retraining, company models) works in laboratory tests, but 0 real data teams use DCLab weekly via a simple <code>import dclab</code> SDK, and 0 real business outcomes have flowed back.</b></li>
+  <li><b>In DCLab Bench, 6 of 10 evaluation layers show red—partly from real gaps, and partly because old rejected experiments (like multi-agent debate) are still counted as active failures.</b></li>
+</ol>
+
+<div class="box example">
+  <b>An everyday analogy:</b> Imagine DCLab is a self-driving car built in a test facility. The brakes (leakage &amp; holdout protection) are world-class. The black-box recorder (experience log &amp; training store) records every second. Now we need to: (1) stop the voice assistant from asking 3 questions when the driver says "Drive to work", (2) fix 3 gears that slip on steep hills (segmentation, uplift, regression), (3) graduate the student drivers from the simulator to real roads, and (4) hand the keys to the first 3–5 real drivers.
+</div>
+
+<h2 id="summary-table">2. All 18 Gaps at a Glance</h2>
+<div class="tablebox"><table>
+  <thead>
+    <tr><th>ID</th><th>Area</th><th>What Is Missing or Broken</th><th>Impact</th><th>Effort to Fix</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><b>A1</b></td><td>Lead Agent</td><td>Asks questions when the user's first sentence is already complete (<code>0/3</code> on clear requests).</td><td><span class="badge crit">Critical</span></td><td>Small (1–2 days)</td></tr>
+    <tr><td><b>A2</b></td><td>Home Routing</td><td>Lead Agent misses route ~21–25% on sealed exams; chip vs. text conflicts need hardening (<code>R-01</code>).</td><td><span class="badge crit">Critical</span></td><td>Small (2 days)</td></tr>
+    <tr><td><b>A3</b></td><td>Cost &amp; Speed</td><td>Lead Agent costs ~2.3× raw Claude (€0.15/case), ~22s/turn, and €5 soft cap allowed a €1.08 runaway loop.</td><td><span class="badge high">High</span></td><td>Small (1–2 days)</td></tr>
+    <tr><td><b>B1</b></td><td>ML Engine</td><td>Sealed <code>system_tasks</code> gate failed (<code>26/30</code>): segmentation (<code>0/2</code>), uplift (<code>1/2</code>), regression (<code>1/2</code>).</td><td><span class="badge crit">Critical</span></td><td>Medium (3–4 days)</td></tr>
+    <tr><td><b>B2</b></td><td>Leakage Audit</td><td>Heuristics miss multi-column sum leaks (<code>A + B = target</code>) when names are hidden, and flag <code>Time</code> as a leak.</td><td><span class="badge high">High</span></td><td>Small (2 days)</td></tr>
+    <tr><td><b>B3</b></td><td>Fraud / Entities</td><td>On real <code>Snap_fruad</code>, generic rules scored <code>0.019</code> PR-AUC vs <code>0.095</code> with pair/shared-key features.</td><td><span class="badge high">High</span></td><td>Medium (3–5 days)</td></tr>
+    <tr><td><b>B4</b></td><td>Engine Safety</td><td>Crash right after <code>final</code> scoring leaves <code>holdout_uses = 0</code>; tabular splits lack a row-index hash.</td><td><span class="badge high">High</span></td><td>Small (2 days)</td></tr>
+    <tr><td><b>B5</b></td><td>Problem Kinds</td><td><code>image</code> lacks local weights; <code>metric_change</code> is library-only; 7 kinds not in self-play; 13 kinds uncertified.</td><td><span class="badge med">Medium</span></td><td>Medium (1 week)</td></tr>
+    <tr><td><b>C1</b></td><td>Decision Students</td><td>17 students trained, only 2 passed sealed gate, and <b>0 serve above shadow mode</b> (overfit to synthetic tables).</td><td><span class="badge high">High</span></td><td>Medium (3–5 days)</td></tr>
+    <tr><td><b>C2</b></td><td>AutoML Model</td><td>Learned AutoML meta-model (<code>0.465</code> regret) loses to "always pick most frequent winner" (<code>0.395</code>).</td><td><span class="badge med">Medium</span></td><td>Small (2–3 days)</td></tr>
+    <tr><td><b>C3</b></td><td>Training Store</td><td>91% of <code>m1</code> data is prediction; <code>solution_design</code> in Gold is empty; only 5% of decisions have outcomes.</td><td><span class="badge med">Medium</span></td><td>Medium (3–4 days)</td></tr>
+    <tr><td><b>C4</b></td><td>Own 8B LLM</td><td>Exporters and LoRA recipes exist, but DCLab's own 8B Solver &amp; Decision LLMs have 0 training runs yet.</td><td><span class="badge med">Medium</span></td><td>Needs GPU / M1 Max</td></tr>
+    <tr><td><b>D1</b></td><td>Python SDK &amp; Users</td><td>No <code>import dclab</code> lightweight notebook SDK; 0 external data teams using DCLab weekly (Gaps G1, G2).</td><td><span class="badge crit">Critical</span></td><td>Medium (1–2 weeks)</td></tr>
+    <tr><td><b>D2</b></td><td>Manager View</td><td>No dedicated Manager Decision Card page; promised gains are never checked against real outcomes (Gaps G4, G5).</td><td><span class="badge high">High</span></td><td>Medium (1 week)</td></tr>
+    <tr><td><b>D3</b></td><td>Live Outcome Loop</td><td>Scheduled batch scoring, late-outcome matching, and ~5% exploration share have never run live (Gaps G6–G8).</td><td><span class="badge high">High</span></td><td>Large (2–3 weeks)</td></tr>
+    <tr><td><b>D4</b></td><td>Company Optimizer</td><td>No cross-project optimizer combining many models (churn + uplift + risk) under one company budget (Gaps G9–G10).</td><td><span class="badge med">Medium</span></td><td>Large (after D3)</td></tr>
+    <tr><td><b>E1</b></td><td>DCLab Bench</td><td>6 of 10 layers are <code>red</code> and 2 are <code>amber</code>; retired experiments keep layers red; 3 eval test files skipped.</td><td><span class="badge high">High</span></td><td>Small (2–3 days)</td></tr>
+    <tr><td><b>E2</b></td><td>Open Source &amp; Sandbox</td><td>4 <code>dclabai</code> handoff bugs (multiclass text, <code>.env</code> init, catalog overwrite, timeout) + no container kernel sandbox.</td><td><span class="badge med">Medium</span></td><td>Medium (3–5 days)</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="cat-agents">3. Category A: Home, Lead Agent &amp; Routing Gaps</h2>
+<p>The Home page and the Phase 13 Claude-first Lead Agent (<code>dclab_rnd/agents/case_agent.py</code>) are the front door of DCLab. Across 28 benchmark runs (<code>CEX-001</code> to <code>CEX-032</code>), the Lead Agent eliminated all 927 safety failures that raw Claude made. However, three practical gaps remain.</p>
+
+<div class="gap-card critical">
+  <h3>Gap A1 · The "Clear-Request Trap": Asking Questions When the User Is Already Clear <span class="badge crit">Critical</span></h3>
+  <p class="sub">Where: <code>dclab_rnd/agents/case_agent.py</code>, <code>dclab_core/case.py</code>, <code>dclab_rnd/prompts/case_agent.md</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>When a user types a complete, crystal-clear request on turn 1—for example, <i>"Predict Churn on my attached telco.csv table before the monthly renewal date so our retention team can call the top 100 risky customers"</i>—the Lead Agent still asks 1 to 3 follow-up questions before offering options or acting. On both <code>sealed_v2</code> and <code>sealed_v3</code>, it scored <b>0% (0 of 3)</b> on the <code>clear_request</code> trap.</dd>
+    <dt>Why it happens</dt>
+    <dd>Phase 13 taught the agent a 4-stage habit (<i>Listen → Reflect → Explore → Propose</i>) with "about 3 exchanges as the normal minimum". Without a hard check in code, the model treats asking a question on turn 1 as polite conversation.</dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Add an "Act-First" readiness check in <code>dclab_core/case.py</code>:</b> Write a pure function <code>is_clear_on_arrival(case_file)</code> that returns <code>True</code> when the user's message + attached data already specify: (a) what they want (goal/route), (b) who/what unit it is for, and (c) the table (or that no table is needed, such as a pure learning question).</li>
+      <li><b>Enforce it in <code>dclab_rnd/agents/case_agent.py</code>:</b> When <code>is_clear_on_arrival(case_file)</code> is <code>True</code>, inject a runtime instruction into the turn context: <i>"The case file is already complete. Do NOT ask a clarifying question; immediately run the requested data tool or present the 2–3 actionable options."</i></li>
+      <li><b>Verify on practice cases first:</b> Run <code>python -m dclab_rnd.agent_eval.conversation_exam --split dev</code> (capped under €1) to confirm <code>clear_request</code> passes 100% without hurting understanding on vague requests.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card critical">
+  <h3>Gap A2 · Route Misses (~21–25%) &amp; Chip-vs-Text Conflicts (Package <code>R-01</code>) <span class="badge crit">Critical</span></h3>
+  <p class="sub">Where: <code>dclab_rnd/draft/intent.py</code>, <code>dclab_rnd/draft/chat.py</code>, <code>dclab_rnd/agents/case_agent.py</code>, <code>dclab_rnd/agentic/web/src/views/home.html</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>DCLab has 6 help tracks on Home: <b>Model</b> (<code>prediction</code>), <b>Analyze</b> (<code>analysis</code>), <b>Prepare</b> (<code>preparation</code>), <b>Report</b> (<code>reporting</code>), <b>Plan</b> (<code>business</code>), and <b>Learn</b> (<code>advice</code>). On <code>sealed_v2</code> and <code>sealed_v3</code>, the Lead Agent picked the wrong route on ~21% to 25% of conversations. Two things go wrong:
+      <ul>
+        <li>When a user wants a prediction or analysis but hasn't uploaded their CSV yet, the agent often misroutes them to <code>advice</code> instead of keeping the route as <code>prediction</code>/<code>analysis</code> and asking for the file.</li>
+        <li>When a user clicks a Home chip (e.g., <b>Learn</b>) but types a conflicting sentence (e.g., <i>"build a churn model on Telco"</i>), or refreshes the page mid-chat, the precedence between the clicked chip and the typed words is not fully audited (Package <code>R-01</code>).</li>
+      </ul>
+    </dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Separate "Missing Data" from "Advice":</b> In <code>dclab_core/case.py</code> and <code>case_agent.py</code>, if the user's goal is a prediction, analysis, cleaning, or report on their own business, keep that route even when <code>tables == 0</code>, and mark <code>missing_table</code> as the blocker to ask for—never downgrade the route to <code>advice</code>.</li>
+      <li><b>Run the Haiku route verifier on every proposal (Fix S3):</b> In <code>case_agent.py</code>, <code>chip_checked</code> currently uses a fast Haiku check only when a chip was clicked. Run that same check whenever the agent proposes options or sets a route.</li>
+      <li><b>Complete Package <code>R-01</code> (<code>engineering/planning/R_01.txt</code>):</b> Lock down the route precedence table in code and tests (<code>tests/test_home_intent.py</code>, <code>tests/test_case_agent.py</code>):
+        <ul>
+          <li>Explicit chip selection (<code>You picked</code>) wins unless the user explicitly changes their mind.</li>
+          <li>If the user's sentence contradicts their chip, surface the contradiction <b>once</b> clearly (<i>"You picked Learn, but asked to build a churn model—would you like to build the model or read how churn models work?"</i>).</li>
+          <li>Ensure a clicked chip survives browser refresh and never bypasses build/holdout approval guards.</li>
+        </ul>
+      </li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card high">
+  <h3>Gap A3 · Lead Agent Cost (~2.3× Raw Claude), Turn Latency (~22s), and the €5 Soft-Cap Bug <span class="badge high">High</span></h3>
+  <p class="sub">Where: <code>dclab_rnd/settings.py</code>, <code>dclab_rnd/agents/case_agent.py</code>, <code>dclab_rnd/models/anthropic_client.py</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>In the benchmark post-mortem (<code>LEAD_AGENT_BENCHMARK_CONCLUSION.md</code>), the Lead Agent cost an average of <b>€0.147 per person</b> vs <b>€0.064</b> for Claude alone. Worse, in one conversation (<code>s3-02</code>), the agent hit its 9,800-token thinking/output limit 6 times in a row, spending <b>€1.08 and 12.5 minutes</b> on a single user because the default soft cap (<code>DCLAB_CASE_CAP_EUR</code>) was set to €5.00.</dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Lower the default soft cap to €0.40:</b> Change <code>DCLAB_CASE_CAP_EUR</code> from <code>5.0</code> to <code>0.40</code> in <code>dclab_rnd/settings.py</code>, and add a hard guard in <code>dclab_rnd/agents/runtime.py</code> that aborts a loop if 2 consecutive calls hit <code>max_output_tokens</code>.</li>
+      <li><b>Raise prompt-cache reuse from 46% to ~75%+:</b> Keep the system prompt, tools, and static evidence at the top of the message list, and update the <code>CaseFile</code> inside the same turn as the reply instead of making a separate uncached model call.</li>
+      <li><b>Use adaptive thinking effort by turn complexity:</b> Use high thinking effort on turn 1 (understanding the problem and reading the data card), and standard effort on simple follow-up confirmations.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<h2 id="cat-engine">4. Category B: ML Engine, Problem Kinds &amp; Safety Gaps</h2>
+<p>Once a problem is understood, DCLab's 5-stage engine (<code>dclab_rnd/studio/engine.py</code> and <code>dclab_rnd/kinds/</code>) builds and evaluates the model. Here are the five concrete gaps in the solving engine and how to close them.</p>
+
+<div class="gap-card critical">
+  <h3>Gap B1 · End-to-End Sealed Gate Failures on <code>segmentation</code>, <code>uplift</code>, and <code>regression</code> <span class="badge crit">Critical</span></h3>
+  <p class="sub">Where: <code>dclab_rnd/agent_eval/system_tasks.py</code>, <code>dclab_rnd/kinds/segmentation.py</code>, <code>dclab_rnd/kinds/uplift.py</code>, <code>dclab_rnd/kinds/regression.py</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>DCLab built an end-to-end test called <code>system_tasks</code> that runs all 15 supported problem kinds from raw replica data through all 5 stages with zero human help and checks every decision. On the two unseen sealed seeds (<code>731</code> and <code>732</code>, commit <code>23558b6</code>), DCLab passed <b>26 of 30 tasks (86.7%)</b>, but failed the overall gate because:
+      <ul>
+        <li><b>Segmentation failed on both seeds (0 of 2)</b>;</li>
+        <li><b>Uplift failed on one seed (1 of 2)</b>;</li>
+        <li><b>Regression failed on one seed (1 of 2)</b>.</li>
+      </ul>
+    </dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Diagnose on dev seeds (never tune on sealed seeds 731/732):</b> Run <code>python -m dclab_rnd.agent_eval.system_tasks --split dev</code> and generate seeds <code>5..20</code> in a scratch check to see which acceptance assertion fails on segmentation, uplift, and regression.</li>
+      <li><b>Fix the brittle kind rules:</b>
+        <ul>
+          <li>In <code>dclab_rnd/kinds/segmentation.py</code> (and <code>dclab_core/clustering.py</code>): check why the cluster count <code>k</code> or stability/scaling check fails when a seed has tighter cluster separation, and ensure identifier/unscaled trap columns are dropped before k-means stability is scored.</li>
+          <li>In <code>dclab_rnd/kinds/uplift.py</code> (and <code>dclab_core/uplift.py</code>): verify the treatment-arm balance check and post-treatment leak filter across seeds.</li>
+          <li>In <code>dclab_rnd/kinds/regression.py</code>: check the target-skew / log-transform / outlier-cap rule when synthetic seeds generate heavy-tailed targets.</li>
+        </ul>
+      </li>
+      <li><b>Verify on 20 dev seeds, then run one fresh sealed seed pair:</b> Only after 20/20 dev seeds pass for all 15 kinds, pin a new sealed seed pair (<code>system_tasks_v2</code>) and run it once.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card high">
+  <h3>Gap B2 · Leakage Scanner Misses Multi-Column Sum Leaks &amp; Falsely Flags Time Columns <span class="badge high">High</span></h3>
+  <p class="sub">Where: <code>dclab_core/analyse.py</code>, <code>dclab_rnd/studio/leakage_review.py</code>, <code>dclab_rnd/tools.py</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>DCLab checks one column at a time for suspicious names or abnormally high single-column correlation with the target. Because of this:
+      <ul>
+        <li>If two columns add up to the target (like <code>casual_riders + registered_riders = total_rentals</code> in bike sharing) and their names are hidden (<code>f001</code>, <code>f002</code>), neither column looks like a 1.0 leak alone, so the scanner misses them.</li>
+        <li>On <code>online_shoppers</code>, 8 of 9 post-visit page-activity columns had moderate single-column correlation and normal-looking names, so blind rules missed them.</li>
+        <li>On <code>credit_card_fraud</code>, the rules falsely flagged the <code>Time</code> column as a leak instead of using it as the time-split column.</li>
+      </ul>
+    </dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Add a 2-column &amp; row-sum identity detector in <code>dclab_core/analyse.py</code>:</b> On training rows only, check whether any pair of numeric columns satisfies <code>A + B = Y</code>, <code>A - B = Y</code>, or <code>A × B = Y</code> (within <code>1e-6</code> tolerance), or whether a subset of numeric columns sums to <code>Y</code>. Flag matching columns as <code>exact_combination_leak</code> even when names are obfuscated.</li>
+      <li><b>Add a 2-feature tree probe:</b> Fit a shallow depth-2 decision tree on pairs of suspect high-leverage columns on training folds to catch multi-column proxy leaks.</li>
+      <li><b>Exempt monotonic timestamp / elapsed-time columns from leakage exclusion:</b> In <code>leakage_review.py</code>, if a column is identified as the table's primary time/order column (<code>column.time</code>), route it to <code>split.strategy = time</code> rather than <code>declared_leakage_features</code>.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card high">
+  <h3>Gap B3 · Rare-Event / Fraud Feature Gap on Multi-Entity Problems (<code>Snap_fruad</code>) <span class="badge high">High</span></h3>
+  <p class="sub">Where: <code>dclab_core/behaviour.py</code>, <code>dclab_core/entities.py</code>, <code>dclab_core/programme.py</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>On the owner's real delivery-fraud problem (<code>Snap_fruad</code>: 134,362 rides, 100 confirmed fraud cases), DCLab's automatic rules scored <b>0.019 PR-AUC</b>, whereas the owner's custom script scored <b>0.095 PR-AUC</b> (5× higher). Why? Because collusion fraud lives in <b>relationships between entities</b>—such as the same biker and customer riding together 8 times in one day, or 5 accounts sharing the same phone/device hash—whereas DCLab's current <code>entity_behaviour</code> recipe only computes single-entity rolling averages.</dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Add pair-history &amp; shared-key velocity features to <code>dclab_core/behaviour.py</code>:</b> When a table has two or more entity/ID columns (e.g., <code>customer_id</code>, <code>biker_id</code>, <code>device_id</code>), automatically compute strictly past-only (before ride timestamp <code>t</code>, inside training folds):
+        <ul>
+          <li><code>pair_count_prior</code> and <code>pair_share_of_customer_rides</code> for <code>(E1, E2)</code> pairs;</li>
+          <li><code>distinct_counterparties_24h</code> (how many distinct bikers/devices this customer used recently);</li>
+          <li><code>time_since_last_event</code> for each entity and pair.</li>
+        </ul>
+      </li>
+      <li><b>Re-test on the <code>delivery_fraud</code> replica and <code>Snap_fruad</code>:</b> Verify that fold-safe pair features close the gap from <code>0.019</code> toward <code>0.095</code> without any future leakage.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card high">
+  <h3>Gap B4 · Crash Window During Final Holdout Scoring &amp; Missing Tabular Split Digest <span class="badge high">High</span></h3>
+  <p class="sub">Where: <code>dclab_rnd/studio/engine.py</code>, <code>dclab_rnd/studio/programme.py</code>, <code>dclab_rnd/expansion/datasets.py</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>Found during the <code>TP-01A</code> architecture audit (<code>TASK_PLANNING_ARCHITECTURE.md</code> Section 6):
+      <ul>
+        <li><b>The crash gap:</b> In <code>engine._run_stage</code> and <code>studio.programme.run</code>, the code computes the holdout score first and saves the incremented <code>holdout_uses</code> counter to disk/PostgreSQL afterward. If the server crashes or is killed mid-write after computing the score, the saved project still says <code>holdout_uses = 0</code>, allowing an accidental second holdout read.</li>
+        <li><b>The split fingerprint gap:</b> While specialized kind machines record a SHA-256 fingerprint of the exact train/holdout row indices, standard tabular binary/multiclass/regression projects only record the file hash, random seed, and split ratio.</li>
+      </ul>
+    </dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Write a durable "holdout-intent receipt" before scoring:</b> In <code>engine._run_stage</code> (when <code>stage == "final"</code>) and <code>studio.programme.run</code>, persist a durable <code>holdout_claim</code> record (incrementing <code>holdout_uses</code> or setting <code>holdout_state = "in_flight"</code>) to the project store <b>before</b> touching holdout rows. If a crash happens, recovery blocks automatic retry and asks a human to reconcile.</li>
+      <li><b>Save <code>split_sha256</code> in <code>stage_data</code>:</b> In <code>dclab_rnd/expansion/datasets.py::prepare_bundle</code> and <code>studio/engine.py::stage_data</code>, compute and store the SHA-256 hash of the sorted training and holdout row indices.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card medium">
+  <h3>Gap B5 · Uncertified Problem Kinds (13 of 15), 7 Kinds Missing from Self-Play, and Local Image Weights <span class="badge med">Medium</span></h3>
+  <p class="sub">Where: <code>dclab_rnd/certify.py</code>, <code>dclab_rnd/lake/selfplay.py</code>, <code>dclab_rnd/kinds/</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>DCLab defines 3 maturity levels for every problem kind (<code>ADDING_CAPABILITY.md</code>): <code>experimental</code> → <code>certified</code> → <code>product_default</code>. Today:
+      <ul>
+        <li>Only <b>2 kinds</b> (<code>binary</code> and <code>matching</code>) are <code>certified</code>; the other 13 supported kinds and all 5 modifiers are still <code>experimental</code> because they haven't been run through <code>certify.py</code> on 2 real public datasets each.</li>
+        <li><b>7 kinds</b> (<code>metric_change</code>, <code>entity_tables</code>, <code>matching</code>, <code>ranking</code>, <code>segmentation</code>, <code>streams</code>, <code>anomaly</code>) are skipped by <code>selfplay.py</code> because their outcomes aren't a single plain column.</li>
+        <li><code>image</code> classification has decision rules in <code>dclab_core/image_decisions.py</code>, but awaits a small local vision backbone to run in the Studio engine.</li>
+      </ul>
+    </dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Certify the remaining kinds batch by batch:</b> Pair each of the 13 kinds with 2 existing public/OpenML datasets and run <code>python -m dclab_rnd.certify --kind &lt;kind&gt;</code> to verify all 5 checks (<code>detection</code>, <code>traps</code>, <code>baseline</code>, <code>artifact</code>, <code>llm_off</code>).</li>
+      <li><b>Teach <code>selfplay.py</code> to read non-column outcomes:</b> Update <code>dclab_rnd/lake/selfplay.py</code> to read <code>kind_fields</code> (cutoff tables for <code>entity_tables</code>, pair labels for <code>matching</code>, query groups for <code>ranking</code>, unlabeled budgets for <code>anomaly</code> and <code>segmentation</code>) so all kinds produce training trajectories.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<h2 id="cat-models">5. Category C: DCLab's Own Models &amp; Training Data Gaps</h2>
+<p>DCLab's strategy (<code>THREE_MODELS.md</code>, <code>MODELS_INVENTORY.md</code>) is to train three families of models from its own captured data: (1) fast per-point <b>Decision Students</b>, (2) an ~8B <b>Solver LLM</b>, and (3) a <b>Workflow/Combination Model</b>. Here is what is missing today.</p>
+
+<div class="gap-card high">
+  <h3>Gap C1 · 0 of 17 Decision "Students" Serve Above Shadow Mode <span class="badge high">High</span></h3>
+  <p class="sub">Where: <code>dclab_core/decision_models.py</code>, <code>dclab_rnd/real_homework.py</code>, <code>dclab_rnd/ledger/routing.py</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>DCLab trained 17 small scikit-learn models ("students") to make fast technical choices (like <i>"Is this column an ID?"</i>, <i>"Is this column a leak?"</i>, <i>"What is the task framing?"</i>). Today:
+      <ul>
+        <li><b>15 of 17 failed their sealed exam</b> (<code>decision_gate_v1</code>), and <b>0 of 17 are turned on above shadow mode</b>.</li>
+        <li>Why? First, students trained only on invented tables learned artificial shortcuts and dropped sharply on real OpenML tables (e.g., <code>task.framing</code> dropped from 91.6% to 74.8%).</li>
+        <li>Second, when DCLab retrained them with 650+ real OpenML tables (<code>models_real_v1/v2</code>), dev accuracy jumped to <b>99.6%</b> on <code>column.semantic_role</code> and <b>98.1%</b> on <code>task.framing</code>, but <code>DMG-014</code> missed the 80% macro-precision gate by just <b>0.15% (79.85%)</b> because of false <code>identifier</code> predictions on high-cardinality numbers.</li>
+        <li>Third, promoting a student from <code>shadow</code> to <code>act</code> requires human blind labels (<code>Admin → Decisions</code>) on real disagreements.</li>
+      </ul>
+    </dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Fix the <code>identifier</code> precision dip in <code>models_real_v2</code>:</b> Add two clean structural features to <code>dclab_core/answerers.py::features()</code>: <code>is_float_with_decimals</code> (floats with fractional parts are almost never IDs, even when 100% unique) and <code>is_monotonic_step_1</code>.</li>
+      <li><b>Run the sealed exam on real OpenML tables for the top 3 points:</b> Test <code>column.semantic_role</code>, <code>task.framing</code>, and <code>feature.leakage_suspect</code> on a fresh held-out OpenML partition.</li>
+      <li><b>Label 30–50 blind disagreements on <code>Admin → Decisions</code>:</b> Use the existing Blind Labelling Desk (<code>docs/guides/BLIND_LABELLING.md</code>) so the two passing students can legally graduate from <code>shadow</code> to <code>flag</code> / <code>act_with_check</code>.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card medium">
+  <h3>Gap C2 · Learned AutoML Meta-Model Loses to "Most Frequent Winner" <span class="badge med">Medium</span></h3>
+  <p class="sub">Where: <code>dclab_rnd/lake/automl.py</code>, <code>evidence/campaigns/automl_v1/</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>DCLab trained a meta-model to predict which algorithm family (ExtraTrees, LightGBM, XGBoost, Logistic Regression, etc.) will win on a table before running full cross-validation (<code>AML-002</code>). While it beat "always pick XGBoost" (regret <code>0.465</code> vs <code>0.786</code>), it lost to the simple rule "always pick the most frequent winner across datasets" (regret <code>0.395</code>).</dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Add fast "landmarking" features:</b> Table row/column counts alone cannot tell whether tree splits or linear weights fit a target better. Add two 50-millisecond landmarkers on a 1,000-row training sample: (a) 3-fold decision-stump score vs. (b) 3-fold ridge/logistic score (<code>linear_vs_stump_gap</code>).</li>
+      <li><b>Train on real OpenML screen results (<code>real_screen.py</code>)</b> instead of only synthetic self-play tables.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card medium">
+  <h3>Gap C3 · Training Store (<code>m1–m8</code>) Imbalance &amp; Empty <code>solution_design</code> Gold Set <span class="badge med">Medium</span></h3>
+  <p class="sub">Where: <code>dclab_rnd/store/coverage.py</code>, <code>dclab_rnd/lake/</code>, <code>dclab_rnd/prompts/</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>Running <code>make coverage</code> (<code>PHASE12_TRAINING_DATA_PLAN.md</code>) revealed four data gaps in the training store:
+      <ul>
+        <li><b>91% of <code>m1</code> examples come from the <code>prediction</code> track</b>; the other 5 Home tracks (<code>analysis</code>, <code>preparation</code>, <code>reporting</code>, <code>business</code>, <code>advice</code>) and <code>m8_retrieval</code> (only 9 rows) have very few examples.</li>
+        <li><b>The <code>solution_design</code> family in the Training Lake's Gold tier is empty (<code>0 rows</code>)</b>, even though every verified self-play run already has a <code>ProblemCard</code>, <code>DataCard</code>, and validated <code>SolutionWorkflow</code>.</li>
+        <li><b>Only ~5% of <code>m1</code> and <code>m3</code> decisions have linked outcomes</b> showing whether the decision led to a good holdout/business result.</li>
+        <li><b>6 older prompt files</b> in <code>dclab_rnd/prompts/</code> still ask the model to write its reasoning inside the JSON reply text (which Phase 13 banned in <code>37.14</code> in favor of <code>display: "summarized"</code> thinking blocks).</li>
+      </ul>
+    </dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Populate <code>solution_design</code> in Gold:</b> Extend <code>dclab_rnd/lake/selfplay.py</code> to emit one <code>solution_design</code> training example (<code>ProblemCard + DataCard → SolutionWorkflow</code>) for each of the 193+ verified self-play solves.</li>
+      <li><b>Clean the 6 legacy prompts (<code>37.14</code>):</b> Remove inline "explain your reasoning" fields from the 6 legacy prompts listed in <code>test_thinking_capture.py</code> so every model purpose relies cleanly on native summarized thinking.</li>
+      <li><b>Run <code>make outcomes-follow</code></b> after project runs so holdout scores attach as measured outcomes to every upstream decision in the project.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card medium">
+  <h3>Gap C4 · The Owner's Fine-Tuned LLMs (<code>Solver LLM</code> &amp; <code>Decision LLM</code>) Have Not Been Trained Yet <span class="badge med">Medium</span></h3>
+  <p class="sub">Where: <code>research/llm-fine-tuning/experiments/sft/train_lora.py</code>, <code>dclab_rnd/models/tuned.py</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>All the plumbing to train and serve DCLab's own ~8B Qwen3-class models (<code>make lake</code>, <code>make solver-data</code>, <code>make sft-v3</code>, <code>make sft-dev</code>, 30% anti-forgetting replay sets, frozen exams, and <code>python -m dclab_rnd.models.tuned plan|shadow|promote|retire</code>) is 100% built and tested. However, no actual GPU LoRA training run has been executed yet (awaiting the owner's 64GB M1 Max or cloud GPU).</dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li>Once the 64GB M1 Max or a cloud GPU is ready, close Gap C3 first (so <code>solution_design</code> and verified code are in the mix).</li>
+      <li>Run <code>train_lora.py</code> on the decontaminated export (<code>python -m dclab_rnd.lake export --target solver</code>), score the frozen code and solver exams before and after, and deploy in <b>shadow mode first</b> via <code>python -m dclab_rnd.models.tuned shadow solver_answer</code>.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<h2 id="cat-vision">6. Category D: Product &amp; Vision Gaps (Phases 14–19)</h2>
+<p>In <code>docs/vision/plan.html</code>, the owner identified 13 strategic gaps (<code>G1–G13</code>) between today's R&amp;D studio and the full DCLab Vision. Putting aside <code>G3</code> (the Lead Agent, covered in Category A above), they form four clear product milestones.</p>
+
+<div class="gap-card critical">
+  <h3>Gap D1 · No Lightweight Python SDK (<code>import dclab</code>) &amp; Zero External Weekly Teams (Gaps G1, G2) <span class="badge crit">Critical</span></h3>
+  <p class="sub">Where: Phase 14 of <code>docs/vision/plan.html</code> · Builds on <code>dclab_core/</code>, <code>dclab_rnd/testers/</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>Data scientists live inside their own Jupyter, VS Code, or Colab notebooks. Today, using DCLab requires launching a separate web application (<code>make notebook</code>). A data scientist cannot simply write <code>import dclab</code> inside their existing notebook to check a DataFrame for leakage, run a leakage-safe 5-stage baseline, or get an honest holdout report. Because of that friction—and because outreach hasn't started—<b>zero external teams use DCLab weekly</b>.</dd>
+    <dt>How to improve it (Phase 14)</dt>
+    <dd><ol>
+      <li><b>Create a 4-function Python SDK facade in <code>dclab_core</code> (or a thin <code>dclab</code> wrapper):</b>
+        <ul>
+          <li><code>dclab.audit(df, target="Churn", moment="before renewal")</code> → returns a clean table of leaky/ID columns and split advice.</li>
+          <li><code>dclab.check_notebook("my_work.ipynb")</code> → runs the static copilot and prints mistakes with proof.</li>
+          <li><code>dclab.solve(df, target="Churn", moment="...")</code> → runs the 5-stage engine locally and returns the model + honest holdout interval.</li>
+          <li><code>dclab.brief(result)</code> → renders the 1-page Markdown/HTML Decision Brief.</li>
+        </ul>
+      </li>
+      <li><b>Onboard 3–5 friendly data teams for 4 weeks:</b> Give them the SDK + <code>make tester-setup</code> (<code>docs/guides/TESTERS.md</code>) so everything runs 100% on their laptop and only consented redacted records are shared via <code>make share</code>.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card high">
+  <h3>Gap D2 · No Dedicated Manager Page &amp; Unverified Decision Promises (Gaps G4, G5) <span class="badge high">High</span></h3>
+  <p class="sub">Where: Phase 15 of <code>docs/vision/plan.html</code> · Builds on <code>dclab_core/decision.py</code>, <code>dclab_rnd/agentic/web/src/views/brief.html</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>A business manager does not want to read ROC-AUC, Brier scores, or fold standard deviations. They want a single <b>Decision Card</b> that says: <i>"Call these 250 customers this week. Cost: €1,250. Expected saved revenue: €8,400 to €11,200. Why: based on 1,400 held-out cases."</i> And 30 days later, they want to see: <i>"You promised €8,400–€11,200; actual observed result was €9,100."</i> Today, the Decision Brief page still mixes technical evaluation with business value, and promised gains are not tracked against later reality.</dd>
+    <dt>How to improve it (Phase 15)</dt>
+    <dd><ol>
+      <li><b>Add a clean "Manager View" toggle on the Decision Brief page (<code>brief.html</code>):</b> Show only the action list size, cost, expected net gain with 95% interval, interactive budget/cost sliders (<code>what_if</code> from <code>dclab_core/decision.py</code>), and plain-language risks.</li>
+      <li><b>Log the "Promise Record":</b> When a manager signs off on a Decision Card, write a <code>decision.promised</code> record with the expected gain interval and entity keys so <code>ledger/follow.py</code> can score the promise when outcomes arrive.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card high">
+  <h3>Gap D3 · The Live Loop Has Never Run in a Company: Batch Scoring, Late Outcomes &amp; 5% Exploration (Gaps G6, G7, G8) <span class="badge high">High</span></h3>
+  <p class="sub">Where: Phase 16 of <code>docs/vision/plan.html</code> · Builds on <code>dclab_core/serving.py</code>, <code>dclab_core/live.py</code>, <code>dclab_core/retrain.py</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>DCLab can export a model (<code>studio/code.py</code>, <code>studio/service.py</code>), log predictions (<code>serving.py</code>), check drift (<code>live.py</code>), and compare champion vs. challenger models (<code>retrain.py</code>). However:
+      <ul>
+        <li>There is no one-command scheduled batch runner (e.g., score new rows every Monday morning from a warehouse table or folder).</li>
+        <li>Real outcomes arrive weeks later (e.g., whether a customer actually churned 30 days after the call) and need automatic key+window joining.</li>
+        <li>Without a <b>~5% exploration share</b> (acting differently on a small random slice of cases), the company only observes outcomes for the cases the model picked, blinding future retraining and uplift models.</li>
+      </ul>
+    </dd>
+    <dt>How to improve it (Phase 16)</dt>
+    <dd><ol>
+      <li><b>Add an <code>explore_share</code> parameter (default <code>0.05</code> when agreed) to <code>dclab_core/decision.py</code>:</b> Stamp each scored row with <code>picked_by: "model" | "exploration"</code> and its selection propensity weight (<code>1 / p</code>) for unbiased future evaluation and retraining.</li>
+      <li><b>Add a scheduled batch-scoring job in <code>dclab_rnd/jobs/</code>:</b> Let a project schedule weekly/daily batch scoring + outcome ingestion from a connected table (<code>dclab_rnd/connectors/</code>) and trigger <code>dclab_core/retrain.py</code> when enough new labelled outcomes accumulate.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card medium">
+  <h3>Gap D4 · Combining Many Models into One Company Decision &amp; Multi-Tenant Cloud (Gaps G9–G12) <span class="badge med">Medium</span></h3>
+  <p class="sub">Where: Phases 17–19 of <code>docs/vision/plan.html</code> · Builds on <code>dclab_core/programme.py</code>, <code>dclab_core/decision.py</code>, <code>deploy/</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>A real company eventually runs several models on the same customer: a Churn model says <i>"high risk of leaving"</i>, a Credit/Fraud model says <i>"medium risk of unpaid bill"</i>, and an Uplift model says <i>"discount offer will backfire"</i>. Today, each project decides in isolation. There is no cross-project <b>Company Decision Model</b> that takes all predictions for customer <code>C_104</code>, applies company-wide budget/contact rules, resolves conflicts, and chooses one optimal action.</dd>
+    <dt>How to improve it (Phases 17–19, after Phase 16)</dt>
+    <dd><ol>
+      <li><b>Build <code>dclab_core/company_decision.py</code> on a planted Telecom replica first:</b> Create a replica with 3 models (churn risk, customer lifetime value, offer uplift) + a shared call-centre capacity + a veto rule ("never send a discount if fraud risk &gt; 10%"), and use constrained linear optimization to maximize net value.</li>
+      <li><b>Apply to one real company after Phase 16's outcome loop is running</b>, then package company-specific models (Phase 18) and multi-tenant cloud hosting (Phase 19, <code>deploy/</code>).</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<h2 id="cat-infra">7. Category E: Benchmarks, Sandbox &amp; Open-Source (<code>dclabai</code>) Gaps</h2>
+
+<div class="gap-card high">
+  <h3>Gap E1 · 6 of 10 Layers in <code>DCLab Bench</code> Show Red (Partly Because Rejected Experiments Are Counted as Active) <span class="badge high">High</span></h3>
+  <p class="sub">Where: <code>dclab_rnd/bench/__init__.py</code>, <code>docs/guides/BENCHMARK.md</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>When you run <code>make bench-read</code>, 6 of the 10 layers show <code>red</code> and 2 show <code>amber</code>. Some of those red lights are real bugs we listed above (like <code>system_tasks</code> <code>26/30</code> or the Lead Agent <code>clear_request</code> trap). <b>However, several red lights are not product bugs at all:</b> DCLab tested research hypotheses (such as multi-agent <code>debate</code> in <code>ORC-005</code>, Optuna <code>search_v2</code>, or uncalibrated v1 students), proved they failed their gate, and rightly kept them <b>switched off</b> in the product. Because their campaign JSON files still sit in <code>evidence/campaigns/</code>, <code>bench</code> marks the whole layer <code>red</code> forever.</dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li><b>Separate "Active Product Path" from "Retired/Off Research Arms" in <code>dclab_rnd/bench/</code>:</b> Add a <code>RETIRED_TRACKS</code> or <code>status: "experimental_off"</code> classification in <code>dclab_rnd/bench/</code> so <code>make bench-read</code> reports two clear columns: <b>Active Product State</b> (what serves users today) vs. <b>Research Experiments Archive</b> (hypotheses tested and kept off).</li>
+      <li><b>Add formal gate functions for <code>retrieval_v1</code> and <code>memory_value_v2</code>:</b> Both already passed their numbers (<code>0.872</code> recall and <code>0/30</code> repeated mistakes), so adding their gate verdict turns the <code>retrieval and memory</code> layer from <code>amber</code> to <code>green</code>.</li>
+      <li><b>Run <code>make bench LAYERS=software</code></b> so the <code>software</code> layer records its <code>product-e2e</code> pass and turns from <code>empty</code> to <code>green</code>.</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<div class="gap-card medium">
+  <h3>Gap E2 · Four Open-Source <code>dclabai</code> Handoff Leftovers &amp; Notebook Kernel Sandbox <span class="badge med">Medium</span></h3>
+  <p class="sub">Where: <code>docs/guides/OPEN_SOURCE_HANDOFF.md</code>, <code>dclab_rnd/studio/</code>, <code>scripts/export_open.py</code></p>
+  <dl>
+    <dt>In plain words</dt>
+    <dd>Two engineering hygiene items remain from the open-source handoff and MLE-bench study:
+      <ol>
+        <li><b>Four small bugs listed in <code>OPEN_SOURCE_HANDOFF.md</code>:</b>
+          <ul>
+            <li>TF-IDF text features currently run on binary classification only, not multiclass;</li>
+            <li>When a user runs <code>dclab init</code> without a model and later adds <code>ANTHROPIC_API_KEY</code> to <code>.env</code>, the doctor/status check doesn't auto-pick it up without re-init;</li>
+            <li><code>make check-all</code> in a git worktree can touch <code>training_records/STORE_CATALOG.json</code>;</li>
+            <li><code>make product-e2e</code> has a tight 40-second timeout on slower machines.</li>
+          </ul>
+        </li>
+        <li><b>Notebook Kernel Sandbox (<code>33.7</code> in <code>MLE_BENCH_LESSONS_PLAN.md</code>):</b> While the Studio notebook kernel only receives training rows and zero API keys, user/agent code cells run in a local Python subprocess without an AST/file-open/container sandbox (<code>strace</code>/<code>openat</code> guard or Docker isolation), which is needed before shared cloud hosting.</li>
+      </ol>
+    </dd>
+    <dt>How to improve it</dt>
+    <dd><ol>
+      <li>Fix the 4 small <code>OPEN_SOURCE_HANDOFF.md</code> items in a single cleanup package and re-run <code>scripts/export_open.py --check</code>.</li>
+      <li>Implement Package <code>33.7</code> (<code>dclab_core/code_check.py</code> AST guard blocking network/process/holdout-file reads + optional container kernel runner in <code>dclab_rnd/studio/</code>).</li>
+    </ol></dd>
+  </dl>
+</div>
+
+<h2 id="roadmap">8. Step-by-Step Improvement Order (What to Do First)</h2>
+<p>You do not need to fix all 18 gaps at once. Here is the most effective order of work—starting with the highest-impact, lowest-cost fixes that immediately improve DCLab's intelligence and turn its benchmarks green, followed by the real-user rollout.</p>
+
+<div class="chain">
+  <span class="p">Step 1: Fix Front Door (A1–A3)</span><span class="a">→</span>
+  <span class="p">Step 2: Fix Engine &amp; Safety (B1, B2, B4)</span><span class="a">→</span>
+  <span class="p">Step 3: Clean Bench &amp; Real Students (E1, C1)</span><span class="a">→</span>
+  <span class="p">Step 4: Build SDK &amp; First Teams (D1, D2)</span><span class="a">→</span>
+  <span class="p">Step 5: Live Loop &amp; Own Models (D3, C4, D4)</span>
+</div>
+
+<div class="tablebox"><table>
+  <thead>
+    <tr><th>Priority Step</th><th>Packages / Fixes Included</th><th>What Changes When Done</th><th>Estimated Time</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>Step 1 · Make Home &amp; Lead Agent Sharp and Fast</b></td>
+      <td><b>Gaps A1, A2, A3</b> (Act-first check on clear requests, <code>R-01</code> Home chip routing audit, Haiku route check on proposals, €0.40 soft cap, 75% prompt caching)</td>
+      <td>Home stops asking unnecessary questions on clear requests, keeps the right route when no file is attached yet, respects chip selections, and cuts per-case Claude cost in half.</td>
+      <td>3–4 days</td>
+    </tr>
+    <tr>
+      <td><b>Step 2 · Turn the ML Engine 30/30 Green &amp; Crash-Safe</b></td>
+      <td><b>Gaps B1, B2, B4</b> (Fix <code>segmentation</code>, <code>uplift</code>, and <code>regression</code> on dev seeds; add 2-column sum leak detector; persist holdout-intent receipt &amp; tabular split SHA-256)</td>
+      <td><code>system_tasks</code> passes all 15 kinds end-to-end; obfuscated sum leaks are caught; a crash during <code>final</code> can never cause a second holdout read.</td>
+      <td>4–5 days</td>
+    </tr>
+    <tr>
+      <td><b>Step 3 · Graduate the First Real-Table Students &amp; Clean DCLab Bench</b></td>
+      <td><b>Gaps E1, C1, C3</b> (Separate retired research arms in <code>bench</code>; fix false <code>identifier</code> precision on <code>models_real_v2</code>; label 30 blind decisions; export <code>solution_design</code> to Gold)</td>
+      <td><code>DCLab Bench</code> accurately reflects active product health; the first 2–3 decision students (<code>semantic_role</code>, <code>leakage_suspect</code>, <code>task.framing</code>) graduate above shadow mode; Training Lake Gold has full workflow designs.</td>
+      <td>4–5 days</td>
+    </tr>
+    <tr>
+      <td><b>Step 4 · Ship the 4-Call Python SDK, Manager Card &amp; First 3–5 Real Teams</b></td>
+      <td><b>Gaps D1, D2, B3, E2</b> (Phase 14 <code>import dclab</code> SDK, Phase 15 Manager Decision Card view, pair-interaction fraud features, 4 <code>dclabai</code> handoff fixes)</td>
+      <td>Data scientists can use DCLab in 3 lines inside their own notebooks; managers get a 1-page action/gain card; 3–5 real teams start using DCLab weekly on their own data.</td>
+      <td>2 weeks</td>
+    </tr>
+    <tr>
+      <td><b>Step 5 · Run the Live Outcome Loop &amp; Train the ~8B Solver LLM</b></td>
+      <td><b>Gaps D3, C4, D4, B5</b> (Phase 16 batch scoring + late outcomes + 5% exploration share; GPU LoRA run for the 8B Solver LLM; Phase 17 multi-model optimizer)</td>
+      <td>Real business outcomes flow back into DCLab; promised gains are checked against reality; DCLab's own 8B model serves in shadow; multiple models combine into one company decision.</td>
+      <td>Ongoing (Phases 16–19)</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<div class="box goodbox">
+  <b>Summary takeaway:</b> None of these gaps require redesigning DCLab's architecture. The foundation (<code>dclab_core</code> + <code>dclab_rnd</code>) is already built. Steps 1, 2, and 3 are small, targeted code and rule improvements that can be completed right now in this repository, while Steps 4 and 5 take DCLab into real companies to fulfill the 1 November 2026 Vision.
+</div>
+
+</article>
+</body>
+</html>

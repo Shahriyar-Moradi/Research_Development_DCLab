@@ -28,33 +28,46 @@ import time
 from pathlib import Path
 from typing import Any
 
-DEFAULT_MODEL = "claude-sonnet-5-5"
+# DEFAULT_MODEL = "claude-sonnet-5-5"
+DEFAULT_MODEL = "qwen/qwen3.8-flash"
 TRANSCRIPT = "model_calls.jsonl"
-THINKING = "thinking.jsonl"  # 25.3: Claude's thinking beside each reply, in the lane's transcripts/
+THINKING = "thinking.jsonl"  # 25.3: the model's thinking beside each reply, in the lane's transcripts/
 
 
 def thinking_setting() -> str | None:
-    """``DCLAB_TWIN_THINKING``: ``adaptive`` (the default: as much of Claude's reasoning as the API returns),
+    """``DCLAB_TWIN_THINKING``: ``adaptive`` (the default: as much of the model's reasoning as the API returns),
     ``enabled:<budget tokens>``, or ``off``."""
     value = os.environ.get("DCLAB_TWIN_THINKING", "adaptive").strip()
     return None if value.lower() in ("", "0", "off", "none", "false") else value
 
 
 def model_name() -> str:
-    return os.environ.get("DCLAB_TWIN_MODEL", "").strip() or DEFAULT_MODEL
+    return os.environ.get("DCLAB_TWIN_MODEL", "").strip() or os.environ.get("OPENROUTER_MODEL", "").strip() or DEFAULT_MODEL
 
 
 def api_key() -> str:
-    return os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    # return os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    return os.environ.get("OPENROUTER_API_KEY", "").strip() or os.environ.get("ANTHROPIC_API_KEY", "").strip()
 
 
 def transport(model: str | None = None, key: str | None = None, timeout: float = 180) -> Any:
-    """The real transport: the gateway package's native Messages client."""
+    """The real transport: OpenRouter's ChatClient (qwen/qwen3.8-flash by default) when OPENROUTER_API_KEY is set,
+    else the gateway package's native Anthropic Messages client."""
+    or_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    if or_key and not key:
+        from ..models.client import ChatClient
+        from ..models.settings import OPENROUTER_BASE_URL
+
+        base_url = os.environ.get("OPENROUTER_BASE_URL", "").strip() or OPENROUTER_BASE_URL
+        client = ChatClient(model=model or model_name(), base_url=base_url, api_key=or_key, timeout=timeout)
+        client.thinking = thinking_setting()
+        return client
+    # Previous Anthropic Messages client (kept intact when ANTHROPIC_API_KEY is explicitly used):
     from ..models.anthropic_client import AnthropicClient
 
     key = key or api_key()
     if not key:
-        raise RuntimeError("ANTHROPIC_API_KEY is not set")
+        raise RuntimeError("OPENROUTER_API_KEY (or ANTHROPIC_API_KEY) is not set")
     return AnthropicClient(model or model_name(), api_key=key, timeout=timeout, thinking=thinking_setting())
 
 

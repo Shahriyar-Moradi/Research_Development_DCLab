@@ -154,6 +154,41 @@ class ProviderSwitchTest(unittest.TestCase):
         self.assertEqual((price.input, price.output), (2.0, 10.0))
         self.assertIsNotNone(prices.estimate("claude-sonnet-5-5", False, 3000, 1000))
 
+    def test_openrouter_switch_sets_qwen_flash_while_keeping_openai_and_anthropic(self):
+        from dclab_rnd.models.client import ChatClient
+
+        with clean_env(DCLAB_LLM_PROVIDER="openrouter", OPENROUTER_API_KEY="or-placeholder",
+                       ANTHROPIC_API_KEY=PLACEHOLDER, OPENAI_API_KEY="openai-placeholder"):
+            for name in settings.TIERS:
+                t = settings.tier(name)
+                self.assertEqual((t["provider"], t["model"], t["api_key"], t["base_url"]),
+                                 ("openai", "qwen/qwen3.8-flash", "or-placeholder", "https://openrouter.ai/api/v1"), name)
+            transport = gateway._transport(settings.tier("standard"), settings.purpose("home_agent"))
+            self.assertIsInstance(transport, ChatClient)
+            sent = []
+            details = [{"type": "reasoning.text", "text": "Counting r's: st-r-awbe-rr-y -> 3."}]
+            fake_resp = NS(
+                choices=[NS(message=NS(content="There are 3 r's.", tool_calls=None, reasoning_details=details), finish_reason="stop")],
+                usage=NS(prompt_tokens=10, completion_tokens=20),
+            )
+            transport._client = NS(chat=NS(completions=NS(create=lambda **kw: sent.append(kw) or fake_resp)))
+            first = transport.complete([{"role": "user", "content": "How many r's are in the word 'strawberry'?"}])
+            self.assertEqual(sent[0]["extra_body"], {"reasoning": {"enabled": True}})
+            self.assertEqual(first["assistant_message"]["reasoning_details"], details)
+            self.assertEqual(first["thinking"], [{"text": "Counting r's: st-r-awbe-rr-y -> 3."}])
+            # Second turn preserves reasoning_details unmodified on the assistant message
+            second_messages = [
+                {"role": "user", "content": "How many r's are in the word 'strawberry'?"},
+                first["assistant_message"],
+                {"role": "user", "content": "Are you sure? Think carefully."},
+            ]
+            transport.complete(second_messages)
+            self.assertEqual(sent[1]["messages"][1]["reasoning_details"], details)
+            self.assertEqual(sent[1]["extra_body"], {"reasoning": {"enabled": True}})
+        price = prices.load()["qwen/qwen3.8-flash"]
+        self.assertEqual((price.input, price.output), (0.05, 0.40))
+        self.assertIsNotNone(prices.estimate("qwen/qwen3.8-flash", False, 3000, 1000))
+
 
 class TranslationTest(unittest.TestCase):
     def test_messages_and_tools_are_translated_and_the_reply_comes_back_in_the_gateways_shape(self):

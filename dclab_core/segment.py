@@ -32,8 +32,8 @@ import pandas as pd
 
 DENSITY_ROWS = 5000
 SEPARATION = 0.02  # how far a silhouette must rise above the best one on data with no groups (a blob, a flat box)
-PLAUSIBLE = 0.05  # silhouettes this close to the best stable, separated one are plausible groupings
-UNUSED = 0.02  # a column whose spread lies less than this much between the groups of every stable, separated first-pass grouping is left out
+PLAUSIBLE = 0.03  # silhouettes this close to the best stable, separated one are plausible groupings
+UNUSED = 0.05  # a column whose spread lies less than this much between the groups of every stable, separated first-pass grouping is left out
 NO_GROUND_TRUTH = ("There is no ground truth for these segments: they are groups the data supports when resampled, described in its own "
                    "columns. Whether they are useful is a business judgement, not a score.")
 
@@ -64,11 +64,16 @@ def prepare(frame: pd.DataFrame, columns: Optional[Sequence[str]] = None) -> tup
         if pd.api.types.is_numeric_dtype(s):
             x = s.astype(float).fillna(s.median())
             how = [f"{int(s.isna().sum())} missing filled with the median {s.median():.4g}"] if s.isna().any() else []
+            if len(x) >= 100:
+                q001, q999 = x.quantile(0.001), x.quantile(0.999)
+                if q999 > q001 and (x.max() > q999 + 10 * (q999 - q001) or x.min() < q001 - 10 * (q999 - q001)):
+                    x = x.clip(lower=q001, upper=q999)
+                    how.append("clipped extreme outliers at [0.1%, 99.9%]")
             if x.min() >= 0 and x.skew() > 1:
                 x = np.log1p(x)
                 how.append("log(1 + x), because it is skewed and never negative")
             mu, sd = x.mean(), x.std() or 1.0
-            record["fitted"][c] = {"median": float(s.median()), "log": bool(how and how[-1].startswith("log")), "mean": float(mu), "sd": float(sd)}
+            record["fitted"][c] = {"median": float(s.median()), "log": bool(how and any("log" in h for h in how)), "mean": float(mu), "sd": float(sd)}
             parts.append(((x - mu) / sd).to_numpy()[:, None])
             record["spans"][c] = [width, width + 1]
             width += 1
@@ -124,9 +129,54 @@ def _fit(method: str, k: int, X: np.ndarray, seed: int):
     from sklearn.mixture import GaussianMixture
 
     if method == "kmeans":
-        return KMeans(n_clusters=k, n_init=4, random_state=seed).fit(X)
+        return KMeans(n_clusters=k, init="k-means++", n_init=4, random_state=seed).fit(X)
     # reg_covar keeps a component's variance away from zero on one-hot columns (standardised data: 0.05 of a unit)
     return GaussianMixture(n_components=k, covariance_type="diag", reg_covar=0.05, n_init=2, random_state=seed).fit(X)
+
+
+def unscaled_centroids(model: Any, record: dict[str, Any]) -> dict[int, dict[str, float]]:
+    """Invert standardization and log transformation on cluster centroids to report values in raw feature units."""
+    if not hasattr(model, "cluster_centers_") and not hasattr(model, "means_"):
+        return {}
+    centers = model.cluster_centers_ if hasattr(model, "cluster_centers_") else model.means_
+    out: dict[int, dict[str, float]] = {}
+    for g, center in enumerate(centers):
+        centroid_vals: dict[str, float] = {}
+        for c, (a, b) in record.get("spans", {}).items():
+            f = record.get("fitted", {}).get(c, {})
+            if "levels" in f:
+                continue
+            z = float(center[a])
+            mu, sd = f.get("mean", 0.0), f.get("sd", 1.0)
+            raw = z * sd + mu
+            if f.get("log"):
+                raw = np.expm1(raw)
+            centroid_vals[c] = _r(max(0.0, raw) if f.get("log") else raw, 4)
+        out[g] = centroid_vals
+    return out
+
+
+def assignment_confidence(model: Any, X: np.ndarray) -> np.ndarray:
+    """For each row, margin of assignment certainty: 1 - d(nearest) / d(second_nearest).
+    Returns values in [0, 1], where 1.0 indicates unambiguous cluster membership."""
+    if hasattr(model, "cluster_centers_"):
+        centers = model.cluster_centers_
+        diff = X[:, None, :] - centers[None, :, :]
+        dists = np.linalg.norm(diff, axis=-1)
+        if dists.shape[1] >= 2:
+            sorted_dists = np.sort(dists, axis=1)
+            d1, d2 = sorted_dists[:, 0], sorted_dists[:, 1]
+            margin = np.where(d2 > 1e-9, 1.0 - (d1 / d2), 1.0)
+            return np.clip(margin, 0.0, 1.0)
+        return np.ones(len(X))
+    elif hasattr(model, "predict_proba"):
+        probs = model.predict_proba(X)
+        if probs.shape[1] >= 2:
+            sorted_probs = np.sort(probs, axis=1)
+            p1, p2 = sorted_probs[:, -1], sorted_probs[:, -2]
+            return np.clip(p1 - p2, 0.0, 1.0)
+        return np.ones(len(X))
+    return np.ones(len(X))
 
 
 def stability(method: str, k: int, X: np.ndarray, *, resamples: int = 20, seed: int = 0) -> dict[str, Any]:
@@ -142,7 +192,7 @@ def stability(method: str, k: int, X: np.ndarray, *, resamples: int = 20, seed: 
     return {"mean": _r(np.mean(scores), 3), "ci90": [_r(np.quantile(scores, 0.05), 3), _r(np.quantile(scores, 0.95), 3)], "labels": full}
 
 
-def profiles(frame: pd.DataFrame, labels: np.ndarray, columns: Sequence[str], top: int = 4) -> list[dict[str, Any]]:
+def profiles(frame: pd.DataFrame, labels: np.ndarray, columns: Sequence[str], top: int = 4, centroids: Optional[dict[int, dict[str, float]]] = None) -> list[dict[str, Any]]:
     """Each segment in the data's own columns: its size, the numbers that set it apart (median, against the whole table's,
     by standardised difference) and its most over-represented categories."""
     out = []
@@ -154,6 +204,7 @@ def profiles(frame: pd.DataFrame, labels: np.ndarray, columns: Sequence[str], to
             if pd.api.types.is_numeric_dtype(s) and s.std() > 0:
                 d = (s[inside].mean() - s.mean()) / s.std()
                 diffs.append((abs(d), {"column": c, "segment_median": _r(s[inside].median(), 4), "overall_median": _r(s.median(), 4),
+                                       "segment_mean": _r(s[inside].mean(), 4), "overall_mean": _r(s.mean(), 4),
                                        "difference_sd": _r(d, 2)}))
             elif not pd.api.types.is_numeric_dtype(s) and s.nunique() <= 20:
                 share_in = s[inside].astype(str).value_counts(normalize=True)
@@ -163,7 +214,10 @@ def profiles(frame: pd.DataFrame, labels: np.ndarray, columns: Sequence[str], to
                     v = lift.index[0]
                     diffs.append((abs(lift.iloc[0]) * 3, {"column": c, "value": v, "segment_share": _r(share_in[v], 3), "overall_share": _r(share_all[v], 3)}))
         diffs.sort(key=lambda t: -t[0])
-        out.append({"segment": int(g), "rows": int(inside.sum()), "share": _r(inside.mean(), 3), "sets_it_apart": [d for _, d in diffs[:top]]})
+        item: dict[str, Any] = {"segment": int(g), "rows": int(inside.sum()), "share": _r(inside.mean(), 3), "sets_it_apart": [d for _, d in diffs[:top]]}
+        if centroids and g in centroids:
+            item["unscaled_centroids"] = centroids[g]
+        out.append(item)
     return out
 
 
@@ -175,7 +229,7 @@ def segment(frame: pd.DataFrame, *, columns: Optional[Sequence[str]] = None, ks:
     if not ks:
         raise ValueError(f"{len(frame)} rows cannot be split into the numbers of segments asked for")
     found = search(frame, cols, ks, min_stability=min_stability, resamples=resamples, seed=seed, sample=sample)
-    out = _report(frame, found["final"], found["kept"], ks, min_stability, outcome)
+    out = _report(frame, found["final"], found["kept"], ks, min_stability, outcome, seed=seed)
     out["preprocessing"]["left_out"].update(found["unused"])
     out["passes"] = {"first": {"columns": cols, "chosen": found["first"]["chosen"]}, "unused_columns": found["unused"]}
     return out
@@ -235,7 +289,7 @@ def _between_share(block: np.ndarray, labels: np.ndarray) -> float:
 
 
 def _search(frame, cols, ks, min_stability, resamples, seed, sample) -> dict[str, Any]:
-    from sklearn.metrics import silhouette_score
+    from sklearn.metrics import calinski_harabasz_score, davies_bouldin_score, silhouette_score
 
     X, record = prepare(frame, cols)
     rng = np.random.default_rng(seed)
@@ -245,18 +299,39 @@ def _search(frame, cols, ks, min_stability, resamples, seed, sample) -> dict[str
     for method in ("kmeans", "mixture"):
         for k in ks:
             st = stability(method, k, X, resamples=resamples, seed=seed)
-            labels_of[(method, k)] = st.pop("labels")
-            sil = silhouette_score(X[probe], labels_of[(method, k)][probe]) if len(set(labels_of[(method, k)][probe])) > 1 else None
+            labs = st.pop("labels")
+            labels_of[(method, k)] = labs
+            probe_labs = labs[probe]
+            num_unique = len(set(probe_labs))
+            sil = silhouette_score(X[probe], probe_labs) if num_unique > 1 else None
             null = _null_silhouette(method, k, X[probe], seed)
-            table[f"{method}:{k}"] = {"method": method, "k": k, "stability": st, "silhouette": _r(sil, 3), "null_silhouette": _r(null, 3),
-                                      "stable": st["ci90"][0] is not None and st["ci90"][0] >= min_stability,
-                                      "separated": sil is not None and null is not None and sil >= null + SEPARATION}
+
+            db = _r(davies_bouldin_score(X[probe], probe_labs), 3) if num_unique > 1 else None
+            ch = _r(calinski_harabasz_score(X[probe], probe_labs), 1) if num_unique > 1 else None
+
+            # Cluster balance check: reject candidate if any cluster is degenerate (< min(5, 0.01 * N))
+            valid_mask = labs >= 0
+            counts = np.bincount(labs[valid_mask]) if np.any(valid_mask) else np.array([])
+            min_size = int(np.min(counts)) if len(counts) > 0 else 0
+            balanced = min_size >= max(5, int(0.01 * len(X)))
+
+            inertia = None
+            if method == "kmeans":
+                m_probe = _fit(method, k, X[probe], seed)
+                inertia = _r(getattr(m_probe, "inertia_", None), 2)
+
+            table[f"{method}:{k}"] = {
+                "method": method, "k": k, "stability": st, "silhouette": _r(sil, 3), "null_silhouette": _r(null, 3),
+                "davies_bouldin": db, "calinski_harabasz": ch, "inertia": inertia, "balanced": balanced, "min_cluster_size": min_size,
+                "stable": st["ci90"][0] is not None and st["ci90"][0] >= min_stability,
+                "separated": sil is not None and null is not None and sil >= null + SEPARATION and balanced,
+            }
     stable = [v for v in table.values() if v["stable"] and v["separated"]]
     chosen = max(stable, key=lambda v: (v["silhouette"] or -1, -v["k"])) if stable else None
     return {"X": X, "record": record, "table": table, "labels_of": labels_of, "chosen": chosen}
 
 
-def _report(frame, found, cols, ks, min_stability, outcome) -> dict[str, Any]:
+def _report(frame, found, cols, ks, min_stability, outcome, seed: int = 0) -> dict[str, Any]:
     from sklearn.cluster import HDBSCAN
 
     X, record, table, labels_of, chosen = found["X"], found["record"], found["table"], found["labels_of"], found["chosen"]
@@ -264,7 +339,8 @@ def _report(frame, found, cols, ks, min_stability, outcome) -> dict[str, Any]:
                  f"(mean {v['stability']['mean']}), is below {min_stability}: resampled data does not give the same {v['k']} groups"}
                 for v in table.values() if not v["stable"]]
     not_separated = [{"method": v["method"], "k": v["k"], "why": f"silhouette {v['silhouette']} is not {SEPARATION} above the "
-                      f"{v['null_silhouette']} the same method reaches on data with no groups (one Gaussian blob, a flat box)"}
+                      f"{v['null_silhouette']} the same method reaches on data with no groups (one Gaussian blob, a flat box)"
+                      + (" or cluster sizes are degenerate" if not v.get("balanced", True) else "")}
                      for v in table.values() if v["stable"] and not v["separated"]]
     rows = np.random.default_rng(0).choice(len(X), min(len(X), DENSITY_ROWS), replace=False)  # density on a sample: it grows fast
     dl = HDBSCAN(min_cluster_size=max(15, len(rows) // 50)).fit(X[rows]).labels_ if len(rows) >= 30 else np.full(len(rows), -1)
@@ -277,10 +353,19 @@ def _report(frame, found, cols, ks, min_stability, outcome) -> dict[str, Any]:
                                            "separated than on data with no groups: the data shows none"})
         return out
     labels = labels_of[(chosen["method"], chosen["k"])]
+    model = _fit(chosen["method"], chosen["k"], X, seed)
+    centroids = unscaled_centroids(model, record)
+    conf = assignment_confidence(model, X)
+    mean_conf = _r(float(np.mean(conf)), 3)
     out.update({"chosen": {"method": chosen["method"], "k": chosen["k"], "stability": chosen["stability"], "silhouette": chosen["silhouette"],
-                           "null_silhouette": chosen["null_silhouette"]},
-                "why": f"the best separated (silhouette {chosen['silhouette']}, against {chosen['null_silhouette']} on data with no groups) of the stable choices", "labels": labels.tolist(),
-                "profiles": profiles(frame, labels, cols)})
+                           "null_silhouette": chosen["null_silhouette"], "davies_bouldin": chosen.get("davies_bouldin"),
+                           "calinski_harabasz": chosen.get("calinski_harabasz"), "inertia": chosen.get("inertia"),
+                           "mean_assignment_confidence": mean_conf},
+                "why": f"the best separated (silhouette {chosen['silhouette']}, against {chosen['null_silhouette']} on data with no groups) of the stable choices",
+                "labels": labels.tolist(),
+                "profiles": profiles(frame, labels, cols, centroids=centroids),
+                "unscaled_centroids": centroids,
+                "mean_assignment_confidence": mean_conf})
     described = describe_outcome(frame, labels, outcome)
     if described is not None:
         out["outcome"] = described

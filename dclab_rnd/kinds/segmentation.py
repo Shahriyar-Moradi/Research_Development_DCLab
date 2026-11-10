@@ -247,12 +247,13 @@ class SegmentationMachine(Machine):
         found = segment.search(self.training_rows().reset_index(drop=True), self._features(previous), range(2, f["max_segments"] + 1), resamples=12)
         table, chosen = found["final"]["table"], found["final"]["chosen"]
         good = sorted((v for v in table.values() if v["stable"] and v["separated"]), key=lambda v: -(v["silhouette"] or -1))
-        ranking = [{"model": f"{v['method']}:{v['k']}", "mean": v["stability"]["mean"], "std": 0.0, "silhouette": v["silhouette"]} for v in good]
+        ranking = [{"model": f"{v['method']}:{v['k']}", "mean": v["stability"]["mean"], "std": 0.0, "silhouette": v["silhouette"],
+                    "davies_bouldin": v.get("davies_bouldin"), "calinski_harabasz": v.get("calinski_harabasz"), "inertia": v.get("inertia")} for v in good]
         best = f"{chosen['method']}:{chosen['k']}" if chosen else None
         why = "the best separated of the stable choices (lower end of the 90% stability interval at least 0.75, silhouette above data with no groups)"
-        evidence = {"selected_model": best, "ranking": ranking, "chosen": {k: chosen[k] for k in ("method", "k", "stability", "silhouette", "null_silhouette")}
-                    if chosen else None, "columns_used": found["kept"], "unused_columns": found["unused"],
-                    "candidates": {k: {kk: v[kk] for kk in ("method", "k", "stability", "silhouette", "null_silhouette", "stable", "separated")}
+        chosen_dict = {k: chosen[k] for k in ("method", "k", "stability", "silhouette", "null_silhouette", "davies_bouldin", "calinski_harabasz", "inertia", "mean_assignment_confidence") if k in chosen} if chosen else None
+        evidence = {"selected_model": best, "ranking": ranking, "chosen": chosen_dict, "columns_used": found["kept"], "unused_columns": found["unused"],
+                    "candidates": {k: {kk: v[kk] for kk in ("method", "k", "stability", "silhouette", "null_silhouette", "stable", "separated", "davies_bouldin", "calinski_harabasz", "inertia", "balanced") if kk in v}
                                    for k, v in table.items()}, "selection_rule": why,
                     "notes_for_person": [{"title": f"{best or 'no grouping'} chosen on the training rows", "proof": ["DCLAB-R13", "DCLAB-R17"],
                                           "text": ("Stable and separated: " + "; ".join(f"{r['model']} (stability {r['mean']}, silhouette {r['silhouette']})"
@@ -263,6 +264,7 @@ class SegmentationMachine(Machine):
         return evidence, claims, f"{best or 'no grouping'} chosen on the training rows", decision
 
     def final(self, eid: str, previous: dict) -> tuple:
+        import numpy as np
         from sklearn.metrics import silhouette_score
 
         from dclab_core import segment
@@ -287,6 +289,10 @@ class SegmentationMachine(Machine):
         stability = next((r["mean"] for r in models.get("ranking", []) if r["model"] == chosen), None)
         outcome = segment.describe_outcome(self.data_frame, labels, self.outcome)  # the outcome, read once, here
         trained_sil = ((models.get("chosen") or {}).get("silhouette"))
+        unscaled = segment.unscaled_centroids(model, record)
+        conf = segment.assignment_confidence(model, held)
+        mean_conf = round(float(np.mean(conf)), 3) if len(conf) else None
+
         evidence = {"model": chosen, "feature_recipe": self.chosen(previous.get("features")),
                     "holdout_metrics": {"silhouette": round(sil, 3) if sil is not None else None,
                                         "null_silhouette": round(null, 3) if null is not None else None},
@@ -295,7 +301,8 @@ class SegmentationMachine(Machine):
                     "training_stability": stability, "cv_selected_metric_mean": trained_sil,
                     "cv_to_holdout_gap": round(sil - trained_sil, 3) if sil is not None and trained_sil is not None else None,
                     "baselines": {"no_groups": {"silhouette": round(null, 3) if null is not None else None}},
-                    "holds_on_holdout": holds, "labels": labels.tolist(), "profiles": segment.profiles(self.data_frame, labels, cols),
+                    "holds_on_holdout": holds, "labels": labels.tolist(), "profiles": segment.profiles(self.data_frame, labels, cols, centroids=unscaled),
+                    "unscaled_centroids": unscaled, "holdout_mean_confidence": mean_conf,
                     "outcome": outcome, "limit": segment.NO_GROUND_TRUTH, "holdout_split": self.holdout_description(),
                     "holdout_rows": int(len(self.holdout)), "train_rows": int(len(self.train)),
                     "selection_rule": "the grouping chosen on the training rows, assigned to the held-out rows once",

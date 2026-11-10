@@ -1617,6 +1617,11 @@ class HomeAgent:
             self.move_to(draft_id, value, was, sample=False)
             return value
 
+    def clear_intent(self, draft_id: str) -> None:
+        """Clear user intent when chip is deselected."""
+        with self.store.turn(draft_id):
+            self.store.update(draft_id, lambda d: d.update(intent=None))
+
     @turn
     def pack_chosen(self, draft_id: str) -> None:
         """The person chose a pack: that is a prediction. Checked under the turn, so a reading still being made by start()

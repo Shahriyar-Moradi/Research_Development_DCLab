@@ -15,7 +15,8 @@ from typing import Any
 
 from .campaign import CAMPAIGN_DIR, CAMPAIGN_ID, sync_campaign_outputs
 
-DEFAULT_MODEL = "gpt-5.6-terra"
+# DEFAULT_MODEL = "gpt-5.6-terra"
+DEFAULT_MODEL = "qwen/qwen3.8-flash"
 MEMORY_NAME = "llm_review_memory.jsonl"
 
 
