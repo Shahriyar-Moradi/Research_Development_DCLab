@@ -1,0 +1,221 @@
+{
+  "experiment_id": "AEV-108",
+  "campaign_id": "agent_eval_v1",
+  "kind": "judgment_suite_live",
+  "status": "completed",
+  "run_id": "38927529647b",
+  "model": "qwen/qwen3.8-flash",
+  "tier": "strong",
+  "local": false,
+  "suite": "judgment_v1",
+  "question": "On the judgment suite's planted traps, how often does the intern, driven by this model, keep the leak out and the clean columns in?",
+  "started_at": "2026-11-10T11:11:05+00:00",
+  "completed_at": "2026-11-10T11:13:04+00:00",
+  "plan": {
+    "model": "qwen/qwen3.8-flash",
+    "tier": "strong",
+    "local": false,
+    "available": true,
+    "tiers": {
+      "intern": {
+        "tier": "strong",
+        "model": "qwen/qwen3.8-flash",
+        "local": false
+      }
+    },
+    "remote_priced": [
+      "intern"
+    ],
+    "remote_unpriced": [],
+    "cases": [
+      "AE-01",
+      "AE-02"
+    ],
+    "repeats": 1,
+    "runs": 2,
+    "max_steps": 16,
+    "max_requests": 36,
+    "max_input_tokens": 912432,
+    "max_eur": 0.08,
+    "priced": true,
+    "max_requests_cap": 36,
+    "cap_eur": 0.1
+  },
+  "requests": 15,
+  "spent": {
+    "eur": 0.009891,
+    "input_tokens": 146100,
+    "output_tokens": 6465
+  },
+  "stopped": null,
+  "summary": {
+    "scores": {
+      "leaks_caught": {
+        "mean": 1.0,
+        "ci95": null,
+        "n": 1
+      },
+      "false_alarms": {
+        "mean": 0.0,
+        "ci95": null,
+        "n": 1
+      },
+      "valid_moves": {
+        "mean": 1.0,
+        "ci95": null,
+        "n": 1
+      },
+      "citations_exist": {
+        "mean": 1.0,
+        "ci95": null,
+        "n": 1
+      }
+    },
+    "by_case": {
+      "AE-01": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "AE-02": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      }
+    },
+    "runs": 2,
+    "not_run": 0,
+    "complete_repeats": 1,
+    "note": "Intervals are over complete repeats only; per-case counts include every scored run."
+  },
+  "runs": [
+    {
+      "case": "AE-01",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 10,
+      "tokens": [
+        77187,
+        3098
+      ],
+      "eur": 0.005099,
+      "seconds": 57.3,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "final_balance_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-02",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 10,
+      "tokens": [
+        68913,
+        3367
+      ],
+      "eur": 0.004792,
+      "seconds": 60.9,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_status_closed"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "AE-01",
+      "fingerprint": "2a29395068e46a92"
+    },
+    {
+      "id": "AE-02",
+      "fingerprint": "1904715d2d65f5f2"
+    }
+  ],
+  "limitations": [
+    "Scores on these cases are evidence about this model on these planted traps, not about any model's readiness for production.",
+    "1 repeats per case: the interval is about this model's varying answers on these cases, not about other tables."
+  ],
+  "prompt_hashes": {
+    "prompt:ai_first_expert": "2d7f6fb1f48dccf6",
+    "prompt:ai_first_follow": "0e82214c16f3b2e0",
+    "prompt:ai_first_home": "306ac0b080d3880b",
+    "prompt:base_audit": "15a72a06500b607a",
+    "prompt:case_agent": "9d1bc4d04605413e",
+    "prompt:case_specialist": "c05245a1945431e4",
+    "prompt:evidence_answer": "1d5a29ab7625c442",
+    "prompt:exam_judge": "c2c52ae5797e9cb4",
+    "prompt:exam_person": "27202d5403babfe5",
+    "prompt:exam_plain": "6b4a893172133d54",
+    "prompt:home_agent": "bcdacb2b33b5e2ec",
+    "prompt:home_business": "b5372bf0d358b968",
+    "prompt:home_eval_plain": "9033ead880dcaedc",
+    "prompt:home_intent": "09a87affc4194e1e",
+    "prompt:home_orchestrator": "ac6a229931bdbce2",
+    "prompt:home_plan": "4a5997517306687b",
+    "prompt:home_query": "c5d671ffdf3344e6",
+    "prompt:home_request_writer": "ab7585349f30e1c1",
+    "prompt:home_request_writer_b": "e3cc2d86d5806032",
+    "prompt:home_request_writer_c": "429d8b5ef86b386a",
+    "prompt:home_understand": "e30bb1b1ccc44f0d",
+    "prompt:intern": "940712db9ba17a4e",
+    "prompt:intern_memory": "0e8a3dba8fab5dbd",
+    "prompt:journey_checker": "bc8a6f807deebef2",
+    "prompt:journey_writer": "c6d50eca2a599ffd",
+    "prompt:journey_writer_b": "1b0142701eaefa7b",
+    "prompt:journey_writer_d": "6237aee4e5f3fb9b",
+    "prompt:leakage_review": "8a2ad6a0c8b4464f",
+    "prompt:lesson_proposal": "82be48a747b7fa03",
+    "prompt:memory_brief": "8b47ae3bd71eea8b",
+    "prompt:notebook_cell": "58697ec32ffb8ec3",
+    "prompt:notebook_fixes": "ba2518c858e53ff2",
+    "prompt:parse_pattern": "0c7f52395e5d583d",
+    "prompt:playbook_intro": "edbc1664a2ce9f0c",
+    "prompt:reasoning_teacher": "9e88e760b83502d1",
+    "prompt:reflector": "7eeded98e395b0ee",
+    "prompt:route_check": "61027a2803db8856",
+    "prompt:routing_labeler": "c95c4e956f649ea0",
+    "prompt:solver_answer": "960204a4f4b922d9",
+    "prompt:stage_critique": "0c28d31fea660837",
+    "prompt:stage_explain": "2bb437ac6f749d1e",
+    "prompt:store_curator": "48a99e9416097dc7",
+    "prompt:synthetic_schema": "ba81a76ca250c4c4",
+    "prompt:task_decomposer": "98b89c6ac3277dd2",
+    "prompt:tools_as_text": "12bbc00ec34548c6",
+    "prompt:workspace_chat": "5119c81540c57cea",
+    "tools:project": "69b20bb1c6023856",
+    "tools:draft": "1d1d88fe3c14e8e8",
+    "tools:session": "efe01ef63a00e175",
+    "tools:campaign": "959a1dfb09b41b8f",
+    "tools:workspace": "fef20be0c1fdbf77",
+    "tools:home": "f4eff7da5166e824",
+    "tools:case": "9c16eb0e7abaf000",
+    "validator:graph": "1c08971c7f828f3e"
+  }
+}

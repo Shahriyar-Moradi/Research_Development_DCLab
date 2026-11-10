@@ -308,7 +308,9 @@ def main(argv: list[str] | None = None, gateway: Any = None) -> int:
     parser.add_argument("--split", choices=("dev", "test"), help="run the cases of the frozen benchmark's split (14.3) instead of the judgment suite's; "
                         "the result goes to evidence/campaigns/benchmark_v2/results, and a run on the sealed test set is always recorded")
     parser.add_argument("--output", type=Path, help="where to store the result (default: the next AEV file of the campaign)")
+    parser.add_argument("--home", type=Path, help="directory where intern project and session records are stored")
     args = parser.parse_args(argv)
+
     if gateway is None:
         gateway = for_workspace()  # the workspace usage log, its monthly cap and its routing, as the other command-line tools
         gateway.shadows = None  # benchmark traffic stays out of the shadow log and the agreement rates the Admin page shows
@@ -350,8 +352,9 @@ def main(argv: list[str] | None = None, gateway: Any = None) -> int:
         print("Nothing was sent. Run again with --yes to start.", file=sys.stderr)
         return 2
     started = datetime.now(timezone.utc)
-    live = run_live(gateway, cases, args.repeats, max_requests, args.cap_eur, args.max_steps)
+    live = run_live(gateway, cases, args.repeats, max_requests, args.cap_eur, args.max_steps, home=args.home)
     summary = summarize(live["runs"], cases, args.repeats)
+
     print("Score (mean over repeats, 95% interval):")
     for name, s in summary["scores"].items():
         print(f"  {name:16s} {s['mean']!s:6s} {s['ci95']}  (n={s['n']})")

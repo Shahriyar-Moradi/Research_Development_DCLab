@@ -1,0 +1,140 @@
+[
+ {
+  "ref": "d55cadfa19",
+  "person": {
+   "truth": {
+    "situation": "I run a small home-internet subscription company in Manchester with about 9,000 customers; roughly 3% leave every month.",
+    "goal": "I want to keep more customers by reaching the ones who are about to leave before they go.",
+    "decision": "Each month my call team can make about 300 retention calls, and I need to know which 300 customers to call first.",
+    "user": "our 3-person customer care team, who work from a call list in Excel",
+    "data": "An Excel export from our billing system with customer number, start date, plan, monthly bill, number of support calls and whether they left; I haven't sent it yet.",
+    "knows": "I know nothing about machine learning; I only know that some customers complain before they leave.",
+    "constraints": "Only 300 calls a month, no budget for new software, and I want something working before January."
+   },
+   "level": "business_owner",
+   "style": "vague",
+   "must_understand": [
+    "the real goal is fewer cancellations, not a description of past churn",
+    "the result must rank customers so the team can choose 300 calls a month",
+    "the users are a small call team working from Excel",
+    "the billing export exists but has not been shared yet"
+   ],
+   "trap": null,
+   "trap_check": null
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "hi, we keep losing customers every month and i dont know what to do about it",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I can help. If you have a customer file with churn or cancellation dates, that’s ideal. Pick the option that best matches what you need — whether it’s understanding the cause, catching at-risk customers early, or building a retention plan.",
+    "choices": [
+     {
+      "title": "Find out why customers are leaving",
+      "what": "Compare customers who churned with those who stayed, using the data you already have. You get: The main reasons, patterns, or customer types behind monthly losses. Trade-off: Needs enough historical data with a clear churn indicator. Effort: Medium."
+     },
+     {
+      "title": "Flag likely churners before they leave",
+      "what": "Build a model that scores each current customer for risk of leaving next month. You get: A targeted list of customers to try to retain. Trade-off: Needs customer-level history and a defined outcome such as 'churned within 30/60/90 days'. Effort: Higher."
+     },
+     {
+      "title": "Get a practical retention plan",
+      "what": "Turn what you know about the problem into recommended actions, priorities, and likely impact. You get: A business-style brief on what to do first and how to measure whether it works. Trade-off: May rely on assumptions if the data is limited. Effort: Lower."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "2. i want the list of people to call before they leave, not the deep reasons.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I’ve started the churn-warning project.\n\nTo build it, please upload or point me to a customer table. Useful fields include:\n\n- Customer ID\n- Churn status or cancellation date\n- Subscription start date\n- Last activity or usage date\n- Monthly usage, spend, plan type, support tickets\n- Any customer details that might matter\n\nIf you can also tell me how you define “churn” — for example, no activity for 30, 60, or 90 days — I can use that as the target.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ },
+ {
+  "ref": "20a50e8b53",
+  "person": {
+   "truth": {
+    "situation": "I'm the analyst at a gym chain with 14 clubs; our customers table has one row per member, with churned_next_month.",
+    "goal": "I want each club manager to get, every week, the members most likely to cancel next month so they can talk to them in time.",
+    "decision": "Every week each club manager picks about 20 members to offer a free personal-training session to keep them.",
+    "user": "14 club managers, about 20 conversations each per week",
+    "data": "The customers table I uploaded: customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month.",
+    "knows": "I'm good at SQL and reports; I've never built a predictive model and assumed this is just a filtered report.",
+    "constraints": "It must refresh weekly, managers only read a simple list, and I want a first version within two weeks."
+   },
+   "level": "analyst",
+   "style": "impatient",
+   "must_understand": [
+    "'likely to cancel next month' needs a forward-looking score per member, not a report of past cancellations",
+    "each club manager acts on about 20 members a week",
+    "the list must refresh weekly and stay simple for managers"
+   ],
+   "trap": "report_not_model",
+   "trap_check": "Explains that knowing who will cancel needs a prediction model trained on churned_next_month (a score per member), not only a filtered report, and proposes the model route before any dashboard."
+  },
+  "transcript": [
+   {
+    "role": "person",
+    "text": "need a weekly report of members likely to cancel next month. can you set that up [shares customers.csv]",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "I can set that up. Your table already has the columns needed for churn forecasting, including `churned_next_month`, signup date, tenure, monthly spend, segment, plan, and recent support tickets.\n\nYou can choose how the weekly report should identify “likely to cancel”:\n\nPick one, and I’ll start it.",
+    "choices": [
+     {
+      "title": "Predictive churn report",
+      "what": "Build a model that scores each member’s chance of cancelling next month, then create a weekly report of the highest-risk members. You get: A model-based risk ranking updated weekly. Trade-off: Requires checking that each record has a reliable outcome label and enough history. Effort: Medium."
+     },
+     {
+      "title": "Rule-based risk list",
+      "what": "Use observable patterns now, such as low tenure, low spend, or recent support tickets, to list likely cancellations each week. You get: A quick report without building a predictive model. Trade-off: Less personalized and may miss combined signals. Effort: Low."
+     },
+     {
+      "title": "Model + campaign list",
+      "what": "Build the predictive report and separate members into likely intervention groups, such as price-sensitive or support-driven risk. You get: Both a weekly risk list and audience segments for retention actions. Trade-off: Takes longer to set up. Effort: Higher."
+     }
+    ]
+   },
+   {
+    "role": "person",
+    "text": "2. need simple weekly list first.",
+    "choices": []
+   },
+   {
+    "role": "assistant",
+    "text": "Got it — I’ve started the rule-based weekly risk report. It will flag likely cancellations using current member attributes and recent behavior, rather than a predictive model.",
+    "choices": []
+   }
+  ],
+  "owner": {
+   "understood": [
+    null,
+    null,
+    null
+   ],
+   "options_fit": null,
+   "options_differ": null,
+   "trap_handled": null
+  }
+ }
+]
