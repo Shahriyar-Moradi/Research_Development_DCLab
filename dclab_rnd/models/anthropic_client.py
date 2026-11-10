@@ -151,6 +151,8 @@ def _refuses_sampling(exc: BaseException) -> bool:
 def _options(options: dict[str, Any], system: str, model: Any = None) -> tuple[dict[str, Any], str]:
     """The caller's options as the Messages API takes them, and the system prompt (a JSON request may add a line)."""
     out: dict[str, Any] = {}
+    if options.get("timeout") is not None:
+        out["timeout"] = options["timeout"]
     thinking = thinking_param(options.get("thinking"), model)
     if thinking:
         out["thinking"] = thinking
@@ -278,6 +280,7 @@ class AnthropicClient(ChatClient):
         return kwargs
 
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, **options: Any) -> dict[str, Any]:
+        single_attempt = options.pop("_single_attempt", False)
         if self.model in NO_SAMPLING:  # 29.18: a model that refuses a sampling option is never sent one again
             options = {k: v for k, v in options.items() if k not in SAMPLING}
         kwargs = self._request(messages, tools, max_tokens, options)
@@ -285,10 +288,10 @@ class AnthropicClient(ChatClient):
         try:
             message = self.client.messages.create(**kwargs)
         except Exception as exc:  # noqa: BLE001 — provider errors can carry headers; keep only the type
-            if any(k in kwargs for k in SAMPLING) and _refuses_sampling(exc):  # live, 2026-10-18: Sonnet 5.5 refuses `temperature`
+            if not single_attempt and any(k in kwargs for k in SAMPLING) and _refuses_sampling(exc):
                 NO_SAMPLING.add(self.model)
                 return self.complete(messages, tools, max_tokens, **options)
-            if "thinking" in kwargs and _refuses_thinking(exc):  # the call matters more than its thinking: asked again without, once
+            if not single_attempt and "thinking" in kwargs and _refuses_thinking(exc):
                 NO_THINKING_MODELS.add(str(self.model))
                 return self.complete(messages, tools, max_tokens, **options)
             raise self._failed(exc) from None

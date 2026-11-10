@@ -193,6 +193,26 @@ class LlmSetsTest(unittest.TestCase):
         self.assertEqual(sorted(set(settings.PURPOSES) - set(llm.STAGES) - set(settings.NO_THINKING) - llm.NOT_WORKFLOW), [])  # 35.5: every embedding purpose
         self.assertFalse(llm.NOT_WORKFLOW & set(llm.STAGES))  # 2026-10-30: the routing labeller's exchanges are no m4 examples
 
+    def test_task_decomposition_summary_is_kept_in_the_planning_stage(self):
+        from dclab_rnd.store import Store, curators, shapers
+        from dclab_rnd.store.sets import llm
+
+        self.assertEqual(llm.STAGES["task_decomposer"], "plan")
+        summary = "Preserve the approved atomic tasks and group preparation before final evaluation."
+        exchange = {"at": AT, "model_request": "task-proposal-1", "purpose": "task_decomposer", "whole": True,
+                    "outcome": "ok", "model": "claude-sonnet-5-5", "thinking_label": "API thinking summary",
+                    "messages": [{"role": "user", "content": "Organize the existing validated tasks."}],
+                    "reply": "{\"version\": \"tp02.v1\"}", "thinking": [{"text": summary}]}
+        Store(self.layout).keep_log("model_requests", "dev", "model_exchanges/2026/11/task.jsonl",
+                                   (json.dumps(exchange) + "\n").encode(), consent="train")
+        shapers.shape(self.layout)
+        curators.curate(self.layout, run="task-proposal")
+        with mock.patch.object(llm, "BENCHMARKS", self.benchmarks):
+            llm.build(self.layout)
+        example = next(e for e in self.examples("m4_workflow_llm", "plan", "v2") if e["task"] == "task_decomposer")
+        self.assertEqual(example["messages"][-1]["reasoning"], summary)
+        self.assertEqual(example["messages"][-1]["reasoning_source"], "recorded")
+
     def test_earlier_turns_keep_their_reasoning_and_calls_and_the_reasoning_only_set_takes_clean_whole_ones(self):
         """D2 / P4: the local model's earlier turn keeps the reasoning and the call it sent back, the tool turn its call id, the
         example its tools; the reasoning-only set holds exchanges whose every assistant turn is recorded, by a clean model only."""

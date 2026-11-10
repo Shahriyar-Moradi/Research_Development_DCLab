@@ -1,0 +1,247 @@
+{
+  "version": "tp02.v1",
+  "split": "dev",
+  "mode": "scripted",
+  "fixture": "tests/fixtures/tasks/telco_metadata.json",
+  "fixture_sha256": "4ceee8fcc2db8479b43107b395bf67af78d49b95b11b010dd98df82a2867ffdd",
+  "distinct_source_fixtures": 1,
+  "prompt_sha256": "98b89c6ac3277dd2b2f9355a006bb5e3650f12513f3b62d9167a3bf3dff3c674",
+  "gate": {
+    "version": "tp02_scripted_dev.v1",
+    "fixed_before_run": true,
+    "expected_outcomes": 9,
+    "preserved_source_coverage": true,
+    "exact_fallback_on_refusal": true,
+    "task_execution_allowed": false,
+    "limits": "One authored fixture, nine scenarios, deliberately injected failures. No model quality or rollout verdict."
+  },
+  "rows": [
+    {
+      "id": "one_task_per_group",
+      "expected": "proposed",
+      "actual": "proposed",
+      "passes": true,
+      "baseline_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "proposal_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "exact_fallback": false,
+      "provider_calls": 1,
+      "refusals": [],
+      "blockers": [],
+      "baseline_fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4",
+      "output_fingerprint": "6f584c07598f4d55e1a52ce150e9c96aa125aee636398972a9144070e604df23"
+    },
+    {
+      "id": "multi_step_churn",
+      "expected": "proposed",
+      "actual": "proposed",
+      "passes": true,
+      "baseline_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "proposal_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "exact_fallback": false,
+      "provider_calls": 1,
+      "refusals": [],
+      "blockers": [],
+      "baseline_fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4",
+      "output_fingerprint": "d51d6bda40456b7bf1d20802d0e4cc9dec6aee8dc30233afaea6265f76eb58ac"
+    },
+    {
+      "id": "branch_dependencies",
+      "expected": "proposed",
+      "actual": "proposed",
+      "passes": true,
+      "baseline_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "proposal_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "exact_fallback": false,
+      "provider_calls": 1,
+      "refusals": [],
+      "blockers": [],
+      "baseline_fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4",
+      "output_fingerprint": "d5d88872e649a0af03b2bd7d9ff16780ac2e7badba2e04e32e6a2e3430230b0d"
+    },
+    {
+      "id": "missing_capability",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passes": true,
+      "baseline_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "proposal_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "exact_fallback": true,
+      "provider_calls": 0,
+      "refusals": [
+        "adapter_blocked"
+      ],
+      "blockers": [
+        "Required registered capability is missing: run_stage"
+      ],
+      "baseline_fingerprint": "3526f9634e4d109661fed596d70d8d2f3944c254126a09451bf0eb28fa349cf3",
+      "output_fingerprint": "3526f9634e4d109661fed596d70d8d2f3944c254126a09451bf0eb28fa349cf3"
+    },
+    {
+      "id": "contradictory_dependency",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "baseline_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "proposal_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "exact_fallback": true,
+      "provider_calls": 1,
+      "refusals": [
+        "mandatory_dependency_removed"
+      ],
+      "blockers": [],
+      "baseline_fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4",
+      "output_fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4"
+    },
+    {
+      "id": "hallucinated_tool",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "baseline_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "proposal_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "exact_fallback": true,
+      "provider_calls": 1,
+      "refusals": [
+        "invalid_proposal_shape"
+      ],
+      "blockers": [],
+      "baseline_fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4",
+      "output_fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4"
+    },
+    {
+      "id": "removed_safety_task",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "baseline_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "proposal_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "exact_fallback": true,
+      "provider_calls": 1,
+      "refusals": [
+        "task_membership_or_dependency_mismatch"
+      ],
+      "blockers": [],
+      "baseline_fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4",
+      "output_fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4"
+    },
+    {
+      "id": "missing_data",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passes": true,
+      "baseline_coverage": {
+        "covered": 0,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "proposal_coverage": {
+        "covered": 0,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "exact_fallback": true,
+      "provider_calls": 0,
+      "refusals": [
+        "missing_adapter_graph"
+      ],
+      "blockers": [
+        "Current recorded dataset fingerprint is missing or invalid"
+      ],
+      "baseline_fingerprint": null,
+      "output_fingerprint": null
+    },
+    {
+      "id": "changed_objective",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passes": true,
+      "baseline_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "proposal_coverage": {
+        "covered": 9,
+        "required": 9,
+        "meaning": "Structural coverage includes explicit blockers; it is not execution or completion."
+      },
+      "exact_fallback": true,
+      "provider_calls": 0,
+      "refusals": [
+        "stale_deterministic_graph"
+      ],
+      "blockers": [],
+      "baseline_fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4",
+      "output_fingerprint": "a521e308bf672396d8abf65c04c023fdf74e80cccd201ee2aa53ffc93bb586c4"
+    }
+  ],
+  "summary": {
+    "scenarios": 9,
+    "passed": 9,
+    "provider_calls": 6,
+    "deliberately_invalid_proposals": 3,
+    "invalid_proposal_rate": 0.5,
+    "exact_fallbacks": 6,
+    "cost_eur": 0,
+    "live_calls": 0,
+    "task_execution": 0
+  },
+  "verdict": "pass",
+  "promotion": "not evaluated; TP-06 is separate"
+}

@@ -39,6 +39,37 @@ def _number(name: str, default: float) -> float:
 RETRIES = int(_number("DCLAB_MODEL_RETRIES", 2))  # attempts after the first, for transient failures only
 BACKOFF = _number("DCLAB_MODEL_BACKOFF", 1.5)  # seconds, doubled after each attempt
 
+# A call owns its cleanup before reserve() can acquire money. Context-local ownership also handles a deadline
+# interrupting reserve's return/handoff, without releasing another concurrent call's reservation.
+_RESERVATION_CLEANUPS: contextvars.ContextVar[Any] = contextvars.ContextVar("model_reservation_cleanups", default=None)
+_BUDGET_UPDATE_DEPTH: contextvars.ContextVar[int] = contextvars.ContextVar("model_budget_update_depth", default=0)
+_DEFERRED_DEADLINE: contextvars.ContextVar[bool] = contextvars.ContextVar("model_deferred_deadline", default=False)
+
+
+def defer_request_deadline() -> bool:
+    """A synchronous host's deadline handler defers expiration until the tiny lease transaction commits.
+
+    Python-level deferral is necessary: masking SIGALRM on main alone cannot stop another OS thread from
+    receiving a process alarm and scheduling Python's handler on main during that transaction.
+    """
+    if _BUDGET_UPDATE_DEPTH.get():
+        _DEFERRED_DEADLINE.set(True)
+        return True
+    return False
+
+
+@contextlib.contextmanager
+def _atomic_budget_update():
+    """Defer an alarm only across in-memory lease bookkeeping, never cap callbacks, I/O or model requests."""
+    token = _BUDGET_UPDATE_DEPTH.set(_BUDGET_UPDATE_DEPTH.get() + 1)
+    try:
+        yield
+    finally:
+        _BUDGET_UPDATE_DEPTH.reset(token)
+        if not _BUDGET_UPDATE_DEPTH.get() and _DEFERRED_DEADLINE.get():
+            _DEFERRED_DEADLINE.set(False)
+            raise TimeoutError("request deadline reached after budget bookkeeping")
+
 
 def _timeout(t: dict[str, Any], p: settings.Purpose) -> float:
     """The purpose's seconds, or the tier's floor when it is longer (DCLAB_TIER_<TIER>_TIMEOUT: a slow local model)."""
@@ -173,17 +204,28 @@ class Gateway:
                     return (f"you have used your monthly model budget: €{spent:.2f} of €{ucap:.2f}, €{max(0.0, ucap - spent):.2f} left; "
                             "it resets on the 1st, or the owner raises your limit (Admin, budgets)"), nothing
                 keys.append("u:" + uid)
-            for key in keys:
-                self._held[key] = self._held.get(key, 0.0) + estimate
-            if run is not None:
-                run.reserved_eur += estimate
+            with _atomic_budget_update():
+                active = False
 
-        def release() -> None:
-            with self._lock:
+                def release() -> None:
+                    nonlocal active
+                    with self._lock, _atomic_budget_update():
+                        if not active:
+                            return
+                        for key in keys:
+                            self._held[key] = max(0.0, self._held.get(key, 0.0) - estimate)
+                        if run is not None:
+                            run.reserved_eur = max(0.0, run.reserved_eur - estimate)
+                        active = False
+
+                cleanups = _RESERVATION_CLEANUPS.get()
+                if cleanups is not None:
+                    cleanups.append(release)
                 for key in keys:
-                    self._held[key] = max(0.0, self._held.get(key, 0.0) - estimate)
+                    self._held[key] = self._held.get(key, 0.0) + estimate
                 if run is not None:
-                    run.reserved_eur = max(0.0, run.reserved_eur - estimate)
+                    run.reserved_eur += estimate
+                active = True
         return None, release
 
     def stopped(self, run: "Bound | None" = None) -> str | None:
@@ -465,14 +507,30 @@ class Bound:
         except Exception:  # noqa: BLE001
             pass
 
-    def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, **options: Any) -> dict[str, Any]:
+    def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800,
+                 *, single_attempt: bool = False, timeout_seconds: float | None = None,
+                 require_price: bool = False, max_total_tokens: int | None = None, **options: Any) -> dict[str, Any]:
+        """Strict bounds are opt-in; existing callers retain retries and shadowing.
+
+        A single attempt also disables transport compatibility retries and shadow requests. A request timeout
+        goes to the SDK without changing a shared transport. Callers must refuse a response arriving late.
+        """
+        if timeout_seconds is not None:
+            import math
+
+            if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
+                raise ValueError("timeout_seconds must be positive and finite")
+            options["timeout"] = timeout_seconds
+        if single_attempt:
+            options["_single_attempt"] = True
         self._route()
-        snapshot = copy.deepcopy(messages) if self._shadow_tier else None  # the caller appends to its list after the answer
+        snapshot = copy.deepcopy(messages) if self._shadow_tier and not single_attempt else None
         from .. import observe
 
         with observe.span(name="model_request"):  # 23.11: a model request is a span of the trace it was made in; its event carries the ids
-            out = self._call(lambda: self._transport.complete(messages, tools, max_tokens, **options), messages, can_retry=lambda: True,
-                             max_tokens=max_tokens, tools=tools)
+            out = self._call(lambda: self._transport.complete(messages, tools, max_tokens, **options), messages,
+                             can_retry=lambda: not single_attempt, max_tokens=max_tokens, tools=tools,
+                             require_price=require_price, max_total_tokens=max_total_tokens)
         if snapshot is not None:
             self._shadow(snapshot, tools, max_tokens, out)
         return out
@@ -512,16 +570,37 @@ class Bound:
         return out
 
     def _call(self, send: Callable[[], dict[str, Any]], messages: list[dict[str, Any]], can_retry: Callable[[], bool],
-              max_tokens: int | None = None, tools: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+              max_tokens: int | None = None, tools: list[dict[str, Any]] | None = None,
+              require_price: bool = False, max_total_tokens: int | None = None) -> dict[str, Any]:
+        cleanups: list[Callable[[], None]] = []
+        token = _RESERVATION_CLEANUPS.set(cleanups)
+        try:
+            return self._reserved_call(send, messages, can_retry, max_tokens, tools, require_price, max_total_tokens)
+        finally:
+            _RESERVATION_CLEANUPS.reset(token)
+            for release in reversed(cleanups):
+                release()
+
+    def _reserved_call(self, send: Callable[[], dict[str, Any]], messages: list[dict[str, Any]], can_retry: Callable[[], bool],
+                       max_tokens: int | None, tools: list[dict[str, Any]] | None,
+                       require_price: bool, max_total_tokens: int | None) -> dict[str, Any]:
         started, attempts, delay = time.monotonic(), 0, BACKOFF
         try:
             # the earlier turns' reasoning goes back to the server under its field (D2), so it is in the prompt's size too
             chars = sum(len(str(m.get("content") or "")) + len(json.dumps(m.get("tool_calls") or [], default=str))
                         + sum(len(str(m.get(field) or "")) for field in settings.REASONING_FIELDS) for m in messages) + len(json.dumps(tools or []))
+            if require_price:
+                # Strict callers reserve at least one input token per UTF-8 byte, rather than the usual chars/3
+                # estimate. The pricing helper divides by three; multiply here to keep that conservative bound.
+                chars = 3 * len(json.dumps({"messages": messages, "tools": tools}, ensure_ascii=False).encode())
             limit = self._transport.effective_max_tokens(max_tokens, {}) if hasattr(self._transport, "effective_max_tokens") else max_tokens
+            if max_total_tokens is not None and (limit is None or limit > max_total_tokens):
+                raise ValueError("the transport's output and thinking exceed the token budget")
             # the thinking's room counts too (the review of 2026-10-28): every purpose now thinks, and a cap that read only the
             # reply's limit let several calls in flight overshoot it
             estimate = prices.estimate(self.model, settings.public(self.tier.get("name") or self.p.tier)["local"], chars, limit)
+            if require_price and estimate is None:
+                raise ValueError("price not configured; the request's euro cap cannot be enforced")
             refusal, release = self.gateway.reserve(self.project_id, self, estimate, self.purpose)
         except ValueError as error:  # a broken price file: nothing is sent until it is fixed
             refusal, release = str(error), (lambda: None)
@@ -542,6 +621,9 @@ class Bound:
             attempts += 1
             try:
                 out = send()
+            except TimeoutError:
+                self._record(messages, None, time.monotonic() - started, attempts, "request deadline reached", tools)
+                raise
             except RuntimeError as error:
                 transient = bool(getattr(error, "transient", False))
                 if transient and attempts <= RETRIES and can_retry():
@@ -599,7 +681,7 @@ class Bound:
                                    "purpose": self.purpose, "tier": (shadow or self.tier).get("name"), "model": (shadow or {}).get("model") or self.model,
                                    "project": self.project_id, **({"shadow": True} if shadow else {}),
                                    "draft": self.draft_id, "outcome": outcome, "usage": (out or {}).get("usage"), "whole": whole,
-                                   "may_leave": may_leave,
+                                   "may_leave": may_leave, "thinking_label": "API thinking summary",
                                    "tool_names": [str((t.get("function") or {}).get("name") or t.get("name") or "") for t in tools or []],
                                    "tools_sha256": hashlib.sha256(json.dumps(tools, sort_keys=True, default=str).encode()).hexdigest()[:16] if tools else None}
             if reasoning:

@@ -196,6 +196,10 @@ class ChatClient:
         seen = [f for f in REASONING_FIELDS if getattr(message, f, None)]
         return {"reasoning_fields_seen": seen} if seen else {}
 
+    def effective_max_tokens(self, max_tokens: int | None, options: dict[str, Any] | None = None) -> int | None:
+        """The actual reply/reasoning limit, including an endpoint's configured minimum."""
+        return max(max_tokens, self.max_tokens_floor or 0) if max_tokens is not None else None
+
     def _limit(self, max_tokens: int | None) -> dict[str, Any]:
         """OpenAI's newer models take ``max_completion_tokens`` (they refuse ``max_tokens``); other OpenAI-compatible
         servers (Ollama, the Hugging Face router, vLLM) take ``max_tokens``. None sends no limit."""
@@ -325,13 +329,17 @@ class ChatClient:
 
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, **options: Any) -> dict[str, Any]:
         """``options`` are passed to the provider as they are (for example ``response_format`` or ``temperature``)."""
+        single_attempt = options.pop("_single_attempt", False)
         kwargs: dict[str, Any] = {"model": self.model, "messages": messages, **self._limit(max_tokens), **options}
         if tools:
             kwargs.update(tools=tools, tool_choice="auto")
         self._extra(kwargs)
         self._ready()
         try:
-            response, note = self._create(kwargs)
+            if single_attempt:
+                response, note = self.client.chat.completions.create(**kwargs), {}
+            else:
+                response, note = self._create(kwargs)
         except Exception as exc:  # noqa: BLE001 — provider errors can carry headers; keep only the type
             raise self._failed(exc) from None
         choice = response.choices[0]

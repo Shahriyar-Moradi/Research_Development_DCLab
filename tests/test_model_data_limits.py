@@ -692,12 +692,34 @@ class DataLimitTests(unittest.TestCase):
                                                  "assistant_message": {"role": "assistant", "content": "prediction"}}]}).client("route_check"), s)
         self.assertEqual(self.assertWithinLimit("route_check"), set())
 
+    def test_task_decomposer_sees_metadata_never_rows_or_preview_values(self):
+        from dclab_core.contracts import SolutionPlan
+        from dclab_core.solution_workflow import SolutionWorkflow
+        from dclab_rnd.agents import build_registry
+        from dclab_rnd.tasks.adapter import adapt_workflow, capability_snapshot
+        from dclab_rnd.tasks.decomposer import decompose
+        from dclab_rnd.tasks.evaluate import _proposal
+
+        fixture = json.loads((ROOT / "tests/fixtures/tasks/telco_metadata.json").read_text())
+        project = fixture["project"]
+        project["data"]["profile"] = {"preview": marked_table().head(5).astype(str).to_dict("records")}
+        project["data"]["rows"] = marked_table().head(5).astype(str).values.tolist()
+        plan, workflow = SolutionPlan.read(fixture["source_plan"]), SolutionWorkflow.read(fixture["workflow"])
+        caps = capability_snapshot(build_registry(("project",)), allowed_tools={"run_stage", "export_notebook"})
+        baseline, _ = adapt_workflow(workflow, plan, project, capabilities=caps)
+        gw = gateway({"task_decomposer": [{"content": json.dumps(_proposal(baseline)), "tool_calls": [], "usage": {}}]})
+        with mock.patch.dict(os.environ, {"DCLAB_TIER_STANDARD_BASE_URL": "http://127.0.0.1:1/v1"}):
+            graph, report = decompose(workflow, plan, project, deterministic_graph=baseline, capabilities=caps,
+                                      confirmed_goal=project["goal"], enabled=True, gateway=gw)
+        self.assertEqual(report["status"], "proposed")
+        self.assertEqual(self.assertWithinLimit("task_decomposer"), set())
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "home_intent", "home_query", "home_business", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "routing_labeler", "home_understand", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
                   "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell",
-                  "home_orchestrator", "reflector", "memory_embedding", "case_agent", "case_specialist", "route_check"}
+                  "home_orchestrator", "reflector", "memory_embedding", "case_agent", "case_specialist", "route_check", "task_decomposer"}
         no_user_data = {"campaign", "campaign_review", "embedding",  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
                         "journey_writer", "journey_checker",  # S8 B1 (below)
                         "exam_plain", "exam_person", "exam_judge"}  # 37.0: written, simulated people and invented exam tables' column views (tests/test_conversation_exam.py); S8 B1: invented replica tables' column names and written people, never a workspace's data (tests/test_people_writer.py)

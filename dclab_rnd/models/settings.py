@@ -42,6 +42,9 @@ class Purpose:
 
 
 PURPOSES: dict[str, Purpose] = {
+    "task_decomposer": Purpose("standard", 30, "TP-02: the confirmed goal, column names and roles without values, validated workflow, "
+                                               "deterministic task graph, capability metadata and planning budgets; proposes task "
+                                               "groups and dependencies only, never calls tools or changes solution decisions", cell_values=0),
     "home_intent": Purpose("standard", 60, "H2: the person's request and their replies to Home's questions, to read which kind of help they need; "
                                            "never data, column names or cell values", cell_values=0),
     "home_query": Purpose("standard", 60, "H6: the person's question, what Home understood (the brief) and each column's name, kind, "

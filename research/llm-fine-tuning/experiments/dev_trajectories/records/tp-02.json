@@ -1,0 +1,190 @@
+{
+  "package": "TP-02",
+  "title": "Bounded model task boundaries with an unchanged deterministic fallback",
+  "date": "2026-11-06",
+  "request": "Implement only TP-02 after reading the planning README, master specification and package prompt; run required checks and independent review, then stop.",
+  "spec": "engineering/planning/TP_02.txt",
+  "plan": [
+    "Verify TP-01 acceptance and inspect the current adapter, validator, gateway, harness and privacy conventions.",
+    "Write failing success and fallback tests before implementing a narrow proposal protocol.",
+    "Compile only task groups and dependencies; preserve atomic tasks and run the existing deterministic validator.",
+    "Bound provider attempts, tokens, cost and time through the existing gateway; keep its actual API thinking summary.",
+    "Measure nine scripted DEV scenarios, run package and repository checks, fix review findings and record the final results."
+  ],
+  "decisions": [
+    {
+      "decision": "Use a separate task_decomposer role through the existing harness and model gateway.",
+      "why": "The existing decomposer creates business problem maps and solution_planner changes solution decisions. Neither role owns execution task boundaries."
+    },
+    {
+      "decision": "Accept only existing task IDs, group membership and prerequisite IDs from the model.",
+      "why": "Copying atomic tasks from the freshly checked adapter preserves scientific actions, safety checks, approvals, artifacts and provenance without relying on a model to reproduce them correctly."
+    },
+    {
+      "decision": "Return the supplied deterministic result unchanged on refusal or unavailability.",
+      "why": "A model proposal is optional. Invalid or missing proposals cannot remove the known deterministic plan, and stale or blocked plans remain explicitly unauthorized."
+    },
+    {
+      "decision": "Add opt-in single-attempt, timeout, full-token and known-price controls to the shared gateway.",
+      "why": "One completion could otherwise trigger gateway retries, provider compatibility retries or a shadow request. Existing callers retain their old behavior."
+    },
+    {
+      "decision": "Keep all product callers and execution defaults unchanged.",
+      "why": "This package evaluates proposals only. Task execution, per-task plans and promotion require later packages."
+    }
+  ],
+  "change": "Added a proposal-only task decomposer, a versioned prompt, one new harness role and gateway purpose, strict optional request bounds, actual API thinking summary labeling and persistence tests, marked-cell privacy coverage, a scripted DEV comparison and acceptance guide.",
+  "findings": [
+    {
+      "id": "TP02-TEST-FIRST",
+      "source": "test",
+      "defect": "The task decomposition API did not exist at the start of the package.",
+      "scenario": "Importing the new success and exact-fallback tests failed with a missing decomposer module.",
+      "cause": "TP-01 implemented only deterministic task contracts, validation and adaptation.",
+      "fix": "Implemented a bounded boundary proposal compiler and a gateway-backed caller, preserving every atomic task.",
+      "test": "The task decomposer suite exercises accepted proposals, exact fallback and unsafe or stale inputs.",
+      "severity": "gap"
+    },
+    {
+      "id": "TP02-PROVIDER-ATTEMPTS",
+      "source": "self",
+      "defect": "A single gateway completion could make several provider requests and an unbudgeted shadow request.",
+      "scenario": "A transient failure or provider compatibility refusal retries internally even when the planner makes one completion call.",
+      "cause": "Existing gateway and transport retry defaults serve conversational callers rather than a one-attempt planner.",
+      "fix": "Added optional strict controls that disable retries and shadows and reserve known-price input plus full thinking/output limits.",
+      "test": "Scripted transient failure, shadow routing, Anthropic thinking refusal, unknown price and endpoint token-floor tests all retain the exact fallback.",
+      "severity": "latent"
+    },
+    {
+      "id": "TP02-PRIVACY-INVENTORY",
+      "source": "test",
+      "defect": "The first focused run found no data-limit inventory entry for the new purpose.",
+      "scenario": "The required privacy suite rejected task_decomposer because every purpose must have its own marked-cell test.",
+      "cause": "The new purpose had dedicated privacy tests but had not joined the repository-wide data-limit inventory.",
+      "fix": "Added a real captured-request test using marked rows and previews and registered it in the existing inventory.",
+      "test": "The repaired privacy file passed all 44 tests; the combined task, gateway, transport and thinking suite passed 146 tests.",
+      "severity": "privacy"
+    },
+    {
+      "id": "TP02-TEST-ISOLATION",
+      "source": "test",
+      "defect": "A direct multi-file unittest run observed shared model environment state and failed existing tests.",
+      "scenario": "Existing gateway tests received no client after other files changed environment settings in the shared process.",
+      "cause": "The ad hoc command did not isolate each test file as the repository runner does.",
+      "fix": "Used the repository's isolated parallel runner and retained the failed command in the acceptance ledger.",
+      "test": "All 146 tests in the relevant five isolated test files passed.",
+      "severity": "flaky"
+    },
+    {
+      "id": "TP02-REVIEW-REVISION",
+      "source": "reviewer",
+      "defect": "A current deterministic graph at revision two was falsely refused as stale.",
+      "scenario": "The adapter produced a revision-two graph, but decomposition silently rebuilt revision one before comparing identities.",
+      "cause": "The freshness check used the adapter's default revision instead of the supplied graph's revision.",
+      "fix": "Read and validate the supplied baseline first and recompile the current metadata at that baseline revision.",
+      "test": "The revision-two regression failed before the fix and passed afterward, producing a revision-three proposal.",
+      "severity": "behaviour"
+    },
+    {
+      "id": "TP02-REVIEW-DEADLINE",
+      "source": "reviewer",
+      "defect": "An SDK timeout and late-answer check did not bound the whole synchronous planning call.",
+      "scenario": "The reviewer's sleeping transport returned well after its small planning budget, so fallback could wait indefinitely on a stuck transport.",
+      "cause": "Network timeouts are not an interrupting whole-call deadline.",
+      "fix": "Use a restored POSIX main-thread real-time alarm for proposal work and refuse the model before requesting when that facility is unavailable or already in use.",
+      "test": "An actually sleeping transport is interrupted, worker threads fall back without requesting, and an existing caller alarm and handler remain intact.",
+      "severity": "latent",
+      "open": "Model proposals remain a synchronous developer preview. Product worker integration requires an appropriate cancellable host; deterministic fallback works there now."
+    },
+    {
+      "id": "TP02-REVIEW-RESERVATION",
+      "source": "reviewer",
+      "defect": "An interrupting deadline could leak the request's reserved budget during acquisition or handoff.",
+      "scenario": "A warmed reservation wrapper acquired the project hold and then slept; the deadline returned fallback but left money marked as reserved without a provider call.",
+      "cause": "The existing release finally began only after reserve returned, so an interruption before ownership transferred could lose the release callback.",
+      "fix": "Establish context-local cleanup before acquisition, register an idempotent lease before applying holds, and defer alarms only during the tiny in-memory hold/refund updates.",
+      "test": "The warmed handoff regression failed before the fix. Handoff timeout, slow cap callback and injected alarm during hold mutation now release every hold with no extra provider call.",
+      "severity": "latent"
+    },
+    {
+      "id": "TP02-REVIEW-PROCESS-ALARM",
+      "source": "reviewer",
+      "defect": "Masking the main OS thread alone did not make lease bookkeeping safe from a process-directed alarm.",
+      "scenario": "Another unmasked thread received the real timer signal and Python scheduled the handler on main after the first hold write, before the lease was marked active.",
+      "cause": "OS signal masks apply per thread, while Python runs the signal handler on main. The original injected-signal regression targeted main only.",
+      "fix": "Use a Python-level budget critical section recognized by the deadline handler. Mark expiration while bookkeeping is active, complete the tiny transaction, and then raise immediately so the owned lease is refunded.",
+      "test": "A real timer with another thread and an instrumented hold dictionary failed before this fix and passes afterward without held funds or a provider call.",
+      "severity": "latent"
+    },
+    {
+      "id": "TP02-TRAINING-STAGE",
+      "source": "test",
+      "defect": "The workflow training builder did not assign the new model purpose to a stage.",
+      "scenario": "The broad package gate ran more than four thousand tests and failed the existing every-purpose-has-a-stage inventory for task_decomposer.",
+      "cause": "The new role was registered with the gateway, harness, prompt and privacy inventory but not the retained-exchange stage map.",
+      "fix": "Map task_decomposer explicitly to the planning stage and keep the inventory test unchanged.",
+      "test": "A new regression failed on the missing entry, then verifies the API summary survives record shaping and planning-set construction with recorded provenance.",
+      "severity": "gap"
+    },
+    {
+      "id": "TP02-CONFIGURATION-DOCS",
+      "source": "test",
+      "defect": "The scripted runner named three existing standard-tier overrides that lacked concrete configuration documentation.",
+      "scenario": "After the new runner was staged, the full repository scan found its standard-tier endpoint, model and key names missing from the example environment file.",
+      "cause": "The existing example documented generic tier overrides and other tiers, but not those three literal standard-tier names. The inventory scans tracked files, so the unstaged runner was absent from the first check.",
+      "fix": "Document the three optional standard-tier overrides with empty safe defaults and their existing provider inheritance behavior.",
+      "test": "The unchanged configuration inventory failed in the full run and passed after the documentation fix.",
+      "severity": "gap"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Focused proposal and gateway checks",
+      "gate": "Task proposal, gateway compatibility, marked-cell privacy and thinking capture tests must pass without live models.",
+      "result": "The initial repaired run passed 146 tests across five isolated files. The final deadline/lease fixes passed 184 tests across seven files, including all 39 task tests. No skips.",
+      "verdict": "pass",
+      "cost_eur": 0,
+      "limits": ["Scripted transports and authored metadata do not measure real model plan quality."]
+    },
+    {
+      "name": "Scripted DEV boundary comparison",
+      "gate": "All nine declared scenarios must have their expected outcome, preserve structural source coverage and return exact fallback on every refusal.",
+      "result": "Nine of nine scenarios passed. Three valid proposals were accepted; three deliberately invalid replies were refused; three incomplete or stale sources blocked before a request. Six exact fallbacks. Six scripted provider calls, zero live calls and zero tasks executed.",
+      "verdict": "pass",
+      "cost_eur": 0,
+      "limits": ["One independent binary fixture. The injected invalid proposal rate of three in six is a checker test, not a measured model failure rate."]
+    },
+    {
+      "name": "Prompt and harness evaluation",
+      "gate": "The scripted agent suite must record current prompt hashes with no policy errors; all harness regression cases must pass.",
+      "result": "Agent evaluation completed with zero errors in all three policies; harness evaluation passed all seventeen cases. Prompt and harness freshness checks passed five tests.",
+      "verdict": "pass",
+      "cost_eur": 0
+    },
+    {
+      "name": "Initial broad package gate",
+      "gate": "All selected file tests, evidence checks and product flows must pass before the package is accepted.",
+      "result": "4545 tests across 393 files and 604 units ran in 2278.8 seconds. One stage-map inventory test failed; ten existing skips. All ten evidence/freshness checks and all five product flows passed. PostgreSQL did not start after the file failure.",
+      "verdict": "fail",
+      "next": "Register the new purpose's planning stage, prove summary retention and rerun the required final gates."
+    },
+    {
+      "name": "Final package gates and independent review",
+      "gate": "Required package and repository checks must pass and independent review must leave no unresolved correctness findings before completion.",
+      "result": "In progress; no completion claim until the final recorded gates and review finish.",
+      "verdict": "not scored"
+    }
+  ],
+  "outcome": "The implementation and scripted DEV checks are complete. Final required gates and independent review are in progress; TP-03 is not started.",
+  "lessons": [
+    "A compiler can preserve immutable scientific tasks while a model proposes useful group boundaries.",
+    "Count provider retries and shadows when limiting model calls; one application completion is not necessarily one provider attempt.",
+    "Check the effective token limit including thinking headroom and endpoint floors, and fail closed on an unknown price.",
+    "Treat scripted adversarial rejection rates as checker evidence, never as real model quality."
+  ],
+  "risks": [
+    "The existing adapter supports only basic binary workflows; general branch scheduling and programme decomposition are not proved here.",
+    "The interrupting deadline needs a POSIX main-thread caller with no active caller alarm; other contexts use deterministic fallback before requesting a model.",
+    "Metadata text must remain free of table values and secrets; the model never receives profiles or rows through this API."
+  ]
+}
