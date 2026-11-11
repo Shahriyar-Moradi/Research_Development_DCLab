@@ -1,0 +1,1544 @@
+{
+  "experiment_id": "AEV-111",
+  "campaign_id": "agent_eval_v1",
+  "kind": "judgment_suite_live",
+  "status": "stopped",
+  "run_id": "8725635b7d6e",
+  "model": "qwen/qwen3.8-flash",
+  "tier": "strong",
+  "local": false,
+  "suite": "judgment_v1",
+  "question": "On the judgment suite's planted traps, how often does the intern, driven by this model, keep the leak out and the clean columns in?",
+  "started_at": "2026-11-11T13:04:16+00:00",
+  "completed_at": "2026-11-11T13:48:45+00:00",
+  "plan": {
+    "model": "qwen/qwen3.8-flash",
+    "tier": "strong",
+    "local": false,
+    "available": true,
+    "tiers": {
+      "intern": {
+        "tier": "strong",
+        "model": "qwen/qwen3.8-flash",
+        "local": false
+      }
+    },
+    "remote_priced": [
+      "intern"
+    ],
+    "remote_unpriced": [],
+    "cases": [
+      "AE-01",
+      "AE-02",
+      "AE-03",
+      "AE-04",
+      "AE-05",
+      "AE-06",
+      "AE-07",
+      "AE-08",
+      "AE-09",
+      "AE-10",
+      "AE-11",
+      "AE-12",
+      "AE-13",
+      "AE-14",
+      "AE-15",
+      "AE-16",
+      "AE-17",
+      "AE-18",
+      "AE-19",
+      "AE-20"
+    ],
+    "repeats": 5,
+    "runs": 100,
+    "max_steps": 16,
+    "max_requests": 1800,
+    "max_input_tokens": 45621600,
+    "max_eur": 4.15,
+    "priced": true,
+    "max_requests_cap": 1800,
+    "cap_eur": 0.2
+  },
+  "requests": 274,
+  "spent": {
+    "eur": 0.199363,
+    "input_tokens": 3045775,
+    "output_tokens": 117665
+  },
+  "stopped": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it ",
+  "summary": {
+    "scores": {
+      "leaks_caught": {
+        "mean": 1.0,
+        "ci95": null,
+        "n": 1
+      },
+      "false_alarms": {
+        "mean": 0.15,
+        "ci95": null,
+        "n": 1
+      },
+      "valid_moves": {
+        "mean": 1.0,
+        "ci95": null,
+        "n": 1
+      },
+      "citations_exist": {
+        "mean": 1.0,
+        "ci95": null,
+        "n": 1
+      }
+    },
+    "by_case": {
+      "AE-01": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-02": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-03": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-04": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-05": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-06": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-07": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-08": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-09": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "AE-10": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "AE-11": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "AE-12": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "AE-13": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "AE-14": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "AE-15": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "AE-16": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "AE-17": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "AE-18": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "AE-19": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "AE-20": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      }
+    },
+    "runs": 28,
+    "not_run": 72,
+    "complete_repeats": 1,
+    "note": "Intervals are over complete repeats only; per-case counts include every scored run."
+  },
+  "runs": [
+    {
+      "case": "AE-01",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 10,
+      "tokens": [
+        82293,
+        3580
+      ],
+      "eur": 0.005548,
+      "seconds": 94.8,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "final_balance_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-02",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 8,
+      "tokens": [
+        57156,
+        2680
+      ],
+      "eur": 0.00393,
+      "seconds": 64.8,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_status_closed"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-03",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 9,
+      "tokens": [
+        77846,
+        3516
+      ],
+      "eur": 0.005299,
+      "seconds": 85.0,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "x_adj7"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-04",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 11,
+      "tokens": [
+        101122,
+        2825
+      ],
+      "eur": 0.006186,
+      "seconds": 116.4,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "score_v2"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-05",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 12,
+      "tokens": [
+        112520,
+        5420
+      ],
+      "eur": 0.007795,
+      "seconds": 132.4,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "label_text"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-06",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 12,
+      "tokens": [
+        121343,
+        4970
+      ],
+      "eur": 0.008055,
+      "seconds": 133.9,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "customer_id"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-07",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        138355,
+        3318
+      ],
+      "eur": 0.008245,
+      "seconds": 88.1,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "weight_lb"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-08",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 9,
+      "tokens": [
+        77272,
+        3173
+      ],
+      "eur": 0.005132,
+      "seconds": 64.8,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "evening_kg",
+        "morning_kg"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-09",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 13,
+      "tokens": [
+        150097,
+        4020
+      ],
+      "eur": 0.009114,
+      "seconds": 101.5,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "exit_survey_score"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-10",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 14,
+      "tokens": [
+        120064,
+        5400
+      ],
+      "eur": 0.008162,
+      "seconds": 106.0,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": "account_ref"
+      }
+    },
+    {
+      "case": "AE-11",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        157741,
+        4848
+      ],
+      "eur": 0.009826,
+      "seconds": 107.3,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "event_date",
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-12",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 13,
+      "tokens": [
+        126287,
+        4394
+      ],
+      "eur": 0.008073,
+      "seconds": 81.5,
+      "leak_caught": true,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "patient_ref",
+        "support_calls"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": "patient_ref"
+      }
+    },
+    {
+      "case": "AE-13",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        135715,
+        6989
+      ],
+      "eur": 0.00958,
+      "seconds": 121.6,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-14",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 12,
+      "tokens": [
+        103422,
+        5079
+      ],
+      "eur": 0.007203,
+      "seconds": 88.5,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-15",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 13,
+      "tokens": [
+        119942,
+        4770
+      ],
+      "eur": 0.007905,
+      "seconds": 92.3,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-16",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 11,
+      "tokens": [
+        96983,
+        5106
+      ],
+      "eur": 0.006892,
+      "seconds": 93.5,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_signup_survey"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-17",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 13,
+      "tokens": [
+        133040,
+        4637
+      ],
+      "eur": 0.008507,
+      "seconds": 107.8,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "contract_months_left",
+        "tenure_months"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-18",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 13,
+      "tokens": [
+        93980,
+        4219
+      ],
+      "eur": 0.006388,
+      "seconds": 102.0,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-19",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 14,
+      "tokens": [
+        128482,
+        4386
+      ],
+      "eur": 0.00818,
+      "seconds": 88.8,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-20",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 12,
+      "tokens": [
+        99090,
+        4853
+      ],
+      "eur": 0.006895,
+      "seconds": 89.6,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "refund_issued_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-01",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 10,
+      "tokens": [
+        95993,
+        3369
+      ],
+      "eur": 0.006149,
+      "seconds": 68.8,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "final_balance_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-02",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 11,
+      "tokens": [
+        85294,
+        3126
+      ],
+      "eur": 0.005515,
+      "seconds": 76.5,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_status_closed"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-03",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 10,
+      "tokens": [
+        88172,
+        3055
+      ],
+      "eur": 0.00563,
+      "seconds": 75.5,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "x_adj7"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-04",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 12,
+      "tokens": [
+        106214,
+        4986
+      ],
+      "eur": 0.007304,
+      "seconds": 93.4,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "score_v2"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-05",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 12,
+      "tokens": [
+        104407,
+        3444
+      ],
+      "eur": 0.006599,
+      "seconds": 81.9,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "label_text"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-06",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 13,
+      "tokens": [
+        113921,
+        4100
+      ],
+      "eur": 0.007337,
+      "seconds": 91.8,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "customer_id"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-07",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 13,
+      "tokens": [
+        129339,
+        4045
+      ],
+      "eur": 0.008087,
+      "seconds": 106.9,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "weight_lb"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-08",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 10,
+      "tokens": [
+        89685,
+        3357
+      ],
+      "eur": 0.005827,
+      "seconds": 96.8,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "evening_kg",
+        "morning_kg"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-09",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it ",
+      "status": "budget_exhausted",
+      "tokens": [
+        0,
+        0
+      ]
+    },
+    {
+      "case": "AE-10",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-11",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-12",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-13",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-14",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-15",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-16",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-17",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-18",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-19",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-20",
+      "repeat": 1,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-01",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-02",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-03",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-04",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-05",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-06",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-07",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-08",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-09",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-10",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-11",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-12",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-13",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-14",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-15",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-16",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-17",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-18",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-19",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-20",
+      "repeat": 2,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-01",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-02",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-03",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-04",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-05",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-06",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-07",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-08",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-09",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-10",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-11",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-12",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-13",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-14",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-15",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-16",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-17",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-18",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-19",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-20",
+      "repeat": 3,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-01",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-02",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-03",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-04",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-05",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-06",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-07",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-08",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-09",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-10",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-11",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-12",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-13",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-14",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-15",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-16",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-17",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-18",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-19",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    },
+    {
+      "case": "AE-20",
+      "repeat": 4,
+      "ran": false,
+      "why": "a cap stopped it: Stopped: this run has used its budget: \u20ac0.00 of \u20ac0.00, \u20ac0.00 left; the next request could cost up to \u20ac0.00. The work so far is in project 1b3804bfb5b7 (open it "
+    }
+  ],
+  "cases": [
+    {
+      "id": "AE-01",
+      "fingerprint": "2a29395068e46a92"
+    },
+    {
+      "id": "AE-02",
+      "fingerprint": "1904715d2d65f5f2"
+    },
+    {
+      "id": "AE-03",
+      "fingerprint": "22b76a9f4b5c2b7a"
+    },
+    {
+      "id": "AE-04",
+      "fingerprint": "4590a4aea1620866"
+    },
+    {
+      "id": "AE-05",
+      "fingerprint": "5b89170d2c7ae599"
+    },
+    {
+      "id": "AE-06",
+      "fingerprint": "b31e1d0c1d653190"
+    },
+    {
+      "id": "AE-07",
+      "fingerprint": "07a43727f76bf5c5"
+    },
+    {
+      "id": "AE-08",
+      "fingerprint": "38ad54d4cbfba878"
+    },
+    {
+      "id": "AE-09",
+      "fingerprint": "fe5c52bf84d2c7e8"
+    },
+    {
+      "id": "AE-10",
+      "fingerprint": "15ab000c2aa1268f"
+    },
+    {
+      "id": "AE-11",
+      "fingerprint": "45d5c36f9f25b1f1"
+    },
+    {
+      "id": "AE-12",
+      "fingerprint": "d97bdf6bc0625383"
+    },
+    {
+      "id": "AE-13",
+      "fingerprint": "23ceb08a566a07a5"
+    },
+    {
+      "id": "AE-14",
+      "fingerprint": "1d581a54166976c4"
+    },
+    {
+      "id": "AE-15",
+      "fingerprint": "aef92f375092b275"
+    },
+    {
+      "id": "AE-16",
+      "fingerprint": "96190d7f3f92cee8"
+    },
+    {
+      "id": "AE-17",
+      "fingerprint": "c1159f2630084a98"
+    },
+    {
+      "id": "AE-18",
+      "fingerprint": "c80d88da8bd31ac0"
+    },
+    {
+      "id": "AE-19",
+      "fingerprint": "5caf8f77baced109"
+    },
+    {
+      "id": "AE-20",
+      "fingerprint": "25e0e34e263af2ba"
+    }
+  ],
+  "limitations": [
+    "Scores on these cases are evidence about this model on these planted traps, not about any model's readiness for production.",
+    "5 repeats per case: the interval is about this model's varying answers on these cases, not about other tables."
+  ],
+  "prompt_hashes": {
+    "prompt:ai_first_expert": "2d7f6fb1f48dccf6",
+    "prompt:ai_first_follow": "0e82214c16f3b2e0",
+    "prompt:ai_first_home": "306ac0b080d3880b",
+    "prompt:base_audit": "15a72a06500b607a",
+    "prompt:case_agent": "9d1bc4d04605413e",
+    "prompt:case_specialist": "c05245a1945431e4",
+    "prompt:evidence_answer": "1d5a29ab7625c442",
+    "prompt:exam_judge": "c2c52ae5797e9cb4",
+    "prompt:exam_person": "27202d5403babfe5",
+    "prompt:exam_plain": "6b4a893172133d54",
+    "prompt:home_agent": "bcdacb2b33b5e2ec",
+    "prompt:home_business": "b5372bf0d358b968",
+    "prompt:home_eval_plain": "9033ead880dcaedc",
+    "prompt:home_intent": "09a87affc4194e1e",
+    "prompt:home_orchestrator": "ac6a229931bdbce2",
+    "prompt:home_plan": "4a5997517306687b",
+    "prompt:home_query": "c5d671ffdf3344e6",
+    "prompt:home_request_writer": "ab7585349f30e1c1",
+    "prompt:home_request_writer_b": "e3cc2d86d5806032",
+    "prompt:home_request_writer_c": "429d8b5ef86b386a",
+    "prompt:home_understand": "e30bb1b1ccc44f0d",
+    "prompt:intern": "940712db9ba17a4e",
+    "prompt:intern_memory": "0e8a3dba8fab5dbd",
+    "prompt:journey_checker": "bc8a6f807deebef2",
+    "prompt:journey_writer": "c6d50eca2a599ffd",
+    "prompt:journey_writer_b": "1b0142701eaefa7b",
+    "prompt:journey_writer_d": "6237aee4e5f3fb9b",
+    "prompt:leakage_review": "8a2ad6a0c8b4464f",
+    "prompt:lesson_proposal": "82be48a747b7fa03",
+    "prompt:memory_brief": "8b47ae3bd71eea8b",
+    "prompt:notebook_cell": "58697ec32ffb8ec3",
+    "prompt:notebook_fixes": "ba2518c858e53ff2",
+    "prompt:parse_pattern": "0c7f52395e5d583d",
+    "prompt:playbook_intro": "edbc1664a2ce9f0c",
+    "prompt:reasoning_teacher": "9e88e760b83502d1",
+    "prompt:reflector": "7eeded98e395b0ee",
+    "prompt:route_check": "61027a2803db8856",
+    "prompt:routing_labeler": "c95c4e956f649ea0",
+    "prompt:solver_answer": "960204a4f4b922d9",
+    "prompt:stage_critique": "0c28d31fea660837",
+    "prompt:stage_explain": "2bb437ac6f749d1e",
+    "prompt:store_curator": "48a99e9416097dc7",
+    "prompt:synthetic_schema": "ba81a76ca250c4c4",
+    "prompt:task_decomposer": "98b89c6ac3277dd2",
+    "prompt:tools_as_text": "12bbc00ec34548c6",
+    "prompt:workspace_chat": "5119c81540c57cea",
+    "tools:project": "69b20bb1c6023856",
+    "tools:draft": "1d1d88fe3c14e8e8",
+    "tools:session": "efe01ef63a00e175",
+    "tools:campaign": "959a1dfb09b41b8f",
+    "tools:workspace": "fef20be0c1fdbf77",
+    "tools:home": "f4eff7da5166e824",
+    "tools:case": "9c16eb0e7abaf000",
+    "validator:graph": "1c08971c7f828f3e"
+  }
+}
