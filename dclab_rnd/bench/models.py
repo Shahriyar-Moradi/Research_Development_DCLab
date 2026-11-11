@@ -103,6 +103,9 @@ def model_of(doc: Mapping[str, Any], arm: Optional[str] = None) -> tuple[str, st
             return clean(models[arm]), f"models.{arm}"
     if clean(doc.get("model")):
         return clean(doc["model"]), "model"
+    rerun = doc.get("rerun")  # a new model's one-time rerun of a spent sealed set (agent_eval/sealed.py) names its model
+    if isinstance(rerun, Mapping) and clean(rerun.get("model")):
+        return clean(rerun["model"]), "rerun.model"
     plan = doc.get("plan")
     if isinstance(plan, Mapping) and clean(plan.get("model")):
         return clean(plan["model"]), "plan.model"

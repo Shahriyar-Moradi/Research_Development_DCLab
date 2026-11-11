@@ -29,12 +29,13 @@ def suffix(model: str) -> str:
 
 
 def refusal(token: Optional[str], model: str, done: Iterable[Path]) -> Optional[str]:
-    """Why a rerun of a spent sealed set is refused, or None when the exception applies."""
+    """Why a rerun of a spent sealed set is refused, or None when the exception applies. ``done``: this model's earlier
+    scored reruns of the set (an unscored, failed attempt never counts, as a failed first run never spends a set)."""
     if not token:
         return f"the set was already run; a new model may rerun it once with --model-rerun {EXCEPTION}"
     if token != EXCEPTION:
         return f"--model-rerun takes {EXCEPTION} (the owner's exception of 2026-11-11), not {token!r}"
-    if str(model).startswith("claude"):
+    if "claude" in str(model).lower():  # also anthropic/claude-... served through OpenRouter
         return "the exception is for a new model: Claude already took these sealed sets"
     done = list(done)
     if done:

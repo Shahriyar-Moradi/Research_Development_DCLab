@@ -139,13 +139,16 @@ def main(argv: list[str] | None = None) -> int:
         print("nothing was sent: add --yes and --cap-eur to run Home with the model")
         return 0
     rerun = None
+    if args.model_rerun and not (args.split in SEALED and sealed_runs(args.split)):
+        print("refused: --model-rerun is for a sealed set that was already run", file=sys.stderr)
+        return 2
     if args.split in SEALED and sealed_runs(args.split):
         from .. import sealed as _sealed
         from dclab_rnd.models import settings as _settings
 
         model = _settings.served_model("home_agent")
         first = [p for p in sealed_runs(args.split) if "_rerun_" not in p.name]
-        why = _sealed.refusal(args.model_rerun, model, RESULTS.glob(f"HOME-*_{args.split}_{_sealed.suffix(model)}*.json"))
+        why = _sealed.refusal(args.model_rerun, model, [p for p in sealed_runs(args.split) if p.stem.endswith(_sealed.suffix(model))])
         if why:
             print(f"refused: the sealed set was already run ({first[0].name if first else sealed_runs(args.split)[0].name}): {why}", file=sys.stderr)
             return 2

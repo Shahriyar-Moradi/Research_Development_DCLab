@@ -694,7 +694,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                      exhausted=lambda: budget.spent_eur() >= 0.98 * budget.cap_eur,
                      spent_for=lambda pid, arm: {"arm": budget.spent_eur(f"{tag}{arm}-{pid}"), "person": budget.spent_eur(f"{tag}person:{arm}-{pid}"),
                                                  "judge": budget.spent_eur(f"{tag}judge:{arm}-{pid}")})
-    kept_at = str(keep.relative_to(ROOT)) if keep.is_relative_to(ROOT) else f"<workspace>/exam_vault/{run}_{args.split}/conversations"
+    kept_at = str(keep.relative_to(ROOT)) if keep.is_relative_to(ROOT) else f"<workspace>/exam_vault/{vault.name}/conversations"
     record = {"id": run, "split": args.split, "at": started, "arms": arms, "models": {"arms": f"{standard} (the product's)", "person": person_model, "judge": judge_model},
               "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur, "kept": kept_at, "gate_for_37_10": _gate.gate_for(args.split), **result,
               **({k: v for k, v in rerun.items() if k != "suffix"} if sealed and rerun else {})}

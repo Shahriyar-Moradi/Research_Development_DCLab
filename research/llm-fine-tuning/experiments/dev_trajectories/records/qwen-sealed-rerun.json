@@ -29,6 +29,36 @@
    "cause": "a prefix glob",
    "fix": "an exact pattern: the split, optionally followed by _rerun_<model>",
    "test": "tests/test_sealed_rerun.py test_a_rerun_counts_for_its_own_set_only"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Claude served through OpenRouter was not refused",
+   "scenario": "an anthropic/claude-sonnet id passed the exception",
+   "cause": "the check read only a claude- prefix",
+   "fix": "any model name containing claude is refused",
+   "test": "tests/test_sealed_rerun.py test_the_exception_is_asked_for_in_words_once_per_model_and_never_by_claude"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The journeys accepted a rerun where no model plays",
+   "scenario": "--model-rerun on a rules-only sealed set stored a rules result credited to Qwen and used up the rerun",
+   "cause": "the rerun path did not require a model's arms",
+   "fix": "--model-rerun needs --reader or --team-arms; the result names its model",
+   "test": "tests/test_sealed_rerun.py test_journeys_refuse_a_rerun_where_no_model_plays"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A failed Home rerun blocked every retry",
+   "scenario": "an unscored rerun file matched the already-reran check",
+   "cause": "the check's glob also matched _unscored files",
+   "fix": "the check reads scored sealed runs only",
+   "test": "tests/test_sealed_rerun.py test_home_refuses_the_exception_on_an_unspent_set_and_a_failed_rerun_never_counts"
   }
  ],
  "measurements": [],

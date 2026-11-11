@@ -20,6 +20,7 @@ class SealedRerunRuleTests(unittest.TestCase):
         self.assertIn("--model-rerun", sealed.refusal(None, "qwen/qwen3.8-flash", []))
         self.assertIn("not 'yes'", sealed.refusal("yes", "qwen/qwen3.8-flash", []))
         self.assertIn("Claude already took", sealed.refusal(sealed.EXCEPTION, "claude-sonnet-5-5", []))
+        self.assertIn("Claude already took", sealed.refusal(sealed.EXCEPTION, "anthropic/claude-sonnet-5.5", []))  # Claude via OpenRouter
         self.assertIn("already reran", sealed.refusal(sealed.EXCEPTION, "qwen/qwen3.8-flash", [Path("CEX-050_sealed_v1_rerun_qwen3-8-flash.json")]))
         self.assertIsNone(sealed.refusal(sealed.EXCEPTION, "qwen/qwen3.8-flash", []))
 
@@ -49,6 +50,26 @@ class ConversationExamRerunTests(unittest.TestCase):
                                "--model-rerun", sealed.EXCEPTION])
             self.assertEqual(code, 2)
             self.assertIn("already reran", err.getvalue())
+
+
+class SuiteRerunGuardTests(unittest.TestCase):
+    def test_journeys_refuse_a_rerun_where_no_model_plays(self):
+        from dclab_rnd.agent_eval.journeys import __main__ as J
+
+        out = io.StringIO()
+        with mock.patch("sys.stdout", out):
+            code = J.main(["--split", "sealed_v2", "--model-rerun", sealed.EXCEPTION, "--yes"])
+        self.assertEqual(code, 2)
+        self.assertIn("rules alone are no model's rerun", out.getvalue())
+
+    def test_home_refuses_the_exception_on_an_unspent_set_and_a_failed_rerun_never_counts(self):
+        from dclab_rnd.agent_eval import home
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(home, "RESULTS", Path(tmp)):
+            (Path(tmp) / "HOME-021_sealed_v5.json").write_text("{}")
+            (Path(tmp) / "HOME-040_sealed_v5_rerun_qwen3-8-flash_unscored.json").write_text("{}")
+            done = [p for p in home.sealed_runs("sealed_v5") if p.stem.endswith(sealed.suffix("qwen/qwen3.8-flash"))]
+            self.assertEqual(done, [])  # the failed attempt does not use up the rerun
 
 
 class SealedRunMatchingTests(unittest.TestCase):

@@ -53,6 +53,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             print("--spent reads a sealed set that was run already, as dev material")
             return 2
         args.no_store, sealed = True, False  # its people are dev material now: played, never stored
+    if args.model_rerun and not (sealed and sealed_runs(args.split) and (args.reader or args.team_arms)):
+        print("--model-rerun is for a spent sealed set run with a model's arms (--reader or --team-arms): the rules alone are no model's rerun")
+        return 2
     if sealed and sealed_runs(args.split) and not args.spent:
         from .. import sealed as _sealed
         import dclab_rnd.agent_eval.journeys as _jr
@@ -64,7 +67,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         if why:
             print(f"the sealed journeys were run once already: {why}")
             return 2
-        _jr.RERUN = {"suffix": _sealed.suffix(model), **_sealed.stamp(model, [p.stem.split("_")[0] for p in first])}
+        _jr.RERUN = {"suffix": _sealed.suffix(model), **_sealed.stamp(model, [p.stem.split("_")[0] for p in first]),
+                     "models": {"model": model}}  # the bench attributes the rerun to its model
     if args.split == "sealed_v4" and not args.spent and not args.reader:
         print("the fourth sealed set judges the reader against the rules: run it with --reader, both arms at once")
         return 2
