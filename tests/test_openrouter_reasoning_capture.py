@@ -246,5 +246,21 @@ class EffortTest(unittest.TestCase):
         self.assertEqual(self.sent[1]["extra_body"]["reasoning"], {"enabled": True})
 
 
+
+class ReasoningAllowanceTests(unittest.TestCase):
+    def test_the_reasoning_gets_room_beside_the_answer_on_openrouter(self):
+        """SEX-008: 604 of 1,800 replies were empty because 300 tokens of reasoning used the whole limit."""
+        from dclab_rnd.models import client as C
+
+        c = C.ChatClient.__new__(C.ChatClient)
+        c.base_url, c.model, c.chat_template_kwargs, c.thinking = "https://openrouter.ai/api/v1", "qwen/qwen3.8-flash", None, "adaptive"
+        with mock.patch.dict(os.environ, {"DCLAB_REASONING_TOKENS": "", "OPENROUTER_REASONING": "1", "DCLAB_THINKING": ""}):
+            sent = c._extra({"max_tokens": 300, "messages": []})
+        self.assertEqual(sent["max_tokens"], 300 + 2048)
+        with mock.patch.dict(os.environ, {"OPENROUTER_REASONING": "off"}):
+            sent = c._extra({"max_tokens": 300, "messages": []})
+        self.assertEqual(sent["max_tokens"], 300)  # no reasoning asked for: the limit is the caller's
+
+
 if __name__ == "__main__":
     unittest.main()

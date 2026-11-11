@@ -97,6 +97,15 @@ _EFFORT_MAP = {"xhigh": "high", "max": "high"}
 EFFORT_REFUSED: set[str] = set()
 
 
+def reasoning_allowance() -> int:
+    """The tokens added to a reply's limit for an OpenRouter model's reasoning (``DCLAB_REASONING_TOKENS``, default 2048)."""
+    raw = os.environ.get("DCLAB_REASONING_TOKENS", "").strip()
+    try:
+        return max(0, int(raw)) if raw else 2048
+    except ValueError:
+        return 2048
+
+
 def openrouter_effort() -> str | None:
     raw = os.environ.get("DCLAB_THINKING_EFFORT", "").strip().lower()
     raw = _EFFORT_MAP.get(raw, raw)
@@ -162,6 +171,13 @@ class ChatClient:
             if not think_off and not env_off and "reasoning" not in extra:
                 effort = openrouter_effort()
                 extra["reasoning"] = {"effort": effort} if effort and self.model not in EFFORT_REFUSED else {"enabled": True}
+            if extra.get("reasoning") and extra["reasoning"] != {"enabled": False}:
+                # 2026-11-11: OpenRouter counts the reasoning inside the reply's limit, Claude does not: a purpose that
+                # asked for 300 tokens got an empty answer after 300 tokens of reasoning (604 of 1,800 in SEX-008). The
+                # reasoning gets its own allowance on top, so the answer keeps the room the purpose asked for.
+                for key in ("max_tokens", "max_completion_tokens"):
+                    if isinstance(kwargs.get(key), int):
+                        kwargs[key] += reasoning_allowance()
         if extra:
             kwargs["extra_body"] = extra
         return kwargs
