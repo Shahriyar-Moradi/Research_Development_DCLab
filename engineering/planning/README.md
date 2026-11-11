@@ -53,7 +53,7 @@ engineering/planning/
 | TP-01C | Graph validation and fingerprints | Complete — core 0.157.0, 40 new tests, unchanged schemas, wheel/review and full check-quick passed (2026-11-04) |
 | TP-01D | Deterministic workflow adapter | Complete — 41 new tests, generated Telco preview, wheel/compatibility and applicable check-quick/review passed; corpus freshness repaired and verified (2026-11-05) |
 | TP-01E | Regression tests and foundation acceptance | Complete — all nine criteria satisfied; full check-all (5,348 file / 5,350 PostgreSQL tests), final review and completion corpus checks passed; existing skips documented (2026-11-05) |
-| TP-02 | Model-assisted task decomposition | Not started |
+| TP-02 | Model-assisted task decomposition | Complete — proposal only; 44 task tests, 9/9 scripted DEV, 175 focused tests and independent review passed; owner-directed focused validation (2026-11-11) |
 | TP-03 | Task-level execution planning | Not started |
 | TP-04 | Guarded execution and task progression | Not started |
 | TP-05 | Verification, recovery, and replanning | Not started |
@@ -69,7 +69,7 @@ Update this table only when implementation and required validation are complete.
 - [Acceptance, actual verification and next-package handoff](../../docs/guides/TASK_PLANNING_ACCEPTANCE.md)
 - [Expanded source audit](TP_01A_EVIDENCE.json): all mandatory family/step pairs and exact registry schemas at the reviewed commit.
 
-The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 and later packages have not started.
+The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 is complete under the owner-directed focused validation scope. TP-03 and later packages have not started.
 
 ## TP-01B contracts and verification
 
@@ -106,8 +106,20 @@ skip reasons and outstanding runtime limits. All nine criteria are satisfied. Fu
 tests (14 existing skips) and 5,350 PostgreSQL tests (11 existing skips), all ten gates and all five product flows.
 The real lean agent/import tests, installed core wheel, frozen schemas, final independent review and all four
 completion-corpus validation/freshness checks passed. No task or new boundary test skipped. Core remains 0.157.0;
-Home, Lead Agent and execution defaults are unchanged. TP-02 may begin as a separate proposal-only package and
-has not started. Task execution, durable recovery and rollout remain later work.
+Home, Lead Agent and execution defaults are unchanged by the foundation. TP-02 is now complete as the separate
+proposal-only package recorded below. Task execution, durable recovery and rollout remain later work.
+
+## TP-02 proposal acceptance
+
+[Task decomposition acceptance](../../docs/guides/TASK_DECOMPOSITION_ACCEPTANCE.md) records the versioned prompt,
+source-preserving boundary compiler, exact deterministic fallback, request limits, privacy and API thinking capture.
+The final relevant suite passed 175 tests in six files, including all 44 task-decomposer tests. All nine scripted
+DEV scenarios passed at zero live cost and zero task execution. Final focused review passed. The OpenRouter
+reasoning allowance is preserved and included in the planner's token ceiling and euro reservation.
+
+The owner explicitly stopped broad testing on 2026-11-11 and requested only relevant tests and test groups.
+Acceptance follows that instruction; no final full repository or full PostgreSQL pass is claimed. The authorized
+replay compatibility repair requires fresh permission and keeps its reason in the workspace audit. TP-03 is not started.
 
 ## Implementation rules
 

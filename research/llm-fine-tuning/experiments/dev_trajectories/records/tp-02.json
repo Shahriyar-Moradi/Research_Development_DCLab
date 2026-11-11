@@ -1,7 +1,7 @@
 {
   "package": "TP-02",
   "title": "Bounded model task boundaries with an unchanged deterministic fallback",
-  "date": "2026-11-06",
+  "date": "2026-11-11",
   "request": "Implement only TP-02 after reading the planning README, master specification and package prompt; run required checks and independent review, then stop.",
   "spec": "engineering/planning/TP_02.txt",
   "plan": [
@@ -35,6 +35,14 @@
     {
       "decision": "Require a fresh caller-supplied reuse reason for every final-stage replay, also through the existing CLI.",
       "why": "The owner authorized the replay compatibility repair after the required full gate exposed a conflict with the newer holdout receipt guard. An old permission must never authorize another score."
+    },
+    {
+      "decision": "Preserve the OpenRouter reasoning allowance and count its full transmitted ceiling in token checks and cost reservation.",
+      "why": "The reply budget and reasoning allowance share the provider output ceiling. The planner must use the same request calculation as the transport, including endpoint floors and per-call thinking options."
+    },
+    {
+      "decision": "Use only relevant tests and test groups for final acceptance, as the owner explicitly instructed.",
+      "why": "The owner stopped broad repository testing and requested continued development with focused validation. Interrupted or failed broad runs remain historical evidence and are not reported as passes."
     }
   ],
   "change": "Added a proposal-only task decomposer, a versioned prompt, one new harness role and gateway purpose, strict optional request bounds, actual API thinking summary labeling and persistence tests, marked-cell privacy coverage, a scripted DEV comparison and acceptance guide.",
@@ -199,6 +207,26 @@
       "fix": "Use the existing source-workspace audit before scoring to keep a bounded redacted reason, principal identity, original run and attempt ID. Record a linked completed or failed outcome without changing source receipts or putting free text in run metadata.",
       "test": "A real audit-file regression failed with zero saved permission entries before the fix. It now verifies the requested entry exists before execution and survives scratch deletion, the completed run is linked, email text is redacted, missing permission produces no audit, and split drift produces a failed outcome.",
       "severity": "gap"
+    },
+    {
+      "id": "TP02-REVIEW-OPENROUTER-ALLOWANCE",
+      "source": "reviewer",
+      "defect": "The new OpenRouter reasoning allowance increased the final request after the planner had checked and priced a smaller output ceiling.",
+      "scenario": "A normal planner request checked eighteen hundred tokens but sent thirty-eight hundred forty-eight. A tier floor of eight thousand sent ten thousand forty-eight despite the default ninety-eight-hundred ceiling. The known-price reservation also omitted the added allowance.",
+      "cause": "ChatClient effective_max_tokens counted only the requested reply and endpoint floor, while _extra added reasoning later. The gateway also discarded per-call options when estimating the limit.",
+      "fix": "Calculate the effective ceiling with the same limit and extra-body builders as the outgoing request. Forward per-call options to accounting. Preserve the reasoning allowance, transport payload behavior, single attempt and deadline.",
+      "test": "Three new test methods failed before the fix, including two token-ceiling scenarios, full-limit pricing and euro-cap refusal. All four new methods pass after the fix, including explicit thinking-off behavior. The focused six-file suite passes one hundred seventy-five tests, and independent review passed thirty offline option/floor cases.",
+      "severity": "latent"
+    },
+    {
+      "id": "TP02-COMPLETION-CORPUS-PRIVACY",
+      "source": "test",
+      "defect": "An intervening committed provider-switch record contained a private absolute plan path and had stale generated development data.",
+      "scenario": "The isolated validation copy rejected six examples from that record and failed corpus freshness.",
+      "cause": "A private plan pointer was stored in an exportable record, and its new record was committed without the matching corpus rebuild.",
+      "fix": "Replace the private pointer with a descriptive plan reference and rebuild through the existing corpus and catalog commands. Later shared-source commits already contain the corrected main-tree record.",
+      "test": "All four development-record tests and all ten static evidence/freshness gates passed on the repaired validation copy. No runtime rule or recorded measurement was changed.",
+      "severity": "privacy"
     }
   ],
   "measurements": [
@@ -243,7 +271,7 @@
       "verdict": "pass",
       "cost_eur": 0,
       "limits": [
-        "Broad repository and package checks remain separate pending measurements. No live model or sealed evaluation was run."
+        "Broad suites were later stopped by the owner; final acceptance uses relevant focused groups. No live model or sealed evaluation was run."
       ]
     },
     {
@@ -270,22 +298,24 @@
       "verdict": "pass",
       "cost_eur": 0,
       "limits": [
-        "Final repository and package gates are separate pending measurements. Workspace audit retains its existing best-effort and no-workspace behavior."
+        "Broad suites were later stopped by the owner; final acceptance uses relevant focused groups. Workspace audit retains its existing best-effort and no-workspace behavior."
       ]
     },
     {
-      "name": "Final package gates and independent review",
-      "gate": "Required package and repository checks must pass and independent review must leave no unresolved correctness findings before completion.",
-      "result": "In progress; no completion claim until the final recorded gates and review finish.",
-      "verdict": "not scored"
+      "name": "Owner-directed final focused validation",
+      "gate": "The relevant proposal, gateway, transport, privacy and thinking-capture tests must pass, and independent review must leave no correctness finding.",
+      "result": "One hundred seventy-five tests in six isolated files passed without skips: forty-four task decomposer, forty-two gateway, thirteen OpenRouter capture, twenty-one Anthropic transport, eleven thinking capture and forty-four model privacy. Independent review returned PASS and verified thirty offline request/accounting cases. The owner explicitly stopped broad gates; no final broad-suite pass is claimed.",
+      "verdict": "pass",
+      "cost_eur": 0
     }
   ],
-  "outcome": "The TP-02 implementation and owner-authorized replay compatibility repair passed final independent review and focused tests. Final required repository and package gates are pending. TP-03 is not started.",
+  "outcome": "TP-02 is complete under the owner-directed focused validation scope. Task-boundary proposals preserve the deterministic fallback and all source authority. The owner-authorized replay repair keeps fresh permission and its audit. OpenRouter reasoning remains enabled and its full allowance is checked and reserved. Product defaults remain unchanged; TP-03 is not started.",
   "lessons": [
     "A compiler can preserve immutable scientific tasks while a model proposes useful group boundaries.",
     "Count provider retries and shadows when limiting model calls; one application completion is not necessarily one provider attempt.",
     "Check the effective token limit including thinking headroom and endpoint floors, and fail closed on an unknown price.",
-    "Treat scripted adversarial rejection rates as checker evidence, never as real model quality."
+    "Treat scripted adversarial rejection rates as checker evidence, never as real model quality.",
+    "Compute a model request ceiling with the same builder that sends it; adding reasoning after budget checks can bypass both token and euro limits."
   ],
   "risks": [
     "The existing adapter supports only basic binary workflows; general branch scheduling and programme decomposition are not proved here.",

@@ -591,7 +591,7 @@ class Bound:
         with observe.span(name="model_request"):  # 23.11: a model request is a span of the trace it was made in; its event carries the ids
             out = self._call(lambda: self._transport.complete(messages, tools, max_tokens, **options), messages,
                              can_retry=lambda: not single_attempt, max_tokens=max_tokens, tools=tools,
-                             require_price=require_price, max_total_tokens=max_total_tokens)
+                             require_price=require_price, max_total_tokens=max_total_tokens, request_options=options)
         if snapshot is not None:
             self._shadow(snapshot, tools, max_tokens, out)
         return out
@@ -632,11 +632,12 @@ class Bound:
 
     def _call(self, send: Callable[[], dict[str, Any]], messages: list[dict[str, Any]], can_retry: Callable[[], bool],
               max_tokens: int | None = None, tools: list[dict[str, Any]] | None = None,
-              require_price: bool = False, max_total_tokens: int | None = None) -> dict[str, Any]:
+              require_price: bool = False, max_total_tokens: int | None = None,
+              request_options: dict[str, Any] | None = None) -> dict[str, Any]:
         cleanups: list[Callable[[], None]] = []
         token = _RESERVATION_CLEANUPS.set(cleanups)
         try:
-            return self._reserved_call(send, messages, can_retry, max_tokens, tools, require_price, max_total_tokens)
+            return self._reserved_call(send, messages, can_retry, max_tokens, tools, require_price, max_total_tokens, request_options)
         finally:
             _RESERVATION_CLEANUPS.reset(token)
             for release in reversed(cleanups):
@@ -644,7 +645,8 @@ class Bound:
 
     def _reserved_call(self, send: Callable[[], dict[str, Any]], messages: list[dict[str, Any]], can_retry: Callable[[], bool],
                        max_tokens: int | None, tools: list[dict[str, Any]] | None,
-                       require_price: bool, max_total_tokens: int | None) -> dict[str, Any]:
+                       require_price: bool, max_total_tokens: int | None,
+                       request_options: dict[str, Any] | None = None) -> dict[str, Any]:
         started, attempts, delay = time.monotonic(), 0, BACKOFF
         try:
             # the earlier turns' reasoning goes back to the server under its field (D2), so it is in the prompt's size too
@@ -654,7 +656,7 @@ class Bound:
                 # Strict callers reserve at least one input token per UTF-8 byte, rather than the usual chars/3
                 # estimate. The pricing helper divides by three; multiply here to keep that conservative bound.
                 chars = 3 * len(json.dumps({"messages": messages, "tools": tools}, ensure_ascii=False).encode())
-            limit = self._transport.effective_max_tokens(max_tokens, {}) if hasattr(self._transport, "effective_max_tokens") else max_tokens
+            limit = self._transport.effective_max_tokens(max_tokens, request_options or {}) if hasattr(self._transport, "effective_max_tokens") else max_tokens
             if max_total_tokens is not None and (limit is None or limit > max_total_tokens):
                 raise ValueError("the transport's output and thinking exceed the token budget")
             # the thinking's room counts too (the review of 2026-10-28): every purpose now thinks, and a cap that read only the

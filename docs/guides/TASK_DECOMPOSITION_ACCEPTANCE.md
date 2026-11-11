@@ -1,6 +1,6 @@
 # TP-02 — bounded task-boundary proposals
 
-Status: implementation, scripted DEV comparison and independent TP-02 review complete; final gates and the owner-authorized replay compatibility repair are being verified.
+Status: complete under the owner-directed focused validation scope (2026-11-11).
 Scope: TP-02 plus the replay compatibility repair explicitly authorized by the owner on 2026-11-11 after a required gate failure. TP-03 planning, task execution, persistence, recovery and product rollout remain later work.
 Original working base: `602c82ad692c6b4af03e0332dcd292e6f6ce555d`. Implementation is now committed as
 `c49b6790dcfaeb0c84e5055834165647a829a19c`; completion resumed on `69fcb92de5049b0e4397f965ada057cb2b8bcaa9`
@@ -47,8 +47,9 @@ candidate, report = decompose(
 ```
 
 Callers must obtain metadata, confirmation and permissions from current authenticated host records. Model output
-cannot supply any of these inputs. No product route or existing agent calls this API. Core remains 0.157.0; frozen
-TaskGraph and TaskExecutionPlan v1 schemas, the portable wheel and main-product adapters are unchanged.
+cannot supply any of these inputs. No product route or existing agent calls this API. TP-02 changes no portable
+TaskGraph/TaskExecutionPlan v1 schema, wheel configuration or main-product adapter. Core is 0.157.0; intervening
+core work from other packages is preserved.
 Model proposals require the normal gateway's `Bound` client, which implements the strict request controls.
 Legacy adapters such as `TwinGateway` return the exact fallback before requesting: accepting similarly named
 options is not proof that an adapter enforces their budgets.
@@ -61,8 +62,9 @@ tools and promotes no source text into system policy.
 
 One harness role step records the outcome, code-owned refusal codes, elapsed seconds and model request ID. Model
 provenance points to that request. The gateway keeps the returned API thinking summary beside the reply where
-workspace policy permits model text. It is labeled **API thinking summary**, requested with adaptive thinking and
-`display: "summarized"` on Anthropic. No thinking or raw model prose enters the task graph or role step. The new
+workspace policy permits model text. Anthropic summaries are labeled **API thinking summary** and requested with
+adaptive thinking and `display: "summarized"`. OpenRouter reasoning retains the gateway's content-specific label;
+raw model reasoning is not mislabeled as an API summary. No thinking or raw model prose enters the task graph or role step. The new
 purpose has a dedicated persistence test and a zero-cell privacy test.
 
 ## Bounds and limits
@@ -126,7 +128,7 @@ The gate was declared in the runner before recording the result. TP-06 promotion
 - The re-check found a reservation leak when the deadline interrupted acquisition/handoff. A warmed regression
   reproduced the leaked hold before the fix. Call-local cleanup now owns the lease before money is reserved;
   three regressions cover acquisition, handoff and an alarm during the hold update. All 38 task tests and all 41
-  gateway tests pass together. The first broad gate was deliberately interrupted and will be restarted on this fix.
+  gateway tests pass together. That broad run was interrupted; the final owner-directed validation scope is recorded below.
 - A further independent check found that masking main's OS signal alone missed process alarms delivered through
   another thread. A real-timer regression reproduced the leak. The deadline handler now recognizes a Python-level
   budget critical section and raises immediately after its transaction commits. The same real-timer regression
@@ -150,7 +152,7 @@ The gate was declared in the runner before recording the result. TP-06 promotion
 - Final independent source review: **PASS**, no remaining correctness findings. The reviewer independently ran
   all 40 task tests, both gateway-construction checks and the marked-cell privacy check. The current harness
   evaluation (`HRN-114`) passed all 17 cases at zero cost. The nine-case DEV comparison passed again, with zero
-  live requests or task execution. Broad package and repository gates still need their final recorded results.
+  live requests or task execution. Later broad runs were stopped or interrupted; the final validation scope is recorded below.
 - The resumed full `make rd-check JOBS=6` ran 5,447 tests in 476 files (733 units, 1,986.9 seconds), with 14 existing
   skips and two failures. All ten evidence/freshness gates passed. An existing routing override lacked configuration
   documentation; its empty default is now documented and the unchanged inventory passes. The other failure was the
@@ -159,7 +161,8 @@ The gate was declared in the runner before recording the result. TP-06 promotion
   now needs a fresh, nonblank `reuse_reason`, even for older records without receipts or a previously authorized run.
   The existing CLI accepts `--reuse-reason`. Code never invents permission from the old run. The copied receipt and
   split-drift guard remain intact; the original project, receipt and count do not change. A newly authorized replay
-  preserves the numerical comparison but honestly reports `holdout_reuse` as a changed parameter. Replay regression
+  preserves the numerical comparison. For an original first-use run, `holdout_reuse` is honestly reported as a
+  changed parameter; every fresh permission has its own audit entry. Replay regression
   tests failed before their corresponding fixes. The audited focused checks passed 93 tests in five files with no skips.
 - Replay review found that the fresh permission reason disappeared with the scratch copy. The existing workspace
   audit now records a bounded, redacted reason and the original run before scoring, followed by a linked completed
@@ -170,7 +173,35 @@ The gate was declared in the runner before recording the result. TP-06 promotion
   does not enter the run metadata or task graph.
 - Final independent re-check: **PASS**, no correctness findings. The reviewer independently passed 37 tests with
   no skips: 28 lineage, six holdout safety, both gateway-construction checks and the unsupported-client regression.
-- Final package/repository gates and isolated committed gate: pending.
+- A shared-source OpenRouter change added reasoning after the checked output ceiling. The default request checked
+  1,800 tokens but sent 3,848; a floor of 8,000 could send 10,048 above the planner's 9,800 ceiling. The planner now
+  checks and prices the same complete wire limit. The reasoning allowance is preserved. Three new regression
+  methods failed before the fix; all four pass afterward, including reasoning turned off for a call.
+- Final focused suite: **175 tests in six files passed, no skips** (`test_task_decomposer`, `test_models_gateway`,
+  `test_openrouter_reasoning_capture`, `test_anthropic_transport`, `test_thinking_capture`, `test_model_data_limits`).
+  All 44 task tests pass. Focused independent review: **PASS**, no correctness findings, with 30 additional offline
+  cases covering floors, token-field variants and caller options. The current DEV comparison passed 9/9 again,
+  and the lean import checks passed 2/2. No live model or sealed evaluation was invoked for TP-02 validation.
+
+## Final validation scope
+
+On 2026-11-11 the owner instructed: “continue to develop and do only relevant tests and test groups not all of them.”
+All broad test processes were stopped. Final acceptance uses the relevant groups above and the completion-record
+freshness checks. Full `rd-check`, full PostgreSQL, `check-all` and broad committed-head gates are not claimed as
+passing for this final change and are not restarted under this instruction.
+
+Earlier broad evidence is historical: one file stage passed 4,595 tests in 400 files (10 skips); an isolated later
+file stage passed 4,754 tests in 408 files (12 skips). Server restarts and shared-checkout changes interrupted later
+stages. An intervening provider-switch record's private path and stale corpus were repaired in the validation copy;
+its four corpus checks and all ten static gates passed. A short-budget FLAML smoke test failed under resource load,
+then all 16 unchanged tests passed in isolation. These runs do not replace or imply a final broad-suite pass.
+
+Completion checks also passed: four development-corpus validation/freshness tests, five prompt/harness freshness tests,
+and the generated data-catalog freshness check. The corpus was rebuilt from all current committed records with `make sft-dev`.
+
+The task-decomposer, budget, privacy and thinking-capture tests in the final focused run have no skips. The public
+contracts and product execution defaults remain unchanged. Live decomposition quality and product rollout remain
+outside this package.
 
 ## Files and remaining work
 

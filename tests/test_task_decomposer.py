@@ -549,6 +549,75 @@ class TaskDecomposerTests(unittest.TestCase):
         self.assertEqual(report["status"], "fallback")
         self.assertFalse(self.sent)
 
+    def openrouter_transport(self, floor=0):
+        from types import SimpleNamespace as NS
+        from dclab_rnd.models.client import ChatClient
+
+        patch.dict(os.environ, {"DCLAB_LLM_PROVIDER": "openai", "OPENAI_BASE_URL": "https://openrouter.ai/api/v1",
+                               "OPENAI_MODEL": "claude-sonnet-5-5", "OPENROUTER_REASONING": "1",
+                               "DCLAB_THINKING": "", "DCLAB_REASONING_TOKENS": "2048"}).start()
+        transport = ChatClient(model="claude-sonnet-5-5", base_url="https://openrouter.ai/api/v1", api_key="test-key",
+                               max_retries=0, max_tokens_floor=floor)
+
+        def create(**kwargs):
+            self.sent.append(copy.deepcopy(kwargs))
+            return NS(choices=[NS(message=NS(content=json.dumps(self.answer), tool_calls=[]), finish_reason="stop")],
+                      usage=NS(prompt_tokens=10, completion_tokens=30))
+
+        transport._client = NS(chat=NS(completions=NS(create=create)))
+        self.gateway.transport = lambda tier, purpose: transport
+        return transport
+
+    def test_openrouter_reasoning_allowance_cannot_exceed_the_planner_token_ceiling(self):
+        for floor, ceiling in ((0, 1800), (8000, 9800)):
+            with self.subTest(floor=floor, ceiling=ceiling):
+                self.sent.clear()
+                self.openrouter_transport(floor)
+                graph, report = self.run_decomposer(budget=DecompositionBudget(max_total_tokens=ceiling))
+                self.assertEqual(graph, self.baseline)
+                self.assertEqual(report["status"], "fallback")
+                self.assertFalse(self.sent, "The final output/thinking limit must be checked before requesting.")
+
+    def test_openrouter_planner_reserves_the_full_transmitted_token_limit(self):
+        from dclab_rnd.models import prices
+
+        self.openrouter_transport()
+        with patch.object(prices, "estimate", wraps=prices.estimate) as estimate:
+            _, report = self.run_decomposer()
+        self.assertEqual(report["status"], "proposed")
+        self.assertEqual(len(self.sent), 1)
+        self.assertEqual(self.sent[0]["max_tokens"], 1800 + 2048)
+        self.assertTrue(self.sent[0]["extra_body"]["reasoning"])
+        self.assertEqual(estimate.call_args.args[3], self.sent[0]["max_tokens"])
+
+    def test_openrouter_allowance_cannot_bypass_the_planner_euro_cap(self):
+        from dclab_rnd.models import prices
+
+        transport = self.openrouter_transport()
+        with patch.object(prices, "estimate", wraps=prices.estimate) as estimate:
+            self.assertEqual(self.run_decomposer()[1]["status"], "proposed")
+        priced = estimate.call_args.args[:3]
+        reply_only = prices.estimate(*priced, 1800)
+        full_request = prices.estimate(*priced, self.sent[0]["max_tokens"])
+        self.assertGreater(full_request, reply_only)
+        cap = (reply_only + full_request) / 2
+        self.sent.clear()
+        self.gateway = Gateway(FileUsage(self.home / "fresh-usage.jsonl"), transport=lambda tier, purpose: transport,
+                               sleep=lambda _: self.fail("TP-02 must not retry"))
+        graph, report = self.run_decomposer(budget=DecompositionBudget(cap_eur=cap))
+        self.assertEqual(graph, self.baseline)
+        self.assertEqual(report["status"], "fallback")
+        self.assertFalse(self.sent, "The complete reasoning allowance must be reserved before requesting.")
+
+    def test_gateway_token_accounting_honors_a_call_that_disables_reasoning(self):
+        self.openrouter_transport()
+        client = self.gateway.client("task_decomposer", project_id=self.project["id"])
+        reply = client.complete([{"role": "user", "content": "Group the approved tasks."}], max_tokens=1800,
+                                thinking="off", single_attempt=True, require_price=True, max_total_tokens=1800)
+        self.assertTrue(reply["content"])
+        self.assertEqual(self.sent[0]["max_tokens"], 1800)
+        self.assertNotIn("reasoning", self.sent[0].get("extra_body", {}))
+
     def test_scripted_dev_gate_records_expected_outcomes_without_live_calls(self):
         from dclab_rnd.tasks.evaluate import evaluate
 

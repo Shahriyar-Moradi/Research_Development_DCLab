@@ -248,8 +248,10 @@ class ChatClient:
         return {"reasoning_fields_seen": seen} if seen else {}
 
     def effective_max_tokens(self, max_tokens: int | None, options: dict[str, Any] | None = None) -> int | None:
-        """The actual reply/reasoning limit, including an endpoint's configured minimum."""
-        return max(max_tokens, self.max_tokens_floor or 0) if max_tokens is not None else None
+        """The wire limit, with the same floor, reasoning allowance and options as the request."""
+        kwargs = self._extra({**self._limit(max_tokens), **(options or {})})
+        return max((kwargs[key] for key in ("max_tokens", "max_completion_tokens")
+                    if isinstance(kwargs.get(key), int)), default=None)
 
     def _limit(self, max_tokens: int | None) -> dict[str, Any]:
         """OpenAI's newer models take ``max_completion_tokens`` (they refuse ``max_tokens``); other OpenAI-compatible
