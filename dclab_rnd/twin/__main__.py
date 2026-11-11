@@ -92,7 +92,8 @@ def main(argv: list[str] | None = None) -> int:
 
     seed = f"sample:{args.sample}" if args.sample else f"project:{args.project}" if args.project else f"draft:{args.draft}"
     model = args.model or claude.model_name()
-    plan = {"seed": seed, "model": model, "endpoint": "Anthropic Messages API (models.anthropic_client)", "key": "set" if claude.api_key() else "ANTHROPIC_API_KEY not set",
+    plan = {"seed": seed, "model": model, "endpoint": "OpenRouter (models.client)" if claude.on_openrouter() else "Anthropic Messages API (models.anthropic_client)",
+            "key": "set" if claude.api_key() else ("OPENROUTER_API_KEY not set" if claude.on_openrouter() else "ANTHROPIC_API_KEY not set"),
             "caps": {"max_requests": args.max_requests, "cap_eur": args.cap_eur, "max_steps": args.max_steps, "max_minutes": args.max_minutes},
             "design": {"on": not args.no_design, "checkpoints": [c for c in args.design_checkpoints.split(",") if c.strip()], "steer": not args.no_steer},
             "thinking": claude.thinking_setting() or "off",

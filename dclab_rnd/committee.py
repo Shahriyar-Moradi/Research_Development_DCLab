@@ -349,8 +349,10 @@ def main(argv: list[str] | None = None) -> int:
             print("no model serves decision_answer here: nothing sent, nothing written")
             return 2
         home = Path(os.environ.get("DCLAB_AGENT_HOME") or ROOT / "agent_runs")
+        from .models import settings as _settings
+
         path = exam_claude(points, args.per_point, GatewayAdvisor(gateway, max_tokens=300, cap_eur=args.cap_eur), manifest,
-                           full=home / "answers" / "committee_answers.jsonl")
+                           full=home / "answers" / "committee_answers.jsonl", model=_settings.served_model("decision_answer"))
         doc = json.loads(path.read_text(encoding="utf-8"))
         for point, e in doc["points"].items():
             print(f"{point:<24} " + " ".join(f"{k}={v['accuracy']}" for k, v in e["scores"].items()))

@@ -43,13 +43,14 @@ DATA_WORK = re.compile(r"\b(?:build|make|give|send|create|prepare|set up|get)\b[
 JUST_ANSWER = re.compile(r"\b(?:no data work|just (?:the )?answer|quick q(?:uestion)?|in general|in theory)\b", re.I)
 HELP = re.compile(r"\b(?:can you help|help me|help us|what can you do|how can you help|i need help)\b", re.I)
 TURN_BUDGET = 3  # the person's turns after which, with the goal and the data known, the agent proposes or starts
-# ROUTE_MODEL = "claude-haiku-5-5"  # the cheap second reading of the route (Anthropic Claude, kept commented)
-ROUTE_MODEL = "qwen/qwen3.8-flash"  # the cheap second reading of the route (OpenRouter Qwen)
+# the cheap second reading of the route when the product runs on Anthropic (2026-11-11: on OpenRouter the cheap tier's model
+# serves it, so a Qwen name is never sent to Anthropic's endpoint, nor a Claude name to OpenRouter)
+ROUTE_MODEL = "claude-haiku-5-5"
 
 
 def route_model() -> str:
     """The model for the second reading of the route: DCLAB_ROUTE_MODEL when set, the cheap tier's model when running on
-    OpenRouter (qwen/qwen3.8-flash by default), else ROUTE_MODEL."""
+    OpenRouter (qwen/qwen3.8-flash by default), else ROUTE_MODEL (Anthropic's Haiku)."""
     from ..models import settings as model_settings
 
     explicit = os.environ.get("DCLAB_ROUTE_MODEL", "").strip()

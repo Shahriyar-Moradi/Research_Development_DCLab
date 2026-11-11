@@ -15,8 +15,12 @@ from typing import Any
 
 from .campaign import CAMPAIGN_DIR, CAMPAIGN_ID, sync_campaign_outputs
 
-# DEFAULT_MODEL = "gpt-5.6-terra"
-DEFAULT_MODEL = "qwen/qwen3.8-flash"
+def default_model() -> str:
+    """The campaign reviewer's model: the one the strong tier serves under the current settings (2026-11-11: never a name
+    written here, so a Qwen name never reaches Anthropic's endpoint nor a Claude name OpenRouter)."""
+    from .models import settings
+
+    return settings.served_model("campaign_review") or "qwen/qwen3.8-flash"
 MEMORY_NAME = "llm_review_memory.jsonl"
 
 
@@ -314,7 +318,7 @@ def append_memory(
 def run_llm_reviews(
     root: Path,
     *,
-    model: str = DEFAULT_MODEL,
+    model: str | None = None,
     limit: int | None = None,
     experiment_ids: list[str] | None = None,
     sleep_s: float = 0.4,
@@ -325,6 +329,7 @@ def run_llm_reviews(
     """``beside`` (29.18): review every completed experiment as a second reviewer: the reviews go to this model's own
     memory and to ``reviews/<model>/<id>.json`` (what was sent and the whole raw reply); no result, no shared memory and
     no campaign report is changed, and nothing earlier is deleted."""
+    model = model or default_model()
     client = _client(root, model)
     if cap_eur is not None:  # the most this run may spend; the gateway stops the request that would pass it
         client.run_limit_eur = cap_eur

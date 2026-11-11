@@ -28,8 +28,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-# DEFAULT_MODEL = "claude-sonnet-5-5"
-DEFAULT_MODEL = "qwen/qwen3.8-flash"
+DEFAULT_MODEL = "claude-sonnet-5-5"  # the Anthropic lane's model when no tier names one; on OpenRouter the strong tier's model
 TRANSCRIPT = "model_calls.jsonl"
 THINKING = "thinking.jsonl"  # 25.3: the model's thinking beside each reply, in the lane's transcripts/
 
@@ -41,20 +40,37 @@ def thinking_setting() -> str | None:
     return None if value.lower() in ("", "0", "off", "none", "false") else value
 
 
+def on_openrouter() -> bool:
+    """The twin follows the product's provider (2026-11-11): OpenRouter when DCLAB_LLM_PROVIDER says so, Anthropic otherwise,
+    whatever keys are present, so switching back is one line and no model name crosses providers."""
+    from ..models import settings
+
+    return settings.openrouter_default()
+
+
 def model_name() -> str:
-    return os.environ.get("DCLAB_TWIN_MODEL", "").strip() or os.environ.get("OPENROUTER_MODEL", "").strip() or DEFAULT_MODEL
+    from ..models import settings
+
+    explicit = os.environ.get("DCLAB_TWIN_MODEL", "").strip()
+    if explicit:
+        return explicit
+    served = settings.served_model("twin_lane") if "twin_lane" in settings.PURPOSES else str((settings.tier("strong") or {}).get("model") or "")
+    if on_openrouter():
+        return served or settings.OPENROUTER_DEFAULT_MODEL
+    return served if served.startswith("claude") else DEFAULT_MODEL
 
 
 def api_key() -> str:
-    # return os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    return os.environ.get("OPENROUTER_API_KEY", "").strip() or os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if on_openrouter():
+        return os.environ.get("OPENROUTER_API_KEY", "").strip()
+    return os.environ.get("ANTHROPIC_API_KEY", "").strip()
 
 
 def transport(model: str | None = None, key: str | None = None, timeout: float = 180) -> Any:
     """The real transport: OpenRouter's ChatClient (qwen/qwen3.8-flash by default) when OPENROUTER_API_KEY is set,
     else the gateway package's native Anthropic Messages client."""
     or_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    if or_key and not key:
+    if or_key and not key and on_openrouter():
         from ..models.gateway import _transport
         from ..models.settings import OPENROUTER_BASE_URL, Purpose
 
@@ -68,7 +84,7 @@ def transport(model: str | None = None, key: str | None = None, timeout: float =
 
     key = key or api_key()
     if not key:
-        raise RuntimeError("OPENROUTER_API_KEY (or ANTHROPIC_API_KEY) is not set")
+        raise RuntimeError("no key for the product's provider: OPENROUTER_API_KEY with DCLAB_LLM_PROVIDER=openrouter, else ANTHROPIC_API_KEY")
     return AnthropicClient(model or model_name(), api_key=key, timeout=timeout, thinking=thinking_setting())
 
 

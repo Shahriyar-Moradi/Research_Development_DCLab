@@ -3,14 +3,14 @@ Claude alone, the measurement every Phase 13 package is built against.
 
 Each written person (``people_dev.json``, 40, plus the owner's own Telco session as a gold case) has a hidden truth: the
 situation, the goal, the decision behind it, who uses the result, the data, what they know and their limits; the points a
-good listener must understand; the right route; and, for some, a planted trap. A separate model (Haiku 5.5) plays the
+good listener must understand; the right route; and, for some, a planted trap. A separate model (Haiku 5.5 on Anthropic, the product's model on OpenRouter) plays the
 person from that truth. Each arm talks with the person until a route is chosen or the turns run out:
 
 * ``home``: today's Home agent with the product's model;
 * ``plain``: Claude alone (the product's model, a plain prompt, the same table view, tools to offer options or start);
 * ``case``: the Phase 13 lead agent (37.3), the product's model with its case file and tools.
 
-A judge (Opus 5.5), blind to the arm, scores the points understood, each question, the options' fit and difference, and
+A judge (Opus 5.5 on Anthropic, the product's model on OpenRouter), blind to the arm, scores the points understood, each question, the options' fit and difference, and
 the trap. Code scores the route and safety (numbers nobody gave or computed, records listed in the chat). 37.0 reports the
 gap between the arms on dev; the gate for the sealed run is ``gate.GATE_V1``, fixed before any run; the owner labels ten
 conversations a run (``labels``). Every conversation is kept whole with the judge's answers, and every model call keeps its
@@ -63,9 +63,22 @@ ARMS = ("home", "plain", "case", "safe", "case_chip")  # case_chip (2026-11-04):
 READY_ARMS = ("home", "plain")  # the default arms; add case with --arms home,plain,case
 PURPOSES_CASE = "case_agent"
 PURPOSES = {"plain": "exam_plain", "person": "exam_person", "judge": "exam_judge"}
-# MODELS = {"person": "claude-haiku-5-5", "judge": "claude-opus-5-5"}  # the arms use the product's model (Sonnet 5.5)
-MODELS = {"person": "qwen/qwen3.8-flash", "judge": "qwen/qwen3.8-flash"}  # OpenRouter qwen/qwen3.8-flash for all exam roles
+# The person and the judge on Anthropic (the Claude-era exams, CEX-001 to CEX-034). On OpenRouter (2026-11-11, the owner:
+# "Qwen does everything") the standard tier's model plays the person and judges, as it answers in every arm.
+MODELS = {"person": "claude-haiku-5-5", "judge": "claude-opus-5-5"}
 MAX_PERSON_TURNS = 8
+
+
+def served_models() -> dict[str, str]:
+    """Which model each exam role uses under the current settings: the standard tier's for the arms; the same model for the
+    person and the judge on OpenRouter; Haiku and Opus on Anthropic."""
+    from ...models import settings as _s
+
+    standard = str((_s.tier("standard") or {}).get("model") or "")
+    on_openrouter = _s.openrouter_default() or _s._host(str((_s.tier("standard") or {}).get("base_url") or "")) == _s.OPENROUTER_HOST
+    if on_openrouter:
+        return {"arms": standard, "person": standard, "judge": standard}
+    return {"arms": standard, **MODELS}
 WHY = ("written people played by a model from their hidden truth, and judged by a model: their words and picks are a "
        "simulation's, never a person's label; the arms' replies are the systems' own")
 # the owner's own session (2026-10-29), a gold case: their words and the table they shared (the exam's customers table
@@ -608,7 +621,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"refused: people with problems: {bad}", file=sys.stderr)
         return 2
     per = sum(ESTIMATE_EUR.get(a, 0.15) + ESTIMATE_EUR["person"] + ESTIMATE_EUR["judge"] for a in arms)
-    print(json.dumps({"people": len(people), "arms": arms, "models": {"arms": "the product's (Sonnet 5.5)", **MODELS},
+    print(json.dumps({"people": len(people), "arms": arms, "models": served_models(),
                       "estimate_eur": round(len(people) * per, 2), "gate_for_37_10": _gate.gate_for(args.split)["version"]}, indent=1))
     if not args.yes:
         print("nothing was sent: add --yes and --cap-eur")
@@ -646,8 +659,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     if not (standard.startswith("claude") or on_openrouter):
         print(f"refused: the exam's arms run on the product's Claude or OpenRouter model; the standard tier serves {standard!r}", file=sys.stderr)
         return 2
-    person_model = standard if on_openrouter else MODELS["person"]
-    judge_model = standard if on_openrouter else MODELS["judge"]
+    served = served_models()
+    person_model, judge_model = served["person"], served["judge"]
     route_model = _case_agent.route_model() if on_openrouter else _case_agent.ROUTE_MODEL
     budget = Budget(gateway, args.cap_eur)
     keep = (vault / "conversations") if sealed else KEEP_ROOT / f"{datetime.now(timezone.utc):%Y-%m-%d}-conversation-exam" / run

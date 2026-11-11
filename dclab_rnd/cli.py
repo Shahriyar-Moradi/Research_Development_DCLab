@@ -212,11 +212,11 @@ def main(argv: list[str] | None = None) -> int:
             )
             try:
                 # Imported lazily: the OpenAI client is only needed for reviews.
-                from .llm_review import DEFAULT_MODEL, run_llm_reviews
+                from .llm_review import default_model, run_llm_reviews
 
                 return run_llm_reviews(
                     root,
-                    model=args.model or DEFAULT_MODEL,
+                    model=args.model or default_model(),
                     limit=args.limit,
                     experiment_ids=experiment_ids,
                     force=args.force,

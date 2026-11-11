@@ -200,8 +200,8 @@ def _debate_seats(args):
     from dclab_rnd.models import settings as model_settings
     from dclab_rnd.models.gateway import for_workspace
 
-    # os.environ.setdefault("DCLAB_TIER_CHEAP_MODEL", "claude-haiku-5-5")
-    os.environ.setdefault("DCLAB_TIER_CHEAP_MODEL", "qwen/qwen3.8-flash")
+    if not model_settings.openrouter_default():  # on Anthropic the cheap seats are Haiku; on OpenRouter the tier's own model serves
+        os.environ.setdefault("DCLAB_TIER_CHEAP_MODEL", "claude-haiku-5-5")
     gateway = for_workspace()
     from dclab_rnd.models.gateway import mark_invented_tables
     mark_invented_tables(gateway, "journeys (replicas)")  # every table here is invented by code

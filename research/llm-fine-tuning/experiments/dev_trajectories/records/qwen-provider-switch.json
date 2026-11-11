@@ -1,0 +1,64 @@
+{
+ "package": "qwen-provider-switch",
+ "title": "Every DCLab model call goes to OpenRouter Qwen, the lead agent included; Anthropic and OpenAI kept",
+ "date": "2026-11-11",
+ "request": "The owner moved DCLab's model to OpenRouter qwen/qwen3.8-flash: make sure the lead agent and every model call use it, without deleting the other providers.",
+ "spec": "/Users/shahriar/.claude/plans/magical-waddling-honey.md, step 1",
+ "plan": [
+  "Switch the provider in .env, keeping the Anthropic line commented and every key.",
+  "Remove model names written in code that cross providers.",
+  "Test every purpose under both providers."
+ ],
+ "decisions": [
+  {
+   "decision": "Model names in code are the Anthropic fallbacks only",
+   "why": "on OpenRouter every seat reads its tier's model, so a Qwen name never reaches Anthropic's endpoint nor a Claude name OpenRouter, and switching back is one line"
+  },
+  {
+   "decision": "Results record the served model",
+   "why": "the students' exam wrote qwen into its result whatever ran; the comparison with Claude needs the true model"
+  }
+ ],
+ "change": "models/settings.py served_model; agents/case_agent.py route model; conversation_exam served_models; journeys cheap seats; llm_review default_model and cli; committee and students_exam served model; twin/claude.py and twin/__main__.py follow the provider; tests/test_provider_switch.py; .env (not in git).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The switch was not live: .env still selected Anthropic, so the lead agent ran on Claude Sonnet",
+   "scenario": "after commit 7d921e40 every tier resolved to claude-sonnet-5-5",
+   "cause": "only .env.example was switched",
+   "fix": "DCLAB_LLM_PROVIDER=openrouter in .env, the Anthropic line kept commented",
+   "test": "tests/test_provider_switch.py test_on_openrouter_every_purpose_is_served_by_qwen"
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Qwen model names written in code were sent to Anthropic's endpoint",
+   "scenario": "on Anthropic the route check, the exam's person and judge, the journeys' cheap seats and the reviewer named qwen/qwen3.8-flash",
+   "cause": "hard-coded names replaced the Claude ones instead of following the tier",
+   "fix": "each seat reads its tier's model on OpenRouter and keeps the Claude fallback on Anthropic",
+   "test": "tests/test_provider_switch.py test_the_lead_agent_follows_the_provider"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The twin lane ignored the provider setting",
+   "scenario": "provider anthropic with the OpenRouter key kept: the twin still sent Qwen to OpenRouter; without that key a Qwen name went to Anthropic",
+   "cause": "transport chose OpenRouter whenever its key was present, and the model name defaulted to Qwen",
+   "fix": "the twin follows DCLAB_LLM_PROVIDER for transport, key and model",
+   "test": "tests/test_provider_switch.py test_the_twin_lane_follows_the_provider_whatever_keys_are_present"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every purpose in settings.PURPOSES, the lead agent's three included, resolves to OpenRouter qwen/qwen3.8-flash; with the Anthropic line restored, every one resolves to Claude again.",
+ "lessons": [
+  "A provider switch is not done until every name written in code follows it: check under both providers."
+ ],
+ "risks": [
+  "The reasoning capture labels and training rules for Qwen are other steps of the same plan."
+ ],
+ "commits": []
+}

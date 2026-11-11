@@ -401,11 +401,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     by_point = Counter(r["point"] for r in rows)
     apart = Counter(r["point"] for r in rows if r["_student"] is not None and r["_student"] != r.get("value_used"))
     estimate = cost_estimate(len(rows))
+    from .models import settings as _settings
+
+    served = _settings.served_model("decision_answer") or "no model configured"  # 2026-11-11: the model actually served, never a fixed name
     print(f"Plan: {len(rows)} dev decisions ({', '.join(f'{p} {n} ({apart[p]} where the student and the rule disagree)' for p, n in sorted(by_point.items()))}); "
-          f"qwen/qwen3.8-flash through decision_answer, about EUR {estimate}; GLiNER's captured answers read, not re-asked.")
+          f"{served} through decision_answer, about EUR {estimate}; GLiNER's captured answers read, not re-asked.")
     if args.rescore:
-        # doc = {"model": "claude-sonnet-5-5", "per_point": args.per_point, "seed": args.seed, "decisions": len(rows), "rescored_from": args.rescore,
-        doc = {"model": "qwen/qwen3.8-flash", "per_point": args.per_point, "seed": args.seed, "decisions": len(rows), "rescored_from": args.rescore,
+        doc = {"model": served, "per_point": args.per_point, "seed": args.seed, "decisions": len(rows), "rescored_from": args.rescore,
                **rescore(rows)}
         print(json.dumps(doc["scores"], indent=1, default=str))
         print(write(doc))
@@ -428,9 +430,10 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("no model serves decision_answer here (no key, or DCLAB_NO_LIVE_MODELS): nothing sent, nothing written")
         return 2
     home = Path(os.environ.get("DCLAB_AGENT_HOME") or ROOT / "agent_runs")
-    result = run(rows, GatewayAdvisor(gateway, max_tokens=300, cap_eur=args.cap_eur), workers=args.workers, full=home / "answers" / "answers.jsonl")
-    # doc = {"model": "claude-sonnet-5-5", "cap_eur": args.cap_eur, "estimate_eur": estimate, "per_point": args.per_point, "seed": args.seed,
-    doc = {"model": "qwen/qwen3.8-flash", "cap_eur": args.cap_eur, "estimate_eur": estimate, "per_point": args.per_point, "seed": args.seed,
+    served = _settings.served_model("decision_answer")
+    result = run(rows, GatewayAdvisor(gateway, max_tokens=300, cap_eur=args.cap_eur), workers=args.workers, full=home / "answers" / "answers.jsonl",
+                 model=served)
+    doc = {"model": served, "cap_eur": args.cap_eur, "estimate_eur": estimate, "per_point": args.per_point, "seed": args.seed,
            "decisions": len(rows), **result}
     print(json.dumps(doc["scores"], indent=1, default=str))
     print(write(doc))

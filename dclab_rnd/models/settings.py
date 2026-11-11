@@ -152,7 +152,7 @@ PURPOSES: dict[str, Purpose] = {
                                                 "code computed that holds no group name (leakage findings in words, a step's counts); a group "
                                                 "name only when the lead agent's words or notes repeat one (then its request is marked "
                                                 "as holding cells and kept redacted); never a row", cell_values=40, keeps_text=True),
-    "route_check": Purpose("standard", 60, "2026-11-01: the lead agent's second reading of the route (served by Haiku 5.5): the person's "
+    "route_check": Purpose("standard", 60, "2026-11-01: the lead agent's second reading of the route (Haiku on Anthropic; the cheap tier's model on OpenRouter): the person's "
                                           "own messages and the shared table's column names; never the assistant's messages, a row or a "
                                           "cell value", cell_values=0, keeps_text=True),
     "exam_plain": Purpose("standard", 180, "37.0: the conversation exam's Claude-alone arm: a written person's words (simulated, never a "
@@ -160,9 +160,9 @@ PURPOSES: dict[str, Purpose] = {
                                            "DCLab noticed about each, its row count, and the same computed aggregates as the lead agent (at most 20 "
                                            "groups of an invented table); never a person's data, a row or a person's cell value", cell_values=0,
                           keeps_text=True),
-    "exam_person": Purpose("standard", 90, "37.0: the simulated person of the conversation exam (served by Haiku 5.5): a written person's "
+    "exam_person": Purpose("standard", 90, "37.0: the simulated person of the conversation exam (Haiku on Anthropic; the standard tier's model on OpenRouter): a written person's "
                                            "hidden truth and the conversation so far; never data, a row or a cell value", cell_values=0, keeps_text=True),
-    "exam_judge": Purpose("standard", 240, "37.0: the conversation exam's judge (served by Opus 5.5), blind to the arm: a written person's "
+    "exam_judge": Purpose("standard", 240, "37.0: the conversation exam's judge (Opus on Anthropic; the standard tier's model on OpenRouter), blind to the arm: a written person's "
                                            "hidden truth, the points to understand, the trap and the conversation; never data, a row or a "
                                            "cell value", cell_values=0, keeps_text=True),
     "home_understand": Purpose("standard", 90, "the owner's Telco test (2026-10-29): Home's understanding conversation: the person's words, "
@@ -330,6 +330,13 @@ def embedding_tier() -> dict[str, Any] | None:
     if not base_url or not model or not is_local(base_url):
         return None
     return {"name": EMBEDDING_LOCAL, "base_url": base_url, "model": model, "api_key": "local", "provider": "openai", **options(EMBEDDING_LOCAL)}
+
+
+def served_model(purpose: str) -> str:
+    """The model that serves ``purpose`` under the current settings (its tier's model): what a result should record as the
+    served model, never a name written in code (2026-11-11)."""
+    p = PURPOSES.get(purpose)
+    return str((tier(p.tier if p else "standard") or {}).get("model") or "")
 
 
 def tier(name: str) -> dict[str, Any]:
