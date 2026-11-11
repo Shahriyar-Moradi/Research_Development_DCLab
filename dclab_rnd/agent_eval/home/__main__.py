@@ -48,9 +48,9 @@ class Budget:
         return client
 
 
-def _store(record: dict[str, Any], split: str, scored: bool) -> Path:
+def _store(record: dict[str, Any], split: str, scored: bool, suffix: str = "") -> Path:
     RESULTS.mkdir(parents=True, exist_ok=True)
-    path = RESULTS / f"{record['id']}_{split}{'' if scored else '_unscored'}.json"
+    path = RESULTS / f"{record['id']}_{split}{'_' + suffix if suffix else ''}{'' if scored else '_unscored'}.json"
     path.write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     return path
 
@@ -100,6 +100,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--yes", action="store_true", help="send the requests (the plan is printed either way)")
     parser.add_argument("--cap-eur", type=float, default=None, help="required with --yes for a priced model")
     parser.add_argument("--save", action="store_true", help="dev only: store the rules-alone run as evidence (nothing is sent)")
+    parser.add_argument("--model-rerun", default=None, help="the owner's one-time exception (2026-11-11): a new model reruns a spent "
+                                                             "sealed set once; named apart, marked not unseen")
     args = parser.parse_args(argv)
     from dclab_rnd import experience as _experience
 
@@ -136,9 +138,18 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(the_plan, indent=1))
         print("nothing was sent: add --yes and --cap-eur to run Home with the model")
         return 0
+    rerun = None
     if args.split in SEALED and sealed_runs(args.split):
-        print(f"refused: the sealed set was already run ({sealed_runs(args.split)[0].name}); it is run once", file=sys.stderr)
-        return 2
+        from .. import sealed as _sealed
+        from dclab_rnd.models import settings as _settings
+
+        model = _settings.served_model("home_agent")
+        first = [p for p in sealed_runs(args.split) if "_rerun_" not in p.name]
+        why = _sealed.refusal(args.model_rerun, model, RESULTS.glob(f"HOME-*_{args.split}_{_sealed.suffix(model)}*.json"))
+        if why:
+            print(f"refused: the sealed set was already run ({first[0].name if first else sealed_runs(args.split)[0].name}): {why}", file=sys.stderr)
+            return 2
+        rerun = {"suffix": _sealed.suffix(model), **_sealed.stamp(model, [p.stem.split("_")[0] for p in first])}
     if not the_plan["available"]:
         print("refused: no model serves home_agent here", file=sys.stderr)
         return 2
@@ -156,7 +167,10 @@ def main(argv: list[str] | None = None) -> int:
     if not scored:  # a failed request: kept as a record of what it cost, without values or scores, and never a sealed run
         result = {"arms": result["arms"], "requests": result["requests"], "failures": result["failures"], "summary": {},
                   "kept": result.get("kept")}
-    path = _store(_record(result, args.split, the_plan, budget.spent_eur(), scored), args.split, scored)
+    record = _record(result, args.split, the_plan, budget.spent_eur(), scored)
+    if rerun:
+        record.update({k: v for k, v in rerun.items() if k != "suffix"})
+    path = _store(record, args.split, scored, rerun["suffix"] if rerun else "")
     if scored:
         _print(result["summary"])
     print(f"spent €{budget.spent_eur():.4f}; stored {_shown(path)}")

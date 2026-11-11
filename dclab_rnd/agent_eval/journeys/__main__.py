@@ -31,6 +31,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--yes", action="store_true", help="send the reader's requests (with --reader)")
     parser.add_argument("--cap-eur", type=float, default=0.5, help="the reader's spend cap for the whole run")
     parser.add_argument("--spent", action="store_true", help="read a sealed set already run as dev material: nothing is stored")
+    parser.add_argument("--model-rerun", default=None, help="the owner's one-time exception (2026-11-11): a new model reruns a spent "
+                                                             "sealed set once; named apart, marked not unseen")
     parser.add_argument("--keep", type=Path, default=None, help="with --live-arms: every live journey's whole record copied into DIR/<arm>/<id>/")
     parser.add_argument("--walk", choices=("loop", "graph"), default="loop", help="28.3: the coordinator's loop, or its graph (the orchestration layer)")
     parser.add_argument("--team-arms", action="store_true", help="28.7: the rules, the single agent (the loop with the conversation reader) and the team "
@@ -51,9 +53,18 @@ def main(argv: Optional[list[str]] = None) -> int:
             print("--spent reads a sealed set that was run already, as dev material")
             return 2
         args.no_store, sealed = True, False  # its people are dev material now: played, never stored
-    if sealed and sealed_runs(args.split):
-        print("the sealed journeys were run once already: a sealed set is never run again")
-        return 2
+    if sealed and sealed_runs(args.split) and not args.spent:
+        from .. import sealed as _sealed
+        import dclab_rnd.agent_eval.journeys as _jr
+        from dclab_rnd.models import settings as _settings
+
+        model = _settings.served_model("conversation_reader")
+        first = [p for p in sealed_runs(args.split) if "_rerun_" not in p.name]
+        why = _sealed.refusal(args.model_rerun, model, [p for p in sealed_runs(args.split) if p.stem.endswith(_sealed.suffix(model))])
+        if why:
+            print(f"the sealed journeys were run once already: {why}")
+            return 2
+        _jr.RERUN = {"suffix": _sealed.suffix(model), **_sealed.stamp(model, [p.stem.split("_")[0] for p in first])}
     if args.split == "sealed_v4" and not args.spent and not args.reader:
         print("the fourth sealed set judges the reader against the rules: run it with --reader, both arms at once")
         return 2

@@ -1,0 +1,43 @@
+{
+ "package": "qwen-sealed-rerun",
+ "title": "A new model may take the sealed exams Claude took, once, named apart and marked not unseen",
+ "date": "2026-11-11",
+ "request": "The owner chose to rerun the old sealed sets with Qwen as a one-time exception, then write new sealed sets.",
+ "spec": "the approved Qwen plan (2026-11-11), step 5",
+ "plan": [
+  "One shared rule in agent_eval/sealed.py.",
+  "Wire it into the conversation exam, Home and the journeys, where Claude took sealed sets."
+ ],
+ "decisions": [
+  {
+   "decision": "The exception is asked for in words and refused for Claude",
+   "why": "a rerun is not unseen (DCLab was tuned after reading those results); it must never pass silently as a first sealed verdict"
+  },
+  {
+   "decision": "Reruns are named <RUN>_<split>_rerun_<model> and carry unseen false",
+   "why": "the comparison reads them beside Claude's first runs and the benchmark shows them apart"
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/sealed.py; conversation_exam/__init__.py; home/__main__.py and __init__.py; journeys/__main__.py and __init__.py; tests/test_sealed_rerun.py.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A widened sealed-run match would count other sets' files",
+   "scenario": "matching HOME-*_sealed*.json for split sealed also matched sealed_v5 and sealed_v6",
+   "cause": "a prefix glob",
+   "fix": "an exact pattern: the split, optionally followed by _rerun_<model>",
+   "test": "tests/test_sealed_rerun.py test_a_rerun_counts_for_its_own_set_only"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Without the exception a spent sealed set is refused as before; with it, a new model reruns it once and the result is named apart.",
+ "lessons": [
+  "When a rule gains an exception, check the old matching still sees exactly the files it saw before."
+ ],
+ "risks": [
+  "Analyst, investigator, map and built-chat sealed sets are not wired yet."
+ ],
+ "commits": []
+}

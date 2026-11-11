@@ -592,8 +592,10 @@ def plan(gateway: Any, cases: list[dict[str, Any]], max_tokens: int) -> dict[str
 
 
 def sealed_runs(split: str = "sealed") -> list[Path]:
-    """The stored scored runs of one sealed set (``HOME-NNN_<split>.json``): a sealed set is run once."""
-    return sorted(RESULTS.glob(f"HOME-*_{split}.json"))
+    """The stored scored runs of one sealed set (``HOME-NNN_<split>.json``, and a new model's one-time rerun
+    ``HOME-NNN_<split>_rerun_<model>.json``): a sealed set is run once, plus that exception."""
+    exact = re.compile(rf"HOME-\d+_{re.escape(split)}(?:_rerun_[a-z0-9-]+)?")  # "sealed" never matches sealed_v5's files
+    return sorted(p for p in RESULTS.glob(f"HOME-*_{split}*.json") if exact.fullmatch(p.stem))
 
 
 def next_id() -> str:

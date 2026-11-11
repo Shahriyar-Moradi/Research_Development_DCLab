@@ -589,6 +589,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--only", default=None, help="a comma list of person ids")
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--cap-eur", type=float, default=None)
+    parser.add_argument("--model-rerun", default=None, help="the owner's one-time exception (2026-11-11): a new model reruns a sealed set "
+                                                             "Claude took, once; the result is named apart and marked not unseen")
     args = parser.parse_args(argv)
     if args.split not in SPLITS:
         print(f"refused: no split {args.split!r}; there are {', '.join(SPLITS)}", file=sys.stderr)
@@ -596,6 +598,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
     if any(a not in ARMS for a in arms):
         parser.error(f"--arms takes {', '.join(ARMS)}")
+    rerun = None  # set below when a new model reruns a spent sealed set (sealed.py)
     sealed = args.split in SEALED
     if sealed:  # 37.10: read once, whole, with every arm the gate compares, and kept only in the eval-only vault
         import hashlib
@@ -609,9 +612,19 @@ def main(argv: Optional[list[str]] = None) -> int:
         if hashlib.sha256(SPLITS[args.split].read_bytes()).hexdigest() != SEALED[args.split].read_text(encoding="utf-8").strip():
             print("refused: the sealed set does not match its pinned fingerprint", file=sys.stderr)
             return 2
-        if args.yes and list(RESULTS.glob(f"CEX-*_{args.split}.json")):
-            print(f"refused: {args.split} was already run; a sealed set is run once", file=sys.stderr)
-            return 2
+        first = sorted(p.stem.split("_")[0] for p in RESULTS.glob(f"CEX-*_{args.split}.json"))
+        if first or args.model_rerun:
+            from .. import sealed as _sealed
+
+            model = served_models()["arms"]
+            why = _sealed.refusal(args.model_rerun, model, RESULTS.glob(f"CEX-*_{args.split}_{_sealed.suffix(model)}.json")) if first else \
+                "--model-rerun is for a sealed set that was already run"
+            if why:
+                if args.yes or args.model_rerun:
+                    print(f"refused: {args.split}: {why}", file=sys.stderr)
+                    return 2
+            else:
+                rerun = {"suffix": _sealed.suffix(model), **_sealed.stamp(model, first)}
     people = load(args.split)
     if args.only:
         wanted = {x.strip() for x in args.only.split(",")}
@@ -649,7 +662,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         from dclab_rnd import experience as _experience
         from dclab_rnd.settings import Settings
 
-        vault = Path(Settings().agent_home) / "exam_vault" / f"{run}_{args.split}"  # outside every folder the store reads
+        vault = Path(Settings().agent_home) / "exam_vault" / (f"{run}_{args.split}" + (f"_{rerun['suffix']}" if rerun else ""))  # outside every folder the store reads
         _experience.sealed_run(args.split, vault=vault)  # its calls: shape in the log, whole in the vault
     else:
         mark_invented_tables(gateway, args.split)
@@ -683,12 +696,13 @@ def main(argv: Optional[list[str]] = None) -> int:
                                                  "judge": budget.spent_eur(f"{tag}judge:{arm}-{pid}")})
     kept_at = str(keep.relative_to(ROOT)) if keep.is_relative_to(ROOT) else f"<workspace>/exam_vault/{run}_{args.split}/conversations"
     record = {"id": run, "split": args.split, "at": started, "arms": arms, "models": {"arms": f"{standard} (the product's)", "person": person_model, "judge": judge_model},
-              "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur, "kept": kept_at, "gate_for_37_10": _gate.gate_for(args.split), **result}
+              "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur, "kept": kept_at, "gate_for_37_10": _gate.gate_for(args.split), **result,
+              **({k: v for k, v in rerun.items() if k != "suffix"} if sealed and rerun else {})}
     if sealed:  # the verdict, read once; the conversations stay in the vault (never in a file a set could read)
         record.pop("conversations", None)
         record["verdict"] = _gate.verdict(result["scores"], lead="case", agreement=None, gate=_gate.gate_for(args.split))
     RESULTS.mkdir(parents=True, exist_ok=True)
-    path = RESULTS / f"{run}_{args.split}.json"
+    path = RESULTS / (f"{run}_{args.split}" + (f"_{rerun['suffix']}" if sealed and rerun else "") + ".json")
     path.write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     labels_dir = (vault / "labels") if sealed else LABELS
     labels_dir.mkdir(parents=True, exist_ok=True)

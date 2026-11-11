@@ -31,6 +31,7 @@ import contextlib
 import hashlib
 import json
 import math
+import re
 import shutil
 import tempfile
 import time
@@ -791,8 +792,15 @@ def reader_passed() -> bool:
     return False
 
 
+RERUN: Optional[dict[str, Any]] = None  # set by the CLI for a new model's one-time rerun of a spent sealed set (agent_eval/sealed.py)
+
+
 def sealed_runs(split: str = "sealed") -> list[Path]:
-    return sorted(RESULTS.glob(f"JRN-*_{split}.json")) if RESULTS.exists() else []
+    """The stored runs of one sealed set, a new model's one-time rerun (``JRN-NNN_<split>_rerun_<model>``) included."""
+    if not RESULTS.exists():
+        return []
+    exact = re.compile(rf"JRN-\d+_{re.escape(split)}(?:_rerun_[a-z0-9-]+)?")
+    return sorted(p for p in RESULTS.glob(f"JRN-*_{split}*.json") if exact.fullmatch(p.stem))
 
 
 def store(rows: list[dict[str, Any]], split: str, result: str, arm: str = "rules", seed: int = 0, spent_eur: float = 0.0,
@@ -806,9 +814,10 @@ def store(rows: list[dict[str, Any]], split: str, result: str, arm: str = "rules
            "summary": {"journeys": len(rows), "right": sum(r["right"] for r in rows),
                        "by_part": {p: sum(bool(r["parts"].get(p)) for r in rows) for p in PARTS}},
            "verdict": result, "status": "completed", "experiment_id": ident, **(extra or {}),
+           **({k: v for k, v in RERUN.items() if k != "suffix"} if RERUN and split in SEALED else {}),
            "rule": f"Scores on {len(rows)} written journeys over seeded replicas say how DCLab carries these people from their "
                    "first sentence to a holdout number; they are not a claim about any other problem or about production readiness."}
-    path = RESULTS / f"{ident}_{split}.json"
+    path = RESULTS / (f"{ident}_{split}" + (f"_{RERUN['suffix']}" if RERUN and split in SEALED else "") + ".json")
     path.write_text(json.dumps(doc, indent=2, default=str) + "\n", encoding="utf-8")
     return path
 
