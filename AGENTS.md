@@ -25,10 +25,10 @@ The research arm of DCLab. It measures how to build ML models that are *right* (
 
 ```bash
 make help        # every target
-make rd-check    # tests + evidence validation + freshness of all generated files (~2 min); must pass before committing
-make check-quick # the gate for a package: rd-gates and the flows (when product code changed) beside the affected tests, then PostgreSQL on the files that check it (all when storage changed); ~5 min
-make check-commit # a gate (GATE=check-quick|check-all) on the last commit in its own worktree, so work goes on meanwhile; push when it passes
-make check-all   # the gate closing a milestone (and any storage change): rd-gates, the suite on files and on PostgreSQL, the agent tests and the flows; ~10 min
+make rd-check    # broad repository gate; run only when the owner explicitly requests it
+make check-quick # combined package gate; use relevant test groups instead unless the owner explicitly requests it
+make check-commit # a requested gate (GATE=check-quick|check-all) on the last commit in its own worktree
+make check-all   # full milestone/storage gate; run only when the owner explicitly requests it
 make test        # the suite in parallel (tests/run_parallel.py; JOBS=N to choose, make test-serial for one process)
 make rd-sync     # rebuild the registry and knowledge base after new results
 make knowledge   # rebuild the evidence index and SFT v3 corpus after new results
@@ -54,6 +54,14 @@ python -m dclab_rnd.copilot review NOTEBOOK.ipynb   # methodology review of a no
 
 Environments: `.venv` from `requirements/base.txt` (ML work); `.venv-agent` (Python 3.12/3.13) from `requirements/agent.lock.txt` for the Research Studio; CI uses `requirements/ci.txt`.
 
+## Test scope — owner's standing instruction (2026-11-11)
+
+Run only the relevant tests and test groups for the changes made and the code they may affect. Choose the smallest meaningful set covering the changed behavior, its callers, shared dependencies and applicable safety rules. Expand to another group only when a dependency, failure or new finding shows it may be affected.
+
+Do not automatically run full repository suites, full PostgreSQL suites, broad flows, unrelated model evaluations, or `make rd-check`, `make check-quick`, `make check-all` and `make check-commit`. Run broad gates only on the owner's explicit request. This instruction replaces blanket gate requirements in older package prompts, plans and skills. Use targeted checks for affected storage, prompts, schemas, generated files or adapters.
+
+Do not repeat passing tests unless the code they cover changed or a new concern justifies it. For instruction/document-only changes, check the diff and relevant links or generated-file freshness; do not run application tests. Report which relevant checks ran and any remaining limits, then continue development.
+
 ## Rules
 
 1. **Leakage is the top risk.** Never use information unavailable at the prediction moment (`final_customer_fare`, `final_biker_fare`, `duration`, `casual`/`registered`, `Rating`, IDs). Write the prediction contract before looking at scores.
@@ -70,7 +78,7 @@ Environments: `.venv` from `requirements/base.txt` (ML work); `.venv-agent` (Pyt
 The product and its foundation are built package by package from `docs/guides/PRODUCT_BUILD_PLAYBOOK.md` and
 `docs/guides/AGENTIC_FOUNDATION_PLAN.md`. Use the `dclab-package` skill for one package and the `dclab-reviewer`
 subagent to review its diff before committing. Milestones J and K (`docs/guides/CAPTURE_AND_PROBLEM_SOLVING_PLAN.md`, Part D): every package puts its contract and rules in `dclab_core`, its wiring in `dclab_rnd`, and an adapter plus a `CORE_INTEGRATION.md` section for the main product; `make core-wheel-check` and the adapter conformance tests are part of its gate. Every package also gets its development-trajectory record (`dev_trajectories/records/<package>.json`, the reviewer's findings and the fixes included) and `make sft-dev`, in the same commit. When compacting, keep the package in progress, the files changed and
-the last gate's result (`make check-quick` per package, `make check-all` at a milestone's end).
+the relevant test groups and their last results. Apply the owner's test-scope instruction above instead of blanket package or milestone gates.
 
 ## Gotchas
 
@@ -85,4 +93,4 @@ the last gate's result (`make check-quick` per package, `make check-all` at a mi
 
 ## Git
 
-Work on `main` (keep `dev` fast-forwarded to it) and commit only when `make rd-check` passes. Commit messages explain why, not only what.
+Work on `main` (keep `dev` fast-forwarded to it) and commit after the relevant checks for the change pass, following the owner's test-scope instruction above. Commit messages explain why, not only what.
