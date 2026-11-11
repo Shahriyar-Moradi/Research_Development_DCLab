@@ -42,6 +42,8 @@ class Purpose:
 
 
 PURPOSES: dict[str, Purpose] = {
+    "task_planner": Purpose("standard", 30, "TP-03: one task's typed deterministic plan, declared input hashes, allowed registry "
+                                            "schema and remaining execution budget; no rows, tool results or unrelated workspace data", cell_values=0),
     "task_decomposer": Purpose("standard", 30, "TP-02: the confirmed goal, column names and roles without values, validated workflow, "
                                                "deterministic task graph, capability metadata and planning budgets; proposes task "
                                                "groups and dependencies only, never calls tools or changes solution decisions", cell_values=0),

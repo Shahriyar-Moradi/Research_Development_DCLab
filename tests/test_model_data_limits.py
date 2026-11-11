@@ -714,12 +714,30 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(report["status"], "proposed")
         self.assertEqual(self.assertWithinLimit("task_decomposer"), set())
 
+    def test_task_planner_sees_hashes_and_schemas_never_preview_values(self):
+        from tests.task_planning_cases import case
+        from dclab_rnd.tasks.planner import plan_task
+
+        project, source, workflow, caps, graph, state = case()
+        project["data"]["profile"] = {"preview": marked_table().head(5).astype(str).to_dict("records")}
+        project["data"]["rows"] = marked_table().head(5).astype(str).values.tolist()
+        args = dict(graph=graph, task_id="data", observed_state=state, capabilities=caps,
+                    remaining_budget={"max_tool_calls": 1, "max_seconds": 120, "max_cost_eur": 0.2})
+        baseline, _ = plan_task(workflow, source, project, **args)
+        proposal = {"version": "tp03.v1", "baseline_fingerprint": baseline.fingerprint,
+                    **{k: baseline.model_dump(mode="json")[k] for k in ("actions", "budget", "policy")}}
+        gw = gateway({"task_planner": [{"content": json.dumps(proposal), "tool_calls": [], "usage": {}}]})
+        with mock.patch.dict(os.environ, {"DCLAB_TIER_STANDARD_BASE_URL": "http://127.0.0.1:1/v1"}):
+            _, report = plan_task(workflow, source, project, **args, enabled=True, gateway=gw)
+        self.assertEqual(report["status"], "proposed")
+        self.assertEqual(self.assertWithinLimit("task_planner"), set())
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "home_intent", "home_query", "home_business", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "routing_labeler", "home_understand", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
                   "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell",
-                  "home_orchestrator", "reflector", "memory_embedding", "case_agent", "case_specialist", "route_check", "task_decomposer"}
+                  "home_orchestrator", "reflector", "memory_embedding", "case_agent", "case_specialist", "route_check", "task_decomposer", "task_planner"}
         no_user_data = {"campaign", "campaign_review", "embedding",  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
                         "journey_writer", "journey_checker",  # S8 B1 (below)
                         "exam_plain", "exam_person", "exam_judge"}  # 37.0: written, simulated people and invented exam tables' column views (tests/test_conversation_exam.py); S8 B1: invented replica tables' column names and written people, never a workspace's data (tests/test_people_writer.py)

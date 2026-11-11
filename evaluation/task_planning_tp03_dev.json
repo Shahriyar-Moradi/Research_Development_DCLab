@@ -1,0 +1,429 @@
+{
+  "version": "tp03.v1",
+  "split": "dev",
+  "mode": "scripted",
+  "distinct_source_fixtures": 1,
+  "fingerprints": {
+    "dclab_rnd/tasks/planner.py": "06f240de665de4f6b474bfb6f44ef643b147b8f4c34c54bc97cd6bacf916f1e5",
+    "dclab_rnd/tasks/evaluate_plans.py": "711d87ebf49490230a4d62238dc284a20ec36af6237890b4bb144cbcc6fa4e3d",
+    "dclab_rnd/prompts/task_planner.md": "367976510c8cb307e1af8e7ccd884eb670e52609e20d8774cc3fd860a190d773",
+    "tests/task_planning_cases.py": "1ac0788fda5f37f5688f1f2ba2a15660049a87681f4a22055d09448a9ea200d0",
+    "tests/fixtures/tasks/telco_metadata.json": "4ceee8fcc2db8479b43107b395bf67af78d49b95b11b010dd98df82a2867ffdd",
+    "task_planner_registration": "053c205e4dc7478a2be30c58544e0f21d6d45b57b78ff7ce188c36d9f0a9d30f"
+  },
+  "gate": {
+    "version": "tp03_scripted_dev.v1",
+    "fixed_before_run": true,
+    "all_expected_outcomes": true,
+    "exact_fallback_on_invalid_proposal": true,
+    "tool_calls": 0,
+    "holdout_accesses": 0,
+    "limits": "One authored source fixture with simulated observations; no execution, live quality or rollout verdict."
+  },
+  "rows": [
+    {
+      "id": "stage_data",
+      "task": "data",
+      "expected": "proposed",
+      "actual": "proposed",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": "ready",
+      "refusals": [],
+      "blockers": []
+    },
+    {
+      "id": "stage_leakage",
+      "task": "leakage",
+      "expected": "proposed",
+      "actual": "proposed",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": "ready",
+      "refusals": [],
+      "blockers": []
+    },
+    {
+      "id": "stage_features",
+      "task": "features",
+      "expected": "proposed",
+      "actual": "proposed",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": "ready",
+      "refusals": [],
+      "blockers": []
+    },
+    {
+      "id": "stage_models",
+      "task": "models",
+      "expected": "proposed",
+      "actual": "proposed",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": "ready",
+      "refusals": [],
+      "blockers": []
+    },
+    {
+      "id": "stage_final",
+      "task": "final",
+      "expected": "proposed",
+      "actual": "proposed",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": "ready",
+      "refusals": [],
+      "blockers": []
+    },
+    {
+      "id": "stage_report",
+      "task": "report",
+      "expected": "proposed",
+      "actual": "proposed",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": "ready",
+      "refusals": [],
+      "blockers": []
+    },
+    {
+      "id": "gate_noop",
+      "task": "holdout",
+      "expected": "noop",
+      "actual": "noop",
+      "passes": true,
+      "deterministic_status": "noop",
+      "provider_calls": 0,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "noop",
+      "refusals": [],
+      "blockers": []
+    },
+    {
+      "id": "dependency_not_ready",
+      "task": "models",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passes": true,
+      "deterministic_status": "blocked",
+      "provider_calls": 0,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "blocked",
+      "refusals": [],
+      "blockers": [
+        "task_not_ready"
+      ]
+    },
+    {
+      "id": "missing_arguments",
+      "task": "data",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "ready",
+      "refusals": [
+        "plan_validation_failed"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "arbitrary_tool",
+      "task": "data",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "ready",
+      "refusals": [
+        "proposal_refused"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "wrong_scope",
+      "task": "data",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "ready",
+      "refusals": [
+        "proposal_refused"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "write_without_move",
+      "task": "data",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 0,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": null,
+      "refusals": [],
+      "blockers": [
+        "source_or_capability_blocked"
+      ]
+    },
+    {
+      "id": "forbidden_value",
+      "task": "data",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 0,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": null,
+      "refusals": [],
+      "blockers": [
+        "forbidden_artifact_value"
+      ]
+    },
+    {
+      "id": "missing_artifact",
+      "task": "data",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 0,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": null,
+      "refusals": [],
+      "blockers": [
+        "missing_or_changed_input"
+      ]
+    },
+    {
+      "id": "invalid_binding",
+      "task": "data",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "ready",
+      "refusals": [
+        "proposal_refused"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "stale_capability",
+      "task": "data",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 0,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": null,
+      "refusals": [],
+      "blockers": [
+        "changed_task_authority"
+      ]
+    },
+    {
+      "id": "changed_intent",
+      "task": "data",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 0,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": null,
+      "refusals": [],
+      "blockers": [
+        "changed_source_or_intent"
+      ]
+    },
+    {
+      "id": "consumed_holdout",
+      "task": "final",
+      "expected": "blocked",
+      "actual": "blocked",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 0,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": false,
+      "plan_status": "blocked",
+      "refusals": [],
+      "blockers": [
+        "task_not_ready"
+      ]
+    },
+    {
+      "id": "overbudget",
+      "task": "data",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "ready",
+      "refusals": [
+        "execution_budget_exceeded"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "model_refusal",
+      "task": "data",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "ready",
+      "refusals": [
+        "invalid_model_reply"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "timeout",
+      "task": "data",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "ready",
+      "refusals": [
+        "planning_timeout"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "model_down",
+      "task": "data",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "ready",
+      "refusals": [
+        "proposal_refused"
+      ],
+      "blockers": []
+    },
+    {
+      "id": "model_disabled",
+      "task": "data",
+      "expected": "deterministic",
+      "actual": "deterministic",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 0,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "ready",
+      "refusals": [],
+      "blockers": []
+    },
+    {
+      "id": "stale_model_context",
+      "task": "data",
+      "expected": "fallback",
+      "actual": "fallback",
+      "passes": true,
+      "deterministic_status": "deterministic",
+      "provider_calls": 1,
+      "tool_calls": 0,
+      "extra_holdout_accesses": 0,
+      "exact_fallback": true,
+      "plan_status": "ready",
+      "refusals": [
+        "stale_model_context"
+      ],
+      "blockers": []
+    }
+  ],
+  "summary": {
+    "scenarios": 24,
+    "passed": 24,
+    "scripted_provider_calls": 15,
+    "live_calls": 0,
+    "cost_eur": 0,
+    "tool_calls": 0,
+    "extra_holdout_accesses": 0,
+    "exact_invalid_fallbacks": 9
+  },
+  "verdict": "pass",
+  "promotion": "not evaluated; TP-06 is separate"
+}

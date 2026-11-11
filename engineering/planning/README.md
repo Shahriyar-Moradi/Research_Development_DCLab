@@ -54,7 +54,7 @@ engineering/planning/
 | TP-01D | Deterministic workflow adapter | Complete — 41 new tests, generated Telco preview, wheel/compatibility and applicable check-quick/review passed; corpus freshness repaired and verified (2026-11-05) |
 | TP-01E | Regression tests and foundation acceptance | Complete — all nine criteria satisfied; full check-all (5,348 file / 5,350 PostgreSQL tests), final review and completion corpus checks passed; existing skips documented (2026-11-05) |
 | TP-02 | Model-assisted task decomposition | Complete — proposal only; 44 task tests, 9/9 scripted DEV, 175 focused tests and independent review passed; owner-directed focused validation (2026-11-11) |
-| TP-03 | Task-level execution planning | Not started |
+| TP-03 | Task-level execution planning | Complete — proposal only; 28 planner tests, 125 relevant tests, 24/24 scripted DEV and independent review passed (2026-11-11) |
 | TP-04 | Guarded execution and task progression | Not started |
 | TP-05 | Verification, recovery, and replanning | Not started |
 | TP-06 | Evaluation and release gates | Not started |
@@ -69,7 +69,7 @@ Update this table only when implementation and required validation are complete.
 - [Acceptance, actual verification and next-package handoff](../../docs/guides/TASK_PLANNING_ACCEPTANCE.md)
 - [Expanded source audit](TP_01A_EVIDENCE.json): all mandatory family/step pairs and exact registry schemas at the reviewed commit.
 
-The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 is complete under the owner-directed focused validation scope. TP-03 and later packages have not started.
+The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 and TP-03 are complete under the owner-directed focused validation scope. TP-04 and later packages have not started.
 
 ## TP-01B contracts and verification
 
@@ -119,7 +119,19 @@ reasoning allowance is preserved and included in the planner's token ceiling and
 
 The owner explicitly stopped broad testing on 2026-11-11 and requested only relevant tests and test groups.
 Acceptance follows that instruction; no final full repository or full PostgreSQL pass is claimed. The authorized
-replay compatibility repair requires fresh permission and keeps its reason in the workspace audit. TP-03 is not started.
+replay compatibility repair requires fresh permission and keeps its reason in the workspace audit. TP-03 acceptance follows below.
+
+## TP-03 task execution planning acceptance
+
+[Task execution planning acceptance](../../docs/guides/TASK_EXECUTION_PLANNING_ACCEPTANCE.md) records typed plans
+for the five existing stages and export, source/permission/schema/budget checks, explicit gate no-ops, bounded
+off-by-default model proposals, exact fallback, privacy and saved API thinking summaries. Planning calls no tools.
+All 125 relevant tests and 24/24 scripted DEV scenarios passed. Independent review passed after a canonical-order
+comparison fix. Core contracts and schemas are unchanged; there is no scheduler or product rollout.
+
+Only affected tests ran under the owner's standing instruction. The DEV result pins the new prompt and relevant
+code; unchanged global prompt/harness snapshots are stale for the new prompt, and no broad gate pass is claimed.
+TP-04 has not started.
 
 ## Implementation rules
 

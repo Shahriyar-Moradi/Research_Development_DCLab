@@ -1,0 +1,127 @@
+{
+  "package": "TP-03",
+  "title": "Typed plans for existing guarded atomic task operations",
+  "date": "2026-11-11",
+  "request": "Continue to TP-03 only, following the standing instruction to run only relevant tests and test groups for changed behavior and areas it may affect.",
+  "spec": "engineering/planning/TP_03.txt",
+  "plan": [
+    "Read the master specification and inspect existing core task contracts, registry checks, source adapter, gateway and harness.",
+    "Write failing success, dependency and argument tests before implementing a metadata-only per-task planner.",
+    "Reuse the frozen plan contract and exact existing stage/export capabilities, with pure source, argument, permission and budget checks.",
+    "Add one optional bounded gateway role with exact deterministic fallback, zero-cell context and saved API thinking summaries.",
+    "Run affected task tests and purpose/privacy checks, compare authored DEV cases, fix independent review findings and record acceptance."
+  ],
+  "decisions": [
+    {
+      "decision": "Keep one existing atomic stage or export as one planned action.",
+      "why": "The current adapter already owns physical operation mapping. Splitting the final stage or using run_all would duplicate engine effects or cross the leaf boundary."
+    },
+    {
+      "decision": "Reuse core TaskExecutionPlan v1 and the existing pure graph, readiness and plan validators without schema changes.",
+      "why": "The contract already represents argument references, evidence, budgets and stop policies. Registry-specific argument validation belongs in the R&D host."
+    },
+    {
+      "decision": "Recompile the source adapter and validate static arguments through the real pure Registry.check.",
+      "why": "Current source and capability identity must be checked before planning. Core semantic checks alone do not validate the complete registered JSON argument schema."
+    },
+    {
+      "decision": "Bind prompt and model output schema as a fingerprinted policy input and expose a pure resolve_action gate.",
+      "why": "Plan provenance is excluded from semantic fingerprints. Policy changes must invalidate stored plans, and future dispatch must refresh permissions and resolved arguments."
+    },
+    {
+      "decision": "Return a no-op for a human gate or verification task without declaring completion.",
+      "why": "A gate requires authentic owner evidence. Planning cannot manufacture that evidence or consume holdout permission."
+    },
+    {
+      "decision": "Give the optional model its own off-by-default task_planner role using the existing one-attempt gateway bounds.",
+      "why": "The role plans one execution intent rather than decomposing business problems or task groups. It needs no new client, agent loop or execution context."
+    },
+    {
+      "decision": "Pin the new prompt to dedicated DEV evidence without changing global gate policy.",
+      "why": "The owner prohibits unrelated broad evaluations. Existing global snapshots become explicitly stale for the new prompt; no old result is rewritten or broad pass claimed."
+    }
+  ],
+  "change": "Add deterministic typed plans for five existing binary stages and report export, pure current-source/schema/budget revalidation, explicit blockers and gate no-ops, bounded optional model proposals, exact fallback, privacy/thinking capture tests and a scripted DEV validity comparison. No task execution or rollout is added.",
+  "findings": [
+    {
+      "id": "TP03-SOURCE-ORDER",
+      "source": "reviewer",
+      "defect": "Tuple comparison rejected a harmless reorder of source references despite an identical semantic graph fingerprint.",
+      "scenario": "Reverse a valid graph's source reference order. Core validation and its canonical fingerprint remain valid, but the first planner implementation returns a changed-source blocker.",
+      "cause": "The host compared tuple order while the existing core fingerprint treats source references and several atomic fields as sets.",
+      "fix": "Compare source references by canonical identity tuples and normalize set-like atomic source steps, inputs, outputs and acceptance checks before comparison.",
+      "test": "The benign-order regression reverses source and atomic set ordering and requires a ready deterministic plan with the same fingerprint. The reviewer independently repeated the probes.",
+      "severity": "behaviour",
+      "impact": "Equivalent graphs read through a different serialization order would be needlessly blocked.",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP03-FIXTURE-APPROVAL",
+      "source": "test",
+      "defect": "The initial authored host-state helper copied an approval receipt fingerprint from a different fixture.",
+      "scenario": "The five-stage positive test reached final with a gate receipt whose approval reference did not match the supplied source approval fingerprint.",
+      "cause": "The reused test advancement helper assumed its original fixture's fixed digest.",
+      "fix": "Bind the authored gate receipt to the actual supplied approval fingerprint in the TP-03 helper; preserve strict production approval validation.",
+      "test": "The complete authored stage chain now yields ready stage plans while unready or consumed holdout states remain blocked.",
+      "severity": "gap",
+      "impact": "A mismatched synthetic receipt prevented the positive final/report cases from testing valid behavior.",
+      "verdict": "confirmed"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Test-first planner boundary",
+      "gate": "The new positive and negative planner tests must fail before the planner implementation exists.",
+      "fixed_before_run": true,
+      "result": "The new test module failed to import because dclab_rnd.tasks.planner did not exist; initial success, readiness and missing-argument tests then passed after implementation.",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    },
+    {
+      "name": "Relevant regression and integration tests",
+      "gate": "All selected task, contract, validation, adapter, purpose-enumeration and new zero-cell privacy tests pass with no live calls.",
+      "fixed_before_run": true,
+      "result": "119 tests passed across planner 28, execution-plan contract 10, task validation 40 and adapter 41. Six targeted harness-enumeration and privacy inventory/caller tests also passed. No skips.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "Only affected test groups ran; there is no full repository or PostgreSQL gate claim.",
+        "The unchanged global prompt and harness snapshots are stale for the new task-planner prompt; its dedicated DEV freshness test passes instead under the owner's explicit scope instruction."
+      ]
+    },
+    {
+      "name": "Scripted DEV plan validity comparison",
+      "gate": "Every predeclared DEV outcome matches; invalid proposals retain the exact deterministic plan; no tool call, extra holdout access or live model call occurs.",
+      "fixed_before_run": true,
+      "result": "All 24 authored scenarios passed. There were 15 scripted provider calls, nine exact invalid/unavailable fallbacks, zero tool calls, zero extra holdout accesses and zero live cost.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "One binary source fixture with simulated approvals and observations; no real execution evidence.",
+        "Scripted replies measure validator behavior, not live model quality, task completion or production readiness."
+      ]
+    },
+    {
+      "name": "Independent adversarial review",
+      "gate": "Every confirmed correctness finding is fixed and the current implementation has no remaining correctness finding.",
+      "fixed_before_run": true,
+      "result": "Final review passed after the canonical-order fix. The reviewer independently verified equivalent reference, source-step, input, output and acceptance-check reorderings.",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    }
+  ],
+  "outcome": "TP-03 complete under the owner's focused-test policy. Typed task plans, pure gates, optional bounded proposals, DEV evidence and independent review pass. TP-04 is not started.",
+  "lessons": [
+    "A fingerprint's canonical set semantics must also be used by host freshness comparisons.",
+    "Plan readiness does not grant execution permission or prove completion; the existing runtime remains authoritative.",
+    "Keep a separate focused prompt attestation when broad evaluation snapshots are intentionally not refreshed; report the limitation explicitly.",
+    "Run affected tests once and expand only for concrete changes or review findings."
+  ],
+  "risks": [
+    "Host-supplied approvals and verification receipts must be authenticated by the later runtime; pure JSON planning cannot authenticate them.",
+    "Only the existing basic binary adapter is supported. Complex programmes and other families remain blocked.",
+    "The future dispatcher must refresh actual bytes, permissions, locks, budgets and holdout receipts at the guarded effect boundary.",
+    "Synchronous model proposals need the existing POSIX main-thread deadline; unsupported callers retain deterministic fallback."
+  ],
+  "commits": []
+}

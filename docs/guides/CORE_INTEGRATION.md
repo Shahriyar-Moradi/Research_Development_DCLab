@@ -1383,3 +1383,18 @@ The supported scope and runnable inspection example are in `docs/guides/TASK_ADA
 This host adapter is not in the portable wheel and is not automatically reusable in the main product. Its project
 metadata/registry/artifact owners are R&D-specific. Main-product adoption still needs its own reviewed field and
 capability mapping; the pinned field inventory has no task fields and none are invented here.
+
+## Per-task execution plans in the R&D host (TP-03)
+
+`dclab_rnd.tasks.planner.plan_task` creates the existing `TaskExecutionPlan` v1 for one dependency-ready binary
+stage or export. `check_plan` and `resolve_action` recheck supplied current source metadata, capability schemas,
+artifact hashes, permissions and execution budget without invoking a tool. Plans bind a policy input hash over
+the prompt and model output schema. The optional gateway-backed proposal is off by default and preserves the
+deterministic result on refusal. Gates are no-ops requiring owner evidence, never completion claims.
+
+No portable core contract, schema, wheel dependency or main-product field mapping changes. The main product must
+retain its own registry, project, permission and artifact owners. It can reuse the frozen core plan/readiness
+validators; the R&D metadata adapter/planner is not a new portable dispatcher or an automatic field mapping.
+Before future execution, refresh the host inputs, validate resolved arguments, and call the existing guarded
+registry and engine. TP-03 adds no task execution or runtime persistence. See
+`docs/guides/TASK_EXECUTION_PLANNING_ACCEPTANCE.md` for the supported API, checks and limits.
