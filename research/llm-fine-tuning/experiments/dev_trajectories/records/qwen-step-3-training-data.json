@@ -1,0 +1,127 @@
+{
+ "package": "QWEN-S3",
+ "title": "Qwen's outputs into the training data, kept apart by answerer; Claude's stay evaluation only and silver",
+ "date": "2026-11-11",
+ "request": "Step 3 of the Qwen switch plan: record the owner's decision that OpenRouter Qwen's outputs and reasoning may be stored and trained on (weight 1.0, source class open_weights_model, licence checked before any fine-tune); let the lake harvest keep model-role answers of every served model under an answerer per model (Claude eval_only, Qwen train); route OpenRouter Qwen exchanges and trajectories in the store to their own folders at full weight, not frontier silver; fixture tests only.",
+ "spec": "the Qwen switch plan (magical-waddling-honey), step 3; docs/guides/TRAINING_DATA_FACTORY_PLAN.md (source class and licence check before a fine-tune)",
+ "plan": [
+  "Read owner_decisions.json and provider_outputs.py, the harvest's per-answerer views, answers.ANSWERERS, dclab_core/lake.py EVAL_ONLY and the store's answerer_of and folder routing.",
+  "Put the one rule of which model falls under the decision in provider_outputs.py, used by both the lake and the store.",
+  "Tie each model-role answer to the model of its own request where its exchange is kept; fall back on the workspace's models.",
+  "Add Qwen folders in the store beside Claude's silver ones, consent from the owner's record.",
+  "Fixture tests for each, the store and lake suites, make store-check, then the reviewer."
+ ],
+ "decisions": [
+  {
+   "decision": "Name-only fallback counts only OpenRouter's lower-case slug (qwen/..., openrouter/qwen/...); the exchange's provider and source_class win when present.",
+   "why": "A Hugging Face id (Qwen/Qwen2.5-72B-Instruct:novita) is another host's and an Ollama tag runs locally; the owner's words are about OpenRouter Qwen only. Step 2 adds the labels, so the name rule only covers older exchanges."
+  },
+  {
+   "decision": "Models other than Claude and OpenRouter Qwen are kept under their own answerer with use eval_only.",
+   "why": "Their terms or licence are not checked; keeping them (instead of skipping) loses nothing and one decision can promote them later."
+  },
+  {
+   "decision": "Qwen's store folders are apart (trajectories/openrouter_qwen, reasoning/openrouter_qwen, reasoning/final_turn_openrouter_qwen), not the clean sets.",
+   "why": "Kept apart by answerer so one change of owner_decisions.json takes them out (tested: consent becomes improve)."
+  },
+  {
+   "decision": "A Qwen run that a provider's model (Claude) helped is mixed and silver; a rules run Qwen helped goes to Qwen's folder.",
+   "why": "Claude's words must never reach a full-weight training row."
+  },
+  {
+   "decision": "capture() refuses a hosted answerer.",
+   "why": "Qwen's answers come from the sessions it served (harvest); capture loads a local GLiNER model and would fail or mislabel."
+  }
+ ],
+ "change": "owner_decisions.json gains openrouter_qwen. provider_outputs.py gains decision= on for_training and consent, weight(), openrouter_qwen() and answerer_name(). lake/harvest.py: request_models() reads the kept exchanges for the request ids model-role answers carry; served_times() gives every model ever served with its time; model_of() picks the exact request, else the models served ten minutes before the decision, else every model ever served (Claude among them wins); answerer_for() files Claude eval_only, OpenRouter Qwen train, others eval_only; shadow model-role answers go under their own model; sealed places (exam_vault, sealed) never give a training row; twin AI-first lanes read the model field or the expert answerer's prefix; the rebuild clears sessions and twin under every answerer folder. lake/answers.py: a hosted qwen3.8-flash entry and a refusal in capture(). store/sets/llm.py: answerer_of returns openrouter:<model>; open_weights, silver_of, exchange_answerer, qwen_weight; three Qwen folders with their abouts and consent; from_exchange keeps provider and source_class in check; intern weights and mixed helpers. Tests in five files.",
+ "findings": [
+  {
+   "id": "S3-R1",
+   "source": "reviewer",
+   "defect": "Claude's pre-switch model-role answers were filed under qwen3.8-flash with use train.",
+   "scenario": "A workspace served home_agent by Claude on 2026-10-17 and by Qwen on 2026-11-11; a model-role answer with no request id (most roles pass none) is harvested.",
+   "cause": "The fallback read served_models, which keeps only the latest model per purpose, so after the switch it saw one model: Qwen.",
+   "fix": "served_times() keeps every ok request with its time; model_of() uses the models served in the ten minutes before the decision, then every model ever served, Claude among them winning.",
+   "test": "test_after_the_switch_claudes_earlier_answers_stay_claudes",
+   "severity": "behaviour",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "S3-R2",
+   "source": "reviewer",
+   "defect": "A shadow model's model-role answer was attributed to the served model first, then moved to dclab-classifiers.",
+   "scenario": "A Qwen workspace keeps {by: model_role, answerer: shadow:ollama:qwen3.5:4b, source: shadow}.",
+   "cause": "model_of ran before the shadow override and the override renamed every shadow answer as a classifier's.",
+   "fix": "A model-role shadow answer is filed under its own model's name (eval_only unless it is OpenRouter Qwen); the classifier override applies to non-model-role shadows only.",
+   "test": "test_a_shadow_models_answer_is_filed_under_its_own_model_never_the_served_one",
+   "severity": "behaviour",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "S3-R3",
+   "source": "reviewer",
+   "defect": "Twin AI-first lanes Qwen ran were filed as Claude's.",
+   "scenario": "twin/home.py writes answerer ai_first@home with the model apart; twin/compare.py writes ai_first@expert:qwen/qwen3.8-flash.",
+   "cause": "The rule read the answerer field only.",
+   "fix": "_ai_first_model reads model, else the expert prefix, else the answerer.",
+   "test": "test_a_twin_lane_qwen_served_is_qwens_for_training",
+   "severity": "behaviour",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "S3-R4",
+   "source": "reviewer",
+   "defect": "A sealed run's Qwen model answers could become training rows.",
+   "scenario": "A future sealed exam on Qwen whose workspace under agent_runs/exam_vault keeps model_requests.jsonl.",
+   "cause": "The harvest walks all of agent_runs, sealed folders included; before the switch such answers were Claude's and eval_only anyway.",
+   "fix": "sealed_place(): a record found under exam_vault or a sealed folder, or a twin run there, never gets use train for a model answer.",
+   "test": "test_a_sealed_runs_qwen_answers_are_never_training_rows",
+   "severity": "latent",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "S3-R5",
+   "source": "reviewer",
+   "defect": "Name-only matching could claim another host's lower-case qwen/... id (Groq's qwen/qwen3-32b) on an exchange kept before step 2.",
+   "scenario": "An old exchange with no provider field from a non-OpenRouter host using a lower-case qwen/ slug.",
+   "cause": "Without the gateway's labels only the name is known.",
+   "fix": "None: after step 2 the provider decides; the weights are open either way. Kept as a known risk.",
+   "test": "test_which_models_fall_under_the_qwen_decision (provider other than openrouter refused)",
+   "severity": "latent",
+   "verdict": "declined"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "touched test files",
+   "gate": "Every test passes.",
+   "result": "Five changed files: 59 tests pass after the review's fixes (56 before them).",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "store and lake suites",
+   "gate": "Every store, lake, archive and provider_outputs test file passes.",
+   "result": "50 files, 337 tests OK before the fixes; the 9 most related files (103 tests) OK after them.",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "make store-check",
+   "gate": "30 of 30 checks.",
+   "result": "passed 30 of 30 (before the review's fixes, which touch the lake only).",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  }
+ ],
+ "outcome": "OpenRouter Qwen's answers and reasoning reach training data under their own answerer and folders at full weight, by the owner's recorded decision; Claude's stay evaluation only in the lake and silver in the store. Nothing committed (the tree is shared with the other steps' sessions). Not run on the real workspaces: make capture and the store run happen in step 4.",
+ "lessons": [
+  "A 'latest model per purpose' summary is wrong for attribution across a provider switch: keep every request with its time.",
+  "Read every writer of a field (twin home and compare both write ai_first) before reading it; they named the model in three different places."
+ ],
+ "risks": [
+  "Most roles still record no request id on their model-role answers; the ten-minute window can file an answer as unknown-model when several non-Claude models serve one workspace at once.",
+  "Qwen's licence and OpenRouter's terms are not yet checked; that check is required before any fine-tune uses these sets.",
+  "A local Ollama model is eval_only in the lake but clean (train) in the store: a policy difference left for the owner."
+ ]
+}

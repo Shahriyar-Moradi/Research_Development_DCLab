@@ -264,6 +264,53 @@ class LlmSetsTest(unittest.TestCase):
         silver = [ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", "reasoning/final_turn_silver_frontier")]
         self.assertTrue(all(e.weight == 0.5 and e.check.get("model") for e in silver))
 
+    def test_qwen_served_through_openrouter_trains_at_full_weight_in_folders_of_its_own(self):
+        """The owner (2026-11-11, owner_decisions.json openrouter_qwen): Qwen's outputs and reasoning on OpenRouter are stored
+        and trained on at full weight, apart by answerer: never in the clean sets, never in Claude's silver. The exchange's
+        provider and source class decide when kept; a Hugging Face Qwen id on another host stays a provider's silver."""
+        from dclab_core.store import ChatExample
+        from dclab_rnd.store import Store, curators, shapers
+        from dclab_rnd.store.sets import llm
+
+        base = {"at": "2026-11-11T09:00:00+00:00", "purpose": "intern", "whole": True, "outcome": "ok",
+                "messages": [{"role": "user", "content": "Look at the late deliveries."},
+                             {"role": "assistant", "content": "", "reasoning": "Read the profile first.",
+                              "tool_calls": [{"id": "c1", "type": "function", "function": {"name": "describe_data", "arguments": "{}"}}]},
+                             {"role": "tool", "tool_call_id": "c1", "content": "{\"rows\": 900}"}],
+                "reply": "900 rows.", "tool_calls": [], "thinking": [{"text": "The profile answers it."}]}
+        qwen = {**base, "model_request": "mrq1", "model": "qwen/qwen3.8-flash", "provider": "openrouter", "source_class": "open_weights_model"}
+        by_name = {**base, "model_request": "mrq2", "model": "qwen/qwen3.8-flash", "reply": "Nine hundred rows."}  # before step 2's labels
+        elsewhere = {**base, "model_request": "mrq3", "model": "Qwen/Qwen2.5-72B-Instruct:novita", "reply": "About 900 rows."}
+        Store(self.layout).keep_log("model_requests", "dev", "model_exchanges/2026/11/11.jsonl",
+                                    "".join(json.dumps(x) + "\n" for x in (qwen, by_name, elsewhere)).encode(), consent="train")
+        shapers.shape(self.layout)
+        curators.curate(self.layout, run="rq")
+        with mock.patch.object(llm, "BENCHMARKS", self.benchmarks):
+            llm.build(self.layout)
+        mine = next(e for e in (ChatExample.model_validate(x) for x in self.examples("m4_workflow_llm", "plan", "v2"))
+                    if e.messages[-1].content == "900 rows.")
+        self.assertEqual((mine.check["provider"], mine.check["source_class"]), ("openrouter", "open_weights_model"))  # kept on the example
+        for folder in ("reasoning/openrouter_qwen", "reasoning/final_turn_openrouter_qwen"):
+            got = {ChatExample.model_validate(e).messages[-1].content: ChatExample.model_validate(e) for e in self.examples("m4_workflow_llm", folder)}
+            self.assertEqual(sorted(got), ["900 rows.", "Nine hundred rows."], folder)  # by its labels, and by OpenRouter's slug alone
+            self.assertTrue(all(e.weight == 1.0 for e in got.values()), folder)
+            manifest = json.loads((self.layout.sets("m4_workflow_llm", *folder.split("/"), "v1") / "MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["consent"], "train")  # the owner's yes (openrouter_qwen)
+        for folder in ("reasoning", "reasoning/final_turn", "reasoning/silver_frontier", "reasoning/final_turn_silver_frontier"):
+            contents = [ChatExample.model_validate(e).messages[-1].content for e in self.examples("m4_workflow_llm", folder)]
+            self.assertNotIn("900 rows.", contents, folder)
+            self.assertNotIn("Nine hundred rows.", contents, folder)
+        silver = [ChatExample.model_validate(e).messages[-1].content for e in self.examples("m4_workflow_llm", "reasoning/silver_frontier")]
+        self.assertIn("About 900 rows.", silver)  # a Qwen id served by another host: a provider's, silver
+        no = Path(tempfile.mkdtemp()) / "owner_decisions.json"
+        no.write_text(json.dumps({"provider_outputs": {"for_training": True}, "openrouter_qwen": {"for_training": False}}), encoding="utf-8")
+        from dclab_rnd.store import provider_outputs
+
+        with mock.patch.object(provider_outputs, "DECISIONS", no), mock.patch.object(llm, "BENCHMARKS", self.benchmarks):
+            llm.build(self.layout)
+        manifest = json.loads((self.layout.sets("m4_workflow_llm", "reasoning", "openrouter_qwen", "v1") / "MANIFEST.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["consent"], "improve")  # one change of the owner's record takes them out of training
+
 
 if __name__ == "__main__":
     unittest.main()

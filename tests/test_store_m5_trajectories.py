@@ -362,6 +362,34 @@ class SolverTrajectoriesTest(unittest.TestCase):
         self.assertEqual(answerer_of({"mode": "llm", "model": "ollama/llama3.1:8b"}), "local:ollama/llama3.1:8b")
         self.assertEqual(answerer_of({"mode": "standard", "model": None}), "rules")
 
+    def test_qwen_on_openrouter_is_its_own_answerer_trained_at_full_weight_apart(self):
+        """The owner, 2026-11-11: Qwen served through OpenRouter goes to its own answerer and folder at full weight, not to
+        the frontier's silver; a run it helped the rules with goes there too, and one Claude helped it with is silver."""
+        from dclab_core.store import SolverTrajectory
+        from dclab_rnd.store.sets import llm
+
+        self.assertEqual(llm.answerer_of({"mode": "llm", "model": "qwen/qwen3.8-flash"}), "openrouter:qwen/qwen3.8-flash")
+        self.assertEqual(llm.answerer_of({"mode": "llm", "model": "qwen3.8-flash", "provider": "openrouter", "source_class": "open_weights_model"}),
+                         "openrouter:qwen3.8-flash")  # the exchange's labels decide when kept
+        self.assertEqual(llm.answerer_of({"mode": "llm", "model": "openrouter/qwen/qwen3.8-flash"}), "openrouter:qwen/qwen3.8-flash")
+        self.assertEqual(llm.answerer_of({"mode": "llm", "model": "qwen/qwen3.8-flash", "provider": "together"}), "frontier:qwen/qwen3.8-flash")
+        self.assertEqual(llm.answerer_of({"mode": "llm", "model": "claude-sonnet-5-5", "provider": "openrouter"}), "claude:claude-sonnet-5-5")
+        self.assertTrue(llm.open_weights("openrouter:qwen/qwen3.8-flash"))
+        self.assertTrue(llm.open_weights("mixed:rules+openrouter:qwen/qwen3.8-flash"))
+        self.assertFalse(llm.open_weights("mixed:openrouter:qwen/qwen3.8-flash+claude:claude-sonnet-5-5"))
+        self.assertFalse(llm.open_weights("rules") or llm.open_weights("claude:claude-sonnet-5-5"))
+        self.assertTrue(llm.silver_of("claude:claude-sonnet-5-5") and llm.silver_of("frontier:deepseek-chat"))
+        self.assertFalse(llm.silver_of("openrouter:qwen/qwen3.8-flash") or llm.silver_of("local:qwen2.5-coder:1.5b"))
+        self.assertEqual(llm.qwen_weight(), 1.0)
+        studio = self.rows("trajectories/studio", "v3")
+        t = SolverTrajectory.model_validate(next(iter(studio.values())))
+        qwen = t.model_copy(update={"problem": {**t.problem, "answerer": "openrouter:qwen/qwen3.8-flash"}})
+        self.assertEqual(llm.place(qwen), ("trajectories/openrouter_qwen", ""))
+        failed = qwen.model_copy(update={"score": None, "submission": None})
+        self.assertEqual(llm.place(failed)[0], "trajectories/openrouter_qwen")  # a failed Qwen run stays in its own folder, with why
+        claude = t.model_copy(update={"problem": {**t.problem, "answerer": "claude:claude-sonnet-5-5"}})
+        self.assertEqual(llm.place(claude)[0], "trajectories/silver_frontier")  # Claude: unchanged
+
     def test_a_run_a_hosted_model_helped_is_not_clean_and_its_words_are_redacted(self):
         silver = self.rows("trajectories/silver_frontier", "v1")
         mixed = silver["m5_solver_llm:intern:444444444444"]

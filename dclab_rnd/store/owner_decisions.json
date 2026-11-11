@@ -7,5 +7,17 @@
     "replaces": "the rule of 2026-10-21: a provider model's outputs (Claude, GPT) are evaluation only, not for training, until the provider's terms are checked",
     "kept": "silver weight (0.5), in folders of their own (m5_solver_llm/trajectories/silver_frontier, m5_solver_llm/dclab_code_preferences), each example's provenance naming its source, so one change takes them out again",
     "check_before_use": "the provider's terms on training other models with its outputs, before a fine-tune uses these sets"
+  },
+  "openrouter_qwen": {
+    "for_training": true,
+    "weight": 1.0,
+    "source_class": "open_weights_model",
+    "decided": "2026-11-11",
+    "by": "owner",
+    "said": "there is no restriction on openrouter qwen model now to capture and collect and store reasoning",
+    "covers": "the outputs and the reasoning of a Qwen model served through OpenRouter (qwen/qwen3.8-flash first): stored, and used for training at full weight",
+    "kept": "apart by answerer: the lake's bronze/answers/qwen3.8-flash/ and the store's own folders (trajectories/openrouter_qwen, reasoning/openrouter_qwen, reasoning/final_turn_openrouter_qwen), never mixed into Claude's silver or DCLab's clean sets, so one change takes them out again",
+    "check_before_use": "the Qwen model's licence (its open-weights licence and OpenRouter's terms) is checked before any fine-tune uses these sets (docs/guides/TRAINING_DATA_FACTORY_PLAN.md: a source class and licence check before any fine-tune)",
+    "not_changed": "Claude's outputs: evaluation only in the lake, silver in the store (provider_outputs above)"
   }
 }

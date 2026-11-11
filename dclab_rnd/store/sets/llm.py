@@ -249,7 +249,9 @@ def from_exchange(record: StoreRecord, taught: Optional[dict[str, str]] = None, 
                        provenance=record.provenance, task=purpose, stage="judge" if model_type == "m7_judges" else EXAM_STAGE if simulated else STAGES.get(purpose, "plan"), messages=messages,
                        tools=[t for t in b.get("tools") or [] if isinstance(t, dict)],  # P1 keeps the schemas offered with a whole exchange
                        weight=0.5 if ((taught or again) and not thinking) else 1.0,
-                       check={"outcome": b.get("outcome"), "model": b.get("model"), **({"simulated": "conversation exam (37.0)"} if simulated else {})})
+                       check={"outcome": b.get("outcome"), "model": b.get("model"),
+                              **{k: b[k] for k in ("provider", "source_class") if b.get(k)},  # the gateway's labels (step 2 of the Qwen switch)
+                              **({"simulated": "conversation exam (37.0)"} if simulated else {})})
 
 
 LOST_BEFORE = "lost before 2026-10-28"  # the owner's rule took effect that night: older thinking was not kept (thinking-reasoning-all-data-plan)
@@ -436,9 +438,11 @@ OUTCOME_NAMED = "The outcome to predict is the column"  # the phrase of twin/sol
 
 
 def answerer_of(session: dict[str, Any]) -> str:
-    """Who chose the session's moves: ``rules`` (the standard plan), ``local:<model>``, or a provider's model (``claude:``, ``openai:``,
-    ``frontier:``). A model counts as local only on its name's evidence (an Ollama tag, a local or tuned prefix); every other name,
-    and a model-mode session without one, is a provider's: never clean by default."""
+    """Who chose the session's moves: ``rules`` (the standard plan), ``local:<model>``, ``openrouter:<model>`` (a Qwen model served
+    through OpenRouter: the owner's decision of 2026-11-11, trained at full weight in folders of its own), or another provider's
+    model (``claude:``, ``openai:``, ``frontier:``). A model counts as local only on its name's evidence (an Ollama tag, a local or
+    tuned prefix); every other name, and a model-mode session without one, is a provider's: never clean by default. The
+    exchange's ``provider`` and ``source_class`` (written by the gateway) decide OpenRouter Qwen when present; else its name."""
     model = str(session.get("model") or "").strip()
     if session.get("mode") == "standard" and not model:
         return "rules"
@@ -447,6 +451,8 @@ def answerer_of(session: dict[str, Any]) -> str:
         return "frontier:unknown"
     if "claude" in low:
         return f"claude:{model}"
+    if provider_outputs.openrouter_qwen(model, session.get("provider"), session.get("source_class")):
+        return f"openrouter:{model.removeprefix('openrouter/')}"
     if low.startswith(("gpt", "o1", "o3", "o4")) or "openai" in low:
         return f"openai:{model}"
     if low.startswith(LOCAL_PREFIXES):
@@ -498,6 +504,32 @@ def models_in_results(steps: Iterable[dict[str, Any]]) -> list[str]:
 
 def clean(answerer: str) -> bool:
     return answerer == "rules" or answerer.startswith("local:")
+
+
+def open_weights(answerer: str) -> bool:
+    """A Qwen model served through OpenRouter chose it (``openrouter:``), alone or helping the rules or a local model
+    (``mixed:rules+openrouter:...``): trained at full weight under the owner's decision of 2026-11-11, in its own folders,
+    never mixed into the clean sets (DCLab's own) nor into Claude's silver."""
+    if answerer.startswith("openrouter:"):
+        return True
+    if answerer.startswith("mixed:"):
+        parts = answerer.removeprefix("mixed:").split("+")
+        return all(clean(p) or p.startswith("openrouter:") for p in parts) and any(p.startswith("openrouter:") for p in parts)
+    return False
+
+
+def exchange_answerer(check: dict[str, Any]) -> str:
+    """Who answered a kept exchange, from the example's check (its model, and the provider and source class when kept)."""
+    return answerer_of({"mode": "llm", "model": check.get("model"), "provider": check.get("provider"), "source_class": check.get("source_class")})
+
+
+def silver_of(answerer: str) -> bool:
+    """A provider's model (Claude, GPT, any other hosted one) chose it: silver, apart (the owner, 2026-10-25)."""
+    return not clean(answerer) and not open_weights(answerer)
+
+
+def qwen_weight() -> float:
+    return provider_outputs.weight(decision=provider_outputs.OPENROUTER_QWEN, default=1.0)
 
 
 def holdouts(records: Iterable[StoreRecord]) -> dict[tuple[str, str], list[dict[str, Any]]]:
@@ -611,9 +643,13 @@ def intern_trajectories(records: Iterable[StoreRecord], finals: Optional[dict[tu
             continue
         holdout = holdout_of(r)
         who = answerer_of(r.body)
-        helpers = [m for m in models_in_results(r.body.get("steps") or []) if not clean(answerer_of({"mode": "llm", "model": m}))]
-        if clean(who) and helpers:  # a hosted model wrote part of its results: not a clean run
-            who = f"mixed:{who}+{answerer_of({'mode': 'llm', 'model': helpers[0]})}"
+        helpers = [answerer_of({"mode": "llm", "model": m}) for m in models_in_results(r.body.get("steps") or [])]
+        helpers = [h for h in helpers if not clean(h)]
+        frontier = [h for h in helpers if not h.startswith("openrouter:")]
+        if clean(who) and helpers:  # a hosted model wrote part of its results: not a clean run (a provider's helper named first)
+            who = f"mixed:{who}+{(frontier or helpers)[0]}"
+        elif open_weights(who) and frontier:  # Qwen chose, a provider's model (Claude) wrote part of its results: silver
+            who = f"mixed:{who}+{frontier[0]}"
         truth, truth_source = truth_of(r.provenance.workspace, truths)
         learning = graded.get(r.provenance.workspace)
         if not learning and "learning_attempts__" in r.provenance.workspace:  # an attempt whose grade was never written: not judged
@@ -633,7 +669,8 @@ def intern_trajectories(records: Iterable[StoreRecord], finals: Optional[dict[tu
                  else (split_of(f"table:{table}") if table else (r.split or split_of(f"session:{sid}"))))
         yield SolverTrajectory(
             id=f"m5_solver_llm:intern:{sid}", model_type="m5_solver_llm", split=split,
-            provenance=r.provenance, problem_kind=str((holdout or {}).get("task_type") or "studio"), weight=1.0 if clean(who) else 0.5,
+            provenance=r.provenance, problem_kind=str((holdout or {}).get("task_type") or "studio"),
+            weight=1.0 if clean(who) else qwen_weight() if open_weights(who) else 0.5,
             problem={"request": r.body.get("task"), "agent": "intern", "answerer": who, "data_sha256": table,
                      "status": r.body.get("status"), "ended": r.body.get("ended"),  # how the session ended (a failed run says so)
                      "outcome_named": OUTCOME_NAMED in str(r.body.get("task") or ""),  # the person named the outcome: not the solver's choice
@@ -791,6 +828,11 @@ REASONING_FINAL = "reasoning/final_turn"  # the owner (2026-10-28): every turn t
 REASONING_FINAL_SILVER = "reasoning/final_turn_silver_frontier"  # the same from a provider's model (Claude): silver, apart
 REASONING_SILVER = "reasoning/silver_frontier"  # a provider's model (Claude): silver, apart (owner, 2026-10-25; provider_outputs.py)
 REASONING = "reasoning"  # D2 / P4: M4's reasoning-only set (every assistant turn's reasoning recorded)
+# the owner, 2026-11-11 (owner_decisions.json, openrouter_qwen): Qwen served through OpenRouter, trained at full weight, apart
+TRAJECTORIES_QWEN = "trajectories/openrouter_qwen"
+REASONING_QWEN = "reasoning/openrouter_qwen"
+REASONING_FINAL_QWEN = "reasoning/final_turn_openrouter_qwen"
+QWEN_FOLDERS = (TRAJECTORIES_QWEN, REASONING_QWEN, REASONING_FINAL_QWEN)
 TRAJECTORIES_REASONING = "trajectories/reasoning"  # D2 / P4: M5's (every tool step's thought recorded), from studio only
 
 
@@ -816,16 +858,18 @@ def as_failed(t: SolverTrajectory, why: str, **facts: Any) -> SolverTrajectory:
 
 
 def place(t: SolverTrajectory) -> tuple[Optional[str], str]:
-    """Where an intern trajectory goes: the clean set, the frontier's silver set, or (D2 / P3) the failed set with why (a
-    frontier model's failed run goes to silver with the same why: never to a training folder). Nowhere only when the table
-    it ran on is not known, since its split could not follow the table; the reason comes back with None."""
-    silver = not clean(str(t.problem.get("answerer")))
+    """Where an intern trajectory goes: the clean set, OpenRouter Qwen's own set, the frontier's silver set, or (D2 / P3) the
+    failed set with why (a frontier model's failed run goes to silver with the same why, Qwen's to its own set: never to the
+    clean failed folder). Nowhere only when the table it ran on is not known, since its split could not follow the table; the
+    reason comes back with None."""
+    who = str(t.problem.get("answerer"))
+    apart = TRAJECTORIES_QWEN if open_weights(who) else None if clean(who) else "trajectories/silver_frontier"
     why = failure_of(t)
     if why:  # a failed run often has no holdout, so no table: its split followed its session instead
-        return ("trajectories/silver_frontier" if silver else FAILED), why
+        return (apart or FAILED), why
     if not t.problem.get("data_sha256"):
         return None, "m5: the table it ran on is not known"
-    return ("trajectories/silver_frontier" if silver else "trajectories/studio"), ""
+    return (apart or "trajectories/studio"), ""
 
 
 def build(layout: Optional[Layout] = None) -> dict[str, Any]:
@@ -945,6 +989,14 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
                          "its model recorded when it wrote it; earlier turns are context (weight 0 at export). A clean answerer's only.",
         REASONING_FINAL_SILVER: "The final-turn reasoning set from a provider's model (Claude): silver, apart, weight 0.5, under "
                                 "provider_outputs' consent; earlier turns are context (weight 0 at export).",
+        TRAJECTORIES_QWEN: "Whole solving runs whose moves a Qwen model served through OpenRouter chose (alone, or helping the rules), "
+                           "scored and checked as the clean set, failed runs included with why (verified: false), at full weight, apart. "
+                           "The owner's decision (2026-11-11, store/owner_decisions.json, openrouter_qwen): stored and trained on; its "
+                           "manifest's consent follows that record. Check Qwen's licence before a fine-tune uses it.",
+        REASONING_QWEN: "The reasoning-only set from Qwen served through OpenRouter: whole exchanges whose every assistant turn carries "
+                        "the reasoning OpenRouter returned, at full weight, apart (owner, 2026-11-11; openrouter_qwen's consent).",
+        REASONING_FINAL_QWEN: "The final-turn reasoning set from Qwen served through OpenRouter: the last turn's returned reasoning, "
+                              "full weight, apart (owner, 2026-11-11; openrouter_qwen's consent); earlier turns are context (weight 0 at export).",
         REASONING: "D2 / P4: the reasoning-only set of the workflow LLM: exchanges whose every assistant turn carries reasoning recorded "
                    "where it was made (the local model's reasoning field sent back on every turn, P1), answered by a clean model only "
                    "(a provider's model's exchanges are evaluation and silver until the owner's D11). Teaches why; the stage sets teach "
@@ -965,8 +1017,10 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
         sources = {e.provenance.entry: {"entry": e.provenance.entry, "sha256": e.provenance.sha256} for e in examples}
         silver = folder in ("trajectories/silver_frontier", REASONING_SILVER, REASONING_FINAL_SILVER)
         about = folder_abouts.get(folder) or abouts[model_type]
+        decided = (provider_outputs.consent() if silver else provider_outputs.consent(decision=provider_outputs.OPENROUTER_QWEN)
+                   if folder in QWEN_FOLDERS else "train")  # the owner's decisions (provider_outputs.py, owner_decisions.json)
         m = write_set(layout, model_type, folder, examples, version=versions.get(folder, "v1"), sources=sources.values(),
-                      consent=provider_outputs.consent() if silver else "train",  # the owner's decision (provider_outputs.py)
+                      consent=decided,
                       about=about,
                       decontaminated=["every sealed journey and conversation set", f"{len(benchmarks)} benchmark task names (benchmarks.txt)"])
         report["sets"][f"{model_type}/{folder}"] = m.counts
@@ -979,18 +1033,23 @@ def build(layout: Optional[Layout] = None) -> dict[str, Any]:
     # model's are evaluation and silver until the owner's D11; an exchange naming no model is not clean either).
     # 37.0: the conversation exam's simulated turns stay in their own stage set, never in the reasoning sets beside real turns
     write("m4_workflow_llm", REASONING, [e for (mt, f), kept in written.items() if mt == "m4_workflow_llm" and f != EXAM_STAGE for e in kept
-                                        if all_recorded(e) and clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
+                                        if all_recorded(e) and clean(exchange_answerer(e.check))])
+    # the owner (2026-11-11): Qwen served through OpenRouter, its reasoning trained at full weight, apart from both
+    write("m4_workflow_llm", REASONING_QWEN, [e.model_copy(update={"weight": qwen_weight()}) for (mt, f), kept in written.items()
+                                             if mt == "m4_workflow_llm" and f not in (REASONING, EXAM_STAGE) for e in kept
+                                             if all_recorded(e) and open_weights(exchange_answerer(e.check))])
     # the owner (2026-10-25: a provider's outputs train too, silver and apart; 2026-10-28: keep every model's thinking): the
     # provider's whole exchanges whose every turn has its recorded thinking, at weight 0.5, under provider_outputs' consent
     write("m4_workflow_llm", REASONING_SILVER, [e.model_copy(update={"weight": 0.5}) for (mt, f), kept in written.items()
                                                if mt == "m4_workflow_llm" and f not in (REASONING, EXAM_STAGE) for e in kept
-                                               if all_recorded(e) and e.check.get("model")
-                                               and not clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
+                                               if all_recorded(e) and e.check.get("model") and silver_of(exchange_answerer(e.check))])
     m4_stage = [e for (mt, f), kept in written.items() if mt == "m4_workflow_llm" and not f.startswith("reasoning") and f != EXAM_STAGE for e in kept
                 if final_recorded(e)]
-    write("m4_workflow_llm", REASONING_FINAL, [e for e in m4_stage if clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
+    write("m4_workflow_llm", REASONING_FINAL, [e for e in m4_stage if clean(exchange_answerer(e.check))])
+    write("m4_workflow_llm", REASONING_FINAL_QWEN, [e.model_copy(update={"weight": qwen_weight()}) for e in m4_stage
+                                                   if open_weights(exchange_answerer(e.check))])
     write("m4_workflow_llm", REASONING_FINAL_SILVER, [e.model_copy(update={"weight": 0.5}) for e in m4_stage if e.check.get("model")
-                                                     and not clean(answerer_of({"mode": "llm", "model": e.check.get("model")}))])
+                                                     and silver_of(exchange_answerer(e.check))])
     write("m5_solver_llm", TRAJECTORIES_REASONING, [e for e in written.get(("m5_solver_llm", "trajectories/studio"), []) if all_recorded(e)])
     return report
 

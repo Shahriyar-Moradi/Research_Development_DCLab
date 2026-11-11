@@ -172,6 +172,11 @@ class CaptureTests(unittest.TestCase):
         for name, info in answers.ANSWERERS.items():
             self.assertIn(info["use"], ("train", "eval_only"), name)
             self.assertTrue(info["licence"] and info["why"])
+        qwen = answers.ANSWERERS["qwen3.8-flash"]  # the owner, 2026-11-11: trained on, its licence checked before a fine-tune
+        self.assertEqual((qwen["model"], qwen["use"], qwen["source_class"]), ("qwen/qwen3.8-flash", "train", "open_weights_model"))
+        self.assertIn("before any fine-tune", qwen["licence"])
+        with self.assertRaises(ValueError):  # hosted: its answers are harvested from the sessions it served, never captured here
+            answers.capture("qwen3.8-flash", sources=("lake",), lake=Path(tempfile.mkdtemp()), model=object(), log=lambda *a: None)
         text, schema = answers.render("feature.leakage_suspect", {"column": "refund_at", "dtype": "datetime", "target": "fraud"}, ["yes", "no"])
         self.assertIn("refund_at", text)
         self.assertIn("fraud", text)

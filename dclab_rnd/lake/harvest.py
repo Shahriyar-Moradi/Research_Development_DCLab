@@ -12,9 +12,13 @@ two places) once:
 - ``bronze/sessions/twin/<run>/``: each twin run's compared steps, Claude's expert record and design, the run's notes;
 - ``bronze/sessions/model_requests.jsonl``: every model request (purpose, model, tokens, seconds, cost, outcome);
 - per-answerer views in the answers' own layout (``bronze/answers/<answerer>/sessions/<point>/all.jsonl``):
-  ``dclab-rules`` (the rule's answer of every recorded decision, ``use: train``, DCLab's own), ``claude`` (every answer a
-  model role gave where Claude served it, and every twin step's AI-first answer: ``use: eval_only``, the owner's rule),
-  ``dclab-classifiers`` (shadows) and ``people`` (a person's own answer, ``use: train`` under its workspace's consent).
+  ``dclab-rules`` (the rule's answer of every recorded decision, ``use: train``, DCLab's own), one answerer per model a
+  model role's answer came from (the model of the request that made it, read from its workspace's kept exchange, else the
+  models that workspace was served by): ``claude`` (``use: eval_only``, the owner's rule, and every twin step's AI-first
+  answer Claude gave), ``qwen3.8-flash`` for Qwen served through OpenRouter (``use: train``, the owner's decision of
+  2026-11-11 in ``store/owner_decisions.json``), any other model under its own name (``use: eval_only`` until its terms
+  are checked), ``dclab-classifiers`` (shadows) and ``people`` (a person's own answer, ``use: train`` under its workspace's
+  consent).
 
 Re-run any time (``make capture``): it is rebuilt whole from the workspaces, which keep everything themselves.
 
@@ -25,6 +29,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -54,12 +59,64 @@ def _key(path: Path, root: Path) -> str:
         return str(path)
 
 
+def served_times(folder: Path) -> list[tuple[float, str]]:
+    """Every ok model request of a workspace as (when, model), oldest first: every model it was ever served by, with its time
+    (the latest per purpose alone would file a purpose's pre-switch Claude answers under the model that serves it now)."""
+    out = []
+    for r in _lines(folder / "model_requests.jsonl"):
+        when = _when(r.get("at"))
+        if r.get("model") and r.get("outcome") in (None, "ok") and when is not None:
+            out.append((when, str(r["model"])))
+    return sorted(out)
+
+
+def _when(text: Any) -> Optional[float]:
+    try:
+        when = datetime.fromisoformat(str(text).replace("Z", "+00:00"))
+        return (when if when.tzinfo else when.replace(tzinfo=timezone.utc)).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+WINDOW = 600.0  # seconds before a decision in which the request that made a model role's answer was sent
+SEALED_PLACES = ("exam_vault", "sealed")  # a workspace under one of these is a sealed run's: its model answers never train
+
+
+def sealed_place(where: Any) -> bool:
+    return any(part in SEALED_PLACES for part in Path(str(where or "")).parts)
+
+
 def served_models(folder: Path) -> dict[str, str]:
     """The model each purpose was served by in a workspace (its model_requests.jsonl), the latest per purpose."""
     out: dict[str, str] = {}
     for r in _lines(folder / "model_requests.jsonl"):
         if r.get("purpose") and r.get("model") and r.get("outcome") in (None, "ok"):
             out[str(r["purpose"])] = str(r["model"])
+    return out
+
+
+REQUEST_ID = re.compile(r'"model_request": "([^"\\]+)"')  # an exchange line's own request id, near its start (before the messages)
+
+
+def request_models(folder: Path, wanted: set[str]) -> dict[str, dict[str, Any]]:
+    """The model that served each wanted request of a workspace, from its kept exchanges (``model_exchanges/``): the
+    model's name, and the ``provider`` and ``source_class`` the gateway wrote when it did. Only a wanted line is parsed."""
+    out: dict[str, dict[str, Any]] = {}
+    exchanges = folder / "model_exchanges"
+    if not wanted or not exchanges.is_dir():
+        return out
+    for path in sorted(exchanges.rglob("*.jsonl")):
+        with path.open(encoding="utf-8") as f:
+            for line in f:
+                m = REQUEST_ID.search(line, 0, 600)
+                if m is None or m.group(1) not in wanted or m.group(1) in out:
+                    continue
+                try:
+                    doc = json.loads(line)
+                except ValueError:
+                    continue
+                if doc.get("model"):
+                    out[m.group(1)] = {k: doc.get(k) for k in ("model", "provider", "source_class")}
     return out
 
 
@@ -92,6 +149,7 @@ def harvest(root: Path = WORKSPACES, lake: Path = LAKE, database: bool = True) -
         workspace = ledger.parent
         where, models = _key(workspace, root), served_models(workspace)
         driven = scripted(workspace, root)
+        added: list[str] = []
         for kind, store in (("decisions", records), ("labels", labels), ("outcomes", outcomes)):
             for path in sorted((ledger / kind).rglob("*.jsonl")):
                 for doc in _lines(path):
@@ -101,6 +159,25 @@ def harvest(root: Path = WORKSPACES, lake: Path = LAKE, database: bool = True) -
                         continue
                     store[ident] = {**doc, "found_in": [where], **({"served_models": models} if kind == "decisions" else {}),
                                     **({"scripted": True} if driven else {})}
+                    if kind == "decisions":
+                        added.append(ident)
+        # the model of the request behind each model role's answer (its source), from this workspace's kept exchanges; when
+        # none is kept (most roles pass no request id), the models served just before the decision, then every model ever
+        # served there: never only the latest per purpose (review of step 3: that filed Claude's past answers as Qwen's)
+        roled = [i for i in added if any(a.get("by") == "model_role" for a in records[i].get("answers") or [])]
+        wanted = {str(a["source"]) for i in roled for a in records[i].get("answers") or [] if a.get("by") == "model_role" and a.get("source")}
+        served = request_models(workspace, wanted)
+        times = served_times(workspace) if roled else []
+        ever = sorted({m for _, m in times})
+        for i in roled:
+            mine = {str(a["source"]): served[str(a["source"])] for a in records[i].get("answers") or []
+                    if a.get("by") == "model_role" and str(a.get("source")) in served}
+            if mine:
+                records[i]["role_models"] = mine
+            at = _when(records[i].get("at"))
+            if at is not None:
+                records[i]["models_before"] = sorted({m for t, m in times if at - WINDOW <= t <= at + 5})
+            records[i]["ever_served"] = ever
     database_note = None
     if database:
         db_records, db_labels, database_note = _database_ledger()
@@ -179,6 +256,51 @@ def judge_accuracy(results: Optional[Path] = None) -> dict[str, float]:
 MIN_MEASURED = 10  # verdicts at one confidence on one point before that confidence gets its own weight
 
 
+def model_of(r: dict[str, Any], a: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """Which model gave a model role's answer: the model of its own request (its kept exchange) when known; else the models
+    served in the ten minutes before the decision; else every model its workspace was ever served by. In either set Claude
+    among them is Claude (evaluation only, never filed as another's), one model alone is that model, several others are not
+    known. None when no model is known at all (a database record)."""
+    info = (r.get("role_models") or {}).get(str(a.get("source") or ""))
+    if info and info.get("model"):
+        return {**info, "known_by": "its request's kept exchange"}
+    for models, said in ((r.get("models_before"), "served in the ten minutes before the decision"),
+                         (r.get("ever_served"), "its workspace was ever served by"),
+                         (sorted({str(m) for m in (r.get("served_models") or {}).values() if m}), "its workspace was served by")):
+        models = [str(m) for m in models or [] if m]
+        claude = [m for m in models if "claude" in m.lower()]
+        if claude:
+            return {"model": claude[0], "known_by": f"a model {said} (Claude among them: evaluation only)"}
+        if len(models) == 1:
+            return {"model": models[0], "known_by": f"the one model {said}"}
+        if models:
+            return {"model": None, "known_by": f"{len(models)} models {said}; which one answered is not known"}
+    return None
+
+
+def _ai_first_model(side: dict[str, Any]) -> Any:
+    """The model of a twin step's AI-first lane: its own ``model`` field (Home's lane), else its answerer without the expert's
+    prefix (``ai_first@expert:qwen/qwen3.8-flash``), else the answerer as written (compare's lane names the model)."""
+    answerer = str(side.get("answerer") or "")
+    return side.get("model") or (answerer.split(":", 1)[1] if answerer.startswith("ai_first@expert:") else answerer)
+
+
+def answerer_for(info: dict[str, Any]) -> tuple[str, str]:
+    """The lake's answerer and use for a model: ``claude`` (eval_only, the owner's rule); Qwen served through OpenRouter under
+    its own name (train, the owner's decision of 2026-11-11, while ``owner_decisions.json`` says yes); any other model under
+    its own name, eval_only until its terms are checked; an unknown model ``unknown-model``, eval_only."""
+    from ..store import provider_outputs as P
+
+    model = info.get("model")
+    if not model:
+        return "unknown-model", "eval_only"
+    if "claude" in str(model).lower():
+        return "claude", "eval_only"
+    if P.openrouter_qwen(model, info.get("provider"), info.get("source_class")):
+        return P.answerer_name(model), "train" if P.for_training(decision=P.OPENROUTER_QWEN) else "eval_only"
+    return P.answerer_name(model), "eval_only"
+
+
 def _views(records: dict[str, dict[str, Any]], runs: dict[str, Path], lake: Path,
            labels: Optional[dict[str, dict[str, Any]]] = None) -> dict[str, int]:
     """Each answer of each recorded decision under its answerer, in the answers' layout (source ``sessions``; twin steps
@@ -186,32 +308,44 @@ def _views(records: dict[str, dict[str, Any]], runs: dict[str, Path], lake: Path
     (``decision_labeler``, source ``model``) under ``claude/sessions/<point>/judge.jsonl``: silver (the owner's rule of
     2026-10-17), weighted by the judge's measured accuracy on the point, usable for training only at or above
     ``SILVER_BAR``, removable in one step (those files)."""
+    from ..store import provider_outputs as P
+    from .answers import ANSWERERS
+
     base = lake / "bronze" / "answers"
-    for answerer in ("dclab-rules", "dclab-classifiers", "people", "claude"):
-        for source in ("sessions", "twin"):
-            shutil.rmtree(base / answerer / source, ignore_errors=True)
+    for folder in (p for p in base.iterdir() if p.is_dir()) if base.is_dir() else []:  # every answerer's harvested sources, rebuilt
+        for source in ("sessions", "twin"):  # whole (only the harvest writes these two; capture's sources are never touched)
+            shutil.rmtree(folder / source, ignore_errors=True)
     files: dict[Path, list[str]] = defaultdict(list)
     counts: Counter = Counter()
     for r in records.values():
-        claude = any("claude" in str(m) for m in (r.get("served_models") or {}).values())
         for a in r.get("answers") or []:
-            by = a.get("by")
-            if by == "model_role":
-                if not claude:
+            by, served = a.get("by"), None
+            if by == "model_role" and (a.get("source") == "shadow" or str(a.get("answerer") or "").startswith("shadow:")):
+                # a shadow model's answer (logged, never used): under its own model, never the served model's
+                served = {"model": str(a.get("answerer") or "").removeprefix("shadow:") or None, "known_by": "the shadow's own name"}
+                answerer, use = answerer_for(served)
+            elif by == "model_role":
+                served = model_of(r, a)
+                if served is None:  # no model known for it at all: not filed under a guessed answerer
                     continue
-                answerer, use = "claude", "eval_only"
+                answerer, use = answerer_for(served)
             elif by == "person" and r.get("scripted"):  # a test script's click, never a person's answer
                 continue
             elif by in BY:
                 answerer, use = BY[by]
             else:
                 continue
-            if a.get("source") == "shadow":
+            if a.get("source") == "shadow" and by != "model_role":
                 answerer, use = "dclab-classifiers", "train"
+            if served is not None and use == "train" and any(sealed_place(w) for w in r.get("found_in") or []):
+                use = "eval_only"  # a sealed run's model answer: kept, never a training row
             row = {"sample_id": r.get("id"), "source": "sessions", "decision_point": r.get("point"), "answerer": answerer,
                    "answered_by": a.get("answerer"), "value": a.get("value"), "confidence": a.get("confidence"), "reason": a.get("reason"),
                    "state": r.get("state"), "options": r.get("options"), "value_used": r.get("value_used"), "used": r.get("used"),
                    "at": r.get("at"), "workspace": (r.get("found_in") or [None])[0], "consent": r.get("consent"), "use": use}
+            if served is not None and answerer != "dclab-classifiers":
+                row.update({"model": served.get("model"), "provider": served.get("provider"), "source_class": served.get("source_class"),
+                            "model_known_by": served.get("known_by"), "licence": (ANSWERERS.get(answerer) or {}).get("licence")})
             files[base / answerer / "sessions" / str(r.get("point")) / "all.jsonl"].append(json.dumps(row, ensure_ascii=False, default=str))
             counts[answerer] += 1
     measured = judge_accuracy()
@@ -242,7 +376,14 @@ def _views(records: dict[str, dict[str, Any]], runs: dict[str, Path], lake: Path
         counts["claude (judge, silver)"] += 1
     for name, folder in runs.items():
         for step in _lines(folder / "steps.jsonl"):
-            for arm, answerer, use in (("ai_first", "claude", "eval_only"), ("system", "dclab-rules", "train")):
+            ai = step.get("ai_first") or {}
+            ai_model = _ai_first_model(ai)
+            ai_by = (answerer_for({"model": ai_model, "provider": ai.get("provider"), "source_class": ai.get("source_class")})
+                     if P.openrouter_qwen(ai_model, ai.get("provider"), ai.get("source_class")) else ("claude", "eval_only"))
+            if ai_by[1] == "train" and sealed_place(folder):  # a sealed run's lane: kept, never a training row
+                ai_by = (ai_by[0], "eval_only")
+            # the AI-first lane was Claude's (eval_only) until Qwen served it through OpenRouter (2026-11-11: its own answerer)
+            for arm, answerer, use in (("ai_first", *ai_by), ("system", "dclab-rules", "train")):
                 side = step.get(arm) or {}
                 row = {"sample_id": f"{name}:{step.get('id')}", "source": "twin", "decision_point": step.get("step"), "answerer": answerer,
                        "answered_by": side.get("answerer"), "status": side.get("status"), "value": side.get("answer", side.get("value")),

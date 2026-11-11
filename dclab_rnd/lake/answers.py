@@ -25,7 +25,8 @@ Files (all under the lake's bronze layer, which no rebuild removes, and kept per
   the rule's answer, where the label comes from;
 - ``bronze/answers/<answerer>/<source>/<point>/<split>.jsonl``: each answer whole: what was asked (the text, the schema,
   their fingerprint), the raw output, the value, the confidence, the model's id and weights' revision, the library, the
-  machine, the time, the licence and ``use`` (``train`` for an open-weight model run here; a hosted model's answers are
+  machine, the time, the licence and ``use`` (``train`` for an open-weight model run here, and for Qwen on OpenRouter by the
+  owner's decision of 2026-11-11, whose answers ``lake.harvest`` files from the sessions it served; any other hosted model's answers are
   ``eval_only`` until its terms are checked). A decision whose text changes is asked again; a stopped run resumes.
 - ``export_gliner2`` writes every source's labelled decisions in GLiNER2's own training format (``{"input", "output":
   {"classifications": [...]}}``, its tutorial's shape) to ``training_records/datasets/gliner2/<version>/``, the sealed
@@ -66,7 +67,14 @@ COMMITTEE = ROOT / "research" / "llm-fine-tuning" / "experiments" / "decisions" 
 ANSWERERS: dict[str, dict[str, str]] = {
     "gliner2.5-decide": {"model": "fastino/GLiNER2.5-Decide", "licence": "Apache-2.0", "runs": "on this machine, open weights",
                          "use": "train", "why": "open weights under Apache 2.0, run locally: no service's terms restrict its answers"},
-}  # a hosted answerer (Jev, OpenAI, GLiDE, Claude) is added with use "eval_only" until its terms are checked
+    # the owner, 2026-11-11 (store/owner_decisions.json, openrouter_qwen): Qwen served through OpenRouter answers inside the
+    # sessions it serves; lake.harvest files those answers here, never capture (it is not run on this machine)
+    "qwen3.8-flash": {"model": "qwen/qwen3.8-flash", "licence": "Qwen's open-weights licence and OpenRouter's terms: checked before any fine-tune "
+                                                               "(docs/guides/TRAINING_DATA_FACTORY_PLAN.md)",
+                      "runs": "hosted on OpenRouter (open weights)", "source_class": "open_weights_model", "use": "train", "hosted": "yes",
+                      "why": "the owner, 2026-11-11: \"there is no restriction on openrouter qwen model now to capture and collect and "
+                             "store reasoning\"; full weight, kept apart under its own answerer"},
+}  # any other hosted answerer (Jev, OpenAI, GLiDE, Claude) is added with use "eval_only" until its terms are checked
 
 PROMPTS = {
     "column.is_identifier": "Is this column an identifier: a key that names a row or an entity, never a property to learn from?",
@@ -450,6 +458,8 @@ def capture(answerer: str = "gliner2.5-decide", sources: tuple[str, ...] = SOURC
             identity: Optional[dict[str, Any]] = None, log: Any = print) -> dict[str, Any]:
     """Every decision of every test source asked once (resumable); returns what was asked now, per source, point and split."""
     info = ANSWERERS[answerer]
+    if info.get("hosted"):  # a hosted answerer's answers come from the sessions it served (lake.harvest), never from a local run
+        raise ValueError(f"{answerer} is hosted ({info['runs']}): its answers are harvested from the sessions it served, not captured here")
     migrate(lake)
     write_tests(tuple(s for s in sources if s != "lake"), lake)
     if model is None:
