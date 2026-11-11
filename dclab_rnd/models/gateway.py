@@ -321,10 +321,11 @@ class Gateway:
 
     def record(self, purpose: str, model: str, usage: dict[str, Any] | None, seconds: float, attempts: int, outcome: str,
                project_id: str | None = None, draft_id: str | None = None, prompt: str | None = None, base_url: str | None = None,
-               tier: str | None = None) -> float | None:
+               tier: str | None = None, source: dict[str, str] | None = None) -> float | None:
         """Write one usage entry. Clients that cannot be routed through the gateway (the campaign agent's NOOA client)
         call this after each request, so every request is still counted. ``tier`` is the tier that answered (a routed
-        purpose's), the purpose's own by default."""
+        purpose's), the purpose's own by default. ``source`` is who served it (``source_of``: the bound tier's, which a fixed tier or
+        a model override can make differ from the configured one); by default read from the endpoint written on the row."""
         p = settings.purpose(purpose)
         tier = tier or p.tier
         public = settings.public(tier)
@@ -355,7 +356,8 @@ class Gateway:
                                "project_id": project_id, "draft_id": draft_id, "input_tokens": tokens_in, "output_tokens": tokens_out,
                                "seconds": round(seconds, 2), "attempts": attempts, "outcome": outcome,
                                "prompt": prompt if _text_kept() else None, "cost_eur": eur, "cost_basis": basis,
-                               "cache_read_tokens": read or None, "cache_write_tokens": write or None})
+                               "cache_read_tokens": read or None, "cache_write_tokens": write or None,
+                               **(source or source_of(public["endpoint"], bool(public["local"]), model))})  # 2026-11-11: who served it
             from .. import observe
 
             observe.observe_model(purpose, str(tier), outcome, tokens_in or 0, tokens_out or 0, eur)  # 12.4: model usage counters
@@ -411,6 +413,65 @@ class Gateway:
 
 
 TRANSPORT_DECIDES = "no setting: the transport decides"  # an OpenAI-style local client that may still return reasoning
+
+# 2026-11-11 (the move to OpenRouter Qwen): what a kept reasoning text is depends on who returned it. Claude's API returns a
+# summary of its thinking; OpenRouter and a local model return an open model's reasoning itself, raw. The label says which.
+THINKING_LABELS = {
+    "anthropic": "API thinking summary",
+    "openrouter": "model reasoning (raw, as returned by OpenRouter)",
+    "local": "model reasoning (raw, as returned by the local model)",
+}
+OPENROUTER_SUMMARY_LABEL = "API thinking summary (via OpenRouter)"  # a closed model's summary relayed by OpenRouter
+OTHER_THINKING_LABEL = "model reasoning (as returned by the endpoint)"
+# vendors on OpenRouter whose models are not open weights: their answers are a commercial model's, wherever they are served
+_CLOSED_VENDORS = ("anthropic/", "openai/", "google/gemini", "x-ai/", "cohere/", "amazon/", "perplexity/", "inflection/")
+# families on OpenRouter filed as open weights. Qwen is the owner's decision of 2026-11-11 (plan: "OpenRouter Qwen →
+# open_weights_model (hosted)"); its licence is checked before any fine-tune. Any other OpenRouter model is "unknown" until named here.
+_OPEN_FAMILIES = ("qwen/", "meta-llama/", "deepseek/", "google/gemma", "microsoft/phi", "openai/gpt-oss", "allenai/", "nvidia/")
+
+
+def source_of(host: str, local: bool, model: str | None = None) -> dict[str, str]:
+    """Who served a request and what kind of source its words are, from the endpoint's host (never the model name alone):
+    ``provider`` is anthropic, openrouter, openai, openai_compatible (another hosted endpoint), local or unknown (no endpoint);
+    ``source_class`` is commercial_model, open_weights_model or unknown. On OpenRouter the model's vendor decides the class:
+    a closed vendor's (``anthropic/…``, ``openai/…`` but not ``openai/gpt-oss…``) is a commercial model, a family in
+    ``_OPEN_FAMILIES`` is open weights, any other is unknown (never filed as open weights by default)."""
+    host = str(host or "").split(":")[0].lower()
+    if local:
+        return {"provider": "local", "source_class": "open_weights_model"}
+    if not host or host == "not set":
+        return {"provider": "unknown", "source_class": "unknown"}
+    if host == settings.ANTHROPIC_HOST:
+        return {"provider": "anthropic", "source_class": "commercial_model"}
+    if host == settings.OPENROUTER_HOST:
+        name = str(model or "").lower()
+        if name.startswith(_OPEN_FAMILIES):
+            kind = "open_weights_model"
+        elif name.startswith(_CLOSED_VENDORS):
+            kind = "commercial_model"
+        else:
+            kind = "unknown"
+        return {"provider": "openrouter", "source_class": kind}
+    if host == "api.openai.com":
+        return {"provider": "openai", "source_class": "commercial_model"}
+    return {"provider": "openai_compatible", "source_class": "unknown"}
+
+
+def thinking_label(source: dict[str, str], reasoning_details: Any = None) -> str:
+    """What a kept thinking text is. On OpenRouter a closed model's text, or one OpenRouter marks ``reasoning.summary``, is a
+    summary; an open model's ``reasoning.text`` is raw."""
+    if source.get("provider") == "openrouter":
+        kinds = {str(d.get("type") or "") for d in reasoning_details or [] if isinstance(d, dict)}
+        if source.get("source_class") == "commercial_model" or ("reasoning.summary" in kinds and "reasoning.text" not in kinds):
+            return OPENROUTER_SUMMARY_LABEL
+    return THINKING_LABELS.get(source.get("provider", ""), OTHER_THINKING_LABEL)
+
+
+def _source_of_tier(tier: dict[str, Any] | None, model: str | None) -> dict[str, str]:
+    base_url = str((tier or {}).get("base_url") or "")
+    if not base_url:
+        return source_of("", False, model)
+    return source_of(settings._host(base_url), settings.is_local(base_url, (tier or {}).get("name")), model)
 
 
 def _asked_of(transport: Any) -> str | None:
@@ -676,18 +737,23 @@ class Bound:
             import hashlib
 
             system = next((str(m.get("content") or "") for m in messages if m.get("role") == "system"), "")
+            model = (shadow or {}).get("model") or self.model
+            source = _source_of_tier(shadow or self.tier, model)  # 2026-11-11: who served it, from the endpoint's host
             doc: dict[str, Any] = {"at": datetime.now(timezone.utc).isoformat(timespec="microseconds"), "model_request": request_id,
                                    "prompt_sha256": hashlib.sha256(system.encode()).hexdigest()[:16] if system else None,  # 32.22
-                                   "purpose": self.purpose, "tier": (shadow or self.tier).get("name"), "model": (shadow or {}).get("model") or self.model,
+                                   "purpose": self.purpose, "tier": (shadow or self.tier).get("name"), "model": model,
                                    "project": self.project_id, **({"shadow": True} if shadow else {}),
                                    "draft": self.draft_id, "outcome": outcome, "usage": (out or {}).get("usage"), "whole": whole,
-                                   "may_leave": may_leave, "thinking_label": "API thinking summary",
+                                   "may_leave": may_leave, **source,
+                                   "thinking_label": thinking_label(source, reasoning_details),
                                    "tool_names": [str((t.get("function") or {}).get("name") or t.get("name") or "") for t in tools or []],
                                    "tools_sha256": hashlib.sha256(json.dumps(tools, sort_keys=True, default=str).encode()).hexdigest()[:16] if tools else None}
-            if reasoning:
-                doc["reasoning"] = reasoning
-            if reasoning_details:
-                doc["reasoning_details"] = reasoning_details
+            if (out or {}).get("reasoning_request"):  # what the request asked of OpenRouter's reasoning (an effort, or enabled)
+                doc["reasoning_asked"] = out["reasoning_request"]
+            # the raw reasoning (and OpenRouter's reasoning_details) is words: kept only where the words are (below, and in a
+            # sealed exam's vault); a shape-only line keeps its redacted copy in thinking_redacted, as Claude's thinking does
+            raw_reasoning = {**({"reasoning": reasoning} if reasoning else {}),
+                             **({"reasoning_details": reasoning_details} if reasoning_details else {})}
             if asked is ...:  # the served call: its own transport's setting
                 asked = _asked_of(getattr(self, "_transport", None))
             doc["thinking_asked"] = asked
@@ -699,7 +765,7 @@ class Bound:
                 doc["thinking_dropped"] = "the model refused a thinking request in this process, so it was sent without thinking"
             if whole:
                 doc.update(messages=messages, reply=(out or {}).get("content"), tool_calls=(out or {}).get("tool_calls"), thinking=thinking,
-                           tools=tools or [])
+                           tools=tools or [], **raw_reasoning)
             else:
                 exam = os.environ.get("DCLAB_SEALED_RUN") if not experience.model_text_allowed() else None
                 why = (f"an exam ({exam}): its shape only, never its words or its thinking" if exam else
@@ -713,7 +779,7 @@ class Bound:
                     vfolder = _Path(vault) / "model_exchanges" / f"{day_:%Y}" / f"{day_:%m}"
                     vfolder.mkdir(parents=True, exist_ok=True)
                     whole_doc = {**doc, "whole": True, "vault": exam, "messages": messages, "reply": (out or {}).get("content"),
-                                 "tool_calls": (out or {}).get("tool_calls"), "thinking": thinking, "tools": tools or []}
+                                 "tool_calls": (out or {}).get("tool_calls"), "thinking": thinking, "tools": tools or [], **raw_reasoning}
                     with open(vfolder / f"{day_:%d}.jsonl", "a", encoding="utf-8") as vh:
                         vh.write(json.dumps(whole_doc, ensure_ascii=False, default=str) + "\n")
                 doc.update(messages=len(messages), reply_chars=len(str((out or {}).get("content") or "")), thought=bool(thinking), why=why,
@@ -737,7 +803,7 @@ class Bound:
                 tools: list[dict[str, Any]] | None = None) -> None:
         prompt = "\n\n".join(f"[{m.get('role')}] {m.get('content') or ''}" for m in messages)[:20000] if _text_kept() and not int(getattr(self.p, "cell_values", 0) or 0) else None  # never a prompt shown cells
         eur = self.gateway.record(self.purpose, self.model, (out or {}).get("usage"), seconds, attempts, outcome, self.project_id, self.draft_id, prompt,
-                                  tier=self.tier.get("name"))
+                                  tier=self.tier.get("name"), source=_source_of_tier(self.tier, self.model))
         self.spent_eur += eur or 0.0
         from ..experience import hooks  # 19.3: the request in the session's record, its prompt and reply only when kept
 

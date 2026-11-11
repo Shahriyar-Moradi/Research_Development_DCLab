@@ -34,6 +34,7 @@ class TaskDecomposerTests(unittest.TestCase):
         self.home = Path(self.tmp.name)
         self.addCleanup(patch.stopall)
         patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "test-key", "OPENAI_MODEL": "claude-sonnet-5-5",
+                               "OPENAI_BASE_URL": "https://api.anthropic.com/v1",  # Claude's host: its thinking is labelled a summary
                                "DCLAB_THINKING": "", "DCLAB_NO_LIVE_MODELS": "1"}).start()
         self.fixture = json.loads(FIXTURE.read_text())
         self.project = self.fixture["project"]

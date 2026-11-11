@@ -1,0 +1,157 @@
+{
+  "package": "QWEN-SWITCH-2",
+  "title": "Capture OpenRouter Qwen's reasoning correctly: labelled by provider, words only on whole lines, provider and source class on every record, effort asked",
+  "date": "2026-11-11",
+  "request": "Step 2 of the approved plan to move every DCLab model call from Claude to OpenRouter qwen/qwen3.8-flash: label kept reasoning by provider, fix shape-only lines keeping raw reasoning, add provider and source_class to every exchange line and usage row from the endpoint host, send OpenRouter a reasoning effort from DCLAB_THINKING_EFFORT with one fallback to enabled.",
+  "spec": "the approved Qwen plan (2026-11-11), step 2",
+  "plan": [
+    "Read the gateway's exchange keeper, its usage row and the OpenAI-style client's request and reply parsing.",
+    "Label the thinking text by who returned it and move raw reasoning into the whole branch and the sealed vault copy.",
+    "Derive provider and source_class from the tier's endpoint host; write them on exchange lines and usage rows (file and PostgreSQL, migration 0023).",
+    "Send reasoning.effort on OpenRouter (xhigh and max become high), keep the off-switches, retry once with enabled on an effort refusal and learn it per model.",
+    "Test with scripted transports only, run the related files on files and PostgreSQL and make agent-eval, then an adversarial review."
+  ],
+  "decisions": [
+    {
+      "decision": "Provider comes from the endpoint host: anthropic, openrouter, openai, openai_compatible, local or unknown.",
+      "why": "A model name can be served by several hosts; the host says who returned the words. openai_compatible keeps another hosted endpoint (Hugging Face router) apart from OpenAI itself."
+    },
+    {
+      "decision": "On OpenRouter the source class follows the model's vendor: named open families (Qwen by the owner's 2026-11-11 decision, Llama, DeepSeek, Gemma, Phi, gpt-oss...) are open_weights_model, closed vendors commercial_model, any other unknown.",
+      "why": "The host alone would file Claude or a hosted-only model served through OpenRouter as open-weights output in the training sets (reviewer finding)."
+    },
+    {
+      "decision": "A summary relayed by OpenRouter is labelled 'API thinking summary (via OpenRouter)'.",
+      "why": "The owner's rule: a summary is called a summary. A closed model's reasoning through OpenRouter, or one marked reasoning.summary, is not raw."
+    },
+    {
+      "decision": "Raw reasoning and reasoning_details only on whole lines and the sealed vault copy; shape-only keeps thinking_redacted.",
+      "why": "Before, both were written before the whole/shape-only branch, so a purpose shown cell values or a sealed exam kept the model's raw words."
+    },
+    {
+      "decision": "The usage row takes its source from the bound tier that served, not the configured one.",
+      "why": "A fixed tier or a model override can differ from the configured tier; the first test caught the row saying openai for an OpenRouter call."
+    },
+    {
+      "decision": "Add model_request.provider and source_class with migration 0023 rather than keeping them on the file log only.",
+      "why": "The file and PostgreSQL usage logs share one field list (usage.FIELDS, storage/migrate.py copies it); one backend without them would make the training rules differ by backend."
+    }
+  ],
+  "change": "gateway.py: THINKING_LABELS, source_of, thinking_label, _source_of_tier; _keep_exchange writes provider, source_class, the label, reasoning_asked and keeps raw reasoning only where words are kept; Gateway.record takes a source. client.py: openrouter_effort, EFFORT_REFUSED, _refuses_effort, _reasoning_sent; _extra sends an effort; _create retries once on an effort refusal; the single-attempt path learns the refusal without retrying. usage.py FIELDS, storage/models.py and migration 0023 gain provider and source_class. Tests: tests/test_openrouter_reasoning_capture.py (12), tests/test_task_decomposer.py given Claude's host.",
+  "findings": [
+    {
+      "id": "QS2-PRIVACY",
+      "source": "owner",
+      "defect": "Shape-only exchange lines kept raw reasoning and reasoning_details.",
+      "scenario": "A purpose shown cell values, a workspace keeping no model text or a sealed exam served by OpenRouter wrote the model's raw reasoning beside the shape.",
+      "cause": "The two keys were added to the line before the whole/shape-only branch.",
+      "fix": "Moved into the whole branch and the vault copy; shape-only keeps thinking_redacted.",
+      "test": "test_a_shape_only_line_keeps_no_raw_reasoning, test_a_sealed_exam_keeps_its_shape_here_and_the_reasoning_whole_in_its_vault",
+      "severity": "privacy"
+    },
+    {
+      "id": "QS2-USAGE-SOURCE",
+      "source": "test",
+      "defect": "The usage row named the configured tier's provider, not the one that served.",
+      "scenario": "A bound OpenRouter tier while settings resolved to OpenAI wrote provider openai, commercial_model.",
+      "cause": "Gateway.record reads settings.public(tier), the configured tier.",
+      "fix": "Bound._record passes source=_source_of_tier(self.tier, self.model).",
+      "test": "test_an_openrouter_reply_is_kept_whole_with_its_reasoning_label_and_provider",
+      "severity": "behaviour"
+    },
+    {
+      "id": "QS2-REVIEW-1",
+      "source": "reviewer",
+      "defect": "test_task_decomposer asserted 'API thinking summary' for a scripted Claude model on no Claude host.",
+      "scenario": "run_parallel blanks the provider settings, so the tier had no Anthropic host and the label became the generic one.",
+      "cause": "The label now follows the host; the test claimed Claude without its host.",
+      "fix": "The test's tier names Claude's host (OPENAI_BASE_URL=https://api.anthropic.com/v1).",
+      "test": "test_actual_api_thinking_summary_is_saved_beside_reply",
+      "severity": "gap"
+    },
+    {
+      "id": "QS2-REVIEW-2",
+      "source": "reviewer",
+      "defect": "A closed model's summary relayed by OpenRouter was labelled raw reasoning.",
+      "scenario": "anthropic/claude-sonnet-5-5 through OpenRouter returns summarized thinking; the line said 'raw, as returned by OpenRouter'.",
+      "cause": "The label was chosen by provider only.",
+      "fix": "thinking_label: a commercial model on OpenRouter, or only reasoning.summary items, is 'API thinking summary (via OpenRouter)'.",
+      "test": "test_a_summary_relayed_by_openrouter_is_called_a_summary",
+      "severity": "behaviour"
+    },
+    {
+      "id": "QS2-REVIEW-3",
+      "source": "reviewer",
+      "defect": "Any OpenRouter model not on the closed list was filed as open weights.",
+      "scenario": "mistralai/mistral-medium or a hosted-only model would enter training sets as open-weights output.",
+      "cause": "The class failed open.",
+      "fix": "Named open families only; any other OpenRouter model is unknown.",
+      "test": "test_provider_and_source_class_come_from_the_host",
+      "severity": "behaviour"
+    },
+    {
+      "id": "QS2-REVIEW-4",
+      "source": "reviewer",
+      "defect": "A single-attempt request never learned a refused effort.",
+      "scenario": "The task decomposer (single attempt) would fail on every call if Qwen refused the effort.",
+      "cause": "The single-attempt path bypasses _create's fallback.",
+      "fix": "It adds the model to EFFORT_REFUSED and raises, so the next request sends enabled; still one attempt.",
+      "test": "test_a_single_attempt_learns_a_refused_effort_without_retrying",
+      "severity": "latent"
+    },
+    {
+      "id": "QS2-REVIEW-5",
+      "source": "reviewer",
+      "defect": "The effort fallback fired on any 400 mentioning 'reasoning'.",
+      "scenario": "A 400 'reasoning_details must be an array' in an agent loop was retried and dropped the effort for the rest of the process.",
+      "cause": "The check matched 'reasoning' as well as 'effort'.",
+      "fix": "Only a 400/422 naming the effort counts.",
+      "test": "test_an_unrelated_refusal_is_not_retried",
+      "severity": "latent"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Related test files, file backend",
+      "gate": "Gateway, client, thinking capture, store readers, exam vault and task decomposer tests pass with no live model.",
+      "result": "212 tests in 14 files pass (1 skipped: agentic needs another environment).",
+      "verdict": "pass",
+      "cost_eur": 0,
+      "limits": [
+        "Scripted transports: no real OpenRouter reply shape is measured here; the plan's live check (make model-paths) does that."
+      ]
+    },
+    {
+      "name": "PostgreSQL",
+      "gate": "Migration 0023 applies and the storage tests pass on dclab_test.",
+      "result": "Schema at 0023; 108 tests in 7 files pass on PostgreSQL.",
+      "verdict": "pass",
+      "cost_eur": 0,
+      "limits": [
+        "dclab_dev and any deployed database need 'python -m dclab_rnd.storage upgrade' before their usage rows are written."
+      ]
+    },
+    {
+      "name": "make agent-eval",
+      "gate": "The scripted judgment suite runs (free).",
+      "result": "Exit 0; result AEV-110.",
+      "verdict": "pass",
+      "cost_eur": 0,
+      "limits": [
+        "Scripted policies on planted traps, not a model's quality."
+      ]
+    }
+  ],
+  "outcome": "Step 2 built and reviewed: the reviewer's five findings fixed with tests. Not committed (other steps edit the same tree); not yet checked against a live OpenRouter reply.",
+  "lessons": [
+    "Write words into a record only inside the branch that decides whether words may be kept.",
+    "Name who served a request from the tier that served it, not from the configured tier.",
+    "A source class for training must fail closed: unknown, never open weights by default.",
+    "A fallback keyed on a provider's error words must name the exact thing refused."
+  ],
+  "risks": [
+    "Whether qwen/qwen3.8-flash has public weights is not checked here; it is filed open_weights_model by the owner's decision, and its licence is checked before any fine-tune.",
+    "OpenRouter's reasoning_details types (reasoning.text, reasoning.summary, reasoning.encrypted) are read as documented; a live reply should confirm Qwen sends reasoning.text.",
+    "A PostgreSQL database not upgraded to 0023 loses usage rows silently (Gateway.record swallows the insert error), as with earlier column migrations."
+  ]
+}

@@ -16,7 +16,8 @@ from typing import Any, Protocol
 
 WINDOW_FIELDS = ("at", "purpose", "model", "outcome", "seconds", "cost_eur", "input_tokens", "output_tokens")  # B8: never the prompt
 FIELDS = ("at", "purpose", "tier", "model", "endpoint", "project_id", "draft_id", "input_tokens", "output_tokens",
-          "seconds", "attempts", "outcome", "prompt", "cost_eur", "cost_basis", "user_id", "cache_read_tokens", "cache_write_tokens")
+          "seconds", "attempts", "outcome", "prompt", "cost_eur", "cost_basis", "user_id", "cache_read_tokens", "cache_write_tokens",
+          "provider", "source_class")  # 2026-11-11: who served the request and what kind of source its words are (migration 0023)
 
 
 def _person(entry: dict[str, Any]) -> dict[str, Any]:

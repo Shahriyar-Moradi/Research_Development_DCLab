@@ -141,6 +141,8 @@ model_request = sa.Table(  # the model gateway's usage log (dclab_rnd/models/usa
     sa.Column("user_id", sa.String(64)),  # the signed-in person the request was for (package 10.6: a monthly limit per user)
     sa.Column("cache_read_tokens", sa.Integer),   # of input_tokens, those read from the prompt cache (Anthropic); null before 0020
     sa.Column("cache_write_tokens", sa.Integer),  # of input_tokens, those written to it
+    sa.Column("provider", sa.Text),  # anthropic, openrouter, openai, openai_compatible, local (models/gateway.source_of); null before 0023
+    sa.Column("source_class", sa.Text),  # commercial_model, open_weights_model or unknown
     sa.Index("ix_model_request_workspace_at", "workspace_id", "at"),
     sa.Index("ix_model_request_project_id", "project_id"))
 

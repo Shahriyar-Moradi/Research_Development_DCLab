@@ -89,6 +89,39 @@ def _wants_no_reasoning(exc: BaseException) -> bool:
     return "reasoning_effort" in text and "'none'" in text and "tool" in text.lower()
 
 
+# 2026-11-11: OpenRouter's reasoning effort, from DCLAB_THINKING_EFFORT (the setting Claude's requests read). OpenRouter takes
+# minimal to high; Claude's xhigh and max become high. Unset (or a word it does not know) sends {"enabled": true}, the model's default.
+OPENROUTER_EFFORTS = ("minimal", "low", "medium", "high")
+_EFFORT_MAP = {"xhigh": "high", "max": "high"}
+# models that refused an effort in this process: sent {"enabled": true} from then on (learned from the refusal, no name in code)
+EFFORT_REFUSED: set[str] = set()
+
+
+def openrouter_effort() -> str | None:
+    raw = os.environ.get("DCLAB_THINKING_EFFORT", "").strip().lower()
+    raw = _EFFORT_MAP.get(raw, raw)
+    return raw if raw in OPENROUTER_EFFORTS else None
+
+
+def _refuses_effort(exc: BaseException, kwargs: dict[str, Any]) -> bool:
+    """A 400/422 about the reasoning effort, on a request that sent one. Only the status and the words are read: the words
+    must name the effort ("reasoning" alone is not enough: a refused reasoning_details passback is another error)."""
+    sent = (kwargs.get("extra_body") or {}).get("reasoning")
+    if not (isinstance(sent, dict) and "effort" in sent):
+        return False
+    if getattr(exc, "status_code", None) not in (400, 422):
+        return False
+    body = getattr(exc, "body", None)
+    error = body.get("error", body) if isinstance(body, dict) else None
+    text = (str(exc) + " " + (str(error.get("message") or "") if isinstance(error, dict) else "")).lower()
+    return "effort" in text
+
+
+def _reasoning_sent(kwargs: dict[str, Any]) -> dict[str, Any]:
+    sent = (kwargs.get("extra_body") or {}).get("reasoning")
+    return {"reasoning_request": dict(sent)} if isinstance(sent, dict) else {}
+
+
 class ChatClient:
     """One ``complete`` call = one chat-completions request. A failure is raised as ``RuntimeError("<Type>: <reason>")``
     with a reason safe to show (see ``failure``); after a refusal that will not go away, requests pause for a while."""
@@ -114,7 +147,8 @@ class ChatClient:
 
     def _extra(self, kwargs: dict[str, Any]) -> dict[str, Any]:
         """The endpoint's chat-template setting on every request, in ``extra_body`` beside whatever the caller put there.
-        On OpenRouter (``openrouter.ai``), ``"reasoning": {"enabled": True}`` is sent unless turned off."""
+        On OpenRouter (``openrouter.ai``), ``"reasoning": {"effort": …}`` (``openrouter_effort``) is sent, or ``{"enabled": True}``
+        with no effort set or after the model refused one, unless turned off (OPENROUTER_REASONING, DCLAB_THINKING, the purpose)."""
         thinking = kwargs.pop("thinking", getattr(self, "thinking", None))
         extra = dict(kwargs.get("extra_body") or {})
         if self.chat_template_kwargs:
@@ -126,7 +160,8 @@ class ChatClient:
             )
             think_off = str(thinking or "").strip().lower() in ("0", "off", "false")
             if not think_off and not env_off and "reasoning" not in extra:
-                extra["reasoning"] = {"enabled": True}
+                effort = openrouter_effort()
+                extra["reasoning"] = {"effort": effort} if effort and self.model not in EFFORT_REFUSED else {"enabled": True}
         if extra:
             kwargs["extra_body"] = extra
         return kwargs
@@ -241,12 +276,19 @@ class ChatClient:
             kwargs = {**kwargs, "reasoning_effort": "none"}
         note = {"reasoning_effort": kwargs["reasoning_effort"]} if "reasoning_effort" in kwargs else {}
         try:
-            return self.client.chat.completions.create(**kwargs), note
-        except Exception as exc:  # noqa: BLE001 — retried only for this one refusal; anything else goes on as it was
-            if not (kwargs.get("tools") and "reasoning_effort" not in kwargs and _wants_no_reasoning(exc)):
-                raise
-            TOOLS_WITHOUT_REASONING.add(self.model)
-            return self.client.chat.completions.create(**{**kwargs, "reasoning_effort": "none"}), {"reasoning_effort": "none", "refused_attempts": 1}
+            return self.client.chat.completions.create(**kwargs), {**note, **_reasoning_sent(kwargs)}
+        except Exception as exc:  # noqa: BLE001 — retried only for these two refusals; anything else goes on as it was
+            if kwargs.get("tools") and "reasoning_effort" not in kwargs and _wants_no_reasoning(exc):
+                TOOLS_WITHOUT_REASONING.add(self.model)
+                return (self.client.chat.completions.create(**{**kwargs, "reasoning_effort": "none"}),
+                        {"reasoning_effort": "none", "refused_attempts": 1, **_reasoning_sent(kwargs)})
+            if _refuses_effort(exc, kwargs):  # 2026-11-11: once, with the model's default reasoning; said in the reply, never hidden
+                refused = kwargs["extra_body"]["reasoning"]["effort"]
+                EFFORT_REFUSED.add(self.model)
+                retry = {**kwargs, "extra_body": {**kwargs["extra_body"], "reasoning": {"enabled": True}}}
+                return self.client.chat.completions.create(**retry), {**note, "refused_attempts": 1, "reasoning_effort_refused": refused,
+                                                                      **_reasoning_sent(retry)}
+            raise
 
     @property
     def client(self):
@@ -337,10 +379,12 @@ class ChatClient:
         self._ready()
         try:
             if single_attempt:
-                response, note = self.client.chat.completions.create(**kwargs), {}
+                response, note = self.client.chat.completions.create(**kwargs), _reasoning_sent(kwargs)
             else:
                 response, note = self._create(kwargs)
         except Exception as exc:  # noqa: BLE001 — provider errors can carry headers; keep only the type
+            if single_attempt and _refuses_effort(exc, kwargs):  # one attempt only: not retried, but the next request sends enabled
+                EFFORT_REFUSED.add(self.model)
             raise self._failed(exc) from None
         choice = response.choices[0]
         calls = []
