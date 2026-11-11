@@ -1,6 +1,6 @@
 {
  "what": "Other answerers' answers on every DCLab test, each kept whole in lake/bronze/answers/<answerer>/<source>/ (not committed; kept permanently by make archive): the text and schema asked, the raw output, the value, the confidence, the model's revision, the time; the true answers stay in the tests (lake/gold, lake/bronze/decisions).",
- "at": "2026-11-01T02:16:12+00:00",
+ "at": "2026-11-11T15:41:52+00:00",
  "answerers": {
   "claude": {
    "committee": {
@@ -80,7 +80,7 @@
    "lake": {
     "column.category_code": {
      "dev": {
-      "answered": 495,
+      "answered": 795,
       "confidence_mean": null,
       "seconds_mean": 1.7342
      },
@@ -92,7 +92,7 @@
     },
     "column.group": {
      "dev": {
-      "answered": 452,
+      "answered": 752,
       "confidence_mean": null,
       "seconds_mean": 1.6375
      },
@@ -104,7 +104,7 @@
     },
     "column.is_identifier": {
      "dev": {
-      "answered": 500,
+      "answered": 800,
       "confidence_mean": null,
       "seconds_mean": 3.5789
      },
@@ -116,7 +116,7 @@
     },
     "column.semantic_role": {
      "dev": {
-      "answered": 498,
+      "answered": 798,
       "confidence_mean": null,
       "seconds_mean": 1.7071
      },
@@ -128,7 +128,7 @@
     },
     "column.time": {
      "dev": {
-      "answered": 491,
+      "answered": 791,
       "confidence_mean": null,
       "seconds_mean": 1.9021
      },
@@ -140,7 +140,7 @@
     },
     "feature.leakage_suspect": {
      "dev": {
-      "answered": 373,
+      "answered": 673,
       "confidence_mean": null,
       "seconds_mean": 4.0784
      },
@@ -200,11 +200,597 @@
      "use": null,
      "licence": null
     }
+   },
+   "sessions": {
+    "agent.tool_choice": {
+     "all": {
+      "answered": 376,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.category_code": {
+     "judge": {
+      "answered": 5,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.is_identifier": {
+     "all": {
+      "answered": 225,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "judge": {
+      "answered": 11,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.semantic_role": {
+     "judge": {
+      "answered": 18,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.statistics_only": {
+     "judge": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.time": {
+     "all": {
+      "answered": 19,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "judge": {
+      "answered": 3,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.cases_table": {
+     "judge": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.cleaning_keep": {
+     "judge": {
+      "answered": 2,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.cleaning_step": {
+     "judge": {
+      "answered": 32,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.fit_verdict": {
+     "judge": {
+      "answered": 2,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.sampling": {
+     "judge": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.synthetic_shape": {
+     "all": {
+      "answered": 5,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "feature.leakage_suspect": {
+     "all": {
+      "answered": 248,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "judge": {
+      "answered": 27,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "model.family": {
+     "all": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.groups": {
+     "all": {
+      "answered": 17,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "judge": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.noisy_labels": {
+     "all": {
+      "answered": 17,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "judge": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.rare_positives": {
+     "all": {
+      "answered": 17,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.review_capacity": {
+     "all": {
+      "answered": 17,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.time_order": {
+     "all": {
+      "answered": 17,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "judge": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "report.claim": {
+     "all": {
+      "answered": 67,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "target.column": {
+     "all": {
+      "answered": 17,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "task.framing": {
+     "all": {
+      "answered": 17,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "judge": {
+      "answered": 2,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "tuning.accept": {
+     "judge": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.g4": {
+     "judge": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.move": {
+     "all": {
+      "answered": 106,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "judge": {
+      "answered": 3,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.stage_approval": {
+     "all": {
+      "answered": 37,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.stop": {
+     "all": {
+      "answered": 78,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.template": {
+     "all": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    }
+   },
+   "twin": {
+    "solution.columns": {
+     "all": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "stage.data": {
+     "all": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    }
    }
   },
   "dclab-classifiers": {
    "lake": {
     "sessions": {
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    }
+   },
+   "sessions": {
+    "column.category_code": {
+     "all": {
+      "answered": 340,
+      "confidence_mean": 0.8786,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.group": {
+     "all": {
+      "answered": 42,
+      "confidence_mean": 0.9678,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.is_identifier": {
+     "all": {
+      "answered": 1836,
+      "confidence_mean": 0.992,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.semantic_role": {
+     "all": {
+      "answered": 1818,
+      "confidence_mean": 0.8808,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.time": {
+     "all": {
+      "answered": 52,
+      "confidence_mean": 0.8996,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.cases_table": {
+     "all": {
+      "answered": 353,
+      "confidence_mean": 0.9766,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.cleaning_step": {
+     "all": {
+      "answered": 3810,
+      "confidence_mean": 0.832,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "feature.leakage_suspect": {
+     "all": {
+      "answered": 1956,
+      "confidence_mean": 0.943,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "problem.family": {
+     "all": {
+      "answered": 77,
+      "confidence_mean": 0.3348,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "problem.ready": {
+     "all": {
+      "answered": 95,
+      "confidence_mean": 0.9541,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "request.intent": {
+     "all": {
+      "answered": 353,
+      "confidence_mean": 0.6683,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "solution.route": {
+     "all": {
+      "answered": 24,
+      "confidence_mean": 0.726,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "split.strategy": {
+     "all": {
+      "answered": 122,
+      "confidence_mean": 0.5364,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "task.framing": {
+     "all": {
+      "answered": 125,
+      "confidence_mean": 0.9133,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.next_question": {
+     "all": {
+      "answered": 650,
+      "confidence_mean": 0.9475,
+      "seconds_mean": null
+     },
      "model": null,
      "revision": null,
      "render": null,
@@ -235,7 +821,7 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -260,7 +846,7 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -285,7 +871,7 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -310,7 +896,7 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -335,7 +921,7 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -360,37 +946,21 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     }
    },
-   "lake": {
-    "sessions": {
-     "model": null,
-     "revision": null,
-     "render": null,
-     "use": null,
-     "licence": null
-    },
-    "twin": {
-     "model": null,
-     "revision": null,
-     "render": null,
-     "use": null,
-     "licence": null
-    }
-   },
    "routing": {
     "request.exit": {
      "train": {
-      "answered": 127,
+      "answered": 145,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 23,
+      "answered": 27,
       "confidence_mean": null,
       "seconds_mean": null,
       "agrees_with_label": 1.0,
@@ -403,24 +973,24 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "request.intent": {
      "train": {
-      "answered": 620,
+      "answered": 689,
       "confidence_mean": null,
       "seconds_mean": null
      },
      "dev": {
-      "answered": 130,
+      "answered": 134,
       "confidence_mean": null,
       "seconds_mean": null,
-      "agrees_with_label": 0.8308,
+      "agrees_with_label": 0.8358,
       "agrees_with_rule": 1.0,
-      "rule_agrees_with_label": 0.8308
+      "rule_agrees_with_label": 0.8358
      },
      "sealed": {
       "answered": 47,
@@ -428,7 +998,27 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
+     "render": null,
+     "use": "train",
+     "licence": "DCLab's own"
+    },
+    "request.options": {
+     "train": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "dev": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null,
+      "agrees_with_label": 0.0,
+      "agrees_with_rule": 1.0,
+      "rule_agrees_with_label": 0.0
+     },
+     "model": "DCLab's rules",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -440,7 +1030,7 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -452,14 +1042,14 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
     },
     "request.understand_turn": {
      "train": {
-      "answered": 3,
+      "answered": 5,
       "confidence_mean": null,
       "seconds_mean": null
      },
@@ -472,7 +1062,7 @@
       "rule_agrees_with_label": 0.2
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -497,7 +1087,7 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -524,7 +1114,7 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -549,7 +1139,7 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -574,7 +1164,7 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -599,10 +1189,722 @@
       "seconds_mean": null
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
+    }
+   },
+   "sessions": {
+    "column.category_code": {
+     "all": {
+      "answered": 1036,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.group": {
+     "all": {
+      "answered": 86,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.is_identifier": {
+     "all": {
+      "answered": 7863,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.semantic_role": {
+     "all": {
+      "answered": 5455,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.statistics_only": {
+     "all": {
+      "answered": 3,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.time": {
+     "all": {
+      "answered": 298,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "critic.send_back": {
+     "all": {
+      "answered": 10,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.cases_table": {
+     "all": {
+      "answered": 1049,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.cleaning_keep": {
+     "all": {
+      "answered": 1462,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.cleaning_step": {
+     "all": {
+      "answered": 11201,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.fit_verdict": {
+     "all": {
+      "answered": 472,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.more_rows": {
+     "all": {
+      "answered": 58,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.sampling": {
+     "all": {
+      "answered": 325,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.structure_format": {
+     "all": {
+      "answered": 1084,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.synthetic_shape": {
+     "all": {
+      "answered": 3,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "evidence.records": {
+     "all": {
+      "answered": 75,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "experiment.accept": {
+     "all": {
+      "answered": 57,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "experiment.next": {
+     "all": {
+      "answered": 57,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "feature.leakage_suspect": {
+     "all": {
+      "answered": 16045,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "features.recipe": {
+     "all": {
+      "answered": 321,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "holdout.reuse": {
+     "all": {
+      "answered": 2,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "labels.join_key": {
+     "all": {
+      "answered": 110,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "map.size": {
+     "all": {
+      "answered": 437,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "metric.primary": {
+     "all": {
+      "answered": 325,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "model.family": {
+     "all": {
+      "answered": 322,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "model.first": {
+     "all": {
+      "answered": 293,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "model.promote": {
+     "all": {
+      "answered": 36,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "model.review": {
+     "all": {
+      "answered": 47,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.groups": {
+     "all": {
+      "answered": 553,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.noisy_labels": {
+     "all": {
+      "answered": 553,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.rare_positives": {
+     "all": {
+      "answered": 553,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.review_capacity": {
+     "all": {
+      "answered": 553,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.time_order": {
+     "all": {
+      "answered": 553,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "problem.family": {
+     "all": {
+      "answered": 432,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "problem.pack": {
+     "all": {
+      "answered": 873,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "problem.ready": {
+     "all": {
+      "answered": 498,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "query.plan": {
+     "all": {
+      "answered": 24,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "recipe.step": {
+     "all": {
+      "answered": 6,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "report.claim": {
+     "all": {
+      "answered": 161,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "request.exit": {
+     "all": {
+      "answered": 552,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "request.intent": {
+     "all": {
+      "answered": 419,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "request.options": {
+     "all": {
+      "answered": 3,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "request.suggestion": {
+     "all": {
+      "answered": 510,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "request.tool": {
+     "all": {
+      "answered": 497,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "request.understand_turn": {
+     "all": {
+      "answered": 121,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "solution.route": {
+     "all": {
+      "answered": 454,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "split.folds": {
+     "all": {
+      "answered": 325,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "split.strategy": {
+     "all": {
+      "answered": 325,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "task.framing": {
+     "all": {
+      "answered": 630,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "team.next_node": {
+     "all": {
+      "answered": 474,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "threshold.operating_point": {
+     "all": {
+      "answered": 5054,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "tuning.accept": {
+     "all": {
+      "answered": 319,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.g4": {
+     "all": {
+      "answered": 316,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.move": {
+     "all": {
+      "answered": 2491,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.next_question": {
+     "all": {
+      "answered": 4885,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.stop": {
+     "all": {
+      "answered": 83,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.template": {
+     "all": {
+      "answered": 1024,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    }
+   },
+   "twin": {
+    "solution.columns": {
+     "all": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "stage.data": {
+     "all": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
     }
    },
    "workflow": {
@@ -621,7 +1923,7 @@
       "rule_agrees_with_label": 0.8947
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -641,7 +1943,7 @@
       "rule_agrees_with_label": 0.9048
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -661,7 +1963,7 @@
       "rule_agrees_with_label": 0.8788
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -681,7 +1983,7 @@
       "rule_agrees_with_label": 0.9792
      },
      "model": "DCLab's rules",
-     "revision": "ca594dc0",
+     "revision": "3939cc6f",
      "render": null,
      "use": "train",
      "licence": "DCLab's own"
@@ -1387,6 +2689,276 @@
   "people": {
    "lake": {
     "sessions": {
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    }
+   },
+   "sessions": {
+    "column.group": {
+     "all": {
+      "answered": 35,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.is_identifier": {
+     "all": {
+      "answered": 3754,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "column.time": {
+     "all": {
+      "answered": 85,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "feature.leakage_suspect": {
+     "all": {
+      "answered": 4033,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "holdout.reuse": {
+     "all": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "metric.primary": {
+     "all": {
+      "answered": 31,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "model.family": {
+     "all": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.groups": {
+     "all": {
+      "answered": 168,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.noisy_labels": {
+     "all": {
+      "answered": 168,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.rare_positives": {
+     "all": {
+      "answered": 168,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.review_capacity": {
+     "all": {
+      "answered": 168,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "modifier.time_order": {
+     "all": {
+      "answered": 168,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "request.tool": {
+     "all": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "split.folds": {
+     "all": {
+      "answered": 16,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "target.column": {
+     "all": {
+      "answered": 203,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "task.framing": {
+     "all": {
+      "answered": 203,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.move": {
+     "all": {
+      "answered": 1045,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.stage_approval": {
+     "all": {
+      "answered": 2,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    }
+   }
+  },
+  "qwen3.8-flash": {
+   "sessions": {
+    "agent.tool_choice": {
+     "all": {
+      "answered": 48,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "data.synthetic_shape": {
+     "all": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.move": {
+     "all": {
+      "answered": 1,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
+     "model": null,
+     "revision": null,
+     "render": null,
+     "use": null,
+     "licence": null
+    },
+    "workflow.stop": {
+     "all": {
+      "answered": 15,
+      "confidence_mean": null,
+      "seconds_mean": null
+     },
      "model": null,
      "revision": null,
      "render": null,
