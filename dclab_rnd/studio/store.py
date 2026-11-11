@@ -67,27 +67,28 @@ def _thread_lock(project_id: str) -> "threading.RLock":
 
 
 @contextmanager
-def _project_lock(project_id: str, directory: Optional[Path] = None) -> Iterator[None]:
+def _project_lock(project_id: str, directory: Optional[Path] = None, *, lock_name: str = ".project.lock") -> Iterator[None]:
     """One reader-writer of a project's document at a time: a thread lock, and (outermost only) an advisory file lock on
     ``directory/.project.lock`` so a worker in another process waits too. Re-entrant within a thread."""
     held = getattr(_HELD, "ids", None)
     if held is None:
         held = _HELD.ids = {}
-    with _thread_lock(project_id):
-        if held.get(project_id) or directory is None or fcntl is None or not directory.is_dir():
-            held[project_id] = held.get(project_id, 0) + 1
+    identity = (str(directory.resolve()) if directory is not None else "", project_id, lock_name)
+    with _thread_lock(identity):
+        if held.get(identity) or directory is None or fcntl is None or not directory.is_dir():
+            held[identity] = held.get(identity, 0) + 1
             try:
                 yield
             finally:
-                held[project_id] -= 1
+                held[identity] -= 1
             return
-        with open(directory / ".project.lock", "a") as handle:
+        with open(directory / lock_name, "a") as handle:
             fcntl.flock(handle, fcntl.LOCK_EX)
-            held[project_id] = 1
+            held[identity] = 1
             try:
                 yield
             finally:
-                held[project_id] = 0
+                held[identity] = 0
                 fcntl.flock(handle, fcntl.LOCK_UN)
 
 
@@ -131,6 +132,17 @@ class ProjectStore:
     def __init__(self, home: Path):
         self.home = Path(home)
         self.home.mkdir(parents=True, exist_ok=True)
+
+    def turn(self, project_id: str, purpose: str = "project", *, require_process: bool = False):
+        """Serialize effects, or an orchestration invocation, across threads and processes."""
+        if require_process and fcntl is None:
+            raise RuntimeError("Cross-process project locking is unavailable on this platform")
+        if purpose not in ("project", "solution"):
+            raise ValueError("unknown project lock purpose")
+        directory = self.directory(project_id)
+        if not directory.is_dir():
+            raise KeyError(project_id)
+        return _project_lock(project_id, directory, lock_name=".project.lock" if purpose == "project" else ".solution.lock")
 
     # ------------------------------------------------------------------ paths
     def directory(self, project_id: str) -> Path:
@@ -211,6 +223,10 @@ class ProjectStore:
         return projects[offset:offset + limit] if limit is not None else projects
 
     def delete(self, project_id: str) -> None:
+        with _project_lock(project_id, self.directory(project_id)):  # deletion remains idempotent after its folder is gone
+            self._delete(project_id)
+
+    def _delete(self, project_id: str) -> None:
         import shutil
 
         from ..extensions import optional
@@ -224,6 +240,10 @@ class ProjectStore:
 
     # ------------------------------------------------------------------ stages and activity
     def write_stage(self, project_id: str, stage: str, record: dict[str, Any]) -> Path:
+        with self.turn(project_id):
+            return self._write_stage(project_id, stage, record)
+
+    def _write_stage(self, project_id: str, stage: str, record: dict[str, Any]) -> Path:
         path = self.stage_path(project_id, stage)
         path.parent.mkdir(parents=True, exist_ok=True)
         _write_atomic(path, json.dumps(record, indent=2, ensure_ascii=False, allow_nan=False))  # a page reading it mid-run sees the old or the new record
@@ -242,6 +262,10 @@ class ProjectStore:
         return out
 
     def clear_stages(self, project_id: str, from_stage: str = "data") -> None:
+        with self.turn(project_id):
+            self._clear_stages(project_id, from_stage)
+
+    def _clear_stages(self, project_id: str, from_stage: str = "data") -> None:
         """Downstream results are invalid once the data or the solution changes."""
         start = STAGE_KEYS.index(from_stage)
         project = self.get(project_id)

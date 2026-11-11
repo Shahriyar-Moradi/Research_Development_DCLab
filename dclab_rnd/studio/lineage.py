@@ -18,6 +18,8 @@ the same.
 from __future__ import annotations
 
 import functools
+import contextvars
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -30,6 +32,22 @@ from typing import Any, Optional
 
 from dclab_core import __version__ as CORE_VERSION
 from dclab_core import lineage as contract
+
+_TASK_ATTEMPT = contextvars.ContextVar("stage_task_attempt", default=None)
+
+
+@contextmanager
+def task_attempt(ident):
+    """Nonsemantic parent provenance for a guarded task effect; never part of scientific input hashes."""
+    token = _TASK_ATTEMPT.set(ident)
+    try:
+        yield
+    finally:
+        _TASK_ATTEMPT.reset(token)
+
+
+def current_task_attempt():
+    return _TASK_ATTEMPT.get()
 
 ROOT = Path(__file__).resolve().parents[2]
 CODE_PATHS = ("dclab_rnd", "dclab_core", "general_pipeline")
@@ -147,7 +165,7 @@ def stage_run(run: str, project: dict[str, Any], stage: str, *, previous: dict[s
                                       high=(ci or {}).get("high") if isinstance(ci, dict) else None,
                                       chosen=str(chosen)[:300] if chosen is not None else None,
                                       numbers=contract.numbers(record.get("evidence") or {}, "evidence"))
-    return contract.RunRecord(run=run, kind="stage", name=stage, project=project.get("id"), parent=parent, status=status, started=started,
+    return contract.RunRecord(run=run, kind="stage", name=stage, project=project.get("id"), parent=parent or _TASK_ATTEMPT.get(), status=status, started=started,
                               finished=finished, seconds=seconds, inputs=inputs, params=contract.flat(params or {}), outputs=outputs,
                               code=code(), error=(error or None) and error[:600],
                               steps=list(taken.steps) if taken is not None else [], steps_dropped=taken.dropped if taken is not None else 0)

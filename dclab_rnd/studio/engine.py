@@ -1821,6 +1821,12 @@ def chosen(record: dict[str, Any] | None, fallback_key: str) -> str | None:
 
 
 def execute(store: ProjectStore, project_id: str, stage: str, actor: str = "human", reuse_reason: str | None = None) -> dict[str, Any]:
+    """Serialize a project's stage effects across agent, job and direct callers."""
+    with store.turn(project_id):
+        return _guarded_execute(store, project_id, stage, actor, reuse_reason)
+
+
+def _guarded_execute(store: ProjectStore, project_id: str, stage: str, actor: str = "human", reuse_reason: str | None = None) -> dict[str, Any]:
     """Run one stage now (blocking) and write its record.
 
     The move is validated by the workflow graph first and logged either way; a move the

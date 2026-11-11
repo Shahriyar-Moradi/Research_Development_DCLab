@@ -29,6 +29,7 @@ from . import db
 from .models import activity, draft, draft_event, intern_session, project, stage_record, transition
 
 ID = re.compile(r"[0-9a-f]{12}")
+_PROJECT_TURNS = threading.local()
 
 
 def _key(value: str) -> str:
@@ -51,6 +52,11 @@ class _Base:
 
 
 class PgProjects(_Base):
+    def turn(self, project_id: str, purpose: str = "project", *, require_process: bool = False):
+        if purpose not in ("project", "solution"):
+            raise ValueError("unknown project lock purpose")
+        return _ProjectTurn(self.engine, f"project:{self.workspace_id}:{_key(project_id)}:{purpose}", _PROJECT_TURNS)
+
     def _folder(self, project_id: str) -> Path:
         return self.files_home / "projects" / _key(project_id)
 
@@ -103,7 +109,7 @@ class PgProjects(_Base):
     def save(self, doc: dict[str, Any]) -> dict[str, Any]:
         from .notes import into
 
-        with self.engine.begin() as c:
+        with self.turn(doc["id"]), self.engine.begin() as c:
             into(doc, c.execute(self._select(doc["id"], lock=True)).scalar())  # a note written while this document was out is kept
             self._write(c, doc)
         return doc
@@ -111,7 +117,7 @@ class PgProjects(_Base):
     def update(self, project_id: str, **values: Any) -> dict[str, Any]:
         from .notes import merge
 
-        with self.engine.begin() as c:
+        with self.turn(project_id), self.engine.begin() as c:
             doc = c.execute(self._select(project_id, lock=True)).scalar()
             if doc is None:
                 raise KeyError(project_id)
@@ -132,6 +138,10 @@ class PgProjects(_Base):
         return docs
 
     def delete(self, project_id: str) -> None:
+        with self.turn(project_id):
+            self._delete(project_id)
+
+    def _delete(self, project_id: str) -> None:
         import shutil
 
         from ..extensions import optional
@@ -149,6 +159,10 @@ class PgProjects(_Base):
             raise KeyError(project_id)
 
     def write_stage(self, project_id: str, stage: str, record: dict[str, Any]) -> str:
+        with self.turn(project_id):
+            return self._write_stage(project_id, stage, record)
+
+    def _write_stage(self, project_id: str, stage: str, record: dict[str, Any]) -> str:
         if stage not in STAGE_KEYS:
             raise KeyError(stage)
         with self.engine.begin() as c:
@@ -175,6 +189,10 @@ class PgProjects(_Base):
         return {stage: rows[stage] for stage in STAGE_KEYS if stage in rows}
 
     def clear_stages(self, project_id: str, from_stage: str = "data") -> None:
+        with self.turn(project_id):
+            self._clear_stages(project_id, from_stage)
+
+    def _clear_stages(self, project_id: str, from_stage: str = "data") -> None:
         """Downstream results are invalid once the data or the solution changes."""
         start = STAGE_KEYS.index(from_stage)
         with self.engine.begin() as c:
@@ -232,7 +250,12 @@ class _Turn:
         held = self.depth.__dict__.setdefault("held", {})
         if self.id not in held:
             connection = self.engine.connect().execution_options(isolation_level="AUTOCOMMIT")
-            connection.execute(sa.text("select pg_advisory_lock(:k)"), {"k": self.key})
+            try:
+                connection.detach()  # advisory waiters must not occupy the pool slots their lock owner needs for writes
+                connection.execute(sa.text("select pg_advisory_lock(:k)"), {"k": self.key})
+            except BaseException:
+                connection.close()
+                raise
             held[self.id] = [connection, 0]
         held[self.id][1] += 1
         return self
@@ -254,6 +277,7 @@ class _Turn:
         deadline = time.time() + (timeout or 0)
         connection = self.engine.connect().execution_options(isolation_level="AUTOCOMMIT")
         try:
+            connection.detach()
             while True:
                 if connection.execute(sa.text("select pg_try_advisory_lock(:k)"), {"k": self.key}).scalar():
                     connection.execute(sa.text("select pg_advisory_unlock(:k)"), {"k": self.key})
@@ -263,6 +287,12 @@ class _Turn:
                 time.sleep(0.02)
         finally:
             connection.close()
+
+
+class _ProjectTurn(_Turn):
+    def __init__(self, engine, identity, depth):
+        super().__init__(engine, identity, depth)
+        self.id = (id(engine), identity)  # same database/store instances re-enter; other databases remain distinct
 
 
 class PgDrafts(_Base):

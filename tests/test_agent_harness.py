@@ -52,6 +52,7 @@ PROBES = {
 # Home agent's code-made call, an MCP client's call, the campaign's experiment) or being the registry itself. A call by
 # reference counts (``asyncio.to_thread(toolbox.call, ...)``), whatever the receiver is named.
 TOOL_CALLERS = {("dclab_rnd/agents/runtime.py", "_run"), ("dclab_rnd/agents/registry.py", "Registry.acall"),
+                ("dclab_rnd/tasks/dispatch.py", "TaskDispatcher._invoke"),
                 ("dclab_rnd/intern/loop.py", "Intern._step"), ("dclab_rnd/intern/tools.py", "Toolbox.call"),
                 ("dclab_rnd/draft/chat.py", "HomeAgent.run_tool"),
                 ("dclab_rnd/draft/orchestrator.py", "Orchestrator.rules_turn"), ("dclab_rnd/mcp_server.py", "build_server.call_tool"),

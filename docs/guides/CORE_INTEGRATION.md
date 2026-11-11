@@ -1398,3 +1398,18 @@ validators; the R&D metadata adapter/planner is not a new portable dispatcher or
 Before future execution, refresh the host inputs, validate resolved arguments, and call the existing guarded
 registry and engine. TP-03 adds no task execution or runtime persistence. See
 `docs/guides/TASK_EXECUTION_PLANNING_ACCEPTANCE.md` for the supported API, checks and limits.
+
+## Guarded task dispatch in the R&D host (TP-04)
+
+`SolutionTeam(..., task_execution=True)` uses the existing team and checkpoint saver for sequential execution of
+the basic binary adapter's plans. `TaskDispatcher.dispatch` refreshes current metadata, actual bytes, permissions,
+capability hashes and owner evidence, then resolves arguments and calls the existing guarded registry. Attempts
+are durable before effects and associate stage runs through nonsemantic `RunRecord.parent` provenance. Complete
+record hashes and the original holdout receipt are checked on resume; unknown effects block without automatic retry.
+
+This changes no frozen portable core contract or adapter field mapping. Task checkpoints are R&D host metadata,
+not a new portable task-attempt schema. The main product retains its own project, principal, job, artifact and
+checkpoint owners. Adopting this path requires an equivalent reviewed exclusive-turn interface and owner-evidence
+mapping; do not copy the R&D store/checkpointer or invent fields absent from the pinned main-product inventory.
+Operation completion does not prove scientific acceptance, which remains pending for TP-05. See
+`docs/guides/TASK_EXECUTION_ACCEPTANCE.md` for exact bounds, the platform limit and actual file/PostgreSQL checks.

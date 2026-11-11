@@ -55,7 +55,7 @@ engineering/planning/
 | TP-01E | Regression tests and foundation acceptance | Complete — all nine criteria satisfied; full check-all (5,348 file / 5,350 PostgreSQL tests), final review and completion corpus checks passed; existing skips documented (2026-11-05) |
 | TP-02 | Model-assisted task decomposition | Complete — proposal only; 44 task tests, 9/9 scripted DEV, 175 focused tests and independent review passed; owner-directed focused validation (2026-11-11) |
 | TP-03 | Task-level execution planning | Complete — proposal only; 28 planner tests, 125 relevant tests, 24/24 scripted DEV and independent review passed (2026-11-11) |
-| TP-04 | Guarded execution and task progression | Not started |
+| TP-04 | Guarded execution and task progression | Complete — explicit opt-in; 74 relevant checks, file/PostgreSQL real-tool and crash/resume tests, independent review passed (2026-11-12) |
 | TP-05 | Verification, recovery, and replanning | Not started |
 | TP-06 | Evaluation and release gates | Not started |
 | TP-07 | Product integration and rollout | Not started |
@@ -69,7 +69,7 @@ Update this table only when implementation and required validation are complete.
 - [Acceptance, actual verification and next-package handoff](../../docs/guides/TASK_PLANNING_ACCEPTANCE.md)
 - [Expanded source audit](TP_01A_EVIDENCE.json): all mandatory family/step pairs and exact registry schemas at the reviewed commit.
 
-The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 and TP-03 are complete under the owner-directed focused validation scope. TP-04 and later packages have not started.
+The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 through TP-04 are complete under the owner-directed focused validation scope. TP-05 and later packages have not started.
 
 ## TP-01B contracts and verification
 
@@ -131,7 +131,18 @@ comparison fix. Core contracts and schemas are unchanged; there is no scheduler 
 
 Only affected tests ran under the owner's standing instruction. The DEV result pins the new prompt and relevant
 code; unchanged global prompt/harness snapshots are stale for the new prompt, and no broad gate pass is claimed.
-TP-04 has not started.
+TP-04 acceptance follows below.
+
+## TP-04 guarded execution acceptance
+
+[Task execution acceptance](../../docs/guides/TASK_EXECUTION_ACCEPTANCE.md) records the explicit task mode of the
+existing SolutionTeam, durable pre-effect attempts in its current saver, project locks, real registry/engine
+dispatch, owner-record reconciliation, unknown-effect stops and exactly one final holdout read. All 74 relevant
+checks passed, including 24 new PostgreSQL cases and selected existing workflow/storage/lineage checks. Independent
+review passed; its pool, ownership and recovered-budget findings are fixed. Checkpoints retain source hashes,
+not private source class values. Scientific acceptance remains pending for TP-05. No product default is enabled.
+
+The owner authorized continuing to TP-05 after this package is committed. TP-05 has not started yet.
 
 ## Implementation rules
 

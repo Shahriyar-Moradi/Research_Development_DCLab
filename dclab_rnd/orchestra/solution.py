@@ -16,6 +16,8 @@ understanding walk's (28.3).
 from __future__ import annotations
 
 import contextvars
+import functools
+from contextlib import nullcontext
 import json
 import operator
 import threading
@@ -28,6 +30,16 @@ from .walk import _PAUSES, Asker, _nodes, _requests, _walk_id
 
 _SESSION: contextvars.ContextVar[Any] = contextvars.ContextVar("orchestra_solution_session")
 _STEP = threading.Lock()  # parallel routes write their steps one at a time
+
+
+def _solution_turn(fn):
+    @functools.wraps(fn)
+    def serialized(self, project_id, *args, **kwargs):
+        # A separate lock: graph nodes may run in other threads and take the project's effect lock themselves.
+        with self.projects.turn(project_id, purpose="solution", require_process=self.task_execution):
+            self.projects.get(project_id)  # authenticate before reading a shared saver or returning a paused question
+            return fn(self, project_id, *args, **kwargs)
+    return serialized
 
 
 def _union(a: Optional[dict[str, Any]], b: Optional[dict[str, Any]]) -> dict[str, Any]:
@@ -52,19 +64,31 @@ class SolveState(TypedDict, total=False):
     back_to: str         # 30.15: the phase a failed G4 sends the work back to (kept in the state: LangGraph drops a key it does not know)
     started: str
     runs: Annotated[list[str], operator.add]  # every session of the walk, appended
+    task_checkpoint: str
 
 
 class SolutionTeam:
     TEAM = "solution"
 
     def __init__(self, projects: Any, checkpointer: Any, home: Any = None, advisor: Any = None, max_steps: int = 40,
-                 shadow: Any = None, shadow_name: str = "", max_eur: Optional[float] = None):
+                 shadow: Any = None, shadow_name: str = "", max_eur: Optional[float] = None, task_execution: bool = False):
         self.projects, self.checkpointer, self.home, self.advisor = projects, checkpointer, home, advisor
         self.shadow, self.shadow_name = shadow, shadow_name  # 28.10: a model that answers the router's question beside it, never used
         self.max_steps = max_steps
         self.max_eur = max_eur  # 28.8: the team's euro budget across its resumes
         self.asker = Asker()
         self.graph = None
+        self.task_execution = task_execution  # TP-04 developer opt-in; no product switch or default execution change
+
+    def _tasks(self):
+        from ..tasks.dispatch import TaskDispatcher
+        return TaskDispatcher(self.projects, self.checkpointer, enabled=self.task_execution,
+                              budget={"max_tool_calls": min(self.max_steps, 100), "max_seconds": 3600, "max_cost_eur": 0.0})
+
+    def _task_call(self, project_id, task):
+        result = self._tasks().dispatch(project_id, task)
+        return result if result["status"] in ("completed", "reconciled", "already_completed") else {
+            **result, "blocked": True, "error": result.get("reason", "task_execution_refused")}
 
     # ------------------------------------------------------------------------------------------------ the board
     def _advance(self, state: SolveState, node: str, what: str, board: Any = None, **changes: Any) -> dict[str, Any]:
@@ -124,6 +148,8 @@ class SolutionTeam:
         from ..studio import programme
 
         project = self.projects.get(state["project_id"])
+        if self.task_execution and programme.plan_of(project) is not None:
+            return {"next": "stop", "says": "Task execution currently supports one binary workflow; the programme stays with its atomic owner."}
         if programme.plan_of(project) is None:
             return self._situate_single(state, project)  # 30.1: a project of one problem, through the engine's stages
         if len(state.get("steps") or []) >= self.max_steps:
@@ -154,6 +180,11 @@ class SolutionTeam:
         """The engine's stages in order, the auditor after the leakage stage and before anything is chosen, the holdout read
         by the final stage only after the person approves it."""
         from ..studio import leak_audit
+
+        if self.task_execution:
+            problem = self._tasks().preflight(project["id"])
+            if problem:
+                return {"next": "stop", "says": "Task execution stopped: " + problem}
 
         if not project.get("solution"):
             return {"next": "stop", "says": "Save the solution first: the team runs a project of one problem from its saved solution (the person's)."}
@@ -187,14 +218,14 @@ class SolutionTeam:
         status = {k: ((project.get("stages") or {}).get(k) or {}).get("status") for k in self.STAGES}
         key = next(k for k in self.STAGES if status[k] not in ("completed", "approved"))
         clock = time.monotonic()
-        out = Toolbox(self.projects).call("run_stage", {"project_id": state["project_id"], "stage": key})  # its guard the validator
+        out = self._task_call(state["project_id"], key) if self.task_execution else Toolbox(self.projects).call("run_stage", {"project_id": state["project_id"], "stage": key})  # its guard the validator
         failed = isinstance(out, dict) and (out.get("error") or out.get("blocked"))
         step = self._step("stage", {"stage": key}, {"refused": str(failed)[:300]} if failed else {"stage": key, "status": (out or {}).get("status") if isinstance(out, dict) else None},
                           time.monotonic() - clock)
         board = self._advance(state, "stage", key if not failed else "refused")
         if failed:
             return {"steps": [step], "board": board, "next": "stop", "says": f"The {key} stage did not run: {failed}"[:600]}
-        return {"steps": [step], "board": board, "next": "situate"}
+        return {"steps": [step], "board": board, "next": "situate", **({"task_checkpoint": out["checkpoint"]} if out.get("checkpoint") else {})}
 
     def _fan(self, state: SolveState) -> Any:
         """The router's fan-out: one ``Send`` a sub-problem, each routed on its own, all in the same step."""
@@ -361,6 +392,15 @@ class SolutionTeam:
         from ..intern.tools import Toolbox
         from ..studio import graph as studio_graph, leak_audit
 
+        if self.task_execution:
+            progress = self._tasks().state(state["project_id"])
+            if progress and any(a["task"] == "final" for a in progress["attempts"]):
+                out = self._task_call(state["project_id"], "final")
+                if out.get("blocked"):
+                    return {"next": "stop", "says": "Final task stopped: " + out["error"]}
+                return {"next": "situate", "board": self._advance(state, "compose", "reconciled"),
+                        **({"task_checkpoint": out["checkpoint"]} if out.get("checkpoint") else {})}
+
         fp = leak_audit.single_inputs(project)
         token = _PAUSES.set([])
         try:
@@ -374,7 +414,7 @@ class SolutionTeam:
         clock = time.monotonic()
         if state.get("approved_for") != fp:
             studio_graph.approve_gate(self.projects, state["project_id"], "holdout", by="person", reason="approved in the solution team, after its audit")
-        out = Toolbox(self.projects).call("run_stage", {"project_id": state["project_id"], "stage": "final"})
+        out = self._task_call(state["project_id"], "final") if self.task_execution else Toolbox(self.projects).call("run_stage", {"project_id": state["project_id"], "stage": "final"})
         failed = isinstance(out, dict) and (out.get("error") or out.get("blocked"))
         step = self._step("compose", {"stage": "final"}, {"refused": str(failed)[:300]} if failed else {"final": "done"}, time.monotonic() - clock)
         if failed:
@@ -421,6 +461,10 @@ class SolutionTeam:
 
         clock = time.monotonic()
         project = self.projects.get(state["project_id"])
+        if self.task_execution:
+            out = self._task_call(state["project_id"], "report")
+            if out.get("blocked"):
+                return {"next": "stop", "says": "Report task stopped: " + out["error"]}
         p = programme.stored(project)
         text = core_programme.markdown(p) if p is not None else solution_report.latest(self.projects, state["project_id"])["markdown"]
         step = self._step("report", {}, {"characters": len(text), "sections": len(core_programme.sections(p)) if p is not None else text.count("\n## ")},
@@ -449,6 +493,7 @@ class SolutionTeam:
         return self.graph
 
     # ------------------------------------------------------------------------------------------------ the walk
+    @_solution_turn
     def run(self, project_id: str, resume: Any = None, store: Any = None) -> dict[str, Any]:
         """Start the team on a project, or resume it with the person's answer: ``{"status": "paused", "asks": …}`` at a pause,
         else ``{"status": "done", "next": "done" | "stop", "says", "steps", "board"}``."""
@@ -462,23 +507,31 @@ class SolutionTeam:
         thread = thread_id("project", project_id)
         config = {"configurable": {"thread_id": thread}, "recursion_limit": 6 * self.max_steps + 20}
         snap = self.graph.get_state(config)
+        from ..tasks.dispatch import TaskDispatcher
+        if not self.task_execution and self.checkpointer.get(TaskDispatcher.config(project_id)) is not None:
+            return {"status": "done", "next": "stop", "says": "Existing task attempts were retained. Resume with task_execution=True."}
         open_ = [i for t in snap.tasks for i in (getattr(t, "interrupts", None) or ())]
+        crash_resume = bool(self.task_execution and snap.values and snap.next and not open_ and resume is None)
         if resume is not None and not open_:
             raise NothingToResume(f"nothing to resume on {thread}: no pause is open")
         if resume is None and open_:  # started again while a pause waits for the person: the pause stands, nothing is redone
             return {"status": "paused", "asks": dict(open_[0].value)}
-        if resume is None and snap.values:  # a new run starts from the project as it is: the last run's state never answers for it
+        if resume is None and snap.values and not self.task_execution:  # never delete task attempt namespaces on resume
             self.checkpointer.delete_thread(thread)
         if resume is not None and not (isinstance(resume, dict) and "key" in resume):
             resume = {"key": dict(open_[0].value).get("key"), "answer": resume}
         with experience.bind(project=project_id), harness.session("orchestra.solution", store=store, params={"project": project_id, "resumed": resume is not None}) as current:
             token = _SESSION.set(current)
             try:
-                if resume is None:
-                    self.graph.invoke({"project_id": project_id, "board": B.new(thread, state="solution").model_dump(mode="json"), "steps": [],
-                                       "started": B.now(), "runs": [current.run_id]}, config)
-                else:
-                    self.graph.invoke(Command(resume=resume, update={"runs": [current.run_id]}), config)
+                from ..models.gateway import private_scope
+                with private_scope(True) if self.task_execution else nullcontext():
+                    if crash_resume:
+                        self.graph.invoke(None, config)
+                    elif resume is None:
+                        self.graph.invoke({"project_id": project_id, "board": B.new(thread, state="solution").model_dump(mode="json"), "steps": [],
+                                           "started": B.now(), "runs": [current.run_id]}, config)
+                    else:
+                        self.graph.invoke(Command(resume=resume, update={"runs": [current.run_id]}), config)
             finally:
                 _SESSION.reset(token)
             snap = self.graph.get_state(config)

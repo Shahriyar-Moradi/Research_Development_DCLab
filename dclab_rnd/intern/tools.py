@@ -586,6 +586,12 @@ class Toolbox:
         from ..storage.files import files_for
         files = files_for(self.projects)
         keys = [files.put(files.key_of(folder / name), folder / name)["key"] for name in ("notebook.ipynb", "report.md")]  # recorded, by key
+        from ..studio.lineage import current_task_attempt
+        attempt = current_task_attempt()
+        if attempt:
+            from dclab_core.task_fingerprints import metadata_fingerprint
+            self.projects.log(project_id, "task_exported", {"attempt": attempt, "source": metadata_fingerprint(records),
+                              "files": [{"key": key, "sha256": files.record(key)["sha256"]} for key in keys]})
         return {"notebook": f"/api/projects/{project_id}/export/notebook", "report": f"/api/projects/{project_id}/export/report",
                 "files": keys, "project_url": f"#project/{project_id}"}
 

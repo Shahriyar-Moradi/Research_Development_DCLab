@@ -4,6 +4,7 @@ import re
 import sys
 import tempfile
 import threading
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -66,6 +67,54 @@ class StorageInterfaceTests(unittest.TestCase):
                 other.start()
                 other.join()
         self.assertEqual(held, [False])  # another thread waits for the turn
+
+    def test_project_effect_and_solution_locks_are_distinct_and_reentrant(self):
+        with tempfile.TemporaryDirectory() as folder:
+            first = ProjectStore(Path(folder))
+            second = ProjectStore(Path(folder))
+            pid = first.create("Task locks")["id"]
+            entered = threading.Event()
+
+            def effect():
+                with second.turn(pid):
+                    second.save(second.get(pid))
+                    entered.set()
+
+            with first.turn(pid, purpose="solution"):
+                with second.turn(pid, purpose="solution"):
+                    thread = threading.Thread(target=effect)
+                    thread.start()
+                    self.assertTrue(entered.wait(2))  # graph worker can take its separate effect lock
+            thread.join(2)
+            self.assertFalse(thread.is_alive())
+
+    def test_same_id_in_two_workspaces_keeps_both_process_locks(self):
+        from dclab_rnd.studio import store as stores
+        if stores.fcntl is None:
+            self.skipTest("POSIX process lock probe")
+        with tempfile.TemporaryDirectory() as folder:
+            first, second = ProjectStore(Path(folder) / "a"), ProjectStore(Path(folder) / "b")
+            project = first.create("A")
+            pid = project["id"]
+            second.directory(pid).mkdir()
+            second.save(dict(project))
+            probe = "import fcntl,sys\nf=open(sys.argv[1],'a')\ntry: fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB)\nexcept BlockingIOError: sys.exit(0)\nsys.exit(1)"
+            with first.turn(pid), second.turn(pid):
+                for store in (first, second):
+                    result = subprocess.run([sys.executable, "-c", probe, str(store.directory(pid) / ".project.lock")], timeout=3)
+                    self.assertEqual(result.returncode, 0)
+
+    def test_task_mode_refuses_thread_only_locks_without_changing_legacy_fallback(self):
+        from unittest.mock import patch
+        from dclab_rnd.tasks.dispatch import TaskDispatcher
+        with tempfile.TemporaryDirectory() as folder:
+            store = ProjectStore(Path(folder))
+            pid = store.create("Unavailable process lock")["id"]
+            with patch("dclab_rnd.studio.store.fcntl", None):
+                with store.turn(pid):
+                    store.save(store.get(pid))
+                with self.assertRaises(RuntimeError):
+                    TaskDispatcher(store, None, enabled=True).dispatch(pid, "data")
 
 
 if __name__ == "__main__":
