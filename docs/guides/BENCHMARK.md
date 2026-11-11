@@ -119,6 +119,28 @@ On sealed v3 (12 people), the lead agent against Claude alone: 16.5 fewer safety
 more questions (0.998 to 3.67 more), 0.83 more questions already answered, and EUR 0.13 more per person; understanding and the
 right route are higher but their intervals include no difference.
 
+### Model against model, across runs (2026-11-11)
+
+`python -m dclab_rnd.bench models [--target qwen/qwen3.8-flash] [--baseline claude] [--suites ...] [--dry-run]`
+(`dclab_rnd/bench/models.py`) puts one model's runs beside another's on the same suite, split and arm, per metric. The
+suites with a reader are conversation_exam_v1, home_v1, journeys_v1, harness_v1, students_exam_v1 and agent_eval_v1; a new
+suite needs a reader and its metrics' direction in `SUITES`. Each arm's model is read from the result (the exam's
+`models.arms`, then `model`, `plan.model`, a purpose map, the rows' `models`); a model never recorded is "unknown", and an arm
+that calls no model (the rules, a scripted harness run) is left out.
+
+- **Paired** when both sides have two or more of the same cases (`dclab_core.bench.paired`); **unpaired** otherwise, with each
+  side's own interval, and the row says why. The students' exam keeps no per-decision rows, so it is always unpaired.
+- A side with several runs keeps each case's latest value; the runs used are listed.
+- A **rerun** (`"unseen": false`, or `_rerun` in its name) is its own side, never mixed with a first run, and is marked "not unseen".
+- Every row names both sides' judges (Claude's exams by Opus, Qwen's by Qwen) and the written people's model.
+- Inside one model, the arm pairs (`ARM_PAIRS`: the lead agent against the model alone) are compared across runs.
+- A run answered by two models (one purpose still on Claude) is "mixed" and on neither side. A journeys set is keyed by
+  its hash, so an edited set is another split and its ids are not paired with the old people.
+- The report is rendered before any file is opened, so a failure leaves no half report.
+
+Each report is new dated files, `evidence/bench/models/QWEN_VS_CLAUDE_<time>.{json,md}`, never written over. The CEX
+`BENCHMARK.md` and `bench versions` carry the model (and the exam's judge) of every run.
+
 ## 8. Monitors and the bug loop (B8)
 
 `python -m dclab_rnd.bench monitors [--days 7]` and the **Monitors** panel (`GET /api/admin/bench/monitors`): per agent purpose,

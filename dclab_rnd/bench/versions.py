@@ -11,6 +11,8 @@ puts three records side by side:
 - **the live results**: the suites that do send a prompt to a model (``SUITE_PROMPTS``: the lead-agent exam, Home, the journeys)
   record no hash, so each of their results is placed in the version that was committed before its date ("linked by date": a
   run on uncommitted edits is placed in the version before them);
+- **the model** each live result was answered by (and judged by), so a version measured on Claude and one measured on
+  Qwen are not read as one prompt's scores;
 - **the current** hash in the working tree, and whether a live result has run on it yet (``measured_now``).
 
 So a prompt change shows its date, its commit and the scores before and after it; a current version no suite has run on is
@@ -31,6 +33,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dclab_core import bench as core
+
+from .models import UNKNOWN, judge_of, model_of
 
 ROOT = Path(__file__).resolve().parents[2]
 # the suites that send these prompts to a model (read from the code that loads them: agents/case_agent.py, the exam's arms,
@@ -121,10 +125,18 @@ def live_results(campaigns: Path = CAMPAIGNS) -> dict[str, list[dict[str, Any]]]
             passed, words = core.verdict_of(doc)
             spent = doc.get("spent_eur")
             row = {"suite": suite, "ref": path.stem, "at": at, "split": core.split_of(doc, path.stem), "passed": passed,
-                   "verdict": words[:120], "spent_eur": spent if isinstance(spent, (int, float)) else None}
+                   "verdict": words[:120], "spent_eur": spent if isinstance(spent, (int, float)) else None,
+                   "model": served(doc), "judge": judge_of(doc)}
             for name in _sent(suite, doc, names):
                 out[name].append(row)
     return {k: sorted(v, key=lambda r: (r["at"], r["ref"])) for k, v in out.items()}
+
+
+def served(doc: dict[str, Any]) -> str:
+    """The model that answered in a result (each arm's for the exam, joined), read by ``bench.models.model_of``."""
+    names = doc.get("arms") or (list(doc["scores"]) if isinstance(doc.get("scores"), dict) else [])
+    found = sorted({model_of(doc, str(a))[0] for a in names} - {UNKNOWN}) if isinstance(names, list) else []
+    return " + ".join(found) or model_of(doc)[0]
 
 
 def _sent(suite: str, doc: dict[str, Any], names: tuple[str, ...]) -> tuple[str, ...]:
@@ -182,6 +194,7 @@ def timeline(agent: Optional[str] = None, campaigns: Path = CAMPAIGNS, now: Opti
             versions.append({**v, "checks": len(checks), "checks_passed": sum(r["passed"] is True for r in checks),
                              "live": runs_here, "passed": sum(r["passed"] is True for r in runs_here),
                              "failed": sum(r["passed"] is False for r in runs_here),
+                             "models": sorted({r["model"] for r in runs_here}),
                              "spent_eur": round(sum(r["spent_eur"] or 0 for r in runs_here), 2)})
         here = now.get(key)
         committed = bool(versions) and versions[-1]["hash"] == here

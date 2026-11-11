@@ -1,4 +1,4 @@
-"""``python -m dclab_rnd.bench read|run``: DCLab Bench from the command line (see ``dclab_rnd.bench``)."""
+"""``python -m dclab_rnd.bench read|run|versions|compare|models``: DCLab Bench from the command line (see ``dclab_rnd.bench``)."""
 
 from __future__ import annotations
 
@@ -57,17 +57,42 @@ def _versions(args: argparse.Namespace) -> int:
         if not a["versions"]:
             continue
         flag = "measured live" if a["measured_now"] else ("NOT measured live" if a["live_suites"] else "no live suite")
-        print(f"{a['agent']:22} {a['changes']:2} versions  now {a['current']}  {'committed' if a['committed'] else 'UNCOMMITTED'}  {flag}")
+        last = next((v.get("models") for v in reversed(a["versions"]) if v.get("models")), None)
+        print(f"{a['agent']:22} {a['changes']:2} versions  now {a['current']}  {'committed' if a['committed'] else 'UNCOMMITTED'}  {flag}"
+              + (f"  last measured on {', '.join(last)}" if last else ""))
         if args.agent:
             for v in a["versions"]:
                 print(f"   {v['date'][:16]}  {v['commit']}  {v['hash']}  checks {v['checks']:3}  live {len(v['live']):3} "
-                      f"(pass {v['passed']}, fail {v['failed']}, EUR {v['spent_eur']})  {v['subject'][:70]}")
+                      f"(pass {v['passed']}, fail {v['failed']}, EUR {v['spent_eur']})  models {', '.join(v.get('models') or []) or '-'}  "
+                      f"{v['subject'][:70]}")
+    return 0
+
+
+def _models(args: argparse.Namespace) -> int:
+    from . import models
+
+    suites = [x.strip() for x in (args.suites or "").split(",") if x.strip()] or None
+    doc = models.build(target=args.target, baseline=args.baseline, suites=suites)
+    if args.json:
+        print(json.dumps(doc, indent=1, default=str))
+    else:
+        for r in doc["rows"]:
+            p = r.get("paired") or {}
+            b, t = r["baseline"], r["target"]
+            print(f"{r['suite']:22} {r['split']:14} {r['arm']:12} {r['metric']:22} {b['model']} {b['mean']} (n {b['n']}, {b['judge']})  "
+                  f"{t['model']} [{t['run']}] {t['mean']} (n {t['n']}, {t['judge']})  {r['mode']}"
+                  + (f" diff {p['difference']} {p['interval']}" if p else ""))
+        for x in doc["target_alone"]:
+            print(f"{x['suite']:22} {x['split']:14} {x['arm']:12} {doc['target']} ran, no baseline on this split")
+    if not args.dry_run:
+        paths = models.write(doc)
+        print("wrote", *[str(p) for p in paths])
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.bench")
-    parser.add_argument("action", choices=("read", "run", "versions", "compare", "monitors", "external"))
+    parser.add_argument("action", choices=("read", "run", "versions", "compare", "monitors", "external", "models"))
     parser.add_argument("what", nargs="?", default="check", help="external: check or plan")
     parser.add_argument("--days", type=int, default=7, help="monitors: the last N days")
     parser.add_argument("--result", default=None, help="compare: SUITE/RESULT, e.g. conversation_exam_v1/CEX-032_sealed_v3")
@@ -75,6 +100,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--b", default=None, help="compare: the arm judged (e.g. case: the lead agent)")
     parser.add_argument("--gate", default=None, help="compare: a gate file written before the run")
     parser.add_argument("--agent", default=None, help="versions: one prompt's timeline (case_agent, home_agent ...)")
+    parser.add_argument("--target", default="qwen/qwen3.8-flash", help="models: the model judged (exact name, or a prefix: 'qwen' also takes local qwen models)")
+    parser.add_argument("--baseline", default="claude", help="models: the model compared against (a prefix: claude)")
+    parser.add_argument("--suites", default="", help="models: comma-separated suites (all with a reader when empty)")
+    parser.add_argument("--dry-run", action="store_true", help="models: print, write nothing")
     parser.add_argument("--layers", default="", help=f"comma-separated, of {', '.join(COMMANDS)} (run: all when empty)")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -82,6 +111,8 @@ def main(argv: list[str] | None = None) -> int:
         return _versions(args)
     if args.action == "compare":
         return _compare(args)
+    if args.action == "models":
+        return _models(args)
     if args.action == "monitors":
         return _monitors(args)
     if args.action == "external":

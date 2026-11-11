@@ -1,0 +1,151 @@
+{
+ "package": "QWEN-S6",
+ "title": "One model against another across runs: Claude's exams beside Qwen's, paired where the people are the same",
+ "date": "2026-11-11",
+ "request": "Build step 6 tooling of the Qwen rerun plan: a cross-run, cross-model comparison per suite (conversation exam, Home, journeys, harness, students' exam, judgment suite), paired with bootstrap and McNemar where the same cases appear, unpaired with intervals otherwise, reruns of seen sets marked apart, the judge named in every row, dated report files never overwritten; a model column in the exam benchmark and in bench versions; fixture tests.",
+ "spec": "docs/guides/BENCHMARK.md, section 7, Model against model",
+ "plan": [
+  "Read the bench package, the exam benchmark and one result of each suite to learn where each records its model, judge, split and per-case rows.",
+  "Write one reader per result shape into a common arm record: split, arm, served model and where it was read, judge, written people's model, rerun flag, each case's numbers.",
+  "Group by suite, split and arm; put each Claude model's first runs against each Qwen side (first runs and reruns apart) per metric, paired through the shared paired test when two or more cases are shared.",
+  "Add the model and judge columns to the exam benchmark and the model to each live result in bench versions.",
+  "Test on fixture runs: the same people paired, the judge column, the rerun marking, unpaired groups, no overwrite; run the existing bench and benchmark tests; review and fix."
+ ],
+ "decisions": [
+  {
+   "decision": "Read the served model from the result in a fixed order and call it unknown when no field records it.",
+   "why": "Home and journeys rules arms and scripted harness runs call no model, and old results lack a model field; guessing Claude from a date would put a run on the wrong side of a comparison."
+  },
+  {
+   "decision": "Use the exact split (sealed_v3, dev_route) and strip the rerun words from a name, not the coarse dev or sealed.",
+   "why": "Two sealed sets hold different people; pooling them would compare Claude on one set with Qwen on another and still call it the same split."
+  },
+  {
+   "decision": "Keep a rerun of a seen sealed set as its own side and mark it in every row.",
+   "why": "The plan allows one rerun per set per model as an exception; it is not an unseen measurement and must never be averaged with a first run."
+  },
+  {
+   "decision": "Pair only with two or more shared cases; otherwise report each side's own mean and interval and say why.",
+   "why": "With one shared case the paired test has no interval; Qwen's dev runs so far share at most one person with each other, so most cross-run rows must be honest about being unpaired."
+  },
+  {
+   "decision": "Name both sides' judges and flag when they differ.",
+   "why": "Claude's exams were judged by Opus and Qwen's by Qwen, so a gap mixes the answerer and the judge; the reader must see it in the row, not only in a footnote."
+  },
+  {
+   "decision": "Keep the unpaired interval helper in dclab_rnd, not dclab_core.",
+   "why": "It serves only the R&D bench report; the paired test already lives in dclab_core and is reused unchanged, so the core wheel needs no new version."
+  },
+  {
+   "decision": "Write each report with exclusive-create mode and a time and process stamp.",
+   "why": "A report is evidence; a second run must add a file, never replace the one a reader already cited."
+  }
+ ],
+ "change": "New dclab_rnd/bench/models.py with readers for six suites, the comparison, the within-model arm pairs, a Markdown and JSON report written as new dated files, and python -m dclab_rnd.bench models. The exam benchmark gained model and judge columns and calls the plain arm 'the model alone' when another model answered; bench versions carries each live result's model and judge and prints the models a version was measured on. The bench guide has a new subsection; BENCHMARK.md and BENCHMARK.json of the exam were rebuilt by their command. tests/test_bench_models.py adds ten tests on fixture campaigns.",
+ "findings": [
+  {
+   "id": "S6-TEST-FIRST",
+   "source": "self",
+   "defect": "Qwen's lead agent against Qwen alone came out unpaired on the real dev runs, which looked like a pairing bug at first.",
+   "scenario": "CEX-036 has five case-arm people and CEX-043 two plain-arm people, both including d-01 and d-02, yet the row was unpaired.",
+   "cause": "The judge left d-01 unscored in CEX-036 (unjudged: true), so only d-02 is shared; one shared case is below the pairing threshold.",
+   "fix": "No change: the threshold is right; the row now states the number of shared cases in its note so a reader sees why.",
+   "test": "test_other_people_are_reported_unpaired_with_each_sides_interval checks the note names the shared count.",
+   "severity": "behaviour",
+   "verdict": "declined"
+  },
+  {
+   "id": "S6-HOME-ARM-NAMED-MODEL",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The within-model arm rows stored each side under its arm's name, and Home has an arm called model, so the row's answering model overwrote that side and the report crashed.",
+   "scenario": "Building the report on the recorded results gave 40 Home arm rows whose model side was a plain model name; rendering raised a type error after the JSON file was already written, leaving an empty Markdown file in the evidence folder.",
+   "cause": "Sides were keyed by user-visible arm names that can collide with the row's own fields, and the report was rendered only after the first file was opened.",
+   "fix": "The two sides use the fixed keys a and b, the arm names go in an arms list and the model in answered_by; the report text and JSON are built before either file is opened.",
+   "test": "test_homes_arm_called_model_keeps_its_side_and_the_report_is_written_whole and test_a_render_failure_leaves_no_file.",
+   "impact": "Every non-dry run of the command would have left a broken half report and lost Home's lead-agent-against-model-alone numbers."
+  },
+  {
+   "id": "S6-MIXED-MODELS",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A run whose purposes were answered by Claude and Qwen together read as a Claude baseline.",
+   "scenario": "A harness run with home_agent on Qwen and data_investigator on Claude reads as 'claude-sonnet-5-5 + qwen/qwen3.8-flash', which starts with claude, so Qwen would be compared against a half-Qwen run.",
+   "cause": "The side test matched the joined name by prefix.",
+   "fix": "A joined name is mixed and matches neither side.",
+   "test": "test_a_run_answered_by_two_models_is_on_neither_side."
+  },
+  {
+   "id": "S6-TOTALS-RUNS",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "For the students' exam the runs listed for a side included every run with the metric, though only the latest one's total was used.",
+   "scenario": "The per_point_300 side listed SEX-001, SEX-002 and SEX-005 while its value was SEX-005's alone, against the stated limit that the listed runs gave the value.",
+   "cause": "The list of used runs was extended instead of replaced when a later total replaced an earlier one.",
+   "fix": "A total replaces the list with its own run.",
+   "test": "test_a_suite_without_case_rows_is_unpaired_on_its_totals adds an older run and checks only the latest is listed."
+  },
+  {
+   "id": "S6-JOURNEY-SET-HASH",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Journey ids were paired across runs without checking the set they came from.",
+   "scenario": "After an edit to the dev journeys file, JD-01 on Claude's run and JD-01 on Qwen's run would be different people but would be paired.",
+   "cause": "The split was read from the split name only; the result's journeys hash was ignored.",
+   "fix": "The journeys reader adds the set's hash to the split.",
+   "test": "test_an_edited_journey_set_is_another_split."
+  },
+  {
+   "id": "S6-COLUMN-TITLE",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The Markdown column titled B minus A showed A minus B for lower-is-better metrics.",
+   "scenario": "For safety failures, a positive number meant Qwen had fewer failures, while the title read as Qwen's failures minus Claude's.",
+   "cause": "The paired difference is signed so that positive is better, but the title described a raw subtraction.",
+   "fix": "The column is titled 'B better by (paired)'.",
+   "test": "Rendered on the recorded results."
+  },
+  {
+   "id": "S6-PREFIX-TARGET",
+   "source": "reviewer",
+   "severity": "gap",
+   "verdict": "declined",
+   "defect": "A target given as the prefix qwen also takes the local qwen2.5-coder run.",
+   "scenario": "Running with target qwen counts AEV-002, a local small model, as the target.",
+   "fix": "Kept as designed: the default target is the exact served name; the help now says a prefix takes every model that starts with it.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "fixture and existing bench tests",
+   "gate": "Every test in the new file and in the existing bench, compare, core, versions and exam-benchmark files passes.",
+   "result": "46 tests in 6 files passed after the review's fixes (42 before them).",
+   "verdict": "pass",
+   "cost_eur": 0.0
+  },
+  {
+   "name": "dry run on the recorded results",
+   "gate": "The command reads every result of the six suites without a crash and pairs only shared people.",
+   "result": "20 Claude-against-Qwen rows on the conversation exam dev split (most paired on 2 to 6 shared people, three unpaired) and 130 within-model arm rows; the judgment suite and the students' exam have Qwen runs with no Claude run on the same split, listed as such. After the fixes the full report (JSON and Markdown) is written on the recorded results, to a scratch folder.",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "limits": [
+    "Only dev runs exist for Qwen yet; the sealed reruns have not run, so no sealed row is measured.",
+    "A side merged from several runs mixes prompt versions; the runs used are listed."
+   ]
+  }
+ ],
+ "outcome": "The tooling is built and tested on fixtures and on the recorded results; no report was written into the evidence folder because the reruns it compares have not run yet. Nothing was committed (the session shares the tree with other sessions).",
+ "lessons": [
+  "Read one real result of every suite before writing a reader: five suites recorded their model in five different places, and two record none for their rules arms.",
+  "An unpaired row must say why it is unpaired; otherwise a reader takes it for a missing pairing.",
+  "A judge column belongs in the row itself when the judge changes with the student.",
+  "Key a row's parts by fixed field names, never by names that come from the data, and render a report before opening its files.",
+  "A dry run that never renders does not test the write path: test the command's real output on real files."
+ ],
+ "risks": [
+  "A result shape changed by the rerun sessions (for example a per-arm models mapping) could be read as unknown; the reader accepts a mapping by arm for that reason.",
+  "Merging a side's runs by latest value can hide an older failure on the same person."
+ ]
+}

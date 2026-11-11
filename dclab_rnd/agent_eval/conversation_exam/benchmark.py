@@ -21,6 +21,12 @@ EXAM_PURPOSES = ("case_agent", "case_specialist", "exam_plain", "exam_person", "
                  "home_understand", "home_query")
 
 
+def _name(arm: str, model: str = "") -> str:
+    """The arm's name; "Claude alone" is "the model alone" when another model answered (OpenRouter, 2026-11-11)."""
+    name = NAMES[arm]
+    return name if not model or model.startswith("claude") or model == "unknown" else name.replace("Claude", "the model")
+
+
 def _trap_mean(traps: Mapping[str, Any]) -> Optional[float]:
     vals = [float(v) for v in (traps or {}).values() if v is not None]
     return round(sum(vals) / len(vals), 3) if vals else None
@@ -42,6 +48,9 @@ def runs(results: Path) -> list[dict[str, Any]]:
         rid = doc.get("id") or path.stem.split("_")[0]
         label = (f"{rid} (joined: {', '.join(r for r in doc['joined']['runs'] if r != rid)})" if doc.get("joined")
                  else f"{rid} (in {inside[rid]})" if rid in inside else rid)
+        from dclab_rnd.bench.models import judge_of, model_of
+
+        judge = judge_of(doc)
         for arm in ARMS:
             s = summary.get(arm)
             if not s:
@@ -49,7 +58,7 @@ def runs(results: Path) -> list[dict[str, Any]]:
             judged, listed = s.get("judged"), s.get("people")
             cut = judged is not None and listed is not None and judged < listed  # CEX-025: five of ten conversations failed on an empty account
             rows.append({"run": label, "split": doc.get("split"), "at": str(doc.get("at") or "")[:10],
-                         "arm": arm, "people": f"{judged} of {listed}" if cut else listed, "understanding": s.get("understanding"), "options_fit": s.get("options_fit"),
+                         "arm": arm, "model": model_of(doc, arm)[0], "judge": judge, "people": f"{judged} of {listed}" if cut else listed, "understanding": s.get("understanding"), "options_fit": s.get("options_fit"),
                          "route_reached": s.get("route_reached", s.get("route_accuracy")), "already_answered": s.get("already_answered"),
                          "safety_failures": s.get("safety_failures"), "traps": _trap_mean(s.get("traps") or {}), "silent": s.get("silent"),
                          "seconds_per_turn": s.get("seconds_per_turn"), "spent_eur": s.get("spent_eur"),
@@ -115,10 +124,12 @@ def render(doc: Mapping[str, Any]) -> str:
            "Rebuilt by `python -m dclab_rnd.agent_eval.conversation_exam.benchmark` from the result files; do not edit by hand.",
            "Understanding is the judge's (0 to 1); option fit 1 to 5; route reached is the share of people whose right route was",
            "offered or taken; traps the mean of the planted traps' rates; seconds per turn the assistant's reply time.", "",
-           "| run | split | student | people | understanding | option fit | route reached | already answered | safety failures | traps | s/turn | € | verdict |",
-           "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+           "The model is the one that answered in the arm; the judge's model is beside it (the Claude-era exams were judged by Opus,",
+           "the exams on OpenRouter by the same model that answered: a gap between them mixes the student and the judge).", "",
+           "| run | split | student | model | judge | people | understanding | option fit | route reached | already answered | safety failures | traps | s/turn | € | verdict |",
+           "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in doc["runs"]:
-        out.append(f"| {r['run']} | {r['split']} | {NAMES[r['arm']]} | {_f(r['people'])} | {_f(r['understanding'])} | {_f(r['options_fit'])} | "
+        out.append(f"| {r['run']} | {r['split']} | {_name(r['arm'], r.get('model') or '')} | {r.get('model') or '–'} | {r.get('judge') or '–'} | {_f(r['people'])} | {_f(r['understanding'])} | {_f(r['options_fit'])} | "
                    f"{_f(r['route_reached'])} | {_f(r['already_answered'])} | {_f(r['safety_failures'])} | {_f(r['traps'])} | "
                    f"{_f(r['seconds_per_turn'], 1)} | {_f(r['spent_eur'])} | {r['verdict'] or ''} |")
     out += ["", "## The judge against the people who labelled", "", "| run | pair | agreement | papers | verdict |", "|---|---|---|---|---|"]
