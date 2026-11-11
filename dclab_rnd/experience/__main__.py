@@ -48,7 +48,7 @@ def _lineage(args, parser) -> int:
     try:
         if args.command == "replay":
             with _workspace_log():
-                out = lineage.replay(store, args.project, args.stage)
+                out = lineage.replay(store, args.project, args.stage, reuse_reason=args.reuse_reason)
         else:
             out = lineage.trace(store, args.project, args.path) if args.path else lineage.runs(store, args.project)
     except (KeyError, ValueError) as exc:  # an unknown project, stage or path; a table that changed on disk (DataError)
@@ -103,6 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     again = sub.add_parser("replay")
     again.add_argument("project")
     again.add_argument("stage")
+    again.add_argument("--reuse-reason", help="explicit permission for this final-stage holdout replay; never inferred from an earlier run")
     asked = sub.add_parser("query", help="23.9: a standard question of the record (see dclab_rnd/experience/queries.py)")
     asked.add_argument("name")
     for arg in ("request", "project", "draft", "visit"):

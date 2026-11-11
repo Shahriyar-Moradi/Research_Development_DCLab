@@ -252,17 +252,19 @@ def decision_steps(store: Any, ledger: Any, project_id: str, record_id: str) -> 
     return {**out, "note": "The stage that made this decision has run again since, and no event of that run's steps is left."}
 
 
-def replay(store: Any, project_id: str, stage: str) -> dict[str, Any]:
+def replay(store: Any, project_id: str, stage: str, *, reuse_reason: str | None = None) -> dict[str, Any]:
     """Rerun a stage from its record in a scratch copy of the project and compare what it makes with the record.
 
     Refused (``replayed`` False, with why) when the stage has no run record, or when anything the run read would be
     different now (the table, the sampling, the solution, the settings that change a run, an earlier stage's choice,
     the labels, the pack, the feature programs, the plan): a replay reproduces a run, it never makes a new one. The
-    final stage reads the holdout, so it is replayed only on the very code it ran on: it then reads the same rows with
-    the same model and can only repeat the number, never choose anything. The copy lives in a temporary folder that is
-    removed after; no model is asked (the run is private) and nothing it does reaches the project, its audit or the
-    session record, except one ``run.recorded`` for the replay, with the original run as its parent."""
-    from .. import experience
+    final stage reads the holdout, so it needs a fresh, explicit reuse_reason and the very code it ran on: it then
+    reads the same rows with the same model and can only repeat the number, never choose anything. Its new holdout
+    authorization remains visible as a parameter difference in the comparison. The copy lives in a temporary folder that is
+    removed after; no model is asked (the run is private) and nothing it does changes the project. The session keeps
+    one ``run.recorded`` with the original run as its parent. A final replay also audits its fresh permission and
+    outcome in the source workspace, preserving the reason after the scratch copy is removed."""
+    from .. import audit, experience
     from ..expansion import datasets as ds
     from ..models.gateway import private_scope
     from . import engine
@@ -294,6 +296,9 @@ def replay(store: Any, project_id: str, stage: str) -> dict[str, Any]:
         if moved or not original.code.commit:
             return {"replayed": False, "why": ["The final stage reads the holdout: it is replayed only on the code it ran on "
                                                f"({', '.join(moved) or 'no commit recorded'} differ)."]}
+        if not isinstance(reuse_reason, str) or not reuse_reason.strip():
+            return {"replayed": False, "why": ["The final stage reads the holdout again: provide a fresh, explicit reuse_reason. "
+                                               "Permission for an earlier run does not authorize this replay."]}
     with tempfile.TemporaryDirectory(prefix="dclab-replay-") as tmp:
         scratch = ProjectStore(Path(tmp) / "projects")
         # its files and their records in the scratch folder: never a workspace, a database row or a bucket of their own
@@ -308,9 +313,26 @@ def replay(store: Any, project_id: str, stage: str) -> dict[str, Any]:
         for k, r in earlier.items():
             if r:
                 scratch.write_stage(project_id, k, r)
-        reuse = "replay of a run that reused the holdout" if original.params.get("holdout_reuse") else None
-        with experience.quiet(), private_scope(True):
-            again = engine._execute_stage(scratch, project_id, stage, scratch.get(project_id), reuse, parent=original.run)
+        reuse = reuse_reason.strip() if stage == "final" else None
+        attempt = None
+        if reuse:
+            from dclab_core.redact import redact_text
+
+            attempt = secrets.token_hex(8)
+            safe_reason, _ = redact_text(reuse)
+            audit.record_for(store, "replay", "human", project={"id": project_id}, move="replay_final", status="requested",
+                             attempt=attempt, original_run=original.run, message=safe_reason[:500])
+        try:
+            with experience.quiet(), private_scope(True):
+                again = engine._execute_stage(scratch, project_id, stage, scratch.get(project_id), reuse, parent=original.run)
+        except Exception as exc:
+            if attempt:
+                audit.record_for(store, "replay", "human", project={"id": project_id}, move="replay_final", status="failed",
+                                 attempt=attempt, original_run=original.run, error=type(exc).__name__)
+            raise
     rerun = contract.RunRecord.model_validate(again["run"])
+    if attempt:
+        audit.record_for(store, "replay", "human", project={"id": project_id}, move="replay_final", status="completed",
+                         attempt=attempt, original_run=original.run, run=rerun.run)
     experience.record("run.recorded", "system", contract.event_payload(rerun), project=project_id, run=rerun.run)
     return {"replayed": True, "run": rerun.run, "original_run": original.run, **contract.compare(original, rerun)}

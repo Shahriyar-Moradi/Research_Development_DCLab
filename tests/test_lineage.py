@@ -180,11 +180,11 @@ class StudioTest(unittest.TestCase):
     def tearDownClass(cls):
         experience.install(None)
 
-    def replay(self, stage):
+    def replay(self, stage, **kwargs):
         from dclab_rnd.expansion import runner
 
         with runner.fast_profile():  # the profile the project ran with: another one is another run (refused)
-            return lineage.replay(self.store, self.pid, stage)
+            return lineage.replay(self.store, self.pid, stage, **kwargs)
 
     def test_a_replay_under_another_engine_profile_is_refused(self):
         out = lineage.replay(self.store, self.pid, "features")  # outside fast_profile: the full model sizes
@@ -249,19 +249,131 @@ class StudioTest(unittest.TestCase):
         from dclab_rnd.studio import engine
 
         before = (self.store.get(self.pid), self.store.records(self.pid))
+        receipt_path = self.store.data_dir(self.pid) / "holdout_receipt.json"
+        receipt_before = receipt_path.read_bytes()
         events_before = len(self.log.read(project=self.pid))
         for stage in ("models", "final"):
             engine._BUNDLES.clear()  # the replay reads the table again, as a later process would
-            out = self.replay( stage)
+            out = self.replay(stage, **({"reuse_reason": "Owner requested this reproduction check."} if stage == "final" else {}))
             self.assertTrue(out["replayed"], out)
-            self.assertTrue(out["same_inputs"] and out["same_value"] and out["same_choice"] and out["same_numbers"], out)
+            self.assertTrue(out["same_value"] and out["same_choice"] and out["same_numbers"], out)
+            self.assertEqual(out["same_inputs"], stage != "final", out)
+            self.assertEqual(out["changed_params"], ["holdout_reuse"] if stage == "final" else [], out)
             self.assertGreater(out["numbers_compared"], 10)
         after = (self.store.get(self.pid), self.store.records(self.pid))
         self.assertEqual(before[1], after[1])
         self.assertEqual({k: v for k, v in before[0].items() if k != "updated"}, {k: v for k, v in after[0].items() if k != "updated"})
+        self.assertEqual(receipt_path.read_bytes(), receipt_before)
         new = self.log.read(project=self.pid)[events_before:]
         self.assertEqual([e.kind for e in new], ["run.recorded", "run.recorded"])  # the replays' own steps are not the project's
         self.assertEqual(new[-1].payload["parent"], self.records["final"]["run"]["run"])
+        self.assertTrue(new[-1].payload["params"]["holdout_reuse"])
+
+    def test_final_replay_requires_a_fresh_nonblank_reason_before_execution(self):
+        from dclab_rnd import audit
+        from dclab_rnd.studio import engine
+
+        before = (self.store.get(self.pid), self.store.records(self.pid))
+        receipt = self.store.data_dir(self.pid) / "holdout_receipt.json"
+        saved = receipt.read_bytes()
+        events_before = len(self.log.read(project=self.pid))
+        with mock.patch.object(engine, "_execute_stage") as execute, mock.patch.object(audit, "record_for") as audited:
+            for kwargs in ({}, {"reuse_reason": None}, {"reuse_reason": ""}, {"reuse_reason": "  "}):
+                with self.subTest(kwargs=kwargs):
+                    out = self.replay("final", **kwargs)
+                    self.assertFalse(out["replayed"], out)
+                    self.assertIn("reuse_reason", out["why"][0])
+            # Old run records without a receipt still need fresh permission.
+            receipt.unlink()
+            try:
+                self.assertFalse(self.replay("final")["replayed"])
+            finally:
+                receipt.write_bytes(saved)
+            execute.assert_not_called()
+            audited.assert_not_called()
+        self.assertEqual((self.store.get(self.pid), self.store.records(self.pid)), before)
+        self.assertEqual(receipt.read_bytes(), saved)
+        self.assertEqual(len(self.log.read(project=self.pid)), events_before)
+
+    def test_previous_holdout_permission_cannot_authorize_a_new_replay(self):
+        from dclab_rnd.studio import engine
+
+        original = self.records["final"]
+        run = dict(original["run"], params={**original["run"]["params"], "holdout_reuse": True})
+        run.pop("fingerprint")
+        previous = {**original, "run": l.RunRecord.model_validate(run).model_dump(mode="json")}
+        read_stage = self.store.read_stage
+        with mock.patch.object(self.store, "read_stage", side_effect=lambda pid, k: previous if k == "final" else read_stage(pid, k)), \
+                mock.patch.object(engine, "_execute_stage") as execute:
+            out = self.replay("final")
+        self.assertFalse(out["replayed"], out)
+        self.assertIn("reuse_reason", out["why"][0])
+        execute.assert_not_called()
+
+    def test_authorized_replay_keeps_the_split_drift_guard_and_source_receipt(self):
+        from dclab_rnd import audit
+
+        log = audit.FileAudit(Path(tempfile.mkdtemp()) / "audit.jsonl")
+        receipt = self.store.data_dir(self.pid) / "holdout_receipt.json"
+        saved = receipt.read_bytes()
+        drifted = {**json.loads(saved), "split_fingerprint": "0" * 64}
+        receipt.write_text(json.dumps(drifted), encoding="utf-8")
+        before = (self.store.get(self.pid), self.store.records(self.pid))
+        try:
+            with mock.patch.object(audit, "for_store", return_value=log), self.assertRaisesRegex(ValueError, "split drift"):
+                self.replay("final", reuse_reason="Owner requested a reproduction check.")
+            _, rows = log.query(10, 0)
+            self.assertEqual([row["status"] for row in rows], ["failed", "requested"])
+            self.assertEqual(rows[0]["detail"]["error"], "ValueError")
+            self.assertEqual(rows[0]["detail"]["attempt"], rows[1]["detail"]["attempt"])
+            self.assertEqual(json.loads(receipt.read_bytes()), drifted)
+            self.assertEqual((self.store.get(self.pid), self.store.records(self.pid)), before)
+        finally:
+            receipt.write_bytes(saved)
+
+    def test_replay_cli_forwards_only_the_reason_the_person_supplied(self):
+        from contextlib import nullcontext, redirect_stdout
+        from io import StringIO
+        from dclab_rnd.experience import __main__ as cli
+
+        with mock.patch.object(cli, "_projects", return_value=self.store), \
+                mock.patch.object(cli, "_workspace_log", side_effect=nullcontext), \
+                mock.patch.object(lineage, "replay", return_value={"replayed": False}) as replay, redirect_stdout(StringIO()):
+            for reason in ("Owner requested this reproduction check.", None):
+                argv = ["replay", self.pid, "final"] + (["--reuse-reason", reason] if reason else [])
+                self.assertEqual(cli.main(argv), 1)
+                replay.assert_called_with(self.store, self.pid, "final", reuse_reason=reason)
+
+    def test_fresh_replay_permission_is_audited_before_scoring_and_survives_the_scratch_copy(self):
+        from dclab_rnd import audit
+        from dclab_rnd.studio import engine
+
+        log = audit.FileAudit(Path(tempfile.mkdtemp()) / "audit.jsonl")
+        reason = "owner requested reproduction for review@example.org"
+        expected = "owner requested reproduction for [EMAIL]"
+        execute = engine._execute_stage
+
+        def scored(*args, **kwargs):
+            total, rows = log.query(10, 0)
+            self.assertEqual(total, 1)
+            self.assertEqual(rows[0]["status"], "requested")
+            self.assertEqual(rows[0]["detail"]["message"], expected)
+            return execute(*args, **kwargs)
+
+        with mock.patch.object(audit, "for_store", return_value=log) as source_audit, \
+                mock.patch.object(engine, "_execute_stage", side_effect=scored):
+            out = self.replay("final", reuse_reason=reason)
+        self.assertTrue(out["replayed"], out)
+        self.assertTrue(all(call.args == (self.store,) for call in source_audit.call_args_list))
+        total, rows = log.query(10, 0)
+        self.assertEqual(total, 2)
+        self.assertEqual([row["status"] for row in rows], ["completed", "requested"])
+        for row in rows:
+            self.assertEqual((row["kind"], row["actor"], row["who"], row["project_id"]), ("replay", "human", "Person", self.pid))
+            self.assertEqual(row["detail"]["original_run"], self.records["final"]["run"]["run"])
+        self.assertEqual(rows[0]["detail"]["attempt"], rows[1]["detail"]["attempt"])
+        self.assertEqual(rows[0]["detail"]["run"], out["run"])
+        self.assertNotIn("review@example.org", log.path.read_text())
 
     def test_a_replay_is_refused_when_what_it_read_has_changed(self):
         project = self.store.get(self.pid)

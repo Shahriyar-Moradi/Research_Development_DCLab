@@ -487,6 +487,32 @@ class TaskDecomposerTests(unittest.TestCase):
         shadow.assert_not_called()
         self.assertEqual(len(self.sent), 1)
 
+    def test_twin_gateway_cannot_bypass_strict_request_bounds(self):
+        from dclab_rnd.models.client import THINKING_REFUSED
+        from dclab_rnd.twin.claude import Transcript, TwinGateway
+
+        calls = []
+        answer = self.answer
+
+        class UnboundedTransport:
+            model, base_url, thinking = "unpriced-twin-model", "https://api.anthropic.com", "adaptive"
+
+            def effective_max_tokens(self, max_tokens, options=None):
+                return 20_000
+
+            def complete(self, messages, tools=None, max_tokens=None, **options):
+                calls.append(options)
+                if len(calls) == 1:
+                    raise RuntimeError("BadRequestError: " + THINKING_REFUSED)
+                return {"content": json.dumps(answer), "tool_calls": [], "finish_reason": "stop", "usage": {}}
+
+        gateway = TwinGateway(UnboundedTransport(), Transcript(self.home / "twin-calls.jsonl"))
+        graph, report = self.run_decomposer(gateway=gateway)
+        self.assertEqual(graph, self.baseline)
+        self.assertEqual(report["refusals"], ["bounded_client_unavailable"])
+        self.assertEqual(report["model_calls"], 0)
+        self.assertEqual(calls, [])
+
     def test_anthropic_requests_summarized_thinking_timeout_and_no_compatibility_retry(self):
         from types import SimpleNamespace as NS
         from dclab_rnd.models.anthropic_client import AnthropicClient

@@ -561,6 +561,21 @@ class NoClientOutsideTheGatewayTests(unittest.TestCase):
                     found.append(f"{rel}:{number}: {line.strip()[:100]}")
         self.assertEqual(found, [], "send model requests through dclab_rnd.models.Gateway")
 
+    def test_twin_openrouter_transport_uses_the_shared_gateway_factory(self):
+        from dclab_rnd.twin import claude
+
+        transport = mock.Mock(thinking=None)
+        env = {"OPENROUTER_API_KEY": "scripted-placeholder", "OPENROUTER_MODEL": "scripted-twin",
+               "DCLAB_TWIN_MODEL": "", "DCLAB_TWIN_THINKING": "adaptive", "OPENROUTER_BASE_URL": "https://openrouter.ai/api/v1"}
+        with mock.patch.dict(os.environ, env), mock.patch("dclab_rnd.models.gateway._transport", return_value=transport) as build:
+            self.assertIs(claude.transport(timeout=17), transport)
+        build.assert_called_once()
+        tier, purpose = build.call_args.args
+        self.assertEqual((tier["model"], tier["base_url"], tier["api_key"]),
+                         ("scripted-twin", "https://openrouter.ai/api/v1", "scripted-placeholder"))
+        self.assertEqual(purpose.timeout, 17)
+        self.assertEqual(transport.thinking, "adaptive")
+
 
 class AdapterTests(unittest.TestCase):
     def test_the_campaign_adapter_reports_to_the_usage_log(self):

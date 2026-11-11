@@ -251,6 +251,10 @@ def decompose(workflow, source_plan, project_metadata, *, deterministic_graph, c
         client = gateway.client("task_decomposer", project_id=project_metadata["id"])
         if client is None:
             return finish("fallback", "model_unavailable")
+        from dclab_rnd.models.gateway import Bound
+
+        if not isinstance(client, Bound):
+            return finish("fallback", "bounded_client_unavailable")
         client.run_limit_eur = budget.cap_eur
         remaining = budget.max_seconds - (time.monotonic() - started)
         if remaining <= 0:

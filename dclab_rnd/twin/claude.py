@@ -55,11 +55,12 @@ def transport(model: str | None = None, key: str | None = None, timeout: float =
     else the gateway package's native Anthropic Messages client."""
     or_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if or_key and not key:
-        from ..models.client import ChatClient
-        from ..models.settings import OPENROUTER_BASE_URL
+        from ..models.gateway import _transport
+        from ..models.settings import OPENROUTER_BASE_URL, Purpose
 
         base_url = os.environ.get("OPENROUTER_BASE_URL", "").strip() or OPENROUTER_BASE_URL
-        client = ChatClient(model=model or model_name(), base_url=base_url, api_key=or_key, timeout=timeout)
+        client = _transport({"provider": "openai", "model": model or model_name(), "base_url": base_url,
+                             "api_key": or_key}, Purpose("strong", timeout, "the twin lane's recorded AI-first requests"))
         client.thinking = thinking_setting()
         return client
     # Previous Anthropic Messages client (kept intact when ANTHROPIC_API_KEY is explicitly used):
