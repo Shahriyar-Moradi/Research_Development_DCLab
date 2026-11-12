@@ -55,7 +55,7 @@ LEAD_MIN = 2
 STRONG = 3
 PROMPT = "home_intent"
 SEGMENT_SIGNALS = ("segments", "fa_segments")  # a request about groups: Home offers the two ways to find them
-RULES_VERSION = "intent_rules_v5"  # v5 (2026-10-30): a report that names nothing it shows is asked; v4 (2026-10-29 night): rows with their identifiers asked in the chat (sealed v6's spent s6-22)
+RULES_VERSION = "intent_rules_v6"  # v6 (2026-11-12): hypothetical "would" alone does not state a prediction task
 _V3 = "intent_rules_v3"  # v3 (2026-10-29): segments (English, Persian) and the no-model kind words; v2 (H4): plain
 # asks for an analysis, stats, insights; Persian "analyse"
 
@@ -63,7 +63,9 @@ _N = r"(?:\w+(?:\s+\w+)?)"  # one or two words ("customers", "the bookings")
 SIGNALS: list[tuple[str, str, int, str]] = [
     # (track, id, weight, pattern) — written from the H1 dev requests and ordinary English, never from the sealed set
     ("prediction", "predict", 3, r"\b(?:predict\w*|forecast\w*)\b"),
-    ("prediction", "which_will", 3, rf"\b(?:which|what)\s+{_N}\s+(?:will|are going to|is going to|would)\b"),
+    # "Which deliverable would help?" chooses what to do, not an unknown outcome.
+    # Conditional predictions can still name a model, an outcome or be read by the model.
+    ("prediction", "which_will", 3, rf"\b(?:which|what)\s+{_N}\s+(?:will|are going to|is going to)\b"),
     ("prediction", "who_will", 3, r"\bwho\s+(?:will|is going to|are going to|is likely|are likely)\b"),
     ("prediction", "will_act", 2, r"\bwill\s+(?:churn|cancel|leave|buy|convert|default|upgrade|book|renew|purchase|return|spend|pay|order)\b"),
     ("prediction", "going_to", 2, r"\b(?:are|is)\s+going\s+to\s+(?:churn|cancel|leave|buy|convert|default|upgrade|book|renew|purchase)\b"),

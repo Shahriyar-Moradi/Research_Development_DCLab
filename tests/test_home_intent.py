@@ -74,6 +74,25 @@ class RuleTests(unittest.TestCase):
         self.assertEqual((reading["track"], reading["status"], reading["ask"], reading["source"]), (None, "asked", "open", "rules"))
         self.assertIsNone(reading["quote"])
 
+    def test_a_hypothetical_preference_alone_does_not_name_a_prediction(self):
+        for sentence in ("Which deliverable would help our operations staff?",
+                         "What format would suit the next board meeting?",
+                         "Which output would make this easier to use?"):
+            with self.subTest(sentence=sentence):
+                reading = intent.read(sentence)
+                self.assertEqual((reading["track"], reading["status"], reading.get("ask")), (None, "asked", "open"))
+                self.assertNotIn("which_will", reading["signals"])
+
+    def test_future_and_explicit_conditional_predictions_still_route(self):
+        for sentence in ("Which shipments will arrive late?", "Which parcels are going to arrive late?",
+                         "Predict which shipments would arrive late if the supplier changes.",
+                         "Which borrowers would default on a loan?",
+                         "Which subscribers would churn after a fee increase?"):
+            with self.subTest(sentence=sentence):
+                reading = intent.read(sentence)
+                self.assertEqual(reading["track"], "prediction")
+                self.assertNotEqual(reading["status"], "asked")
+
     def test_a_real_tie_is_asked(self):
         reading = intent.read(TIE)
         self.assertEqual(reading["status"], "asked")
@@ -85,6 +104,10 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(intent.from_answer("a dashboard please", labels), "reporting")
         self.assertIsNone(intent.from_answer("Something else", labels))  # names nothing: not a choice
         self.assertIsNone(intent.from_answer("I'm not sure", labels))
+
+    def test_a_hypothetical_preference_does_not_answer_the_track_question(self):
+        self.assertIsNone(intent.from_answer("Which deliverable would help our operations staff?", intent.LABELS))
+        self.assertEqual(intent.from_answer(intent.LABELS['prediction'], intent.LABELS), 'prediction')
 
     def test_prediction_requests_that_count_or_join_stay_predictions(self):
         for sentence in ("Predict how many units we sell per store per week", "How many bikes will be rented tomorrow?",
@@ -122,6 +145,14 @@ class RuleTests(unittest.TestCase):
 
 
 class ModelReadingTests(unittest.TestCase):
+    def test_model_can_resolve_a_hypothetical_without_a_spurious_prediction_conflict(self):
+        sentence = "Which deliverable would help our operations staff?"
+        client = Scripted('{"tracks": ["analysis"], "quote": "help our operations staff", "confidence": 0.9}')
+        reading = intent.read(sentence, client)
+        self.assertEqual((reading["track"], reading["source"], reading["status"]), ("analysis", "model", "inferred"))
+        self.assertEqual(len(client.seen), 1)
+        self.assertIsNone(reading["rule_track"])
+
     def test_the_model_reads_an_unclear_request_and_its_quote_is_checked(self):
         client = Scripted('{"tracks": ["analysis"], "quote": "my customers", "confidence": 0.7}')
         reading = intent.read("Help with my customers", client)
@@ -173,6 +204,26 @@ class AgentTests(unittest.TestCase):
         self.assertTrue(d["workflow"])
         self.assertTrue(d["questions"])
         self.assertIsNotNone(d.get("pack"))
+
+    def test_a_hypothetical_preference_waits_for_intent_without_opening_ml(self):
+        draft = self.start("Which deliverable would help our operations staff?")
+        self.assertEqual((draft['intent']['status'], draft['intent'].get('ask')), ('asked', 'open'))
+        self.assertFalse(draft.get('pack'))
+        self.assertFalse(draft.get('workflow'))
+        self.assertFalse(draft.get('project_id'))
+        self.assertFalse(draft.get('solution'))
+        self.assertTrue(any(q.get('field') == 'intent' for q in draft['questions']))
+
+    def test_an_explicit_choice_still_resolves_a_hypothetical_preference(self):
+        for track in intent.TRACKS:
+            with self.subTest(track=track):
+                draft = self.store.create("Which deliverable would help our operations staff?")
+                self.store.update(draft['id'], lambda d, t=track: d.update(intent=intent.chosen(t)))
+                HomeAgent(self.store, None).start(draft['id'])
+                saved = self.store.get(draft['id'])
+                self.assertEqual((saved['intent']['track'], saved['intent']['status'], saved['intent']['source']),
+                                 (track, 'confirmed', 'user'))
+                self.assertFalse(saved.get('project_id'))
 
     def test_another_track_gets_no_pack_workflow_or_ml_question(self):
         for track in ("analysis", "preparation", "reporting", "business", "advice"):

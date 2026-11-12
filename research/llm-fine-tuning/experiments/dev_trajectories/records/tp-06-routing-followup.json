@@ -1,0 +1,94 @@
+{
+  "package": "TP-06-routing-followup",
+  "title": "Ask before treating a hypothetical preference as prediction intent",
+  "date": "2026-11-12",
+  "request": "Continue from the failed task-planning comparison by fixing the shared routing defect and identifying the next permitted integration slice.",
+  "spec": "Targeted Home intent correction following engineering/planning/TP_06.txt; rollout boundary from TP_07.txt.",
+  "plan": [
+    "Reproduce the generic English false prediction signal on independently written questions.",
+    "Remove hypothetical would as sufficient evidence and version the changed rule.",
+    "Check prediction, model-first, confirmed-choice and Home integration behavior with focused offline tests.",
+    "Review the correction, preserve frozen evaluations and record the next developer-preview boundary."
+  ],
+  "decisions": [
+    {
+      "decision": "Remove only the bare hypothetical would alternative from the predictive signal.",
+      "why": "A question about choosing a deliverable does not specify an unknown outcome; the existing clarification path already handles missing intent."
+    },
+    {
+      "decision": "Retain explicit model requests, future signals, outcome-word fallback and validated model readings.",
+      "why": "The correction should remove an unsupported inference without introducing another router or requiring a model for every request."
+    },
+    {
+      "decision": "Keep all confirmed user choices authoritative.",
+      "why": "A wording correction must not reinterpret an explicit choice as a request for another track."
+    },
+    {
+      "decision": "Leave all frozen benchmark cases, thresholds and results unchanged.",
+      "why": "A targeted regression repair is not an unseen model or release evaluation."
+    }
+  ],
+  "change": "Version the Home rule as intent_rules_v6 and remove would alone as sufficient evidence from which_will. Add six focused test methods covering clarification, real predictions, model reading, Home safety, explicit choices and unresolved track answers. Document the next read-only developer preview without enabling execution.",
+  "findings": [
+    {
+      "id": "HOME-HYPOTHETICAL-PREDICTION",
+      "source": "test",
+      "defect": "The fallback rules treated a hypothetical preference about the desired deliverable as a stated prediction task.",
+      "scenario": "A person asks which deliverable would help, and Home selects prediction instead of asking what help they need. A valid analysis model reading also gets a spurious prediction conflict.",
+      "cause": "The which_will regular expression accepted would after any one- or two-word subject without requiring prediction evidence.",
+      "fix": "Remove would as sufficient evidence, retain other predictive signals and let the existing open-question or validated-model path decide.",
+      "test": "Three new regression methods reproduced the old behavior. After the fix, all 109 relevant application tests pass, including six new methods.",
+      "severity": "behaviour"
+    },
+    {
+      "id": "HOME-PREVIEW-BOUNDARY",
+      "source": "self",
+      "defect": "A rejected promotion recommendation was described as blocking all work on the next UI package.",
+      "scenario": "The next package explicitly permits a developer-only read-only preview while execution gates remain failed.",
+      "cause": "The earlier handoff did not distinguish preview implementation from enabling execution.",
+      "fix": "Record developer-preview visibility as the next permitted slice while preserving the rejected execution recommendation and model integration gap.",
+      "test": "Inspected the TP-07 backend and rollout rules; no execution switch or permission change is included.",
+      "severity": "gap"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Relevant routing checks",
+      "gate": "All 109 distinct relevant application tests must pass, with no skips or live model calls.",
+      "result": "109 tests passed without skips: 50 Home intent checks and 59 related language, conversation, routing and selected chip/workflow integration checks. Six test methods are new.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "These are offline regression cases, not a new frozen benchmark or a general model-quality measurement."
+      ]
+    },
+    {
+      "name": "Independent review",
+      "gate": "An independent reviewer must identify no remaining correctness finding after checking the diff and explicit-choice/model precedence.",
+      "result": "Independent review passed with no correctness finding.",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    },
+    {
+      "name": "Development record checks",
+      "gate": "The generated development corpus must have zero refused examples and pass all four validation/freshness checks.",
+      "result": "The generated corpus has zero refused examples and all four validation/freshness checks pass.",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    }
+  ],
+  "outcome": "The targeted routing correction is complete and reviewed. The historical task-planning recommendation remains failed; developer-only read-only progress visibility is the next permitted package. Execution rollout remains blocked.",
+  "lessons": [
+    "A hypothetical auxiliary verb alone does not establish a prediction task.",
+    "Exercise both routing and the caller that interprets a free-text answer as a user choice.",
+    "Preserve an explicit choice before invoking inference.",
+    "Do not treat a regression fix as independent benchmark evidence.",
+    "Separate read-only developer visibility from execution rollout."
+  ],
+  "risks": [
+    "Conditional questions with no other recognized evidence may need clarification without a model.",
+    "Existing saved readings are not migrated automatically.",
+    "Model-assisted proposed-graph admission and independent evaluation remain unresolved.",
+    "The broader six-choice audit is not completed by this narrow correction."
+  ]
+}

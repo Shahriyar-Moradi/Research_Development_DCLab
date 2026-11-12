@@ -167,7 +167,15 @@ below the fixed 95% candidate correctness requirement. Both complete fifteen sci
 observations with no measured critical safety violation. There are only sixteen authored cases; repeated seeds
 do not expand the independent sample. C cannot yet execute its proposed graph and remains unmeasured. The first
 failed measurement is retained unchanged beside the corrected harness's second result; gate and cases are unchanged.
-TP-07 and default rollout remain blocked. This package completes evaluation tooling, not evidence of product superiority.
+TP-07 execution rollout remains blocked. This package completes evaluation tooling, not evidence of product superiority.
+
+### Targeted routing follow-up
+
+[Hypothetical preference routing](../../docs/guides/HOME_INTENT_HYPOTHETICAL_FOLLOWUP.md) records a separate
+`intent_rules_v6` correction: bare “which/what … would” no longer states a prediction by itself. All 109 relevant
+application tests and independent review passed. The frozen TP-06 results remain unchanged; this is not a new
+promotion measurement or completion of the broader R-01 audit. TP-07 permits a read-only developer preview despite
+the failed promotion gate; execution rollout remains blocked by the C integration and evaluation gaps.
 
 ## Implementation rules
 
