@@ -1,0 +1,232 @@
+{
+  "package": "TP-06",
+  "title": "Measure task planning against the original workflow and refuse unsupported promotion",
+  "date": "2026-11-12",
+  "request": "Continue the authorized task-planning development with comparative evaluation and release gates; stop before product rollout.",
+  "spec": "engineering/planning/TP_06.txt",
+  "plan": [
+    "Inventory existing benchmark owners and task execution boundaries.",
+    "Freeze DEV cases, numerical gates, code, prompts, capabilities and protocol before effects.",
+    "Measure original and deterministic execution on matched invented inputs; keep unavailable model execution unjudged.",
+    "Review measurement and isolation, preserve failures, run relevant regressions and record the release recommendation."
+  ],
+  "decisions": [
+    {
+      "decision": "Reuse existing paired statistics, benchmark layer readers, guarded registry and engine.",
+      "why": "The new representation must not create a second execution or scientific authority."
+    },
+    {
+      "decision": "Keep the unavailable model-assisted arm unjudged.",
+      "why": "A valid planning proposal cannot currently be admitted by guarded dispatch; scripted capture proves no model quality or completion gain."
+    },
+    {
+      "decision": "Cluster seed repetitions by authored case and keep minimum independent sample floors.",
+      "why": "Repeated draws of five completion scenarios cannot justify general rollout."
+    },
+    {
+      "decision": "Preserve both failed runs and their separate freezes.",
+      "why": "A harness correction can justify a new measurement, never revising thresholds, erasing failure or rewriting outcomes."
+    },
+    {
+      "decision": "Exclude the campaign and frozen evaluation words from training.",
+      "why": "Evaluation records and model answers must not teach future models their test cases."
+    }
+  ],
+  "change": "Add frozen DEV definitions, strict pairing and safety gates, real original-team and deterministic-dispatch trials, a scripted proposal/refusal diagnostic, append-only reports and training-exclusion wiring. Preserve original workflow, public contracts and product defaults.",
+  "findings": [
+    {
+      "id": "TP06-IDENTITY",
+      "source": "reviewer",
+      "defect": "Measurement could overstate independent gain without enforcing frozen case identities and matching seeds.",
+      "scenario": "Renaming seed rows as independent cases or comparing unmatched successful seeds could inflate the interval or sample floor.",
+      "cause": "The first aggregation grouped observations before enforcing the frozen identity and matching contract.",
+      "fix": "Validate each declared case and seed, reject duplicates or source mismatches, pair rows first and bootstrap authored-case means.",
+      "test": "FrozenGateTests cover altered identities, duplicate rows, matched seeds, candidate regressions and missing measurements.",
+      "severity": "gap"
+    },
+    {
+      "id": "TP06-PROBE",
+      "source": "test",
+      "defect": "A fallback could masquerade as a valid proposal and an effectful probe could hide behind missing model execution.",
+      "scenario": "A diagnostic could claim a proposed hierarchy after falling back, or retain an unexpected holdout effect while the model arm stayed unjudged.",
+      "cause": "Proposal and zero-effect checks were not initially part of the deterministic measurement protocol.",
+      "fix": "Require actual proposed statuses, blocked dispatch, zero attempts/owner records/holdout uses/provider cost and captured scripted summaries.",
+      "test": "FrozenGateTests reject effectful or uncaptured probes; MeasuredRunnerTests check real proposal/refusal and capture.",
+      "severity": "leakage"
+    },
+    {
+      "id": "TP06-LEDGER",
+      "source": "reviewer",
+      "defect": "The proposal probe wrote an evaluation decision into a process-installed external ledger.",
+      "scenario": "An external FileLedger was installed before the probe; its approval appended a workflow decision outside the temporary evaluation workspace.",
+      "cause": "The probe isolated experience but did not isolate the decision ledger; active workspace services also took precedence over installed sinks.",
+      "fix": "Clear and restore the installed ledger and refuse embedded evaluation while workspace services are active.",
+      "test": "Both new isolation regressions failed before the fix and passed afterward.",
+      "severity": "privacy"
+    },
+    {
+      "id": "TP06-DASHBOARD",
+      "source": "reviewer",
+      "defect": "Benchmark summary counts requested independent-trial Wilson bounds for correlated seed repetitions.",
+      "scenario": "A correctness pair with forty-eight observations caused the dashboard reader to imply forty-eight independent authored cases.",
+      "cause": "The existing generic count reader interprets integer pairs as independent trials.",
+      "fix": "Expose numeric observation and authored-case counts, keeping clustered uncertainty in paired comparison records.",
+      "test": "The dashboard-row regression failed before the fix and passed afterward.",
+      "severity": "gap"
+    },
+    {
+      "id": "TP06-PROVIDER",
+      "source": "measurement",
+      "defect": "Owner OpenRouter settings changed scripted capture labels outside unittest.",
+      "scenario": "The first recorded comparison inherited owner provider settings and its summaries were labeled as raw provider reasoning rather than scripted API summaries.",
+      "cause": "Offline isolation omitted provider-specific keys, allowing owner_value to fall back to the owner environment file.",
+      "fix": "Explicitly blank OpenRouter and legacy model settings, preserve the failed result, and record the corrected harness under a new freeze with identical cases and gate.",
+      "test": "The inherited-provider regression failed before the fix and passed afterward; the second recorded probe passes every capture/refusal check.",
+      "severity": "gap"
+    },
+    {
+      "id": "TP06-RESOURCES",
+      "source": "measurement",
+      "defect": "The first comparison retained SQLite runtime errors during low available disk space.",
+      "scenario": "Three observations failed while only 135 MiB was available; the affected case and seed subsequently passed separately.",
+      "cause": "A resource cause is plausible but the stored exception type alone cannot prove it.",
+      "fix": "Preserve the failed result, remove only the identified artifact created by this session completed keeper test, and record a new complete comparison without suppressing errors.",
+      "test": "The second comparison has zero runtime errors; first-run errors remain in the original result.",
+      "severity": "flaky"
+    },
+    {
+      "id": "TP06-PLANNER-STAGE",
+      "source": "test",
+      "defect": "The task execution planner had no explicit training stage mapping.",
+      "scenario": "The purpose completeness test reported the task planner as missing after the earlier package introduced it.",
+      "cause": "The new purpose was not added alongside decomposition in the existing exporter stage map.",
+      "fix": "Map the planner to plan and verify that both task purposes preserve their recorded summaries.",
+      "test": "The failed completeness check and the affected summary-export test both pass after the fix.",
+      "severity": "gap"
+    },
+    {
+      "id": "TP06-FORBIDDEN",
+      "source": "test",
+      "defect": "The decomposition metadata allowlist could not read owner forbidden-column records.",
+      "scenario": "A solution used dictionaries naming forbidden columns instead of plain names, causing metadata extraction to fail.",
+      "cause": "The metadata builder attempted to put dictionaries directly into a set.",
+      "fix": "Extract only column names from owner records while keeping freeform reasons out of requests.",
+      "test": "The owner-record compatibility regression passes with the existing decomposition/privacy tests.",
+      "severity": "behaviour"
+    },
+    {
+      "id": "TP06-ROUTING",
+      "source": "measurement",
+      "defect": "The shared intent rules route a frozen ambiguous request rather than asking for clarification.",
+      "scenario": "Both original and deterministic arms answer the authored ambiguous-intent scenario incorrectly on all three seeds.",
+      "cause": "Existing rule routing treats the request as a stated route despite the predeclared clarification requirement.",
+      "fix": "Record the failure and reject promotion; leave a separately scoped routing correction for future development without changing these outcomes.",
+      "test": "The final recorded comparison preserves all three failures per arm; the candidate remains below the frozen correctness threshold.",
+      "severity": "behaviour",
+      "verdict": "open",
+      "open": "The existing router is unchanged in this evaluation-only package."
+    },
+    {
+      "id": "TP06-C-INTEGRATION",
+      "source": "self",
+      "defect": "A proposed graph cannot currently be admitted by the guarded task dispatcher.",
+      "scenario": "A valid proposed graph and task plan are refused before any scientific effect.",
+      "cause": "Dispatch reconstructs the deterministic graph and rejects the proposed immutable graph identity.",
+      "fix": "Keep model execution unjudged and block promotion until a separately scoped integration is measured with explicit model authorization.",
+      "test": "The real scripted probe establishes valid proposals, blocked admission, zero effects and capture of both summaries.",
+      "severity": "gap",
+      "verdict": "open"
+    },
+    {
+      "id": "TP06-CORPUS-NUMBER",
+      "source": "test",
+      "defect": "The development trajectory interpretation included sample details absent from its measurement input.",
+      "scenario": "The corpus judge example discussed sixteen authored cases in its limits while the supplied result contained only observation counts.",
+      "cause": "The trajectory wrote the authored sample count only in the interpretation, violating the existing no-new-number corpus gate.",
+      "fix": "Include the authored-case count and measured percentage explicitly in the result before asking the corpus judge to compare it with the fixed threshold.",
+      "test": "The development corpus build and four validation/freshness checks pass without weakening the number gate.",
+      "severity": "gap"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Relevant application checks",
+      "gate": "All 150 distinct relevant checks must pass after fixes; no broad gate is authorized.",
+      "result": "150 distinct application checks pass after targeted corrections with zero skips.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "Previously passing unrelated groups were not repeated.",
+        "No new PostgreSQL or full repository evaluation is claimed."
+      ]
+    },
+    {
+      "name": "Pre-run and follow-up independent reviews",
+      "gate": "Resolve confirmed measurement and isolation findings before accepting the implementation.",
+      "result": "Independent review passed after isolation, uncertainty and provider fixes; final recorded-result acceptance is checked separately.",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    },
+    {
+      "name": "First preserved offline comparison",
+      "gate": "A runtime/protocol error fails even when model execution evidence is missing.",
+      "result": "The first result fails with SQLite runtime errors and inherited provider summary labels.",
+      "verdict": "fail",
+      "cost_eur": 0.0,
+      "limits": [
+        "Preserved unchanged; no favorable inference is drawn."
+      ]
+    },
+    {
+      "name": "Complete original versus deterministic comparison",
+      "gate": "Zero critical violations, at least 95 percent candidate correctness, positive completion or recovery gain and sufficient independent cases are required.",
+      "result": "Original correctness is 42 of 48, deterministic correctness 45 of 48 (93.75 percent); both verify 15 completions and 6 recovery observations. Zero critical safety violations and zero runtime errors. Recommendation FAIL. The 48 observations repeat 16 authored DEV cases.",
+      "verdict": "fail",
+      "cost_eur": 0.0,
+      "against_gate": "Candidate correctness 93.75 percent is below 95 percent; completion and recovery differences are zero. Model execution and sufficient independent cases remain missing.",
+      "limits": [
+        "Sixteen authored DEV cases with repeated seeds, not forty-eight independent problems.",
+        "No real model quality or production evidence."
+      ]
+    },
+    {
+      "name": "Scripted proposal and admission diagnostic",
+      "gate": "Two valid proposals and captured summaries, blocked dispatch and zero owner effects are required.",
+      "result": "The second recorded probe passes all proposal, capture and zero-effect protocol checks.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "The model-assisted execution arm remains unavailable and unjudged."
+      ]
+    },
+    {
+      "name": "Final independent result review",
+      "gate": "Recompute recorded verdict/report, verify frozen cases and thresholds, and identify no correctness blocker.",
+      "result": "Final independent review passed with no correctness finding; the saved gate and generated report exactly match recomputation.",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    },
+    {
+      "name": "Development trajectory corpus checks",
+      "gate": "The generated corpus must have zero refused examples and all four validation/freshness tests must pass.",
+      "result": "The generated corpus has zero refused examples and all four validation/freshness tests pass.",
+      "verdict": "pass",
+      "cost_eur": 0.0
+    }
+  ],
+  "outcome": "Evaluation tooling, final independent review, 150 relevant application checks and four development-corpus checks are complete. The recorded release recommendation is FAIL and no product default changes. The next package is blocked.",
+  "lessons": [
+    "Keep failures immutable when repairing a measurement harness.",
+    "Pair matching seeds before clustering authored cases.",
+    "An unavailable arm is missing evidence, never success.",
+    "Isolate every external recording sink in disposable evaluations.",
+    "Blank provider-specific owner settings as well as common API settings.",
+    "Reject promotion when a frozen absolute threshold fails, even without a baseline regression."
+  ],
+  "risks": [
+    "Model-assisted execution cannot currently be measured end to end.",
+    "Very small authored samples cannot establish general benefit.",
+    "A shared routing error remains unresolved.",
+    "Local instrumentation and low disk limit timing interpretation."
+  ]
+}

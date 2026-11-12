@@ -20,6 +20,7 @@ from . import Claim, Keeper, Source
 CAMPAIGNS = ROOT / "evidence" / "campaigns"
 PARTS = ("results", "labels")
 SKIP = {("home_v1", "results")}  # kept by the routing keeper as home_eval/
+EVALUATION_ONLY = frozenset({'task_planning_v1'})  # frozen DEV cases/results are never training consent
 SHORT = 40  # a sealed run keeps a string only as long as a label
 
 
@@ -76,11 +77,13 @@ def sources(env: Any) -> Iterator[Source]:
             doc = json.loads(path.read_text(encoding="utf-8")) if path.suffix == ".json" else None
         except (OSError, ValueError):
             doc = None
+        evaluation_only = rel.split('/', 1)[0] in EVALUATION_ONLY or isinstance(doc, dict) and doc.get('evaluation_only') is True
+        consent = 'operate' if evaluation_only else 'train'
         if is_sealed(path, doc):
-            yield Source("rnd", f"campaigns/{rel}", path, consent="train", transform=_shape,
+            yield Source("rnd", f"campaigns/{rel}", path, consent=consent, transform=_shape,
                          note="a sealed or test run: its numbers and labels only")
         else:
-            yield Source("rnd", f"campaigns/{rel}", path, consent="train", log=path.suffix == ".jsonl",
+            yield Source("rnd", f"campaigns/{rel}", path, consent=consent, log=path.suffix == ".jsonl",
                          note="a campaign's run, whole")
 
 

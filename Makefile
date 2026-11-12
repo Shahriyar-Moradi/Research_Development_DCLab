@@ -474,3 +474,7 @@ research-index:  ## regenerate research/<track>/INDEX.md and the track graph
 clean:  ## remove caches and empty folders (dry run; `make clean APPLY=1` to remove)
 	$(PYTHON) scripts/clean_workspace.py $(if $(APPLY),--apply,)
 
+
+.PHONY: task-planning-eval
+task-planning-eval:  ## TP-06: frozen invented DEV A/B comparisons; C proposal probe only, no live or sealed evaluation
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval.task_planning --split dev

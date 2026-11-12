@@ -71,6 +71,21 @@ class TaskDecomposerTests(unittest.TestCase):
         args.update(changes)
         return decompose(self.workflow, self.plan, self.project, **args)
 
+    def test_owner_forbidden_column_records_are_read_without_row_values(self):
+        from dclab_rnd.core_adapter import plan_from_project
+        from dclab_rnd.studio.graph import solution_hash
+        self.project['solution']['forbidden'] = [{'column': 'tenure', 'reason': 'Unavailable at the prediction moment.'}]
+        self.project['signoff']['solution_hash'] = solution_hash(self.project['solution'])
+        self.plan = plan_from_project(self.project)
+        self.baseline, self.mapping = adapt_workflow(self.workflow, self.plan, self.project, capabilities=self.caps)
+        self.answer = boundaries(self.baseline)
+        _, report = self.run_decomposer()
+        self.assertEqual(report['status'], 'proposed', report)
+        metadata = json.loads(self.sent[0]['messages'][-1]['content'])['data_card_metadata']
+        role = next(c for c in metadata['columns'] if c['name'] == 'tenure')
+        self.assertEqual(role['role'], 'forbidden')
+        self.assertNotIn('reason', role)
+
     def test_model_groups_atomic_tasks_and_preserves_all_authority(self):
         graph, report = self.run_decomposer()
         self.assertEqual(report["status"], "proposed")

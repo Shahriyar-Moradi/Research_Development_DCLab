@@ -1432,3 +1432,13 @@ these helpers must map its own current owner records, permission identity, handl
 holdout receipt, then run its own affected conformance/safety cases. Existing event/lineage/ledger adapters still
 apply unchanged. Internal R&D verification dictionaries are not a new portable persistence contract.
 See `docs/guides/TASK_RECOVERY_ACCEPTANCE.md`; final independent review passed after the focused review follow-up.
+
+## Task planning evaluation (TP-06)
+
+The R&D-only `agent_eval.task_planning` campaign reuses `dclab_core.bench.paired` and existing `BenchRow` readers.
+It adds no portable contract, schema version, core dependency or main-product adapter field. Its host fixtures,
+fault injection, freeze and internal measurements are evaluation tooling, not an execution interface for the main
+product. The main product would need its own source-bound trials and authorization checks before adopting task
+execution. In particular, a scripted planning proposal is not evidence that the current dispatcher can execute its
+hierarchy, and an unmeasured C arm cannot justify rollout. See [the frozen protocol](TASK_PLANNING_EVALUATION_PROTOCOL.md)
+for the numerical gate and the distinction between an offline diagnostic and promotion.

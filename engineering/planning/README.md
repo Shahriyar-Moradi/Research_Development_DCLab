@@ -57,7 +57,7 @@ engineering/planning/
 | TP-03 | Task-level execution planning | Complete — proposal only; 28 planner tests, 125 relevant tests, 24/24 scripted DEV and independent review passed (2026-11-11) |
 | TP-04 | Guarded execution and task progression | Complete — explicit opt-in; 74 relevant checks, file/PostgreSQL real-tool and crash/resume tests, independent review passed (2026-11-12) |
 | TP-05 | Verification, recovery, and replanning | Complete — 125 focused checks, isolated wheel and final independent review passed (2026-11-12) |
-| TP-06 | Evaluation and release gates | Not started |
+| TP-06 | Evaluation and release gates | Complete — 150 relevant application checks and final independent review passed; frozen offline comparison FAIL, not promoted (45/48 correctness below 95%, C unmeasured); 2026-11-12 |
 | TP-07 | Product integration and rollout | Not started |
 
 Update this table only when implementation and required validation are complete.
@@ -69,7 +69,7 @@ Update this table only when implementation and required validation are complete.
 - [Acceptance, actual verification and next-package handoff](../../docs/guides/TASK_PLANNING_ACCEPTANCE.md)
 - [Expanded source audit](TP_01A_EVIDENCE.json): all mandatory family/step pairs and exact registry schemas at the reviewed commit.
 
-The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 through TP-04 are complete under the owner-directed focused validation scope. TP-05 is complete after its review follow-up. TP-06 and TP-07 have not started.
+The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 through TP-04 are complete under the owner-directed focused validation scope. TP-05 is complete after its review follow-up. TP-06 evaluation tooling is complete with a rejected promotion recommendation; TP-07 has not started and rollout remains blocked.
 
 ## TP-01B contracts and verification
 
@@ -152,7 +152,22 @@ plans, explicit source-bound revisions and preserved verification history. All 1
 checks passed, including file/PostgreSQL recovery, human choices, old approval rejection and one holdout use.
 The focused installed core wheel passed; schemas are unchanged. Four development-corpus checks run before commit.
 The resumed review found three additional correctness issues. Their failing-before regressions, fixes and all 15
-focused follow-up checks passed. Final independent review passed with no remaining correctness finding. TP-06 has not begun.
+focused follow-up checks passed. Final independent review passed with no remaining correctness finding. TP-06 acceptance follows below.
+
+## TP-06 evaluation and release gates
+
+[Evaluation acceptance](../../docs/guides/TASK_PLANNING_EVALUATION_ACCEPTANCE.md) records the frozen protocol,
+new `task_planning_v1` system-tasks track, real original/deterministic trials, model-proposal diagnostic, training
+exclusion, measurement review fixes and actual results. All 150 distinct relevant application checks passed after
+targeted fixes, with no skips; final independent result review and all four development-corpus validation/freshness
+checks passed. No broad, live or sealed evaluation was run.
+
+The complete recorded comparison is **FAIL, not promoted**: A is correct on 42/48 observations and B on 45/48,
+below the fixed 95% candidate correctness requirement. Both complete fifteen scientific runs and six recovery
+observations with no measured critical safety violation. There are only sixteen authored cases; repeated seeds
+do not expand the independent sample. C cannot yet execute its proposed graph and remains unmeasured. The first
+failed measurement is retained unchanged beside the corrected harness's second result; gate and cases are unchanged.
+TP-07 and default rollout remain blocked. This package completes evaluation tooling, not evidence of product superiority.
 
 ## Implementation rules
 

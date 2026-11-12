@@ -1,0 +1,12 @@
+{
+  "campaign_id": "task_planning_v1",
+  "package": "TP-06",
+  "evaluation_only": true,
+  "layer": "system_tasks",
+  "track": "dev_offline",
+  "objective": "Measure original workflow A and deterministic task runtime B on frozen invented DEV scenarios; keep model-assisted C explicitly incomplete until its proposed graph is admitted by the runtime and measured with approved model calls.",
+  "command": "DCLAB_NO_LIVE_MODELS=1 python -m dclab_rnd.agent_eval.task_planning --split dev",
+  "gate": "tp06.gate.v1",
+  "live_cost_cap_eur": 0.0,
+  "training_policy": "Preserve for operation/evaluation only. Campaign keeper consent is operate; frozen case identifiers and texts are excluded by the existing LLM contamination guard."
+}

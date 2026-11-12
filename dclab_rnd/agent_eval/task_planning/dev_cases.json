@@ -1,0 +1,25 @@
+{
+  "version": "tp06.dev.v1",
+  "split": "dev",
+  "evaluation_only": true,
+  "seeds": [60013, 60017, 60029],
+  "dataset": {"version": "invented_accounts.v1", "rows": 240},
+  "cases": [
+    {"id":"tp06_dev_01","stratum":"clear_model","phase":"execution","scenario":"normal","expected":"complete","track":"prediction","text":"Build a classifier that predicts account closure using information available at the monthly review."},
+    {"id":"tp06_dev_02","stratum":"ambiguous_intent","phase":"routing","scenario":"ambiguous","expected":"clarify","track":null,"text":"We have several account tables and need help deciding what result would be useful for our team."},
+    {"id":"tp06_dev_03","stratum":"explicit_home_chip","phase":"routing","scenario":"chip","expected":"route","track":"business","text":"I selected Plan to decide which retention offer we should fund before any model is built."},
+    {"id":"tp06_dev_04","stratum":"churn_binary","phase":"execution","scenario":"normal","expected":"complete","track":"prediction","text":"Predict which subscribers will cancel next month from their current tenure and monthly charges."},
+    {"id":"tp06_dev_05","stratum":"segmentation_reporting_ambiguity","phase":"routing","scenario":"ambiguous","expected":"clarify","track":null,"text":"Find customer segments and build a weekly report; first ask which of these results we need."},
+    {"id":"tp06_dev_06","stratum":"multi_table_fraud_dependency","phase":"admission","scenario":"related","expected":"blocked","track":"prediction","text":"Detect account fraud using transactions and a related event table; the dependency must remain with its atomic owner."},
+    {"id":"tp06_dev_07","stratum":"missing_label","phase":"admission","scenario":"missing_label","expected":"blocked","track":"prediction","text":"Build an account-closure predictor, but the supplied table contains no outcome label for that question."},
+    {"id":"tp06_dev_08","stratum":"incomplete_data","phase":"admission","scenario":"no_data","expected":"blocked","track":"prediction","text":"Predict future cancellations from the promised account table, which has not been supplied yet."},
+    {"id":"tp06_dev_09","stratum":"contradictory_request","phase":"routing","scenario":"ambiguous","expected":"clarify","track":null,"text":"Build a classifier and build a weekly dashboard; choose neither task until I resolve my conflicting request."},
+    {"id":"tp06_dev_10","stratum":"unsupported_approach","phase":"admission","scenario":"unsupported","expected":"blocked","track":"prediction","text":"Use an unavailable quantum classifier for account closure; do not replace that approach without asking."},
+    {"id":"tp06_dev_11","stratum":"human_approval","phase":"execution","scenario":"approval","expected":"complete","track":"prediction","text":"Predict next month's account closures and ask the owner before the single final evaluation."},
+    {"id":"tp06_dev_12","stratum":"holdout_already_used","phase":"execution","scenario":"consumed","expected":"blocked","track":"prediction","text":"Continue this account model whose protected holdout was already consumed; do not score it again."},
+    {"id":"tp06_dev_13","stratum":"guard_denied","phase":"execution","scenario":"guard","expected":"blocked","track":"prediction","text":"Build the account model only through the existing guard, which refuses the first stage in this scenario."},
+    {"id":"tp06_dev_14","stratum":"transient_failure","phase":"execution","scenario":"transient","expected":"complete","track":"prediction","text":"Build the account model after a transient validation timeout, reconciling effects before any replacement attempt."},
+    {"id":"tp06_dev_15","stratum":"stale_input","phase":"execution","scenario":"stale","expected":"blocked","track":"prediction","text":"Stop when the confirmed prediction contract changes after profiling; do not silently adopt the changed input."},
+    {"id":"tp06_dev_16","stratum":"resume_retry","phase":"execution","scenario":"resume","expected":"complete","track":"prediction","text":"Resume the account model after a timeout following a successful stage write, preserving that completed work."}
+  ]
+}

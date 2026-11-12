@@ -167,7 +167,8 @@ def _compile(proposal, baseline, workflow, capabilities, external, budget, refer
 def _data_metadata(project):
     """A data-card-shaped allowlist built from column metadata, never profiles, previews, labels or values."""
     solution = project["solution"]
-    forbidden, identifiers = set(solution.get("forbidden", [])), set(solution.get("identifiers", []))
+    forbidden = {item.get("column") if isinstance(item, dict) else item for item in solution.get("forbidden", [])}
+    identifiers = set(solution.get("identifiers", []))
     return {"family": "classification", "labels": solution.get("labels"),
             "columns": [{"name": name, "role": "outcome" if name == solution["target"] else
                          "identifier" if name in identifiers else "forbidden" if name in forbidden else "candidate"}

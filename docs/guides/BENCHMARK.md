@@ -164,6 +164,20 @@ stages run by the engine under the workflow graph, and every decision checked. N
 - `system_gate_v1`, fixed in code before any run: a task passes when every decision of its kind holds; the suite passes when the
   share of tasks passed has a 95% Wilson lower bound of 0.8 or more and no kind fails on every seed.
 
+### Task planning comparison (TP-06)
+
+`make task-planning-eval` adds the `task_planning_v1` track to the same system-tasks layer. It compares the original
+team (A) with deterministic task dispatch (B) on sixteen authored, invented DEV cases and three fixed seeds. The
+model-assisted arm (C) remains unjudged because its proposed graph is not admitted by the current runtime. Its
+scripted proposal probe checks refusal, zero effects and API-summary capture; it does not measure model quality.
+
+The [pre-run protocol](TASK_PLANNING_EVALUATION_PROTOCOL.md) fixes numerical gate rules and their rationale.
+The runner writes a freeze before effects, hashes code/prompts/capabilities/dependencies and the protocol, pairs
+matching case-seed rows, then bootstraps authored-case means. Repeated observations are not independent dashboard
+trials. Safety failures and baseline regressions cannot be hidden by missing C evidence. Results and generated
+comparison reports are append-only under `evidence/campaigns/task_planning_v1/`; the campaign is excluded from
+training. `INSUFFICIENT-EVIDENCE` remains unscored/amber, and no result changes a product default.
+
 ## 10. External benchmarks
 
 `python -m dclab_rnd.bench external check|plan`. A real MLE-bench run needs the MLE-bench grader, the competitions' data (Kaggle,

@@ -32,7 +32,7 @@ STAGES = {"home_agent": "understand_problem", "conversation_reader": "understand
           "workspace_chat": "understand_data", "metric_question": "understand_data", "feature_engineer": "design_solution",
           "solution_planner": "design_solution", "decomposer": "design_solution", "map_reviewer": "design_solution", "data_need": "design_solution",
           "solution_router": "design_solution", "solution_challenger": "design_solution", "intern": "plan", "ai_first": "plan",
-          "task_decomposer": "plan",
+          "task_decomposer": "plan", "task_planner": "plan",
           "stage_notes": "report", "reporter": "report", "critic": "report", "evidence_answer": "report", "leakage_review": "report",
           "notebook_review": "code", "solver_answer": "code", "debate_judge": "report",
           # the owner (2026-10-28): every agent's data has a home in a set; none falls silently into "plan"
@@ -75,6 +75,17 @@ def sealed_texts(root: Optional[Path] = None) -> set[str]:
     return out
 
 
+def frozen_dev_texts(root: Optional[Path] = None) -> set[str]:
+    """TP-06 DEV is evaluation-only too. Parse no sealed content and expose no fixture text to a model."""
+    path = (root or ROOT) / 'dclab_rnd/agent_eval/task_planning/dev_cases.json'
+    if not path.exists():
+        return set()
+    doc = json.loads(path.read_text())  # malformed protected definitions fail closed during a set build
+    if doc.get('evaluation_only') is not True:
+        raise ValueError('task_planning_cases_must_remain_evaluation_only')
+    return {case[key].strip().lower() for case in doc['cases'] for key in ('id', 'text')}
+
+
 def benchmark_names(path: Optional[Path] = None) -> set[str]:
     path = path or BENCHMARKS  # read at call time, so a test or a caller can point elsewhere
     if not path.exists():
@@ -89,14 +100,17 @@ class Contamination:
 
     MEMO = 200_000  # texts remembered (a system prompt or a tool list repeats in thousands of examples)
 
-    def __init__(self, sealed: set[str], benchmarks: set[str]):
+    def __init__(self, sealed: set[str], benchmarks: set[str], evaluation: Optional[set[str]] = None):
         # plain substring checks, not one regex of every sealed sentence: on 1,897 sentences the regex took 132 ms per 10 KB
         # of text and the model-4 build hours; substrings take 9 ms, and a repeated text is checked once (2026-10-28)
+        self.evaluation = sorted(frozen_dev_texts() if evaluation is None else evaluation, key=len, reverse=True)
         self.sealed = sorted({x.lower() for x in sealed if x}, key=len, reverse=True)
         self.benchmarks = re.compile("|".join(re.escape(x) for x in sorted(benchmarks, key=len, reverse=True))) if benchmarks else None
         self.seen: dict[tuple[int, int], Optional[str]] = {}
 
     def _one(self, low: str) -> Optional[str]:
+        if any(x in low for x in self.evaluation):
+            return 'evaluation-only task words'
         if any(x in low for x in self.sealed):
             return "a sealed person's words"
         hit = self.benchmarks.search(low) if self.benchmarks is not None else None

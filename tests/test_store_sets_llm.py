@@ -198,20 +198,23 @@ class LlmSetsTest(unittest.TestCase):
         from dclab_rnd.store.sets import llm
 
         self.assertEqual(llm.STAGES["task_decomposer"], "plan")
+        self.assertEqual(llm.STAGES["task_planner"], "plan")
         summary = "Preserve the approved atomic tasks and group preparation before final evaluation."
         exchange = {"at": AT, "model_request": "task-proposal-1", "purpose": "task_decomposer", "whole": True,
                     "outcome": "ok", "model": "claude-sonnet-5-5", "thinking_label": "API thinking summary",
                     "messages": [{"role": "user", "content": "Organize the existing validated tasks."}],
                     "reply": "{\"version\": \"tp02.v1\"}", "thinking": [{"text": summary}]}
+        planner = {**exchange, "purpose": "task_planner", "model_request": "task-plan-1"}
         Store(self.layout).keep_log("model_requests", "dev", "model_exchanges/2026/11/task.jsonl",
-                                   (json.dumps(exchange) + "\n").encode(), consent="train")
+                                   (json.dumps(exchange) + "\n" + json.dumps(planner) + "\n").encode(), consent="train")
         shapers.shape(self.layout)
         curators.curate(self.layout, run="task-proposal")
         with mock.patch.object(llm, "BENCHMARKS", self.benchmarks):
             llm.build(self.layout)
-        example = next(e for e in self.examples("m4_workflow_llm", "plan", "v2") if e["task"] == "task_decomposer")
-        self.assertEqual(example["messages"][-1]["reasoning"], summary)
-        self.assertEqual(example["messages"][-1]["reasoning_source"], "recorded")
+        for purpose in ("task_decomposer", "task_planner"):
+            example = next(e for e in self.examples("m4_workflow_llm", "plan", "v2") if e["task"] == purpose)
+            self.assertEqual(example["messages"][-1]["reasoning"], summary)
+            self.assertEqual(example["messages"][-1]["reasoning_source"], "recorded")
 
     def test_earlier_turns_keep_their_reasoning_and_calls_and_the_reasoning_only_set_takes_clean_whole_ones(self):
         """D2 / P4: the local model's earlier turn keeps the reasoning and the call it sent back, the tool turn its call id, the
