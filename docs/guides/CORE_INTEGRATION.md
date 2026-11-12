@@ -1431,4 +1431,4 @@ The pinned main-product inventory has no task-verification or retry fields. No a
 these helpers must map its own current owner records, permission identity, handler-entry evidence, saver and
 holdout receipt, then run its own affected conformance/safety cases. Existing event/lineage/ledger adapters still
 apply unchanged. Internal R&D verification dictionaries are not a new portable persistence contract.
-See `docs/guides/TASK_RECOVERY_ACCEPTANCE.md`; final independent review is pending after a provider usage limit.
+See `docs/guides/TASK_RECOVERY_ACCEPTANCE.md`; final independent review passed after the focused review follow-up.

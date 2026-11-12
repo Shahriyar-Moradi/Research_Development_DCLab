@@ -47,6 +47,13 @@ def _code():
     return metadata_fingerprint(hashes)
 
 
+def _scientific_fingerprint(record):
+    body = {key: value for key, value in record.items() if key not in ('notes', 'explanation')}
+    if isinstance(body.get('decision'), dict):
+        body['decision'] = {key: value for key, value in body['decision'].items() if key not in ('chosen', 'overridden')}
+    return metadata_fingerprint(body)
+
+
 def _permission(entry):
     return metadata_fingerprint({k: v for k, v in entry.items() if k != "used"})
 
@@ -180,7 +187,7 @@ class TaskDispatcher:
                         and any(t.get('actor') == 'human' and t.get('status') == 'allowed'
                                 and t.get('move') == 'approve_stage' and t.get('args', {}).get('stage') == task
                                 and t.get('args', {}).get('choice') == choice for t in self.projects.transitions(pid)))
-            scientific = metadata_fingerprint({k: v for k, v in record.items() if k not in ('decision', 'notes', 'explanation')})
+            scientific = _scientific_fingerprint(record)
             if not approved or scientific != attempt.get('scientific_fingerprint'):
                 raise Blocked("owner_record_changed")
         return {"fingerprint": digest, "run": run.run, "reference": "owner_" + run.run, "seconds": run.seconds}
@@ -300,8 +307,9 @@ class TaskDispatcher:
                 project = self.projects.get(project_id)
                 caps = capability_snapshot(self.registry, allowed_tools=self.allowed)
                 graph, _, _, mapping = self._sources(project, state, caps)
-                self._observed(project, state, graph, mapping, until=task_id)
-                result = next(v for v in reversed(state['verifications']) if v['task_id'] == task_id)
+                observed = self._observed(project, state, graph, mapping, until=task_id)
+                reference = observed['tasks'][task_id]['verification_ref']
+                result = next(v for v in state['verifications'] if v['id'] == reference)
             except Exception as error:
                 reason = str(error) if isinstance(error, Blocked) else 'owner_evidence_unavailable'
                 measured = getattr(error, 'verification', None)
@@ -496,8 +504,7 @@ class TaskDispatcher:
                        output_fingerprint=evidence["fingerprint"], owner_run=evidence["run"], evidence_ref=evidence["reference"],
                        decision_ids=ids, decision_capture=capture, acceptance_verification=verification["status"], verification_id=verification["id"])
         if attempt['task'] != 'report':
-            attempt['scientific_fingerprint'] = metadata_fingerprint({k: v for k, v in self.projects.read_stage(pid, attempt['task']).items()
-                                                                      if k not in ('decision', 'notes', 'explanation')})
+            attempt['scientific_fingerprint'] = _scientific_fingerprint(self.projects.read_stage(pid, attempt['task']))
         checkpoint = self._save(pid, state, attempt["status"], attempt["task"])
         return {"status": attempt["status"] if verification['status'] == 'verified' else 'blocked',
                 "reason": None if verification['status'] == 'verified' else 'acceptance_' + verification['status'], "attempt_id": attempt["id"], "checkpoint": checkpoint,

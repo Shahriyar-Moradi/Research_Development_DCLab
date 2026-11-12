@@ -1,8 +1,8 @@
 # TP-05 acceptance: measured verification and bounded recovery
 
 Implemented on 2026-11-12. The explicit task path remains off by default. Implementation and focused validation
-are complete; final independent review remains pending because the reviewer run ended at a provider usage limit.
-Its six concrete findings were addressed and covered by focused regressions. No final review pass is claimed.
+are complete. Final independent review passed after the earlier interrupted run was resumed. Three additional
+review regressions were reproduced before their fixes; all 15 focused follow-up checks pass.
 
 ## Scope and owners
 
@@ -75,9 +75,9 @@ pure dependency test; this package adds no parallel scheduler or new scientific 
 
 ## Focused checks
 
-115 distinct application tests passed across focused runs, with no skips:
+125 distinct application tests passed across focused runs, with no skips:
 
-- 55 TP-05 tests: seven pure tests and 24 integration cases on each of file/SQLite and PostgreSQL. These include
+- 65 TP-05 tests: seven pure tests and 29 integration cases on each of file/SQLite and PostgreSQL. These include
   full measured execution/export, absent/invalid proof, actual-byte/goal/solution changes, revoked approval,
   related tables, strong leakage and human decisions, absent threshold proof, hidden report figures, source-bound
   confirmation, old unused holdout permissions, retry exhaustion, late completion and saver reopen/timeline.
@@ -109,7 +109,12 @@ The reviewer identified incomplete source invalidation/confirmation binding, unr
 report display proof, loss of measured public verification results and reuse of an old model attempt's permissions.
 These are fixed. Confirmation tests also caught circular hashing through approval-derived source-plan prose; the
 semantic confirmation excludes its own signature while the adopted graph retains the actual source references.
-The final independent recheck could not finish because the reviewer hit a provider usage limit. TP-06 has not begun.
+The resumed review found three additional issues: historical stale results could hide restored current proofs, OOF
+metadata could pass without an actual threshold, and a human override could admit unrelated option-metric edits.
+Each regression failed before its fix. Verification now resolves the current receipt, binds the actual threshold and
+resolved saved policy, and protects all decision fields except the authorized chosen/overridden fields. All 15
+focused follow-up checks passed, including ten new file/PostgreSQL regressions and five affected compatibility
+cases. The final independent recheck passed with no remaining correctness finding. TP-06 has not begun.
 
 Semantic feature availability still relies on the signed prediction-time contract and explicit human exceptions;
 statistical screening cannot prove it. Unsupported/grouped/temporal partitions may have insufficient proof and

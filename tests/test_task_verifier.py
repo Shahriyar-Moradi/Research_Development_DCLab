@@ -183,6 +183,58 @@ class TaskVerifierIntegrationTests(unittest.TestCase):
         self.assertIn('solution_approval_changed', result['reasons'])
 
 
+    def test_restored_source_returns_current_proof_without_erasing_stale_history(self):
+        d = self.dispatcher()
+        first = d.dispatch(self.pid, 'data')['verification']
+        original_goal = self.store.get(self.pid)['goal']
+        self.store.update(self.pid, goal='A temporarily changed objective')
+        stale = d.verify(self.pid, 'data')
+        self.assertEqual(stale['status'], 'stale')
+        self.store.update(self.pid, goal=original_goal)
+        current = d.verify(self.pid, 'data')
+        self.assertEqual(current['status'], 'verified', current)
+        self.assertEqual(current['id'], first['id'])
+        self.assertIn(stale, d.state(self.pid)['verifications'])
+        self.assertEqual(len(d.state(self.pid)['attempts']), 1)
+
+
+    def _final_with_mutated_assessment(self, mutate):
+        from dclab_rnd.studio import engine
+        d = self.dispatcher()
+        for task in ('data', 'leakage', 'features', 'models'):
+            self.assertEqual(d.dispatch(self.pid, task)['acceptance_verification'], 'verified')
+        graph.approve_gate(self.store, self.pid, 'holdout', by='owner', reason='One final read')
+        original = engine._task_assessment
+        def altered(*args, **kwargs):
+            return mutate(original(*args, **kwargs))
+        with patch.object(engine, '_task_assessment', side_effect=altered):
+            result = d.dispatch(self.pid, 'final')
+        self.assertEqual(self.store.get(self.pid)['holdout_uses'], 1)
+        self.assertIn(result['acceptance_verification'], ('blocked', 'failed'), result)
+        self.assertIn('source_threshold', result['verification']['violated_criteria'])
+        self.assertEqual(d.dispatch(self.pid, 'final')['status'], 'blocked')
+        self.assertEqual(self.store.get(self.pid)['holdout_uses'], 1)
+        return result
+
+    def test_oof_metadata_without_actual_threshold_cannot_complete(self):
+        result = self._final_with_mutated_assessment(lambda out: {'threshold_proof': out['threshold_proof']})
+        self.assertEqual(result['acceptance_verification'], 'blocked')
+
+    def test_threshold_value_must_match_its_oof_selection_proof(self):
+        def mutate(out):
+            out['threshold']['value'] += 0.25
+            return out
+        self._final_with_mutated_assessment(mutate)
+
+    def test_threshold_policy_is_recomputed_from_current_saved_decisions(self):
+        from dclab_core.task_fingerprints import metadata_fingerprint
+        def mutate(out):
+            out['threshold_policy']['inputs']['budget'] = 0.4
+            out['threshold_proof']['policy_fingerprint'] = metadata_fingerprint(out['threshold_policy']['inputs'])
+            return out
+        self._final_with_mutated_assessment(mutate)
+
+
 class PostgresTaskVerifierTests(TaskVerifierIntegrationTests):
     def setUp(self):
         from tests import pgtest

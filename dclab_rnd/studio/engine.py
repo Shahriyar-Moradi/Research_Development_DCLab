@@ -1501,8 +1501,13 @@ def _task_assessment(p: Prepared, task: str, selected: dict[str, Any], y_test: p
             from dclab_core.task_verification import training_proof, threshold_proof
 
             training = training_proof(bundle.train_idx, bundle.test_idx, bundle.cv_splits, bundle.y_train)
+            from dclab_core.task_fingerprints import metadata_fingerprint
+
+            out["threshold_policy"] = {"inputs": inputs, "training_span_days": span_days}
             out["threshold_proof"] = threshold_proof(training, selected["_oof_index"], selected["_oof_pred"],
                                                        configuration=selected["config_id"], policy=inputs)
+            selection = {key: out["threshold"].get(key) for key in ("value", "chosen_on", "chosen_by", "training")}
+            out["threshold_proof"]["threshold_fingerprint"] = metadata_fingerprint(selection)
         return out
     except Exception as exc:  # noqa: BLE001 - an assessment the data does not allow leaves the stage as it was
         from ..observe import log

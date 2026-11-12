@@ -12,6 +12,38 @@ def _finite(value):
     return type(value) in (int, float) and math.isfinite(value)
 
 
+def _threshold_selection_valid(assessment, project, training_proof):
+    """Bind an actual training-selected operating point and its policy; never recompute a holdout score."""
+    from dclab_core.assess import threshold_inputs
+    try:
+        artifact = assessment['threshold']
+        proof = assessment['threshold_proof']
+        policy = assessment['threshold_policy']
+        n = training_proof['train_rows']
+        span = policy['training_span_days']
+        solution = project.get('solution') or {}
+        if span is not None and (not _finite(span) or span < 0 or not solution.get('time_column')):
+            return False
+        resolved = threshold_inputs(project.get('plan'), n, span)
+        resolved['partial_labels'] = resolved['partial_labels'] or solution.get('labels') == 'partial'
+        if resolved['budget'] is None and solution.get('alert_budget'):
+            resolved['budget'] = solution['alert_budget']
+        selection = {key: artifact.get(key) for key in ('value', 'chosen_on', 'chosen_by', 'training')}
+        counts = artifact['training']
+        tp, fp, fn, alerts = (counts[key] for key in ('true_positives', 'false_positives', 'false_negatives', 'alerts'))
+        if (len(training_proof['class_counts']) != 2 or not all(type(c) is int and 0 <= c <= n for c in (tp, fp, fn, alerts))
+                or tp + fp != alerts or tp + fn != training_proof['class_counts'][1]
+                or fp > training_proof['class_counts'][0] or not _finite(counts.get('alert_share'))
+                or abs(counts['alert_share'] - alerts / n) > 0.0001):
+            return False
+        return (_finite(artifact.get('value')) and artifact.get('chosen_on') == 'out-of-fold training predictions'
+                and isinstance(artifact.get('chosen_by'), str) and bool(artifact['chosen_by'].strip())
+                and proof.get('threshold_fingerprint') == metadata_fingerprint(selection)
+                and policy['inputs'] == resolved and proof.get('policy_fingerprint') == metadata_fingerprint(resolved))
+    except (KeyError, TypeError, ValueError, ZeroDivisionError):
+        return False
+
+
 def verify(projects, pid, graph, attempt, *, inputs, output, saver=None, current_graph=None):
     from dclab_rnd.studio import data, solution_report
     from dclab_core import report as core_report
@@ -127,13 +159,16 @@ def verify(projects, pid, graph, attempt, *, inputs, output, saver=None, current
                     and receipt.split_fingerprint == proof.get('split_fingerprint')
                     and evidence.get('holdout_receipt_id') == receipt.receipt_id)
             check('source_final_once', once, 'holdout_once_or_actual_split_not_proven')
-            threshold = (evidence.get('task_assessment') or {}).get('threshold_proof') or {}
+            assessment = evidence.get('task_assessment') or {}
+            threshold = assessment.get('threshold_proof') or {}
             n = proof.get('train_rows')
             good = (threshold.get('scope') == 'out_of_fold_training' and threshold.get('cv_fingerprint') == metadata_fingerprint(proof)
                     and threshold.get('count') == n and threshold.get('unique') == n and threshold.get('complete') is True
                     and threshold.get('in_range') is True and threshold.get('finite_scores') is True
-                    and threshold.get('configuration_fingerprint') == metadata_fingerprint(evidence.get('selected_optimization')))
-            check('source_threshold', good, 'training_oof_threshold_not_proven', missing=not threshold)
+                    and threshold.get('configuration_fingerprint') == metadata_fingerprint(evidence.get('selected_optimization'))
+                    and _threshold_selection_valid(assessment, project, proof))
+            check('source_threshold', good, 'training_oof_threshold_not_proven',
+                  missing=not threshold or not assessment.get('threshold') or not assessment.get('threshold_policy'))
             metric = (evidence.get('holdout_metrics') or {}).get(record.get('primary_metric'))
             ci = evidence.get('holdout_primary_metric_ci') or {}
             if not (_finite(metric) and _finite(ci.get('low')) and _finite(ci.get('high')) and ci['low'] <= metric <= ci['high']):

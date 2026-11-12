@@ -38,7 +38,7 @@
       "why": "Unproven task-mode evidence must block task acceptance without narrowing the legacy engine supported workflows."
     }
   ],
-  "change": "Add pure evidence/recovery helpers in core and independent owner-record verification in the host. Save measured proof, guarded retry boundary evidence, bounded new plans and explicit source revisions in the existing journal. Correct the binary split identity and export canonical report evidence only in task mode. Keep the final independent review pending.",
+  "change": "Add pure evidence/recovery helpers in core and independent owner-record verification in the host. Save measured proof, guarded retry boundary evidence, bounded new plans and explicit source revisions in the existing journal. Correct the binary split identity and export canonical report evidence only in task mode. Resolve final review findings without changing default execution or portable contracts.",
   "findings": [
     {
       "id": "TP05-SPLIT",
@@ -134,10 +134,43 @@
       "defect": "The final independent review did not complete.",
       "scenario": "The reviewer produced concrete findings and then ended at a provider usage limit.",
       "cause": "External reviewer availability ended before a final verdict.",
-      "fix": "Fix the reported findings and their relevant regressions; retain the final independent review as pending rather than claiming a pass.",
-      "test": "Focused regression evidence is recorded; the remaining review limit is explicit in the acceptance guide and tracker.",
+      "fix": "Resume independent review, fix its additional correctness findings and their failing-before regressions, then obtain a final pass.",
+      "test": "The final recheck passed after all focused follow-up checks; no remaining correctness finding was identified.",
       "severity": "gap",
-      "verdict": "open"
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP05-RESTORED-PROOF",
+      "source": "reviewer",
+      "defect": "Public verification could keep an obsolete stale result after the original source was restored.",
+      "scenario": "A data task verified, then its goal changed temporarily and was restored exactly; dispatch could proceed while public verify still said stale.",
+      "cause": "Proof deduplication kept the original verified record in place, while public verification selected the last historical record by task.",
+      "fix": "Return the proof referenced by the current observed receipt instead of the latest historical record for that task.",
+      "test": "The new file regression failed before the fix; file and PostgreSQL restored-source regressions pass while retaining the stale history.",
+      "severity": "behaviour",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP05-THRESHOLD-ARTIFACT",
+      "source": "reviewer",
+      "defect": "An OOF metadata proof could pass without the actual selected threshold artifact.",
+      "scenario": "An owner assessment kept its OOF proof but omitted the threshold and resolved policy, and final acceptance still verified.",
+      "cause": "The initial verifier checked OOF counts and configuration but ignored the actual value, training-selection artifact and policy binding.",
+      "fix": "Fingerprint the actual training-selected threshold, persist its resolved policy context and independently require the artifact, consistent confusion counts and current saved policy.",
+      "test": "Missing-artifact, altered-value and forged-policy regressions fail acceptance after one holdout use; the healthy chain and existing assessment cases still pass.",
+      "severity": "leakage",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP05-DECISION-INTEGRITY",
+      "source": "reviewer",
+      "defect": "A legitimate human choice could permit unrelated mutations of measured decision options.",
+      "scenario": "After a feature override, editing an option mean was still accepted and models could execute.",
+      "cause": "The scientific fingerprint excluded the whole decision block.",
+      "fix": "Retain decision fields and measurements in the fingerprint; exclude only chosen and overridden, plus nonscientific annotations.",
+      "test": "The regression failed before the fix. File and PostgreSQL metric-tamper cases now block before models, while legitimate choice cases pass.",
+      "severity": "leakage",
+      "verdict": "confirmed"
     }
   ],
   "measurements": [
@@ -171,9 +204,26 @@
       "limits": [
         "Final independent review remains pending; no final pass is claimed."
       ]
+    },
+    {
+      "name": "Final review follow-up checks",
+      "gate": "All 15 relevant follow-up checks must pass with 0 failures and 0 skips, including 10 new regressions and 5 affected compatibility cases.",
+      "result": "15 follow-up checks passed with 0 failures and 0 skips; 10 new regressions and 5 affected compatibility cases passed.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "Focused invented-data file/PostgreSQL checks only; passing unrelated groups were not repeated."
+      ]
+    },
+    {
+      "name": "Final independent review",
+      "gate": "The reviewer must recheck all three confirmed findings after their fixes and identify no remaining correctness blocker.",
+      "result": "Final independent recheck passed; all three findings are resolved and no remaining correctness blocker was identified.",
+      "verdict": "pass",
+      "cost_eur": 0.0
     }
   ],
-  "outcome": "Implementation and focused validation are complete. Reported correctness findings are fixed. Final independent review remains pending after a provider usage limit; the next package has not started.",
+  "outcome": "Implementation, focused validation and final independent review are complete. The resumed review follow-up fixes preserve current proofs, bind actual threshold evidence and protect immutable option measurements. The next package has not started.",
   "lessons": [
     "Store measured partition and provenance proof where the scientific work happens.",
     "A missing result is uncertainty, not permission to repeat an effect.",

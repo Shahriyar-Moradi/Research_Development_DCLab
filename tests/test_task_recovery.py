@@ -247,6 +247,24 @@ class TaskRecoveryIntegrationTests(unittest.TestCase):
         self.assertGreaterEqual(d.state(self.pid)['seconds'], attempt['budget']['reserved_seconds'])
 
 
+    def test_human_override_cannot_rewrite_measured_decision_options(self):
+        from dclab_rnd.studio import engine
+        d = self.dispatcher()
+        for task in ('data', 'leakage', 'features'):
+            self.assertEqual(d.dispatch(self.pid, task)['acceptance_verification'], 'verified')
+        record = self.store.read_stage(self.pid, 'features')
+        choice = next(o['id'] for o in record['decision']['options'] if o['id'] != record['decision']['chosen'])
+        engine.approve(self.store, self.pid, 'features', choice=choice, actor='human')
+        record = self.store.read_stage(self.pid, 'features')
+        record['decision']['options'][0]['mean'] = 123.456
+        self.store.write_stage(self.pid, 'features', record)
+        result = d.dispatch(self.pid, 'models')
+        self.assertEqual(result['status'], 'blocked', result)
+        self.assertEqual(result['reason'], 'owner_record_changed')
+        self.assertIsNone(self.store.read_stage(self.pid, 'models'))
+        self.assertEqual(self.store.get(self.pid)['holdout_uses'], 0)
+
+
 class PostgresTaskRecoveryTests(TaskRecoveryIntegrationTests):
     def setUp(self):
         from tests import pgtest
