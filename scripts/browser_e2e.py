@@ -793,6 +793,86 @@ def check_understand(b: Browser) -> str:
 CHECKS = {"flow": (check_flow, 1280), "understand": (check_understand, 1280), "poll": (check_poll, 1280), "decide": (check_decision, 1280), "soledit": (check_solution_decision, 1280), "team": (check_team, 1280), "stats": (check_stats, 1280), "pages": (check_pages, 1280), "switch": (check_switch, 1280), "ui": (check_ui_events, 1280), "memory": (check_memory, 1280), "review": (check_review, 1280), "failures": (check_failures, 1280), "mobile": (check_mobile, 375), "dsmode": (check_ds_mode, 1280)}
 
 
+def check_task_plan(b: Browser) -> str:
+    """TP-07: actual default-off/no-data/recorded/error states, keyboard and narrow layout."""
+    from dclab_rnd.orchestra.checkpoints import open_checkpointer
+    from dclab_rnd.studio import ProjectStore
+    from dclab_rnd.tasks.dispatch import TaskDispatcher
+    from dclab_rnd.models.gateway import private_scope
+    from tests.test_task_dispatch import make_project
+    check('WORKSPACE' in globals(), 'the task-plan check needs its disposable local test workspace')
+    csrf = b.api('/config')['csrf']
+    headers = {'X-DCLab-Token': csrf}
+    reset = b.context.request.put(b.base + '/api/team/settings', data={'task_plan_preview': False}, headers=headers)
+    check(reset.ok, 'could not restore the default-off preview for this isolated check')
+    made = b.context.request.post(b.base + '/api/projects', data={'name': 'Task plan empty check', 'goal': 'Understand this project'}, headers=headers)
+    check(made.ok, 'create empty task-plan project failed')
+    empty_id = made.json()['id']
+    b.page.evaluate('id => { DC.state.projectId = id; DC.state.project = null; }', empty_id)
+    b.view('project')
+    box = b.page.locator('#proj-task-plan-body')
+    box.get_by_text('Task Plan developer preview is off.', exact=False).wait_for()
+    states = {'disabled': b.api(f'/projects/{empty_id}/task-plan')}
+    switched = b.context.request.put(b.base + '/api/team/settings', data={'task_plan_preview': True}, headers=headers)
+    check(switched.ok, 'owner could not enable the read-only preview')
+    b.page.locator('#task-plan-refresh').click()
+    box.get_by_text('Attach data and confirm a supported solution', exact=False).wait_for()
+    states['no_data'] = b.api(f'/projects/{empty_id}/task-plan')
+    store = ProjectStore(WORKSPACE / 'projects')
+    with private_scope(True), open_checkpointer(WORKSPACE, database_url='') as saver:
+        pid = make_project(store)
+        out = TaskDispatcher(store, saver, enabled=True).dispatch(pid, 'data')
+        check(out.get('acceptance_verification') == 'verified', 'fixture profile did not verify')
+    b.page.evaluate('id => { DC.state.projectId = id; DC.state.project = null; }', pid)
+    b.view('home')
+    b.view('project')
+    box.get_by_text('Recorded task progress.', exact=False).wait_for()
+    summary = box.locator('summary').filter(has_text='Profile training data').first
+    summary.focus()
+    summary.press('Enter')
+    check(summary.evaluate('el => el.parentElement.open'), 'keyboard did not open task details')
+    check(box.get_by_text('Open recorded evidence', exact=True).is_visible(), 'verified task has no evidence link')
+    check(box.get_by_text('Guard / check · no tool call', exact=True).count() > 0, 'guard is not distinguished from tool work')
+    record = b.api(f'/projects/{pid}/task-plan')
+    states['recorded'] = record
+    check(record['budget']['tool_calls'] == 1 and not record['execution_enabled'], 'preview altered execution budget or enabled execution')
+    b.page.locator('#task-plan-refresh').click()
+    box.get_by_text('Recorded task progress.', exact=False).wait_for()
+    check(b.api(f'/projects/{pid}/task-plan')['budget']['tool_calls'] == 1, 'refresh executed a task')
+    b.page.locator('#proj-task-plan-panel').scroll_into_view_if_needed()
+    width = b.page.viewport_size['width']
+    from dclab_rnd.tasks.view import readonly_checkpoint
+    with readonly_checkpoint(WORKSPACE, store) as saver:
+        checkpoint = TaskDispatcher(store, saver).state(pid)
+    b.out.mkdir(parents=True, exist_ok=True)
+    evidence = {'width': width, 'mode': MODE or 'default', 'states': states, 'project': store.get(pid),
+                'task_checkpoint': checkpoint, 'owner_records': store.records(pid),
+                'scope': 'invented fixture; operation/evaluation only; no real user data'}
+    with (b.out / f'task-plan-{width}-fixture.json').open('x') as output:
+        json.dump(evidence, output, indent=2)
+    check('completed' in summary.inner_text(), 'verified task badge does not display completed')
+    check('blocked' in box.locator('summary').filter(has_text='Owner approval').first.inner_text(), 'approval badge does not display blocked')
+    check(box.locator('[data-record]').count() == 0, 'task statuses must not open evidence-record buttons')
+    check(b.page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), 'task plan introduced horizontal overflow')
+    b.shot(f'task-plan-{width}')
+    # Route failure is visible and retryable, then recovers without an action.
+    path = f'**/api/projects/{pid}/task-plan'
+    b.page.route(path, lambda route: route.fulfill(status=503, content_type='application/json', body='{"detail":"Test read failure"}'))
+    b.page.locator('#task-plan-refresh').click()
+    box.get_by_text('Try again', exact=True).wait_for()
+    b.page.unroute(path)
+    box.get_by_text('Try again', exact=True).click()
+    box.get_by_text('Recorded task progress.', exact=False).wait_for()
+    unexpected = [message for message in b.problems() if not ('Failed to load resource' in message and '503' in message)]
+    check(not unexpected, 'task plan browser errors: ' + '; '.join(unexpected))
+    rollback = b.context.request.put(b.base + '/api/team/settings', data={'task_plan_preview': False}, headers=headers)
+    check(rollback.ok and b.api(f'/projects/{pid}/task-plan')['status'] == 'disabled', 'preview rollback failed')
+    return 'disabled, no-data, recorded, keyboard, evidence, retry and read-only refresh; screenshot kept'
+
+
+CHECKS.update({'taskplan': (check_task_plan, 1280), 'taskplan-mobile': (check_task_plan, 375)})
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--base", help="URL of a running server; without it the script starts its own (no model, an empty workspace)")

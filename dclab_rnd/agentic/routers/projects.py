@@ -53,6 +53,16 @@ async def get_project(project_id: str, s: Services = Depends(services)):
     return s.with_records(s.project(project_id))
 
 
+@router.get("/api/projects/{project_id}/task-plan", response_model=Page)
+async def project_task_plan(project_id: str, s: Services = Depends(services)):
+    """Read-only developer preview of task dependencies, recorded progress and revision history. Never executes."""
+    from ...orchestra.settings import settings as team_settings
+    from ...tasks.view import task_plan_view
+    s.project(project_id)
+    return await asyncio.to_thread(task_plan_view, s.projects, s.store.home, project_id,
+                                   enabled=team_settings(s.store.home)['task_plan_preview'])
+
+
 def approver() -> str:
     """Who approves: the signed-in person's name (package 10.2), or "owner" on a machine without accounts."""
     from ...accounts.principal import current

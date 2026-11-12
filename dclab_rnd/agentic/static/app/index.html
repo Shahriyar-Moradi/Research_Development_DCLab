@@ -541,6 +541,12 @@
   <div class="pane" data-pane="overview" data-label="Overview">
     <div class="stats" id="proj-stats"></div>
 
+    <section class="panel" id="proj-task-plan-panel" aria-labelledby="task-plan-heading">
+      <div class="panel-head"><div class="panel-title"><h2 id="task-plan-heading">Task Plan</h2><span class="sub">Read-only developer preview · task progress, approvals and evidence. Execution stays disabled.</span></div>
+        <button type="button" class="btn sm" id="task-plan-refresh">Refresh task progress</button></div>
+      <div class="panel-body" id="proj-task-plan-body" aria-live="polite" aria-busy="false"></div>
+    </section>
+
     <div class="panel" data-f="proj.graph" data-tour="graph">
       <div class="panel-head">
         <div class="panel-title"><h2>The graph</h2><span class="sub">Ten steps and the moves allowed between them. The model proposes a move; the graph decides whether it exists.</span></div>
@@ -2270,6 +2276,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="panel-head"><div class="panel-title"><h3>The team's switch and budgets</h3><span class="sub">On: Home's Build goes through the understanding team, the build being its approval; off: Home builds as before. A walk stops when it reaches its budget; a node's model falls back to the rules at its own. The owner's switch, every change audited.</span></div></div>
       <div class="panel-body grid g2 small" id="team-settings">
         <label class="switch"><input type="checkbox" id="team-on"><span class="track"></span><span>Build through the understanding team</span></label>
+        <label class="switch"><input type="checkbox" id="task-plan-preview"><span class="track"></span><span>Read-only Task Plan developer preview · no execution</span></label>
         <div class="field"><label for="team-run">A walk's budget (€)</label><input id="team-run" type="number" min="0.01" max="20" step="0.1"></div>
         <div class="field"><label for="team-node">A node's budget (€)</label><input id="team-node" type="number" min="0.01" max="5" step="0.05"></div>
         <div class="field"><label for="team-steps">A walk's steps</label><input id="team-steps" type="number" min="5" max="200" step="1"></div>

@@ -436,6 +436,7 @@
     runStage: ["POST", "/projects/{project_id}/stages/{stage}/run", ["project_id", "stage"], ["wait", "reuse_reason"]],
     projectSteps: ["GET", "/projects/{project_id}/steps", ["project_id"], ["stage", "decision"]],
     uploadTable: ["PUT", "/projects/{project_id}/tables/{name}", ["project_id", "name"], ["filename"]],
+    projectTaskPlan: ["GET", "/projects/{project_id}/task-plan", ["project_id"], []],
     projectTeam: ["GET", "/projects/{project_id}/team", ["project_id"], []],
     projectTeamWalk: ["POST", "/projects/{project_id}/team", ["project_id"], []],
     projectTwinRuns: ["GET", "/projects/{project_id}/twin", ["project_id"], []],
@@ -1655,6 +1656,13 @@
    *  @returns {Promise<Project>} */
   client.uploadTable = (...args) => call('uploadTable', args);
   client.path.uploadTable = (...args) => build('uploadTable', args).path;
+  /** GET /api/projects/{project_id}/task-plan: Project Task Plan
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.projectTaskPlan = (...args) => call('projectTaskPlan', args);
+  client.path.projectTaskPlan = (...args) => build('projectTaskPlan', args).path;
+  client.href.projectTaskPlan = (...args) => '/api' + build('projectTaskPlan', args).path;
   /** GET /api/projects/{project_id}/team: Project Team
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

@@ -7543,6 +7543,11 @@ ul.plain { margin: 0; padding-left: var(--ts-space-6); display: grid; gap: var(-
 .help-kind:hover { background: var(--ts-surface-hover); }
 .help-kind[aria-pressed="true"] { border-color: var(--ts-accent); background: var(--ts-accent-soft); color: var(--ts-accent-ink); }
 .help-kind:focus-visible { outline: var(--ts-focus-ring); outline-offset: 2px; }
+/* Read-only task progress uses native disclosures and wraps at narrow widths. */
+.task-plan-tree { list-style: none; padding-inline-start: 1rem; margin-block: .6rem; }
+.task-plan-tree li { margin-block: .65rem; min-width: 0; overflow-wrap: anywhere; }
+.task-plan-tree summary { cursor: pointer; padding-block: .3rem; }
+.task-plan-meta { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
 
 /* ===== ds.css ===== */
 /* Data science mode (the owner, 2026-11-01: "Claude's style, beside the old one"): the same product, pages, scripts and

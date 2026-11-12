@@ -1442,3 +1442,14 @@ product. The main product would need its own source-bound trials and authorizati
 execution. In particular, a scripted planning proposal is not evidence that the current dispatcher can execute its
 hierarchy, and an unmeasured C arm cannot justify rollout. See [the frozen protocol](TASK_PLANNING_EVALUATION_PROTOCOL.md)
 for the numerical gate and the distinction between an offline diagnostic and promotion.
+
+## Read-only Task Plan projection in the R&D host (TP-07)
+
+The default-off `task_plan_preview` setting exposes the R&D project's existing task graph and checkpoint as an
+allowlisted read-only progress response. The host reads saved verification and current owner fingerprints without
+calling verification writers, reconciliation, saver setup or tools. The endpoint and UI cannot enable execution.
+See [preview acceptance and rollback](TASK_PLAN_PREVIEW_ACCEPTANCE.md).
+
+No portable contract, schema or wheel version changes. This projection uses R&D project access, saver and evidence
+owners; it is not a main-product adapter. The pinned main-product inventory has no task-progress fields, so no
+fields are invented. Adoption there needs its own permission, checkpoint and current-evidence mapping and tests.

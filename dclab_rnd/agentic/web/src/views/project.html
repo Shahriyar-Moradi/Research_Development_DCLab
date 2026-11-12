@@ -22,6 +22,12 @@
   <div class="pane" data-pane="overview" data-label="Overview">
     <div class="stats" id="proj-stats"></div>
 
+    <section class="panel" id="proj-task-plan-panel" aria-labelledby="task-plan-heading">
+      <div class="panel-head"><div class="panel-title"><h2 id="task-plan-heading">Task Plan</h2><span class="sub">Read-only developer preview · task progress, approvals and evidence. Execution stays disabled.</span></div>
+        <button type="button" class="btn sm" id="task-plan-refresh">Refresh task progress</button></div>
+      <div class="panel-body" id="proj-task-plan-body" aria-live="polite" aria-busy="false"></div>
+    </section>
+
     <div class="panel" data-f="proj.graph" data-tour="graph">
       <div class="panel-head">
         <div class="panel-title"><h2>The graph</h2><span class="sub">Ten steps and the moves allowed between them. The model proposes a move; the graph decides whether it exists.</span></div>
@@ -424,6 +430,45 @@ DC.view('project', {
       catch (err) { toast(err.message || 'The review was refused.', { ok: false }); }
       finally { e.target.disabled = false; openReal(proj, true); }
     });
+    let taskPlanRequest = 0;
+    async function loadTaskPlan() {
+      const box = $('#proj-task-plan-body', el), want = proj, request = ++taskPlanRequest;
+      if (!isReal(proj)) { box.setAttribute('aria-busy', 'false'); DC.states.empty(box, 'Open your project to inspect its task plan. Sample workflows do not have recorded task attempts.', { href: '#home', action: 'Open Home' }); return; }
+      box.setAttribute('aria-busy', 'true');
+      DC.states.loading(box, { text: 'Reading task progress…' });
+      try {
+        const r = await DC.client.projectTaskPlan(REAL[want].id);
+        if (request !== taskPlanRequest || want !== proj) return;
+        if (r.status === 'disabled') { DC.states.empty(box, r.message, { href: '#admin', action: 'Admin → Teams' }); return; }
+        if (!r.nodes || !r.nodes.length) { DC.states.empty(box, r.message || 'No task plan is available for this project yet.'); return; }
+        const titles = Object.fromEntries(r.nodes.map(n => [n.id, n.title]));
+        const nodeHTML = (n, seen = []) => {
+          if (seen.includes(n.id) || seen.length > 8) return '';
+          const children = r.nodes.filter(x => x.parent_id === n.id);
+          const kind = n.kind === 'group' ? 'Group · no tool call' : n.kind === 'gate' || n.kind === 'verification' ? 'Guard / check · no tool call' : n.kind === 'action' ? 'Tool work' : 'Blocked capability';
+          const info = n.kind === 'group' ? '<p class="xs muted">Logical group · no tool call.</p>' : `<div class="stack tight small"><span class="muted">${esc(kind)}</span><p>${esc(n.reason)}</p>`
+            + `<div class="task-plan-meta"><span>Plan revision: ${esc(n.plan_revision == null ? 'not recorded' : String(n.plan_revision))}</span>`
+            + `<span>Capability: ${esc(n.capability || 'none')}</span>${n.approval ? `<span>${esc(n.approval)}</span>` : ''}</div>`
+            + `<span>Requires: ${esc((n.dependencies || []).map(id => titles[id] || id).join(' → ') || 'none')}</span>`
+            + `<span>Source workflow: ${esc((n.source_step_ids || []).join(', ') || 'logical grouping')}</span>`
+            + `<span>Verification: ${esc(n.verification || 'not measured')}</span>${n.evidence_url ? `<a href="${esc(n.evidence_url)}" target="_blank" rel="noopener">Open recorded evidence</a>` : ''}</div>`;
+          const statusClass = n.status === 'completed' ? 'ok' : n.status === 'stale' || n.status === 'blocked' ? 'warn' : '';
+          return `<li><details${n.kind === 'group' ? ' open' : ''}><summary><b>${esc(n.title)}</b> <span class="tag ${statusClass}">${esc(n.status)}</span></summary>` + info
+            + (children.length ? `<ol class="task-plan-tree">${children.map(c => nodeHTML(c, [...seen, n.id])).join('')}</ol>` : '') + '</details></li>';
+        };
+        const b = r.budget;
+        const budget = b ? `${b.tool_calls} / ${b.max_tool_calls} tool calls · ${Number(b.seconds).toFixed(1)} / ${b.max_seconds} seconds · €${Number(b.cost_eur).toFixed(3)} / €${Number(b.max_cost_eur).toFixed(3)} execution budget` : 'No task execution budget has been used.';
+        const revisions = (r.revisions || []).map(v => `<li>${esc(v.kind)}${v.task_id ? ' · ' + esc(titles[v.task_id] || v.task_id) : ''}: ${esc(v.from_revision == null ? '' : String(v.from_revision) + ' → ')}${esc(String(v.to_revision || '—'))}. ${v.source_changed ? 'Source binding changed. ' : ''}Changed: ${esc([...(v.changed_tasks || []).map(id => titles[id] || id), ...(v.changed_fields || [])].join(', ') || 'none recorded')}. Preserved: ${esc((v.preserved_tasks || []).map(id => titles[id] || id).join(', ') || 'none recorded')}.</li>`).join('');
+        box.innerHTML = `<p role="status">${esc(r.message)} Graph revision ${esc(String(r.graph_revision))}.</p><p class="small muted">${esc(r.release)} ${esc(budget)}</p>`
+          + `<ol class="task-plan-tree">${r.nodes.filter(n => !n.parent_id).map(n => nodeHTML(n)).join('')}</ol>`
+          + `<details><summary>Plan revision history and preserved work</summary>${revisions ? `<ol class="small">${revisions}</ol>` : '<p class="small muted">No plan revisions recorded.</p>'}</details>`;
+      } catch (error) {
+        if (request === taskPlanRequest && want === proj) DC.states.failed(box, error, { retry: loadTaskPlan });
+      } finally {
+        if (request === taskPlanRequest && want === proj) box.setAttribute('aria-busy', 'false');
+      }
+    }
+    $('#task-plan-refresh', el).addEventListener('click', loadTaskPlan);
     async function loadPipeline() {  // 20.8: the stale steps of a real project, with a rerun for each
       const panel = $('#proj-pipeline-panel', el), body = $('#proj-pipeline', el), want = proj;
       if (!isReal(proj)) { panel.hidden = true; return; }
@@ -590,7 +635,7 @@ DC.view('project', {
       if (isReal(p)) { realValidator(); drawRealVerdict(); DC.setProjectLabel && DC.setProjectLabel(P[p].title); }
       else { $('#move-select', el).innerHTML = SAMPLE_MOVES; delete $('#move-select', el).dataset.real; drawValidator(); DC.setProjectLabel && DC.setProjectLabel(P[p].title + ' · sample'); }
       drawStats(); drawGraph(); drawLog(); drawNode(keepStep && selected ? selected : P[p].current); drawTeam(); DC.hydrate(el);
-      loadTwin(); loadMemory(); loadPipeline(); drawReview();
+      loadTwin(); loadMemory(); loadPipeline(); loadTaskPlan(); drawReview();
     }
     this.setProject = setProject; this.openReal = openReal; this.switcher = switcher;
     const SAMPLE_MOVES = $('#move-select', el).innerHTML;

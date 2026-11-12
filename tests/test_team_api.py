@@ -65,7 +65,7 @@ class TeamApiTests(unittest.TestCase):
     def test_the_teams_switch_and_budgets_start_off_and_every_change_is_audited(self):  # 28.8
         c = self.client
         got = c.get("/api/team/settings").json()
-        self.assertEqual(got["settings"], {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40, "second_opinion": False, "debate": False})
+        self.assertEqual(got["settings"], {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40, "second_opinion": False, "debate": False, "task_plan_preview": False})
         from unittest import mock
 
         from dclab_rnd.orchestra import patterns

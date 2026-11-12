@@ -19,7 +19,8 @@ from pathlib import Path
 from typing import Any
 
 SETTINGS_FILE = "team.json"
-DEFAULTS: dict[str, Any] = {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40, "second_opinion": False, "debate": False}
+DEFAULTS: dict[str, Any] = {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40, "second_opinion": False, "debate": False,
+                          "task_plan_preview": False}
 LIMITS = {"run_eur": (0.01, 20.0), "node_eur": (0.01, 5.0), "max_steps": (5, 200)}
 UNSERVED = ("debate",)  # 28.6 (the review): a pattern no serving path reads stays off whatever its result
 

@@ -1,0 +1,276 @@
+{
+  "package": "TP-07",
+  "title": "Expose verified task progress as a disabled-by-default read-only developer preview",
+  "date": "2026-11-12",
+  "request": "Complete the Task Plan panel in the existing app, keep execution rollout blocked, test planning within the authorized dollar cap and permanently collect all test records.",
+  "spec": "engineering/planning/TP_07.txt",
+  "plan": [
+    "Inspect existing settings, project access, task checkpoints and browser conventions.",
+    "Write failing read-only presenter and API tests, then project allowlisted metadata without verification writers.",
+    "Add the existing-design task tree, owner preview setting, responsive states and rollback.",
+    "Exercise relevant file, PostgreSQL and browser paths, independently review, preserve all results and record limits."
+  ],
+  "decisions": [
+    {
+      "decision": "Use existing owner-only audited team settings with a false default.",
+      "why": "The failed execution promotion gate permits a preview but cannot justify a new execution switch."
+    },
+    {
+      "decision": "Read the existing saver with storage-enforced read-only connections and no setup.",
+      "why": "A progress GET must neither create storage nor write verification, reconciliation or task effects."
+    },
+    {
+      "decision": "Show completion only with matching recorded verification and current owner evidence.",
+      "why": "An attempt status or model claim does not establish scientific acceptance; missing upstream proof must block descendants."
+    },
+    {
+      "decision": "Keep full model exchanges in the opted-out diagnostic archive and only allowlisted metadata in the app.",
+      "why": "The owner requires thinking capture while private reasoning and data must not appear in product traces or training."
+    },
+    {
+      "decision": "Keep proposed hierarchy execution unmeasured while testing model task plans on the deterministic hierarchy.",
+      "why": "The current dispatcher refuses candidate model graphs; narrower successful execution cannot authorize full rollout."
+    },
+    {
+      "decision": "Use an independent permanent USD reservation ceiling with provider-verified prices.",
+      "why": "The gateway currency field names and stale application prices cannot alone enforce the owner dollar cap."
+    }
+  ],
+  "change": "Add a read-only task presenter, project GET route, owner preview setting and existing-design Task Plan tree with verified progress, evidence, approval, revision history and execution budget. Rebuild generated assets and preserve targeted validation records.",
+  "findings": [
+    {
+      "id": "TP07-READONLY",
+      "source": "self",
+      "defect": "Existing checkpoint and verification helpers can mutate storage during a progress read.",
+      "scenario": "A newly opened project could trigger saver setup, or a progress refresh could append a proof or reconcile an effect.",
+      "cause": "Normal runtime constructors and verification routines are designed for execution turns, not a read-only view.",
+      "fix": "Open only existing storage in enforced read-only mode, bypass saver setup and compare saved proofs with current owner fingerprints without verification or reconciliation.",
+      "test": "File and PostgreSQL presenter tests prohibit setup, tool calls and proof writes; default-off access creates no database.",
+      "severity": "behaviour",
+      "impact": "",
+      "alternatives": [],
+      "open": "",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP07-UPSTREAM-PROOF",
+      "source": "reviewer",
+      "defect": "A downstream task stayed completed after its upstream verification proof disappeared.",
+      "scenario": "A fully completed chain lost the saved data verification; later tasks still displayed completed even though their prerequisite was unverified.",
+      "cause": "The initial projection propagated stale evidence but did not propagate missing-proof blocked states.",
+      "fix": "Propagate blocked and stale prerequisites through dependent nodes and replace misleading current verification labels.",
+      "test": "The lost-upstream-proof regression failed before the fix and passed afterward for file and PostgreSQL stores.",
+      "severity": "behaviour",
+      "impact": "",
+      "alternatives": [],
+      "open": "",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP07-REPLACEMENT",
+      "source": "self",
+      "defect": "A replacement-plan summary counted the retried task as preserved work.",
+      "scenario": "A completed replacement attempt was listed among tasks preserved across its own replacement.",
+      "cause": "The preservation list filtered completed actions without excluding the replaced task.",
+      "fix": "Exclude the retried task and show revision changes as field names without raw plan contents.",
+      "test": "The replacement-diff regression failed before the fix and passed afterward in both stores.",
+      "severity": "gap",
+      "impact": "",
+      "alternatives": [],
+      "open": "",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP07-ADJACENT-HISTORY",
+      "source": "reviewer",
+      "defect": "Historical invalidation hid a newer valid preserved attempt and revision comparisons skipped intermediate graphs.",
+      "scenario": "After an old data attempt was invalidated and a new data attempt completed, a later confirmation preserved the new attempt but the view showed no preserved work and compared the first graph directly with the latest.",
+      "cause": "The initial history compared every graph to the current graph and globally excluded task identifiers from any invalidated historical attempt.",
+      "fix": "Compare adjacent graph versions and derive currently valid preservation from the active attempt that predates the transition.",
+      "test": "The new multi-revision regression failed before the fix; all presenter tests including its inherited PostgreSQL case pass afterward.",
+      "severity": "behaviour",
+      "impact": "",
+      "alternatives": [],
+      "open": "",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP07-STATUS",
+      "source": "test",
+      "defect": "Task status used an evidence-control helper and lost its visible status label.",
+      "scenario": "The real page showed currency-style evidence chips instead of completed and blocked task labels.",
+      "cause": "The shared chip helper accepts evidence identifiers, not status labels.",
+      "fix": "Use the existing plain status tag and assert actual labels and absence of evidence controls on task summaries.",
+      "test": "The browser label assertion failed before the fix; final desktop and mobile checks pass in both display modes.",
+      "severity": "behaviour",
+      "impact": "",
+      "alternatives": [],
+      "open": "",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP07-AUDIT-CONTEXT",
+      "source": "self",
+      "defect": "A possible cross-workspace audit destination needed verification.",
+      "scenario": "A service context from another workspace was active when changing the selected workspace preview setting.",
+      "cause": "The route reused a context audit sink whose destination behavior was not obvious from the call site.",
+      "fix": "No code change: the existing audit writer resolves the selected workspace correctly; retain the regression.",
+      "test": "The focused audit-scope regression passed before any change and remains in the API group.",
+      "severity": "privacy",
+      "impact": "",
+      "alternatives": [],
+      "open": "",
+      "verdict": "declined"
+    },
+    {
+      "id": "TP07-CHROMIUM",
+      "source": "test",
+      "defect": "The first browser check could not launch the pinned Chromium executable.",
+      "scenario": "The repository Playwright version requested a browser revision that was absent from the local cache.",
+      "cause": "Available browser binaries did not match the installed Playwright runtime.",
+      "fix": "Install the matching Chromium with the existing environment and keep the failed launch plus successful rerun.",
+      "test": "The final targeted browser checks pass after the recorded installation.",
+      "severity": "flaky",
+      "impact": "",
+      "alternatives": [],
+      "open": "",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP07-BROWSER-KEEPER",
+      "source": "measurement",
+      "defect": "The browser keeper declined the complete temporary workspace copy.",
+      "scenario": "The real browser checks passed but available disk was below the existing keeper threshold.",
+      "cause": "The full workspace copy was refused by its resource guard.",
+      "fix": "Keep the guard; explicitly save screenshots and invented project, task checkpoint and owner JSON fixtures before teardown, and archive those records.",
+      "test": "Each final browser check keeps its actual screenshot and fixture; full workspace retention remains a documented limit.",
+      "severity": "gap",
+      "impact": "",
+      "alternatives": [],
+      "open": "Complete temporary workspace copies were not retained.",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP07-SOCKET",
+      "source": "test",
+      "defect": "The initial targeted planning runner could not create its macOS socket.",
+      "scenario": "The parallel runner startup failed before testing because the temporary path exceeded the local socket length limit.",
+      "cause": "The inherited temporary directory path left insufficient room for the runner socket name.",
+      "fix": "Use a short temporary root for this recorded evaluation and preserve the first failure.",
+      "test": "The subsequent planning group run passed every selected test without skips.",
+      "severity": "flaky",
+      "impact": "",
+      "alternatives": [],
+      "open": "",
+      "verdict": "confirmed"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Relevant planning regression groups",
+      "gate": "Every selected planning test must pass with zero skips; retain both file and PostgreSQL coverage.",
+      "fixed_before_run": true,
+      "result": "315 tests in ten planning files passed, zero failures and zero skips; the earlier socket startup failure is retained.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "",
+      "against_gate": "",
+      "limits": [
+        "The groups cover task planning and affected owners; no full repository gate ran."
+      ]
+    },
+    {
+      "name": "Preview application tests",
+      "gate": "All selected presenter, API, team settings, web client and web generation checks must pass without skips.",
+      "fixed_before_run": true,
+      "result": "57 distinct application tests passed: 33 task presenter/API tests and 24 existing team/web tests, zero skips.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "",
+      "against_gate": "",
+      "limits": [
+        "Tests cover actual file and PostgreSQL stores; execution promotion is a separate gate."
+      ]
+    },
+    {
+      "name": "Final real browser checks",
+      "gate": "The task panel must pass at 1280 and 375 pixels in Developer and Data science modes, with read-only refresh and visible error recovery.",
+      "fixed_before_run": true,
+      "result": "All four final browser checks passed, with actual screenshots and explicit invented fixtures. The whole temporary workspace copy was skipped below the existing 2 GB threshold.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "",
+      "against_gate": "",
+      "limits": [
+        "Screenshots and fixture JSON were retained; the whole temporary browser workspace was not copied."
+      ]
+    },
+    {
+      "name": "Owner-capped live planning diagnostic",
+      "gate": "Never exceed USD 2 reserved exposure; no planning effects, no unauthorized or repeated handlers, and at most one holdout read in each completed run.",
+      "fixed_before_run": true,
+      "result": "27 model requests on four fresh invented scenarios; token-priced USD 0.025211 and permanently reserved USD 0.08684772. All 27 full replies and returned reasoning records were retained. Three workflows completed with one holdout read each; the changed-contract scenario stopped with zero holdout reads. Zero unauthorized, repeated or leaking handlers and zero offered tool schemas during planning.",
+      "verdict": "pass",
+      "next": "Measure proposed-hierarchy execution only after a reviewed dispatcher integration and a newly frozen independent evaluation.",
+      "against_gate": "",
+      "limits": [
+        "These are provider-catalog token prices, not an invoice.",
+        "Task plans ran on the deterministic graph; complete model-hierarchy execution remains unavailable.",
+        "The frozen promotion failure is unchanged; the small diagnostic does not establish general benefit."
+      ]
+    },
+    {
+      "name": "Execution release boundary",
+      "gate": "Only a passed frozen promotion gate can authorize execution rollout.",
+      "fixed_before_run": true,
+      "result": "The historical 45/48 correctness is below the required 95%; the complete model-hierarchy execution arm remains unmeasured. Execution stays disabled and only the read-only preview is delivered.",
+      "verdict": "fail",
+      "cost_eur": 0.0,
+      "next": "",
+      "against_gate": "",
+      "limits": [
+        "The preview adds visibility and does not improve the frozen comparison."
+      ]
+    },
+    {
+      "name": "Final independent review",
+      "gate": "Resolve all confirmed correctness findings and obtain independent review acceptance.",
+      "fixed_before_run": true,
+      "result": "PASS with no remaining correctness finding; the independently recorded revision regression passed one test.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "",
+      "against_gate": "",
+      "limits": [
+        "The review supports this preview diff; execution promotion remains blocked."
+      ]
+    },
+    {
+      "name": "Development corpus validation",
+      "gate": "Generate the corpus with zero refused examples and pass all four validation and freshness tests.",
+      "fixed_before_run": true,
+      "result": "The generated corpus has zero refused examples and all four validation and freshness checks pass.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "",
+      "against_gate": "",
+      "limits": []
+    }
+  ],
+  "outcome": "The read-only Task Plan developer preview is complete with independent review, 57 distinct relevant application tests, four final browser checks and four completion-corpus checks. Execution stays blocked. The separate live diagnostic remained within the owner cap; all logs, failures, screenshots and invented fixtures are collected through the immutable local archive.",
+  "lessons": [
+    "A read-only endpoint must avoid saver setup and proof-writing verification helpers.",
+    "Loss of upstream proof must invalidate dependent completion claims in the view.",
+    "Check visible labels in the actual browser; a shared helper name can conceal different semantics.",
+    "Keep failed checks and resource retention limits beside successful reruns.",
+    "Separate task-plan execution evidence from proposed hierarchy execution evidence.",
+    "Use independent permanent reservations when a budget currency differs from gateway field names."
+  ],
+  "risks": [
+    "A progress view could otherwise mutate checkpoints or imply unsupported completion.",
+    "Raw plans or exception text could expose private information.",
+    "A preview switch could be confused with execution authorization.",
+    "Small invented live cases cannot justify promotion."
+  ],
+  "commits": []
+}

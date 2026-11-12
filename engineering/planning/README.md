@@ -58,7 +58,7 @@ engineering/planning/
 | TP-04 | Guarded execution and task progression | Complete — explicit opt-in; 74 relevant checks, file/PostgreSQL real-tool and crash/resume tests, independent review passed (2026-11-12) |
 | TP-05 | Verification, recovery, and replanning | Complete — 125 focused checks, isolated wheel and final independent review passed (2026-11-12) |
 | TP-06 | Evaluation and release gates | Complete — 150 relevant application checks and final independent review passed; frozen offline comparison FAIL, not promoted (45/48 correctness below 95%, C unmeasured); 2026-11-12 |
-| TP-07 | Product integration and rollout | Not started |
+| TP-07 | Product integration and rollout | Complete — default-off read-only developer preview; 57 relevant application tests, four desktop/mobile browser checks and independent review passed; execution rollout blocked (2026-11-12) |
 
 Update this table only when implementation and required validation are complete.
 
@@ -69,7 +69,7 @@ Update this table only when implementation and required validation are complete.
 - [Acceptance, actual verification and next-package handoff](../../docs/guides/TASK_PLANNING_ACCEPTANCE.md)
 - [Expanded source audit](TP_01A_EVIDENCE.json): all mandatory family/step pairs and exact registry schemas at the reviewed commit.
 
-The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 through TP-04 are complete under the owner-directed focused validation scope. TP-05 is complete after its review follow-up. TP-06 evaluation tooling is complete with a rejected promotion recommendation; TP-07 has not started and rollout remains blocked.
+The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 through TP-04 are complete under the owner-directed focused validation scope. TP-05 is complete after its review follow-up. TP-06 evaluation tooling is complete with a rejected promotion recommendation. TP-07 is complete as a default-off read-only developer preview; execution rollout remains blocked.
 
 ## TP-01B contracts and verification
 
@@ -176,6 +176,21 @@ TP-07 execution rollout remains blocked. This package completes evaluation tooli
 application tests and independent review passed. The frozen TP-06 results remain unchanged; this is not a new
 promotion measurement or completion of the broader R-01 audit. TP-07 permits a read-only developer preview despite
 the failed promotion gate; execution rollout remains blocked by the C integration and evaluation gaps.
+
+## TP-07 read-only product preview
+
+[Preview acceptance, release note and rollback](../../docs/guides/TASK_PLAN_PREVIEW_ACCEPTANCE.md) records the
+project Task Plan tree, owner-only audited preview setting, nonmutating file/PostgreSQL reads, allowlisted progress,
+approval/evidence/revision displays and actual browser captures. All 57 distinct relevant application checks and
+four final browser checks passed; independent review passed after the proof-propagation and revision-history fixes.
+Development-corpus checks and permanent evidence collection are recorded with acceptance. Existing intents and
+execution defaults are unchanged. Only the developer preview is complete; the failed execution release gate remains.
+
+The separately authorized dollar-capped diagnostic passed all 315 planning regressions and checked four fresh
+invented live scenarios with 27 model requests. Token-priced USD 0.025211 and reserved maximum USD 0.08684772
+remain below the USD 2 cap. Complete replies and returned reasoning are retained locally in the opted-out evaluation
+archive. Task plans ran on the deterministic graph; full model-hierarchy execution remains unmeasured, and frozen
+TP-06 results are unchanged. Logs, failures, fixtures and screenshots are collected through the permanent archive.
 
 ## Implementation rules
 
