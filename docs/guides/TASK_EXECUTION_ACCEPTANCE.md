@@ -1,5 +1,7 @@
 # TP-04 — guarded sequential task execution
 
+TP-04 historical acceptance. TP-05 adds measured verification and bounded recovery; see [TP-05 acceptance](TASK_RECOVERY_ACCEPTANCE.md).
+
 Status: complete under the owner's focused-test instruction; independent review passed (2026-11-12).
 Scope: TP-04, using the existing basic binary-workflow adapter. No new product route or default rollout.
 

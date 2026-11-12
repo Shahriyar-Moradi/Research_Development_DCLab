@@ -589,6 +589,11 @@ class Toolbox:
         from ..studio.lineage import current_task_attempt
         attempt = current_task_attempt()
         if attempt:
+            from ..studio import solution_report
+            canonical = solution_report.build(self.projects, project_id, analyse=False)
+            path = folder / "solution_report.json"
+            path.write_text(canonical.model_dump_json(), encoding="utf-8")
+            keys.append(files.put(files.key_of(path), path)["key"])
             from dclab_core.task_fingerprints import metadata_fingerprint
             self.projects.log(project_id, "task_exported", {"attempt": attempt, "source": metadata_fingerprint(records),
                               "files": [{"key": key, "sha256": files.record(key)["sha256"]} for key in keys]})

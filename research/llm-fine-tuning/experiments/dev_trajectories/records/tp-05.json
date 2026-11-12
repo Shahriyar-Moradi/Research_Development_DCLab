@@ -1,0 +1,190 @@
+{
+  "package": "TP-05",
+  "title": "Measured task acceptance and bounded recovery without repeated effects",
+  "date": "2026-11-12",
+  "request": "Continue to the next task-planning package, use only tests and groups affected by the changes, and stop after this package.",
+  "spec": "engineering/planning/TP_05.txt",
+  "plan": [
+    "Inspect owner evidence and recovery boundaries before implementing one package.",
+    "Write failing pure evidence and recovery tests, then add independent deterministic verification.",
+    "Capture real partition, fold and OOF provenance in existing owner records and check canonical report artifacts.",
+    "Reconcile effects before bounded replacement planning and preserve source-bound human decisions and immutable history.",
+    "Run focused file and PostgreSQL faults, core/schema/registry compatibility and an isolated installed-wheel check.",
+    "Fix reviewer findings, record remaining limits, rebuild the development corpus and commit locally."
+  ],
+  "decisions": [
+    {
+      "decision": "Keep scientific verification separate from operation completion.",
+      "why": "A completed stage or successful tool reply cannot prove that measured acceptance criteria are satisfied."
+    },
+    {
+      "decision": "Reuse existing owner records, saver and agent.step events.",
+      "why": "No new task contract, database schema, model call or duplicate execution framework is needed."
+    },
+    {
+      "decision": "Permit another attempt only with trusted registry evidence that the handler never started.",
+      "why": "Missing output alone cannot prove that an irreversible effect did not happen."
+    },
+    {
+      "decision": "Require source-bound human confirmation before a semantic graph revision.",
+      "why": "An old solution signature does not authorize a changed table or objective; the task runtime must never grant approval itself."
+    },
+    {
+      "decision": "Mint a new verification identity when unchanged evidence is reused.",
+      "why": "Rebinding an old proof in place would erase the source and graph history that made it meaningful."
+    },
+    {
+      "decision": "Keep the default fixed workflow and optional proof compatibility.",
+      "why": "Unproven task-mode evidence must block task acceptance without narrowing the legacy engine supported workflows."
+    }
+  ],
+  "change": "Add pure evidence/recovery helpers in core and independent owner-record verification in the host. Save measured proof, guarded retry boundary evidence, bounded new plans and explicit source revisions in the existing journal. Correct the binary split identity and export canonical report evidence only in task mode. Keep the final independent review pending.",
+  "findings": [
+    {
+      "id": "TP05-SPLIT",
+      "source": "self",
+      "defect": "The binary final receipt could identify empty split indices instead of the actual locked partition.",
+      "scenario": "The engine checked field names absent from TaskBundle, so its binary fallback used empty index lists.",
+      "cause": "An obsolete attribute check bypassed the bundle train_idx and test_idx fields.",
+      "fix": "Use actual bundle indices for data evidence and final receipts; retain incompatible old receipts as blockers.",
+      "test": "The real chain and holdout split/drift tests pass with the actual measured split.",
+      "severity": "leakage",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP05-SOURCE",
+      "source": "reviewer",
+      "defect": "Source changes and their confirmation did not initially cover the full semantic context.",
+      "scenario": "A changed solution could leave external artifacts identical, while a later exposure change could reuse an earlier confirmation.",
+      "cause": "Invalidation examined only external artifact identities and the initial confirmation hash omitted adapter context fields.",
+      "fix": "Bind confirmation to the full semantic adapter context, solution and dataset/schema; require an unused approval identity and seed semantic task invalidation.",
+      "test": "Changed-table, changed-solution, later-context and repeated-approval cases pass on file and PostgreSQL stores.",
+      "severity": "leakage",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP05-LEAKAGE",
+      "source": "reviewer",
+      "defect": "A completed leakage screen could allow unresolved strong leak suspects into downstream selection.",
+      "scenario": "The canary passed while the screen still flagged an exact proxy that the current solution kept.",
+      "cause": "The first verifier checked declared exclusions without checking the strong findings and current human decision.",
+      "fix": "Block downstream handlers until the existing owner excludes the suspect or the current team records its explicit human keep decision bound to the actual audit verdict.",
+      "test": "The strong-suspect case blocks before features, then the existing human audit pause resumes to the holdout pause without reading it.",
+      "severity": "leakage",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP05-REPORT",
+      "source": "reviewer",
+      "defect": "A numeric dictionary did not prove that the report displayed the measured score and interval.",
+      "scenario": "A report could hold the expected numeric keys while its sections contained only generic prose.",
+      "cause": "The initial check tested dictionary membership without checking displayed tokens and their source paths.",
+      "fix": "Require displayed metric and interval path coverage, actual limits, citation validity and exact canonical content built from current records without row analysis.",
+      "test": "A report with hidden figures is blocked, and the real canonical export verifies on file and PostgreSQL stores.",
+      "severity": "gap",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP05-VERDICT",
+      "source": "reviewer",
+      "defect": "The public verifier could replace a measured failed or stale result with a generic blocked result.",
+      "scenario": "An invalid measured fold proof failed during completion but a later public verify call dropped the violated criteria and evidence.",
+      "cause": "The dispatcher raised a plain reason string when acceptance failed, then mapped that string to a generic status.",
+      "fix": "Carry the structured result through the code-owned blocker and retain it unchanged in public verification; stale source results also retain their original evidence links.",
+      "test": "Invalid-proof and changed-actual-byte tests retain their measured statuses, reasons, criteria and evidence.",
+      "severity": "behaviour",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP05-PERMISSION",
+      "source": "reviewer",
+      "defect": "An old model attempt could be chosen when validating a holdout permission after a source revision.",
+      "scenario": "An unused permission issued for old models could appear fresh relative to the old attempt after replacement models completed.",
+      "cause": "The gate originally selected the first terminal model attempt without excluding invalidated history.",
+      "fix": "Select the latest active terminal model attempt and compare permission identities with the permissions it actually observed before running.",
+      "test": "The old unused permission is refused after a new solution revision; a fresh permission authorizes exactly one final read.",
+      "severity": "leakage",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP05-LATE-BUDGET",
+      "source": "test",
+      "defect": "Late owner completion could retain less than its reserved time charge.",
+      "scenario": "An unknown normal return released its reservation, then later reconciliation added only the difference from the old reservation.",
+      "cause": "The journal did not distinguish the already charged elapsed time from a still-reserved interrupted attempt.",
+      "fix": "Persist each attempt charge and reconcile to the larger reservation or measured owner duration without refunding ambiguity.",
+      "test": "The new assertion failed before the fix; file and PostgreSQL late-completion and recovered-overrun cases pass afterward.",
+      "severity": "behaviour",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP05-OPTIONAL-PROOF",
+      "source": "self",
+      "defect": "Optional proof capture could change which legacy engine runs succeeded.",
+      "scenario": "A binary workflow outside the proof helper bounds could raise while adding metadata after the owner had done its scientific work.",
+      "cause": "The additive evidence helper initially ran without a compatibility boundary.",
+      "fix": "Record unsupported proof as unavailable and let independent task acceptance block it; preserve the legacy owner result.",
+      "test": "A fault-injected unavailable proof leaves the default engine completed on both stores, without a holdout read.",
+      "severity": "latent",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP05-REVIEW-LIMIT",
+      "source": "reviewer",
+      "defect": "The final independent review did not complete.",
+      "scenario": "The reviewer produced concrete findings and then ended at a provider usage limit.",
+      "cause": "External reviewer availability ended before a final verdict.",
+      "fix": "Fix the reported findings and their relevant regressions; retain the final independent review as pending rather than claiming a pass.",
+      "test": "Focused regression evidence is recorded; the remaining review limit is explicit in the acceptance guide and tracker.",
+      "severity": "gap",
+      "verdict": "open"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Focused application checks",
+      "gate": "All 115 distinct relevant application tests must pass with 0 failures and 0 skips, including 55 task-specific tests and file/PostgreSQL faults.",
+      "result": "115 distinct relevant application tests passed with 0 failures and 0 skips; 55 are task-specific.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "115 passed; 0 failures; 0 skips. The 55 task-specific tests passed.",
+      "limits": [
+        "Synthetic data and fault injection only; no broad repository gate or live/sealed evaluation."
+      ]
+    },
+    {
+      "name": "Installed portable core wheel",
+      "gate": "The installed core wheel must pass focused proof/recovery and adapter conformance checks in Python 3.12 with only its four declared direct dependencies.",
+      "result": "Focused installed-wheel verification passed in Python 3.12 with only the four declared direct dependencies; conformance passed.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "limits": [
+        "The focused smoke replaces unrelated full-wheel scenarios under the owner test-scope instruction."
+      ]
+    },
+    {
+      "name": "Independent review",
+      "gate": "The independent reviewer must finish its review after correctness findings are fixed.",
+      "result": "The reviewer produced findings but the final independent review ended at a provider usage limit.",
+      "verdict": "not scored",
+      "cost_eur": 0.0,
+      "limits": [
+        "Final independent review remains pending; no final pass is claimed."
+      ]
+    }
+  ],
+  "outcome": "Implementation and focused validation are complete. Reported correctness findings are fixed. Final independent review remains pending after a provider usage limit; the next package has not started.",
+  "lessons": [
+    "Store measured partition and provenance proof where the scientific work happens.",
+    "A missing result is uncertainty, not permission to repeat an effect.",
+    "Bind human confirmation to the full semantic source and never hash the confirmation into itself.",
+    "Keep explicit human choices tied to their current audit and immutable prior history.",
+    "Use only affected test groups and report an interrupted review honestly."
+  ],
+  "risks": [
+    "Ambiguous effects must stay blocked rather than reset.",
+    "A consumed holdout must never become a retry target.",
+    "Statistical leakage screens cannot prove feature availability at the prediction moment.",
+    "Unsupported source variants and legacy task journals remain blocked."
+  ]
+}

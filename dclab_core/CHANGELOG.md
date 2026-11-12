@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.158.0 (2026-11-12)
+
+- TP-05: pure measured training/OOF proof helpers and criterion verdicts in `task_verification`; bounded failure
+  decisions, dependency invalidation and explicit verification rebasing in `task_recovery`.
+- No tool execution, persistence, model call, approval grant or holdout-label read in these helpers. Hosts still
+  authenticate current owner records and inputs. No frozen contract, published schema or adapter field changes.
+
 ## 0.157.0 (2026-11-04)
 
 - TP-01C: pure `task_validation.validate_graph`, `ready_tasks` and `validate_execution_plan`, plus canonical graph,

@@ -56,7 +56,7 @@ engineering/planning/
 | TP-02 | Model-assisted task decomposition | Complete — proposal only; 44 task tests, 9/9 scripted DEV, 175 focused tests and independent review passed; owner-directed focused validation (2026-11-11) |
 | TP-03 | Task-level execution planning | Complete — proposal only; 28 planner tests, 125 relevant tests, 24/24 scripted DEV and independent review passed (2026-11-11) |
 | TP-04 | Guarded execution and task progression | Complete — explicit opt-in; 74 relevant checks, file/PostgreSQL real-tool and crash/resume tests, independent review passed (2026-11-12) |
-| TP-05 | Verification, recovery, and replanning | Not started |
+| TP-05 | Verification, recovery, and replanning | Implemented — 115 focused checks and isolated wheel passed; final independent review pending after provider usage limit (2026-11-12) |
 | TP-06 | Evaluation and release gates | Not started |
 | TP-07 | Product integration and rollout | Not started |
 
@@ -69,7 +69,7 @@ Update this table only when implementation and required validation are complete.
 - [Acceptance, actual verification and next-package handoff](../../docs/guides/TASK_PLANNING_ACCEPTANCE.md)
 - [Expanded source audit](TP_01A_EVIDENCE.json): all mandatory family/step pairs and exact registry schemas at the reviewed commit.
 
-The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 through TP-04 are complete under the owner-directed focused validation scope. TP-05 and later packages have not started.
+The supplied prompts are flat in this directory. References to a `codex/` subdirectory in the original instructions resolve to these files. TP-01A is design only; no runtime behavior changes. R-01 remains independent. TP-01B through TP-01E are complete. TP-02 through TP-04 are complete under the owner-directed focused validation scope. TP-05 is implemented with final independent review pending. TP-06 and TP-07 have not started.
 
 ## TP-01B contracts and verification
 
@@ -142,7 +142,17 @@ checks passed, including 24 new PostgreSQL cases and selected existing workflow/
 review passed; its pool, ownership and recovered-budget findings are fixed. Checkpoints retain source hashes,
 not private source class values. Scientific acceptance remains pending for TP-05. No product default is enabled.
 
-The owner authorized continuing to TP-05 after this package is committed. TP-05 has not started yet.
+The owner authorized continuing to TP-05 after this package was committed. Its implementation and review limit follow below.
+
+## TP-05 verification and recovery
+
+[Verification and recovery acceptance](../../docs/guides/TASK_RECOVERY_ACCEPTANCE.md) records measured scientific
+proof, independent status/reason/evidence results, trusted registry boundary observation, bounded replacement
+plans, explicit source-bound revisions and preserved verification history. All 115 distinct relevant application
+checks passed, including file/PostgreSQL recovery, human choices, old approval rejection and one holdout use.
+The focused installed core wheel passed; schemas are unchanged. Four development-corpus checks run before commit.
+The reviewer findings are fixed, but the final independent review could not finish after a provider usage limit.
+No final review pass is claimed. TP-06 has not begun.
 
 ## Implementation rules
 

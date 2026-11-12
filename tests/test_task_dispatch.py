@@ -90,7 +90,7 @@ class TaskDispatchTests(unittest.TestCase):
         self.assertEqual(self.store.get(self.pid)["holdout_uses"], 1)
         state = d.state(self.pid)
         self.assertEqual([a["task"] for a in state["attempts"]], ["data", "leakage", "features", "models", "final", "report"])
-        self.assertTrue(all(a["acceptance_verification"] == "pending_tp05" for a in state["attempts"]))
+        self.assertTrue(all(a["acceptance_verification"] == "verified" for a in state["attempts"]))
         self.assertEqual(d.dispatch(self.pid, "final")["status"], "already_completed")
 
     def test_default_off_creates_no_attempt_or_effect(self):

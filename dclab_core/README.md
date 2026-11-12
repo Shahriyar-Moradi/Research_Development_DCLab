@@ -81,3 +81,13 @@ The R&D host's TP-01D adapter (`dclab_rnd.tasks.adapter`) converts one basic bin
 saved project/plan metadata and a detached capability snapshot into a non-executing TaskGraph and mapping report.
 It reuses the pure core checks above; it is not part of the portable wheel. Extra source work or unsupported host
 policies remain blocked. See `docs/guides/TASK_ADAPTER_ACCEPTANCE.md` for the input boundary and inspection example.
+
+## Measured task evidence and recovery (TP-05, 0.158.0)
+
+`task_verification.training_proof`, `check_training_proof` and `threshold_proof` operate on supplied training
+measurements and index partitions. They do not fit, read holdout labels or store class values. `verdict` aggregates
+host-owned criterion results; missing proof cannot pass. `task_recovery.classify_failure`, `invalidated_tasks` and
+`rebase_verified` provide bounded decisions and explicit preservation of unchanged evidence. They never retry a
+tool or grant approval. Their dictionaries are internal metadata, with no new frozen contract or schema.
+The host remains responsible for authenticating current evidence, permissions and inputs before using a result.
+See `docs/guides/TASK_RECOVERY_ACCEPTANCE.md` for the R&D wiring, focused checks and review limit.

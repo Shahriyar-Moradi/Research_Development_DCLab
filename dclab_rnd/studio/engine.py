@@ -1497,6 +1497,12 @@ def _task_assessment(p: Prepared, task: str, selected: dict[str, Any], y_test: p
                      tiny_classes=tiny, segments=segments, cap=cap)
         if kind == "binary" and inputs["note"]:
             out["threshold"]["plan_note"] = inputs["note"]
+        if kind == "binary":
+            from dclab_core.task_verification import training_proof, threshold_proof
+
+            training = training_proof(bundle.train_idx, bundle.test_idx, bundle.cv_splits, bundle.y_train)
+            out["threshold_proof"] = threshold_proof(training, selected["_oof_index"], selected["_oof_pred"],
+                                                       configuration=selected["config_id"], policy=inputs)
         return out
     except Exception as exc:  # noqa: BLE001 - an assessment the data does not allow leaves the stage as it was
         from ..observe import log
@@ -1937,8 +1943,8 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
         if stage == "final":
             from dclab_core.holdout import check_receipt, mark_consumed, record_intent, split_fingerprint
 
-            if hasattr(p, "bundle") and hasattr(p.bundle, "train_indices") and hasattr(p.bundle, "holdout_indices"):
-                fp = split_fingerprint(p.bundle.train_indices, p.bundle.holdout_indices)
+            if hasattr(p, "bundle"):
+                fp = split_fingerprint(p.bundle.train_idx, p.bundle.test_idx)
             elif isinstance(p, MachinePrepared):
                 tr = getattr(p.machine, "train_rows", None)
                 ho = getattr(p.machine, "holdout_rows", None)
@@ -1994,8 +2000,7 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
             from dclab_core.holdout import split_fingerprint
 
             evidence, claims, summary = stage_data(p, eid)
-            if hasattr(p, "bundle") and hasattr(p.bundle, "train_indices") and hasattr(p.bundle, "holdout_indices"):
-                evidence["split_fingerprint"] = split_fingerprint(p.bundle.train_indices, p.bundle.holdout_indices)
+            evidence["split_fingerprint"] = split_fingerprint(p.bundle.train_idx, p.bundle.test_idx)
         elif stage == "leakage":
             evidence, claims, summary = stage_leakage(p, eid)
         elif stage == "features":
@@ -2032,6 +2037,22 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
             if reuse_reason:
                 evidence["holdout_reuse_reason"] = str(reuse_reason)[:500]
             decision = {"kind": "final", "selected": evidence["selected_optimization"], "chosen": evidence["selected_optimization"], "rule": evidence["selection_rule"], "options": []}
+        if not isinstance(p, MachinePrepared) and p.kind.base_task == "binary":
+            from dclab_core.task_verification import training_proof
+            from dclab_core.task_fingerprints import metadata_fingerprint
+
+            try:
+                training = training_proof(p.bundle.train_idx, p.bundle.test_idx, p.bundle.cv_splits, p.bundle.y_train)
+            except (ValueError, TypeError):
+                # Evidence capture must not change the legacy engine's supported workflows. Task acceptance
+                # separately blocks absent proof; it never infers a pass or rereads a scored holdout.
+                evidence['training_proof_unavailable'] = 'unsupported_training_evidence'
+            else:
+                evidence["training_proof"] = training
+                evidence["training_scope"] = {"cv_fingerprint": metadata_fingerprint(training),
+                                               "fit_scope": "training_folds", "selection_scope": "training_validation",
+                                               "excluded_columns": sorted(p.bundle.spec.blocked_features),
+                                               "identifier_columns": sorted(p.bundle.spec.identifier_columns)}
         if stage == "final":  # 30.15: G4, honest and usable, with where a failure sends the work back
             if receipt is not None:
                 from dclab_core.holdout import mark_consumed

@@ -20,6 +20,8 @@ checks the Home agent's writes. A write in a scope without a guard never runs.
 from __future__ import annotations
 
 import inspect
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any, Callable, Protocol
 
@@ -27,6 +29,19 @@ import jsonschema
 
 SCOPES = ("project", "draft", "session", "campaign", "workspace", "home", "chat", "case")  # case: 37.3, the lead agent's case-file tools  # workspace: 30.21, the chat over the workspace's tables; home: the Home orchestrator's team on a built project; chat: A7, DCLab's agents behind an external chat
 EFFECTS = ("read", "write")
+
+_OBSERVATION = ContextVar("registry_call_observation", default=None)
+
+
+@contextmanager
+def observe_call():
+    """Trusted in-process boundary evidence, never a tool reply or agent claim."""
+    observation = {"seen": False, "phase": "not_entered", "handler_entered": False}
+    token = _OBSERVATION.set(observation)
+    try:
+        yield observation
+    finally:
+        _OBSERVATION.reset(token)
 
 
 @dataclass(frozen=True)
@@ -113,6 +128,9 @@ class Registry:
     def call(self, name: str, arguments: dict[str, Any] | None = None, context: Any = None, scope: str | None = None,
              check: str = "schema") -> Any:
         """Check and run one tool call. Every problem comes back as ``{"error": ...}``."""
+        observation = _OBSERVATION.get()
+        if observation is not None:
+            observation.update(seen=True, phase="validation")
         tool = self.get(name)
         if tool is None or (scope is not None and tool.scope != scope):
             available = ", ".join(self.names(scope))
@@ -124,12 +142,18 @@ class Registry:
         if problem:
             return {"error": problem}
         if tool.effect != "write":
+            if observation is not None:
+                observation.update(phase="handler", handler_entered=True)
             return self._run(tool, lambda: tool.handler(context, **arguments) if tool.takes_context else tool.handler(**arguments))
+        if observation is not None:
+            observation["phase"] = "guard"
         guard = self.guards.get(tool.scope)
         if guard is None:
             raise RuntimeError(f"{tool.name} writes in scope {tool.scope!r}, which has no guard: it may not run")
 
         def proceed() -> Any:
+            if observation is not None:
+                observation.update(phase="handler", handler_entered=True)
             return self._run(tool, lambda: tool.handler(context, **arguments) if tool.takes_context else tool.handler(**arguments))
         return self._run(tool, lambda: guard(tool, context, arguments, proceed))
 

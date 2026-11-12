@@ -1413,3 +1413,22 @@ checkpoint owners. Adopting this path requires an equivalent reviewed exclusive-
 mapping; do not copy the R&D store/checkpointer or invent fields absent from the pinned main-product inventory.
 Operation completion does not prove scientific acceptance, which remains pending for TP-05. See
 `docs/guides/TASK_EXECUTION_ACCEPTANCE.md` for exact bounds, the platform limit and actual file/PostgreSQL checks.
+
+## Independent task verification and recovery (TP-05)
+
+Core 0.158.0 adds pure `task_verification` and `task_recovery` helpers. The host supplies measured training partitions,
+class-slot/fold counts and OOF provenance; no row values are needed in the resulting task metadata. The helpers
+aggregate measured criteria and compute dependency invalidation. They cannot authorize a write, retry a tool,
+confirm a new source revision or consume a holdout. Existing TaskGraph/TaskExecutionPlan schemas remain unchanged.
+
+The R&D host separates `tasks.verifier` from dispatch, reads real owner evidence, preserves verification/attempt
+history in the current saver and records existing `agent.step` events. Task-mode export includes a canonical
+SolutionReport JSON checked against the actual record context, without model prose or row analysis. A new source
+revision needs an explicit source-bound approval through the existing human owner path. Actual effects continue
+through the existing guarded registry and engine only. Default product execution is unchanged.
+
+The pinned main-product inventory has no task-verification or retry fields. No adapter invents them. A host adopting
+these helpers must map its own current owner records, permission identity, handler-entry evidence, saver and
+holdout receipt, then run its own affected conformance/safety cases. Existing event/lineage/ledger adapters still
+apply unchanged. Internal R&D verification dictionaries are not a new portable persistence contract.
+See `docs/guides/TASK_RECOVERY_ACCEPTANCE.md`; final independent review is pending after a provider usage limit.
