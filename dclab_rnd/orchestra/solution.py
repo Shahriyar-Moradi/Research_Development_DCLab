@@ -71,7 +71,8 @@ class SolutionTeam:
     TEAM = "solution"
 
     def __init__(self, projects: Any, checkpointer: Any, home: Any = None, advisor: Any = None, max_steps: int = 40,
-                 shadow: Any = None, shadow_name: str = "", max_eur: Optional[float] = None, task_execution: bool = False):
+                 shadow: Any = None, shadow_name: str = "", max_eur: Optional[float] = None, task_execution: bool = False,
+                 admit_proposals: bool = False):
         self.projects, self.checkpointer, self.home, self.advisor = projects, checkpointer, home, advisor
         self.shadow, self.shadow_name = shadow, shadow_name  # 28.10: a model that answers the router's question beside it, never used
         self.max_steps = max_steps
@@ -79,10 +80,11 @@ class SolutionTeam:
         self.asker = Asker()
         self.graph = None
         self.task_execution = task_execution  # TP-04 developer opt-in; no product switch or default execution change
+        self.admit_proposals = admit_proposals
 
     def _tasks(self):
         from ..tasks.dispatch import TaskDispatcher
-        return TaskDispatcher(self.projects, self.checkpointer, enabled=self.task_execution,
+        return TaskDispatcher(self.projects, self.checkpointer, enabled=self.task_execution, admit_proposals=self.admit_proposals,
                               budget={"max_tool_calls": min(self.max_steps, 100), "max_seconds": 3600, "max_cost_eur": 0.0})
 
     def _task_call(self, project_id, task):

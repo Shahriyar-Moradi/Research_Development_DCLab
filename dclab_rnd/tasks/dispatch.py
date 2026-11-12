@@ -58,11 +58,45 @@ def _permission(entry):
     return metadata_fingerprint({k: v for k, v in entry.items() if k != "used"})
 
 
+def _closure(links):
+    found = {}
+
+    def visit(key, path):
+        if key in path or key not in links:
+            raise Blocked("source_or_capability_changed")
+        if key not in found:
+            res = set()
+            for dep in links[key]:
+                res.add(dep)
+                res.update(visit(dep, path | {key}))
+            found[key] = res
+        return found[key]
+
+    for key in links:
+        visit(key, set())
+    return found
+
+
+def _atomic_specs(g):
+    result = {}
+    for n in g.nodes:
+        if n.kind == "group":
+            continue
+        body = n.model_dump(mode="json", exclude={"parent_id", "dependencies"})
+        for key in ("source_step_ids", "needs", "produces"):
+            body[key].sort()
+        body["acceptance_checks"] = sorted(
+            ({**c, "evidence_refs": sorted(c["evidence_refs"])} for c in body["acceptance_checks"]), key=lambda c: c["id"])
+        result[n.id] = body
+    return result
+
+
 class TaskDispatcher:
-    def __init__(self, projects, checkpointer, *, enabled=False, registry=None, allowed_tools=None, budget=None):
+    def __init__(self, projects, checkpointer, *, enabled=False, registry=None, allowed_tools=None, budget=None, admit_proposals=False):
         from dclab_rnd.agents import build_registry
 
         self.projects, self.saver, self.enabled = projects, checkpointer, enabled
+        self.admit_proposals = bool(admit_proposals)
         self.registry = registry if registry is not None else build_registry(("project",))
         self.allowed = set(allowed_tools if allowed_tools is not None else ("run_stage", "export_notebook"))
         self.budget = TaskBudget.model_validate(budget or {"max_tool_calls": 6, "max_seconds": 3600, "max_cost_eur": 0.0})
@@ -90,6 +124,8 @@ class TaskDispatcher:
             ids.add(attempt["id"])
         if state.get('version') == VERSION:
             if any(not isinstance(state.get(key), list) for key in ('verifications', 'replans', 'graph_history', 'source_approvals')):
+                raise Blocked('invalid_task_checkpoint')
+            if 'admission' in state and not isinstance(state['admission'], dict):
                 raise Blocked('invalid_task_checkpoint')
             active = [a for a in state['attempts'] if not a.get('invalidated_by')]
             if any(sum(a['task'] == task for a in active) > 2 for task in (*STAGES, 'report')):
@@ -135,6 +171,57 @@ class TaskDispatcher:
                 "code": _code(), "external_artifacts": mapping["external_artifacts"], "attempts": [], "transitions": [], "verifications": [], "replans": [], "graph_history": [], "source_approvals": [metadata_fingerprint(project.get("signoff"))], "source_identity": self.source_revision(project["id"]),
                 "budget": self.budget.model_dump(), "tool_calls": 0, "seconds": 0.0, "revision": 0}
 
+    def _validate_admitted_graph(self, graph, baseline, workflow, caps, mapping, state):
+        from dclab_core.task_fingerprints import graph_fingerprint
+        from dclab_core.task_validation import validate_graph
+
+        if graph_fingerprint(graph) != graph.fingerprint:
+            raise Blocked("source_or_capability_changed")
+        admission = state.get("admission")
+        if not isinstance(admission, dict) or admission.get("fingerprint") != graph.fingerprint:
+            raise Blocked("source_or_capability_changed")
+        if (graph.provenance.method != "model"
+                or admission.get("reference_id") != graph.provenance.reference_id
+                or admission.get("producer_version") != graph.provenance.producer_version):
+            raise Blocked("source_or_capability_changed")
+        sources = lambda g: sorted((ref.kind, ref.id, ref.fingerprint) for ref in g.source_refs)
+        if (sources(graph) != sources(baseline) or graph.solution_fingerprint != baseline.solution_fingerprint
+                or graph.workflow_fingerprint != baseline.workflow_fingerprint or graph.graph_id != baseline.graph_id
+                or graph.objective != baseline.objective):
+            raise Blocked("source_or_capability_changed")
+        if _atomic_specs(graph) != _atomic_specs(baseline):
+            raise Blocked("source_or_capability_changed")
+        leaves = {n.id: n for n in baseline.nodes if n.kind != "group"}
+        groups = {n.id: n for n in graph.nodes if n.kind == "group"}
+        if len(groups) > 32 or len(graph.nodes) > 32 or not groups:
+            raise Blocked("source_or_capability_changed")
+        root = next((n for n in graph.nodes if n.id == "root" and n.kind == "group"), None)
+        if root is None or root.parent_id is not None:
+            raise Blocked("source_or_capability_changed")
+        parents = {n.id: {n.parent_id} if n.parent_id else set() for n in graph.nodes if n.kind == "group"}
+        try:
+            ancestors = _closure(parents)
+        except Exception:
+            raise Blocked("source_or_capability_changed")
+        if any(len(a) > 4 for a in ancestors.values()):
+            raise Blocked("source_or_capability_changed")
+        if any(n.id != "root" and "root" not in ancestors[n.id] for n in graph.nodes if n.kind == "group"):
+            raise Blocked("source_or_capability_changed")
+        for ident in leaves:
+            candidate_leaf = next(n for n in graph.nodes if n.id == ident)
+            if candidate_leaf.parent_id not in groups or (candidate_leaf.parent_id != "root" and "root" not in ancestors[candidate_leaf.parent_id]):
+                raise Blocked("source_or_capability_changed")
+        deps = {n.id: set(n.dependencies) for n in graph.nodes if n.kind != "group"}
+        try:
+            closure = _closure(deps)
+        except Exception:
+            raise Blocked("source_or_capability_changed")
+        for ident, leaf in leaves.items():
+            if not set(leaf.dependencies) <= closure.get(ident, set()):
+                raise Blocked("source_or_capability_changed")
+        if validate_graph(graph, workflow, known_capabilities=caps, external_artifacts=mapping["external_artifacts"]):
+            raise Blocked("source_or_capability_changed")
+
     def _sources(self, project, state, caps):
         if state["version"] != VERSION or state["code"] != _code():
             raise Blocked("runtime_code_changed")
@@ -143,10 +230,89 @@ class TaskDispatcher:
         # private class values; their complete bodies do not belong in task checkpoints or traces.
         source = plan_from_project(project)
         workflow = solution_workflow(problem_card(brief_from_project(project)))
-        fresh, mapping = adapt_workflow(workflow, source, project, capabilities=caps, revision=graph.revision)
-        if fresh != graph or mapping["status"] != "mapped":
+        baseline, mapping = adapt_workflow(workflow, source, project, capabilities=caps, revision=graph.revision)
+        if baseline is None or mapping["status"] != "mapped":
+            raise Blocked("source_or_capability_changed")
+        if graph.provenance.method == "deterministic":
+            if baseline != graph:
+                raise Blocked("source_or_capability_changed")
+        elif graph.provenance.method == "model":
+            self._validate_admitted_graph(graph, baseline, workflow, caps, mapping, state)
+        else:
             raise Blocked("source_or_capability_changed")
         return graph, source, workflow, mapping
+
+    def admit(self, project_id, candidate):
+        """Opt-in admission of a validated model-proposed TaskGraph; no execution occurs here."""
+        if not self.enabled:
+            return {"status": "disabled", "reason": "task_execution_disabled"}
+        if not self.admit_proposals:
+            return {"status": "blocked", "reason": "proposal_admission_disabled"}
+        with self.projects.turn(project_id, require_process=True):
+            try:
+                project = self.projects.get(project_id)
+                state = self.state(project_id)
+                if state is not None and (state.get("attempts") or state.get("transitions")):
+                    return {"status": "blocked", "reason": "execution_already_initialized"}
+                if any(meta.get("status") != "pending" for meta in project["stages"].values()):
+                    return {"status": "blocked", "reason": "existing_work_needs_explicit_adoption"}
+                caps = capability_snapshot(self.registry, allowed_tools=self.allowed)
+                source = plan_from_project(project)
+                workflow = solution_workflow(problem_card(brief_from_project(project)))
+                baseline, mapping = adapt_workflow(workflow, source, project, capabilities=caps)
+                if baseline is None or mapping["status"] != "mapped":
+                    return {"status": "blocked", "reason": "source_or_capability_blocked"}
+                try:
+                    graph = TaskGraph.read(candidate.model_dump(mode="json") if hasattr(candidate, "model_dump") else candidate)
+                except Exception:
+                    return {"status": "blocked", "reason": "proposal_invalid"}
+                if graph.provenance.method != "model":
+                    return {"status": "blocked", "reason": "proposal_invalid"}
+                if graph.revision != baseline.revision + 1:
+                    return {"status": "blocked", "reason": "proposal_invalid"}
+                try:
+                    fake_state = {
+                        "admission": {
+                            "fingerprint": graph.fingerprint,
+                            "reference_id": graph.provenance.reference_id,
+                            "producer_version": graph.provenance.producer_version,
+                        }
+                    }
+                    self._validate_admitted_graph(graph, baseline, workflow, caps, mapping, fake_state)
+                except Blocked:
+                    return {"status": "blocked", "reason": "proposal_invalid"}
+                except Exception:
+                    return {"status": "blocked", "reason": "proposal_invalid"}
+                from dclab_rnd.studio.store import now
+                state = {
+                    "version": VERSION,
+                    "graph": graph.model_dump(mode="json"),
+                    "code": _code(),
+                    "external_artifacts": mapping["external_artifacts"],
+                    "attempts": [],
+                    "transitions": [],
+                    "verifications": [],
+                    "replans": [],
+                    "graph_history": [],
+                    "source_approvals": [metadata_fingerprint(project.get("signoff"))],
+                    "source_identity": self.source_revision(project["id"]),
+                    "admission": {
+                        "reference_id": graph.provenance.reference_id,
+                        "producer_version": graph.provenance.producer_version,
+                        "at": now(),
+                        "fingerprint": graph.fingerprint,
+                    },
+                    "budget": self.budget.model_dump(),
+                    "tool_calls": 0,
+                    "seconds": 0.0,
+                    "revision": 0,
+                }
+                self._save(project_id, state, "proposal_admitted")
+                return {"status": "admitted", "graph_fingerprint": graph.fingerprint, "revision": graph.revision}
+            except Blocked as error:
+                return {"status": "blocked", "reason": str(error)}
+            except Exception:
+                return {"status": "blocked", "reason": "proposal_invalid"}
 
     def _stage_evidence(self, pid, task, attempt):
         from dclab_rnd.studio import lineage
@@ -432,6 +598,39 @@ class TaskDispatcher:
                 fresh, mapping = adapt_workflow(workflow, source, project, capabilities=caps, revision=old.revision + 1)
                 if fresh is None or mapping['status'] != 'mapped':
                     raise Blocked('replacement_graph_invalid')
+                if old.provenance.method == "model":
+                    from dclab_core.task_fingerprints import graph_fingerprint
+                    baseline = fresh
+                    groups = [n for n in old.nodes if n.kind == "group"]
+                    old_leaves = {n.id: n for n in old.nodes if n.kind != "group"}
+                    leaves_json = []
+                    for n in fresh.nodes:
+                        if n.kind == "group":
+                            continue
+                        body = n.model_dump(mode="json")
+                        old_leaf = old_leaves.get(n.id)
+                        if old_leaf:
+                            body["parent_id"] = old_leaf.parent_id
+                            body["dependencies"] = list(old_leaf.dependencies)
+                        leaves_json.append(body)
+                    edges = [{"kind": "grouping", "source": n["parent_id"], "target": n["id"]}
+                             for n in [g.model_dump(mode="json") for g in groups] + leaves_json if n.get("parent_id")]
+                    edges.extend({"kind": "dependency", "source": dep, "target": n["id"]}
+                                 for n in leaves_json for dep in n.get("dependencies", []))
+                    body = fresh.model_dump(mode="json")
+                    body.update(nodes=[g.model_dump(mode="json") for g in groups] + leaves_json,
+                                edges=edges, revision=old.revision + 1,
+                                provenance=old.provenance.model_dump(mode="json"))
+                    body["fingerprint"] = graph_fingerprint(body)
+                    fresh = TaskGraph.read(body)
+                    fake_state = {
+                        "admission": {
+                            "fingerprint": fresh.fingerprint,
+                            "reference_id": fresh.provenance.reference_id,
+                            "producer_version": fresh.provenance.producer_version,
+                        }
+                    }
+                    self._validate_admitted_graph(fresh, baseline, workflow, caps, mapping, fake_state)
                 changed = {key for key, value in mapping['external_artifacts'].items()
                            if key not in state.get('external_artifacts', {}) or state['external_artifacts'][key] != value}
                 verified = {a['task'] for a in state['attempts'] if a['status'] in TERMINAL and not a.get('invalidated_by')}
@@ -450,6 +649,8 @@ class TaskDispatcher:
                 state['external_artifacts'] = mapping['external_artifacts']
                 state.pop('holdout_permission', None)
                 state.pop('retry_authorization', None)
+                if state.get('admission'):
+                    state['admission']['fingerprint'] = fresh.fingerprint
                 for attempt in state['attempts']:
                     if attempt['task'] in result['invalidated'] and not attempt.get('invalidated_by'):
                         attempt['invalidated_by'] = fresh.fingerprint
@@ -573,6 +774,8 @@ class TaskDispatcher:
                     state = self._initial(project, caps)
                     self._save(project_id, state, "initialized")
                 graph, source, workflow, mapping = self._sources(project, state, caps)
+                if graph.provenance.method == "model" and not self.admit_proposals:
+                    raise Blocked("proposed_graph_admission_disabled")
                 data.data_path(self.projects, project)  # owner API checks actual bytes; no table rows are read here
                 for pending in state["attempts"]:
                     if pending["status"] == "started":

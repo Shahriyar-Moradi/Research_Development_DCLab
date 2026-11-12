@@ -1,0 +1,135 @@
+{
+  "package": "TP-08",
+  "title": "Admit validated model-proposed task hierarchies into guarded execution runtime",
+  "date": "2026-11-12",
+  "request": "Begin the graph-admission package, staying focused on relevant tests and spending nothing on live models, preserving single holdout gate and deterministic fallback.",
+  "spec": "docs/guides/TASK_PLANNING_NEXT_STEPS.md",
+  "plan": [
+    "Define an explicit double opt-in path for admitting validated model proposals into TaskDispatcher.",
+    "Enforce exact non-group leaf equality, transitive mandatory dependency preservation and bounded hierarchy rules.",
+    "Write comprehensive failing-before regressions covering admission, refusal, tampering and crash recovery for file and PostgreSQL backends.",
+    "Implement TaskDispatcher.admit and execution-time validation in TaskDispatcher._sources and SolutionTeam.",
+    "Subject the implementation to independent adversarial review, fix all confirmed defects, and verify zero regressions across all planning suites."
+  ],
+  "decisions": [
+    {
+      "decision": "Require double opt-in (enabled=True and admit_proposals=True) with a false default.",
+      "why": "Model proposal admission must not activate task execution or alter deterministic runtime behaviour without explicit configuration."
+    },
+    {
+      "decision": "Enforce strict atomic leaf equality between proposed candidate and deterministic baseline.",
+      "why": "The model is permitted to introduce grouping nodes and topological dependencies, but must never modify physical tasks, capabilities, scopes or acceptance checks."
+    },
+    {
+      "decision": "Record an immutable admission receipt containing candidate fingerprint, producer version and reference ID in state.",
+      "why": "Checkpoint tampering or subsequent source changes must not silently replace or forge admitted graphs."
+    },
+    {
+      "decision": "Validate the reconstructed model graph inside adopt_sources before committing updated state.",
+      "why": "Source updates must not leave dangling dependencies or invalid hierarchy trees in persistent checkpoints."
+    },
+    {
+      "decision": "Spend zero on live models during admission testing by using scripted boundaries and TP-02 compiler fixtures.",
+      "why": "Integration boundaries must be fully verified and proved deterministic without consuming live model budgets."
+    }
+  ],
+  "change": "Add opt-in model-proposed task graph admission to TaskDispatcher and SolutionTeam with structural leaf checks, hierarchy depth/node bounds, transitive dependency preservation, tamper-evident admission receipts, and re-grounding across source updates.",
+  "findings": [
+    {
+      "id": "ADV-TP08-01",
+      "source": "reviewer",
+      "defect": "adopt_sources omitted validation of the reconstructed model graph against workflow rules.",
+      "scenario": "A source change on an admitted graph produces dangling or invalid dependencies which are written to state while claiming ready status.",
+      "cause": "adopt_sources re-grounded group edges onto updated leaves without validating the reconstructed candidate.",
+      "fix": "Validate the reconstructed graph against _validate_admitted_graph before updating checkpoint state, cleanly returning blocked on invalid structure.",
+      "test": "test_adopt_sources_refuses_reconstructed_graph_with_dangling_dependency",
+      "severity": "behaviour",
+      "impact": "A corrupted task graph would be durably committed and subsequently fail during dispatch.",
+      "alternatives": ["Revert to deterministic graph on source update"],
+      "open": "",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "ADV-TP08-02",
+      "source": "reviewer",
+      "defect": "Unrooted group hierarchies and unparented leaves passed admission validation.",
+      "scenario": "A candidate graph with a disjoint orphan group or an unparented leaf node was admitted, breaking tree rendering in TaskPlan view.",
+      "cause": "_validate_admitted_graph only checked root.parent_id is None without asserting that all groups descend from root and all leaves have valid parents.",
+      "fix": "Assert that root is in transitive ancestors for all groups except root, and all leaf parent_ids belong to the group tree.",
+      "test": "test_unrooted_groups_or_unparented_leaves_are_refused",
+      "severity": "behaviour",
+      "impact": "Disjoint groups and orphaned leaf nodes would be omitted from hierarchical task trees.",
+      "alternatives": ["Auto-attach unparented nodes to root"],
+      "open": "",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "ADV-TP08-03",
+      "source": "reviewer",
+      "defect": "Unhandled Blocked exception escaped TaskDispatcher.admit on corrupted checkpoints.",
+      "scenario": "Calling admit on a project with a malformed task checkpoint crashed with an unhandled exception instead of returning a blocked result.",
+      "cause": "admit lacked an outer try-except Blocked block around project state inspection.",
+      "fix": "Wrap the turn block in try-except Blocked and return clean status blocked with the error message.",
+      "test": "test_admit_on_corrupted_checkpoint_returns_blocked",
+      "severity": "behaviour",
+      "impact": "API callers would receive an unhandled 500 server error instead of a graceful refusal.",
+      "alternatives": [],
+      "open": "",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "ADV-TP08-04",
+      "source": "reviewer",
+      "defect": "Checkpoint provenance tampering was undetected by _validate_admitted_graph.",
+      "scenario": "Altering reference_id or producer_version in a checkpoint was undetected because graph_fingerprint excludes provenance.",
+      "cause": "_validate_admitted_graph only checked fingerprint equality without verifying provenance fields against the admission record.",
+      "fix": "Verify that graph.provenance.method is model and reference_id and producer_version match state admission record.",
+      "test": "test_tampered_provenance_in_checkpoint_refuses_dispatch",
+      "severity": "behaviour",
+      "impact": "Provenance records could be forged without invalidating graph fingerprint.",
+      "alternatives": ["Include provenance in graph_fingerprint (breaks schema fingerprint contract)"],
+      "open": "",
+      "verdict": "confirmed"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Task admission regression suite",
+      "gate": "All 36 task admission tests must pass with zero skips across FileStore and PostgreSQL backends.",
+      "fixed_before_run": true,
+      "result": "36 tests passed in 22.2s with zero failures and zero skips.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "",
+      "against_gate": "",
+      "limits": [
+        "Covers admission and guarded execution; does not measure live-model generation quality."
+      ]
+    },
+    {
+      "name": "Task planning full suite",
+      "gate": "All 11 task planning test files must pass with zero regressions.",
+      "fixed_before_run": true,
+      "result": "357 tests across 11 test files passed in 46.8s with zero failures.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "",
+      "against_gate": "",
+      "limits": [
+        "Execution rollout remains disabled by default pending formal promotion gate rerun."
+      ]
+    }
+  ],
+  "outcome": "Model-proposed task graph admission is fully implemented and tested with 36 dedicated regressions across SQLite/file and PostgreSQL stores, 4 confirmed adversarial findings resolved, and all 357 planning tests passing with zero live model spend.",
+  "lessons": [
+    "Reconstructed graphs in source update handlers must undergo full schema and contractual validation before saving.",
+    "Group hierarchies require explicit transitive root reachability assertions to prevent disjoint group forests.",
+    "When graph fingerprints exclude metadata fields like provenance, checkpoint receipts must explicitly verify those fields.",
+    "API-level dispatcher methods must catch internal domain exceptions and return structured blocked responses."
+  ],
+  "risks": [
+    "Admitting model hierarchies could be confused with permission to enable default execution rollout.",
+    "Complex nested groups require strict depth limits to avoid UI rendering degradation."
+  ],
+  "commits": []
+}

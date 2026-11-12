@@ -5,9 +5,9 @@
 
 ## 1. Executive status
 
-The planning foundation, guarded deterministic task execution, verification and recovery are implemented. **TP-07 is now complete as a default-off, read-only Task Plan developer preview.** It has been committed.
+The planning foundation, guarded deterministic task execution, verification, recovery, and read-only developer preview (TP-07) are implemented. **TP-08 is now complete: validated model-proposed task hierarchies can be admitted into guarded execution under double opt-in (`enabled=True`, `admit_proposals=True`).**
 
-**Full model-assisted execution and execution rollout remain unfinished.** The runtime cannot yet execute a model-proposed hierarchy, and the frozen promotion comparison failed.
+**Execution rollout remains disabled by default.** While the dispatcher can now execute admitted model-proposed task hierarchies, default product execution rollout requires passing the independent promotion gate evaluation.
 
 Earlier chat statements that TP-07 was “not started” or “uncommitted” are superseded by this report. The checkout advanced while the handoff was being prepared. Do not recreate the preview or treat completed package tooling as a passed release gate.
 
@@ -59,6 +59,7 @@ Recent relevant commits:
 | TP-05 | Independent scientific verification, bounded recovery, source-bound revisions and preserved verification history | No default execution rollout |
 | TP-06 | Frozen evaluation harness, comparisons, reports and promotion gate | Tooling complete; promotion failed |
 | TP-07 | Real Task Plan panel, read-only project API, owner preview setting, responsive UI and rollback | Preview complete; execution rollout blocked |
+| TP-08 | Validated model-proposed task hierarchy admission into guarded execution, structural leaf checks, hierarchy bounds, tamper receipts, re-grounding across source updates | Complete; admission works under double opt-in (`admit_proposals=True`), execution remains default-off |
 
 The separate **R-01 Home routing audit remains pending verification**. A focused routing correction is complete; that is not completion of the broader audit.
 
@@ -111,6 +112,7 @@ These are existing recorded results. No application tests were rerun just to wri
 - **Frontend:** `make web` passed; generated assets and the API client were rebuilt.
 - **Development corpus:** `make sft-dev` and all four validation/freshness checks passed, with zero refused examples.
 - **Independent TP-07 review:** Passed after proof-propagation and adjacent-revision fixes; the final focused regression passed.
+- **TP-08 graph admission:** 36 dedicated tests passed in `test_task_admission.py` (FileStore and PostgreSQL), 357 tests passed across all 11 task planning test files. Adversarial review resolved 4 confirmed findings (unvalidated reconstruction, unrooted trees, unhandled Blocked exceptions, provenance tampering detection). Zero spend on live models. All 10 `rd-gates` passed.
 
 Recorded regressions include missing upstream proof leaving descendants completed, incorrect preserved-work summaries, incorrect adjacent-revision comparisons, and task status rendered through the wrong UI helper. Failing-before records were retained.
 

@@ -43,30 +43,30 @@ dclab_rnd/tasks/verifier.py
 
 ### Implement
 
-- [ ] Define an explicit opt-in path for accepting a validated proposed graph.
-- [ ] Preserve the existing physical operations, capability bindings, mandatory checks, gates and source identity.
-- [ ] Permit only proposal changes allowed by the decomposer contract.
-- [ ] Bind the accepted graph, provenance and revision to the existing durable task state.
-- [ ] Revalidate against the current authenticated project and registry before effects and after resume.
-- [ ] Preserve safe deterministic fallback before execution begins.
-- [ ] Define safe refusal/invalidation behavior if sources or capabilities change after work has begun.
-- [ ] Preserve valid completed work only where its input, output and verification bindings remain valid.
-- [ ] Keep existing checkpoint/storage owners; do not introduce a second executor.
+- [x] Define an explicit opt-in path for accepting a validated proposed graph.
+- [x] Preserve the existing physical operations, capability bindings, mandatory checks, gates and source identity.
+- [x] Permit only proposal changes allowed by the decomposer contract.
+- [x] Bind the accepted graph, provenance and revision to the existing durable task state.
+- [x] Revalidate against the current authenticated project and registry before effects and after resume.
+- [x] Preserve safe deterministic fallback before execution begins.
+- [x] Define safe refusal/invalidation behavior if sources or capabilities change after work has begun.
+- [x] Preserve valid completed work only where its input, output and verification bindings remain valid.
+- [x] Keep existing checkpoint/storage owners; do not introduce a second executor.
 
 Do not solve this by deleting graph/source equality checks without replacing their protection.
 
 ### Required regression coverage
 
-- [ ] A supported nontrivial proposal is admitted and executes through existing guarded handlers.
-- [ ] Missing operations, gates, dependencies or acceptance checks are rejected.
-- [ ] Unknown capabilities and altered source bindings are rejected.
-- [ ] Stale or tampered proposals have zero effects.
-- [ ] A model cannot approve the holdout or skip human decisions.
-- [ ] Crash/resume does not repeat committed effects or read the holdout twice.
-- [ ] Ambiguous effects stop or reconcile through existing authoritative records.
-- [ ] Completed labels require current independent verification.
-- [ ] A malformed or failed proposal preserves deterministic behavior safely.
-- [ ] Relevant file and PostgreSQL cases pass without relying only on mocked dispatch.
+- [x] A supported nontrivial proposal is admitted and executes through existing guarded handlers.
+- [x] Missing operations, gates, dependencies or acceptance checks are rejected.
+- [x] Unknown capabilities and altered source bindings are rejected.
+- [x] Stale or tampered proposals have zero effects.
+- [x] A model cannot approve the holdout or skip human decisions.
+- [x] Crash/resume does not repeat committed effects or read the holdout twice.
+- [x] Ambiguous effects stop or reconcile through existing authoritative records.
+- [x] Completed labels require current independent verification.
+- [x] A malformed or failed proposal preserves deterministic behavior safely.
+- [x] Relevant file and PostgreSQL cases pass without relying only on mocked dispatch.
 
 **Done when:** a proposed hierarchy can complete the supported binary workflow through existing owners, all relevant regressions pass, independent review passes, and acceptance/limitations are recorded. This is integration evidence, not permission to roll out.
 
