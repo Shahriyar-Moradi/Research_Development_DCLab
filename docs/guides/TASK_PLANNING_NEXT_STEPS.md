@@ -90,12 +90,12 @@ Steps 1 and 2 may share interfaces; establish those interfaces before coding and
 
 ## Step 3 — Close applicable routing gaps
 
-- [ ] Read the R-01 package and identify its outstanding acceptance requirements.
-- [ ] Preserve the completed hypothetical-preference fix in `intent_rules_v6`.
-- [ ] Verify clear, ambiguous, missing-data and explicit-intent routes affected by integration.
-- [ ] Preserve all six Home intents and the business meaning of “Plan.”
-- [ ] Keep unsupported/multi-table cases honest; refuse or clarify where capability is absent.
-- [ ] Mark R-01 complete only when its own evidence supports that conclusion.
+- [x] Read the R-01 package and identify its outstanding acceptance requirements.
+- [x] Preserve the completed hypothetical-preference fix in `intent_rules_v6`.
+- [x] Verify clear, ambiguous, missing-data and explicit-intent routes affected by integration.
+- [x] Preserve all six Home intents and the business meaning of “Plan.”
+- [x] Keep unsupported/multi-table cases honest; refuse or clarify where capability is absent.
+- [x] Mark R-01 complete only when its own evidence supports that conclusion.
 
 **Done when:** routing requirements relevant to release are verified and any broader remaining R-01 work is explicitly recorded.
 
