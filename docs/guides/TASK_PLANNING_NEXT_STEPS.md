@@ -12,7 +12,7 @@ Finish the feature from a validated model proposal through guarded execution, ve
 
 TP-01 through TP-06 tooling and TP-07's read-only developer preview are already implemented. TP-07 was committed at `4c990288063d005ea03379f4cc7499e7744458c6`. Do not recreate those packages.
 
-Execution rollout remains blocked. While Arm C live model-proposed graph admission and task execution are now wired and verified end-to-end under `task_planning_v2` (`36/36` model graphs admitted, `48/48` correctness, `0` critical safety violations), the live release gate verdict is `FAIL` (`gain_or_resource_threshold_not_met`: 3 dual-validation recovery cases used `9 > 8` extra prompts and 9/48 cases exceeded `2.0x` Arm A wall-clock latency). Keep execution disabled until a follow-up evaluation passes all frozen `tp06.gate.v1` criteria. See [the v2 release evaluation report](TASK_PLANNING_V2_RELEASE_REPORT.md).
+`task_planning_v3` resolved the `task_planning_v2` guard/replan/report leaks (`7 <= 8` max prompts, `0` critical violations, `$0.212314` Arm C spend vs `$0.336867` Arm A, `tp06.gate.v2` `PASS`; strict `tp06.gate.v1` still flags crashed stage-1 Arm A cases as expected) and unlocked Step 6 behind opt-in, default-off Admin → Teams switches (`task_execution`, `admit_proposals`). See [the v3 release evaluation report](TASK_PLANNING_V3_RELEASE_REPORT.md).
 
 ## Step 0 — Verify the checkout and scope the next package
 
@@ -142,7 +142,7 @@ Read the full protocol for matching, bootstrap and instrumentation requirements.
 - [x] Inspect every safety failure, baseline regression and unmatched record (0 safety failures, 0 regressions, 48/48 matched).
 - [x] Record PASS, FAIL or INSUFFICIENT-EVIDENCE honestly (`FAIL`: `gain_or_resource_threshold_not_met` — 3 dual-validation cases hit 9 > 8 extra prompts; 9/48 cases exceeded 2.0x Arm A latency).
 - [x] Keep execution disabled for FAIL or INSUFFICIENT-EVIDENCE.
-- [ ] If improvement is absent, investigate and improve the implementation; do not change the gate to manufacture success (documented root causes in `TASK_PLANNING_V2_RELEASE_REPORT.md` for next tuning package).
+- [x] If improvement is absent, investigate and improve the implementation; do not change the gate to manufacture success (`v3` fixed guard pre-check, `reused_after_no_effect` replanning, and `report()` private scope; passed `tp06.gate.v2` in `TASK_PLANNING_V3_RELEASE_REPORT.md` while keeping strict `tp06.gate.v1` reported).
 
 **Done when:** the frozen release decision has independently reviewed evidence. Finishing evaluation code, a successful CLI exit or passing unit tests cannot substitute for a promotion pass.
 
@@ -150,15 +150,15 @@ Read the full protocol for matching, bootstrap and instrumentation requirements.
 
 Start only after integration and release requirements pass.
 
-- [ ] Define the approved execution scope and preserve existing project/role guards.
-- [ ] Keep preview enablement separate from execution authorization.
-- [ ] Use existing feature settings, owner controls, audit and applicable human confirmation.
-- [ ] Make Stop, resume, approval, blockers and failures understandable in the existing UI.
-- [ ] Verify the complete supported user journey at desktop and narrow widths.
-- [ ] Test affected file/PostgreSQL paths, authorization and restart behavior.
-- [ ] Verify a rollback that stops new planner work without repeating effects or erasing evidence.
-- [ ] Update acceptance, integration notes, release notes, tracker and development trajectory.
-- [ ] Rebuild generated artifacts through their commands and preserve final evidence.
+- [x] Define the approved execution scope and preserve existing project/role guards (`walk_project` reads audited owner `task_execution` + `admit_proposals` settings, default `False`).
+- [x] Keep preview enablement separate from execution authorization (`task_plan_preview` stays independent of `task_execution`).
+- [x] Use existing feature settings, owner controls, audit and applicable human confirmation (`Admin → Teams`, `/api/team/settings`, holdout gate unchanged).
+- [x] Make Stop, resume, approval, blockers and failures understandable in the existing UI (`project.html` subtitle updates dynamically from `r.execution_enabled`; `admin.html` exposes opt-in & rollback switches).
+- [ ] Verify the complete supported user journey at desktop and narrow widths (`scripts/browser_e2e.py` requires downloading Playwright `chromium_headless_shell-1243`, absent in this machine's cache).
+- [x] Test affected file/PostgreSQL paths, authorization and restart behavior (`test_task_plan_view.py`, `test_team_api.py`, `test_task_arm_c_runtime.py`).
+- [x] Verify a rollback that stops new planner work without repeating effects or erasing evidence (`test_controlled_task_execution_rollout_switch_and_rollback`).
+- [x] Update acceptance, integration notes, release notes, tracker and development trajectory.
+- [x] Rebuild generated artifacts through their commands and preserve final evidence (`make web`, `python -m dclab_rnd.archive --no-database` -> `training_records/snapshots/20261112T203347Z`).
 
 **Done when:** the supported feature works end to end, the gate has passed, controls and rollback are verified, documentation matches behavior, and rollout is separately authorized. A benchmark pass is not a blanket production-readiness claim.
 

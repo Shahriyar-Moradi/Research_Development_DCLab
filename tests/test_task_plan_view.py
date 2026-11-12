@@ -267,8 +267,27 @@ class TaskPlanApiTests(unittest.TestCase):
         self.assertFalse(r.json()['settings']['on'])
         self.assertFalse(self.client.get(f'/api/projects/{self.pid}/task-plan').json()['execution_enabled'])
         self.assertIn('task_plan_preview', (self.home / 'audit.jsonl').read_text())
-        self.assertEqual(self.client.put('/api/team/settings', json={'task_execution': True}, headers=h).status_code, 422)
+        self.assertEqual(self.client.put('/api/team/settings', json={'unknown_flag': True}, headers=h).status_code, 422)
+        self.assertEqual(self.client.put('/api/team/settings', json={'admit_proposals': True}, headers=h).status_code, 422)
         self.assertEqual(self.client.put('/api/team/settings', json={'task_plan_preview': False}, headers=h).status_code, 200)
+        self.assertEqual(self.client.get(f'/api/projects/{self.pid}/task-plan').json()['status'], 'disabled')
+
+    def test_controlled_task_execution_rollout_switch_and_rollback(self):
+        csrf = self.client.get('/api/config').json()['csrf']
+        h = {'X-DCLab-Token': csrf}
+        on = self.client.put('/api/team/settings', json={'task_execution': True, 'admit_proposals': True}, headers=h)
+        self.assertEqual(on.status_code, 200, on.text)
+        self.assertTrue(on.json()['settings']['task_execution'])
+        self.assertTrue(on.json()['settings']['admit_proposals'])
+        plan = self.client.get(f'/api/projects/{self.pid}/task-plan').json()
+        self.assertTrue(plan['execution_enabled'])
+        self.assertFalse(plan['developer_preview'])
+        self.assertIn('task_planning_v3', plan['release'])
+        # Instantaneous rollback via owner switch cascades admit_proposals off cleanly.
+        off = self.client.put('/api/team/settings', json={'task_execution': False}, headers=h)
+        self.assertEqual(off.status_code, 200, off.text)
+        self.assertFalse(off.json()['settings']['task_execution'])
+        self.assertFalse(off.json()['settings']['admit_proposals'])
         self.assertEqual(self.client.get(f'/api/projects/{self.pid}/task-plan').json()['status'], 'disabled')
 
     def test_preview_switch_audit_belongs_to_the_selected_workspace(self):

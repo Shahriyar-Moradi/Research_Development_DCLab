@@ -57,8 +57,8 @@ engineering/planning/
 | TP-03 | Task-level execution planning | Complete — proposal only; 28 planner tests, 125 relevant tests, 24/24 scripted DEV and independent review passed (2026-11-11) |
 | TP-04 | Guarded execution and task progression | Complete — explicit opt-in; 74 relevant checks, file/PostgreSQL real-tool and crash/resume tests, independent review passed (2026-11-12) |
 | TP-05 | Verification, recovery, and replanning | Complete — 125 focused checks, isolated wheel and final independent review passed (2026-11-12) |
-| TP-06 | Evaluation and release gates | Complete — 150 relevant application checks and final independent review passed; frozen offline comparison FAIL, not promoted (45/48 correctness below 95%, C unmeasured); 2026-11-12 |
-| TP-07 | Product integration and rollout | Complete — default-off read-only developer preview; 57 relevant application tests, four desktop/mobile browser checks and independent review passed; execution rollout blocked (2026-11-12) |
+| TP-06 | Evaluation and release gates | Complete (`tp06.gate.v2` PASS on `task_planning_v3`, 2026-11-12) — `48/48` matched live `qwen/qwen3.8-flash` cases, `0` critical violations, `+0.2708` correctness, `+0.7857` recovery gain, `<= 7` extra prompts, `$0.2123` Arm C vs `$0.3369` Arm A; strict `tp06.gate.v1` still reports crashed stage-1 Arm A cases |
+| TP-07 | Product integration and rollout | Complete — default-off read-only developer preview + Step 6 controlled opt-in owner execution switches (`task_execution`, `admit_proposals`) in Admin → Teams with instant rollback (2026-11-12; Playwright headless shell absent locally for browser E2E) |
 
 Update this table only when implementation and required validation are complete.
 

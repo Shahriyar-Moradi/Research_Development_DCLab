@@ -193,6 +193,8 @@
       <div class="panel-body grid g2 small" id="team-settings">
         <label class="switch"><input type="checkbox" id="team-on"><span class="track"></span><span>Build through the understanding team</span></label>
         <label class="switch"><input type="checkbox" id="task-plan-preview"><span class="track"></span><span>Read-only Task Plan developer preview · no execution</span></label>
+        <label class="switch"><input type="checkbox" id="task-execution"><span class="track"></span><span>Hierarchical task execution (tp06.gate.v2 PASS · opt-in; turn off to roll back)</span></label>
+        <label class="switch"><input type="checkbox" id="admit-proposals"><span class="track"></span><span>Admit model-proposed task graphs and plans (requires task execution)</span></label>
         <div class="field"><label for="team-run">A walk's budget (€)</label><input id="team-run" type="number" min="0.01" max="20" step="0.1"></div>
         <div class="field"><label for="team-node">A node's budget (€)</label><input id="team-node" type="number" min="0.01" max="5" step="0.05"></div>
         <div class="field"><label for="team-steps">A walk's steps</label><input id="team-steps" type="number" min="5" max="200" step="1"></div>
@@ -754,12 +756,15 @@ DC.view('admin', {
     const t = r.settings;
     $('#team-on', el).checked = !!t.on; $('#team-run', el).value = t.run_eur; $('#team-node', el).value = t.node_eur; $('#team-steps', el).value = t.max_steps;
     $('#task-plan-preview', el).checked = !!t.task_plan_preview;
+    $('#task-execution', el).checked = !!t.task_execution;
+    $('#admit-proposals', el).checked = !!t.admit_proposals;
     const save = $('#team-save', el);
     if (!save.dataset.bound) {
       save.dataset.bound = '1';
       save.addEventListener('click', async () => {
         const body = { on: $('#team-on', el).checked, run_eur: Number($('#team-run', el).value), node_eur: Number($('#team-node', el).value),
-                       max_steps: Number($('#team-steps', el).value), task_plan_preview: $('#task-plan-preview', el).checked };
+                       max_steps: Number($('#team-steps', el).value), task_plan_preview: $('#task-plan-preview', el).checked,
+                       task_execution: $('#task-execution', el).checked, admit_proposals: $('#admit-proposals', el).checked };
         try { await DC.client.setTeamSettings({ body }); DC.toast('Saved. The change is in the audit log.'); }
         catch (err) { DC.toast(err.message, { ok: false }); }
         await this.loadTeamSettings(el);

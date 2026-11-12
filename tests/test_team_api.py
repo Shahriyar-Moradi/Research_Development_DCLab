@@ -65,7 +65,7 @@ class TeamApiTests(unittest.TestCase):
     def test_the_teams_switch_and_budgets_start_off_and_every_change_is_audited(self):  # 28.8
         c = self.client
         got = c.get("/api/team/settings").json()
-        self.assertEqual(got["settings"], {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40, "second_opinion": False, "debate": False, "task_plan_preview": False})
+        self.assertEqual(got["settings"], {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40, "second_opinion": False, "debate": False, "task_plan_preview": False, "task_execution": False, "admit_proposals": False})
         from unittest import mock
 
         from dclab_rnd.orchestra import patterns
@@ -327,6 +327,46 @@ class ChatAnswersTests(unittest.TestCase):
                     self.fail(f"the walk waits on {asks}")
         self.assertTrue(project_id, "the walk never built")
         self.assertEqual(drafts.get(draft)["project_id"], project_id)
+
+    def test_walk_project_forwards_opt_in_task_execution_and_admit_proposals(self):
+        from unittest import mock
+        from dclab_rnd.orchestra import service as team, settings as team_settings
+
+        home = Path(tempfile.mkdtemp())
+        seen = []
+
+        class FakeTeam:
+            def __init__(self, projects, saver, **kwargs):
+                seen.append(kwargs)
+
+            def build(self):
+                graph = mock.MagicMock()
+                graph.get_state.return_value = mock.MagicMock(tasks=[])
+                return graph
+
+            def run(self, pid, resume=None):
+                return {"status": "done", "next": "done", "board": {}}
+
+        with mock.patch("dclab_rnd.orchestra.solution.SolutionTeam", FakeTeam), mock.patch.object(team, "view", return_value={}):
+            projects = mock.MagicMock()
+            projects.get.side_effect = lambda pid: (
+                {"settings": {"private": True}} if pid == "proj_priv"
+                else {"settings": {"private": False}, "budget": {"eur": 0.25}}
+            )
+            team.walk_project(home, projects, "proj_off")
+            team_settings.set_settings(home, {"task_execution": True, "admit_proposals": True})
+            team.walk_project(home, projects, "proj_on")
+            team.walk_project(home, projects, "proj_priv")
+
+        self.assertEqual((seen[0]["task_execution"], seen[0]["admit_proposals"]), (False, False))
+        self.assertIsNone(seen[0]["gateway"])
+        self.assertEqual((seen[1]["task_execution"], seen[1]["admit_proposals"]), (True, True))
+        self.assertEqual(seen[1]["gateway"].home, home)
+        self.assertTrue(callable(seen[1]["gateway"].project_private))
+        self.assertEqual(seen[1]["gateway"].project_cap("proj_on"), 0.25)
+        self.assertTrue(seen[1]["gateway"].project_private("proj_priv"))
+        self.assertEqual((seen[2]["task_execution"], seen[2]["admit_proposals"]), (True, False))
+        self.assertIsNone(seen[2]["gateway"])
 
 
 if __name__ == "__main__":

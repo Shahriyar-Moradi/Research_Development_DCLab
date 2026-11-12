@@ -595,16 +595,32 @@ class TaskDispatcher:
                 remaining = {'max_tool_calls': min(self.budget.max_tool_calls, state['budget']['max_tool_calls']) - state['tool_calls'],
                              'max_seconds': max(0, int(min(self.budget.max_seconds, state['budget']['max_seconds']) - state['seconds'])),
                              'max_cost_eur': 0.0}
-                plan, replan_report = plan_task(workflow, source, project, graph=graph, task_id=task_id, observed_state=observed,
-                                                capabilities=caps, remaining_budget=remaining, revision=previous['plan_revision'] + 1,
-                                                enabled=self.admit_proposals, gateway=self.gateway, budget=self.planning_budget)
+                reuse_deterministic = (
+                    previous['status'] == 'no_effect'
+                    and state.get('source_identity') == self.source_revision(project_id)
+                )
+                plan, replan_report = plan_task(
+                    workflow, source, project, graph=graph, task_id=task_id, observed_state=observed,
+                    capabilities=caps, remaining_budget=remaining, revision=previous['plan_revision'] + 1,
+                    enabled=(self.admit_proposals and not reuse_deterministic),
+                    gateway=None if reuse_deterministic else self.gateway,
+                    budget=self.planning_budget,
+                )
                 if plan is None or plan.status != 'ready':
                     raise Blocked('replacement_plan_not_ready')
                 resolve_action(plan, 'call', workflow, source, project, graph=graph, observed_state=observed,
                                capabilities=caps, remaining_budget=remaining)
-                revision = {'attempt': previous['id'], 'task': task_id, 'decision': decision, 'plan': plan.model_dump(mode='json'),
-                            'planning': {'status': replan_report.get('status'), 'model_calls': replan_report.get('model_calls', 0),
-                                         'model_request': replan_report.get('model_request')}}
+                revision = {
+                    'attempt': previous['id'],
+                    'task': task_id,
+                    'decision': decision,
+                    'plan': plan.model_dump(mode='json'),
+                    'planning': {
+                        'status': 'reused_after_no_effect' if reuse_deterministic else replan_report.get('status'),
+                        'model_calls': replan_report.get('model_calls', 0),
+                        'model_request': replan_report.get('model_request'),
+                    },
+                }
                 state['replans'].append(revision)
                 state['retry_authorization'] = revision
                 self._save(project_id, state, 'replanned', task_id)

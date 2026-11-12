@@ -79,11 +79,13 @@ def _project_graph(project, caps):
     return adapt_workflow(workflow, plan_from_project(project), project, capabilities=caps)[0]
 
 
-def task_plan_view(projects, home, project_id, *, enabled=False):
+def task_plan_view(projects, home, project_id, *, enabled=False, execution_enabled=False):
     project = projects.get(project_id)  # authenticate the workspace before touching a shared saver
-    out = {'project_id': project_id, 'read_only': True, 'execution_enabled': False, 'developer_preview': True,
+    exec_on = bool(execution_enabled)
+    out = {'project_id': project_id, 'read_only': True, 'execution_enabled': exec_on, 'developer_preview': not exec_on,
            'status': 'disabled', 'nodes': [], 'revisions': [], 'budget': None,
-           'release': 'Execution rollout has not passed its evaluation gate.'}
+           'release': ('Opt-in task execution is enabled in Admin → Teams (task_planning_v3 tp06.gate.v2 PASS).' if exec_on
+                       else 'Task execution passed task_planning_v3 (tp06.gate.v2 PASS); off by default until enabled by the owner in Admin → Teams.')}
     def finish(status):
         return {**out, 'status': status, 'message': MESSAGES[status]}
     if not enabled:

@@ -542,7 +542,7 @@
     <div class="stats" id="proj-stats"></div>
 
     <section class="panel" id="proj-task-plan-panel" aria-labelledby="task-plan-heading">
-      <div class="panel-head"><div class="panel-title"><h2 id="task-plan-heading">Task Plan</h2><span class="sub">Read-only developer preview · task progress, approvals and evidence. Execution stays disabled.</span></div>
+      <div class="panel-head"><div class="panel-title"><h2 id="task-plan-heading">Task Plan</h2><span class="sub" id="task-plan-sub">Read-only developer preview · task progress, approvals and evidence. Execution stays disabled.</span></div>
         <button type="button" class="btn sm" id="task-plan-refresh">Refresh task progress</button></div>
       <div class="panel-body" id="proj-task-plan-body" aria-live="polite" aria-busy="false"></div>
     </section>
@@ -2277,6 +2277,8 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="panel-body grid g2 small" id="team-settings">
         <label class="switch"><input type="checkbox" id="team-on"><span class="track"></span><span>Build through the understanding team</span></label>
         <label class="switch"><input type="checkbox" id="task-plan-preview"><span class="track"></span><span>Read-only Task Plan developer preview · no execution</span></label>
+        <label class="switch"><input type="checkbox" id="task-execution"><span class="track"></span><span>Hierarchical task execution (tp06.gate.v2 PASS · opt-in; turn off to roll back)</span></label>
+        <label class="switch"><input type="checkbox" id="admit-proposals"><span class="track"></span><span>Admit model-proposed task graphs and plans (requires task execution)</span></label>
         <div class="field"><label for="team-run">A walk's budget (€)</label><input id="team-run" type="number" min="0.01" max="20" step="0.1"></div>
         <div class="field"><label for="team-node">A node's budget (€)</label><input id="team-node" type="number" min="0.01" max="5" step="0.05"></div>
         <div class="field"><label for="team-steps">A walk's steps</label><input id="team-steps" type="number" min="5" max="200" step="1"></div>

@@ -189,15 +189,7 @@ class SolutionTeam:
     def _situate_single(self, state: SolveState, project: dict[str, Any]) -> dict[str, Any]:
         """The engine's stages in order, the auditor after the leakage stage and before anything is chosen, the holdout read
         by the final stage only after the person approves it."""
-        from ..studio import leak_audit
-
-        if self.task_execution:
-            tasks = self._tasks()
-            if self.admit_proposals and project.get("solution"):
-                tasks.prepare_model_graph(project["id"])
-            problem = tasks.preflight(project["id"])
-            if problem:
-                return {"next": "stop", "says": "Task execution stopped: " + problem}
+        from ..studio import graph as studio_graph, leak_audit
 
         if not project.get("solution"):
             return {"next": "stop", "says": "Save the solution first: the team runs a project of one problem from its saved solution (the person's)."}
@@ -210,6 +202,22 @@ class SolutionTeam:
         status = {k: ((project.get("stages") or {}).get(k) or {}).get("status") for k in self.STAGES}
         done = ("completed", "approved")
         nxt = next((k for k in self.STAGES if status[k] not in done), None)
+
+        if self.task_execution:
+            tasks = self._tasks()
+            problem = tasks.preflight(project["id"])
+            if problem:
+                return {"next": "stop", "says": "Task execution stopped: " + problem}
+            if nxt is not None and tasks.state(project["id"]) is None:
+                verdict = studio_graph.check(project, "run_stage", "agent", stage=nxt)
+                if not verdict.allowed:
+                    return {"next": "stop", "says": f"The {nxt} stage did not run: {verdict.message}"}
+            if self.admit_proposals:
+                tasks.prepare_model_graph(project["id"])
+                problem = tasks.preflight(project["id"])
+                if problem:
+                    return {"next": "stop", "says": "Task execution stopped: " + problem}
+
         if nxt is None:
             if not state.get("reported"):
                 return {"next": "report"}
@@ -478,8 +486,11 @@ class SolutionTeam:
             out = self._task_call(state["project_id"], "report")
             if out.get("blocked"):
                 return {"next": "stop", "says": "Report task stopped: " + out["error"]}
+        from ..models.gateway import private_scope
+
         p = programme.stored(project)
-        text = core_programme.markdown(p) if p is not None else solution_report.latest(self.projects, state["project_id"])["markdown"]
+        with private_scope(True) if self.task_execution else nullcontext():
+            text = core_programme.markdown(p) if p is not None else solution_report.latest(self.projects, state["project_id"])["markdown"]
         step = self._step("report", {}, {"characters": len(text), "sections": len(core_programme.sections(p)) if p is not None else text.count("\n## ")},
                           time.monotonic() - clock)
         said = text if len(text) <= self.REPORT_SAID else text[:self.REPORT_SAID] + f"\n\n… (the whole report: GET /api/projects/{state['project_id']}/export/solution-report)"

@@ -139,6 +139,8 @@ class ArmCRuntimeTests(unittest.TestCase):
             state = TaskDispatcher(store, saver).state(pid)
             self.assertEqual(len(state["replans"]), 2)
             self.assertEqual([r["task"] for r in state["replans"]], ["data", "models"])
+            self.assertLessEqual(len(server.calls), 7)
+            self.assertTrue(all(r["planning"]["status"] == "reused_after_no_effect" for r in state["replans"]))
 
     def test_arm_c_falls_back_safely_on_invalid_model_proposal(self):
         server = _ScriptedProposalServer(corrupt_after=1)
@@ -167,6 +169,66 @@ class ArmCRuntimeTests(unittest.TestCase):
             self.assertTrue(_owner_complete(store, pid))
             state = TaskDispatcher(store, saver).state(pid)
             self.assertTrue(all(a.get("planning", {}).get("status") == "fallback" for a in state["attempts"]))
+
+    def test_arm_c_checks_stage_guard_before_calling_model_decomposition(self):
+        server = _ScriptedProposalServer()
+        case = Case("arm_c_guard_first", "safety", "execution", "guard", "blocked", "prediction",
+                    "Stop before model planning when the project guard refuses the next stage.")
+        with tempfile.TemporaryDirectory(prefix="arm-c-guard-") as tmp, offline_environment(), ExitStack() as stack:
+            home = Path(tmp)
+            prev_log, prev_ledger = experience.current_log(), ledger.current_ledger()
+            experience.install(experience.FileLog(home / "experience", "arm-c-test"))
+            ledger.install(None)
+            stack.callback(experience.install, prev_log)
+            stack.callback(ledger.install, prev_ledger)
+            stack.enter_context(runner.fast_profile())
+            saver = stack.enter_context(open_checkpointer(home, database_url=""))
+            store = ProjectStore(home / "projects")
+            pid = make_project(store, case, 72005)
+            store.update(pid, running="models")
+            gateway = Gateway(FileUsage(home / "usage.jsonl"), transport=lambda tier, purpose: server, sleep=lambda _: None)
+
+            with planning_host(name="arm-c-guard"):
+                res = SolutionTeam(store, saver, home=home, task_execution=True, admit_proposals=True, gateway=gateway).run(pid)
+
+            self.assertEqual(res.get("next"), "stop")
+            self.assertEqual(server.calls, [])
+
+    def test_arm_c_report_runs_inside_private_scope(self):
+        from dclab_rnd.models.gateway import _PRIVATE
+        from dclab_rnd.studio import solution_report
+
+        server = _ScriptedProposalServer()
+        case = Case("arm_c_report_private", "fresh_binary", "execution", "normal", "complete", "prediction",
+                    "Predict churn without unbudgeted external reporter calls after report task.")
+        with tempfile.TemporaryDirectory(prefix="arm-c-rep-") as tmp, offline_environment(), ExitStack() as stack:
+            home = Path(tmp)
+            prev_log, prev_ledger = experience.current_log(), ledger.current_ledger()
+            experience.install(experience.FileLog(home / "experience", "arm-c-test"))
+            ledger.install(None)
+            stack.callback(experience.install, prev_log)
+            stack.callback(ledger.install, prev_ledger)
+            stack.enter_context(runner.fast_profile())
+            saver = stack.enter_context(open_checkpointer(home, database_url=""))
+            store = ProjectStore(home / "projects")
+            pid = make_project(store, case, 72001)
+            seen_private = []
+            real_latest = solution_report.latest
+
+            def spy_latest(*args, **kwargs):
+                seen_private.append(bool(_PRIVATE.get()))
+                return real_latest(*args, **kwargs)
+
+            stack.enter_context(patch.object(solution_report, "latest", side_effect=spy_latest))
+            gateway = Gateway(FileUsage(home / "usage.jsonl"), transport=lambda tier, purpose: server, sleep=lambda _: None)
+            with planning_host(name="arm-c-rep"):
+                team = SolutionTeam(store, saver, home=home, task_execution=True, admit_proposals=True, gateway=gateway)
+                paused = team.run(pid)
+                self.assertEqual(paused.get("status"), "paused")
+                done = team.run(pid, resume=True)
+
+            self.assertEqual(done.get("next"), "done")
+            self.assertEqual(seen_private, [True])
 
 
 if __name__ == "__main__":

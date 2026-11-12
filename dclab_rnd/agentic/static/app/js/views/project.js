@@ -320,6 +320,10 @@ DC.view('project', {
       try {
         const r = await DC.client.projectTaskPlan(REAL[want].id);
         if (request !== taskPlanRequest || want !== proj) return;
+        const sub = $('#task-plan-sub', el);
+        if (sub) sub.textContent = r.execution_enabled
+          ? 'Opt-in task execution active · recorded progress, approvals and evidence.'
+          : 'Read-only developer preview · task progress, approvals and evidence. Execution stays disabled by default.';
         if (r.status === 'disabled') { DC.states.empty(box, r.message, { href: '#admin', action: 'Admin → Teams' }); return; }
         if (!r.nodes || !r.nodes.length) { DC.states.empty(box, r.message || 'No task plan is available for this project yet.'); return; }
         const titles = Object.fromEntries(r.nodes.map(n => [n.id, n.title]));

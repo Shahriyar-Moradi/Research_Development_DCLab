@@ -59,8 +59,10 @@ async def project_task_plan(project_id: str, s: Services = Depends(services)):
     from ...orchestra.settings import settings as team_settings
     from ...tasks.view import task_plan_view
     s.project(project_id)
+    tcfg = team_settings(s.store.home)
     return await asyncio.to_thread(task_plan_view, s.projects, s.store.home, project_id,
-                                   enabled=team_settings(s.store.home)['task_plan_preview'])
+                                   enabled=bool(tcfg['task_plan_preview'] or tcfg['task_execution']),
+                                   execution_enabled=bool(tcfg['task_execution']))
 
 
 def approver() -> str:

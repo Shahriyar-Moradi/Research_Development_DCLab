@@ -20,7 +20,7 @@ from typing import Any
 
 SETTINGS_FILE = "team.json"
 DEFAULTS: dict[str, Any] = {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40, "second_opinion": False, "debate": False,
-                          "task_plan_preview": False}
+                          "task_plan_preview": False, "task_execution": False, "admit_proposals": False}
 LIMITS = {"run_eur": (0.01, 20.0), "node_eur": (0.01, 5.0), "max_steps": (5, 200)}
 UNSERVED = ("debate",)  # 28.6 (the review): a pattern no serving path reads stays off whatever its result
 
@@ -71,6 +71,10 @@ def set_settings(home: Path, changes: dict[str, Any]) -> dict[str, Any]:
                 raise ValueError(f"{key} is a whole number")
             value = int(value) if isinstance(default, int) else float(value)
         current[key] = value
+    if changes.get("task_execution") is False and "admit_proposals" not in changes:
+        current["admit_proposals"] = False
+    if current["admit_proposals"] and not current["task_execution"]:
+        raise ValueError("admit_proposals requires task_execution to be enabled")
     path = Path(home) / SETTINGS_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")

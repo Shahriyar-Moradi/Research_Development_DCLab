@@ -210,6 +210,40 @@ def build_draft(home: Path, drafts: Any, projects: Any, agent: Any, draft_id: st
     raise TeamWaits(str(out.get("says") or "The team stopped before building."), "team stopped")
 
 
+def _walk_gateway(home: Path, projects: Any) -> Any:
+    """Return the active Services gateway for home when matching, else a workspace Gateway enforcing caps and privacy."""
+    from .. import context
+    from ..models import Gateway, open_usage
+    from ..models.routing import open_routing
+    from ..models.shadow import open_shadows
+
+    svc = context.services()
+    svc_gw = getattr(svc, "gateway", None)
+    svc_home = getattr(getattr(svc, "store", None), "home", None)
+    if svc_gw is not None and svc_home is not None and Path(svc_home) == Path(home):
+        return svc_gw
+
+    def project_cap(pid: str) -> float | None:
+        try:
+            proj = projects.get(pid)
+            val = (proj.get("budget") or {}).get("eur") if isinstance(proj, dict) else None
+            return float(val) if val is not None else None
+        except Exception:  # noqa: BLE001
+            return None
+
+    def project_private(pid: str) -> bool:
+        try:
+            proj = projects.get(pid)
+            return isinstance(proj, dict) and bool((proj.get("settings") or {}).get("private"))
+        except Exception:  # noqa: BLE001
+            return True
+
+    gw = Gateway(open_usage(home), project_cap=project_cap, project_private=project_private,
+                 routing=open_routing(home), shadows=open_shadows(home))
+    gw.home = Path(home)
+    return gw
+
+
 def walk_project(home: Path, projects: Any, project_id: str, resume: Any = None) -> dict[str, Any]:
     """Start the solution team on a project, or resume it with the person's answer; until its next pause or its end. One walk
     of a project at a time in this process (``Busy`` otherwise: two runs would approve and read the holdout twice)."""
@@ -224,8 +258,22 @@ def walk_project(home: Path, projects: Any, project_id: str, resume: Any = None)
         from ..tasks.host import planning_host
 
         budget = settings(Path(home))  # 28.8
+        use_tasks = bool(budget.get("task_execution"))
+        proj = projects.get(project_id)
+        is_private = isinstance(proj, dict) and bool((proj.get("settings") or {}).get("private"))
+        use_proposals = bool(use_tasks and budget.get("admit_proposals") and not is_private)
+        team_gateway = _walk_gateway(Path(home), projects) if use_proposals else None
         with checkpoints.open_checkpointer(home) as saver, planning_host(name=f"walk_{project_id}"):
-            out = SolutionTeam(projects, saver, home=Path(home), max_steps=budget["max_steps"], max_eur=budget["run_eur"]).run(project_id, resume=resume)
+            out = SolutionTeam(
+                projects,
+                saver,
+                home=Path(home),
+                max_steps=budget["max_steps"],
+                max_eur=budget["run_eur"],
+                task_execution=use_tasks,
+                admit_proposals=use_proposals,
+                gateway=team_gateway,
+            ).run(project_id, resume=resume)
     finally:
         lock.release()
     return {**{k: v for k, v in out.items() if k != "board"}, "view": view(home, thread_id("project", project_id))}

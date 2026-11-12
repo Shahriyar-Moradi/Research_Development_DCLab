@@ -23,7 +23,7 @@
     <div class="stats" id="proj-stats"></div>
 
     <section class="panel" id="proj-task-plan-panel" aria-labelledby="task-plan-heading">
-      <div class="panel-head"><div class="panel-title"><h2 id="task-plan-heading">Task Plan</h2><span class="sub">Read-only developer preview · task progress, approvals and evidence. Execution stays disabled.</span></div>
+      <div class="panel-head"><div class="panel-title"><h2 id="task-plan-heading">Task Plan</h2><span class="sub" id="task-plan-sub">Read-only developer preview · task progress, approvals and evidence. Execution stays disabled.</span></div>
         <button type="button" class="btn sm" id="task-plan-refresh">Refresh task progress</button></div>
       <div class="panel-body" id="proj-task-plan-body" aria-live="polite" aria-busy="false"></div>
     </section>
@@ -439,6 +439,10 @@ DC.view('project', {
       try {
         const r = await DC.client.projectTaskPlan(REAL[want].id);
         if (request !== taskPlanRequest || want !== proj) return;
+        const sub = $('#task-plan-sub', el);
+        if (sub) sub.textContent = r.execution_enabled
+          ? 'Opt-in task execution active · recorded progress, approvals and evidence.'
+          : 'Read-only developer preview · task progress, approvals and evidence. Execution stays disabled by default.';
         if (r.status === 'disabled') { DC.states.empty(box, r.message, { href: '#admin', action: 'Admin → Teams' }); return; }
         if (!r.nodes || !r.nodes.length) { DC.states.empty(box, r.message || 'No task plan is available for this project yet.'); return; }
         const titles = Object.fromEntries(r.nodes.map(n => [n.id, n.title]));

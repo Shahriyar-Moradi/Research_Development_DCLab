@@ -381,12 +381,15 @@ DC.view('admin', {
     const t = r.settings;
     $('#team-on', el).checked = !!t.on; $('#team-run', el).value = t.run_eur; $('#team-node', el).value = t.node_eur; $('#team-steps', el).value = t.max_steps;
     $('#task-plan-preview', el).checked = !!t.task_plan_preview;
+    $('#task-execution', el).checked = !!t.task_execution;
+    $('#admit-proposals', el).checked = !!t.admit_proposals;
     const save = $('#team-save', el);
     if (!save.dataset.bound) {
       save.dataset.bound = '1';
       save.addEventListener('click', async () => {
         const body = { on: $('#team-on', el).checked, run_eur: Number($('#team-run', el).value), node_eur: Number($('#team-node', el).value),
-                       max_steps: Number($('#team-steps', el).value), task_plan_preview: $('#task-plan-preview', el).checked };
+                       max_steps: Number($('#team-steps', el).value), task_plan_preview: $('#task-plan-preview', el).checked,
+                       task_execution: $('#task-execution', el).checked, admit_proposals: $('#admit-proposals', el).checked };
         try { await DC.client.setTeamSettings({ body }); DC.toast('Saved. The change is in the audit log.'); }
         catch (err) { DC.toast(err.message, { ok: false }); }
         await this.loadTeamSettings(el);
