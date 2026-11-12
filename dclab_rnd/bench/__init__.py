@@ -51,7 +51,8 @@ LAYER_OF: dict[str, str] = {
                                    "fraud_decision_v2", "fraud_decision_v3", "time_decision_v1", "time_decision_v2",
                                    "time_decision_v3", "time_decision_v4", "time_decision_v5", "daily_centre_v1", "daily_ties_v1",
                                    "certification_v1", "foundation_v1", "cascade_v1")},
-    **{c: "system_tasks" for c in ("real_problems_v1", "twin_v1", "system_tasks_v1", "task_planning_v1")},
+    **{c: "system_tasks" for c in ("real_problems_v1", "twin_v1", "system_tasks_v1", "task_planning_v1",
+                                    "task_planning_v2", "task_planning_v3")},
 }
 
 # the free suites a run may execute, by layer: scripted, no live model, never a sealed or test split
@@ -61,9 +62,42 @@ COMMANDS: dict[str, list[tuple[str, list[str]]]] = {
                ("journeys-dev", ["make", "journeys", "SPLIT=dev"])],
     "retrieval_memory": [("retrieval-eval", ["make", "retrieval-eval"])],
     "data_science": [("kinds-check", ["make", "kinds-check"])],
-    "system_tasks": [("system-tasks-dev", [sys.executable, "-m", "dclab_rnd.agent_eval.system_tasks", "--split", "dev"])],
+    "system_tasks": [
+        ("system-tasks-dev", [sys.executable, "-m", "dclab_rnd.agent_eval.system_tasks", "--split", "dev"]),
+        ("task-planning-offline", [sys.executable, "-m", "dclab_rnd.agent_eval.task_planning_v3", "run-offline"]),
+    ],
 }
 TIMEOUT = 1800  # seconds a command may take before it is stopped and counted as failed
+
+
+def _compat_doc(doc: dict[str, Any]) -> dict[str, Any]:
+    """Normalize campaign result shapes whose gate outcome lives under ``judgment`` (read-only view)."""
+    judgment = doc.get("judgment")
+    if doc.get("verdict") is not None or not isinstance(judgment, dict):
+        return doc
+    out = dict(doc)
+    v1, v2 = judgment.get("verdict"), judgment.get("verdict_v2")
+    if isinstance(v1, str) and isinstance(v2, str):
+        out["verdict"] = {"gate_v1": v1, "gate_v2": v2}
+    elif isinstance(v2 or v1, str):
+        out["verdict"] = v2 or v1
+    if "gate" not in out:
+        out["gate"] = "tp06.gate.v2" if isinstance(v2, str) else "tp06.gate.v1"
+    if not out.get("model") and not out.get("models") and out.get("live_model"):
+        out["model"] = out["live_model"]
+    scores = doc.get("scores")
+    if out.get("spent_eur") is None and isinstance(scores, dict):
+        out["spent_eur"] = round(sum(
+            float(row.get("cost_eur") or 0)
+            for arm_rows in scores.values() if isinstance(arm_rows, list)
+            for row in arm_rows if isinstance(row, dict)
+        ), 4)
+    if isinstance(scores, dict) and isinstance(scores.get("C"), list) and scores["C"]:
+        c_rows = [row for row in scores["C"] if isinstance(row, dict)]
+        if c_rows:
+            out.setdefault("arm_c_correct", [sum(bool(row.get("correct")) for row in c_rows), len(c_rows)])
+            out.setdefault("arm_c_completed", [sum(bool(row.get("completed")) for row in c_rows), len(c_rows)])
+    return out
 
 
 def evidence_rows(campaigns: Path = CAMPAIGNS) -> tuple[list[core.BenchRow], list[str]]:
@@ -81,6 +115,7 @@ def evidence_rows(campaigns: Path = CAMPAIGNS) -> tuple[list[core.BenchRow], lis
         except (OSError, ValueError):
             continue
         if isinstance(doc, dict):
+            doc = _compat_doc(doc)
             at = str(doc.get("at") or doc.get("completed_at") or doc.get("created") or "")
             rows += core.rows_of(doc, suite=suite, ref=path.stem, layer=layer, at=at)
     return rows, sorted(unassigned)

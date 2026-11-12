@@ -1,0 +1,98 @@
+{
+ "schema": "dclab_rnd.bench_run.v1",
+ "at": "2026-11-12T21:20:10+00:00",
+ "commit": "426c76aa0bfd",
+ "dirty": true,
+ "layers": [
+  "system_tasks"
+ ],
+ "commands": [
+  {
+   "layer": "system_tasks",
+   "suite": "system-tasks-dev",
+   "argv": [
+    "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "-m",
+    "dclab_rnd.agent_eval.system_tasks",
+    "--split",
+    "dev"
+   ],
+   "exit": 0,
+   "seconds": 257.6
+  },
+  {
+   "layer": "system_tasks",
+   "suite": "task-planning-offline",
+   "argv": [
+    "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "-m",
+    "dclab_rnd.agent_eval.task_planning_v3",
+    "run-offline"
+   ],
+   "exit": 0,
+   "seconds": 184.3
+  }
+ ],
+ "rows": [
+  {
+   "schema_version": "dclab_core.bench_row.v1",
+   "suite": "cmd:system-tasks-dev",
+   "ref": "20261112T212010Z_system-tasks-dev",
+   "layer": "system_tasks",
+   "split": "unknown",
+   "metric": "verdict",
+   "k": null,
+   "n": null,
+   "value": null,
+   "lower": null,
+   "upper": null,
+   "passed": true,
+   "verdict": "pass",
+   "gate": "",
+   "cost_eur": null,
+   "seconds": 257.6,
+   "model": "",
+   "prompt": "",
+   "commit": "426c76aa0bfd",
+   "at": "2026-11-12T21:20:10+00:00"
+  },
+  {
+   "schema_version": "dclab_core.bench_row.v1",
+   "suite": "cmd:task-planning-offline",
+   "ref": "20261112T212010Z_task-planning-offline",
+   "layer": "system_tasks",
+   "split": "unknown",
+   "metric": "verdict",
+   "k": null,
+   "n": null,
+   "value": null,
+   "lower": null,
+   "upper": null,
+   "passed": true,
+   "verdict": "pass",
+   "gate": "",
+   "cost_eur": null,
+   "seconds": 184.3,
+   "model": "",
+   "prompt": "",
+   "commit": "426c76aa0bfd",
+   "at": "2026-11-12T21:20:10+00:00"
+  }
+ ],
+ "machine": {
+  "memory_gb": 8.0,
+  "free_disk_gb": 3.2
+ },
+ "states": {
+  "software": "empty",
+  "agents": "red",
+  "lead_agent": "red",
+  "llm_roles": "red",
+  "team": "red",
+  "decision_models": "red",
+  "retrieval_memory": "amber",
+  "data_science": "red",
+  "system_tasks": "red",
+  "external": "empty"
+ }
+}

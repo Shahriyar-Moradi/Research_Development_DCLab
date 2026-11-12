@@ -110,6 +110,16 @@ class RunTests(unittest.TestCase):
         self.assertEqual(s["layers"]["software"]["suites"][0]["suite"], "cmd:product-e2e")
         self.assertEqual(s["layers"]["software"]["status"], "thin")  # one command passing is not 20 cases
 
+    def test_task_planning_v2_and_v3_verdicts_are_read_into_system_tasks(self):
+        rows, unassigned = bench.evidence_rows()
+        self.assertEqual(unassigned, [])
+        tp3 = [r for r in rows if r.suite == "task_planning_v3" and r.ref == "TP3-001_live" and r.metric == "verdict"]
+        self.assertEqual(len(tp3), 1)
+        self.assertIn("gate_v2: PASS", tp3[0].verdict)
+        self.assertEqual(tp3[0].gate, "tp06.gate.v2")
+        self.assertEqual(tp3[0].model, "qwen/qwen3.8-flash")
+        self.assertGreater(tp3[0].cost_eur or 0.0, 0.5)
+
 
 if __name__ == "__main__":
     unittest.main()
