@@ -72,7 +72,7 @@ class SolutionTeam:
 
     def __init__(self, projects: Any, checkpointer: Any, home: Any = None, advisor: Any = None, max_steps: int = 40,
                  shadow: Any = None, shadow_name: str = "", max_eur: Optional[float] = None, task_execution: bool = False,
-                 admit_proposals: bool = False):
+                 admit_proposals: bool = False, gateway: Any = None, planning_budget: Optional[dict[str, Any]] = None):
         self.projects, self.checkpointer, self.home, self.advisor = projects, checkpointer, home, advisor
         self.shadow, self.shadow_name = shadow, shadow_name  # 28.10: a model that answers the router's question beside it, never used
         self.max_steps = max_steps
@@ -81,14 +81,22 @@ class SolutionTeam:
         self.graph = None
         self.task_execution = task_execution  # TP-04 developer opt-in; no product switch or default execution change
         self.admit_proposals = admit_proposals
+        self.gateway = gateway
+        self.planning_budget = dict(planning_budget) if planning_budget is not None else None
 
     def _tasks(self):
         from ..tasks.dispatch import TaskDispatcher
         return TaskDispatcher(self.projects, self.checkpointer, enabled=self.task_execution, admit_proposals=self.admit_proposals,
+                              gateway=self.gateway, planning_budget=self.planning_budget,
                               budget={"max_tool_calls": min(self.max_steps, 100), "max_seconds": 3600, "max_cost_eur": 0.0})
 
     def _task_call(self, project_id, task):
-        result = self._tasks().dispatch(project_id, task)
+        dispatcher = self._tasks()
+        result = dispatcher.dispatch(project_id, task)
+        if result.get("status") == "blocked" and result.get("reason") == "registry_validation_failed":
+            recovery = dispatcher.replan(project_id, task)
+            if recovery.get("status") == "ready":
+                result = dispatcher.dispatch(project_id, task)
         return result if result["status"] in ("completed", "reconciled", "already_completed") else {
             **result, "blocked": True, "error": result.get("reason", "task_execution_refused")}
 
@@ -184,7 +192,10 @@ class SolutionTeam:
         from ..studio import leak_audit
 
         if self.task_execution:
-            problem = self._tasks().preflight(project["id"])
+            tasks = self._tasks()
+            if self.admit_proposals and project.get("solution"):
+                tasks.prepare_model_graph(project["id"])
+            problem = tasks.preflight(project["id"])
             if problem:
                 return {"next": "stop", "says": "Task execution stopped: " + problem}
 
@@ -526,7 +537,7 @@ class SolutionTeam:
             token = _SESSION.set(current)
             try:
                 from ..models.gateway import private_scope
-                with private_scope(True) if self.task_execution else nullcontext():
+                with private_scope(True) if (self.task_execution and not self.admit_proposals) else nullcontext():
                     if crash_resume:
                         self.graph.invoke(None, config)
                     elif resume is None:

@@ -92,11 +92,14 @@ def _atomic_specs(g):
 
 
 class TaskDispatcher:
-    def __init__(self, projects, checkpointer, *, enabled=False, registry=None, allowed_tools=None, budget=None, admit_proposals=False):
+    def __init__(self, projects, checkpointer, *, enabled=False, registry=None, allowed_tools=None, budget=None, admit_proposals=False,
+                 gateway=None, planning_budget=None):
         from dclab_rnd.agents import build_registry
 
         self.projects, self.saver, self.enabled = projects, checkpointer, enabled
         self.admit_proposals = bool(admit_proposals)
+        self.gateway = gateway
+        self.planning_budget = copy.deepcopy(planning_budget) if planning_budget is not None else None
         self.registry = registry if registry is not None else build_registry(("project",))
         self.allowed = set(allowed_tools if allowed_tools is not None else ("run_stage", "export_notebook"))
         self.budget = TaskBudget.model_validate(budget or {"max_tool_calls": 6, "max_seconds": 3600, "max_cost_eur": 0.0})
@@ -313,6 +316,57 @@ class TaskDispatcher:
                 return {"status": "blocked", "reason": str(error)}
             except Exception:
                 return {"status": "blocked", "reason": "proposal_invalid"}
+
+    def prepare_model_graph(self, project_id, *, gateway=None, budget=None):
+        """Attempt one bounded model decomposition and admit it if valid; leave deterministic fallback intact."""
+        from dclab_rnd.tasks.decomposer import decompose
+
+        if not self.enabled:
+            return {"status": "disabled", "reason": "task_execution_disabled"}
+        if not self.admit_proposals:
+            return {"status": "blocked", "reason": "proposal_admission_disabled"}
+        with self.projects.turn(project_id, require_process=True):
+            try:
+                state = self.state(project_id)
+                if state is not None:
+                    return {"status": "already_initialized", "graph_fingerprint": state["graph"]["fingerprint"]}
+                project = self.projects.get(project_id)
+                if any(meta.get("status") != "pending" for meta in project["stages"].values()):
+                    return {"status": "blocked", "reason": "existing_work_needs_explicit_adoption"}
+                goal = str(project.get("goal") or "").strip()
+                if not goal:
+                    return {"status": "fallback", "reason": "objective_not_confirmed"}
+                caps = capability_snapshot(self.registry, allowed_tools=self.allowed)
+                source = plan_from_project(project)
+                workflow = solution_workflow(problem_card(brief_from_project(project)))
+                baseline, mapping = adapt_workflow(workflow, source, project, capabilities=caps)
+                if baseline is None or mapping["status"] != "mapped":
+                    return {"status": "blocked", "reason": "source_or_capability_blocked"}
+                candidate, report = decompose(
+                    workflow,
+                    source,
+                    project,
+                    deterministic_graph=baseline,
+                    capabilities=caps,
+                    confirmed_goal=goal,
+                    enabled=True,
+                    gateway=gateway or self.gateway,
+                    budget=budget if budget is not None else self.planning_budget,
+                )
+            except Blocked as error:
+                return {"status": "blocked", "reason": str(error)}
+            except Exception:
+                return {"status": "fallback", "reason": "decomposition_failed"}
+        if report.get("status") == "proposed" and candidate is not None and candidate.provenance.method == "model":
+            admitted = self.admit(project_id, candidate)
+            if admitted.get("status") == "admitted":
+                return {**admitted, "model_calls": report.get("model_calls", 0), "model_request": report.get("model_request")}
+            return {"status": "fallback", "reason": admitted.get("reason", "proposal_invalid"),
+                    "model_calls": report.get("model_calls", 0), "model_request": report.get("model_request")}
+        return {"status": "fallback" if report.get("status") != "blocked" else "blocked",
+                "refusals": list(report.get("refusals") or []),
+                "model_calls": report.get("model_calls", 0),
+                "model_request": report.get("model_request")}
 
     def _stage_evidence(self, pid, task, attempt):
         from dclab_rnd.studio import lineage
@@ -541,13 +595,16 @@ class TaskDispatcher:
                 remaining = {'max_tool_calls': min(self.budget.max_tool_calls, state['budget']['max_tool_calls']) - state['tool_calls'],
                              'max_seconds': max(0, int(min(self.budget.max_seconds, state['budget']['max_seconds']) - state['seconds'])),
                              'max_cost_eur': 0.0}
-                plan, _ = plan_task(workflow, source, project, graph=graph, task_id=task_id, observed_state=observed,
-                                    capabilities=caps, remaining_budget=remaining, revision=previous['plan_revision'] + 1)
+                plan, replan_report = plan_task(workflow, source, project, graph=graph, task_id=task_id, observed_state=observed,
+                                                capabilities=caps, remaining_budget=remaining, revision=previous['plan_revision'] + 1,
+                                                enabled=self.admit_proposals, gateway=self.gateway, budget=self.planning_budget)
                 if plan is None or plan.status != 'ready':
                     raise Blocked('replacement_plan_not_ready')
                 resolve_action(plan, 'call', workflow, source, project, graph=graph, observed_state=observed,
                                capabilities=caps, remaining_budget=remaining)
-                revision = {'attempt': previous['id'], 'task': task_id, 'decision': decision, 'plan': plan.model_dump(mode='json')}
+                revision = {'attempt': previous['id'], 'task': task_id, 'decision': decision, 'plan': plan.model_dump(mode='json'),
+                            'planning': {'status': replan_report.get('status'), 'model_calls': replan_report.get('model_calls', 0),
+                                         'model_request': replan_report.get('model_request')}}
                 state['replans'].append(revision)
                 state['retry_authorization'] = revision
                 self._save(project_id, state, 'replanned', task_id)
@@ -815,9 +872,11 @@ class TaskDispatcher:
                              "max_cost_eur": 0.0}
                 if remaining["max_tool_calls"] <= 0 or remaining["max_seconds"] <= 0:
                     raise Blocked("execution_budget_exhausted")
+                plan_report = None
                 if plan is None:
-                    plan, report = plan_task(workflow, source, project, graph=graph, task_id=task_id, observed_state=observed,
-                                             capabilities=caps, remaining_budget=remaining)
+                    plan, plan_report = plan_task(workflow, source, project, graph=graph, task_id=task_id, observed_state=observed,
+                                                  capabilities=caps, remaining_budget=remaining, enabled=self.admit_proposals,
+                                                  gateway=self.gateway, budget=self.planning_budget)
                     if plan is None or plan.status != "ready":
                         raise Blocked("task_not_ready")
                 if plan.task_id != task_id:
@@ -830,6 +889,10 @@ class TaskDispatcher:
                            "inputs": {i.id: i.fingerprint for i in plan.expected_inputs}, "decision_ids": [],
                            "prior_permissions": [_permission(e) for e in project.get("approvals", []) if e.get("gate") == "holdout"],
                            "acceptance_verification": "not_measured", "budget": {"tool_calls": 1, "seconds": None, "cost_eur": 0.0}}
+                if plan_report is not None:
+                    attempt["planning"] = {"status": plan_report.get("status"),
+                                           "model_calls": plan_report.get("model_calls", 0),
+                                           "model_request": plan_report.get("model_request")}
                 state["attempts"].append(attempt)
                 state["tool_calls"] += 1  # charged durably before effect; an ambiguous attempt cannot reclaim its allowance
                 state["seconds"] += plan.budget.max_seconds

@@ -12,7 +12,7 @@ Finish the feature from a validated model proposal through guarded execution, ve
 
 TP-01 through TP-06 tooling and TP-07's read-only developer preview are already implemented. TP-07 was committed at `4c990288063d005ea03379f4cc7499e7744458c6`. Do not recreate those packages.
 
-Execution rollout remains blocked. The model can propose a hierarchy, but the dispatcher currently admits only its reconstructed deterministic graph. The latest frozen promotion result is FAIL; the later small live diagnostic does not replace it.
+Execution rollout remains blocked. While Arm C live model-proposed graph admission and task execution are now wired and verified end-to-end under `task_planning_v2` (`36/36` model graphs admitted, `48/48` correctness, `0` critical safety violations), the live release gate verdict is `FAIL` (`gain_or_resource_threshold_not_met`: 3 dual-validation recovery cases used `9 > 8` extra prompts and 9/48 cases exceeded `2.0x` Arm A wall-clock latency). Keep execution disabled until a follow-up evaluation passes all frozen `tp06.gate.v1` criteria. See [the v2 release evaluation report](TASK_PLANNING_V2_RELEASE_REPORT.md).
 
 ## Step 0 — Verify the checkout and scope the next package
 
@@ -103,17 +103,17 @@ Steps 1 and 2 may share interfaces; establish those interfaces before coding and
 
 Read [the frozen protocol](TASK_PLANNING_EVALUATION_PROTOCOL.md) and [its acceptance report](TASK_PLANNING_EVALUATION_ACCEPTANCE.md).
 
-- [ ] Preserve TPB-001, TPB-002 and all existing freezes/reports unchanged.
-- [ ] Version the new protocol and source freeze before measurement.
-- [ ] Independently author sufficient cases; repeated seeds are not independent problems.
-- [ ] Compare A: original workflow, B: deterministic tasks, and C: actual model-assisted execution on matched inputs.
-- [ ] Distinguish boundary/routing checks from completed scientific projects.
-- [ ] Include recovery, human approval, stale sources, missing proof and unknown effects.
-- [ ] Keep evaluation content out of training and avoid tuning on evaluation requests.
-- [ ] Record configured model, prompts, code, dependencies, source hashes, cost and runtime.
-- [ ] Verify safety instrumentation and provenance before using results for promotion.
-- [ ] Obtain explicit authorization and an enforceable total spending cap before live-model measurement.
-- [ ] Do not access sealed evaluation data without explicit authorization.
+- [x] Preserve TPB-001, TPB-002 and all existing freezes/reports unchanged.
+- [x] Version the new protocol and source freeze before measurement (`task_planning_v2`, `evidence/campaigns/task_planning_v2/freeze_v1.json`).
+- [x] Independently author sufficient cases; repeated seeds are not independent problems (48 distinct cases: 16 completion, 14 recovery, 6 safety, 6 routing, 6 admission).
+- [x] Compare A: original workflow, B: deterministic tasks, and C: actual model-assisted execution on matched inputs.
+- [x] Distinguish boundary/routing checks from completed scientific projects.
+- [x] Include recovery, human approval, stale sources, missing proof and unknown effects.
+- [x] Keep evaluation content out of training and avoid tuning on evaluation requests.
+- [x] Record configured model, prompts, code, dependencies, source hashes, cost and runtime (`qwen/qwen3.8-flash`, `$0.228419 USD` across 239 requests / 847,020 tokens).
+- [x] Verify safety instrumentation and provenance before using results for promotion.
+- [x] Obtain explicit authorization and an enforceable total spending cap before live-model measurement (`$4.00` authorized total, `$3.50` campaign cap).
+- [x] Do not access sealed evaluation data without explicit authorization.
 
 The existing `make task-planning-eval` is an offline DEV comparison/probe entry point. It is not a ready-made full C promotion campaign. Do not bypass its source-freeze mismatch.
 
@@ -135,14 +135,14 @@ Read the full protocol for matching, bootstrap and instrumentation requirements.
 
 ## Step 5 — Measure, review and decide
 
-- [ ] Run only the agreed campaign and necessary affected regressions.
-- [ ] Preserve failed runs and resource failures beside successful reruns.
-- [ ] Independently check completion against actual owner records and scientific proofs.
-- [ ] Compute paired uncertainty by authored case rather than treating repeated seeds as independent.
-- [ ] Inspect every safety failure, baseline regression and unmatched record.
-- [ ] Record PASS, FAIL or INSUFFICIENT-EVIDENCE honestly.
-- [ ] Keep execution disabled for FAIL or INSUFFICIENT-EVIDENCE.
-- [ ] If improvement is absent, investigate and improve the implementation; do not change the gate to manufacture success.
+- [x] Run only the agreed campaign and necessary affected regressions (`evidence/campaigns/task_planning_v2/results/TP2-001_live.json`).
+- [x] Preserve failed runs and resource failures beside successful reruns.
+- [x] Independently check completion against actual owner records and scientific proofs.
+- [x] Compute paired uncertainty by authored case rather than treating repeated seeds as independent.
+- [x] Inspect every safety failure, baseline regression and unmatched record (0 safety failures, 0 regressions, 48/48 matched).
+- [x] Record PASS, FAIL or INSUFFICIENT-EVIDENCE honestly (`FAIL`: `gain_or_resource_threshold_not_met` — 3 dual-validation cases hit 9 > 8 extra prompts; 9/48 cases exceeded 2.0x Arm A latency).
+- [x] Keep execution disabled for FAIL or INSUFFICIENT-EVIDENCE.
+- [ ] If improvement is absent, investigate and improve the implementation; do not change the gate to manufacture success (documented root causes in `TASK_PLANNING_V2_RELEASE_REPORT.md` for next tuning package).
 
 **Done when:** the frozen release decision has independently reviewed evidence. Finishing evaluation code, a successful CLI exit or passing unit tests cannot substitute for a promotion pass.
 
@@ -171,6 +171,7 @@ Start only after integration and release requirements pass.
 - Start offline with `DCLAB_NO_LIVE_MODELS=1` and `DCLAB_DECISION_SHADOW=0` where applicable.
 - Discover the correct current test names and environment before executing commands.
 - Never manually edit generated files, historical results or archived evidence.
+- For all AI and live-model tests (all arms including baselines): route through `dclab_rnd.models.Gateway` with `home` inside `agent_runs/live_tests/<run_id>/` and `gateway.invented_tables` set for synthetic datasets so full prompts, replies, tool calls, raw `thinking`/`reasoning`/`reasoning_details`, `usage.jsonl`, `experience/`, `ledger/`, and `projects/` are retained; verify non-error reasoning capture and run `make archive` (`python -m dclab_rnd.archive`) after each live run to seal an immutable SHA-256 snapshot in `training_records/snapshots/<time>/`.
 - Record request, contract, findings, fixes, verification and limitations in the package's development record.
 - Keep one focused, reviewed package at a time. Do not push, deploy or enable execution merely because this document lists those future actions.
 
