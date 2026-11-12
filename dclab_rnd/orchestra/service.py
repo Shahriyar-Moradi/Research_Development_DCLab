@@ -221,9 +221,10 @@ def walk_project(home: Path, projects: Any, project_id: str, resume: Any = None)
         raise Busy(f"the team is already walking project {project_id}")
     try:
         from .settings import settings
+        from ..tasks.host import planning_host
 
         budget = settings(Path(home))  # 28.8
-        with checkpoints.open_checkpointer(home) as saver:
+        with checkpoints.open_checkpointer(home) as saver, planning_host(name=f"walk_{project_id}"):
             out = SolutionTeam(projects, saver, home=Path(home), max_steps=budget["max_steps"], max_eur=budget["run_eur"]).run(project_id, resume=resume)
     finally:
         lock.release()

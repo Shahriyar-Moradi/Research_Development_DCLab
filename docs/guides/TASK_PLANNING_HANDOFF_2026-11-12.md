@@ -60,6 +60,7 @@ Recent relevant commits:
 | TP-06 | Frozen evaluation harness, comparisons, reports and promotion gate | Tooling complete; promotion failed |
 | TP-07 | Real Task Plan panel, read-only project API, owner preview setting, responsive UI and rollback | Preview complete; execution rollout blocked |
 | TP-08 | Validated model-proposed task hierarchy admission into guarded execution, structural leaf checks, hierarchy bounds, tamper receipts, re-grounding across source updates | Complete; admission works under double opt-in (`admit_proposals=True`), execution remains default-off |
+| TP-09 | Cancellable product hosting for model planning in worker threads and background jobs, PlanningHost context, jobs.worker Stopped exception preservation | Complete; 9 host tests, 366 total planning tests pass |
 
 The separate **R-01 Home routing audit remains pending verification**. A focused routing correction is complete; that is not completion of the broader audit.
 
@@ -113,6 +114,7 @@ These are existing recorded results. No application tests were rerun just to wri
 - **Development corpus:** `make sft-dev` and all four validation/freshness checks passed, with zero refused examples.
 - **Independent TP-07 review:** Passed after proof-propagation and adjacent-revision fixes; the final focused regression passed.
 - **TP-08 graph admission:** 36 dedicated tests passed in `test_task_admission.py` (FileStore and PostgreSQL), 357 tests passed across all 11 task planning test files. Adversarial review resolved 4 confirmed findings (unvalidated reconstruction, unrooted trees, unhandled Blocked exceptions, provenance tampering detection). Zero spend on live models. All 10 `rd-gates` passed.
+- **TP-09 cancellable planning host:** 9 dedicated tests passed in `test_task_host.py`, 366 tests passed across all 12 task planning test files. Supports worker threads and `jobs.worker` Stop exceptions without swallowing. Zero live model spend.
 
 Recorded regressions include missing upstream proof leaving descendants completed, incorrect preserved-work summaries, incorrect adjacent-revision comparisons, and task status rendered through the wrong UI helper. Failing-before records were retained.
 

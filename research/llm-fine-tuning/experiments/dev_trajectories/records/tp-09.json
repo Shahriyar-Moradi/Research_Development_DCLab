@@ -1,0 +1,100 @@
+{
+  "package": "TP-09",
+  "title": "Cancellable product hosting for model planning in worker threads and background jobs",
+  "date": "2026-11-12",
+  "request": "Host model planning with cancellation and real budgets, integrating decomposition and task planning with jobs and worker threads while keeping offline behavior functional.",
+  "spec": "docs/guides/TASK_PLANNING_NEXT_STEPS.md",
+  "plan": [
+    "Design a PlanningHost context manager that supports thread-local and contextvar cancellation tracking.",
+    "Integrate PlanningHost with jobs.worker.Control checkpoints and ensure Stopped BaseException propagates without being swallowed.",
+    "Update _deadline in decomposer.py to delegate to active hosts in worker threads while preserving signal.setitimer on POSIX main thread and refusing unhosted threads.",
+    "Integrate planning_host into orchestra service walk_project for safe asyncio.to_thread execution.",
+    "Add comprehensive test suite covering host activation, cancellation, jobs Stop propagation, unhosted refusal, and failure tracking."
+  ],
+  "decisions": [
+    {
+      "decision": "Support both explicit planning_host contexts and automatic jobs.worker.Control discovery.",
+      "why": "Background jobs already have durable cancellation via checkpoint and should not require manual wrapper boilerplate."
+    },
+    {
+      "decision": "Preserve strict refusal with deadline_unavailable for unhosted worker threads.",
+      "why": "Background threads that cannot guarantee cancellation or bounded execution must not be permitted to make unbounded model requests."
+    },
+    {
+      "decision": "Allow Stopped BaseException to propagate cleanly through planning functions.",
+      "why": "A user-requested job stop must abort the worker job immediately rather than falling back to deterministic planning."
+    },
+    {
+      "decision": "Preserve planner.py byte-for-byte to maintain TP-03 frozen development comparison hashes.",
+      "why": "Modifying planner.py would invalidate historical dev comparison fingerprints from prior accepted packages."
+    }
+  ],
+  "change": "Add PlanningHost in dclab_rnd/tasks/host.py, update _deadline in decomposer.py to support cancellable hosts in worker threads, wrap walk_project in orchestra/service.py, and verify with 9 new tests across 12 test files.",
+  "findings": [
+    {
+      "id": "TP09-FROZEN-HASH",
+      "source": "test",
+      "defect": "Modifying planner.py invalidated historical TP-03 development comparison fingerprint.",
+      "scenario": "Importing _Refusal into planner.py altered its sha256, causing test_recorded_dev_comparison_matches_current_prompt_code_and_fixture to fail.",
+      "cause": "evaluate_plans.py checks sha256 of planner.py against frozen baseline in task_planning_tp03_dev.json.",
+      "fix": "Revert planner.py and allow _Refusal to be handled as an Exception returning proposal_refused during fallback.",
+      "test": "test_recorded_dev_comparison_matches_current_prompt_code_and_fixture",
+      "severity": "behaviour",
+      "impact": "Frozen dev gate regression would block package acceptance.",
+      "alternatives": ["Regenerate frozen evaluation record (violates immutability rule)"],
+      "open": "",
+      "verdict": "confirmed"
+    },
+    {
+      "id": "TP09-REPORT-REFUSAL",
+      "source": "test",
+      "defect": "decompose report uses refusals list rather than fallback_reason key.",
+      "scenario": "A test inspecting report['fallback_reason'] crashed with KeyError.",
+      "cause": "decompose finish helper stores refusal reasons in report['refusals'].",
+      "fix": "Assert against report['refusals'] matching decompose specification.",
+      "test": "test_untracked_requests_prevented_on_failure",
+      "severity": "behaviour",
+      "impact": "Test assertion mismatch.",
+      "alternatives": [],
+      "open": "",
+      "verdict": "confirmed"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "Cancellable planning host suite",
+      "gate": "All 9 host tests must pass with zero skips across thread, cancellation, and jobs integration paths.",
+      "fixed_before_run": true,
+      "result": "9 tests passed in 3.5s with zero failures and zero skips.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "",
+      "against_gate": "",
+      "limits": [
+        "Tests verify host cancellation and boundary plumbing using scripted transport fixtures."
+      ]
+    },
+    {
+      "name": "Full task planning suite",
+      "gate": "All 12 task planning test files must pass with zero regressions.",
+      "fixed_before_run": true,
+      "result": "366 tests across 12 files passed in 44.4s.",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "next": "",
+      "against_gate": "",
+      "limits": [
+        "Execution rollout remains disabled by default pending formal promotion gate rerun."
+      ]
+    }
+  ],
+  "outcome": "Cancellable product hosting for model planning is complete with PlanningHost, seamless jobs.worker integration, worker-thread support in walk_project, and 366 passing tests.",
+  "lessons": [
+    "Frozen evaluation records require strict byte-level preservation of hashed source files.",
+    "BaseException subclasses like Stopped provide a clean mechanism to bypass standard domain Exception handlers for job cancellation."
+  ],
+  "risks": [
+    "Worker threads running without planning_host will continue to refuse planning before invoking models."
+  ],
+  "commits": []
+}

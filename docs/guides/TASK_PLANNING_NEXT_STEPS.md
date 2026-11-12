@@ -74,15 +74,15 @@ Do not solve this by deleting graph/source equality checks without replacing the
 
 The current decomposer deadline supports synchronous POSIX main-thread callers. Product worker threads need an appropriate cancellable host.
 
-- [ ] Inspect existing jobs, workers, checkpoints and Stop behavior.
-- [ ] Integrate decomposition and task planning through those mechanisms.
-- [ ] Bound requests, tokens, elapsed time and spend, including reasoning-token reservations.
-- [ ] Test cancellation, timeouts, provider failures and exhausted budgets.
-- [ ] Ensure cancellation cannot leave an untracked request or trigger duplicate planning/execution.
-- [ ] Keep offline/no-model behavior functional.
-- [ ] Preserve whole model exchanges and returned reasoning through the gateway, with applicable redaction and consent.
-- [ ] Keep private exchanges and reasoning out of product responses and task logs.
-- [ ] Verify currency units and price sources; the prior run-local USD workaround is not an application-wide pricing fix.
+- [x] Inspect existing jobs, workers, checkpoints and Stop behavior.
+- [x] Integrate decomposition and task planning through those mechanisms.
+- [x] Bound requests, tokens, elapsed time and spend, including reasoning-token reservations.
+- [x] Test cancellation, timeouts, provider failures and exhausted budgets.
+- [x] Ensure cancellation cannot leave an untracked request or trigger duplicate planning/execution.
+- [x] Keep offline/no-model behavior functional.
+- [x] Preserve whole model exchanges and returned reasoning through the gateway, with applicable redaction and consent.
+- [x] Keep private exchanges and reasoning out of product responses and task logs.
+- [x] Verify currency units and price sources; the prior run-local USD workaround is not an application-wide pricing fix.
 
 **Done when:** product-hosted planning is cancellable, bounded and observable, and failure/Stop behavior is covered by targeted tests. Live testing requires its own explicit authorization and total cap.
 

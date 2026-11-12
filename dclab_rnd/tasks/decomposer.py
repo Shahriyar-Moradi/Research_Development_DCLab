@@ -32,10 +32,27 @@ class _Refusal(ValueError):
 def _deadline(seconds):
     """Interrupt synchronous proposal work, or refuse it. Never leave an uncancellable background request.
 
-    This developer preview supports POSIX main-thread callers with no active real-time alarm. Product worker
-    threads and platforms without setitimer keep the deterministic path until a cancellable host owns the call.
+    POSIX main-thread callers use setitimer. Product worker threads and jobs use an active PlanningHost.
+    Unhosted worker threads without setitimer or a cancellable host keep the deterministic path.
     Existing caller signal handlers and timers are not borrowed or overwritten while active.
     """
+    from .host import current_host, PlanningCancelled
+
+    host = current_host()
+    if host is not None:
+        try:
+            host.check_cancellation()
+        except PlanningCancelled:
+            raise _Refusal("planning_cancelled")
+        try:
+            yield
+        finally:
+            try:
+                host.check_cancellation()
+            except PlanningCancelled:
+                raise _Refusal("planning_cancelled")
+        return
+
     if (threading.current_thread() is not threading.main_thread() or not hasattr(signal, "setitimer")
             or signal.getitimer(signal.ITIMER_REAL) != (0.0, 0.0)):
         raise _Refusal("deadline_unavailable")
