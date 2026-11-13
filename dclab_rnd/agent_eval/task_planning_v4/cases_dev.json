@@ -1,0 +1,317 @@
+{
+  "schema": "dclab_rnd.task_planning_v4_cases.v1",
+  "split": "dev",
+  "seeds": [71001, 71002],
+  "cases": [
+    {
+      "id": "tp4_d01",
+      "stratum": "ambiguous_contract",
+      "replica": "subscription_churn",
+      "needs_model_planning": true,
+      "brief": "Reduce customer losses across subscribers.csv and contracts.csv before next quarter.",
+      "tables": {
+        "subscribers.csv": ["subscriber_id", "signup_time", "plan", "monthly_fee", "tenure_months"],
+        "contracts.csv": ["contract_id", "subscriber_id", "status", "end_date"]
+      },
+      "known_facts": {"target": null, "horizon_days": null, "unit": null},
+      "expected_tasks": ["confirm_unit_and_horizon", "define_target", "ask_owner", "check_join_key", "time_split_check"],
+      "expected_traps": ["ambiguous_unit_subscriber_vs_contract", "missing_horizon"],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["assume_row_unit_without_check", "lock_holdout_before_target_confirmed"]
+    },
+    {
+      "id": "tp4_d02",
+      "stratum": "ambiguous_contract",
+      "replica": "retail_returns",
+      "needs_model_planning": true,
+      "brief": "Help flag risky orders early so support spends less time on problematic purchases.",
+      "tables": {
+        "orders.csv": ["order_id", "customer_id", "ordered_at", "store_id", "amount", "returned_flag", "chargeback_flag"]
+      },
+      "known_facts": {"target": null, "horizon_days": null, "unit": "order"},
+      "expected_tasks": ["define_target", "ask_owner", "profile_column", "time_split_check", "threshold_for_cost"],
+      "expected_traps": ["ambiguous_target_returned_vs_chargeback", "missing_horizon"],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["invent_target_without_confirmation", "use_post_outcome_column"]
+    },
+    {
+      "id": "tp4_d03",
+      "stratum": "ambiguous_contract",
+      "replica": "shop_customers",
+      "needs_model_planning": true,
+      "brief": "Tell us which accounts are slipping away this month so marketing can intervene.",
+      "tables": {
+        "customers.csv": ["customer_id", "signup_date", "plan", "region", "last_order_date", "lifetime_orders"],
+        "orders.csv": ["customer_id", "ordered_at", "amount"]
+      },
+      "known_facts": {"target": null, "horizon_days": 30, "unit": null},
+      "expected_tasks": ["confirm_unit_and_horizon", "define_target", "ask_owner", "check_join_key", "leakage_probe"],
+      "expected_traps": ["outcome_defined_over_events_not_column", "last_order_date_snapshot_leak"],
+      "expected_subproblems": ["entity_tables"],
+      "forbidden_actions": ["use_snapshot_lifetime_orders", "assume_target_column"]
+    },
+    {
+      "id": "tp4_d04",
+      "stratum": "time_and_overlap",
+      "replica": "subscription_churn",
+      "needs_model_planning": true,
+      "brief": "Predict whether a subscriber cancels before next renewal using historical signup and usage records.",
+      "tables": {
+        "subscribers.csv": ["subscriber_id", "signup_time", "plan", "monthly_fee", "tenure_months", "support_calls", "late_payments", "churned"]
+      },
+      "known_facts": {"target": "churned", "horizon_days": 30, "unit": "subscriber", "time_column": "signup_time", "drift_suspected": true},
+      "expected_tasks": ["time_split_check", "profile_column", "calibration", "threshold_for_cost"],
+      "expected_traps": ["time_drift_random_split_leak"],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["random_split_on_time"]
+    },
+    {
+      "id": "tp4_d05",
+      "stratum": "time_and_overlap",
+      "replica": "shop_customers",
+      "needs_model_planning": true,
+      "brief": "Score active customers at monthly cutoff snapshots to predict 30-day inactivity using prior orders and tickets.",
+      "tables": {
+        "customers.csv": ["customer_id", "signup_date", "plan", "region"],
+        "orders.csv": ["customer_id", "ordered_at", "amount"],
+        "tickets.csv": ["customer_id", "opened_at", "severity"]
+      },
+      "known_facts": {"target": "inactive_30d", "horizon_days": 30, "unit": "customer", "time_column": "cutoff_date"},
+      "expected_tasks": ["time_split_check", "grouped_split", "check_join_key", "leakage_probe"],
+      "expected_traps": ["cutoff_horizon_overlap_with_holdout", "post_cutoff_order_events"],
+      "expected_subproblems": ["entity_tables"],
+      "forbidden_actions": ["random_split_on_time", "aggregate_future_orders"]
+    },
+    {
+      "id": "tp4_d06",
+      "stratum": "time_and_overlap",
+      "replica": "delivery_time",
+      "needs_model_planning": true,
+      "brief": "Predict courier delivery duration at dispatch time across seasonal peaks and regional route changes.",
+      "tables": {
+        "deliveries.csv": ["delivery_id", "dispatched_at", "region", "distance_km", "hub_load", "courier_id", "duration_minutes"]
+      },
+      "known_facts": {"target": "duration_minutes", "horizon_days": 1, "unit": "delivery", "time_column": "dispatched_at"},
+      "expected_tasks": ["time_split_check", "error_analysis", "baseline"],
+      "expected_traps": ["temporal_regime_shift"],
+      "expected_subproblems": ["regression"],
+      "forbidden_actions": ["random_split_on_time"]
+    },
+    {
+      "id": "tp4_d07",
+      "stratum": "sneaky_leakage",
+      "replica": "subscription_churn",
+      "needs_model_planning": true,
+      "brief": "Predict churned accounts at renewal review using all subscriber attributes in subscribers.csv.",
+      "tables": {
+        "subscribers.csv": ["subscriber_id", "signup_time", "plan", "monthly_fee", "tenure_months", "support_calls", "late_payments", "final_refund_amount", "churned"]
+      },
+      "known_facts": {"target": "churned", "horizon_days": 30, "unit": "subscriber", "time_column": "signup_time"},
+      "expected_tasks": ["leakage_probe", "time_split_check", "profile_column", "calibration"],
+      "expected_traps": ["post_outcome_final_refund_amount", "identifier_subscriber_id"],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["keep_leaky_column", "keep_identifier_feature"]
+    },
+    {
+      "id": "tp4_d08",
+      "stratum": "sneaky_leakage",
+      "replica": "shop_customers",
+      "needs_model_planning": true,
+      "brief": "Predict whether a customer stops ordering in the 30 days after the snapshot date using customers.csv.",
+      "tables": {
+        "customers.csv": ["customer_id", "signup_date", "plan", "region", "last_order_date", "lifetime_orders", "inactive_30d"]
+      },
+      "known_facts": {"target": "inactive_30d", "horizon_days": 30, "unit": "customer", "time_column": "signup_date"},
+      "expected_tasks": ["leakage_probe", "profile_column", "time_split_check", "feature_hypothesis"],
+      "expected_traps": ["end_of_period_last_order_date", "end_of_period_lifetime_orders"],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["keep_leaky_column"]
+    },
+    {
+      "id": "tp4_d09",
+      "stratum": "sneaky_leakage",
+      "replica": "delivery_fraud",
+      "needs_model_planning": true,
+      "brief": "Flag fraudulent orders before dispatch using order details and internal fraud review logs.",
+      "tables": {
+        "orders.csv": ["order_id", "account_id", "created_at", "amount", "box_type", "investigation_outcome_note", "fraud_flag"]
+      },
+      "known_facts": {"target": "fraud_flag", "horizon_days": 0, "unit": "order", "time_column": "created_at"},
+      "expected_tasks": ["leakage_probe", "time_split_check", "calibration", "threshold_for_cost"],
+      "expected_traps": ["post_review_investigation_outcome_note", "rare_positive_accuracy_trap"],
+      "expected_subproblems": ["rare_event"],
+      "forbidden_actions": ["keep_leaky_column", "evaluate_by_raw_accuracy_only"]
+    },
+    {
+      "id": "tp4_d10",
+      "stratum": "multi_table_joins",
+      "replica": "shop_customers",
+      "needs_model_planning": true,
+      "brief": "Predict 30-day customer inactivity using customers, orders, tickets, and addresses tables.",
+      "tables": {
+        "customers.csv": ["customer_id", "signup_date", "plan", "region"],
+        "orders.csv": ["customer_id", "ordered_at", "amount"],
+        "tickets.csv": ["customer_id", "opened_at", "severity"],
+        "addresses.csv": ["customer_id", "city"]
+      },
+      "known_facts": {"target": "inactive_30d", "horizon_days": 30, "unit": "customer", "entity_key": "customer_id"},
+      "expected_tasks": ["check_join_key", "grouped_split", "feature_hypothesis", "leakage_probe"],
+      "expected_traps": ["addresses_one_to_many_row_duplication", "entity_leak_across_random_rows"],
+      "expected_subproblems": ["entity_tables"],
+      "forbidden_actions": ["naive_many_to_one_join", "random_row_split_with_repeated_entities"]
+    },
+    {
+      "id": "tp4_d11",
+      "stratum": "multi_table_joins",
+      "replica": "entity_repeat_orders",
+      "needs_model_planning": true,
+      "brief": "Predict repeat ticket escalation at user level across session logs and billing accounts.",
+      "tables": {
+        "accounts.csv": ["account_id", "org_id", "tier", "escalated"],
+        "sessions.csv": ["session_id", "account_id", "started_at", "errors"]
+      },
+      "known_facts": {"target": "escalated", "horizon_days": 14, "unit": "org", "entity_key": "org_id"},
+      "expected_tasks": ["check_join_key", "grouped_split", "confirm_unit_and_horizon", "feature_hypothesis"],
+      "expected_traps": ["nested_org_leakage_across_accounts", "sessions_aggregation_needed"],
+      "expected_subproblems": ["entity_tables"],
+      "forbidden_actions": ["random_row_split_with_repeated_entities"]
+    },
+    {
+      "id": "tp4_d12",
+      "stratum": "multi_table_joins",
+      "replica": "retail_returns",
+      "needs_model_planning": true,
+      "brief": "Predict item return risk at checkout from line items, store metadata, and customer prior returns.",
+      "tables": {
+        "line_items.csv": ["line_id", "order_id", "customer_id", "store_id", "ordered_at", "price", "returned"],
+        "stores.csv": ["store_id", "region", "channel"],
+        "customer_stats.csv": ["customer_id", "as_of_date", "prior_returns"]
+      },
+      "known_facts": {"target": "returned", "horizon_days": 30, "unit": "line_item", "entity_key": "customer_id", "time_column": "ordered_at"},
+      "expected_tasks": ["check_join_key", "time_split_check", "grouped_split", "leakage_probe"],
+      "expected_traps": ["as_of_date_join_leakage", "repeat_customer_split_leak"],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["random_row_split_with_repeated_entities", "aggregate_future_orders"]
+    },
+    {
+      "id": "tp4_d13",
+      "stratum": "composite_subproblems",
+      "replica": "retention_actions",
+      "needs_model_planning": true,
+      "brief": "Choose whether to send a cheap email, assign a costly phone call, or do nothing so we keep as many valuable customers as possible within call capacity.",
+      "tables": {
+        "customers.csv": ["customer_id", "age", "app_user", "tenure_months", "support_calls", "monthly_fee", "region", "contact", "stayed"]
+      },
+      "known_facts": {"target": "stayed", "treatment": "contact", "costs": {"email": 0.5, "call": 15.0}},
+      "expected_tasks": ["segment_subproblem", "threshold_for_cost", "calibration", "error_analysis"],
+      "expected_traps": ["high_churn_is_not_high_uplift", "multi_arm_call_vs_email_value"],
+      "expected_subproblems": ["uplift", "segmentation"],
+      "forbidden_actions": ["blind_binary_for_uplift"]
+    },
+    {
+      "id": "tp4_d14",
+      "stratum": "composite_subproblems",
+      "replica": "campaign_uplift",
+      "needs_model_planning": true,
+      "brief": "Marketing gave discounts mostly to frequent buyers; figure out which segment actually changes its mind because of the offer.",
+      "tables": {
+        "customers.csv": ["customer_id", "age", "app_user", "past_purchases", "tenure_months", "region", "got_offer", "bought"]
+      },
+      "known_facts": {"target": "bought", "treatment": "got_offer", "randomised": false},
+      "expected_tasks": ["segment_subproblem", "profile_column", "error_analysis", "threshold_for_cost"],
+      "expected_traps": ["observational_treatment_bias", "loyal_buyers_buy_anyway"],
+      "expected_subproblems": ["uplift", "segmentation"],
+      "forbidden_actions": ["blind_binary_for_uplift", "ignore_treatment_overlap"]
+    },
+    {
+      "id": "tp4_d15",
+      "stratum": "composite_subproblems",
+      "replica": "customer_behaviours",
+      "needs_model_planning": true,
+      "brief": "Discover distinct customer personas for the product team and prioritize high-value churn-risk accounts for tailored outreach.",
+      "tables": {
+        "customers.csv": ["customer_id", "plan", "sessions_30d", "spend_30d", "tickets_30d", "churned"]
+      },
+      "known_facts": {"target": "churned", "horizon_days": 30, "unit": "customer"},
+      "expected_tasks": ["segment_subproblem", "baseline", "threshold_for_cost", "calibration"],
+      "expected_traps": ["single_classifier_misses_persona_segments"],
+      "expected_subproblems": ["segmentation", "classification"],
+      "forbidden_actions": ["ignore_segmentation_subproblem"]
+    },
+    {
+      "id": "tp4_d16",
+      "stratum": "imbalance_and_cost",
+      "replica": "fraud_programme",
+      "needs_model_planning": true,
+      "brief": "Screen payment transactions for rare abuse (under 1%) where manual review can inspect only 200 cases per day and false blocks hurt VIP users.",
+      "tables": {
+        "transactions.csv": ["tx_id", "account_id", "created_at", "amount", "country_mismatch", "chargeback_confirmed"]
+      },
+      "known_facts": {"target": "chargeback_confirmed", "positive_rate": 0.008, "daily_review_cap": 200, "time_column": "created_at"},
+      "expected_tasks": ["calibration", "threshold_for_cost", "time_split_check", "error_analysis"],
+      "expected_traps": ["extreme_class_imbalance", "capacity_constrained_threshold"],
+      "expected_subproblems": ["rare_event"],
+      "forbidden_actions": ["evaluate_by_raw_accuracy_only"]
+    },
+    {
+      "id": "tp4_d17",
+      "stratum": "imbalance_and_cost",
+      "replica": "subscription_churn",
+      "needs_model_planning": true,
+      "brief": "Alert account managers when high-tier accounts are likely to cancel, weighing a 10x higher cost for missing a pro churner.",
+      "tables": {
+        "subscribers.csv": ["subscriber_id", "signup_time", "plan", "monthly_fee", "tenure_months", "support_calls", "late_payments", "churned"]
+      },
+      "known_facts": {"target": "churned", "horizon_days": 30, "cost_ratio": 10.0, "time_column": "signup_time"},
+      "expected_tasks": ["calibration", "threshold_for_cost", "error_analysis", "time_split_check"],
+      "expected_traps": ["default_0_5_threshold_misses_cost_ratio", "slice_disparity_by_plan"],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["evaluate_by_raw_accuracy_only"]
+    },
+    {
+      "id": "tp4_d18",
+      "stratum": "imbalance_and_cost",
+      "replica": "machine_sensors",
+      "needs_model_planning": true,
+      "brief": "Trigger early maintenance warnings on pump sensor readings before breakdown where unplanned failure costs 25x a scheduled inspection.",
+      "tables": {
+        "readings.csv": ["reading_id", "pump_id", "recorded_at", "vibration", "temperature", "pressure", "failed_within_24h"]
+      },
+      "known_facts": {"target": "failed_within_24h", "entity_key": "pump_id", "time_column": "recorded_at", "cost_ratio": 25.0},
+      "expected_tasks": ["grouped_split", "time_split_check", "calibration", "threshold_for_cost"],
+      "expected_traps": ["repeated_pump_readings_leak", "asymmetric_failure_cost"],
+      "expected_subproblems": ["streams", "rare_event"],
+      "forbidden_actions": ["random_row_split_with_repeated_entities", "evaluate_by_raw_accuracy_only"]
+    },
+    {
+      "id": "tp4_d19",
+      "stratum": "standard",
+      "replica": "city_prices",
+      "needs_model_planning": false,
+      "brief": "Predict listing nightly price from clean property features (bedrooms, baths, neighborhood, sqft) in listings.csv.",
+      "tables": {
+        "listings.csv": ["listing_id", "bedrooms", "baths", "neighborhood", "sqft", "nightly_price"]
+      },
+      "known_facts": {"target": "nightly_price", "horizon_days": 0, "unit": "listing", "clean_single_table": true},
+      "expected_tasks": ["baseline"],
+      "expected_traps": [],
+      "expected_subproblems": ["regression"],
+      "forbidden_actions": ["unnecessary_ask_owner"]
+    },
+    {
+      "id": "tp4_d20",
+      "stratum": "standard",
+      "replica": "binary_clean",
+      "needs_model_planning": false,
+      "brief": "Predict approved status for credit applications from pre-decision applicant income, debt ratio, and credit age.",
+      "tables": {
+        "applications.csv": ["app_id", "income", "debt_ratio", "credit_age_months", "approved"]
+      },
+      "known_facts": {"target": "approved", "horizon_days": 0, "unit": "application", "clean_single_table": true},
+      "expected_tasks": ["baseline"],
+      "expected_traps": [],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["unnecessary_ask_owner"]
+    }
+  ]
+}

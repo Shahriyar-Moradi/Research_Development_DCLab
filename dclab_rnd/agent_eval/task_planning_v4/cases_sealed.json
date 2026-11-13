@@ -1,0 +1,221 @@
+{
+  "schema": "dclab_rnd.task_planning_v4_cases.v1",
+  "split": "sealed",
+  "seeds": [72001, 72002],
+  "cases": [
+    {
+      "id": "tp4_s01",
+      "stratum": "ambiguous_contract",
+      "replica": "subscription_churn",
+      "needs_model_planning": true,
+      "brief": "Predict membership drop-off for gym clubs across members.csv and visits.csv without guessing the window.",
+      "tables": {
+        "members.csv": ["member_id", "join_date", "tier", "monthly_dues"],
+        "visits.csv": ["visit_id", "member_id", "visited_at"]
+      },
+      "known_facts": {"target": null, "horizon_days": null, "unit": null},
+      "expected_tasks": ["confirm_unit_and_horizon", "define_target", "ask_owner", "check_join_key", "time_split_check"],
+      "expected_traps": ["missing_horizon", "outcome_from_visits_table"],
+      "expected_subproblems": ["entity_tables"],
+      "forbidden_actions": ["assume_target_column", "lock_holdout_before_target_confirmed"]
+    },
+    {
+      "id": "tp4_s02",
+      "stratum": "ambiguous_contract",
+      "replica": "ticket_routing",
+      "needs_model_planning": true,
+      "brief": "Help automate support ticket handling for priority queues using tickets.csv.",
+      "tables": {
+        "tickets.csv": ["ticket_id", "opened_at", "channel", "queue_label", "escalated_label", "resolution_hours"]
+      },
+      "known_facts": {"target": null, "horizon_days": null, "unit": "ticket"},
+      "expected_tasks": ["define_target", "ask_owner", "profile_column", "leakage_probe"],
+      "expected_traps": ["ambiguous_queue_vs_escalation_target", "resolution_hours_post_outcome"],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["invent_target_without_confirmation", "keep_leaky_column"]
+    },
+    {
+      "id": "tp4_s03",
+      "stratum": "time_and_overlap",
+      "replica": "subscription_churn",
+      "needs_model_planning": true,
+      "brief": "Score active cloud workspaces for downgrade within 30 days using cohort snapshots over 18 months of growth drift.",
+      "tables": {
+        "workspaces.csv": ["workspace_id", "cohort_time", "tier", "seats", "api_calls", "downgraded"]
+      },
+      "known_facts": {"target": "downgraded", "horizon_days": 30, "unit": "workspace", "time_column": "cohort_time", "drift_suspected": true},
+      "expected_tasks": ["time_split_check", "profile_column", "calibration"],
+      "expected_traps": ["time_drift_random_split_leak"],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["random_split_on_time"]
+    },
+    {
+      "id": "tp4_s04",
+      "stratum": "time_and_overlap",
+      "replica": "mall_sales",
+      "needs_model_planning": true,
+      "brief": "Forecast daily store footfall revenue next week from calendar and prior daily receipts.",
+      "tables": {
+        "daily_sales.csv": ["store_id", "sale_date", "weekday", "promo", "revenue"]
+      },
+      "known_facts": {"target": "revenue", "horizon_days": 7, "unit": "store_day", "time_column": "sale_date", "entity_key": "store_id"},
+      "expected_tasks": ["time_split_check", "grouped_split", "error_analysis"],
+      "expected_traps": ["forecast_random_split_leak"],
+      "expected_subproblems": ["forecasting"],
+      "forbidden_actions": ["random_split_on_time"]
+    },
+    {
+      "id": "tp4_s05",
+      "stratum": "sneaky_leakage",
+      "replica": "delivery_fraud",
+      "needs_model_planning": true,
+      "brief": "Predict disputed claims before payout using claim forms and settlement fields.",
+      "tables": {
+        "claims.csv": ["claim_id", "policy_id", "filed_at", "claim_amount", "payout_issued_amount", "is_disputed"]
+      },
+      "known_facts": {"target": "is_disputed", "horizon_days": 0, "unit": "claim", "time_column": "filed_at"},
+      "expected_tasks": ["leakage_probe", "time_split_check", "calibration"],
+      "expected_traps": ["post_outcome_payout_issued_amount"],
+      "expected_subproblems": ["rare_event"],
+      "forbidden_actions": ["keep_leaky_column"]
+    },
+    {
+      "id": "tp4_s06",
+      "stratum": "sneaky_leakage",
+      "replica": "shop_customers",
+      "needs_model_planning": true,
+      "brief": "Predict loan early payoff from borrower demographics and closing status summary columns.",
+      "tables": {
+        "loans.csv": ["loan_id", "originated_at", "principal", "rate", "closure_reason", "final_balance_date", "early_payoff"]
+      },
+      "known_facts": {"target": "early_payoff", "horizon_days": 90, "unit": "loan", "time_column": "originated_at"},
+      "expected_tasks": ["leakage_probe", "profile_column", "time_split_check"],
+      "expected_traps": ["post_outcome_closure_reason", "post_outcome_final_balance_date"],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["keep_leaky_column"]
+    },
+    {
+      "id": "tp4_s07",
+      "stratum": "multi_table_joins",
+      "replica": "shop_customers",
+      "needs_model_planning": true,
+      "brief": "Predict donor lapse using donors, donations, phone outreach logs, and mailing tags tables.",
+      "tables": {
+        "donors.csv": ["donor_id", "joined_at", "segment"],
+        "donations.csv": ["donor_id", "donated_at", "amount"],
+        "tags.csv": ["donor_id", "tag"]
+      },
+      "known_facts": {"target": "lapsed_next_campaign", "horizon_days": 60, "unit": "donor", "entity_key": "donor_id"},
+      "expected_tasks": ["check_join_key", "grouped_split", "feature_hypothesis", "leakage_probe"],
+      "expected_traps": ["tags_many_to_one_duplication", "entity_leak_across_random_rows"],
+      "expected_subproblems": ["entity_tables"],
+      "forbidden_actions": ["naive_many_to_one_join", "random_row_split_with_repeated_entities"]
+    },
+    {
+      "id": "tp4_s08",
+      "stratum": "multi_table_joins",
+      "replica": "entity_repeat_orders",
+      "needs_model_planning": true,
+      "brief": "Predict device RMA replacement within 30 days using telemetry summaries and multi-row warranty contracts.",
+      "tables": {
+        "devices.csv": ["device_id", "household_id", "shipped_at", "rma_30d"],
+        "contracts.csv": ["contract_id", "device_id", "coverage"]
+      },
+      "known_facts": {"target": "rma_30d", "horizon_days": 30, "unit": "device", "entity_key": "household_id", "time_column": "shipped_at"},
+      "expected_tasks": ["check_join_key", "grouped_split", "time_split_check", "leakage_probe"],
+      "expected_traps": ["contracts_duplication", "household_split_leak"],
+      "expected_subproblems": ["entity_tables"],
+      "forbidden_actions": ["random_row_split_with_repeated_entities"]
+    },
+    {
+      "id": "tp4_s09",
+      "stratum": "composite_subproblems",
+      "replica": "retention_actions",
+      "needs_model_planning": true,
+      "brief": "Allocate limited retention SMS and agent callbacks across policyholders to maximize retained annual premium net of contact costs.",
+      "tables": {
+        "policies.csv": ["policy_id", "age", "app_active", "tenure_months", "claims", "annual_premium", "contact_arm", "renewed"]
+      },
+      "known_facts": {"target": "renewed", "treatment": "contact_arm", "costs": {"sms": 0.2, "callback": 18.0}},
+      "expected_tasks": ["segment_subproblem", "threshold_for_cost", "calibration", "error_analysis"],
+      "expected_traps": ["multi_arm_contact_allocation", "high_risk_not_persuadable"],
+      "expected_subproblems": ["uplift", "segmentation"],
+      "forbidden_actions": ["blind_binary_for_uplift"]
+    },
+    {
+      "id": "tp4_s10",
+      "stratum": "composite_subproblems",
+      "replica": "campaign_uplift",
+      "needs_model_planning": true,
+      "brief": "Promotions were mostly sent to high-spend shoppers; estimate who truly converts only because of the voucher and cluster unresponsive buyers.",
+      "tables": {
+        "shoppers.csv": ["shopper_id", "age", "mobile_app", "prior_spend", "voucher_sent", "purchased"]
+      },
+      "known_facts": {"target": "purchased", "treatment": "voucher_sent", "randomised": false},
+      "expected_tasks": ["segment_subproblem", "profile_column", "error_analysis", "threshold_for_cost"],
+      "expected_traps": ["observational_treatment_bias", "ignore_treatment_overlap"],
+      "expected_subproblems": ["uplift", "segmentation"],
+      "forbidden_actions": ["blind_binary_for_uplift", "ignore_treatment_overlap"]
+    },
+    {
+      "id": "tp4_s11",
+      "stratum": "imbalance_and_cost",
+      "replica": "fraud_programme",
+      "needs_model_planning": true,
+      "brief": "Detect rare counterfeit listings (<0.5%) when moderators can audit at most 150 flagged items per shift.",
+      "tables": {
+        "listings.csv": ["item_id", "seller_id", "listed_at", "price", "brand_mismatch", "counterfeit"]
+      },
+      "known_facts": {"target": "counterfeit", "positive_rate": 0.005, "daily_review_cap": 150, "entity_key": "seller_id", "time_column": "listed_at"},
+      "expected_tasks": ["grouped_split", "calibration", "threshold_for_cost", "time_split_check"],
+      "expected_traps": ["extreme_class_imbalance", "capacity_constrained_threshold"],
+      "expected_subproblems": ["rare_event"],
+      "forbidden_actions": ["evaluate_by_raw_accuracy_only"]
+    },
+    {
+      "id": "tp4_s12",
+      "stratum": "imbalance_and_cost",
+      "replica": "machine_sensors",
+      "needs_model_planning": true,
+      "brief": "Predict compressor failure within 48h where missed downtime costs 30x an inspection check.",
+      "tables": {
+        "telemetry.csv": ["tick_id", "unit_id", "measured_at", "rpm", "temp", "failed_48h"]
+      },
+      "known_facts": {"target": "failed_48h", "entity_key": "unit_id", "time_column": "measured_at", "cost_ratio": 30.0},
+      "expected_tasks": ["grouped_split", "time_split_check", "calibration", "threshold_for_cost"],
+      "expected_traps": ["unit_telemetry_leak", "asymmetric_failure_cost"],
+      "expected_subproblems": ["streams", "rare_event"],
+      "forbidden_actions": ["random_row_split_with_repeated_entities", "evaluate_by_raw_accuracy_only"]
+    },
+    {
+      "id": "tp4_s13",
+      "stratum": "standard",
+      "replica": "city_prices",
+      "needs_model_planning": false,
+      "brief": "Estimate used car resale price from mileage, year, make, engine size, and trim in cars.csv.",
+      "tables": {
+        "cars.csv": ["car_id", "mileage", "year", "make", "engine_l", "trim", "resale_price"]
+      },
+      "known_facts": {"target": "resale_price", "horizon_days": 0, "unit": "car", "clean_single_table": true},
+      "expected_tasks": ["baseline"],
+      "expected_traps": [],
+      "expected_subproblems": ["regression"],
+      "forbidden_actions": ["unnecessary_ask_owner"]
+    },
+    {
+      "id": "tp4_s14",
+      "stratum": "standard",
+      "replica": "binary_clean",
+      "needs_model_planning": false,
+      "brief": "Classify email messages as spam or ham from pre-computed word frequency features in messages.csv.",
+      "tables": {
+        "messages.csv": ["msg_id", "freq_free", "freq_money", "cap_length", "is_spam"]
+      },
+      "known_facts": {"target": "is_spam", "horizon_days": 0, "unit": "message", "clean_single_table": true},
+      "expected_tasks": ["baseline"],
+      "expected_traps": [],
+      "expected_subproblems": ["classification"],
+      "forbidden_actions": ["unnecessary_ask_owner"]
+    }
+  ]
+}
