@@ -88,4 +88,21 @@ Executed all 5 live end-to-end `SolutionTeam(..., task_execution=True, admit_pro
 
 Built via `dclab_rnd.tasks.catalog_lake.build_planning_gold_set()` (`sealed_excluded=True` strictly enforced against `cases_sealed.json`):
 - **Output:** `training_records/datasets/planning_gold_v1.jsonl` and `lake/gold/planning/dev.jsonl`
-- **Counts:** `38` total outcome-labelled trajectories (`12` positive, `26` negative) across `tp08_dev_live` and `adaptive_studio_live` with full raw `reasoning`, `messages`, `reply`, trap/coverage metrics, and empirical holdout deltas.
+- **Counts (Latest Harvest):** **`225`** total outcome-labelled trajectories (**`56` positive**, **`169` negative**) across all non-sealed `tp08_dev_live` (`TP4-001`, `TP4-003`, `TP4-004`, `TP4-005`, `TP4-006`) and `adaptive_studio_live` (`r2`, `r3`, `r4`) runs with full raw `reasoning`, `messages`, `reply`, trap/coverage metrics, and empirical holdout deltas.
+
+---
+
+## Fallback Floor, Taxonomy & Default-On Rollout (`TP4-006_dev_live.json` & `adaptive_studio_live_20261113_r4`)
+
+1. **Deterministic Fallback Floor + Schema Coercion (`dclab_core/task_catalog.py`, `dclab_rnd/tasks/catalog.py`):**
+   - Added `_deterministic_fallback_payload` so any model refusal/JSON error/outage retains `B1`'s full catalog checks, declared `treatment` uplift check, and trap detection instead of dropping to `caught_traps=[]`.
+   - Added `_clip_text` and null coercions on `IdentifiedRisk` (`evidence_citation` capped cleanly at 80 chars instead of failing validation), `CatalogTaskCall`, `SubproblemSpec`, `OpenUnknown`, and `ProblemDecomposition`.
+   - Added `_derive_subproblems` so specialized subproblem classifications (such as `rare_event`) preserve `"classification"` alongside confirmed `segment_subproblem` kinds.
+2. **Honest Bench Gating (`dclab_rnd/bench/__init__.py`):**
+   - `_compat_doc` reports both `vs_legacy` (`C vs B0`) and `vs_deterministic` (`C vs B1`) in `bench read` so any `B1` regression fails loudly.
+3. **Project UI Display, Clarify Answer & Default-On Rollout (`dclab_rnd/orchestra/settings.py`, `dclab_rnd/orchestra/service.py`, `dclab_rnd/tasks/view.py`, `project.html`):**
+   - Rendered `catalog_plan` and added `POST /api/projects/{project_id}/task-plan/confirm` for inline `catalog_clarify` owner answers.
+   - Enabled `task_plan_preview: True`, `task_execution: True`, `admit_proposals: True` by default in `DEFAULTS`, while `walk_project` keeps multi-leaf programmes (`programme_plan`) on their atomic owner.
+4. **Latest Live Dev Gate (`TP4-006_dev_live.json`) & Live Studio (`adaptive_studio_live_20261113_r4`):**
+   - **`TP4-006_dev_live.json`:** **`PASS`** against both **`B0`** (`required_coverage_hard=+0.7431 [0.6444, 0.8264]`, `trap_catch_hard=+0.7639 [0.6250, 0.8889]`, `holdout_score=+0.0567 [0.0284, 0.0857]`, `9W/1L/2T`) and **`B1`** (`required_coverage_hard=+0.2921 [0.1541, 0.4171]`, `trap_catch_hard=+0.3750 [0.2083, 0.5417]`, `holdout_score=+0.0361 [0.0136, 0.0625]`, `7W/2L/3T`); `candidate_composite_kind_match = 1.0`, `candidate_question_precision = 0.975`, `0` critical violations, `53/53` raw-reasoning exchanges captured (`spent_eur = 0.046781`).
+   - **`adaptive_studio_live_20261113_r4`:** **`5 / 5` scenarios passed** (including `studio_composite_uplift` and `studio_ambiguous_ask_owner`), `39/39` ok exchanges (`whole=True`, `raw_reasoning_present=39`), `$0.023989` spend, `17` ledger decision points recorded, `holdout_uses == 1` on every project.

@@ -73,6 +73,9 @@ TIMEOUT = 1800  # seconds a command may take before it is stopped and counted as
 
 def _compat_doc(doc: dict[str, Any]) -> dict[str, Any]:
     """Normalize campaign result shapes whose gate outcome lives under ``judgment`` (read-only view)."""
+    vs_det = doc.get("vs_deterministic_catalog")
+    if isinstance(doc.get("verdict"), str) and isinstance(vs_det, dict) and isinstance(vs_det.get("verdict"), str):
+        return {**doc, "verdict": {"vs_legacy": doc["verdict"], "vs_deterministic": vs_det["verdict"]}}
     judgment = doc.get("judgment")
     if doc.get("verdict") is not None or not isinstance(judgment, dict):
         return doc

@@ -232,10 +232,6 @@ class TaskPlanApiTests(unittest.TestCase):
     def test_route_default_off_and_enabled_preview_are_read_only(self):
         from dclab_rnd.orchestra.settings import set_settings
         path = f'/api/projects/{self.pid}/task-plan'
-        out = self.client.get(path)
-        self.assertEqual(out.status_code, 200)
-        self.assertEqual(out.json()['status'], 'disabled')
-        set_settings(self.home, {'task_plan_preview': True})
         before = self.s.projects.get(self.pid)
         out = self.client.get(path)
         self.assertEqual(out.status_code, 200, out.text)
@@ -244,6 +240,10 @@ class TaskPlanApiTests(unittest.TestCase):
         self.assertFalse((self.home / 'orchestra' / 'checkpoints.sqlite3').exists())
         csrf = self.client.get('/api/config').json()['csrf']
         self.assertEqual(self.client.post(path, headers={'X-DCLab-Token': csrf}).status_code, 405)
+        set_settings(self.home, {'task_plan_preview': False, 'task_execution': False})
+        disabled = self.client.get(path)
+        self.assertEqual(disabled.status_code, 200)
+        self.assertEqual(disabled.json()['status'], 'disabled')
 
     def test_unknown_project_is_not_disclosed_even_when_disabled(self):
         self.assertEqual(self.client.get('/api/projects/unknown/task-plan').status_code, 404)
@@ -265,6 +265,7 @@ class TaskPlanApiTests(unittest.TestCase):
     def test_preview_switch_is_audited_reversible_and_cannot_enable_execution(self):
         csrf = self.client.get('/api/config').json()['csrf']
         h = {'X-DCLab-Token': csrf}
+        self.assertEqual(self.client.put('/api/team/settings', json={'task_plan_preview': False, 'task_execution': False}, headers=h).status_code, 200)
         r = self.client.put('/api/team/settings', json={'task_plan_preview': True}, headers=h)
         self.assertEqual(r.status_code, 200, r.text)
         self.assertFalse(r.json()['settings']['on'])
@@ -278,10 +279,6 @@ class TaskPlanApiTests(unittest.TestCase):
     def test_controlled_task_execution_rollout_switch_and_rollback(self):
         csrf = self.client.get('/api/config').json()['csrf']
         h = {'X-DCLab-Token': csrf}
-        on = self.client.put('/api/team/settings', json={'task_execution': True, 'admit_proposals': True}, headers=h)
-        self.assertEqual(on.status_code, 200, on.text)
-        self.assertTrue(on.json()['settings']['task_execution'])
-        self.assertTrue(on.json()['settings']['admit_proposals'])
         plan = self.client.get(f'/api/projects/{self.pid}/task-plan').json()
         self.assertTrue(plan['execution_enabled'])
         self.assertFalse(plan['developer_preview'])
@@ -291,6 +288,9 @@ class TaskPlanApiTests(unittest.TestCase):
         self.assertEqual(off.status_code, 200, off.text)
         self.assertFalse(off.json()['settings']['task_execution'])
         self.assertFalse(off.json()['settings']['admit_proposals'])
+        self.assertFalse(self.client.get(f'/api/projects/{self.pid}/task-plan').json()['execution_enabled'])
+        full_off = self.client.put('/api/team/settings', json={'task_plan_preview': False}, headers=h)
+        self.assertEqual(full_off.status_code, 200, full_off.text)
         self.assertEqual(self.client.get(f'/api/projects/{self.pid}/task-plan').json()['status'], 'disabled')
 
     def test_preview_switch_audit_belongs_to_the_selected_workspace(self):
@@ -304,6 +304,53 @@ class TaskPlanApiTests(unittest.TestCase):
                                 experience=experience.open_log(other), workspace_id=None)
         endpoint = next(r.endpoint for r in api_routes(self.app) if r.path == '/api/team/settings' and 'PUT' in r.methods)
         with context.using(owner):
-            asyncio.run(endpoint(body={'task_plan_preview': True}))
+            asyncio.run(endpoint(body={'task_plan_preview': False}))
         self.assertIn('task_plan_preview', self._audit_text(owner.audit))
         self.assertNotIn('task_plan_preview', self._audit_text(self.s.audit))
+
+    def test_catalog_plan_confirm_route_guards_and_updates_view(self):
+        from dclab_rnd.accounts.principal import ANONYMOUS, Principal
+        from dclab_rnd.orchestra.checkpoints import open_checkpointer
+
+        csrf = self.client.get('/api/config').json()['csrf']
+        h = {'X-DCLab-Token': csrf}
+        confirm_url = f'/api/projects/{self.pid}/task-plan/confirm'
+        self.assertEqual(self.client.put('/api/team/settings', json={'task_execution': True}, headers=h).status_code, 200)
+
+        # Guards: anonymous -> 401, viewer -> 403, empty answer -> 422, no recorded catalog plan -> 409
+        with patch('dclab_rnd.accounts.guard.current', return_value=ANONYMOUS):
+            self.assertEqual(self.client.post(confirm_url, json={'answer': 'churn_30d'}, headers=h).status_code, 401)
+        with patch('dclab_rnd.accounts.guard.current', return_value=Principal(role='viewer', via='test')):
+            self.assertEqual(self.client.post(confirm_url, json={'answer': 'churn_30d'}, headers=h).status_code, 403)
+        self.assertEqual(self.client.post(confirm_url, json={'answer': '   '}, headers=h).status_code, 422)
+        self.assertEqual(self.client.post(confirm_url, json={'answer': 'churn_30d'}, headers=h).status_code, 409)
+
+        # Record a catalog plan with an ask_owner clarifying question, confirm via HTTP, check view & audit
+        with open_checkpointer(self.home) as saver:
+            d = TaskDispatcher(self.s.projects, saver, enabled=True, admit_proposals=True)
+            d.dispatch(self.pid, 'data')
+            state = d.state(self.pid)
+            state['catalog_plan'] = {
+                'routed_to': 'model',
+                'mode': 'adaptive_model',
+                'selected_tasks': ['ask_owner', 'baseline'],
+                'subproblems': ['classification'],
+                'caught_traps': ['missing_horizon'],
+                'revisions': 1,
+                'calls': [{'task_type': 'ask_owner', 'params': {'field': 'horizon', 'question': 'Confirm horizon days'}, 'reason': 'Clarify horizon'}],
+                'decomposition': {'decision': 'Predict customer churn', 'target': 'Churn', 'unit': 'customer', 'horizon_days': None, 'unknowns': []},
+                'asked_owner': True,
+                'owner_confirmed': False,
+            }
+            d._save(self.pid, state, 'test_catalog_plan')
+
+        before = self.client.get(f'/api/projects/{self.pid}/task-plan').json()
+        self.assertEqual(before['catalog_plan']['clarifying_questions'], [{'field': 'horizon', 'question': 'Confirm horizon days'}])
+        self.assertFalse(before['catalog_plan']['owner_confirmed'])
+
+        ok = self.client.post(confirm_url, json={'answer': '30 days horizon'}, headers=h)
+        self.assertEqual(ok.status_code, 200, ok.text)
+        cp = ok.json()['catalog_plan']
+        self.assertTrue(cp['owner_confirmed'])
+        self.assertEqual(cp['owner_note'], '30 days horizon')
+        self.assertIn('confirm_catalog_owner', self._audit_text(self.s.audit))

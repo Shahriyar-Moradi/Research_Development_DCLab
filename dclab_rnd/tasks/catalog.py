@@ -151,6 +151,8 @@ def execute_catalog_task(
         elif tname and _JOIN_MULTI_TABLES.search(tname):
             findings.append(f"multi_row_table:{tname}")
             traps.append(f"{tname}_duplication_or_cutoff_risk")
+            if facts.get("entity_key") and str(facts["entity_key"]) not in set(tables.get(tname, ())):
+                traps.append(f"{tname}_nested_entity_aggregation_needed")
             followup.append(CatalogTaskCall(task_type="leakage_probe", params={"table": tname, "column": key, "reason": "Verify pre-cutoff aggregation"}, reason="Multi-table key check"))
     elif tt == "time_split_check":
         col = str(p.get("column") or "")
@@ -158,6 +160,7 @@ def execute_catalog_task(
         if df is not None:
             findings.append(f"temporal_column_present:{col}:rows={len(df)}")
         traps.append("time_split_required")
+        traps.append("temporal_drift_regime_risk")
     elif tt == "grouped_split":
         ent = str(p.get("entity") or "")
         _, df = _find_col(ent, frames, p.get("table"))
@@ -182,7 +185,9 @@ def execute_catalog_task(
     elif tt == "segment_subproblem":
         kind = str(p.get("kind") or "")
         findings.append(f"subproblem_verified:{kind}")
-        if kind == "uplift":
+        if kind == "segmentation":
+            traps.append("single_model_misses_persona_segments")
+        elif kind == "uplift":
             if facts.get("randomised") is False:
                 traps.append("observational_treatment_bias")
             else:
@@ -254,6 +259,80 @@ def _extract_json(text: str) -> dict[str, Any]:
     return json.loads(m.group(0) if m else raw)
 
 
+def _derive_subproblems(decomp: ProblemDecomposition | None, calls: Sequence[CatalogTaskCall]) -> list[str]:
+    """Derive active analytical subproblem kinds from decomposition and validated catalog calls."""
+    kinds = {s.kind for s in decomp.subproblems} if decomp else {"classification"}
+    for c in calls:
+        if c.task_type == "segment_subproblem":
+            kind = str((c.params or {}).get("kind") or "").strip()
+            if kind:
+                kinds.add(kind)
+    if "rare_event" in kinds and "regression" not in kinds:
+        kinds.add("classification")
+    return sorted(kinds)
+
+
+def _deterministic_fallback_payload(
+    brief: str,
+    tables: Mapping[str, list[str]],
+    facts: Mapping[str, Any],
+    *,
+    route: str,
+    t0: float,
+    frames: Mapping[str, Any] | None = None,
+    extra_prompts: int = 0,
+    cost_usd: float = 0.0,
+    revisions: int = 1,
+    refusals: list[str] | None = None,
+    decomp: ProblemDecomposition | None = None,
+) -> dict[str, Any]:
+    """Deterministic fallback keeping B1's full catalog coverage and trap catching as a guaranteed floor."""
+    det = deterministic_catalog_plan(brief, tables, facts)
+    calls = [CatalogTaskCall.model_validate(c) for c in det["calls"]]
+    if facts.get("treatment"):
+        uplift_call = CatalogTaskCall(
+            task_type="segment_subproblem",
+            params={"kind": "uplift", "treatment_column": str(facts["treatment"])},
+            reason="Declared treatment column requires uplift decomposition",
+        )
+        valid_u, u_issues = validate_catalog_plan([uplift_call], tables)
+        if valid_u and not u_issues:
+            calls = [valid_u[0], *calls]
+    evidence_rows = [execute_catalog_task(c, tables=tables, known_facts=facts, frames=frames) for c in calls]
+    target = facts.get("target")
+    kind = "regression" if isinstance(target, str) and any(w in target for w in ("price", "revenue", "duration")) else "classification"
+    subs = [SubproblemSpec(id="main", kind=kind, objective=brief[:200], target=str(target) if target is not None else None)]
+    if facts.get("treatment"):
+        subs.append(SubproblemSpec(id="uplift", kind="uplift", objective=f"Estimate incremental effect of {facts['treatment']}", target=str(target) if target is not None else None))
+    det_decomp = decomp or ProblemDecomposition(
+        decision=brief[:200],
+        target=str(target) if target is not None else None,
+        unit=str(facts.get("unit") or "row"),
+        horizon_days=int(facts["horizon_days"]) if facts.get("horizon_days") is not None else None,
+        success_metric="rmse" if kind == "regression" else "roc_auc",
+        subproblems=tuple(subs),
+        source="deterministic",
+    )
+    caught_traps = _collect_traps([], det_decomp, evidence_rows)
+    out: dict[str, Any] = {
+        **det,
+        "selected_tasks": sorted({c.task_type for c in calls}),
+        "calls": [c.model_dump(mode="json") for c in calls],
+        "routed_to": route,
+        "subproblems": _derive_subproblems(det_decomp, calls),
+        "caught_traps": caught_traps,
+        "decomposition": det_decomp.model_dump(mode="json"),
+        "citations": [],
+        "revisions": revisions,
+        "extra_prompts": extra_prompts,
+        "cost_usd": round(cost_usd, 6),
+        "seconds": round(time.monotonic() - t0, 4),
+    }
+    if refusals:
+        out["refusals"] = refusals
+    return out
+
+
 def plan_with_model(
     brief: str,
     tables: Mapping[str, list[str]],
@@ -302,8 +381,7 @@ def plan_with_model(
         gateway = installed()
     client = gateway.client("task_decomposer", project_id=project_id)
     if client is None:
-        det = deterministic_catalog_plan(brief, tables, facts)
-        return {**det, "routed_to": "fallback_no_client", "subproblems": ["classification"], "caught_traps": [], "citations": [], "revisions": 1, "extra_prompts": 0, "cost_usd": 0.0, "seconds": round(time.monotonic() - t0, 4)}
+        return _deterministic_fallback_payload(brief, tables, facts, route="fallback_no_client", t0=t0, frames=frames)
 
     from dclab_rnd.models.gateway import Bound
 
@@ -343,8 +421,10 @@ def plan_with_model(
             raw_doc = _extract_json(raw_text or "{}")
     except Exception:
         total_cost = round(max(0.0, float(getattr(client, "spent_eur", 0.0) or 0.0) - before_spent), 6)
-        det = deterministic_catalog_plan(brief, tables, facts)
-        return {**det, "routed_to": "fallback_invalid_json", "refusals": ["invalid_model_reply"], "subproblems": ["classification"], "caught_traps": [], "citations": [], "revisions": 1, "extra_prompts": calls_made, "cost_usd": total_cost, "seconds": round(time.monotonic() - t0, 4)}
+        return _deterministic_fallback_payload(
+            brief, tables, facts, route="fallback_invalid_json", t0=t0, frames=frames,
+            extra_prompts=calls_made, cost_usd=total_cost, refusals=["invalid_model_reply"],
+        )
 
     decomp, decomp_issues = validate_decomposition(raw_doc.get("decomposition") or {}, tables)
     valid_calls, plan_issues = validate_catalog_plan(raw_doc.get("calls") or [], tables)
@@ -369,19 +449,11 @@ def plan_with_model(
 
     if decomp_issues or not valid_calls or (plan_issues and not valid_calls):
         total_cost = round(max(0.0, float(getattr(client, "spent_eur", 0.0) or 0.0) - before_spent), 6)
-        det = deterministic_catalog_plan(brief, tables, facts)
-        return {
-            **det,
-            "routed_to": "fallback_refused",
-            "refusals": decomp_issues + plan_issues,
-            "subproblems": [s.kind for s in decomp.subproblems] if decomp else ["classification"],
-            "caught_traps": [],
-            "citations": [],
-            "revisions": revisions,
-            "extra_prompts": calls_made,
-            "cost_usd": total_cost,
-            "seconds": round(time.monotonic() - t0, 4),
-        }
+        return _deterministic_fallback_payload(
+            brief, tables, facts, route="fallback_refused", t0=t0, frames=frames,
+            extra_prompts=calls_made, cost_usd=total_cost, revisions=revisions,
+            refusals=decomp_issues + plan_issues, decomp=decomp if not decomp_issues else None,
+        )
 
     # Execute read/understand catalog tasks locally ($0, pre-holdout) and trigger bounded P4 re-plan if evidence uncovers new followups.
     valid_calls, evidence_rows, caught_traps, decomp, calls_made, revisions, rev_req = _run_evidence_and_replan(
@@ -408,7 +480,7 @@ def plan_with_model(
         "routed_to": "model",
         "selected_tasks": sorted({c.task_type for c in valid_calls}),
         "calls": [c.model_dump(mode="json") for c in valid_calls],
-        "subproblems": sorted({s.kind for s in decomp.subproblems}) if decomp else ["classification"],
+        "subproblems": _derive_subproblems(decomp, valid_calls),
         "caught_traps": caught_traps,
         "asked_owner": any(c.task_type == "ask_owner" for c in valid_calls),
         "decomposition": decomp.model_dump(mode="json") if decomp else None,

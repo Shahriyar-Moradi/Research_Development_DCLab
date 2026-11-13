@@ -86,6 +86,10 @@ class ProposalRequest(Doc):
     task: Any = None
 
 
+class TaskPlanConfirm(Doc):
+    answer: Any = ""
+
+
 class SolutionBody(Doc):
     """The solution as the Solution & data page saves it; ``studio.solution.Solution`` checks it and words its errors."""
 

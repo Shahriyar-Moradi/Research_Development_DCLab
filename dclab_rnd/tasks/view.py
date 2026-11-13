@@ -230,16 +230,35 @@ def task_plan_view(projects, home, project_id, *, enabled=False, execution_enabl
                                              'preserved_tasks': [n['id'] for n in out['nodes'] if n['status'] == 'completed' and n['kind'] == 'action' and n['id'] != task_id]})
             if state and isinstance(state.get('catalog_plan'), dict):
                 cp = state['catalog_plan']
+                decomp = cp.get('decomposition') if isinstance(cp.get('decomposition'), dict) else {}
+                questions = []
+                for call in (cp.get('calls') or ()):
+                    if isinstance(call, dict) and call.get('task_type') == 'ask_owner':
+                        params = call.get('params') if isinstance(call.get('params'), dict) else {}
+                        q = str(params.get('question') or '').strip()[:240]
+                        if q:
+                            questions.append({'field': str(params.get('field') or 'other')[:40], 'question': q})
+                for u in (decomp.get('unknowns') or ()):
+                    if isinstance(u, dict) and u.get('blocking', True):
+                        q = str(u.get('question') or '').strip()[:240]
+                        if q and not any(item['question'] == q for item in questions):
+                            questions.append({'field': str(u.get('field') or 'other')[:40], 'question': q})
                 out['catalog_plan'] = {
                     'routed_to': cp.get('routed_to'),
                     'mode': cp.get('mode'),
+                    'decision': str(decomp.get('decision') or '')[:200] or None,
+                    'target': str(decomp.get('target') or '')[:80] or None,
+                    'unit': str(decomp.get('unit') or '')[:80] or None,
+                    'horizon_days': _number(decomp.get('horizon_days'), None),
                     'selected_tasks': [str(t)[:64] for t in (cp.get('selected_tasks') or ())][:24],
                     'subproblems': [str(s)[:64] for s in (cp.get('subproblems') or ())][:12],
                     'caught_traps': [str(t)[:80] for t in (cp.get('caught_traps') or ())][:24],
                     'revisions': _number(cp.get('revisions'), 1),
                     'calls_count': len(cp.get('calls') or ()),
                     'asked_owner': bool(cp.get('asked_owner')),
+                    'clarifying_questions': questions[:5],
                     'owner_confirmed': bool(cp.get('owner_confirmed')),
+                    'owner_note': str(cp.get('owner_note') or '')[:240] or None,
                 }
             if any(n['status'] == 'stale' for n in out['nodes']):
                 status = 'stale'

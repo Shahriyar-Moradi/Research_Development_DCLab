@@ -167,6 +167,43 @@ class TaskCatalogTests(unittest.TestCase):
         self.assertEqual(tg.fingerprint, graph_fingerprint(tg))
         self.assertGreaterEqual(len(tg.nodes), 3)
 
+    def test_fallback_preserves_b1_trap_floor_and_null_coercion(self):
+        from dclab_core.task_catalog import validate_decomposition
+        from dclab_rnd.tasks.catalog import CatalogTaskCall, execute_catalog_task
+
+        tables = {"customers.csv": ["customer_id", "signup_date", "last_order_date", "inactive_30d"]}
+        facts = {"target": "inactive_30d", "horizon_days": 30, "unit": "customer", "time_column": "signup_date"}
+
+        # Optional null metadata and overlong descriptive strings coerce/clip cleanly instead of refusing valid plans.
+        long_cite = "KND-014 · Uplift: who responds to treatment vs propensity; target selection action goes where it matters most."
+        decomp, issues = validate_decomposition({
+            "decision": "Predict 30d inactivity safely",
+            "target": "inactive_30d",
+            "unit": "customer",
+            "horizon_days": 30,
+            "success_metric": None,
+            "subproblems": [{"id": "s1", "kind": "classification", "objective": "Predict inactivity"}],
+            "risks": [{"trap_kind": "end_of_period_last_order_date", "table": "customers.csv", "column": "last_order_date",
+                       "evidence_citation": None, "recommended_task": "leakage_probe"},
+                      {"trap_kind": "uplift_vs_propensity", "table": "customers.csv", "column": None,
+                       "evidence_citation": long_cite, "recommended_task": "segment_subproblem"}],
+            "constraints": None,
+        }, tables)
+        self.assertEqual(issues, [])
+        self.assertEqual(decomp.risks[0].evidence_citation, "")
+        self.assertLessEqual(len(decomp.risks[1].evidence_citation), 80)
+        self.assertEqual(decomp.success_metric, "roc_auc")
+
+        # Model exception/outage and refused schema both keep B1's caught traps and subproblems.
+        out_fail = plan_with_model("Predict customer inactivity.", tables, facts, gateway=FakeGateway(FakeClient(["not json", "still bad"])))
+        self.assertEqual(out_fail["routed_to"], "fallback_invalid_json")
+        self.assertTrue(any("last_order_date" in t for t in out_fail["caught_traps"]))
+        self.assertIn("time_split_required", out_fail["caught_traps"])
+        ev = execute_catalog_task(CatalogTaskCall(task_type="time_split_check", params={"column": "signup_date"}), tables=tables, known_facts=facts)
+        self.assertIn("temporal_drift_regime_risk", ev["traps"])
+        from dclab_rnd.tasks.catalog import _derive_subproblems
+        self.assertEqual(_derive_subproblems(decomp, [CatalogTaskCall(task_type="segment_subproblem", params={"kind": "rare_event"})]), ["classification", "rare_event"])
+
 
 if __name__ == "__main__":
     unittest.main()

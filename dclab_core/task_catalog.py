@@ -194,6 +194,14 @@ CATALOG: dict[str, CatalogSpec] = {
 }
 
 
+def _clip_text(data: dict[str, Any], key: str, limit: int, *, default: str | None = None) -> None:
+    val = data.get(key)
+    if val is None and default is not None:
+        data[key] = default
+    elif isinstance(val, str) and len(val) > limit:
+        data[key] = val[:limit].strip()
+
+
 class CatalogTaskCall(Contract):
     """One proposed typed catalog task call with grounded parameters and citations."""
 
@@ -205,11 +213,15 @@ class CatalogTaskCall(Contract):
     @model_validator(mode="before")
     @classmethod
     def _accept_purpose_alias(cls, data: Any) -> Any:
-        if isinstance(data, Mapping) and "purpose" in data and "reason" not in data:
-            copied = dict(data)
+        if not isinstance(data, Mapping):
+            return data
+        copied = dict(data)
+        if "purpose" in copied and "reason" not in copied:
             copied["reason"] = copied.pop("purpose")
-            return copied
-        return data
+        _clip_text(copied, "reason", 400, default="")
+        if copied.get("citations") is None:
+            copied["citations"] = ()
+        return copied
 
 
 class SubproblemSpec(Contract):
@@ -220,6 +232,15 @@ class SubproblemSpec(Contract):
     objective: str = Field(min_length=3, max_length=300)
     target: Optional[str] = Field(default=None, max_length=120)
     dependency_ids: tuple[str, ...] = Field(default=(), max_length=16)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _clip_fields(cls, data: Any) -> Any:
+        if not isinstance(data, Mapping):
+            return data
+        copied = dict(data)
+        _clip_text(copied, "objective", 300)
+        return copied
 
     @model_validator(mode="after")
     def _valid_family(self) -> SubproblemSpec:
@@ -237,6 +258,16 @@ class IdentifiedRisk(Contract):
     evidence_citation: str = Field(default="", max_length=80)
     recommended_task: CatalogTaskType
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_none_fields(cls, data: Any) -> Any:
+        if not isinstance(data, Mapping):
+            return data
+        copied = dict(data)
+        _clip_text(copied, "evidence_citation", 80, default="")
+        _clip_text(copied, "trap_kind", 120)
+        return copied
+
 
 class OpenUnknown(Contract):
     """An unresolved contract field paired with how the workflow resolves it."""
@@ -245,6 +276,15 @@ class OpenUnknown(Contract):
     question: str = Field(min_length=5, max_length=300)
     blocking: bool = True
     resolution_task: CatalogTaskType
+
+    @model_validator(mode="before")
+    @classmethod
+    def _clip_fields(cls, data: Any) -> Any:
+        if not isinstance(data, Mapping):
+            return data
+        copied = dict(data)
+        _clip_text(copied, "question", 300)
+        return copied
 
 
 class ProblemDecomposition(Versioned):
@@ -261,6 +301,21 @@ class ProblemDecomposition(Versioned):
     risks: tuple[IdentifiedRisk, ...] = Field(default=(), max_length=32)
     unknowns: tuple[OpenUnknown, ...] = Field(default=(), max_length=16)
     source: Literal["deterministic", "model", "hybrid"] = "deterministic"
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_optional_collections(cls, data: Any) -> Any:
+        if not isinstance(data, Mapping):
+            return data
+        copied = dict(data)
+        for seq_field in ("constraints", "risks", "unknowns"):
+            if copied.get(seq_field) is None:
+                copied[seq_field] = ()
+        if not copied.get("success_metric"):
+            copied["success_metric"] = "roc_auc"
+        _clip_text(copied, "decision", 400)
+        _clip_text(copied, "success_metric", 160)
+        return copied
 
 
 CONTRACTS["problem_decomposition"] = ProblemDecomposition

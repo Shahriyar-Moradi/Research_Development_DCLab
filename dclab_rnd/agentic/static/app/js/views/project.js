@@ -344,9 +344,37 @@ DC.view('project', {
         const b = r.budget;
         const budget = b ? `${b.tool_calls} / ${b.max_tool_calls} tool calls · ${Number(b.seconds).toFixed(1)} / ${b.max_seconds} seconds · €${Number(b.cost_eur).toFixed(3)} / €${Number(b.max_cost_eur).toFixed(3)} execution budget` : 'No task execution budget has been used.';
         const revisions = (r.revisions || []).map(v => `<li>${esc(v.kind)}${v.task_id ? ' · ' + esc(titles[v.task_id] || v.task_id) : ''}: ${esc(v.from_revision == null ? '' : String(v.from_revision) + ' → ')}${esc(String(v.to_revision || '—'))}. ${v.source_changed ? 'Source binding changed. ' : ''}Changed: ${esc([...(v.changed_tasks || []).map(id => titles[id] || id), ...(v.changed_fields || [])].join(', ') || 'none recorded')}. Preserved: ${esc((v.preserved_tasks || []).map(id => titles[id] || id).join(', ') || 'none recorded')}.</li>`).join('');
+        const cp = r.catalog_plan;
+        const cpBlock = cp ? (() => {
+          const subs = (cp.subproblems || []).map(s => `<span class="tag">${esc(s)}</span>`).join(' ');
+          const tasks = (cp.selected_tasks || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ');
+          const traps = (cp.caught_traps || []).map(t => `<span class="tag warn">${esc(t)}</span>`).join(' ');
+          const qs = (cp.clarifying_questions || []).map(q => `<li><b>${esc(q.field)}</b>: ${esc(q.question)}</li>`).join('');
+          const clarifyUI = qs ? (cp.owner_confirmed
+            ? `<p class="small"><span class="tag ok">Owner clarified</span> ${esc(cp.owner_note || 'Confirmed')}</p>`
+            : `<div class="stack tight small"><p class="strong">Clarification needed before full execution:</p><ul>${qs}</ul><div class="bar"><input type="text" id="catalog-clarify-answer" placeholder="Type your answer (target, horizon, unit…)" data-style="flex:1;min-width:180px"><button type="button" class="btn sm primary" id="catalog-clarify-submit">Send answer</button></div></div>`) : '';
+          return `<div class="panel tight stack" id="catalog-plan-box" data-style="margin-block:.6rem;padding:.7rem;border:1px solid var(--line);border-radius:var(--r)">`
+            + `<div class="task-plan-meta"><strong>Problem Breakdown &amp; Checks</strong> <span class="tag">${esc(cp.routed_to || cp.mode || 'planned')}</span> <span>Catalog revisions: ${esc(String(cp.revisions || 1))}</span><span>Tasks: ${esc(String(cp.calls_count || 0))}</span></div>`
+            + (cp.decision ? `<p class="small">${esc(cp.decision)}</p>` : '')
+            + `<div class="task-plan-meta small muted"><span>Target: ${esc(cp.target || 'unset')}</span><span>Unit: ${esc(cp.unit || 'row')}</span><span>Horizon: ${esc(cp.horizon_days == null ? 'unset' : String(cp.horizon_days) + 'd')}</span></div>`
+            + (subs ? `<div class="small">Subproblems: ${subs}</div>` : '')
+            + (tasks ? `<div class="small">Catalog checks: ${tasks}</div>` : '')
+            + (traps ? `<div class="small">Caught traps: ${traps}</div>` : '<p class="xs muted">No extra traps flagged in pre-holdout plan.</p>')
+            + clarifyUI + `</div>`;
+        })() : '';
         box.innerHTML = `<p role="status">${esc(r.message)} Graph revision ${esc(String(r.graph_revision))}.</p><p class="small muted">${esc(r.release)} ${esc(budget)}</p>`
+          + cpBlock
           + `<ol class="task-plan-tree">${r.nodes.filter(n => !n.parent_id).map(n => nodeHTML(n)).join('')}</ol>`
           + `<details><summary>Plan revision history and preserved work</summary>${revisions ? `<ol class="small">${revisions}</ol>` : '<p class="small muted">No plan revisions recorded.</p>'}</details>`;
+        const clarifyBtn = $('#catalog-clarify-submit', box);
+        if (clarifyBtn) clarifyBtn.addEventListener('click', async () => {
+          const inp = $('#catalog-clarify-answer', box);
+          const ans = inp ? inp.value.trim() : '';
+          if (!ans) { toast('Write an answer before sending.', { ok: false }); return; }
+          clarifyBtn.disabled = true;
+          try { await DC.client.confirmTaskPlan(REAL[want].id, { body: { answer: ans } }); toast('Clarification recorded.'); loadTaskPlan(); }
+          catch (err) { toast(err.message || 'Could not record clarification.', { ok: false }); clarifyBtn.disabled = false; }
+        });
       } catch (error) {
         if (request === taskPlanRequest && want === proj) DC.states.failed(box, error, { retry: loadTaskPlan });
       } finally {

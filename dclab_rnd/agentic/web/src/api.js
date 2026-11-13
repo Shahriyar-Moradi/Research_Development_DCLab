@@ -228,6 +228,9 @@
   /** @typedef {Object} Status
    *  @property {(string|null)=} status
    */
+  /** @typedef {Object} TaskPlanConfirm
+   *  @property {*=} answer
+   */
   /** @typedef {Object} ValidationError
    *  @property {Array<(string|number)>} loc
    *  @property {string} msg
@@ -437,6 +440,7 @@
     projectSteps: ["GET", "/projects/{project_id}/steps", ["project_id"], ["stage", "decision"]],
     uploadTable: ["PUT", "/projects/{project_id}/tables/{name}", ["project_id", "name"], ["filename"]],
     projectTaskPlan: ["GET", "/projects/{project_id}/task-plan", ["project_id"], []],
+    confirmTaskPlan: ["POST", "/projects/{project_id}/task-plan/confirm", ["project_id"], []],
     projectTeam: ["GET", "/projects/{project_id}/team", ["project_id"], []],
     projectTeamWalk: ["POST", "/projects/{project_id}/team", ["project_id"], []],
     projectTwinRuns: ["GET", "/projects/{project_id}/twin", ["project_id"], []],
@@ -1663,6 +1667,12 @@
   client.projectTaskPlan = (...args) => call('projectTaskPlan', args);
   client.path.projectTaskPlan = (...args) => build('projectTaskPlan', args).path;
   client.href.projectTaskPlan = (...args) => '/api' + build('projectTaskPlan', args).path;
+  /** POST /api/projects/{project_id}/task-plan/confirm: Confirm Task Plan
+   *  @param {string} project_id
+   *  @param {{body: TaskPlanConfirm, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.confirmTaskPlan = (...args) => call('confirmTaskPlan', args);
+  client.path.confirmTaskPlan = (...args) => build('confirmTaskPlan', args).path;
   /** GET /api/projects/{project_id}/team: Project Team
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

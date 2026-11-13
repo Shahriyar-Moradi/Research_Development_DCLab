@@ -57,6 +57,8 @@ def build_planning_gold_set(
     live_root = base / "agent_runs" / "live_tests"
 
     dev_result_scores: dict[str, dict[str, Any]] = {}
+    dev_exchanges_roots: list[Path] = []
+    dev_runs_rows: list[tuple[str, dict[str, Any], dict[str, Any], dict[str, Any]]] = []
     if results_dir.is_dir():
         for res_path in sorted(results_dir.glob("*_dev*.json")):
             if "sealed" in res_path.name.lower():
@@ -65,6 +67,11 @@ def build_planning_gold_set(
                 doc = json.loads(res_path.read_text(encoding="utf-8"))
             except ValueError:
                 continue
+            art_dir = doc.get("live_artifacts_dir")
+            if isinstance(art_dir, str) and art_dir and "sealed" not in art_dir.lower():
+                cand_dir = Path(art_dir) if Path(art_dir).is_absolute() else (base / art_dir)
+                if cand_dir.is_dir():
+                    dev_exchanges_roots.append(cand_dir)
             by_arm = doc.get("scores") or {}
             b0_map = {r["id"]: r for r in (by_arm.get("B0") or ()) if isinstance(r, dict) and r.get("id")}
             b1_map = {r["id"]: r for r in (by_arm.get("B1") or ()) if isinstance(r, dict) and r.get("id")}
@@ -74,22 +81,74 @@ def build_planning_gold_set(
                 rid = str(r["id"])
                 b0 = b0_map.get(rid) or {}
                 b1 = b1_map.get(rid) or {}
+                delta_b0 = (
+                    round(float(r["holdout_score"]) - float(b0["holdout_score"]), 4)
+                    if r.get("holdout_score") is not None and b0.get("holdout_score") is not None
+                    else None
+                )
+                delta_b1 = (
+                    round(float(r["holdout_score"]) - float(b1["holdout_score"]), 4)
+                    if r.get("holdout_score") is not None and b1.get("holdout_score") is not None
+                    else None
+                )
                 dev_result_scores[rid] = {
                     "result_file": res_path.name,
-                    "holdout_delta_vs_b0": (
-                        round(float(r["holdout_score"]) - float(b0["holdout_score"]), 4)
-                        if r.get("holdout_score") is not None and b0.get("holdout_score") is not None
-                        else None
-                    ),
-                    "holdout_delta_vs_b1": (
-                        round(float(r["holdout_score"]) - float(b1["holdout_score"]), 4)
-                        if r.get("holdout_score") is not None and b1.get("holdout_score") is not None
-                        else None
-                    ),
+                    "holdout_delta_vs_b0": delta_b0,
+                    "holdout_delta_vs_b1": delta_b1,
                 }
+                if r.get("model_request"):
+                    dev_runs_rows.append((res_path.name, r, b0, b1))
 
     rows: list[dict[str, Any]] = []
     seen_keys: set[str] = set()
+
+    dev_exchanges = _index_exchanges(dev_exchanges_roots)
+    for _fname, r, b0, b1 in dev_runs_rows:
+        case_id = str(r.get("case_id") or "")
+        if not case_id or case_id in sealed_ids:
+            continue
+        mreq = str(r.get("model_request") or "")
+        ex = dev_exchanges.get(mreq)
+        if not ex:
+            continue
+        key_id = f"{case_id}:{r.get('seed')}"
+        cov = float(r.get("required_coverage") or 0.0)
+        trap = float(r.get("trap_catch_rate") or 0.0)
+        sub = float(r.get("composite_kind_match") or 0.0)
+        passed = cov >= 0.99 and trap >= 0.99 and sub >= 0.99
+        reply_obj = ex.get("reply")
+        sig = hashlib.sha256(f"dev|{key_id}|{json.dumps(reply_obj, sort_keys=True, ensure_ascii=False)}".encode("utf-8")).hexdigest()[:16]
+        if sig in seen_keys:
+            continue
+        seen_keys.add(sig)
+        rows.append(
+            {
+                "schema": SCHEMA,
+                "source": "tp08_dev_live",
+                "case_id": case_id,
+                "seed": r.get("seed"),
+                "stratum": r.get("stratum"),
+                "label": "positive" if passed else "negative",
+                "required_coverage": cov,
+                "trap_catch_rate": trap,
+                "composite_kind_match": sub,
+                "holdout_score": r.get("holdout_score"),
+                "holdout_delta_vs_b0": (
+                    round(float(r["holdout_score"]) - float(b0["holdout_score"]), 4)
+                    if r.get("holdout_score") is not None and b0.get("holdout_score") is not None
+                    else None
+                ),
+                "holdout_delta_vs_b1": (
+                    round(float(r["holdout_score"]) - float(b1["holdout_score"]), 4)
+                    if r.get("holdout_score") is not None and b1.get("holdout_score") is not None
+                    else None
+                ),
+                "messages": ex.get("messages"),
+                "reply": reply_obj,
+                "reasoning": ex.get("reasoning") or ex.get("thinking"),
+                "sealed_excluded": True,
+            }
+        )
 
     if dev_jsonl.is_file():
         for line in dev_jsonl.read_text(encoding="utf-8").splitlines():

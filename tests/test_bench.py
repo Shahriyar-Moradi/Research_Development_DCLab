@@ -120,6 +120,15 @@ class RunTests(unittest.TestCase):
         self.assertEqual(tp3[0].model, "qwen/qwen3.8-flash")
         self.assertGreater(tp3[0].cost_eur or 0.0, 0.5)
 
+    def test_task_planning_v4_reports_both_legacy_and_deterministic_gates(self):
+        norm = bench._compat_doc({"verdict": "PASS", "vs_deterministic_catalog": {"verdict": "FAIL"}})
+        self.assertEqual(norm["verdict"], {"vs_legacy": "PASS", "vs_deterministic": "FAIL"})
+        rows = bench.evidence_rows()[0]
+        tp4 = {r.ref: r for r in rows if r.suite == "task_planning_v4" and r.metric == "verdict"}
+        self.assertTrue(tp4["TP4-001_dev_live"].passed)
+        self.assertFalse(tp4["TP4-003_dev_live"].passed)
+        self.assertIn("vs_deterministic: FAIL", tp4["TP4-003_dev_live"].verdict)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -255,11 +255,13 @@ def walk_project(home: Path, projects: Any, project_id: str, resume: Any = None)
         raise Busy(f"the team is already walking project {project_id}")
     try:
         from .settings import settings
+        from ..studio import programme
         from ..tasks.host import planning_host
 
         budget = settings(Path(home))  # 28.8
-        use_tasks = bool(budget.get("task_execution"))
         proj = projects.get(project_id)
+        is_programme = isinstance(proj, dict) and programme.plan_of(proj) is not None
+        use_tasks = bool(budget.get("task_execution") and not is_programme)
         is_private = isinstance(proj, dict) and bool((proj.get("settings") or {}).get("private"))
         use_proposals = bool(use_tasks and budget.get("admit_proposals") and not is_private)
         team_gateway = _walk_gateway(Path(home), projects) if use_proposals else None

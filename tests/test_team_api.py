@@ -65,7 +65,7 @@ class TeamApiTests(unittest.TestCase):
     def test_the_teams_switch_and_budgets_start_off_and_every_change_is_audited(self):  # 28.8
         c = self.client
         got = c.get("/api/team/settings").json()
-        self.assertEqual(got["settings"], {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40, "second_opinion": False, "debate": False, "task_plan_preview": False, "task_execution": False, "admit_proposals": False})
+        self.assertEqual(got["settings"], {"on": False, "run_eur": 0.5, "node_eur": 0.2, "max_steps": 40, "second_opinion": False, "debate": False, "task_plan_preview": True, "task_execution": True, "admit_proposals": True})
         from unittest import mock
 
         from dclab_rnd.orchestra import patterns
@@ -353,19 +353,19 @@ class ChatAnswersTests(unittest.TestCase):
                 {"settings": {"private": True}} if pid == "proj_priv"
                 else {"settings": {"private": False}, "budget": {"eur": 0.25}}
             )
-            team.walk_project(home, projects, "proj_off")
-            team_settings.set_settings(home, {"task_execution": True, "admit_proposals": True})
             team.walk_project(home, projects, "proj_on")
             team.walk_project(home, projects, "proj_priv")
+            team_settings.set_settings(home, {"task_execution": False, "admit_proposals": False})
+            team.walk_project(home, projects, "proj_off")
 
-        self.assertEqual((seen[0]["task_execution"], seen[0]["admit_proposals"]), (False, False))
-        self.assertIsNone(seen[0]["gateway"])
-        self.assertEqual((seen[1]["task_execution"], seen[1]["admit_proposals"]), (True, True))
-        self.assertEqual(seen[1]["gateway"].home, home)
-        self.assertTrue(callable(seen[1]["gateway"].project_private))
-        self.assertEqual(seen[1]["gateway"].project_cap("proj_on"), 0.25)
-        self.assertTrue(seen[1]["gateway"].project_private("proj_priv"))
-        self.assertEqual((seen[2]["task_execution"], seen[2]["admit_proposals"]), (True, False))
+        self.assertEqual((seen[0]["task_execution"], seen[0]["admit_proposals"]), (True, True))
+        self.assertEqual(seen[0]["gateway"].home, home)
+        self.assertTrue(callable(seen[0]["gateway"].project_private))
+        self.assertEqual(seen[0]["gateway"].project_cap("proj_on"), 0.25)
+        self.assertTrue(seen[0]["gateway"].project_private("proj_priv"))
+        self.assertEqual((seen[1]["task_execution"], seen[1]["admit_proposals"]), (True, False))
+        self.assertIsNone(seen[1]["gateway"])
+        self.assertEqual((seen[2]["task_execution"], seen[2]["admit_proposals"]), (False, False))
         self.assertIsNone(seen[2]["gateway"])
 
 

@@ -15,7 +15,7 @@ from ... import audit, lessons as workspace_lessons
 from ...studio import agent as studio_agent, data as studio_data, engine as studio_engine, export as studio_export
 from ...studio import graph as studio_graph, lineage as studio_lineage, memory as studio_memory, solution as studio_solution
 from ..api_models import (OCTET, AnyObject, Answer, Fixes, GateApproval, Graph, Lessons, MoveCheck, Project, ProjectCreate, ProjectPatch, Proposal,
-                          ProposalRequest, Page, Question, Review, Router, SampleChoice, SolutionBody, StageApproval, Verdict, download)
+                          ProposalRequest, Page, Question, Review, Router, SampleChoice, SolutionBody, StageApproval, TaskPlanConfirm, Verdict, download)
 from ..services import charge_upload, Services, services
 
 router = Router()
@@ -60,6 +60,35 @@ async def project_task_plan(project_id: str, s: Services = Depends(services)):
     from ...tasks.view import task_plan_view
     s.project(project_id)
     tcfg = team_settings(s.store.home)
+    return await asyncio.to_thread(task_plan_view, s.projects, s.store.home, project_id,
+                                   enabled=bool(tcfg['task_plan_preview'] or tcfg['task_execution']),
+                                   execution_enabled=bool(tcfg['task_execution']))
+
+
+@router.post("/api/projects/{project_id}/task-plan/confirm", response_model=Page)
+async def confirm_task_plan(project_id: str, payload: TaskPlanConfirm, s: Services = Depends(services)):
+    """Record the owner's clarification response for a project's recorded catalog plan."""
+    from ...orchestra.checkpoints import open_checkpointer
+    from ...orchestra.settings import settings as team_settings
+    from ...tasks.dispatch import TaskDispatcher
+    from ...tasks.view import task_plan_view
+
+    s.project(project_id)
+    body = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})
+    answer = str(body.get("answer") or "").strip()[:500]
+    if not answer:
+        raise HTTPException(422, "Provide a short clarification answer first")
+    tcfg = team_settings(s.store.home)
+
+    def _confirm() -> dict[str, Any]:
+        with open_checkpointer(s.store.home) as saver:
+            disp = TaskDispatcher(s.projects, saver, enabled=True, admit_proposals=bool(tcfg["admit_proposals"]))
+            return disp.confirm_catalog_owner(project_id, answer)
+
+    result = await asyncio.to_thread(_confirm)
+    if result.get("status") != "confirmed":
+        raise HTTPException(409, "No recorded catalog plan needs owner clarification")
+    audit.record(s.audit, "move", "human", None, project_id=project_id, move="confirm_catalog_owner", status="allowed")
     return await asyncio.to_thread(task_plan_view, s.projects, s.store.home, project_id,
                                    enabled=bool(tcfg['task_plan_preview'] or tcfg['task_execution']),
                                    execution_enabled=bool(tcfg['task_execution']))
