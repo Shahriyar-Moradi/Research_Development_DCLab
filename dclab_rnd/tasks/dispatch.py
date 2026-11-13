@@ -368,6 +368,273 @@ class TaskDispatcher:
                 "model_calls": report.get("model_calls", 0),
                 "model_request": report.get("model_request")}
 
+    @staticmethod
+    def _record_catalog_ledger(project_id, plan, tables):
+        """Record P2/P3/P6 problem decomposition & workflow choices into the workspace ledger."""
+        try:
+            from dclab_core.solution_workflow import FAMILIES
+            from dclab_rnd import experience
+            from dclab_rnd.ledger.capture import _put, answer
+
+            routed_to = str(plan.get("routed_to") or "deterministic")
+            used = "model_role" if routed_to == "model" else "rule"
+            level = 2 if used == "model_role" else 0
+            who = "task_decomposer" if routed_to == "model" else "rule:catalog"
+            subproblems = list(plan.get("subproblems") or [])
+            caught_traps = list(plan.get("caught_traps") or [])
+            selected = list(plan.get("selected_tasks") or [])
+            decomp = plan.get("decomposition") or {}
+            decomp_subs = decomp.get("subproblems") if isinstance(decomp, dict) else []
+
+            rule_map = "complex" if (len(tables) > 1 or len(subproblems) > 1 or len(decomp_subs or []) > 1) else "single"
+            chosen_map = "complex" if (len(decomp_subs or subproblems) > 1 or len(tables) > 1) else "single"
+            _put(
+                "map.size",
+                ("project", project_id),
+                [answer("rule", "rule:catalog", rule_map), answer(used, who, chosen_map)],
+                chosen_map,
+                used,
+                state={"tables": len(tables), "parts": len(subproblems), "hits": len(caught_traps)},
+                options=["single", "complex"],
+                level=level,
+                project=project_id,
+            )
+
+            primary_kind = str((subproblems or ["classification"])[0])
+            if primary_kind in FAMILIES:
+                _put(
+                    "problem.family",
+                    ("project", project_id),
+                    [answer(used, who, primary_kind)],
+                    primary_kind,
+                    used,
+                    state={"tables": len(tables), "parts": len(subproblems)},
+                    options=list(FAMILIES),
+                    level=level,
+                    project=project_id,
+                )
+
+            template_str = (",".join(selected[:12]) or "baseline")[:200]
+            _put(
+                "workflow.template",
+                ("project", project_id),
+                [answer(used, who, template_str)],
+                template_str,
+                used,
+                state={
+                    "tables": len(tables),
+                    "rounds": int(plan.get("revisions") or 1),
+                    "open_questions": int(bool(plan.get("asked_owner"))),
+                },
+                level=level,
+                project=project_id,
+            )
+            experience.record(
+                "agent.step",
+                "system",
+                {
+                    "agent": "task.catalog",
+                    "n": int(plan.get("revisions") or 1),
+                    "state": routed_to,
+                    "reply": template_str[:200],
+                    "tool": "prepare_catalog_plan",
+                    "verdict": "ok",
+                    "seconds": float(plan.get("seconds") or 0.0),
+                },
+                project=project_id,
+            )
+        except Exception:
+            pass
+
+    @staticmethod
+    def _blocking_asks(plan, project):
+        """Return blocking ask_owner items only when required solution fields are genuinely unresolved."""
+        solution = project.get("solution") or {}
+        hints = project.get("catalog_hints") or {}
+        if solution.get("target") and solution.get("task") and not hints.get("prediction_moment_unresolved"):
+            return []
+        asks = []
+        for call in plan.get("calls") or ():
+            if isinstance(call, dict) and call.get("task_type") == "ask_owner":
+                params = call.get("params") or {}
+                if params.get("blocking", True):
+                    asks.append({"field": str(params.get("field") or "target"), "question": str(params.get("question") or call.get("reason") or "")[:300]})
+        return asks
+
+    def prepare_catalog_plan(self, project_id, *, tables_override=None, known_facts_override=None, gateway=None, cap_eur=0.25):
+        """P2–P6: run router -> ProblemDecomposition -> grounded catalog calls ONCE and persist in checkpoint state."""
+        from dclab_core.task_catalog import ProblemDecomposition, SubproblemSpec
+        from dclab_rnd.tasks.catalog import (
+            deterministic_catalog_plan,
+            needs_model_planning,
+            plan_with_model,
+            project_catalog_inputs,
+        )
+
+        if not self.enabled:
+            return {"status": "disabled", "reason": "task_execution_disabled"}
+        with self.projects.turn(project_id, require_process=True):
+            project = self.projects.get(project_id)
+            caps = capability_snapshot(self.registry, allowed_tools=self.allowed)
+            state = self.state(project_id)
+            if state is None:
+                if any(meta.get("status") != "pending" for meta in project["stages"].values()):
+                    return {"status": "blocked", "reason": "existing_work_needs_explicit_adoption"}
+                state = self._initial(project, caps)
+                self._save(project_id, state, "graph_initialized")
+            existing = state.get("catalog_plan")
+            if isinstance(existing, dict) and existing.get("calls"):
+                asks = [] if existing.get("owner_confirmed") else self._blocking_asks(existing, project)
+                return {
+                    "status": "already_initialized",
+                    "just_created": False,
+                    "routed_to": existing.get("routed_to"),
+                    "catalog_plan": copy.deepcopy(existing),
+                    "blocking_asks": asks,
+                }
+
+            brief, tables, facts, router_tables, frames = project_catalog_inputs(self.projects, project)
+            if tables_override:
+                tables = {str(k): [str(c) for c in v] for k, v in tables_override.items()}
+                router_tables = dict(tables)
+            if known_facts_override:
+                facts.update(known_facts_override)
+
+            use_model = bool(self.admit_proposals) and needs_model_planning(brief, router_tables, facts)
+            if use_model:
+                plan = plan_with_model(
+                    brief,
+                    tables,
+                    facts,
+                    project_id=project_id,
+                    gateway=gateway or self.gateway,
+                    cap_eur=cap_eur,
+                    frames=frames,
+                )
+            else:
+                det = deterministic_catalog_plan(brief, tables, facts)
+                target = str(facts.get("target") or "target")
+                kind = "regression" if "price" in target or "revenue" in target or "duration" in target else "classification"
+                plan = {
+                    **det,
+                    "routed_to": "deterministic" if not needs_model_planning(brief, router_tables, facts) else "deterministic_catalog",
+                    "subproblems": [kind],
+                    "caught_traps": [],
+                    "decomposition": ProblemDecomposition(
+                        decision=brief[:200] or project_id,
+                        target=target,
+                        unit=str(facts.get("unit") or "row"),
+                        horizon_days=int(facts.get("horizon_days") or 0),
+                        success_metric="rmse" if kind == "regression" else "roc_auc",
+                        subproblems=(SubproblemSpec(id="main", kind=kind, objective=brief[:200] or project_id, target=target),),
+                        source="deterministic",
+                    ).model_dump(mode="json"),
+                    "citations": [],
+                    "revisions": 1,
+                    "extra_prompts": 0,
+                    "cost_usd": 0.0,
+                    "seconds": 0.0,
+                }
+
+            stored = {**copy.deepcopy(plan), "revision_history": [], "owner_confirmed": False}
+            state["catalog_plan"] = stored
+            self._save(project_id, state, "catalog_planned")
+            self._record_catalog_ledger(project_id, stored, tables)
+            return {
+                "status": "planned",
+                "just_created": True,
+                "routed_to": stored.get("routed_to"),
+                "catalog_plan": copy.deepcopy(stored),
+                "blocking_asks": self._blocking_asks(stored, project),
+            }
+
+    def confirm_catalog_owner(self, project_id, response=None):
+        """Record the owner's clarification reply for pending catalog ask_owner questions."""
+        if not self.enabled:
+            return {"status": "disabled"}
+        with self.projects.turn(project_id, require_process=True):
+            state = self.state(project_id)
+            if state is None or not isinstance(state.get("catalog_plan"), dict):
+                return {"status": "missing"}
+            state["catalog_plan"]["owner_confirmed"] = True
+            if response is not None:
+                state["catalog_plan"]["owner_note"] = str(response)[:500]
+            self._save(project_id, state, "catalog_owner_confirmed")
+            return {"status": "confirmed"}
+
+    def adapt_on_stage_evidence(self, project_id, stage, *, tables_override=None, known_facts_override=None, gateway=None, cap_eur=0.10):
+        """P4 bounded re-plan when data/leakage stage evidence uncovers new unresolved traps or followups."""
+        from dclab_core.task_catalog import CatalogTaskCall
+        from dclab_rnd.tasks.catalog import execute_catalog_task, project_catalog_inputs, replan_from_evidence
+
+        if not self.enabled or not self.admit_proposals or stage not in ("data", "leakage"):
+            return {"revised": False, "reason": "not_applicable"}
+        with self.projects.turn(project_id, require_process=True):
+            state = self.state(project_id)
+            if state is None or not isinstance(state.get("catalog_plan"), dict):
+                return {"revised": False, "reason": "no_catalog_plan"}
+            current = copy.deepcopy(state["catalog_plan"])
+            if int(current.get("revisions") or 1) >= 2:
+                return {"revised": False, "reason": "revision_limit"}
+            project = self.projects.get(project_id)
+            record = self.projects.read_stage(project_id, stage) or (project.get("stages") or {}).get(stage)
+            if not isinstance(record, dict):
+                return {"revised": False, "reason": "no_stage_record"}
+
+            brief, tables, facts, _router_tables, frames = project_catalog_inputs(self.projects, project)
+            if tables_override:
+                tables = {str(k): [str(c) for c in v] for k, v in tables_override.items()}
+            if known_facts_override:
+                facts.update(known_facts_override)
+
+            known_tasks = set(current.get("selected_tasks") or ())
+            known_traps = set(current.get("caught_traps") or ())
+            new_traps = []
+            followups = []
+            for call_doc in current.get("calls") or ():
+                try:
+                    ev = execute_catalog_task(CatalogTaskCall.model_validate(call_doc), tables=tables, known_facts=facts, frames=frames)
+                    new_traps.extend(t for t in ev["traps"] if t not in known_traps)
+                    followups.extend(f for f in ev["followup"] if f.task_type not in known_tasks)
+                except Exception:
+                    continue
+
+            ev_summary = record.get("evidence") if isinstance(record.get("evidence"), dict) else {}
+            flagged = list(ev_summary.get("suspects") or ev_summary.get("flagged") or ())[:10]
+            warnings = [str(w)[:160] for w in (record.get("warnings") or ev_summary.get("warnings") or ())][:8]
+            unhandled_flags = [str(x) for x in flagged if str(x) not in known_traps and f"post_outcome_{x}" not in known_traps]
+            if not (followups or new_traps or unhandled_flags):
+                return {"revised": False, "reason": "no_new_evidence"}
+
+            res = replan_from_evidence(
+                brief,
+                tables,
+                facts,
+                current,
+                {
+                    "stage": stage,
+                    "flagged_columns": unhandled_flags,
+                    "warnings": warnings,
+                    "new_traps": sorted(set(new_traps)),
+                    "suggested_followups": [f.model_dump(mode="json") for f in followups],
+                },
+                project_id=project_id,
+                gateway=gateway or self.gateway,
+                cap_eur=cap_eur,
+                frames=frames,
+            )
+            if not res.get("revised"):
+                return {"revised": False, "reason": res.get("reason", "unchanged"), "cost_usd": res.get("cost_usd", 0.0)}
+
+            updated = copy.deepcopy(res["plan"])
+            history = list(current.get("revision_history") or ())
+            history.append({"stage": stage, "added_traps": sorted(set(updated.get("caught_traps") or ()) - known_traps), "cost_usd": res.get("cost_usd", 0.0)})
+            updated["revision_history"] = history
+            state["catalog_plan"] = updated
+            self._save(project_id, state, "catalog_replanned", stage)
+            self._record_catalog_ledger(project_id, updated, tables)
+            return {"revised": True, "stage": stage, "revisions": updated.get("revisions"), "cost_usd": res.get("cost_usd", 0.0)}
+
     def _stage_evidence(self, pid, task, attempt):
         from dclab_rnd.studio import lineage
         from dclab_rnd.expansion import datasets as ds

@@ -7,6 +7,8 @@ from .catalog import (
     execute_catalog_task,
     needs_model_planning,
     plan_with_model,
+    project_catalog_inputs,
+    replan_from_evidence,
 )
 
 __all__ = [
@@ -17,4 +19,6 @@ __all__ = [
     "execute_catalog_task",
     "needs_model_planning",
     "plan_with_model",
+    "project_catalog_inputs",
+    "replan_from_evidence",
 ]

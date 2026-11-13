@@ -260,7 +260,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.book.labels(point="request.intent"), [])
 
     def test_the_rules_have_a_new_version(self):  # finding 6
-        self.assertEqual(intent.RULES_VERSION, "intent_rules_v5")  # v5 (2026-10-30): a report naming nothing it shows is asked
+        self.assertEqual(intent.RULES_VERSION, "intent_rules_v6")  # v6 (2026-11-12): hypothetical "would" alone does not state a prediction task
 
     def test_an_open_reading_is_recorded_and_the_choice_labels_it(self):  # finding 7
         d = self.store.create(VAGUE)

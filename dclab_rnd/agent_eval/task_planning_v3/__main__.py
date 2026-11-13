@@ -28,8 +28,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.cmd == "run-offline":
         res = run_offline(limit=args.limit)
-        j = res["judgment"] or {}
-        print(json.dumps({"cases_run": res["cases_run"], "v1": j.get("verdict"), "v2": j.get("verdict_v2")}))
+        print(json.dumps({"cases_run": res["cases_run"], "mode": res["mode"], "smoke": "ok", "note": "scripted offline smoke fixture; no live gate evaluated"}))
         return 0
     doc = run_live_campaign(CAMPAIGN, workers=args.workers)
     j = doc["judgment"]

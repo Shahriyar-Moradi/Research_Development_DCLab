@@ -1,5 +1,7 @@
 # Task Planning v2 Release Evaluation Report
 
+Frozen release evaluation measuring end-to-end Arm A, Arm B, and live Arm C (`qwen/qwen3.8-flash`) task graph execution, failure recovery, and resource bounds across 48 matched cases.
+
 - **Model:** `qwen/qwen3.8-flash`
 - **Authorized evaluation cap:** `$3.50` USD
 - **Measured live cost:** `$0.228419` USD across `239` requests (`847020` tokens)

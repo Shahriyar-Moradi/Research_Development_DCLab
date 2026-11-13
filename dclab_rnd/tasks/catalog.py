@@ -4,7 +4,8 @@ from __future__ import annotations
 import json
 import re
 import time
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
+from pathlib import Path
 from typing import Any, Optional
 
 from dclab_core.solution_workflow import FAMILIES
@@ -383,39 +384,26 @@ def plan_with_model(
         }
 
     # Execute read/understand catalog tasks locally ($0, pre-holdout) and trigger bounded P4 re-plan if evidence uncovers new followups.
-    evidence_rows = [execute_catalog_task(c, tables=tables, known_facts=facts, frames=frames) for c in valid_calls]
-    followups = [f for ev in evidence_rows for f in ev["followup"] if f.task_type not in {c.task_type for c in valid_calls}]
-    model_traps = list(raw_doc.get("caught_traps") or ())
-
-    if followups and revisions < max_revisions:
-        clean_evidence = [{"task_type": ev["task_type"], "findings": ev["findings"], "traps": ev["traps"]} for ev in evidence_rows]
-        rev_msg = messages + [
-            {"role": "assistant", "content": reply.get("content") or ""},
-            {"role": "user", "content": json.dumps({"stage_evidence": clean_evidence, "suggested_followups": [f.model_dump(mode="json") for f in followups]}, ensure_ascii=False)},
-        ]
-        try:
-            reply2 = client.complete(rev_msg, None, max_tokens=1600, single_attempt=True, timeout_seconds=45.0, require_price=False, max_total_tokens=12000)
-            calls_made += 1
-            revisions += 1
-            doc2 = _extract_json(reply2.get("content") or "{}")
-            rev_calls, rev_issues = validate_catalog_plan(doc2.get("calls") or [], tables)
-            if not rev_issues and rev_calls:
-                valid_calls = rev_calls
-                evidence_rows = [execute_catalog_task(c, tables=tables, known_facts=facts, frames=frames) for c in valid_calls]
-            model_traps.extend(doc2.get("caught_traps") or ())
-            if doc2.get("decomposition"):
-                d2, d2_issues = validate_decomposition(doc2["decomposition"], tables)
-                if d2 and not d2_issues:
-                    decomp = d2
-        except Exception:
-            pass
+    valid_calls, evidence_rows, caught_traps, decomp, calls_made, revisions, rev_req = _run_evidence_and_replan(
+        brief=brief,
+        tables=tables,
+        facts=facts,
+        valid_calls=valid_calls,
+        decomp=decomp,
+        raw_doc=raw_doc,
+        reply_content=str(reply.get("content") or ""),
+        messages=messages,
+        client=client,
+        sources=sources,
+        calls_made=calls_made,
+        revisions=revisions,
+        max_revisions=max_revisions,
+        frames=frames,
+    )
 
     total_cost = round(max(0.0, float(getattr(client, "spent_eur", 0.0) or 0.0) - before_spent), 6)
-
-    risk_traps = [r.trap_kind for r in (decomp.risks if decomp else ())]
-    risk_cols = [f"{r.trap_kind}_{r.column}" for r in (decomp.risks if decomp else ()) if r.column]
     all_cites = sorted({c for call in valid_calls for c in call.citations if c in sources})
-    caught_traps = sorted({*model_traps, *risk_traps, *risk_cols, *(t for ev in evidence_rows for t in ev["traps"])})
+    last_req = rev_req or (experience.last_model_request() if experience.last_model_request() != before_req else None)
     return {
         "routed_to": "model",
         "selected_tasks": sorted({c.task_type for c in valid_calls}),
@@ -428,10 +416,305 @@ def plan_with_model(
         "revisions": revisions,
         "extra_prompts": calls_made,
         "cost_usd": round(total_cost, 6),
-        "model_request": experience.last_model_request() if experience.last_model_request() != before_req else None,
+        "model_request": last_req,
         "seconds": round(time.monotonic() - t0, 4),
         "mode": "adaptive_model",
     }
+
+
+def _collect_traps(
+    model_traps: Iterable[str] | list[str],
+    decomp: ProblemDecomposition | None,
+    evidence_rows: list[dict[str, Any]],
+) -> list[str]:
+    risk_traps = [r.trap_kind for r in (decomp.risks if decomp else ())]
+    risk_cols = [f"{r.trap_kind}_{r.column}" for r in (decomp.risks if decomp else ()) if r.column]
+    return sorted({*model_traps, *risk_traps, *risk_cols, *(t for ev in evidence_rows for t in ev["traps"])})
+
+
+def _run_evidence_and_replan(
+    *,
+    brief: str,
+    tables: Mapping[str, list[str]],
+    facts: Mapping[str, Any],
+    valid_calls: list[CatalogTaskCall],
+    decomp: ProblemDecomposition | None,
+    raw_doc: Mapping[str, Any],
+    reply_content: str,
+    messages: list[dict[str, Any]],
+    client: Any,
+    sources: Mapping[str, dict[str, Any]],
+    calls_made: int,
+    revisions: int,
+    max_revisions: int,
+    frames: Mapping[str, Any] | None,
+) -> tuple[list[CatalogTaskCall], list[dict[str, Any]], list[str], ProblemDecomposition | None, int, int, Any]:
+    from dclab_rnd import experience
+
+    evidence_rows = [execute_catalog_task(c, tables=tables, known_facts=facts, frames=frames) for c in valid_calls]
+    followups = [f for ev in evidence_rows for f in ev["followup"] if f.task_type not in {c.task_type for c in valid_calls}]
+    model_traps = list(raw_doc.get("caught_traps") or ())
+    rev_req = None
+
+    if followups and revisions < max_revisions and client is not None:
+        clean_evidence = [{"task_type": ev["task_type"], "findings": ev["findings"], "traps": ev["traps"]} for ev in evidence_rows]
+        rev_msg = messages + [
+            {"role": "assistant", "content": reply_content},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "stage_evidence": clean_evidence,
+                        "suggested_followups": [f.model_dump(mode="json") for f in followups],
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+        ]
+        try:
+            before_req = experience.last_model_request()
+            reply2 = client.complete(
+                rev_msg,
+                None,
+                max_tokens=3000,
+                single_attempt=True,
+                timeout_seconds=45.0,
+                require_price=False,
+                max_total_tokens=16000,
+                extra_body={"reasoning": {"max_tokens": 800}},
+            )
+            calls_made += 1
+            revisions += 1
+            after_req = experience.last_model_request()
+            if after_req != before_req:
+                rev_req = after_req
+            doc2 = _extract_json(reply2.get("content") or "{}")
+            rev_calls, rev_issues = validate_catalog_plan(doc2.get("calls") or [], tables)
+            if not rev_issues and rev_calls:
+                prev_asks = [c for c in valid_calls if c.task_type == "ask_owner"]
+                if prev_asks and not any(c.task_type == "ask_owner" for c in rev_calls):
+                    rev_calls = [*rev_calls, *prev_asks]
+                valid_calls = rev_calls
+                evidence_rows = [execute_catalog_task(c, tables=tables, known_facts=facts, frames=frames) for c in valid_calls]
+            model_traps.extend(doc2.get("caught_traps") or ())
+            if doc2.get("decomposition"):
+                d2, d2_issues = validate_decomposition(doc2["decomposition"], tables)
+                if d2 and not d2_issues:
+                    decomp = d2
+        except Exception:
+            pass
+
+    caught_traps = _collect_traps(model_traps, decomp, evidence_rows)
+    return valid_calls, evidence_rows, caught_traps, decomp, calls_made, revisions, rev_req
+
+
+def replan_from_evidence(
+    brief: str,
+    tables: Mapping[str, list[str]],
+    known_facts: Mapping[str, Any] | None,
+    current_plan: Mapping[str, Any],
+    stage_evidence: Mapping[str, Any] | list[dict[str, Any]],
+    *,
+    project_id: str = "tp08_case",
+    gateway: Any = None,
+    sources: Mapping[str, dict[str, Any]] | None = None,
+    max_revisions: int = 2,
+    cap_eur: float = 0.10,
+    frames: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Bounded P4 evidence re-planning when data/leakage stage findings surface new traps or followups."""
+    t0 = time.monotonic()
+    revisions = int(current_plan.get("revisions") or 1)
+    if revisions >= max_revisions:
+        return {"revised": False, "reason": "revision_limit", "plan": dict(current_plan), "cost_usd": 0.0}
+
+    from dclab_rnd import experience, prompts
+    from dclab_rnd.models.gateway import Bound
+
+    if gateway is None:
+        from dclab_rnd.models import installed
+
+        gateway = installed()
+    client = gateway.client("task_decomposer", project_id=project_id) if gateway is not None else None
+    if client is None:
+        return {"revised": False, "reason": "no_client", "plan": dict(current_plan), "cost_usd": 0.0}
+    if isinstance(client, Bound):
+        client.run_limit_eur = cap_eur
+
+    src = dict(sources) if sources is not None else grounding_context(brief, tables)
+    facts = dict(known_facts or {})
+    raw_calls = current_plan.get("calls") or []
+    valid_calls = [c if isinstance(c, CatalogTaskCall) else CatalogTaskCall.model_validate(c) for c in raw_calls]
+    decomp_raw = current_plan.get("decomposition")
+    decomp = None
+    if isinstance(decomp_raw, Mapping):
+        try:
+            decomp = ProblemDecomposition.model_validate(decomp_raw)
+        except Exception:
+            decomp = None
+
+    system = prompts.text("problem_planner")
+    top_sources = dict(list(src.items())[:5])
+    payload = {
+        "brief": brief,
+        "tables": dict(tables),
+        "known_facts": facts,
+        "catalog_specs": catalog_specs_summary(),
+        "available_families": list(FAMILIES),
+        "evidence_sources": {k: v["title"] + " — " + v["text"][:140] for k, v in top_sources.items()},
+        "current_plan": {
+            "decomposition": decomp_raw,
+            "calls": [c.model_dump(mode="json") for c in valid_calls],
+            "caught_traps": list(current_plan.get("caught_traps") or ()),
+        },
+        "stage_evidence": stage_evidence,
+        "instruction": "Revise calls and/or decomposition ONLY if stage_evidence reveals new leakage traps, drift, join issues, or unmet constraints.",
+    }
+    messages = [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}]
+    before_spent = float(getattr(client, "spent_eur", 0.0) or 0.0)
+    before_req = experience.last_model_request()
+    revised = False
+    model_traps = list(current_plan.get("caught_traps") or ())
+
+    try:
+        reply = client.complete(
+            messages,
+            None,
+            max_tokens=3000,
+            single_attempt=True,
+            timeout_seconds=45.0,
+            require_price=False,
+            max_total_tokens=16000,
+            extra_body={"reasoning": {"max_tokens": 800}},
+        )
+        doc2 = _extract_json(reply.get("content") or "{}")
+        rev_calls, rev_issues = validate_catalog_plan(doc2.get("calls") or [], tables)
+        if not rev_issues and rev_calls:
+            valid_calls = rev_calls
+            revised = True
+        if doc2.get("caught_traps"):
+            model_traps.extend(str(t) for t in doc2.get("caught_traps") or () if t)
+        if doc2.get("decomposition"):
+            d2, d2_issues = validate_decomposition(doc2["decomposition"], tables)
+            if d2 and not d2_issues:
+                decomp = d2
+                revised = True
+        revisions += 1
+    except Exception:
+        total_cost = round(max(0.0, float(getattr(client, "spent_eur", 0.0) or 0.0) - before_spent), 6)
+        return {"revised": False, "reason": "replan_failed", "plan": dict(current_plan), "cost_usd": total_cost}
+
+    evidence_rows = [execute_catalog_task(c, tables=tables, known_facts=facts, frames=frames) for c in valid_calls]
+    caught_traps = _collect_traps(model_traps, decomp, evidence_rows)
+    total_cost = round(max(0.0, float(getattr(client, "spent_eur", 0.0) or 0.0) - before_spent), 6)
+    all_cites = sorted({*(current_plan.get("citations") or ()), *(c for call in valid_calls for c in call.citations if c in src)})
+    after_req = experience.last_model_request()
+    updated = {
+        **dict(current_plan),
+        "selected_tasks": sorted({c.task_type for c in valid_calls}),
+        "calls": [c.model_dump(mode="json") for c in valid_calls],
+        "subproblems": sorted({s.kind for s in decomp.subproblems}) if decomp else list(current_plan.get("subproblems") or ["classification"]),
+        "caught_traps": caught_traps,
+        "asked_owner": any(c.task_type == "ask_owner" for c in valid_calls),
+        "decomposition": decomp.model_dump(mode="json") if decomp else decomp_raw,
+        "citations": all_cites,
+        "revisions": revisions,
+        "extra_prompts": int(current_plan.get("extra_prompts") or 0) + 1,
+        "cost_usd": round(float(current_plan.get("cost_usd") or 0.0) + total_cost, 6),
+        "model_request": after_req if after_req != before_req else current_plan.get("model_request"),
+        "seconds": round(float(current_plan.get("seconds") or 0.0) + (time.monotonic() - t0), 4),
+    }
+    return {"revised": revised, "plan": updated, "cost_usd": total_cost, "model_request": updated.get("model_request")}
+
+
+def project_catalog_inputs(projects: Any, project: Mapping[str, Any]) -> tuple[str, dict[str, list[str]], dict[str, Any], dict[str, list[str]], dict[str, Any]]:
+    """Extract (brief, tables, known_facts, router_tables, frames) from a Studio project without touching holdout."""
+    from dclab_rnd.studio import data as studio_data
+
+    pid = str(project.get("id") or "")
+    solution = dict(project.get("solution") or {})
+    brief = str(project.get("goal") or project.get("name") or pid).strip()
+
+    main_name = Path(str((project.get("data") or {}).get("filename") or "main.csv")).stem or "main"
+    tables: dict[str, list[str]] = {}
+    frames: dict[str, Any] = {}
+
+    raw_tables = project.get("tables")
+    if isinstance(raw_tables, Mapping):
+        for tname, tinfo in raw_tables.items():
+            if isinstance(tinfo, list):
+                tables[str(tname)] = [str(c) for c in tinfo]
+            elif isinstance(tinfo, Mapping) and isinstance(tinfo.get("columns"), list):
+                tables[str(tname)] = [str(c) for c in tinfo["columns"]]
+
+    data_meta = project.get("data") or {}
+    cols = [str(c.get("name") if isinstance(c, Mapping) else c) for c in (data_meta.get("columns") or []) if c]
+    if pid and data_meta.get("filename"):
+        try:
+            path = studio_data.data_path(projects, dict(project))
+            df = studio_data.load_table(path)
+            if not cols:
+                cols = [str(c) for c in df.columns]
+            # Keep pre-holdout training slice / cap rows for fast schema+profile grounding only.
+            frames[main_name] = df.head(min(len(df), 500)).copy()
+        except Exception:
+            pass
+    if cols and main_name not in tables:
+        tables = {main_name: cols, **tables}
+    if not tables:
+        tables = {main_name: []}
+
+    hints = dict(project.get("catalog_hints") or {})
+    if isinstance(hints.get("tables"), Mapping):
+        for tname, tcols in hints["tables"].items():
+            if isinstance(tcols, list) and str(tname) not in tables:
+                tables[str(tname)] = [str(c) for c in tcols]
+    known_handled = {
+        *(str(x.get("column") if isinstance(x, Mapping) else x) for x in (solution.get("forbidden") or [])),
+        *(str(x) for x in (solution.get("identifiers") or [])),
+    }
+    router_tables = {t: [c for c in clist if c not in known_handled] for t, clist in tables.items()}
+
+    target = solution.get("target")
+    unit = hints.get("unit") or solution.get("group_column") or ("row" if target else None)
+    horizon = hints.get("horizon_days")
+    if horizon is None and target and not hints.get("prediction_moment_unresolved"):
+        horizon = 30 if solution.get("time_column") else 0
+
+    facts: dict[str, Any] = {
+        "target": target,
+        "task": solution.get("task"),
+        "unit": unit,
+        "horizon_days": horizon,
+    }
+    for key in ("time_column", "metric", "positive_label", "kind"):
+        if solution.get(key) is not None:
+            facts[key] = solution.get(key)
+    if solution.get("capacity_k") is not None:
+        facts["daily_review_cap"] = solution["capacity_k"]
+    for key in ("treatment", "cost_ratio", "costs", "daily_review_cap", "positive_rate", "clean_single_table", "time_column"):
+        if hints.get(key) is not None:
+            facts[key] = hints[key]
+    if solution.get("group_column"):
+        facts["entity_key"] = solution.get("group_column")
+    if solution.get("positive_rate") is not None:
+        facts["positive_rate"] = solution.get("positive_rate")
+    elif target and main_name in frames and target in frames[main_name].columns:
+        try:
+            s = frames[main_name][target].dropna()
+            if len(s) >= 20 and s.nunique() == 2:
+                pos_val = solution.get("positive_label")
+                rate = float((s.astype(str) == str(pos_val)).mean()) if pos_val is not None else float(pd_numeric_pos_rate(s))
+                if rate < 0.05 or rate > 0.95:
+                    facts["positive_rate"] = round(min(rate, 1.0 - rate), 4)
+        except Exception:
+            pass
+    return brief, tables, facts, router_tables, frames
+
+
+def pd_numeric_pos_rate(series: Any) -> float:
+    vals = sorted(series.unique().tolist())
+    return float((series == vals[-1]).mean()) if vals else 0.5
 
 
 def compile_catalog_to_task_graph(
@@ -518,4 +801,6 @@ __all__ = [
     "execute_catalog_task",
     "deterministic_catalog_plan",
     "plan_with_model",
+    "project_catalog_inputs",
+    "replan_from_evidence",
 ]

@@ -203,6 +203,7 @@ class SolutionTeam:
         done = ("completed", "approved")
         nxt = next((k for k in self.STAGES if status[k] not in done), None)
 
+        extra_board = None
         if self.task_execution:
             tasks = self._tasks()
             problem = tasks.preflight(project["id"])
@@ -217,6 +218,21 @@ class SolutionTeam:
                 problem = tasks.preflight(project["id"])
                 if problem:
                     return {"next": "stop", "says": "Task execution stopped: " + problem}
+            cat = tasks.prepare_catalog_plan(project["id"])
+            extra_board = None
+            if cat.get("blocking_asks") and not (cat.get("catalog_plan") or {}).get("owner_confirmed"):
+                asks = cat["blocking_asks"][:3]
+                question = "; ".join(a["question"] for a in asks if a.get("question")) or "Clarify target, prediction unit, or horizon before running stages."
+                token = _PAUSES.set([])
+                try:
+                    reply = self.asker.ask("catalog_clarify", question)
+                    board = self._close_pauses(state, "situate")
+                finally:
+                    _PAUSES.reset(token)
+                tasks.confirm_catalog_owner(project["id"], reply)
+                extra_board = self._advance(state, "situate", "catalog_clarified", board)
+            else:
+                extra_board = None
 
         if nxt is None:
             if not state.get("reported"):
@@ -228,8 +244,8 @@ class SolutionTeam:
                         "back_to": gate.get("back_to")}
             return {"next": "done"}
         if status["leakage"] in done and state.get("audited_for") != leak_audit.single_inputs(project):
-            return {"next": "audit"}
-        return {"next": "compose" if nxt == "final" else "stage"}
+            return {"next": "audit", **({"board": extra_board} if extra_board is not None else {})}
+        return {"next": "compose" if nxt == "final" else "stage", **({"board": extra_board} if extra_board is not None else {})}
 
     def stage(self, state: SolveState) -> dict[str, Any]:
         """30.1: the next stage of the engine, run through the registry's tool and the validator, as an agent."""
@@ -246,6 +262,8 @@ class SolutionTeam:
         board = self._advance(state, "stage", key if not failed else "refused")
         if failed:
             return {"steps": [step], "board": board, "next": "stop", "says": f"The {key} stage did not run: {failed}"[:600]}
+        if self.task_execution and self.admit_proposals and key in ("data", "leakage"):
+            self._tasks().adapt_on_stage_evidence(state["project_id"], key)
         return {"steps": [step], "board": board, "next": "situate", **({"task_checkpoint": out["checkpoint"]} if out.get("checkpoint") else {})}
 
     def _fan(self, state: SolveState) -> Any:

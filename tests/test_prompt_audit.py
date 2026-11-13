@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 from dclab_rnd import prompts  # noqa: E402
 
 ASKS_REASONING = re.compile(
-    r"(?:explain|show|give|write|include|state|list)[a-z ]{0,12}(?:your |the )?(?:reasoning|thought process|chain of thought|thinking)"
+    r"(?<!do not )(?<!never )(?:explain|show|give|write|include|state|list)[a-z ]{0,12}(?:your |the )?(?:reasoning|thought process|chain of thought|thinking)"
     r"|<thinking>|\"(?:reasoning|rationale|reason|why)\"\s*:|step by step", re.I)
 BEFORE_THE_RULE = {  # prompt -> why it may still ask; the list may only shrink (the owner, 2026-10-31: reasoning from the thinking summary)
     "leakage_review": "a user-facing claim, not reasoning: each verdict's reason must quote the prediction moment and code checks it",

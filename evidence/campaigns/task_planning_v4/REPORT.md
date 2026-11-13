@@ -54,3 +54,38 @@ Candidate **`C` (`adaptive_problem_planner`, `qwen/qwen3.8-flash` on non-standar
 1. **Reasoning Budget Allocation (`qwen/qwen3.8-flash` on OpenRouter):** Setting an explicit `reasoning.max_tokens` (`1000` initial, `600`/`800` retry/repair) with `max_tokens=3800` prevented reasoning runaway while keeping `100%` raw reasoning capture (`86/86` exchanges across dev + sealed).
 2. **Planning Actually Changes Empirical Holdout ML Quality:** Compiling validated catalog tasks (`check_join_key`, `grouped_split`, `time_split_check`, `leakage_probe`, `calibration`, `threshold_for_cost`, `segment_subproblem`) directly alters real sklearn modeling pipelines on synthetic replicas, yielding `+0.0627` dev (`[0.0315, 0.0947]`) and `+0.0572` sealed (`[0.0053, 0.1144]`) holdout improvement over `B0`, and `+0.0402` dev / `+0.0440` sealed over `B1`.
 3. **Router Economics:** Clean single-table problems route deterministically (`$0.0000`, `0.0s`), while non-standard problems average `~$0.0011/case` (`$0.075` total combined spend across full dev and sealed campaigns).
+
+---
+
+## Prompt-Audit Re-Verification (`TP4-003_dev_live.json` — `"purpose"` Schema Field)
+
+Following the `test_prompt_audit.py` compliance update (renaming the schema/prose `"reason"` field to `"purpose"` in `dclab_rnd/prompts/problem_planner.md` with backward-compatible `_accept_purpose_alias` in `dclab_core/task_catalog.py`), the `dev` split was re-verified live on OpenRouter (`qwen/qwen3.8-flash`):
+
+- **Spend / Capture:** `$0.042451` (`$0.001061` mean/case), `47 / 47` ok exchanges with `whole=True` and `raw_reasoning_present=47`.
+- **`C` vs `B0` (`tp08.gate.v1`):** **PASS** (`promoted=True`, `0` critical violations; `required_coverage_hard = +0.7856`, `trap_catch_hard = +0.6389`, `holdout_score = +0.0536` `[0.0226, 0.0853]`).
+- **`C` vs `B1` (`tp08.gate.v1`):** `required_coverage_hard = +0.3347` `[0.2208, 0.4556]`, `holdout_score = +0.0330` `[0.0088, 0.0612]`, `trap_catch_hard = +0.2500` `[0.0556, 0.4583]` (`FAIL` on `trap_catch_gain_below_threshold` lower CI bound `0.0556 < 0.10` in this stochastic re-run; `TP4-001` and frozen unseen `TP4-002_sealed` both passed `C` vs `B1`).
+
+---
+
+## Live Studio + `SolutionTeam` Runtime Verification (`adaptive_studio_live_20261113_r2`)
+
+Executed all 5 live end-to-end `SolutionTeam(..., task_execution=True, admit_proposals=True)` scenarios against real OpenRouter (`qwen/qwen3.8-flash`) with full `TaskDispatcher`, checkpointed `catalog_plan` state, workspace `FileLedger`, `task_plan_view`, single-use holdout enforcement (`holdout_uses == 1`), and `whole=True` exchange capture:
+
+- **Outcome:** **`5 / 5` scenarios passed**, total spend **`$0.026473`**, **`40 / 40`** ok exchanges (`whole=True`, `raw_reasoning_present=40` across `task_decomposer` and `task_planner`).
+- **Ledger Decisions Recorded (17 points):** Includes `map.size`, `problem.family`, `workflow.template`, `team.next_node`, `workflow.move`, `workflow.g4`, `model.family`, `threshold.operating_point`, and column/split decisions.
+
+| Scenario | Stratum | Routed To | Subproblems / Key Traps | Revisions / Clarify Pause | Holdout Score | View Status | Cost |
+|---|---|---|---|---|---|---|---:|
+| `studio_multitable_post_outcome` | Multi-table + leak | `model` | `classification`, `entity_tables`; `one_to_many_join_duplication`, `post_outcome_closure_recorded_after_review` | 1 rev / no pause | `0.8984` | `recorded` | `$0.005609` |
+| `studio_timedrift_fraud_capacity` | Time + capacity | `model` | `rare_event`, `segmentation`; `time_drift_random_split_leak`, `extreme_class_imbalance`, `capacity_constrained_threshold` | 1 rev / no pause | `0.6821` | `recorded` | `$0.005400` |
+| `studio_composite_uplift` | Composite uplift | `model` | `classification`, `segmentation`, `uplift`; `observational_treatment_bias_voucher_offer` | 1 rev / no pause | `0.6502` | `recorded` | `$0.005792` |
+| `studio_ambiguous_ask_owner` | Unresolved target/horizon | `model` | `classification`; `missing_horizon`, `capacity_constrained_threshold` | **2 revs (P4)** / **`catalog_clarify` pause** | `0.7094` | `recorded` | `$0.005658` |
+| `studio_clean_deterministic_fastpath` | Clean single-table | `deterministic` (P6) | `classification`; `[]` | 1 rev ($0 catalog) | `0.6667` | `recorded` | `$0.004014` |
+
+---
+
+## P7 Outcome-Labelled Planning Gold Set (`planning_gold_v1.jsonl`)
+
+Built via `dclab_rnd.tasks.catalog_lake.build_planning_gold_set()` (`sealed_excluded=True` strictly enforced against `cases_sealed.json`):
+- **Output:** `training_records/datasets/planning_gold_v1.jsonl` and `lake/gold/planning/dev.jsonl`
+- **Counts:** `38` total outcome-labelled trajectories (`12` positive, `26` negative) across `tp08_dev_live` and `adaptive_studio_live` with full raw `reasoning`, `messages`, `reply`, trap/coverage metrics, and empirical holdout deltas.

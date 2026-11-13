@@ -202,6 +202,15 @@ class CatalogTaskCall(Contract):
     reason: str = Field(default="", max_length=400)
     citations: tuple[str, ...] = Field(default=(), max_length=16)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_purpose_alias(cls, data: Any) -> Any:
+        if isinstance(data, Mapping) and "purpose" in data and "reason" not in data:
+            copied = dict(data)
+            copied["reason"] = copied.pop("purpose")
+            return copied
+        return data
+
 
 class SubproblemSpec(Contract):
     """One decomposed analytical sub-problem aligned with a DCLab family."""
@@ -336,7 +345,13 @@ def validate_decomposition(
 ) -> tuple[Optional[ProblemDecomposition], list[str]]:
     """Validate a ProblemDecomposition against project table metadata and DCLab families."""
     try:
-        parsed = decomp if isinstance(decomp, ProblemDecomposition) else ProblemDecomposition.read(decomp)
+        if isinstance(decomp, ProblemDecomposition):
+            parsed = decomp
+        else:
+            raw = dict(decomp)
+            if "schema_version" not in raw and raw.get("decision"):
+                raw["schema_version"] = "dclab_core.problem_decomposition.v1"
+            parsed = ProblemDecomposition.read(raw)
     except Exception as exc:
         return None, [f"invalid decomposition shape: {exc}"]
 

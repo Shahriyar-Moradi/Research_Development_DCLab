@@ -26,11 +26,21 @@ def main(argv: list[str] | None = None) -> int:
     p_live.add_argument("--limit", type=int, default=0)
     p_live.add_argument("--result-name", default="")
 
+    p_studio = sub.add_parser("run-live-studio", help="Run live end-to-end SolutionTeam scenarios with OpenRouter.")
+    p_studio.add_argument("--cap-usd", default="1.20")
+    p_studio.add_argument("--tag", default="adaptive_studio_live_20261113")
+
     args = parser.parse_args(argv)
     if args.cmd == "verify-sealed":
         sha = verify_sealed()
         print(json.dumps({"sealed_sha256": sha, "ok": True}))
         return 0
+    if args.cmd == "run-studio" or args.cmd == "run-live-studio":
+        from .live_studio import run_live_studio
+
+        summary = run_live_studio(cap_usd=args.cap_usd, tag=args.tag)
+        print(json.dumps(summary, indent=2))
+        return 0 if summary["scenarios_passed"] == summary["scenarios_total"] else 1
     if args.cmd == "run-offline":
         doc = run_offline(split=args.split, limit=(args.limit or None))
         print(json.dumps({"split": doc["split"], "cases_run": doc["cases_run"], "judgment": doc["judgment"]}, indent=2))

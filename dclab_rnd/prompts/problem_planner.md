@@ -4,7 +4,7 @@ Keep internal reasoning VERY BRIEF (<100 words). Do NOT list or evaluate tasks y
 
 Inspect `tables`, `known_facts`, and `evidence_sources`, then return ONE compact JSON object:
 1. `decomposition`: `ProblemDecomposition` (`decision`, `target`, `unit`, `horizon_days`, `success_metric`, `subproblems` from `available_families`, `risks`, `unknowns`).
-2. `calls`: 3 to 6 pre-holdout tasks from `catalog_specs` (stages `data..report` run automatically unless needed). Keep reasons concise (<12 words).
+2. `calls`: 3 to 6 pre-holdout tasks from `catalog_specs` (stages `data..report` run automatically unless needed). Keep each `purpose` concise (<12 words).
 
 Rules:
 - Subproblems (`kind` MUST come strictly from `available_families`):
@@ -36,7 +36,7 @@ Output ONLY valid JSON:
     "source": "model"
   },
   "calls": [
-    {"task_type": "...", "params": {...}, "reason": "... [PIT-...]", "citations": ["..."]}
+    {"task_type": "...", "params": {...}, "purpose": "... [PIT-...]", "citations": ["..."]}
   ],
   "caught_traps": ["..."]
 }

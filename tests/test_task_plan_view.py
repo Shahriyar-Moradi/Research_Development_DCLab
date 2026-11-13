@@ -259,6 +259,9 @@ class TaskPlanApiTests(unittest.TestCase):
         with patch('dclab_rnd.accounts.guard.current', return_value=ANONYMOUS):
             self.assertEqual(self.client.get(path).status_code, 401)
 
+    def _audit_text(self, log) -> str:
+        return json.dumps(log.query(50, 0)[1])
+
     def test_preview_switch_is_audited_reversible_and_cannot_enable_execution(self):
         csrf = self.client.get('/api/config').json()['csrf']
         h = {'X-DCLab-Token': csrf}
@@ -266,7 +269,7 @@ class TaskPlanApiTests(unittest.TestCase):
         self.assertEqual(r.status_code, 200, r.text)
         self.assertFalse(r.json()['settings']['on'])
         self.assertFalse(self.client.get(f'/api/projects/{self.pid}/task-plan').json()['execution_enabled'])
-        self.assertIn('task_plan_preview', (self.home / 'audit.jsonl').read_text())
+        self.assertIn('task_plan_preview', self._audit_text(self.s.audit))
         self.assertEqual(self.client.put('/api/team/settings', json={'unknown_flag': True}, headers=h).status_code, 422)
         self.assertEqual(self.client.put('/api/team/settings', json={'admit_proposals': True}, headers=h).status_code, 422)
         self.assertEqual(self.client.put('/api/team/settings', json={'task_plan_preview': False}, headers=h).status_code, 200)
@@ -302,5 +305,5 @@ class TaskPlanApiTests(unittest.TestCase):
         endpoint = next(r.endpoint for r in api_routes(self.app) if r.path == '/api/team/settings' and 'PUT' in r.methods)
         with context.using(owner):
             asyncio.run(endpoint(body={'task_plan_preview': True}))
-        self.assertIn('task_plan_preview', (other / 'audit.jsonl').read_text())
-        self.assertNotIn('task_plan_preview', (self.home / 'audit.jsonl').read_text())
+        self.assertIn('task_plan_preview', self._audit_text(owner.audit))
+        self.assertNotIn('task_plan_preview', self._audit_text(self.s.audit))

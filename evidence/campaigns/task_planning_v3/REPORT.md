@@ -1,5 +1,7 @@
 # Task Planning v3 Release Evaluation Report
 
+Versioned live comparison of Arm A, deterministic Arm B, and live Arm C (`qwen/qwen3.8-flash`) with isolated Gateway reasoning capture across the 48 frozen execution and recovery cases.
+
 - **Model:** `qwen/qwen3.8-flash`
 - **Authorized Arm C ceiling:** `$3.50` USD
 - **Arm C measured usage:** `$0.212314` USD across `221` requests (`781278` tokens, max `7` prompts/case)
