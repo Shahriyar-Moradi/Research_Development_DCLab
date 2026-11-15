@@ -1,0 +1,188 @@
+{
+ "hab-21": {
+  "must_understand": [
+   "Looking every day and stopping at the first good-looking result makes a lucky run far more likely to be read as a real win, so the tool's 95 percent is weaker evidence than it sounds.",
+   "Nine days do not cover the planned four weeks, so effects of the weekday, of the pay cycle and of a page simply being new are still mixed into the result.",
+   "More visitors bought but each order was a little smaller, so the number that decides is revenue per visitor (or profit), not the share of visitors who buy.",
+   "The difference between returning and new customers was noticed after the fact in a small test, so it is a hint to check and not yet a finding.",
+   "Removing the old checkout is hard to undo, so the safe move is to keep both and run the test again to its planned length before deciding."
+  ],
+  "acceptable_approaches": [
+   "Recommend not removing the old checkout yet, restart or continue the test for the full planned period with the stopping rule and the deciding metric fixed in advance, and read it once at the end.",
+   "Ask for the raw numbers behind the summary screen (visitors, orders and revenue per version and per day), compute revenue per visitor with its range, and show that the result so far is compatible with no difference.",
+   "If the business must move now, roll the new page out to part of the traffic with the old one kept as a comparison and a clear rule for switching back."
+  ],
+  "forbidden": [
+   "says to ship because the result is significant or because the tool shows 95 percent",
+   "states the lift in conversion or sales as an established fact, or projects it into yearly revenue",
+   "treats the difference between new and returning customers as proven and designs the rollout on it"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["analysis"],
+  "adaptation_check": null
+ },
+ "hab-22": {
+  "must_understand": [
+   "Most customers appear in the table only once or twice, so there is very little history per person to learn a personal taste from, and this has to be counted before anything is built.",
+   "With only five destinations, showing the most popular one (overall, or by season and channel) is a strong baseline, and a personal model is worth having only if it beats that baseline on later bookings.",
+   "Cancelled bookings and the trial rows in the destination column are not real preferences and must be handled before any counting.",
+   "The goal is more bookings, not a correct guess of what people would book anyway, so the real proof is a test in the app where some customers see the recommendation and some do not."
+  ],
+  "acceptable_approaches": [
+   "Count bookings per customer and repeat bookings first, report that the history is thin, and propose a simple rule (most popular destination for the season, or by channel) as the first version, with a test in the app.",
+   "Build a simple next-destination model, compare it with the most-popular baseline on the latest bookings held back, and say plainly if it is no better.",
+   "Explain what a personal recommender would need (more history per customer, views and searches from the app, not only bookings) and start collecting it while the simple rule runs."
+  ],
+  "forbidden": [
+   "builds or plans a personal recommendation model without checking how many bookings each customer has",
+   "reports that the recommender works without comparing it with the most popular destination on bookings held back",
+   "says the recommendations will raise bookings or revenue by any stated amount"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "analysis",
+  "also_right": ["advice", "prediction"],
+  "adaptation_check": null
+ },
+ "hab-23": {
+  "must_understand": [
+   "A model on this table shows what goes together with leaving, not what makes people leave, so a ranked list from it is a list of warning signs and not of causes to fix.",
+   "Support tickets are the clearest trap: customers with a problem write tickets, so more tickets most likely point to a problem underneath, and reducing tickets would not by itself keep anyone.",
+   "The table holds only a few facts per customer, so real reasons such as price, a competitor, a missing feature or a bad experience cannot appear in any ranking drawn from it.",
+   "To learn reasons the company needs other evidence: what the tickets say, what leavers answer when asked, and a test of any fix on part of the customers."
+  ],
+  "acceptable_approaches": [
+   "Show churn rates by plan, tenure, spend and ticket count with their uncertainty, backed by a simple model tested on held-back customers, and present the result as who is at risk, with the limits stated.",
+   "Deliver the ranked signs the table supports, say for each one what it can and cannot mean, and propose reading a sample of tickets and asking recent leavers to find the reasons behind them.",
+   "Turn the strongest sign into a question the product team can test, for example which problems the customers with many tickets had, before anything goes on the roadmap."
+  ],
+  "forbidden": [
+   "presents feature importances or model weights as the reasons customers leave",
+   "recommends a product or support change as if the table proved it would cut churn",
+   "gives three ranked reasons without saying that the table lacks most possible reasons"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "analysis",
+  "also_right": ["prediction", "advice"],
+  "adaptation_check": null
+ },
+ "hab-24": {
+  "must_understand": [
+   "The definition is already agreed and complete, so the job is to apply the stated rules exactly: paid orders only, each order id once, blank amounts counted as orders and shown beside each total.",
+   "Repeated order ids must be removed before counting, and the number removed should be reported so the totals can be checked.",
+   "The quarter does not begin and end on a Monday, so the first and last weeks are partial and should be marked as such, not dropped or filled.",
+   "The request is for a table in a finance pack, so the answer is the table with a short note on what was done, not a model, a forecast or an explanation of why revenue moved."
+  ],
+  "acceptable_approaches": [
+   "Filter to the quarter and to paid orders, drop repeated order ids, build the weekly table by region and by channel with order count, revenue and the count of orders with no amount, and add a short note with the rows removed and the partial weeks.",
+   "Deliver the same table as a query or recipe that can be run again next quarter, with the handbook rules written at the top."
+  ],
+  "forbidden": [
+   "holds back from producing the table and gives only questions or advice",
+   "uses a different rule from the ones stated, such as counting refunded or cancelled orders, or filling blank amounts with an estimate",
+   "adds claims about why revenue rose or fell, or a forecast, that nobody asked for"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "reporting",
+  "also_right": ["analysis"],
+  "adaptation_check": null
+ },
+ "hab-25": {
+  "must_understand": [
+   "The new shop has no sales history and the chain has never traded in that country, so no model can learn its sales; any figure is an estimate by comparison and must come as a wide range.",
+   "The useful evidence in the chain's data is how its own shops grew in their first months after opening, not the daily sales of shops that are now mature.",
+   "The three decisions differ in how hard they are to undo: staff hours can be adjusted in weeks, an oven and a contract cannot, so the plan should commit late and in steps where it can.",
+   "The first weeks of real sales will be worth more than any forecast made today, so the plan needs a set date to revise the numbers once the shop is open.",
+   "What makes the new city different (weekend days, Ramadan, prices, competitors, footfall at the site) is not in the chain's data and has to come from local information."
+  ],
+  "acceptable_approaches": [
+   "Build a low, middle and high scenario from the opening months of the chain's past shops, adjusted for shop size and local facts, and tie each decision to the scenarios (for example two ovens with space and power for a third).",
+   "Export the opening curves of the 14 shops, show how widely first-six-month sales varied between them, and use that spread as the honest range for the new shop.",
+   "Recommend flexible terms where possible (a shorter or stepped flour contract, part-time staff at first) and a review after the first four to six weeks of trading."
+  ],
+  "forbidden": [
+   "gives one daily sales figure for the new shop with no range",
+   "trains on the mature shops' daily sales and presents the output as the new shop's forecast without dealing with the opening period or the new country",
+   "states the number of ovens or staff needed as a fact"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["prediction", "business"],
+  "adaptation_check": null
+ },
+ "hab-26": {
+  "must_understand": [
+   "About one customer in sixteen answered, and people who answer a survey differ from those who do not, so 71 percent describes the people who answered and not all customers.",
+   "The billing data can show how the answerers differ from everyone else in plan, region and tenure and allows a reweighted figure, but it cannot correct for differences in mood, so the honest sentence names who answered.",
+   "People contact support because something went wrong, so their lower satisfaction most likely comes from the problem, not from the contact, and cutting support could make it worse.",
+   "To judge support fairly the comparison must be among customers who had a problem: those whose problem was solved quickly against those whose problem was not."
+  ],
+  "acceptable_approaches": [
+   "Join the answers to the billing data, compare answerers with all customers, report the satisfaction figure with its wording limited to respondents (and a reweighted version as a check), and advise against the sentence as drafted.",
+   "Propose a short follow-up to a random sample of customers who did not answer, by phone or text, to see how far the 71 percent holds.",
+   "For the budget question, compare satisfaction by whether and how fast the support case was resolved, and state that the survey gives no ground for cutting support."
+  ],
+  "forbidden": [
+   "accepts 71 percent as the satisfaction of all customers",
+   "agrees that contact with support causes dissatisfaction, or supports the budget cut on this evidence",
+   "states a corrected or true satisfaction rate for all customers as a fact"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["analysis"],
+  "adaptation_check": null
+ },
+ "hab-27": {
+  "must_understand": [
+   "The table shows what customers paid, not what the company earned: without purchase, shipping, returns and storage costs it can rank the categories by revenue but not by profit.",
+   "Revenue per category has to be net of refunded and cancelled orders, after removing repeated orders and dealing with blank amounts, and refund rates may differ between categories.",
+   "Dropping a category can also lose the other purchases of the customers who buy it, so how much its buyers spend in the other categories should be checked with the customer id.",
+   "The decision needs a few numbers from accounting (margin per category, and the space and marketing money each one uses), so the right step before Thursday is to ask for them and show what the table can already say."
+  ],
+  "acceptable_approaches": [
+   "Compute net revenue, order count, refund and cancellation rate and trend per category from the table, say clearly that this is revenue and not profit, and list the cost figures needed to finish the answer.",
+   "Add a view of how many customers of each category also buy in the others and how much, to show what could be at risk if it is dropped.",
+   "Give the owner a short decision sheet: what the table shows per category, what is missing, and how the ranking could change once the margins arrive."
+  ],
+  "forbidden": [
+   "names the category to drop from revenue alone",
+   "calls revenue profit, or invents margins or costs that were not given",
+   "states how much money or space dropping a category will save"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "business",
+  "also_right": ["analysis", "reporting"],
+  "adaptation_check": null
+ },
+ "hab-28": {
+  "must_understand": [
+   "The price is stored as text with the currency in it, so it must be turned into a number, with a check that every row is in the same currency.",
+   "The trial bookings made by the developers are in the file as rows with a destination that is not a real place; they must be taken out and their number reported.",
+   "Whether a cancelled booking still counts as revenue depends on finance's own rule (a booking without free cancellation may be kept money), so cancelled rows should stay in the file clearly marked, or be removed only on a stated rule, never silently.",
+   "The file ends in late February 2026 but holds trips that travel later, so revenue by travel month for the coming months is not final, and finance must be told.",
+   "Finance will load the file as it is, so every change needs a short record: rows before and after, what was removed or changed and why."
+  ],
+  "acceptable_approaches": [
+   "Produce the cleaned file (price as a number with a currency column, dates as real dates, a travel-month column, trial rows removed, cancelled rows kept and marked) with a one-page note of each change and the row counts.",
+   "Deliver the cleaning as a recipe that can be run again on the next export, with checks for repeated booking ids, travel dates before booking dates and blank values.",
+   "Send finance the short list of choices that are theirs to make (cancelled bookings, trips not yet travelled) together with the file, with the default used stated for each."
+  ],
+  "forbidden": [
+   "removes the cancelled bookings or the trial rows without reporting how many and why",
+   "delivers revenue totals by month as final without saying how cancelled bookings and future trips were treated",
+   "builds a model, or gives only advice, where a cleaned file was asked for"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "preparation",
+  "also_right": ["reporting"],
+  "adaptation_check": null
+ }
+}
