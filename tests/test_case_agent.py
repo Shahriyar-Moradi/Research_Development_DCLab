@@ -406,7 +406,7 @@ class ActFirstTests(unittest.TestCase):
     def test_a_chart_drawn_in_block_characters_never_reaches_the_person(self):
         s = state()
         text = "Here is a quick plot.\nMonth-to-month \u2588\u2588\u2588\u2588\u2588\u2588 One year \u2588\u2588\u2588 Two year \u2588\nMonth-to-month customers leave the most."
-        self.assertEqual(A.checked(text, s), "Here is a quick plot. Month-to-month customers leave the most.")
+        self.assertEqual(A.checked(text, s), "Here is a quick plot.\nMonth-to-month customers leave the most.")  # stage 2: a line break stays one
         self.assertEqual(A.checked("Contract \u2588\u2588 matters most to this group of customers across the whole table of data.", s),
                          "Contract matters most to this group of customers across the whole table of data.")
 
@@ -518,10 +518,15 @@ class OrdersTests(unittest.TestCase):
         case = C.hear(case, "the churn_flag column says who left")
         self.assertEqual(C.grounded_columns(case, ["gender", "churn_flag"]), ["churn_flag"])
 
-    def test_a_long_message_still_needs_its_own_two_word_quote(self):
-        s = self.routed("yes, but only after I have asked my team about the weekly list size")
-        self.assertIn("error", A._request_build(s, "yes"))  # one word of a long message is not a quote
-        self.assertEqual(A._request_build(s, "yes, but only after I have asked my team")["recorded"], "ml_project")
+    def test_the_yes_of_a_long_message_is_read_by_code_and_kept_whole(self):
+        """Stage 2 of 2026-11-15: the yes is read from their message, so a quote that is one word of it (refused before as "not a
+        quote", with the words of no yes at all) no longer decides; the record of their yes is their own message."""
+        s = self.routed("yes, please build it; my team will use the weekly list every Monday morning")
+        self.assertEqual(A._request_build(s, "yes")["recorded"], "ml_project")
+        self.assertEqual(s.case.build.quote, "yes, please build it; my team will use the weekly list every Monday morning")
+        s = self.routed("yes, please build it; my team will use the weekly list every Monday morning")
+        self.assertEqual(A._request_build(s, "yes, please build it")["recorded"], "ml_project")
+        self.assertEqual(s.case.build.quote, "yes, please build it")  # a true quote is kept as given
 
     def test_an_order_to_build_a_model_is_a_yes_and_a_question_about_building_is_not(self):
         for w in ("build the model", "now build model", "make prediction models", "train a model please", "Create a churn model"):

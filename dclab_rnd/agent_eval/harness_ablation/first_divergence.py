@@ -36,6 +36,14 @@ FRAGMENTS: tuple[tuple[str, Optional[str], str, Optional[str]], ...] = (
     ("query_cap", None, "the table has been asked", CASE_AGENT),
     ("query_cap", None, "questions of the table were refused this turn", CASE_AGENT),
     ("bad_arguments", None, "were not valid JSON", "dclab_rnd/agents/registry.py"),
+    ("reply_cut", None, "cut at its length limit", "dclab_rnd/agents/runtime.py"),
+    # the build's own rules (stage 2 of 2026-11-15 gave each its own words; the first is the one message older runs hold)
+    ("build_needs_yes", "case_request_build", "a build needs the person's yes", None),
+    ("build_needs_yes", "case_request_build", "holds no yes to building", CASE_AGENT),
+    ("build_needs_yes", "case_request_build", "which was not about building", CASE_AGENT),
+    ("build_pick_not_yes", "case_request_build", "a pick is not a yes", CASE_AGENT),
+    ("build_needs_start", "case_request_build", "a build starts a project", CASE_AGENT),
+    ("outcome_not_named", "case_request_build", "has not named", CASE_AGENT),
     ("start_refused_not_ready", "case_start", "the case is not ready", CASE_AGENT),
     ("propose_refused_not_ready", "case_propose", "not yet: ", CASE_AGENT),
     ("route_overruled", None, "the person's need may call for", CASE_AGENT),
@@ -43,8 +51,11 @@ FRAGMENTS: tuple[tuple[str, Optional[str], str, Optional[str]], ...] = (
     ("route_change_refused", "case_start", "the work has started as", CASE_AGENT),
     ("guard_refused", None, "the work has started: tell the person", CASE_AGENT),
     ("closed_list", "case_start", "DCLab cannot run", CASE_AGENT),
+    ("closed_list", None, "DCLab has no tool", CASE_AGENT),
     ("closed_list", "case_start", "is not one of", None),  # the registry's schema check: a kind of work or a tool outside the list
     ("closed_list", "case_propose", "is not one of", None),
+    ("bad_arguments", None, "Unknown argument(s) for", "dclab_rnd/agents/registry.py"),  # after the closed list: an "is not one of" is that
+    ("bad_arguments", None, "Invalid argument for", "dclab_rnd/agents/registry.py"),
     ("advice_refused", "case_start", "the person's need points to data work", CASE_AGENT),
     ("no_data_redirect", "case_start", "has no data yet or prefers not to upload", CASE_AGENT),
     ("chip_bound", None, "the person picked", CASE_AGENT),
@@ -60,7 +71,7 @@ NO_GATE = ("picked_wrong_option", "model_error", "arm_error", "no_route", "no_ga
 NOT_DETECTABLE = ("result_truncated", "reply_rewritten", "context_missing")
 REASONS = tuple(dict.fromkeys([*(f[0] for f in FRAGMENTS), *SHAPE_REASONS, *NO_GATE]))
 # a refusal that protects the data or the person's choice, against one that asks for the product's shape
-SAFETY = frozenset({"needs_table", "chip_bound", "guard_refused", "route_change_refused"})
+SAFETY = frozenset({"needs_table", "chip_bound", "guard_refused", "route_change_refused", "build_needs_yes", "build_pick_not_yes", "outcome_not_named"})
 SHOWS = ("case_answer", "case_dashboard")  # the tools whose side effect sets the route in code (case_agent._worked)
 _DROPPED = re.compile(r'"refused":\s*\{\s*"')
 _TRIMMED = re.compile(r'"refused":\s*\{\s*"[^"]*\(kept\)"')  # since dclab-core 0.159.0: an option kept without the sentence holding a number nobody gave

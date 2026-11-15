@@ -81,18 +81,21 @@ One row per model and judge. Compare arms inside a row; rows under different jud
 
 | what | qwen/qwen3.8-flash · judge qwen/qwen3.8-27b | anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl:free | nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge qwen/qwen3.8-27b | qwen/qwen3.8-flash (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free | nvidia/nemotron-3.5-super-vl:free (after-three-fixes) · judge qwen/qwen3.8-27b | qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl:free | nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Another refusal (a build without a yes, a bad argument) | 7 | 4 | 12 | 13 | 5 | 7 | 12 |
 | Limit on table questions per turn | 10 | 5 | 2 | 0 | 0 | 10 | 2 |
+| A build asked for without the person's yes | 3 | 2 | 7 | 6 | 0 | 3 | 7 |
 | The table tool cannot ask the question | 11 | 4 | 0 | 2 | 0 | 11 | 0 |
 | An option removed by a check | 3 | 1 | 4 | 1 | 1 | 3 | 4 |
+| The model's call was malformed | 4 | 0 | 0 | 6 | 1 | 4 | 0 |
 | A second small model overrules the kind of work | 3 | 2 | 0 | 3 | 1 | 3 | 0 |
+| Another refusal (a build without a yes, a bad argument) | 2 | 0 | 3 | 1 | 1 | 2 | 3 |
 | The turn's step budget ran out | 3 | 0 | 1 | 1 | 2 | 3 | 1 |
+| An outcome column the person never named | 1 | 2 | 2 | 1 | 1 | 1 | 2 |
 | Work refused: the case is "not ready" | 1 | 0 | 1 | 1 | 1 | 1 | 1 |
 | A table is needed first | 1 | 1 | 1 | 0 | 0 | 1 | 1 |
 | Advice refused: the words ask for data work | 1 | 0 | 0 | 0 | 2 | 1 | 0 |
 | An option kept, one sentence with a number removed | 0 | 0 | 1 | 1 | 0 | 0 | 1 |
-| The model's call was malformed | 1 | 0 | 0 | 0 | 0 | 1 | 0 |
-| **all** | **41** | **17** | **22** | **22** | **12** | **41** | **22** |
+| A build asked for before a project was started | 0 | 0 | 0 | 0 | 2 | 0 | 0 |
+| **all** | **43** | **17** | **22** | **23** | **12** | **43** | **22** |
 
 ## HAB-002: arms on `qwen/qwen3.8-flash`, judged by `qwen/qwen3.8-27b`
 
@@ -117,12 +120,14 @@ Empty or very short answers (scored as given): Model only: hab-04, hab-05; Minim
 |---|---:|
 | The table tool cannot ask the question | 11 |
 | Limit on table questions per turn | 10 |
-| Another refusal (a build without a yes, a bad argument) | 7 |
+| The model's call was malformed | 4 |
 | An option removed by a check | 3 |
 | The turn's step budget ran out | 3 |
 | A second small model overrules the kind of work | 3 |
-| The model's call was malformed | 1 |
+| A build asked for without the person's yes | 3 |
+| Another refusal (a build without a yes, a bad argument) | 2 |
 | Work refused: the case is "not ready" | 1 |
+| An outcome column the person never named | 1 |
 | Advice refused: the words ask for data work | 1 |
 | A table is needed first | 1 |
 
@@ -149,8 +154,9 @@ Empty or very short answers (scored as given): Minimal agent: hab-01.
 |---|---:|
 | Limit on table questions per turn | 5 |
 | The table tool cannot ask the question | 4 |
-| Another refusal (a build without a yes, a bad argument) | 4 |
 | A second small model overrules the kind of work | 2 |
+| An outcome column the person never named | 2 |
+| A build asked for without the person's yes | 2 |
 | An option removed by a check | 1 |
 | A table is needed first | 1 |
 
@@ -175,8 +181,10 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 
 | what | times |
 |---|---:|
-| Another refusal (a build without a yes, a bad argument) | 12 |
+| A build asked for without the person's yes | 7 |
 | An option removed by a check | 4 |
+| Another refusal (a build without a yes, a bad argument) | 3 |
+| An outcome column the person never named | 2 |
 | Limit on table questions per turn | 2 |
 | An option kept, one sentence with a number removed | 1 |
 | The turn's step budget ran out | 1 |
@@ -199,11 +207,14 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 
 | what | times |
 |---|---:|
-| Another refusal (a build without a yes, a bad argument) | 13 |
+| The model's call was malformed | 6 |
+| A build asked for without the person's yes | 6 |
 | A second small model overrules the kind of work | 3 |
 | The table tool cannot ask the question | 2 |
 | An option kept, one sentence with a number removed | 1 |
+| Another refusal (a build without a yes, a bad argument) | 1 |
 | The turn's step budget ran out | 1 |
+| An outcome column the person never named | 1 |
 | An option removed by a check | 1 |
 | Work refused: the case is "not ready" | 1 |
 
@@ -226,11 +237,14 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 
 | what | times |
 |---|---:|
-| Another refusal (a build without a yes, a bad argument) | 5 |
 | The turn's step budget ran out | 2 |
+| A build asked for before a project was started | 2 |
 | Advice refused: the words ask for data work | 2 |
+| Another refusal (a build without a yes, a bad argument) | 1 |
 | A second small model overrules the kind of work | 1 |
 | An option removed by a check | 1 |
+| An outcome column the person never named | 1 |
+| The model's call was malformed | 1 |
 | Work refused: the case is "not ready" | 1 |
 
 ## HAB-002: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl:free`
@@ -256,12 +270,14 @@ Empty or very short answers (scored as given): Model only: hab-04, hab-05; Minim
 |---|---:|
 | The table tool cannot ask the question | 11 |
 | Limit on table questions per turn | 10 |
-| Another refusal (a build without a yes, a bad argument) | 7 |
+| The model's call was malformed | 4 |
 | An option removed by a check | 3 |
 | The turn's step budget ran out | 3 |
 | A second small model overrules the kind of work | 3 |
-| The model's call was malformed | 1 |
+| A build asked for without the person's yes | 3 |
+| Another refusal (a build without a yes, a bad argument) | 2 |
 | Work refused: the case is "not ready" | 1 |
+| An outcome column the person never named | 1 |
 | Advice refused: the words ask for data work | 1 |
 | A table is needed first | 1 |
 
@@ -286,8 +302,10 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 
 | what | times |
 |---|---:|
-| Another refusal (a build without a yes, a bad argument) | 12 |
+| A build asked for without the person's yes | 7 |
 | An option removed by a check | 4 |
+| Another refusal (a build without a yes, a bad argument) | 3 |
+| An outcome column the person never named | 2 |
 | Limit on table questions per turn | 2 |
 | An option kept, one sentence with a number removed | 1 |
 | The turn's step budget ran out | 1 |
@@ -302,7 +320,7 @@ No judge has scored these conversations. What code can count:
 |---|---:|---:|---:|---:|---:|
 | Current DCLab (lead agent) | 3 | 2.3 | 109 | 0 | 0.02 |
 
-Where the lead agent's code stepped in: Another refusal (a build without a yes, a bad argument) (6), An option kept, one sentence with a number removed (2), Work refused: the case is "not ready" (1).
+Where the lead agent's code stepped in: A build asked for without the person's yes (3), An option kept, one sentence with a number removed (2), Another refusal (a build without a yes, a bad argument) (2), An outcome column the person never named (1), The model's call was malformed (1), Work refused: the case is "not ready" (1).
 
 ## The same cases on two models: `qwen/qwen3.8-flash` minus `anthropic/claude-sonnet-5.5`
 
@@ -345,15 +363,17 @@ Before: HAB-002. After: HAB-007 + HAB-008 + HAB-009 + HAB-010. Only the lead age
 
 | where code stepped in | before | after |
 |---|---:|---:|
-| Another refusal (a build without a yes, a bad argument) | 7 | 13 |
 | The table tool cannot ask the question | 11 | 2 |
 | Limit on table questions per turn | 10 | 0 |
+| The model's call was malformed | 4 | 6 |
+| A build asked for without the person's yes | 3 | 6 |
 | A second small model overrules the kind of work | 3 | 3 |
-| An option removed by a check | 3 | 1 |
 | The turn's step budget ran out | 3 | 1 |
+| An option removed by a check | 3 | 1 |
+| Another refusal (a build without a yes, a bad argument) | 2 | 1 |
 | Work refused: the case is "not ready" | 1 | 1 |
+| An outcome column the person never named | 1 | 1 |
 | A table is needed first | 1 | 0 |
-| The model's call was malformed | 1 | 0 |
 | An option kept, one sentence with a number removed | 0 | 1 |
 | Advice refused: the words ask for data work | 1 | 0 |
 

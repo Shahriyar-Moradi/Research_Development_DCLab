@@ -21,6 +21,28 @@ from typing import Any, Optional
 from . import NothingToResume, checkpoints, thread_id
 
 _PROJECT_LOCKS: dict[str, threading.Lock] = {}
+STAGE_PATH = "team_stage_path.json"  # the projects whose walks run the stages directly (stage 2 of 2026-11-15), by id
+
+
+def _stage_path(home: Path) -> dict[str, Any]:
+    try:
+        found = json.loads((Path(home) / STAGE_PATH).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return found if isinstance(found, dict) else {}
+
+
+def _keep_stage_path(home: Path, project_id: str) -> None:
+    with _GUARD:
+        found = _stage_path(home)
+        if project_id not in found:
+            from datetime import datetime, timezone
+
+            found[project_id] = {"since": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                                 "why": "its workflow could not be mapped to a task graph"}
+            path = Path(home) / STAGE_PATH
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(found, indent=1) + "\n", encoding="utf-8")
 _GUARD = threading.Lock()
 
 
@@ -266,6 +288,24 @@ def walk_project(home: Path, projects: Any, project_id: str, resume: Any = None)
         use_proposals = bool(use_tasks and budget.get("admit_proposals") and not is_private)
         team_gateway = _walk_gateway(Path(home), projects) if use_proposals else None
         with checkpoints.open_checkpointer(home) as saver, planning_host(name=f"walk_{project_id}"):
+            fallback = None
+            if use_tasks:
+                # Stage 2 of 2026-11-15: since task execution is on by default (6b9e9af3) a project whose workflow cannot be
+                # mapped onto a task graph ended its walk at once ("Task execution stopped: source_or_capability_blocked"),
+                # where the stages used to run. With no task work begun on it, such a project walks its stages as before.
+                from ..tasks.dispatch import TaskDispatcher
+
+                probe = TaskDispatcher(projects, saver, enabled=True, admit_proposals=False)
+                if probe.state(project_id) is None:  # no task work was ever begun on this project
+                    reason, walked = probe.preflight(project_id), project_id in _stage_path(Path(home))
+                    # the review of stage 2: after the fallback's first stages ran, the next walk (the person's approval of
+                    # the holdout) was refused as "existing work needs explicit adoption". A project that walked its stages
+                    # directly keeps doing so; any other project with existing work is still asked to adopt it.
+                    if reason == "source_or_capability_blocked" or (walked and reason == "existing_work_needs_explicit_adoption"):
+                        _keep_stage_path(Path(home), project_id)
+                        fallback = "task execution not used: this project's workflow cannot be mapped to a task graph, so its stages run directly"
+                        use_tasks = use_proposals = False
+                        team_gateway = None
             out = SolutionTeam(
                 projects,
                 saver,
@@ -278,7 +318,8 @@ def walk_project(home: Path, projects: Any, project_id: str, resume: Any = None)
             ).run(project_id, resume=resume)
     finally:
         lock.release()
-    return {**{k: v for k, v in out.items() if k != "board"}, "view": view(home, thread_id("project", project_id))}
+    return {**{k: v for k, v in out.items() if k != "board"}, **({"task_fallback": fallback} if fallback else {}),
+            "view": view(home, thread_id("project", project_id))}
 
 
 def walks(home: Path, limit: int = 200) -> dict[str, Any]:

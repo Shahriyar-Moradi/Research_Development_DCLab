@@ -4,6 +4,14 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.160.0 (2026-11-15)
+
+- `case.quote_problem` (new) says why a quote is not accepted: `short`, `not_found` or `unrelated`; `quote_ok` is its
+  yes or no, unchanged in what it accepts but for one thing: the quote marks and the punctuation around a quote are not
+  part of it (the case shows the person's words inside quote marks, models copied the marks, and a true quote was refused).
+  `check_fact` says which rule failed: a quote that is the person's but shares no word with the value is told so, apart
+  from a quote that is not theirs. No contract, schema or adapter field changes.
+
 ## 0.159.0 (2026-11-15)
 
 - `query`: any measure may carry its own condition (`Measure.where`): a sum, a mean, a median, a minimum, a maximum, a

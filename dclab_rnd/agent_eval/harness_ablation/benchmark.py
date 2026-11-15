@@ -25,7 +25,9 @@ WORDS = {"understanding": "Understands the problem", "solution_design": "Designs
          "evidence_discipline": "Sticks to evidence", "accepted": "Accepted"}
 REASON_WORDS = {
     "query_cannot_express": "The table tool cannot ask the question", "query_cap": "Limit on table questions per turn",
-    "other_refusal": "Another refusal (a build without a yes, a bad argument)", "route_overruled": "A second small model overrules the kind of work",
+    "other_refusal": "Another refusal (a build without a yes, a bad argument)", "build_needs_yes": "A build asked for without the person's yes",
+    "build_pick_not_yes": "A build asked for on a pick (a pick is not a yes)", "build_needs_start": "A build asked for before a project was started",
+    "outcome_not_named": "An outcome column the person never named", "reply_cut": "A reply cut at its length limit", "route_overruled": "A second small model overrules the kind of work",
     "options_dropped": "An option removed by a check", "options_trimmed": "An option kept, one sentence with a number removed", "budget_exhausted": "The turn's step budget ran out",
     "start_refused_not_ready": "Work refused: the case is \"not ready\"", "propose_refused_not_ready": "Options refused: the case is \"not ready\"",
     "advice_refused": "Advice refused: the words ask for data work", "needs_table": "A table is needed first", "bad_arguments": "The model's call was malformed",

@@ -312,11 +312,24 @@ def _content(text: str) -> set[str]:
 def quote_ok(quote: Optional[str], value: str, words: Iterable[str]) -> bool:
     """A quote is the person's: at least two whole words, found on word boundaries in one message, sharing a content word
     with the value it supports (the review of 37.1: "a" and "ales te" passed, and nothing tied the quote to the value)."""
-    q = _norm(quote or "")
+    return quote_problem(quote, value, words) is None
+
+
+_QUOTE_EDGES = "\"'`“”‘’«»‹›.,;:!?…()[] \t\n"
+
+
+def quote_problem(quote: Optional[str], value: str, words: Iterable[str]) -> Optional[str]:
+    """Why a quote is not accepted, or None: "short" (under two whole words), "not_found" (not a run of the person's words in
+    one message) or "unrelated" (theirs, but sharing no content word with the value). The marks and the punctuation around a
+    quote are not part of it (0.160.0: the case shows the person's words inside quote marks, models copied the marks, and a
+    true quote was refused with the same words as an invented one)."""
+    q = _norm(str(quote or "").strip(_QUOTE_EDGES))
     if len(_WORD.findall(q)) < MIN_QUOTE_WORDS:
-        return False
+        return "short"
     pattern = re.compile(r"(?<!\w)" + re.escape(q) + r"(?!\w)")
-    return any(pattern.search(_norm(w)) for w in words) and bool(_content(value) & _content(q))
+    if not any(pattern.search(_norm(w)) for w in words):
+        return "not_found"
+    return None if _content(value) & _content(q) else "unrelated"
 
 
 def whole_short_message(quote: Optional[str], words: Iterable[str]) -> bool:
@@ -359,8 +372,13 @@ def numbers_unsaid(text: str, sources: Iterable[str]) -> list[str]:
 def check_fact(fact: CaseFact, case: CaseFile, field: str = "", by: str = "") -> list[str]:
     """What is wrong with a fact before it enters the case (empty when it may)."""
     problems = []
-    if fact.status == "said" and not quote_ok(fact.quote, fact.value, case.words):
-        problems.append(f"the quote {fact.quote!r} is not the person's words for {fact.value!r}")
+    why = quote_problem(fact.quote, fact.value, case.words) if fact.status == "said" else None
+    if why == "unrelated":  # their words, but the value says something else: the model can fix the value, not the quote
+        problems.append(f"the quote {fact.quote!r} is the person's words, but shares no word with your value {fact.value!r}: write the "
+                        "value with their words, or quote the words that say it")
+    elif why:
+        problems.append(f"the quote {fact.quote!r} is not the person's words for {fact.value!r}: copy a run of at least two of their "
+                        "words exactly as they wrote them, from one message, without quote marks around it")
     if fact.status == "confirmed":
         problems.append("an assumption is confirmed only through confirm()")
     if fact.status == "computed":
@@ -688,5 +706,5 @@ CONTRACTS["case_file"] = CaseFile  # its schema is published with the others
 
 __all__ = ["CaseFile", "CaseFact", "CaseChange", "CaseFinding", "CaseBuild", "CaseOption", "CaseRoute", "Unknown", "Readiness", "CaseRefused", "CEILING", "TOOLS",
            "TRACKS", "TRACK_OF_TOOL", "new", "apply", "hear", "confirm", "asked", "declined", "known", "readiness", "is_clear_on_arrival", "check_fact", "check_options",
-           "numbers_unsaid", "quote_ok", "rebuild",
+           "numbers_unsaid", "quote_ok", "quote_problem", "rebuild",
            "from_card", "to_card", "views"]

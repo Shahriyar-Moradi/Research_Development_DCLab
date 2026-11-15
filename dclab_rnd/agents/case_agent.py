@@ -119,6 +119,9 @@ def route_doubt(state: "CaseState", move: str, tracks: set[str]) -> Optional[str
     key = f"{move}:{len(state.case.words)}"  # once a move for what the person has said so far (the review: not once per set of points)
     if key in state.route_told:
         return None
+    latest_only = state.case.words[-1] if state.case.words else ""
+    if state.go_ahead and not C.named_tracks([latest_only]) and any(k.startswith(move + ":") for k in state.route_told):
+        return None  # Stage 2: "go ahead" says nothing new about the kind of help; a doubt already told for this move is not raised again on it
     strong = {t: p for t, p in named.items() if t != "advice"}  # advice words ("is that a good idea") are the weakest sign: they hide data work
     if set(strong) & tracks:  # the review: what their words name is covered; the second reading may not push a model onto a rows request
         return None
@@ -139,7 +142,8 @@ def route_doubt(state: "CaseState", move: str, tracks: set[str]) -> Optional[str
         return (f"the person's need may call for {said}, which none of your options offers ({chosen}). Their latest words: "
                 f"\"{latest[:300]}\". Read them again and include that kind of help among the options unless their words clearly rule it out.")
     return (f"the person's need may call for {said}, not {chosen}. Their latest words: \"{latest[:300]}\". Read them again; start "
-            f"that kind of help, or propose it beside yours, unless their words clearly call for {chosen}.")
+            f"that kind of help, or propose it beside yours, unless their words clearly call for {chosen}: then send the same start "
+            "again, and it goes through (this is said once).")
 
 
 def data_work(state: "CaseState") -> bool:
@@ -498,17 +502,24 @@ def _preview_step(state: CaseState, kind: str, columns: Optional[list[str]] = No
     return _data(state, "preview_step", kind=kind, columns=columns, filters=filters, keys=keys)
 
 
-BUILD_QUESTION = re.compile(r"\b(?:build|train|create|start|model|project)\b", re.I)
+# The review of stage 2 (2026-11-15): "any build word anywhere beside any question mark" read "I started the project. Which
+# column says a customer left?" as a question about building. The build is named inside the question's own sentence.
+BUILD_QUESTION = re.compile(r"\b(?:build|train)\b|\b(?:create|start|make|set up|go ahead with)\b[^.?!]{0,40}\b(?:model|project|build)\b", re.I)
+# a message that is nothing but a go-ahead: "Proceed.", "ok, go ahead", "run it please". Never one that asks for something
+# ("show me the churn rate first", "proceed with the analysis only", "you decide")
+ONLY_GO = re.compile(r"^\W*(?:(?:ok(?:ay)?|yes|yeah|sure|alright|please|now|then)[\s,]+)*(?:proceed|go ahead|go on|go|run it|do it|start it|build it|let'?s go)"
+                     r"(?:[\s,]+(?:please|now|then))*\W*$", re.I)
 
 
 def _asked_to_build(state: CaseState) -> bool:
-    """The agent's last message before this one asked, with a question mark, about building (a model, a project)."""
+    """The agent's last message before this one asked about building (a model, a project): one of its questions names the build."""
     before = [t for t in state.turns[:-1] if t.get("role") == "assistant"]
     last = str(before[-1].get("content") or "") if before else ""
-    return "?" in last and bool(BUILD_QUESTION.search(last))
+    return any(s.rstrip().endswith("?") and BUILD_QUESTION.search(s) and not re.search(r"\bor\b", s, re.I)  # "build it, or see the rate first?" is a choice, not a yes-or-no
+               for s in re.split(r"(?<=[.?!])\s+", last))
 
 
-def _request_build(state: CaseState, quote: str, outcome: Optional[str] = None) -> dict[str, Any]:
+def _request_build(state: CaseState, quote: Optional[str] = None, outcome: Optional[str] = None) -> dict[str, Any]:
     """A build only on a project route, a ready case (or the person's own choice), and the person's yes in their latest words (an
     order to build a model counts, and so does a bare yes: the quote may be the whole of a short message). ``outcome``: the column
     the model learns, accepted only when the table has it and the person's words (or an assumption they confirmed) name it."""
@@ -519,12 +530,20 @@ def _request_build(state: CaseState, quote: str, outcome: Optional[str] = None) 
     latest = state.case.words[-1] if state.case.words else ""
     if not r.ready and not state.case.chosen and not orders_model(latest):  # an order to build a model needs no interview first (the owner's Telco session)
         return {"error": "the case is not ready: " + "; ".join(r.reasons)}
-    bare = bool(quote) and not C.quote_ok(quote, quote, [latest]) and C.whole_short_message(quote, [latest])  # "yes": quotable only whole
+    # Stage 2 of 2026-11-15: the yes is read here, from the person's latest message itself. Before, the model had to pass it
+    # as a word-for-word quote: a quote with "..." or one changed word was refused with the same words as no yes at all, 18
+    # times in the day's runs. The rule is unchanged (no build without their yes); each refusal now says which case it is.
+    if latest.startswith("I pick:"):
+        return {"error": "the person picked an option; a pick is not a yes to building. Tell them in a sentence or two what will be "
+                         "built and from which columns, then ask once whether to build it (ask). Request the build after their yes."}
+    bare = bool(BARE_YES.match(latest))  # "yes", "ok", "go": a yes only to the question it answers
     if bare and not orders_model(latest) and not _asked_to_build(state):  # a yes to a question about something else is not a yes to building
         return {"error": "their yes answers your last question, which was not about building: ask whether to build, then request it on their yes"}
-    if latest.startswith("I pick:") or not says_yes(latest) or not (quote and (C.quote_ok(quote, quote, [latest]) or C.whole_short_message(quote, [latest]))):
-        return {"error": "a build needs the person's yes to building in their latest message (a yes to your question, or an order such as "
-                         "'build the model'): pass their own words as quote, the whole message when it is short. Never ask them to type a particular phrase."}
+    if not (says_yes(latest) or (ONLY_GO.match(latest) and _asked_to_build(state))):  # "proceed" or "run it", and nothing else, after you asked about building is their yes
+        return {"error": "their latest message holds no yes to building. Say what will be built, ask once whether to build it (ask), and "
+                         "request the build after their yes. Never ask them to type a particular phrase."}
+    if not (quote and (C.quote_ok(quote, quote, [latest]) or C.whole_short_message(quote, [latest]))):
+        quote = latest if len(latest) <= C.MAX_TEXT else latest[:C.MAX_TEXT].rsplit(" ", 1)[0]  # their own message is the record of their yes
     column = None
     if outcome:
         names = [str(c.get("name")) for c in (state.table or {}).get("columns") or []]
@@ -596,15 +615,42 @@ def _consult(state: CaseState, specialist: str, question: str) -> dict[str, Any]
     return {"findings": out["findings"], "next": "use what helps; ask the person about any question it raised"}
 
 
-def _note(state: CaseState, field: str, value: str, status: str, quote: Optional[str] = None) -> dict[str, Any]:
-    if status not in ("said", "assumed"):
-        return {"error": "status is said (the person's words, quoted) or assumed (your supposition, shown to them)"}
-    try:
-        state.case = C.apply(state.case, field, C.CaseFact(value=value, status=status, quote=quote if status == "said" else None),
-                             by="agent", why="noted by the lead agent")
-    except (C.CaseRefused, ValueError) as error:
-        return state.refuse(error)
-    return {"noted": field, "readiness": C.readiness(state.case).model_dump(mode="json")}
+MAX_NOTES = 8  # facts one note call may hold
+
+
+def _note(state: CaseState, field: Optional[str] = None, value: Optional[str] = None, status: Optional[str] = None, quote: Optional[str] = None,
+          notes: Optional[list[dict[str, Any]]] = None) -> dict[str, Any]:
+    """One fact, or several in one call (stage 2 of 2026-11-15: 188 notes against 117 table questions in the day's runs; each
+    was a step of the turn). Each fact is checked by the case file as before; one that is refused does not stop the others."""
+    if notes is None:
+        if status not in ("said", "assumed"):
+            return {"error": "status is said (the person's words, quoted) or assumed (your supposition, shown to them)"}
+        try:
+            state.case = C.apply(state.case, field, C.CaseFact(value=value, status=status, quote=quote if status == "said" else None),
+                                 by="agent", why="noted by the lead agent")
+        except (C.CaseRefused, ValueError) as error:
+            return state.refuse(error)
+        return {"noted": field, "readiness": C.readiness(state.case).model_dump(mode="json")}
+    if not isinstance(notes, list) or not notes or len(notes) > MAX_NOTES:
+        return {"error": f"notes is a list of one to {MAX_NOTES} facts, each with field, value, status and (for said) quote"}
+    noted, refused = [], {}
+    for item in notes:
+        item = item if isinstance(item, dict) else {}
+        name = str(item.get("field") or "")
+        if item.get("status") not in ("said", "assumed") or name not in (*C.SINGLE, *C.LISTS) or not str(item.get("value") or "").strip():
+            refused[name or "?"] = "each fact needs a field of the case file, a value, and status said or assumed"
+            continue
+        try:
+            state.case = C.apply(state.case, name, C.CaseFact(value=str(item["value"]), status=item["status"],
+                                                             quote=item.get("quote") if item["status"] == "said" else None),
+                                 by="agent", why="noted by the lead agent")
+            noted.append(name)
+        except (C.CaseRefused, ValueError) as error:
+            refused[name] = str(state.refuse(error).get("error") or error)[:300]
+    out: dict[str, Any] = {"noted": noted, "readiness": C.readiness(state.case).model_dump(mode="json")}
+    if refused:
+        out["refused"] = refused
+    return out if noted else {"error": "no fact was recorded", "refused": refused}
 
 
 def _add_unknown(state: CaseState, field: str, question: str, blocks: str = "some", rank: int = 0) -> dict[str, Any]:
@@ -641,9 +687,16 @@ def _ask(state: CaseState, question: str) -> dict[str, Any]:
         return {"error": "the person told you to go ahead or decided for you: do it now, state what you assumed about what they will do with "
                          "it, and ask nothing about it"}
     if state.go_ahead and CONFIRMS.search(str(question)):
-        return {"error": "the person told you to go ahead: act now (start the work, or request_build if they said yes to building) "
-                         "and tell them what you did; do not ask them to confirm again. Ask only about something the work cannot "
-                         "start without."}
+        # Stage 2 (a dead end, verified): "proceed" is a go-ahead and no yes to building, so request_build said "ask whether to
+        # build" and this said "do not ask". The one question about building is allowed when a build is the work, their words
+        # hold no yes and it was not asked yet.
+        latest = state.case.words[-1] if state.case.words else ""
+        route = state.case.route
+        building = route is not None and route.tool in BUILDS and bool(BUILD_QUESTION.search(str(question)))
+        if not (building and not says_yes(latest) and not _asked_to_build(state)):
+            return {"error": "the person told you to go ahead: act now (start the work, propose options with what is open stated as "
+                             "assumptions, or request_build when they said yes to building) and tell them what you did; do not ask them "
+                             "to confirm again. Ask only about something the work cannot start without."}
     state.case = C.asked(state.case)
     state.said.append(str(question).strip())
     state.asking = True
@@ -651,6 +704,10 @@ def _ask(state: CaseState, question: str) -> dict[str, Any]:
 
 
 CHIP_NEEDS_TABLE = ("prediction", "analysis", "reporting", "preparation")  # the kinds of help that run on a shared table
+# what a start is followed by (stage 2 of 2026-11-15: "a few sentences, then stop" left no room for the plan the prompt asks for)
+STARTED_NEXT = ("now tell the person what you understood, your approach and the plan (three to five steps, in order, each with what it "
+                "checks), then stop. No number that no tool returned.")
+PAIRS = ", ".join(f"{track}/{tool}" for tool, track in C.TRACK_OF_TOOL.items())  # every kind of help with its tool, as a refusal names them
 
 
 def changed_mind(state: CaseState) -> Optional[str]:
@@ -685,6 +742,13 @@ def chip_note(state: CaseState) -> Optional[str]:
 
 
 def _propose(state: CaseState, options: list[dict[str, Any]]) -> dict[str, Any]:
+    options = [o for o in options or [] if isinstance(o, dict)]
+    unknown = sorted({str(o.get("tool")) for o in options if o.get("tool") not in C.TRACK_OF_TOOL})
+    if unknown:
+        return {"error": f"DCLab has no tool {', '.join(unknown)}. Each option names one of: " + PAIRS}
+    # Stage 2: the kind of work follows from the tool (they are one to one); a pair that did not match was refused with no
+    # hint of the right one ("analysis/dashboard"). Derived before anything reads it, so a chip is checked on the real kind.
+    options = [{**o, "track": C.TRACK_OF_TOOL[o["tool"]]} for o in options]
     r = C.readiness(state.case)
     chip_other = C.chip_conflict(state.chip, state.case.words) if state.chip and not state.case.chosen and state.case.route is None else None
     if state.chip and not state.case.chosen:  # 2026-11-04: a chip is the person's choice; options only inside it, or the one check
@@ -694,16 +758,21 @@ def _propose(state: CaseState, options: list[dict[str, Any]]) -> dict[str, Any]:
         tracks = {str(o.get("track")) for o in options or []}
         if not tracks <= allowed:
             return {"error": f"the person picked {C.CHIPS.get(state.chip, state.chip)}: offer only {', '.join(sorted(allowed))}"}
-    if not r.may_propose and not state.case.chosen and not state.wants_options and not state.budget_reached and not state.chip and not state.clear_on_arrival:
+    # Stage 2 (a dead end, verified): after "go ahead" with the decision or the user unsaid, a start was refused as not ready,
+    # this said "not yet, ask", and a question was refused as "do not ask, act now". A go-ahead opens the options, with what
+    # is open stated as assumptions: the person still chooses.
+    if (not r.may_propose and not state.case.chosen and not state.wants_options and not state.budget_reached and not state.chip
+            and not state.clear_on_arrival and not state.go_ahead):
         return {"error": "not yet: " + "; ".join(r.reasons) + ". Ask about what is missing, or propose once the ceiling is reached."}
     try:
-        offered = [C.CaseOption(**{k: v for k, v in o.items() if k in C.CaseOption.model_fields}) for o in options or []]
+        offered = [C.CaseOption(**{k: v for k, v in o.items() if k in C.CaseOption.model_fields}) for o in options]
     except ValueError as error:
         return state.refuse(error)
     columns = {c["name"] for c in (state.table or {}).get("columns") or []}
     kept, refused = C.check_options(offered, state.case, columns=columns, computed=state.computed)
     if len(kept) < 2:
-        return {"error": "fewer than two options passed the checks", "refused": refused}
+        return {"error": "fewer than two options passed the checks. Options must be of different kinds (" + PAIRS + "). When only "
+                         "one kind of help fits, start it (start) instead of proposing.", "refused": refused}
     doubt = None if (state.case.chosen or state.chip) else route_doubt(state, "propose", {o.track for o in kept})
     if doubt:
         return {"error": doubt}
@@ -712,16 +781,20 @@ def _propose(state: CaseState, options: list[dict[str, Any]]) -> dict[str, Any]:
     state.case = C.apply(state.case, "options", kept, by="agent", why="proposed")
     state.shown = kept
     return {"shown": [o.title for o in kept], "refused": refused,
-            "next": "the person sees these under your message: now write that message (a sentence or two leading into them), then stop"}
+            "next": "the person sees these under your message: now write that message. When their brief is enough, write what you "
+                    "understood of the problem, your approach and a plan of three to five steps, then lead into the options; otherwise a "
+                    "sentence or two. Then stop."}
 
 
 def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None) -> dict[str, Any]:
+    if tool not in C.TRACK_OF_TOOL:
+        return {"error": f"DCLab has no tool {tool!r}. A start names one of: " + PAIRS}
     if C.TRACK_OF_TOOL.get(tool) != track:
-        return {"error": f"DCLab cannot run {track}/{tool}"}
+        return {"error": f"DCLab cannot run {track}/{tool}: {tool} belongs to {C.TRACK_OF_TOOL[tool]}. The pairs are: " + PAIRS}
     route = state.case.route
     if route is not None:  # the review of 37.3: a start after the person's pick rewrote their route as the agent's
         if (route.track, route.tool) == (track, tool):
-            return {"started": f"{track}/{tool}", "next": "already under way: tell the person what happens next, then stop"}
+            return {"started": f"{track}/{tool}", "next": "already under way: tell the person what happens next (the steps, in order), then stop"}
         latest = state.case.words[-1:] if state.case.words else []
         if not (quote and C.quote_ok(quote, quote, latest)):
             return {"error": f"the work has started as {route.track}/{route.tool}. Change it only when the person asks to in their "
@@ -753,7 +826,7 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
         if tool in ("query", "dashboard"):
             return {"started": f"{track}/{tool}", "next": "nothing is shown yet: ask the table (query), show it with answer or dashboard, then "
                                                           "say what it shows; do not say anything is ready before a tool returned it"}
-        return {"started": f"{track}/{tool}", "next": "now tell the person in a few sentences what happens next, then stop"}
+        return {"started": f"{track}/{tool}", "next": STARTED_NEXT}
     r = C.readiness(state.case)
     if track in NO_DATA_WORK and not state.case.chosen and not r.ready and not state.budget_reached and data_work(state):
         return {"error": "the person's need points to data work (a shared table, or a list, report, model or cleaning): advice "
@@ -765,8 +838,13 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
         return {"error": f"they want {track}: ask them to share or upload the table it runs on, then start it"}
     # a clear person is proposed to at once (readiness), never started on before the case is ready: "send me the customers who
     # churned ... call list by friday" is both a go-ahead and a named analysis, on a real-prediction trap (the second review of step 1)
-    if not state.case.chosen and not r.ready and not state.budget_reached and track not in NO_DATA_WORK:
-        return {"error": "the person has not chosen and the case is not ready: " + "; ".join(r.reasons)}
+    # Stage 2 (a dead end, verified): "Build the model" was refused here as not ready while request_build said "start a
+    # prediction first". An order to build a model needs no interview first (request_build already reads it so): it starts the
+    # project it names; the build itself still waits for the checks request_build makes.
+    ordered = tool in BUILDS and orders_model(state.case.words[-1] if state.case.words else "")
+    if not state.case.chosen and not r.ready and not state.budget_reached and track not in NO_DATA_WORK and not ordered:
+        return {"error": "the person has not chosen and the case is not ready: " + "; ".join(r.reasons)
+                         + ". Propose now (two kinds of help, what is open stated as assumptions), or ask the one thing that is missing."}
     doubt = None if state.case.chosen else route_doubt(state, "start", {track})
     if doubt:
         return {"error": doubt}
@@ -774,7 +852,7 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     if tool in ("query", "dashboard"):  # 2026-11-02: "work started" showed nothing; the figures are shown by this very turn
         return {"started": f"{track}/{tool}", "next": "nothing is shown yet: ask the table (query), show it with answer or dashboard, then "
                                                       "say what it shows; do not say anything is ready before a tool returned it"}
-    return {"started": f"{track}/{tool}", "next": "now tell the person in a few sentences what happens next, then stop"}
+    return {"started": f"{track}/{tool}", "next": STARTED_NEXT}
 
 
 def _design_solution_without_data(
@@ -902,7 +980,7 @@ class CaseGuard:
         if tool.move not in MOVES.values():
             return {"error": f"{tool.move!r} is not a move on a case"}
         if context.rewriting:
-            return {"error": "only rewrite your message now: no tool runs while you rewrite"}
+            return {"error": "no tool runs in this reply: write your message to the person now, in words, with what you have"}
         if context.case.route is not None and tool.move == "case.propose":  # new options after the start flipped a route (CEX-007)
             return {"error": "the work has started: tell the person what happens next, or ask what they want changed"}
         return proceed()
@@ -923,9 +1001,10 @@ def register(registry: Registry) -> None:
          {"title": S, "tiles": {"type": "array", "minItems": 1, "maxItems": MAX_TILES, "items": data_tools.SCHEMAS["query"]}}, ["tiles"], _dashboard, "read"),
         ("check_leakage", data_tools.DESCRIPTIONS["leakage"], data_tools.SCHEMAS["leakage"]["properties"], ["outcome"], _check_leakage, "read"),
         ("preview_step", data_tools.DESCRIPTIONS["preview_step"], data_tools.SCHEMAS["preview_step"]["properties"], ["kind"], _preview_step, "read"),
-        ("request_build", "Ask DCLab to build the project the person chose, once they said yes or ordered it: pass their words as quote "
-                          "(the whole message when it is short, like yes). If the person named the outcome column (or confirmed it), pass it as outcome.",
-         {"quote": S, "outcome": S}, ["quote"], _request_build, "write"),
+        ("request_build", "Ask DCLab to build the project the person chose, once they said yes or ordered it in their latest message (code "
+                          "reads their message itself; quote is optional). A pick of an option is not a yes: ask once whether to build. "
+                          "If the person named the outcome column (or confirmed it), pass it as outcome.",
+         {"quote": S, "outcome": S}, [], _request_build, "write"),
         ("consult", "Send a specialist with the case when a question needs depth: data_investigator (what the table can answer), "
                     "leakage_auditor (columns known only after the decision), critic (what is weak before you propose), "
                     "domain_expert (what matters in this kind of business), solution_designer (how started work should be set up). "
@@ -933,10 +1012,14 @@ def register(registry: Registry) -> None:
          {"specialist": {"type": "string", "enum": ["data_investigator", "leakage_auditor", "critic", "domain_expert", "solution_designer"]},
           "question": S}, ["specialist", "question"], _consult, "write"),
         ("read_table", "Read the shared table's columns: names, kinds and what DCLab noticed about each, and its row count. No values.", {}, [], _read_table, "read"),
-        ("note", "Record a fact in the case file: goal, decision, user (who uses the result), data, cannot_answer, constraints or "
-                 "assumptions. status said needs the person's exact words as quote; status assumed is your supposition.",
-         {"field": {"type": "string", "enum": [*C.SINGLE, *C.LISTS]}, "value": S, "status": {"type": "string", "enum": ["said", "assumed"]}, "quote": S},
-         ["field", "value", "status"], _note, "write"),
+        ("note", "Record facts in the case file: goal, decision, user (who uses the result), data, cannot_answer, constraints or "
+                 "assumptions. status said needs the person's exact words as quote (a run of their words, no quote marks); status assumed "
+                 "is your supposition. Record several facts in one call with notes: a list of {field, value, status, quote}.",
+         {"field": {"type": "string", "enum": [*C.SINGLE, *C.LISTS]}, "value": S, "status": {"type": "string", "enum": ["said", "assumed"]}, "quote": S,
+          "notes": {"type": "array", "maxItems": MAX_NOTES, "items": {"type": "object", "properties": {
+              "field": {"type": "string", "enum": [*C.SINGLE, *C.LISTS]}, "value": S, "status": {"type": "string", "enum": ["said", "assumed"]}, "quote": S},
+              "required": ["field", "value", "status"]}}},
+         [], _note, "write"),
         ("add_unknown", "Record something still unknown and which options wait for it.",
          {"field": S, "question": S, "blocks": {"type": "string", "enum": ["all", "some", "none"]}, "rank": {"type": "integer"}},
          ["field", "question", "blocks"], _add_unknown, "write"),
@@ -1030,17 +1113,56 @@ def checked(text: str, state: CaseState, dropped: Optional[list[str]] = None) ->
     from .. import cited
 
     sources = [*state.case.words, *state.computed]
-    kept = []
-    for s in re.split(r"(?<=[.?!])\s+", without_bars(text).strip()):
-        if not s:
+    # Stage 2 of 2026-11-15: the unit is a sentence inside a line. Before, a text was split only at ". ", "? " and "! " and
+    # joined with spaces: a list of steps with no full stops was one unit, so one number nobody gave removed the whole list
+    # and the question after it, and every line break of a plan was lost. The check itself is unchanged.
+    lines_out: list[str] = []
+    for line in without_bars(text).strip().split("\n"):
+        if not line.strip():
+            lines_out.append("")  # a paragraph break stays one
             continue
-        unsaid = cited.unsaid(s, sources)
-        if unsaid:
-            if dropped is not None:
-                dropped.append(f"{s} (numbers nobody gave: {', '.join(unsaid)})")
+        lead = line[:len(line) - len(line.lstrip())]
+        kept = []
+        for s in re.split(r"(?<=[.?!])\s+", line.strip()):
+            if not s:
+                continue
+            unsaid = cited.unsaid(s, sources)
+            if unsaid:
+                if dropped is not None:
+                    dropped.append(f"{s} (numbers nobody gave: {', '.join(unsaid)})")
+                continue
+            kept.append(s)
+        if kept and not re.fullmatch(r"(?:[-*•]|\d+[.)])", " ".join(kept).strip()):  # a bullet left with only its mark is dropped
+            lines_out.append(lead + " ".join(kept))
+    out = "\n".join(lines_out)
+    return re.sub(r"\n{3,}", "\n\n", out).strip()
+
+
+NARRATION = re.compile(r"^\W*(?:(?:now|first|next|then|ok(?:ay)?|good|great|alright)[,.!]?\s+)*(?:i'?ll|i will|i'?m going to|i am going to|let me|let's|"
+                       r"i need to|i should|i'?ll start|i (?:can|must) (?:now )?(?:check|look|ask|record|note|query)|checking|looking at|recording)\b", re.I)
+NARRATION_WORDS = 40
+# the calls a working note sits beside: looking and writing the case down. Words beside options, a question, a start or a
+# build are for the person ("I'll rank your customers by risk and send the list each Monday" beside the options)
+BOOKKEEPING = frozenset(f"case_{t}" for t in ("read_table", "query", "check_leakage", "preview_step", "note", "add_unknown", "resolve",
+                                              "confirm_assumption", "consult"))
+
+
+def spoken(messages: list[dict[str, Any]]) -> list[str]:
+    """What the model wrote for the person in one turn: its texts, without the short working notes it wrote beside a tool call
+    ("I'll start by checking the table", "Now let me record the goal"). Stage 2 of 2026-11-15: those were joined into the
+    message and used up its words. A text beside a tool call that is longer, or is no note of its own work, stays: a plan
+    written in the same reply as the options is the message."""
+    out, every = [], []
+    for m in messages:
+        text = str(m.get("content") or "").strip()
+        if m.get("role") != "assistant" or not text:
             continue
-        kept.append(s)
-    return " ".join(kept)
+        every.append(text)
+        names = {str((c.get("function") or {}).get("name") or c.get("name") or "") for c in m.get("tool_calls") or []}
+        if names and names <= BOOKKEEPING and word_count(text) <= NARRATION_WORDS and NARRATION.match(text):
+            continue
+        out.append(text)
+    return out or every  # the review: a turn whose only words were such a note keeps them, never the fallback line
 
 
 SAY_NOW = ("[DCLab's code] You have not written to the person this turn. Write your message now: what you understood or found, "
@@ -1112,6 +1234,30 @@ def has_statement(text: str) -> bool:
     return any(not p.rstrip().endswith("?") for p in parts)
 
 
+def heard(state: CaseState, words: str) -> None:
+    """One message of the person, heard: the case file gets their words and every flag that holds for this message only is
+    set (a go-ahead, a wish for options or figures, the turn budget). The turn starts with it; a test of the gates starts
+    from it too, so the states it checks are the ones a turn really makes (stage 2 of 2026-11-15)."""
+    if state.asking and declines(str(words)):
+        state.case = C.declined(state.case)
+    state.case = C.hear(state.case, words)
+    state.wants_options = bool(WANTS_OPTIONS.search(str(words)))  # this message only (the review: it stayed on for the case)
+    state.go_ahead = goes_ahead(str(words), asking=state.asking)  # this message only (asking: the last turn ended on a question)
+    state.wants_figures = (bool(state.table) and C.wants_figures([str(words)])  # this message only: figures first, unless it is a model or a decision
+                           and not ({"prediction", "business"} & set(C.named_tracks([str(words)]))))  # asked for (what was said before does not count)
+    state.queries = state.query_errors = 0
+    state.no_data_built = False
+    state.cards = []
+    if state.table and not any(str(c).startswith('{"table": ') for c in state.computed):  # 2026-10-31: code reads the shared
+        _read_table(state)  # table (again after a restore), so no model call is spent on it and its counts may be said
+    state.turns.append({"role": "user", "content": str(words)})
+    state.said, state.shown, state.asking = [], [], False
+    person_turns = sum(1 for t in state.turns if t.get("role") == "user")
+    state.clear_on_arrival = C.is_clear_on_arrival(state.case, state.table)
+    state.budget_reached = (person_turns > TURN_BUDGET and C.known(state.case.goal) and C.known(state.case.data)
+                            and state.case.route is None and not state.case.chosen)  # the review: off once work started or was picked
+
+
 def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry] = None) -> dict[str, Any]:
     """One turn: the person's words heard, the context built, the agent run until it asks, proposes, starts or answers.
     Returns {"text", "options", "route"}."""
@@ -1128,31 +1274,16 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
         if state.checkpoint:
             case_session.save(state, state.checkpoint)
         return {"text": stop, "options": [], "route": state.case.route, "asking": True}
-    if state.asking and declines(str(words)):
-        state.case = C.declined(state.case)
-    state.case = C.hear(state.case, words)
-    state.wants_options = bool(WANTS_OPTIONS.search(str(words)))  # this message only (the review: it stayed on for the case)
-    state.go_ahead = goes_ahead(str(words), asking=state.asking)  # this message only (asking: the last turn ended on a question)
-    state.wants_figures = (bool(state.table) and C.wants_figures([str(words)])  # this message only: figures first, unless it is a model or a decision
-                           and not ({"prediction", "business"} & set(C.named_tracks([str(words)]))))  # asked for (what was said before does not count)
-    state.queries = state.query_errors = 0
-    state.no_data_built = False
-    state.cards = []
-    if state.table and not any(str(c).startswith('{"table": ') for c in state.computed):  # 2026-10-31: code reads the shared
-        _read_table(state)  # table (again after a restore), so no model call is spent on it and its counts may be said
+    heard(state, words)
     if state.trace is None:
         from .harness import tracer
 
         state.trace = tracer("case")
-    state.turns.append({"role": "user", "content": str(words)})
-    state.said, state.shown, state.asking = [], [], False
     person_turns = sum(1 for t in state.turns if t.get("role") == "user")
-    state.clear_on_arrival = C.is_clear_on_arrival(state.case, state.table)
-    state.budget_reached = (person_turns > TURN_BUDGET and C.known(state.case.goal) and C.known(state.case.data)
-                            and state.case.route is None and not state.case.chosen)  # the review: off once work started or was picked
     clear_note = ("The person's request is crystal-clear on arrival (goal, subject/target, and data are already established). "
-                  "Do NOT ask clarifying questions or reflective questions on Turn 1; immediately propose actionable options (propose) "
-                  "or start the requested work (start/query/answer).") if (state.clear_on_arrival and person_turns == 1) else None
+                  "Do NOT ask clarifying questions or reflective questions on Turn 1; propose actionable options (propose) "
+                  "or start the requested work (start/query/answer) in this turn, and write in your message what you understood of "
+                  "the problem, your approach and the plan's steps.") if (state.clear_on_arrival and person_turns == 1) else None
     built = ctx.build(state.case, state.turns, state.table, notes=[n for n in (chip_note(state), clear_note) if n])
     messages = ctx.messages(prompts.text(PROMPT), built)
     start = len(messages)
@@ -1160,7 +1291,12 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     client = _Cells(client, state)  # 37.6: a request holds cell values only when a query's answer is in it
     route_ahead(state)
     result = run_policy(POLICY, client, registry, messages, context=state, trace=state.trace)
-    texts = [str(m.get("content") or "").strip() for m in result.messages[start:] if m.get("role") == "assistant" and str(m.get("content") or "").strip()]
+    if not result.steps and not state.said and not any(str(m.get("content") or "").strip() for m in result.messages[start:] if m.get("role") == "assistant"):
+        # Stage 2 (HAB-011): the first reply came back with no word and no call, the one rewrite could not run a tool, and a
+        # full brief was answered "could you tell me a little more". The turn is run once more instead, with its tools.
+        del result.messages[start:]
+        result = run_policy(POLICY, client, registry, result.messages, context=state, trace=state.trace)
+    texts = spoken(result.messages[start:])
     if not texts and not state.said:  # CEX-011 d-04: every reply spent on queries, no word for the person: asked once, no move allowed
         again_from = len(result.messages)
         result.messages.append({"role": "user", "content": SAY_NOW})
@@ -1170,7 +1306,7 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
             run_policy(once, client, registry, result.messages, context=state, trace=state.trace)
         finally:
             state.rewriting = False
-        texts = [str(m.get("content") or "").strip() for m in result.messages[again_from + 1:] if m.get("role") == "assistant" and str(m.get("content") or "").strip()]
+        texts = spoken(result.messages[again_from + 1:])
     dropped: list[str] = []
 
     def again(instruction: str) -> list[str]:

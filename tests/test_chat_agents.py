@@ -486,6 +486,9 @@ class LongAgentsOverMcpTests(McpChatCase):
         self.assertEqual(resumed.status_code, 200, resumed.text[:300])
         after = resumed.json()
         self.assertNotEqual((after.get("asks") or {}).get("key"), waiting.get("key"))  # past that pause: done, or the next one
+        # the review of stage 2 (2026-11-15): a walk that fell back to the stage path was refused at this very answer
+        self.assertNotIn("did not run", str(after.get("says") or ""), after.get("says"))
+        self.assertNotIn("Task execution stopped", str(after.get("says") or ""), after.get("says"))
         seen = self.call("dclab_call", {"method": "GET", "path": f"/api/projects/{pid}/team"})
         view = seen.get("body") or seen.get("result") or seen
         self.assertNotEqual(((view.get("waiting") or {}) if isinstance(view.get("waiting"), dict) else {}).get("key"), waiting.get("key"))
