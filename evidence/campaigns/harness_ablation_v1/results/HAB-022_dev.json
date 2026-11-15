@@ -1,0 +1,777 @@
+{
+ "id": "HAB-022",
+ "split": "dev",
+ "set": "dev",
+ "at": "2026-11-15T19:41:14+00:00",
+ "arms": [
+  "model_only"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": "nvidia/nemotron-3.5-super-vl:free",
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.0347,
+ "cap_eur": 0.3,
+ "kept": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-022",
+ "manifest": {
+  "run_id": "HAB-022",
+  "at": "2026-11-15T19:41:14+00:00",
+  "arms": [
+   "model_only"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.3,
+  "code": {
+   "commit": "afb28a92958769dd02475ac57c76793836d86e6a",
+   "dirty": [],
+   "diff_sha256": null,
+   "untracked_sha256": null,
+   "untracked_files": 0
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": "nvidia/nemotron-3.5-super-vl:free",
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "04956cc04a4915d4",
+   "route_check": "61027a2803db8856"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "96fcda10b0e3e919"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "67a47729b96ad6f30fb3eaaabf52e040bbfe86a4424672c85f3e369371eb1275",
+  "set": "dev",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "stage-2"
+ },
+ "capture": {
+  "exchanges": 16,
+  "ok": 16,
+  "whole": 16,
+  "with_thinking": 16,
+  "without_thinking": [],
+  "purposes": [
+   "exam_judge",
+   "exam_plain"
+  ]
+ },
+ "label": "stage-2",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
+ "code": "one commit",
+ "conversations": [
+  {
+   "id": "hab-01",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months. [shares sales.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "## What the problem actually is\n\nThe manager asked for a model that predicts revenue, but the real business problem is different: you need to help the head of sales decide where the next quarter’s marketing money should go.\n\nThat decision is not answered by simply predicting total revenue. It is answered by understanding:\n\n- whether revenue really fell,\n- where the fall happened, if it happened,\n- whether the fall is due to missing data, cancellations, fewer orders, lower order values, channel changes, product-mix changes, or something else,\n- and then forming a practical view of which regions, channels, product categories, or customer types are worth supporting next quarter.\n\nThe person using the result is the head of sales. The unit of the decision is not the order. The decision unit is more likely something like:\n\n- region,\n- marketing channel,\n- product category,\n- possibly new versus returning customers, if that can be derived,\n- and next-quarter budget allocation across those slices.\n\nThe moment the result concerns is planning for the next quarter, after the first quarter of 2026 has finished or is being reviewed.\n\n## What you have told me is known\n\nYou run an online shop in the UAE.\n\nYou believe revenue fell in the first quarter of 2026 compared with the last quarter of 2025.\n\nYour table is an order export. It has one row per order. The available fields are:\n\n- order identifier,\n- order date,\n- region,\n- channel,\n- product category,\n- amount,\n- order status,\n- customer identifier.\n\nYou do not know why revenue fell.\n\nYou do not know whether the export is complete for the latest months.\n\nYour manager wants a machine learning model predicting revenue.\n\nThe result is for the head of sales, who decides where to spend the next quarter’s marketing money.\n\n## What is not known, and what I assume\n\nI will separate what you told me from what I am assuming.\n\n### What you told me\n\n- The table is an order export.\n- One row is one order.\n- There are dates, regions, channels, product categories, amounts, statuses, and customers.\n- The table may be incomplete for recent months.\n- The reason for any revenue decline is unknown.\n\n### What I assume, but you should confirm\n\n- “Revenue” means the sum of order amounts under some rule about status. For example, cancelled, refunded, unpaid, or failed orders may need to be excluded or adjusted.\n- The amount field is the order value, not necessarily final recognized revenue after discounts, refunds, shipping, taxes, payment fees, or chargebacks.\n- The channel field represents where the order came from or where marketing activity occurred. This may or may not be sufficient for marketing-budget decisions.\n- The head of sales allocates budget at some level such as region, channel, product category, or campaign type. The table does not explicitly show campaign names, marketing spend, impressions, clicks, cost per acquisition, discount levels, or promotions.\n- There may be seasonal effects in the UAE online shop, for example Ramadan, school-year changes, travel patterns, regional shopping festivals, weather, currency movements, or local events. The table does not show those.\n- Customer identifiers may allow you to distinguish new from returning customers, but that depends on whether the same customer can be reliably matched across periods and whether the export covers all historical customers.\n\n## Approaches that could solve the problem\n\n### Approach one: no model at all\n\nThis is a diagnostic and reconciliation approach. You aggregate the order data by time, region, channel, status, product category, and customer behavior, then compare the first quarter of 2026 with the last quarter of 2025.\n\nWhat it costs:\n\n- Low effort.\n- Mostly data cleaning, aggregation, and explanation.\n- Needs business confirmation of revenue definition and status rules.\n- Needs completeness checks for recent data.\n\nWhat it gives:\n\n- A credible explanation of whether revenue fell.\n- Identification of which slices changed: for example, one region, one channel, one product category, cancellations, average order value, or order count.\n- A better basis for deciding where to spend next quarter.\n- Protection against building a model on incomplete or misunderstood data.\n\nWhat it does not give:\n\n- A formal forecast.\n- A model that directly proves marketing spend causes revenue.\n- A machine learning deliverable if the manager insists on that word.\n\nThis is the most appropriate first approach for your situation.\n\n### Approach two: simple time-series forecast\n\nThis predicts total revenue for the next quarter using historical revenue by period.\n\nWhat it costs:\n\n- Moderate effort.\n- You need to convert orders into clean periodic revenue.\n- You need enough complete historical periods to make a forecast.\n- You must decide how to handle incomplete latest periods.\n- You must validate the forecast using past periods.\n\nWhat it gives:\n\n- A forward-looking revenue estimate.\n- A simple benchmark for more complex models.\n- Something close to the manager’s request, but still not a marketing-spend allocation tool.\n\nWhat it does not give:\n\n- Explanation of why revenue fell.\n- Which region, channel, or category should receive more budget.\n- Knowledge of how marketing spend affects revenue.\n- Reliability if the export is incomplete.\n\nThis can be useful, but only after you understand the revenue decline and data completeness.\n\n### Approach three: supervised machine learning on aggregated slices\n\nThis builds a model that predicts revenue by region, channel, product category, or similar slice using historical features such as order counts, average order value, customer mix, status mix, trend variables, and maybe seasonality.\n\nWhat it costs:\n\n- Higher effort.\n- Requires careful data preparation.\n- Requires aggregation of orders into a training table.\n- Requires time-aware validation. You must train only on past periods and test on future periods.\n- Requires enough history and enough complete periods.\n- Requires guardrails against leakage, for example, accidentally using information from the same period being predicted.\n\nWhat it gives:\n\n- Predictions for different slices.\n- A more sophisticated model than a simple total forecast.\n- Potentially useful rankings, for example which slices are expected to perform well.\n\nWhat it does not give:\n\n- A reliable marketing-budget answer unless you have marketing spend, campaign data, and a way to separate correlation from causation.\n- Strong evidence if the order export is incomplete.\n- A good business explanation if the decline is caused by cancellations, data gaps, promotions, or external events not present in the table.\n\nThis may be useful later, but it is not the right first move.\n\n### Approach four: marketing-mix or response model\n\nThis models how revenue changes with marketing spend, channel presence, promotions, or other controllable inputs.\n\nWhat it costs:\n\n- Highest effort.\n- Requires marketing spend, campaign dates, channel-level budgets, promotion details, pricing, inventory, traffic, and possibly external factors.\n- Requires careful causal thinking because sales are influenced by many things other than marketing spend.\n\nWhat it gives:\n\n- The closest thing to a model that directly answers where to spend next quarter’s marketing money.\n- Estimates of expected incremental revenue by channel or region.\n- Budget allocation recommendations that can be compared against current spend.\n\nWhat it does not give:\n\n- Anything reliable from your current order export alone.\n- A solution if marketing spend data is missing.\n\nThis is the ideal model for the head of sales’ decision, but it is not possible from the data you described unless you add spend and marketing activity data.\n\n### Approach five: customer-level predictive model\n\nThis predicts future revenue from customers, for example using recent orders, repeat behavior, or predicted lifetime value.\n\nWhat it costs:\n\n- Moderate to high effort.\n- Requires a stable customer definition across periods.\n- Requires a longer history to understand behavior.\n- Requires assumptions about whether a customer’s past order pattern predicts future value.\n\nWhat it gives:\n\n- Useful insight into customer retention, repeat buying, or high-value customers.\n- A possible input into next-quarter strategy.\n\nWhat it does not give:\n\n- Direct channel or region allocation unless you connect customer behavior to acquisition channels and spend.\n- A clear explanation for quarter-over-quarter revenue decline.\n- A full marketing-budget solution without spend data.\n\n## My chosen approach\n\nI would not build a full machine learning revenue-prediction model yet.\n\nThe chosen approach is:\n\n1. Start with a no-model diagnostic to answer whether revenue fell and why it appears to have fallen.\n2. Add a simple baseline forecast only if the data is complete enough and the forecast is needed for next-quarter planning.\n3. Treat marketing-spend allocation as a decision under uncertainty, not as a causal model, because your current table does not contain spend or campaign data.\n\nThis approach is more honest and more useful to the head of sales than a black-box prediction built on incomplete order data.\n\n## The plan\n\n### Step one: define the decision clearly before modeling\n\nYou need to state the decision in a form the head of sales can use.\n\nThe decision should be framed as:\n\n- Which regions, channels, product categories, or customer groups should receive more, less, or the same marketing budget next quarter?\n- What assumptions must be true for that recommendation to make sense?\n- What data is missing that prevents a stronger answer?\n\nThis needs:\n\n- confirmation from the head of sales,\n- a list of decision dimensions, for example region, channel, category,\n- a time horizon, such as the next quarter,\n- a clear note that revenue prediction is not the same as budget allocation.\n\n### Step two: define revenue correctly\n\nBefore comparing periods, you must decide what “revenue” means.\n\nYou need to confirm:\n\n- whether an order counts as revenue at order date, shipment date, delivery date, payment date, or another date,\n- which order statuses count toward revenue,\n- which statuses represent cancellations or returns,\n- whether amount is gross, net, discounted, or final revenue,\n- whether shipping, tax, fees, refunds, chargebacks, or currency adjustments are included,\n- whether partial payments are possible.\n\nThis step prevents a common mistake: comparing raw order amounts when one quarter contains more cancelled orders, delayed fulfillment, refunds, or incomplete data.\n\nDeliverable at this stage:\n\n- a short revenue definition that you can show to finance or operations.\n\n### Step three: check completeness of the latest periods\n\nThis is critical because you already suspect the export may be incomplete for recent months.\n\nYou need to check:\n\n- whether the first quarter of 2026 has full date coverage,\n- whether the last quarter of 2025 has full date coverage,\n- whether recent orders are still in a temporary status,\n- whether late-entered orders are missing from the export,\n- whether certain regions, channels, or categories are underreported,\n- whether order dates and payment dates behave differently near the period boundary.\n\nHow to do this without numbers:\n\n- inspect the distribution of order dates by day or week inside each period,\n- look for gaps at the end of the recent period,\n- compare order-count patterns with fulfillment or finance systems if available,\n- ask whether the export includes all statuses or filters some out.\n\nIf completeness cannot be confirmed, you should not present a precise revenue decline as fact. You should present it as “apparent decline, pending data validation.”\n\n### Step four: create the correct aggregation\n\nThe table is one row per order, but the decision is not at order level.\n\nYou need to aggregate orders into a planning-level table.\n\nThe aggregation should include, at minimum:\n\n- period, such as quarter or month,\n- region,\n- channel,\n- product category,\n- status group,\n- customer type if derivable,\n- order count,\n- total amount,\n- average amount per order,\n- revenue under the confirmed revenue definition.\n\nYou also need a total revenue series for the shop, because that is the manager’s original request.\n\nThis step needs:\n\n- the revenue definition,\n- cleaned dates,\n- consistent categories,\n- consistent status handling,\n- a calendar that aligns quarters correctly.\n\n### Step five: compare the first quarter of 2026 with the last quarter of 2025\n\nThis is the core diagnostic step.\n\nYou should compare:\n\n- total revenue,\n- order volume,\n- average order value,\n- revenue by region,\n- revenue by channel,\n- revenue by product category,\n- revenue by status,\n- repeat versus new customer patterns if available.\n\nThe purpose is not just to show that revenue changed, but to answer which of these is responsible:\n\n- fewer orders,\n- lower order values,\n- more cancellations,\n- fewer orders in one region,\n- weaker performance in one channel,\n- a shift in product mix,\n- incomplete data in the latest quarter.\n\nYou should present this as a mix analysis. For example, if total revenue fell, you want to know whether the fall came mostly from a small number of slices or spread across everything.\n\nThis step gives the head of sales something directly usable:\n\n- if one channel drove most of the decline, investigate whether it is a marketing issue, a fulfillment issue, or a data issue;\n- if one product category drove the decline, investigate pricing, stock, seasonality, or competition;\n- if cancellations increased, the revenue problem may be an operational problem, not a marketing problem;\n- if the latest quarter is incomplete, the “decline” may be an artifact of export timing.\n\n### Step six: create a simple baseline forecast, if still needed\n\nIf the manager still wants a prediction, you can build a simple time-series baseline rather than a complex model.\n\nThe forecast should be for total revenue, or for revenue by region/channel/category if those slices are needed for planning.\n\nPossible baseline methods:\n\n- use recent trend,\n- use previous same-quarter level as a seasonal reference,\n- use an average of comparable recent periods,\n- use a simple moving average,\n- use a small seasonal time-series model if enough complete periods exist.\n\nWhat this needs:\n\n- clean periodic revenue,\n- confirmed completeness of historical periods,\n- a time-aware split,\n- validation on earlier periods.\n\nWhat this gives:\n\n- a transparent revenue expectation,\n- a model benchmark,\n- something to compare against actual results next quarter.\n\nWhat this must not claim:\n\n- it must not claim that the prediction is caused by marketing spend,\n- it must not recommend budget allocation without a separate decision rule,\n- it must not hide uncertainty about recent data completeness.\n\n### Step seven: translate findings into a marketing-budget recommendation\n\nThis is the step the head of sales actually needs.\n\nBecause you do not have marketing spend or campaign data, you cannot yet model the effect of spend directly.\n\nYou can still create a rule-based allocation guide, but it must be clearly labeled as non-causal.\n\nPossible rules:\n\n- protect budget in slices that were stable and profitable,\n- reduce or hold back budget in slices that show declining orders and rising cancellations,\n- increase budget in slices that show strong order growth and healthy status distribution,\n- investigate slices where revenue decline is mainly due to fulfillment or cancellations before spending more,\n- treat incomplete recent data as a warning flag, not a reason to spend less automatically.\n\nWhat this needs:\n\n- a clear performance definition for each slice,\n- ideally margin or contribution data, because revenue alone may not show where marketing money is most effective,\n- confirmation that channels, regions, and product categories map to actual budget decisions.\n\nWhat it gives:\n\n- a defensible recommendation,\n- a way to say, “Based on the available data, the next quarter’s budget should be allocated with these priorities, but we cannot yet quantify the effect of spend without marketing data.”\n\n### Step eight: validate the result\n\nYou need to check the work before presenting it.\n\nChecks should include:\n\n- does the total revenue in the aggregation match finance or operations reports?\n- does the first quarter of 2026 appear complete?\n- would changing the revenue definition or status rule reverse the conclusion?\n- does the decline concentrate in one slice or appear across many slices?\n- does the baseline forecast beat a naive reference, such as using the same period last year or the recent average?\n- would the recommendation change if the latest export were incomplete?\n- can the head of sales actually act on the recommendation with the budget dimensions they control?\n\nValidation is not only technical. It is also business validation.\n\nThe result is not ready if:\n\n- the revenue definition is unclear,\n- recent data is incomplete,\n- the forecast error is not understood,\n- the recommendation depends on slices the head of sales cannot directly fund,\n- the model uses information that would not be available at the time of the decision.\n\n### Step nine: decide when to stop\n\nYou should stop and return to the manager or head of sales if any of these happen:\n\n- the revenue decline cannot be confirmed because the latest export is incomplete;\n- the status field materially changes the revenue picture but its meaning is not known;\n- there is no reliable marketing-spend or campaign data to answer the budget allocation question;\n- the available history is too short or too irregular to support a reliable forecast;\n- the diagnostic shows that the apparent decline is mainly due to cancellations, refunds, missing records, or payment timing;\n- the model cannot beat a simple baseline in past-period validation.\n\nYou should stop and move from no-model diagnosis to modeling if:\n\n- the data is complete,\n- the revenue definition is agreed,\n- the decision slices are known,\n- there is enough history to validate future performance,\n- the head of sales needs quantified uncertainty rather than only an explanation of the past.\n\n## Recommended answer to your manager\n\nYou can say something like this:\n\n“The manager’s request to predict revenue is reasonable, but the business decision is marketing-budget allocation. Before building a revenue model, we need to confirm whether the revenue decline is real and whether the order export is complete. The current table tells us about orders, not marketing spend, cancellations, refunds, promotions, or margin. A machine learning model built only from these orders could predict total revenue, but it would not reliably tell us where to spend next quarter’s money. The correct first step is a diagnostic reconciliation of the first quarter of 2026 against the last quarter of 2025 by region, channel, category, status, and customer behavior. If the data is complete and useful, we can add a simple revenue forecast. If we later get marketing spend and campaign data, we can build a more direct model for budget allocation.”\n\nThis keeps the problem honest, gives the head of sales something useful, and avoids overpromising with a model that the data cannot support yet.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    93.67
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0031,
+   "judge_spent_eur": 0.0
+  },
+  {
+   "id": "hab-02",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the product manager of a travel booking site. We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip. The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled. Today free cancellation is offered on some trips and not on others; partners and our pricing team choose which, nobody assigned it at random. Tell me what you would do to answer this. [shares bookings.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "You are asking a causal question: for a booking that looks like the current bookings, does adding free cancellation change the chance that the customer cancels? The decision it supports is whether to make free cancellation a standard feature across the site. The result would be used by product, pricing, and partner teams. The unit is a booking, not a customer or a destination, because each row is one booking. The moment it concerns is cancellation after booking and before travel, or whatever cancellation deadline you care about.\n\nWhat you have told me is that the table has booking identifiers, booking time, travel time, destination, nationality, channel, lead time, price, whether free cancellation was offered, whether the booking was cancelled, and customer identifier. What I cannot know from that alone is the actual values, how strong the differences are, how free cancellation was chosen, whether the cancellation flag is complete for every booking, and what other factors influenced the decision.\n\n## The problem in plain terms\n\nThe core problem is selection. Free cancellation was not randomly assigned. Partners and the pricing team chose where it appears. So bookings with free cancellation may differ from those without it in ways that also affect cancellation: destination, price, lead time, channel, customer nationality, travel season, booking timing, trip risk, or partner behavior. If you simply compare cancellation rates, you may measure who was offered free cancellation rather than the effect of free cancellation itself.\n\nFor the decision “offer it on every trip,” you need a causal estimate: what would happen to cancellation if comparable bookings that currently do not have free cancellation did have it? A purely descriptive answer is not enough, because you already know the current split is policy-driven.\n\n## Approaches and what they cost or give\n\n### No model: raw comparison\n\nCompare cancellation among bookings with free cancellation and without.\n\nWhat it costs: very little time, no modeling work.\n\nWhat it gives: a descriptive difference in observed cancellation rates.\n\nWhy it may be misleading: it assumes free cancellation was given without regard to destination, price, lead time, channel, nationality, timing, or customer risk. If partners choose free cancellation for destinations where cancellation is already more likely, the raw comparison can make free cancellation look bad. If they choose it for more committed customers or lower-risk trips, it can make free cancellation look good. This approach answers “what is the current cancellation gap?” not “what would universal offering do?”\n\n### Simple regression adjustment\n\nUse a model where cancellation depends on free cancellation and observed booking features.\n\nWhat it costs: modest work, usually quick.\n\nWhat it gives: an adjusted association between free cancellation and cancellation, controlling for destination, nationality, channel, price, lead time, booking date, and travel date.\n\nWhy it may still fail: it only controls for what is in the table. If partners used unobserved factors, such as demand volatility, partner negotiation, risk appetite, product mix, or customer intent, the estimate can remain biased. If the categories are many, the model can overfit or become unstable.\n\n### Propensity-score method\n\nFit a model that predicts the chance of a booking having free cancellation from observed booking features. Then compare bookings that are similar on that prediction, either by matching similar bookings or weighting the sample so that the free-cancellation and non-free-cancellation groups look alike.\n\nWhat it costs: more work than raw comparison or simple regression, because you need diagnostics, overlap checks, and stability checks.\n\nWhat it gives: a more credible causal estimate under the assumption that all important confounders are observed. It helps show whether there are enough comparable bookings with and without free cancellation. If there are no comparable bookings, the method will flag that the observational answer is weak.\n\n### Exact matching or stratification\n\nGroup bookings by combinations of destination, channel, nationality, price category, and lead-time band, then compare cancellation within those groups.\n\nWhat it costs: medium effort and transparency.\n\nWhat it gives: simple, understandable comparisons that avoid modeling assumptions.\n\nRisk: if groups are too fine, many bookings may be discarded because there is no comparable group; if groups are too coarse, important differences may remain hidden.\n\n### Time-to-cancellation analysis\n\nIf you have cancellation dates, not just a final cancelled flag, you can model when cancellations happen rather than only whether they happen.\n\nWhat it costs: more data preparation and modeling.\n\nWhat it gives: a richer answer, especially if free cancellation affects cancellation timing, late cancellations, or inventory value.\n\nRisk: the table as described may not have cancellation dates. Without them, you can only analyze the final binary cancellation flag.\n\n### Controlled experiment\n\nRandomly offer free cancellation to some comparable bookings and not others.\n\nWhat it costs: business, technical, and partner effort; requires a rollout and monitoring.\n\nWhat it gives: the strongest practical answer. It removes selection bias from assignment. It can also measure side effects, such as booking volume, conversion, revenue, refund cost, and partner behavior.\n\nThis is what I would want if the decision is important enough to change the site policy.\n\n## My chosen approach\n\nIf you must answer from the current table now, I would use a propensity-score adjusted comparison, with a simple regression as a sensitivity check. I would not decide from raw cancellation rates. The reason is that free cancellation was chosen by partners and pricing, so the main task is to construct comparable bookings.\n\nBut I would treat the observational result as a decision aid, not proof. If the adjusted result is unstable, or if there is not enough overlap between the two groups, I would stop the modeling and move to a controlled rollout.\n\n## Plan, step by step\n\n### Step 1: Define the exact question\n\nI would first clarify what “make fewer people cancel” means.\n\nPossible targets:\n\n- The average booking currently in the data: if every comparable booking had free cancellation, would cancellation drop?\n- Only bookings that would not currently have it: the incremental effect of expanding the policy.\n- The effect on marginal bookings: customers who might cancel if the option disappears but do not if it remains.\n- The effect on business outcomes beyond cancellation: bookings, revenue, refunds, inventory loss, partner satisfaction.\n\nFor “offer it on every trip,” the most natural observational question is the average effect across current bookings, but the business decision also depends on volume and profitability. I would make clear that cancellation probability is only one part of the answer.\n\n### Step 2: Check the outcome definition\n\nThe table has `cancelled`, described as a numeric flag. I would confirm it is binary: cancelled or not cancelled.\n\nThen I would ask:\n\n- Does `cancelled` mean any cancellation before the snapshot date?\n- Does it include cancelled bookings that later rebooked?\n- Does it include partial cancellations or modifications?\n- Is cancellation observed for all bookings up to the same point?\n- If some travel dates are in the future, have late cancellations had enough time to occur?\n- Are there missing cancellations?\n\nThis matters because comparing incomplete outcomes biases the estimate. For example, recent bookings may not yet have had the same chance to cancel as older bookings. If `booking_date`, `travel_date`, and current date imply different exposure windows, I would restrict the analysis to bookings with a comparable cancellation observation window, or I would ask for cancellation dates.\n\n### Step 3: Confirm the treatment definition\n\nI would confirm that `free_cancellation` means the option was available at booking and did not change afterward.\n\nIf free cancellation was added later, removed, or depended on partner rules during the trip, the assignment becomes time-varying. That would require a different approach and possibly more data.\n\n### Step 4: Assemble the pre-booking variables\n\nI would use variables known at the moment the booking was made, before the cancellation outcome. These would include:\n\n- destination\n- nationality\n- channel\n- lead_time_days\n- price, or price category if price is categorical\n- booking_date features, such as season, month, weekday, and year\n- travel_date features, such as season, month, and year\n- customer identifier, for clustering and possible repeated-customer effects\n\nI would be careful with `price`. You described it as categorical. I would confirm whether it is an actual price, a price band, or a code. If it is a confounder chosen together with free cancellation, I would include it. If free cancellation itself affects the price presented to the customer, then controlling for price changes what effect is being measured. In that case I would report estimates both with and without price.\n\n### Step 5: Look at the raw data without judging causality\n\nI would check descriptive patterns by treatment group:\n\n- cancellation status by `free_cancellation`\n- distribution of destinations, nationalities, channels, lead times, prices, booking dates, and travel dates across the two groups\n- whether certain destinations or channels almost always have free cancellation\n- whether the cancelled flag has missing values or unexpected categories\n- whether customers have multiple bookings\n- whether some destinations have too few bookings for stable comparison\n\nThis is not to answer the causal question directly. It is to understand what comparisons are possible and what variables are likely confounders.\n\n### Step 6: Build the propensity-score model\n\nI would estimate the probability that a booking has free cancellation based on observed pre-booking characteristics.\n\nA logistic regression is a good starting point because it is transparent. If destination, nationality, channel, or price categories are large or sparse, I might use regularization, collapse rare categories, or group destinations by region.\n\nThe model would be:\n\n- outcome of the model: `free_cancellation`\n- predictors: destination, nationality, channel, lead_time_days, price, booking_date/travel_date features, and customer-level patterns if relevant\n\nI would cross-validate the model to avoid overfitting.\n\nImportant point: I would not use the propensity model because high prediction accuracy is good for causal inference. If free cancellation is almost perfectly predictable from the table, that may mean there is poor overlap: there may be few bookings that look like they could have been treated either way.\n\n### Step 7: Check overlap and balance\n\nBefore estimating any causal effect, I would check whether comparable bookings exist in both groups.\n\nI would look at:\n\n- distribution of propensity scores among treated and untreated bookings\n- standardized differences for each covariate before and after adjustment\n- variables that remain imbalanced after matching or weighting\n- cases where some destinations, price bands, channels, or lead-time ranges only have free cancellation or only lack it\n\nIf there is little overlap, I would report that the observational data cannot reliably answer the question for the full booking population. I might restrict the estimate to the overlapping region and say clearly that it only applies to bookings where comparable free-cancellation and non-free-cancellation cases exist.\n\n### Step 8: Estimate the cancellation effect\n\nI would use the propensity score to compare like with like.\n\nPossible estimators:\n\n- nearest-neighbor matched comparison of cancellation among similar bookings\n- inverse-probability weighting, where underrepresented bookings receive more weight so the treated and untreated groups resemble each other\n- doubly robust regression, which combines an outcome model with propensity weighting and is less sensitive if one part is slightly misspecified\n\nFor a product-manager setting, I would usually start with the simplest robust version: a propensity-weighted average difference, supported by a regression-adjusted model as a cross-check.\n\nI would report the direction and size of the estimated change in cancellation probability, along with uncertainty from bootstrap resampling or a confidence interval. I would not present a single number as definitive if the diagnostics are weak.\n\n### Step 9: Check robustness\n\nI would test whether the answer changes under reasonable alternative assumptions.\n\nI would compare:\n\n- raw difference versus adjusted difference\n- model with price versus model without price\n- inclusion versus exclusion of booking date and travel date seasonality\n- different destination groupings\n- different lead-time cuts\n- different channel definitions\n- restricting to completed travel periods versus all bookings\n- clustering standard errors by customer, destination, or time period\n\nI would also look at heterogeneity, because universal policy depends on where the effect exists. I would check whether the estimated effect is consistent across destination, channel, lead time, price category, nationality, and time period. If the effect is strongly mixed, “offer it everywhere” is not a simple yes or no.\n\n### Step 10: Decide whether the observational answer is usable\n\nI would use the result only if several conditions are met:\n\n- comparable bookings exist in both groups\n- balance diagnostics are acceptable after adjustment\n- the estimate is reasonably stable across model choices\n- the uncertainty interval is narrow enough to distinguish between action and inaction\n- the effect direction is not mainly driven by one destination, channel, time period, or price group\n- there is no strong evidence of unobserved confounding based on policy knowledge\n\nIf these conditions fail, I would not use the model to justify a universal policy.\n\n### Step 11: If possible, design a randomized test\n\nBecause the current assignment is not random, I would recommend a controlled test after the observational work, or instead of it if the decision is high stakes.\n\nA good test would:\n\n- define eligible bookings before assignment\n- randomize whether free cancellation is offered at booking time\n- measure the same cancellation outcome over the same observation window\n- record booking volume, conversion, revenue, refunds, inventory changes, and partner response\n- analyze by intention to treat: compare groups as originally randomized, regardless of later behavior\n- stop or continue based on pre-defined decision criteria, not on the size of the observed effect at a moment when the result might be favorable\n\nThis test is also better if your real question is not only “do people cancel?” but “does universal free cancellation improve business outcomes?” Free cancellation could reduce cancellations while also reducing booking conversion if customers perceive higher risk, or it could increase bookings while increasing refund exposure. The table alone cannot decide that.\n\n## What I assume versus what you told me\n\nYou told me:\n\n- the data is bookings\n- free cancellation is not randomly assigned\n- partners and pricing choose where it is offered\n- the table includes booking date, travel date, destination, nationality, channel, lead time, price, free cancellation, cancellation flag, and customer identifier\n\nI would assume:\n\n- `cancelled` is a final or observed outcome flag, not an intermediate status\n- `free_cancellation` was known at booking time\n- the columns are recorded correctly\n- destination, nationality, channel, lead time, price, and timing variables matter for both policy assignment and cancellation\n- there is enough overlap between free-cancellation and non-free-cancellation bookings to compare them\n- no hidden factor, such as partner-level demand, trip risk, refund policy, or customer intent, is strongly determining both assignment and cancellation\n\nThose assumptions may be wrong. I would test them through data audit, diagnostics, and sensitivity analysis.\n\n## How the result should be checked\n\nI would check the result on four levels.\n\nFirst, data integrity: missing flags, inconsistent dates, impossible lead times, duplicate bookings, customers with many bookings, and unexpected values.\n\nSecond, causal plausibility: the adjusted comparison must produce similar treated and untreated groups on observed characteristics. If the model claims a strong effect but the groups remain very different, the estimate is not trustworthy.\n\nThird, stability: the estimate should not change dramatically when reasonable variables are added or removed. If it changes because of one destination, one time period, or one price group, I would report that instead of a single global effect.\n\nFourth, business meaning: the effect on cancellation should be interpreted alongside volume, revenue, refunds, and partner behavior. A lower cancellation rate is not automatically better if fewer people book or refund exposure rises.\n\n## When to stop\n\nI would stop the observational modeling if:\n\n- there is not enough overlap between treated and untreated bookings\n- balance cannot be achieved for key variables\n- the estimate is unstable across reasonable specifications\n- the uncertainty interval is too wide to guide the decision\n- the cancellation outcome is not observed over comparable time windows\n- the effect changes dramatically when price or destination is handled differently\n- the result would lead to a costly policy change and a randomized pilot is feasible\n\nI would not stop just because the raw comparison suggests an answer. The raw comparison should be treated as background, not evidence.\n\n## Bottom line\n\nThe right answer is not “what is the cancellation rate with and without free cancellation?” The right answer is “what is the cancellation rate for comparable bookings when free cancellation is available versus not available?” I would try to answer that with a propensity-score adjusted comparison, careful diagnostics, and robustness checks. But because the assignment is chosen by partners and pricing, the observational result can only suggest the effect. For a site-wide policy, I would use the modeling to identify whether the effect is large enough and stable enough to justify action, and then confirm it with a randomized pilot or controlled rollout if the decision is expensive.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    157.49
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0043,
+   "judge_spent_eur": 0.0
+  },
+  {
+   "id": "hab-03",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I lead retention at a subscription company. I want a model that tells us, for each customer, which discount to offer (none, 10 percent or 25 percent) so that they do not leave. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. We have never given discounts before, so there is no record of any offer or of how customers reacted. The retention team would use the result every month. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "What the problem is\n\nThe decision behind this work is: at each monthly retention review, the retention team chooses for each customer whether to give no discount, a 10 percent discount, or a 25 percent discount, with the goal of reducing the chance that the customer leaves in the following month while managing the cost of discounts.\n\nThe result is used by the retention team, and probably also by finance or leadership because discounts have a cost. The decision unit is a customer at the moment of the monthly offer decision. The relevant time is the month after the decision, because the outcome recorded in the table is whether the customer churned next month.\n\nWhat you have told me about the data is:\n- each customer row includes signup date, segment, city, plan, tenure, monthly spend, recent support tickets, and churn next month;\n- the team has never given discounts before;\n- there is no column recording what offer, if any, the customer received;\n- there is no record of how customers reacted to any discount.\n\nThat last point is the central problem. The table can tell us how likely customers are to churn when no discount is offered. It cannot tell us how much a 10 percent or 25 percent discount would change churn for a particular customer. That is a causal question, not a simple prediction question. We do not know the counterfactual outcome: what would happen to this customer if they received an offer, versus if they did not.\n\nAssumptions, separate from what you told me:\n- I assume the customer features are known before the offer is made.\n- I assume the churn label is measured after the customer could have been exposed to an offer.\n- I assume the company can actually deliver these discount offers and track whether they were exposed or redeemed.\n- I assume discount value is positive but its cost is not given, so the business must define the value of retaining a customer versus the cost of each offer.\n\nApproaches that could solve it, and what each one costs and gives\n\nNo model at all, using a simple business rule.\nThis would mean choosing offers by hand, such as giving the larger discount only to high-value or high-risk segments. It is cheap and fast, and it gives the team something to try immediately. But it is not evidence-based. It could waste discounts, reduce revenue, or miss the customers who are actually persuadable by a discount. It can be useful only as a temporary starting policy if the team also runs a test.\n\nA churn-risk model, then a discount rule.\nThe company could use the current table to train a model predicting who is likely to churn without any discount. Then it could offer discounts to customers with the highest churn risk. This uses the data that exists. It gives a ranking of likely churners. But it does not answer the asked question. High churn risk is not the same as high discount response. A customer might be very likely to leave regardless of any offer, and discounting them may not help. Another customer might be low risk but would spend more or stay longer if given a small discount. This approach also does not reliably tell the team whether to choose 10 percent or 25 percent, because the table contains no evidence about how offers affect churn.\n\nAn uplift or causal-response model from current data.\nThis would try to estimate which discount changes churn behavior for which customer. It cannot be done properly with the table as it stands, because there is no offer treatment variation. The data would need a record of customers who did receive discounts and customers who did not, ideally assigned in a controlled way. Without that, any model pretending to predict discount response is relying on untested assumptions. It could look precise but be wrong.\n\nRandomized testing first, then a policy or model if needed.\nThe company assigns eligible customers randomly to no discount, 10 percent, or 25 percent, then measures churn next month. This gives honest evidence about whether discounts work, which discount works better, and whether the effect differs by customer type. It costs time, discount spend, and better tracking. It gives the strongest basis for a responsible monthly offer decision. This is the approach I would choose.\n\nRecommended plan\n\nChoose the offers to test.\nThe options are the ones you named: no discount, 10 percent, and 25 percent. The team should decide the target population. Is it all active customers, only customers showing churn risk, only certain segments, or customers where a retention offer is operationally sensible? If the population is narrowed, the result will apply only to that narrowed group, not to everyone.\n\nDefine the objective clearly.\nThe outcome can be churn next month, but the decision should not maximize retention alone. The company should compare the value of retaining a customer against the cost of the discount. The team needs business input on acceptable discount spend and whether the goal is immediate churn reduction, longer-term revenue, or both.\n\nBuild an offer logging process.\nBefore running the test, create fields that record:\n- the customer;\n- the decision date;\n- the features available at decision time;\n- the assigned offer;\n- whether the offer was actually shown or redeemed;\n- the cost of the discount, if relevant;\n- the churn result in the next month.\n\nThis makes the future model trainable. The current table can help describe normal churn risk, but it cannot by itself teach discount response.\n\nRun a randomized offer test.\nAssign customers within the target population to the listed options at random. If the team is worried that pure random assignment wastes discounts, it can first use simple rules or the current churn table to identify a reasonable eligible group, then randomize within that group. But the offer assignment itself should not be based on predicted discount effect, because there is no evidence yet.\n\nBalance the groups before learning.\nCheck that the groups receiving no discount, 10 percent, and 25 percent are similar on known features such as plan, segment, tenure, monthly spend, and recent support activity. If they are not similar, the test results may reflect who was selected rather than what the discount caused.\n\nCollect outcomes for a set of monthly cohorts.\nThe test should be repeated over several months if possible, so the team learns whether effects are stable across time. The sample needed for reliable learning should be determined by business constraints and statistical power based on observed natural churn rates and cost tolerance. There is no point starting a full personalized model before the experiment has produced enough evidence.\n\nAnalyze average effects first.\nAfter collecting outcomes, compare churn next month across the offer groups. This tells the company whether discounts help at all, whether 10 percent is enough, and whether 25 percent gives extra benefit that justifies extra cost.\n\nIf the result is clear and simple, use a rule, not a model.\nFor example:\n- if no discount performs as well as either discount, stop offering discounts;\n- if 10 percent performs as well as 25 percent, use 10 percent;\n- if 25 percent works much better but the cost is not acceptable, do not offer it;\n- if only one segment responds well, offer that discount only to that segment.\n\nIn that case, the best solution may be a straightforward policy, not a customer-level machine learning model.\n\nIf the result varies by customer type, estimate heterogeneous effects.\nIf some groups respond well and others do not, the company can move toward a customer-level offer model. Possible modeling methods include:\n- estimating churn rates by offer group across key segments;\n- training a model that includes the assigned offer and interactions with customer features;\n- using an uplift model that predicts the incremental churn reduction from each offer;\n- using a decision tree or rule model that recommends the best offer based on segment, plan, tenure, spend, and support activity.\n\nThe exact model should be chosen after the randomized data exists. The goal is not simply to predict churn probability; the goal is to estimate the difference in churn caused by each offer.\n\nValidate carefully.\nA model of this type should be checked in several ways:\n- Does it predict churn well under each offer in held-out data?\n- Does the predicted benefit of an offer match the observed difference between offer groups?\n- Does the recommended offer policy beat a simple best fixed offer or best fixed segment rule on an untouched randomized group?\n- Does it maximize expected retention net of discount cost, not just reduce churn in isolation?\n- Is it stable across months and segments?\n\nMonthly deployment.\nOnce a working rule or model is approved, the retention team can score customers each month with current features and choose the offer that has the best expected value within budget. The deployed system should still keep some customers in a controlled holdout or randomized exploration group. Without ongoing random exposure, the model can become stale, and the company will lose the ability to measure whether the offers are still working.\n\nWhen to stop, expand, or reject the model\nStop and do not offer discounts if the test shows no meaningful reduction in churn, or if the retention benefit is not worth the discount cost.\n\nStop at a simple policy if one offer is clearly better for the overall population or for broad segments. Customer-level modeling is unnecessary when there is not enough effect variation to exploit.\n\nContinue testing if effects are unclear or unstable across months. If the team cannot learn reliable differences, a personalized model would be guessing.\n\nMove to a model if the test shows that different customers need different offers, and if validation shows that the model’s recommendations actually produce better retention economics than the best simple rule.\n\nRoll back the model if performance degrades, if monthly patterns change, if discounts are not being used as intended, or if the model recommends offers that fail validation on randomized holdout groups.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    177.57
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0048,
+   "judge_spent_eur": 0.0
+  },
+  {
+   "id": "hab-04",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am a data scientist at a travel agency. I want to predict, at the moment a booking is made, whether it will be cancelled, so the operations team can overbook the right trips. The table I shared is our bookings up to late February 2026: booking date, travel date, destination, nationality, channel, lead time in days, price, free cancellation, and whether it was cancelled. Some of the trips in it have not happened yet. Operations would score every new booking once, on the day it is made. [shares bookings.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The problem behind your request is not just “predict cancellations.” The real decision is: for each upcoming trip or departure, should the operations team accept more bookings than normal, and if so how many? They will use your result to avoid leaving seats empty, but also avoid the cost and disruption of a confirmed customer being displaced because a booking did not cancel.\n\nYou want the forecast at the moment a booking is made. So the scoring unit is a single new booking, evaluated on its booking date. But the business action unit is a trip, departure, or sellable group of bookings, because overbooking is decided per trip, not per customer. The table you shared gives bookings made up to late February 2026, with booking date, travel date, destination, nationality, channel, lead time, price, cancellation policy, and a cancellation flag.\n\n## What is known, and what is not known\n\nFrom what you gave:\n\n- You have bookings with several features that are likely known at booking time: booking date, travel date, destination, nationality, channel, lead time, price, and free-cancellation flag.\n- You have a cancellation field, but its meaning must be checked.\n- You have identifiers: booking ID and customer ID. These should not be used as raw predictive fields.\n- Some trips have not happened yet. That is important: a future trip may appear as “not cancelled” now but could still cancel later. Those rows are not safely treated as no-cancel outcomes.\n- Operations will score each new booking once, on the day it is made.\n\nWhat is not known from the table or your message:\n\n- The exact definition of “cancelled.” Is it full cancellation, partial cancellation, transfer, refund, no-show, or only an official cancellation before a deadline?\n- Whether the cancellation flag is final for trips whose travel date has passed, or merely the status as of the data extract.\n- The cancellation deadline or latest time a booking can cancel.\n- Whether all listed fields were truly available when the booking was made. For example, if price changes after a promotion, cancellation, or manual adjustment, that would be a leakage risk.\n- The operational cost of overbooking too much versus the revenue lost by overbooking too little.\n- The distribution of the rows: how many bookings are future, how many are matured, how many are cancelled, how common each destination/channel/nationality is, and whether the target is rare.\n- Whether customer ID gives useful repeated-booking history, or is mostly a one-time identifier.\n\nI will separate your given information from my assumptions. My assumptions are:\n\n- A trip for overbooking purposes can be identified by destination plus travel date, or by some departure/package key similar to that.\n- A booking’s cancellation decision can be observed with enough delay after the booking or travel window.\n- The fields you listed are available at booking time unless proven otherwise.\n- The price field may be monetary but is currently typed as categorical, so it needs inspection before use.\n- No external features such as holidays, weather, pandemic rules, competitor pricing, or seasonality are available unless you can add them.\n\n## Possible approaches, with costs and what they give\n\nThere are several reasonable ways to solve this. They are not equally suitable for a 1,500-row table.\n\n### Approach: no model at all, using segment cancellation rates\n\nThis means estimating cancellation rates from history by useful business segments: destination, travel month, lead-time bucket, free-cancellation policy, channel, nationality, or price band. Operations then overbooks a trip using the expected cancellation rate for the relevant segment.\n\nWhat it costs:\n\n- Very little modeling effort.\n- Easy to explain to operations.\n- Easy to audit.\n- Can be updated quickly if a segment changes.\n\nWhat it gives:\n\n- A simple expected number of cancellations per trip.\n- Transparency.\n- A solid baseline. If a model cannot beat this, you should probably not deploy the model.\n\nWhere it is weak:\n\n- It can miss interactions, for example a destination where long lead time matters but short lead time does not.\n- It can fail for rare segments.\n- It may not handle new combinations well, such as a destination-channel-nationality combination not seen before.\n- It may be too coarse for overbooking if different bookings have very different cancellation risk.\n\n### Approach: regularized logistic regression with segment shrinkage\n\nThis is a model that estimates the probability that a booking will cancel, using the features available at booking time. “Regularized” means it is deliberately kept simple enough to avoid chasing noise in a small dataset. “Segment shrinkage” means rare destination, channel, or nationality groups borrow strength from larger groups instead of trusting their own unstable rates.\n\nWhat it costs:\n\n- Moderate setup.\n- Needs careful label definition and time-based validation.\n- Needs checks for leakage, especially if price or flags are updated after the booking.\n\nWhat it gives:\n\n- A calibrated probability for each new booking.\n- Clear directions: how free cancellation, lead time, price, destination, channel, or nationality affect predicted cancellation.\n- A middle ground between simple segment rates and more complex machine learning.\n- Useful aggregate expected cancellations per trip, while still considering booking-level features.\n\nWhere it is weak:\n\n- It may miss complex nonlinear relationships.\n- It needs enough matured labels. If many future trips are not labelled final, you cannot just use them as no-cancel.\n- It is only as good as the label definition.\n\n### Approach: boosted trees or random forests\n\nThis is a more flexible machine learning method that can capture nonlinear effects and interactions automatically, such as “high price with short lead time and non-free cancellation behaves differently from low price with long lead time and free cancellation.”\n\nWhat it costs:\n\n- More tuning than logistic regression.\n- More risk of overfitting with 1,500 rows.\n- More work to calibrate probabilities for business decisions.\n- More need for interpretability checks so operations trust it.\n\nWhat it gives:\n\n- Potentially better discrimination if relationships are complex.\n- Feature importance and interaction effects, with care.\n\nWhere it is weak:\n\n- With small data, it can learn noise.\n- A high AUC is not enough. Overbooking needs reliable expected cancellation counts, not just ranking.\n- It can be harder to explain why a particular trip should be overbooked more or less.\n\n### Approach: survival or time-to-cancellation model\n\nThis models the risk that a booking cancels before travel, accounting for the fact that some bookings have not yet reached their outcome. It is attractive because you said some trips have not happened yet.\n\nWhat it costs:\n\n- Needs clearer event timing, such as when the cancellation occurred, or at least a defensible censoring rule.\n- More complex validation.\n- More explanation effort.\n- With limited data, it can become unstable.\n\nWhat it gives:\n\n- A way to avoid treating future un-cancelled bookings as negatives.\n- Probability that cancellation will occur by the travel date or by a relevant cancellation deadline.\n- Useful information for aggregating expected cancellations per trip.\n\nWhere it is weak:\n\n- It is more complicated than needed for a first version.\n- It needs timing details that your table does not clearly show.\n- With only 1,500 rows, a survival model may add complexity without reliable gain.\n\n## Chosen approach\n\nI would choose a regularized logistic regression with segment shrinkage, trained on label-matured bookings, compared against a segment-rate baseline.\n\nWhy this choice:\n\n- The table is small, so a simple, disciplined model is safer than a complex tree ensemble.\n- Operations needs probabilities that can be aggregated into expected cancellations per trip.\n- A logistic model can be calibrated and explained more easily than a boosted model.\n- A survival model is conceptually useful because future trips exist, but your current columns do not clearly include cancellation timing. So I would not make survival the first deployed approach unless you can supply event times and a solid censoring rule.\n- The segment-rate baseline is mandatory because, with 1,500 rows, a model may not beat simple historical averages. If it does not, the business answer is not to deploy it.\n\nThis approach also allows a clean upgrade path: if you later add exact cancellation dates and a reliable cancellation deadline, you can move to survival modeling.\n\n## Plan, step by step\n\n### Step 1: define the label and maturity rule\n\nWhat it needs:\n\n- A business definition of cancellation.\n- Knowledge of whether a cancelled booking was cancelled before travel, after travel, as a no-show, or through a refund/transfer process.\n- A rule for when a booking’s cancellation status is final.\n\nWhat to do:\n\n- For each historical booking, mark the outcome as known final, known still open, or unusable because the travel date or cancellation window has not matured.\n- Do not treat a future travel date with “not cancelled” as a definite non-cancellation.\n- If a booking is cancelled, record that as a positive outcome. If it has completed, or if its cancellation window has closed without cancellation, treat it as a negative outcome.\n- Exclude rows where the outcome is too early, unclear, or missing.\n\nHow it is checked:\n\n- Operations confirms the definition.\n- The matured subset contains enough observations and covers the kinds of trips you want to overbook.\n\nStop rule at this step:\n\n- If too few matured labels exist, stop modeling and use segment rates, or wait for more matured data. Do not force a model on incomplete labels.\n\n### Step 2: audit the table for leakage and data quality\n\nWhat it needs:\n\n- The raw table and, if possible, the booking system’s event history.\n\nWhat to do:\n\n- Use booking date, travel date, destination, nationality, channel, lead time, price, and free cancellation only if they are known at the moment of booking.\n- Inspect price. It is typed as categorical, but it may be a monetary amount, a price band, or a post-adjustment value. If it is not a booking-time price, exclude it.\n- Treat destination, nationality, and channel as categories. Do not let one-hot encoding create too many rare levels for 1,500 rows.\n- Handle customer ID carefully. Do not include it as a raw identifier. If you use it, only build history features that would have been available before the current booking date.\n- Remove booking ID from modeling.\n- Validate that lead time matches travel date minus booking date, or understand why it differs.\n- Confirm that the cancellation field is a clean yes/no outcome, not a status with several meanings collapsed together.\n\nHow it is checked:\n\n- A feature-by-feature review: was this value known at booking time? Could it only be known after cancellation or travel?\n- Spot checks of sample bookings across time, if you can review values.\n\nStop rule at this step:\n\n- If any key feature is post-outcome, remove it. If removing it destroys model usefulness, the model is not ready.\n\n### Step 3: split by time, not randomly\n\nWhat it needs:\n\n- Booking date and matured outcome labels.\n\nWhat to do:\n\n- Train the model on older bookings.\n- Validate on newer bookings whose outcomes are already matured.\n- Do not split rows randomly, because a random split can accidentally let the model learn future patterns from booking dates or travel dates.\n- Consider a rolling-origin validation: train on earlier booking cohorts, evaluate on the next cohort, then repeat. This simulates deployment.\n- If customer ID repeats, check whether the same customer appears in train and validation in a way that would inflate performance. If so, use a grouped or time-aware check rather than pretending each row is independent.\n\nHow it is checked:\n\n- The validation set should represent a period after the training set, matching how the model will score new bookings.\n- If performance drops sharply across time, the model is not stable enough.\n\nStop rule at this step:\n\n- If the only split that works is a random split, treat the result as suspicious.\n\n### Step 4: build the segment-rate baseline\n\nWhat it needs:\n\n- Matured historical bookings.\n- Business-relevant segments.\n\nWhat to do:\n\n- Estimate cancellation rates using simple combinations first: destination and travel month, lead-time bucket and free cancellation, channel and price band, or other practical groupings.\n- Keep rare segments grouped into “other” or pooled with larger groups so rates are stable.\n- For each historical trip or departure, sum the number of bookings and compare the expected cancellations from segment rates to the observed cancellations.\n\nWhat it gives:\n\n- A reference point. Any model must beat this, especially in aggregate calibration.\n\nHow it is checked:\n\n- Compare segment-level expected cancellations to observed cancellations over time.\n- Check whether the rates move too slowly or too fast compared with recent booking behavior.\n\nStop rule at this step:\n\n- If the baseline is already unreliable because segments are too sparse, simplify further or wait for more data.\n\n### Step 5: fit the regularized logistic model\n\nWhat it needs:\n\n- Matured label dataset.\n- Time-based split.\n- Clean booking-time features.\n\nWhat to do:\n\n- Use destination, channel, lead time bucket, travel period, price representation, free cancellation, nationality, and perhaps simple interactions.\n- Keep interactions limited. With 1,500 rows, many interaction terms can become noise.\n- Use regularization so rare destination or nationality levels shrink toward a global or segment-level estimate instead of creating extreme cancellation rates from a handful of bookings.\n- If lead time has a nonlinear effect, bucket it or use a smooth representation rather than forcing a straight-line relationship.\n- If free cancellation has a time-dependent effect, allow an interaction between free cancellation and lead time only if validation supports it.\n\nHow it is checked:\n\n- Check coefficients for sign and plausibility: long lead time, free cancellation, certain destinations, price, and channel should behave sensibly.\n- Check model stability across time splits.\n- Check that rare categories are not dominating predictions through unstable estimates.\n\nStop rule at this step:\n\n- If the model needs so many categories and interactions that it only memorizes small groups, simplify or abandon it.\n\n### Step 6: evaluate with business-aware metrics, not just AUC\n\nWhat it needs:\n\n- Validation predictions and matured actual outcomes.\n- Trip-level grouping for overbooking.\n\nWhat to do:\n\n- Use Brier score and log loss to judge prediction quality and calibration.\n- Use AUC or precision-recall as diagnostic ranking measures, but do not let them override calibration.\n- Aggregate predicted cancellation probabilities by travel date and destination. Compare the sum of predicted cancellations to observed cancellations for those trips.\n- Check error by major operational segments: destination, channel, lead-time bucket, free-cancellation policy, travel month, and nationality where meaningful.\n- Check whether the model is most accurate on the trips where overbooking decisions matter.\n- If operations has a cost or benefit for overbooking versus underbooking, evaluate the expected business value. If no cost data exists, evaluate calibration and conservative risk.\n\nHow it is checked:\n\n- The model should beat the segment baseline on time-based validation, especially on trip-level aggregate cancellation estimates.\n- The model should not be systematically overpredicting or underpredicting cancellations for key destinations or periods.\n\nStop rule at this step:\n\n- If the model is better at ranking individual bookings but worse at estimating trip-level expected cancellations, it may not solve the operational problem.\n- If it cannot beat the baseline, do not deploy it. Keep the baseline or collect more matured data.\n\n### Step 7: turn scores into overbooking recommendations\n\nWhat it needs:\n\n- New booking features.\n- The frozen model and baseline.\n- Trip grouping.\n- Business rules for acceptable risk.\n\nWhat to do:\n\n- Score each new booking once at booking time.\n- For each trip, sum the predicted cancellation probabilities across bookings to get expected cancellations.\n- Add an uncertainty view rather than relying only on a point estimate. With small data and sparse segments, overbooking should be conservative.\n- If the model gives a probability but operations needs an integer number of extra bookings, use a decision rule supplied by business, not a technical default.\n- Keep an override path for exceptional trips, new destinations, unusual prices, channel issues, or policy changes.\n\nHow it is checked:\n\n- The recommendation should be reproducible from booking-level probabilities and trip aggregation.\n- Operations should be able to explain why a trip got a different overbooking recommendation.\n\nStop rule at this step:\n\n- If expected cancellations are too uncertain to support safe overbooking, restrict recommendations to conservative segments or use the baseline only.\n\n### Step 8: deploy, monitor, and re-evaluate\n\nWhat it needs:\n\n- A scoring process for new bookings.\n- Label maturity tracking.\n- A schedule for reviewing predictions against actual outcomes.\n\nWhat to do:\n\n- Monitor predicted versus actual cancellations for each matured booking cohort.\n- Monitor trip-level overbooking outcomes: were trips underbooked, correctly booked, or overbooked?\n- Watch for drift in destinations, channels, customer mix, price, lead time, and free-cancellation policies.\n- Retrain only with time-aware validation and with matured labels.\n- Record when a model version was frozen and which data window it used, so operations can explain decisions after the fact.\n\nHow it is checked:\n\n- The model is useful only if its live predictions remain calibrated and its trip-level expectations remain close to actual cancellations.\n- The baseline should remain a permanent comparison, not just a one-time benchmark.\n\nStop rule for deployment:\n\n- Pause or roll back if calibration degrades across time.\n- Pause if a new policy, destination mix, channel behavior, or pricing model makes historical patterns unreliable.\n- Stop if overbooking costs outweigh the benefit and the model cannot be made conservative enough.\n\n## The most important practical warning\n\nDo not use future, not-yet-happened trips as negative examples simply because they have not cancelled yet. That will usually make the model understate cancellation risk, especially for bookings made late in the data extract. The safer first step is to train only on matured labels and use future trips as unlabeled or censored rows only if you move to a survival-style approach.\n\nA concise summary: the decision is overbooking; the model is scoring individual bookings; the operational result is aggregated by trip; the first choice should be a regularized logistic model with segment shrinkage, tested against segment-rate baselines using time-aware validation and trip-level calibration. If that model cannot beat the simple baseline on matured, out-of-time, aggregate overbooking estimates, the right answer is to use the baseline or collect more data rather than deploy a riskier model.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    287.25
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0078,
+   "judge_spent_eur": 0.0
+  },
+  {
+   "id": "hab-05",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The problem is: “Which 50 customers, out of about 1,200, should use the monthly call capacity to maximize the amount of monthly spend retained after the call period?” The retention team will use the result as a prioritized call list. Each customer is the unit, and the decision is made at the beginning of a month for the next month’s churn outcome. You know customer attributes and a next-month churn flag. You know calls cost about the same per customer and that a customer who stays is worth their monthly spend. You do not know whether calling changes any customer’s behavior, so the table alone cannot prove the truly best 50 customers to call. Because the table values were not shared, I cannot give the actual customer IDs; I can give the method that should produce the call list.\n\n## What you told me\n- You manage a small retention team.\n- You can phone about 50 customers per month.\n- The table has about 1,200 customer rows.\n- Each row has one customer: signup date, segment, city, plan, tenure months, monthly spend, support tickets in the last 90 days, and whether they churned next month.\n- A call costs about the same for every customer.\n- A customer who stays is worth their monthly spend.\n- You do not yet know whether a call changes anyone’s mind.\n\n## What I am assuming\n- The churn flag means the customer churned in the month after the features were observed, and it is available for historical customers.\n- The features used to decide the call list are known before the call is made.\n- The table does not contain information about whether a customer was previously called.\n- The current customer rows are eligible to be called.\n- Monthly spend is a reasonable proxy for the value of keeping the customer for the decision window.\n- No other retention action is included in this decision.\n\n## Possible approaches\n\n### No model: simple business rules\nRank customers by obvious signs of value and risk, such as higher monthly spend, recent signup or low tenure, more support tickets, and less favorable segment or plan. Call the customers highest on a transparent rule list.\n\nCost: very low; quick; easy for the team to trust.  \nGives: a defensible call list based on judgment and visible risk signals.  \nLimits: it does not measure likelihood of churn, does not compare the value of saving different customers cleanly, and does not tell you who will respond to a call.\n\n### Churn prediction: call likely churners\nFit a model using the historical customer features to estimate each customer’s chance of churning next month. Then rank customers by a priority score that combines churn likelihood and monthly spend. A natural score is expected next-month revenue at risk: estimated churn likelihood multiplied by monthly spend. Call the highest scores.\n\nCost: medium; needs a clean labeled table, model validation, and ongoing monitoring.  \nGives: a better estimate of who may leave without intervention.  \nLimits: it predicts risk, not response. Calling a customer who would churn anyway may not help; calling a customer who would stay anyway wastes the slot.\n\n### Uplift modeling: call customers whose minds can be changed\nEstimate the difference in churn behavior between customers who receive a call and similar customers who do not. Rank customers by expected incremental retention: the increase in probability of staying caused by the call, multiplied by their monthly spend. Since call costs are the same for everyone, the customer with the largest expected added retention is the best candidate.\n\nCost: high; needs historical call data or a fresh randomized test.  \nGives: the answer closest to the real business decision: who should be called because the call matters.  \nLimits: with the table as described, you do not have enough evidence to do this yet.\n\n### Hybrid: predictive shortlist plus controlled learning\nUse churn prediction to identify high-priority customers, but do not simply assume the top 50 are the optimal called group. Create a high-priority shortlist larger than the call capacity. Randomly select 50 customers from that shortlist to call, and leave the comparable uncalled customers untouched. This gives a practical call list while learning whether calls work.\n\nCost: some immediate list precision is exchanged for learning; needs call tracking and one outcome period.  \nGives: a defensible call list, validation of the churn model, and the first evidence of call impact.  \nLimits: it requires the team to accept a shortlist-based randomized pilot rather than calling every highest-scoring customer with certainty.\n\n## Recommended approach\nI would choose the hybrid approach. It is the only plan that gives you a call list now while directly addressing the fact that you do not know whether calling changes minds. If you must avoid randomization for business reasons, use churn-risk ranking to call the top 50 by expected revenue at risk, but treat that as an assumption-driven list, not proof of optimal targeting.\n\n## Plan\n\n- Define the decision cleanly. Confirm which customers are still active and eligible to be called. Remove rows that should not be considered, such as already churned, not reachable, or excluded by policy.\n\n- Check data quality. Look for duplicate customer IDs, missing signup date, missing monthly spend, inconsistent tenure versus signup date, unrealistic support ticket values, and segment or plan labels that are too fragmented. Confirm that churned next month is the label you want to target, not another definition of churn.\n\n- Prepare features. Use information available before the call decision: segment, plan, city if it is meaningful, tenure, monthly spend, support tickets in the last 90 days, and signup timing expressed consistently. One-hot encode or group categorical fields. Avoid using future information as a feature. Do not use the churn label except as the target during model training.\n\n- Start with a simple model. Use a straightforward churn risk model, such as logistic regression, before trying anything complicated. With 1,200 rows, simplicity helps with stability and explanation. If performance is clearly weak, consider a tree-based model, but do not overfit.\n\n- Validate the model honestly. Split or time-order the data so the model is checked on customers it did not see during training. Confirm that higher predicted risk groups actually churned more than lower predicted risk groups. Confirm that the model is not leaking future information.\n\n- Rank by expected revenue at risk. Convert churn risk into a business priority: estimated next-month churn likelihood multiplied by monthly spend. This aligns with your statement that a staying customer is worth their monthly spend.\n\n- Build the call shortlist. Take the highest-priority customers into a shortlist that includes some customers just below the call capacity group. If you cannot create a shortlist larger than the call capacity, use the top 50 as the provisional list.\n\n- Make the monthly call list. If you are willing to learn, randomly choose 50 customers from the shortlist to call. Do not call the remaining shortlisted customers. If you are not willing to randomize, call the top 50 by expected revenue at risk and record that the call impact is unmeasured.\n\n- Track the outcome. After the next month arrives, compare called customers with uncalled customers from the same shortlist. Compare their churn rates and retained monthly spend. Also compare top-scored and bottom-scored uncalled customers to see whether the ranking works.\n\n- Check whether the list should change. If the shortlist model shows little uplift, the call may not be changing behavior, or the target list may be wrong. If uplift exists, use the result to estimate which customers are worth calling and refine future scores. Since calls cost the same for every customer, future targeting should favor the highest incremental retained monthly spend per call.\n\n- Stop or adjust when clear signals appear. Stop using the churn model if it cannot beat the simple business-rule baseline or if validation fails. Stop a generic call list if randomized testing shows no benefit. Move toward uplift-based targeting when enough called and uncalled comparable customers exist. If the business model changes, such as monthly spend, eligibility, or the meaning of retention, restart the validation.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    204.8
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0059,
+   "judge_spent_eur": 0.0
+  },
+  {
+   "id": "hab-06",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "You are not really facing a model-building problem yet. You are facing an operational decision problem: decide what the support team should work on next month, with enough confidence that the chosen work is aimed at the true cause of the rise in complaints.\n\n## 1. What the problem is\n\nThe decision you need to make is: **what should the support team prioritize next month?**  \nThe result is mainly used by you as the operations manager, and by your director as a check that the complaint increase is being addressed with evidence rather than guesswork.\n\nThe basic unit is the customer support complaint. There is one possible wrinkle: a “complaint” may not equal one helpdesk ticket. The same customer issue might create multiple tickets if it is escalated, reopened, transferred, or submitted more than once. That matters because the weekly count may be partly inflated by ticket behaviour, not only by more real complaints.\n\nWhat you have said is known:\n\n- Complaints are up by about 30 percent since March, based on your weekly reports.\n- Tickets are in the helpdesk system.\n- Each ticket has free text, a date, and an agent name.\n- Nobody has labelled the reasons for complaints.\n- You decide what the support team works on next month.\n\nWhat is not known:\n\n- Which complaint categories increased.\n- Whether the rise is caused by products, delivery, installation, service scheduling, warranty policy, staff availability, repair quality, customer expectations, seasonality, or something else.\n- Whether the 30 percent increase is entirely real or partly caused by ticket duplication, reopens, escalations, or changes in how complaints are recorded.\n- Whether agent names reflect workload effects, routing rules, or genuine service-quality differences.\n- Whether there is enough information in the ticket text to identify causes reliably.\n\nSo the first task is not “build an AI model.” The first task is to find out what the complaints actually consist of.\n\n## 2. Approaches that could solve it\n\n### Approach A: No model, direct investigation\n\nThis means taking a representative sample of recent tickets and reading them to find the main complaint types. Then compare the distribution of causes now with the distribution before the rise, if older tickets are available. If older tickets are not available, compare within March and later over time.\n\nWhat it costs:\n\n- Staff time to read tickets.\n- Care in choosing a fair sample.\n- Some discipline in defining complaint categories.\n\nWhat it gives:\n\n- Immediate operational insight.\n- A basis for next month’s priorities.\n- A reason taxonomy that could later support a model.\n\nThis is the strongest short-term option because you have no labels and need a decision soon.\n\n### Approach B: Unsupervised text grouping\n\nThis means using text analysis to group tickets by similar words or phrases without first deciding the categories.\n\nWhat it costs:\n\n- Some technical effort to clean and group the text.\n- Human review to check whether the groups make operational sense.\n\nWhat it gives:\n\n- Possible hidden patterns.\n- A quick way to spot new themes.\n\nThe drawback is that the groups may not match the way you make operational decisions. They may be too broad, too noisy, or too focused on wording rather than cause.\n\n### Approach C: Supervised reason classification\n\nThis means labelling tickets with known complaint causes and training a model to classify future tickets.\n\nWhat it costs:\n\n- Time to define consistent reason categories.\n- Time to label tickets.\n- Time to test and improve the model.\n- A way to handle uncertainty and human review.\n\nWhat it gives:\n\n- Ongoing automated categorisation.\n- Better visibility into complaint trends.\n- Useful support for future decisions.\n\nBut this is not the first step, because you do not yet know the right categories or have enough labelled examples.\n\n### Approach D: Predictive model for staffing or demand\n\nThis would try to predict complaint volume or which agents should handle which work.\n\nWhat it costs:\n\n- Many historical features and stable labels.\n- Validation against operational reality.\n- Risk of automating the wrong question.\n\nWhat it gives:\n\n- Possible workload planning.\n\nBut it does not explain why complaints rose. It could be misleading now.\n\n## 3. The best choice\n\nChoose **Approach A now, with Approach C prepared as the next stage if the volume and categories justify a model**.\n\nIn plain words:\n\n1. Investigate the tickets manually first.\n2. Build a simple reason classification from that investigation.\n3. Use a text classifier only after the categories are stable and useful.\n\nThis gives you something usable before next month, while still allowing the director’s “AI model” request to be satisfied later in a sensible way.\n\n## 4. The plan\n\n### Step 1: Make sure the increase is real\n\nBefore trying to explain the 30 percent rise, check how the weekly report counts complaints.\n\nNeed to examine:\n\n- Whether reopened tickets are counted again.\n- Whether escalated tickets are counted as new complaints.\n- Whether duplicate submissions create multiple tickets.\n- Whether the date field records ticket creation, customer contact, or assignment.\n- Whether the scope has changed, such as more channels being recorded.\n\nResult check:\n\n- If the increase disappears or shrinks after deduplicating or correcting counting, the problem may be reporting, not support volume.\n\nStop condition:\n\n- Stop this step once you understand what the weekly number actually measures.\n\n### Step 2: Decide the unit of complaint\n\nIf a customer issue can create several tickets, the model and the analysis should not count every ticket as a separate complaint unless that is operationally correct.\n\nNeed to define:\n\n- What counts as one customer issue.\n- Whether transfers, reopens, follow-ups, and escalations belong to one original complaint.\n- Whether agent name should be excluded from cause analysis because it may reflect routing rather than quality.\n\nResult check:\n\n- The complaint count should be consistent with how you want to manage workload.\n\nStop condition:\n\n- Stop when the unit is clear and repeatable.\n\n### Step 3: Sample tickets across the rise and, if possible, before it\n\nYou need tickets from the period after March, and if possible from a comparable period before March.\n\nIf older tickets are unavailable, use the earliest available March period as the baseline and compare later periods to it.\n\nNeed:\n\n- Access to ticket text, date, and any product, location, service type, or customer details present in the text or linked records.\n- A fair sample across dates, agents, products or services if available, and issue types.\n\nResult check:\n\n- The sample should represent the complaint mix you are trying to understand.\n\nStop condition:\n\n- Stop when the main cause categories are clear and no new important categories keep appearing.\n\n### Step 4: Read tickets and create reason categories\n\nDo not start with a rigid list. Start broadly, then simplify.\n\nPossible operational categories, based on home appliance support, might include:\n\n- Product defect or poor performance.\n- Delivery damage or delivery delay.\n- Installation problem.\n- Scheduling problem for service.\n- Waiting too long for a technician.\n- Repair quality.\n- Warranty or policy dispute.\n- Pricing or billing confusion.\n- Customer misunderstanding of product use.\n- Staff availability.\n- Information missing from the customer.\n- Unclear complaint.\n\nNeed:\n\n- Staff time to read tickets.\n- A shared definition of each category.\n- A rule for “unclear” so it does not become too large.\n\nResult check:\n\n- Two reviewers should be able to give the same ticket the same main reason most of the time.\n\nStop condition:\n\n- Stop adding categories when new ones become rare and the remaining categories are operationally meaningful.\n\n### Step 5: Identify what caused the increase\n\nCompare complaint categories between the earlier baseline and the later period.\n\nNeed to look at:\n\n- Which categories grew.\n- Which products or services are affected, if visible.\n- Whether the rise is concentrated in a few areas or spread broadly.\n- Whether agent name matters after considering workload, routing, and ticket type.\n- Whether “unclear” tickets are hiding missing information.\n\nResult check:\n\n- You should be able to say which complaint causes explain most of the rise, or at least which causes matter most next month.\n\nStop condition:\n\n- Stop when you have enough evidence to choose priorities. You do not need to explain every ticket.\n\n### Step 6: Choose next month’s support work\n\nUse the findings to decide operational priorities.\n\nExamples of possible actions, depending on what the evidence shows:\n\n- If scheduling delays dominate, change appointment handling or technician capacity planning.\n- If installation problems dominate, improve installer instructions or supplier follow-up.\n- If product defects dominate, create temporary support guidance, escalate to product or vendor teams, or add self-service material.\n- If warranty disputes dominate, clarify policy communication and agent scripts.\n- If unclear tickets dominate, change intake questions so agents get the right details before closing or routing.\n\nResult check:\n\n- Each chosen action should be tied to a complaint category that has increased or is costly to handle.\n\nStop condition:\n\n- Stop when you have a short, defensible list of priorities for next month.\n\n### Step 7: Only then prepare an AI model for ongoing classification\n\nIf you need future visibility, use the categories and labelled tickets from Steps 4 and 5.\n\nNeed:\n\n- Stable reason categories.\n- Enough labelled tickets to train a model.\n- Held-out labelled tickets to test it.\n- A clear role for the model: assist triage, flag categories, or report trends, not replace human judgement.\n\nPossible model use:\n\n- Classify new tickets into complaint reasons.\n- Alert when a category spikes.\n- Help route tickets to the right queue.\n- Produce weekly cause mix reports.\n\nResult check:\n\n- Compare model labels with human labels on new tickets.\n- Check whether the model is useful for real decisions, not just technically accurate.\n\nStop condition for the model:\n\n- Stop training if categories are too inconsistent to label.\n- Stop using it if human review remains just as effective.\n- Stop adding complexity if a simple classifier already solves the monitoring need.\n\n## 5. What is factual versus what I am assuming\n\nYour facts:\n\n- Complaints are up about 30 percent since March, by your weekly report count.\n- Tickets contain free text, date, and agent name.\n- Complaint reasons are not labelled.\n- You decide support priorities for next month.\n- Your director wants an AI model.\n\nMy assumptions:\n\n- The ticket text contains enough detail to identify causes.\n- Older tickets are available for comparison.\n- The helpdesk system can link related tickets if duplicates exist.\n- The complaint increase is partly or wholly operationally relevant, not just a reporting artefact.\n- You can allocate some staff time to read and classify tickets before next month.\n\nIf any assumption is wrong, the plan changes. If the text is too short or vague, then improving ticket intake may be more urgent than modelling. If older tickets are unavailable, the analysis will be weaker, but still useful.\n\n## 6. What to tell the director\n\nA practical message would be:\n\n“We do not yet have enough labelled information to train a reliable AI model. The fastest way to make the model possible, and to fix the complaints, is to review a representative sample of tickets, identify the main complaint reasons, and compare the rise since March with the earlier baseline. After that, we can build a simple model to classify future tickets if the volume justifies it. The model will be a monitoring and triage tool, not the primary solution. The solution will be operational action based on the causes we find.”\n\n## Bottom line\n\nDo not start with the model. Start with the cause.\n\nYour immediate work is:\n\n1. Check whether the 30 percent increase is a true complaint increase or a ticketing artefact.\n2. Sample and read tickets.\n3. Define complaint reasons.\n4. Identify which reasons rose since March.\n5. Choose next month’s support priorities based on those reasons.\n6. Train a text classification model only after you have stable labelled reasons.\n\nThis gives you a defensible decision for next month while still leaving a realistic path toward the AI model your director asked for.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    84.06
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "30",
+     "30",
+     "30",
+     "30"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0025,
+   "judge_spent_eur": 0.0
+  },
+  {
+   "id": "hab-07",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "No, a standalone prediction model is probably not the right first thing if your real problem is deciding what routes to run each morning. Your problem is a daily delivery-planning decision under time windows and cost pressure. Prediction may become useful later, especially for traffic, service times, or order volume, but it does not choose routes by itself.\n\n## What the problem actually is\n\nThe decision behind your work is:\n\n- which orders go to which van,\n- in what sequence,\n- with what departure time or shift plan,\n- while meeting the promised time windows,\n- and while reducing fuel use and driver hours.\n\nThe person who uses the result is you, every morning when you plan the routes. Possibly drivers or dispatchers also use the result, but based on what you said, you are the main decision-maker.\n\nThe unit of the result is a daily plan for the 12 vans, covering about 300 orders. At a lower level, the decision unit is each order being assigned to a van and position in a route.\n\nThe moment it concerns is the morning before execution, when routes are still adjustable. It may also matter during the day if something changes, but the first problem is planning.\n\nWhat you told me you know:\n\n- You run grocery deliveries in Dubai.\n- You have 12 vans.\n- You have about 300 orders a day.\n- Each order has an address and a promised time window.\n- You already plan routes every morning.\n- Fuel and driver hours cost too much.\n- You have order logs.\n- You have van GPS traces.\n- You have not exported the data yet.\n\nWhat is not known from your message:\n\n- Whether the order log contains enough usable fields: order ID, address, promised window, assigned van, actual delivery time, service time, cancellations, customer issues, etc.\n- Whether the GPS traces can be reliably linked to vans, drivers, orders, or routes.\n- Where vans start and end.\n- Whether vans have different capacities, sizes, refrigeration, or restrictions.\n- What driver-hour rules exist: shift length, breaks, minimum or maximum hours.\n- What fuel or driver cost measures you use.\n- How strict the time windows are: can vans arrive early and wait, must they arrive only inside the window, are there priority customers?\n- How much traffic variability you actually face and whether that variability is the real problem or just one symptom.\n- Whether your current manual process is already good in some parts and weak in others.\n\nThose unknowns matter a lot. If you build a model before clarifying them, you may optimize the wrong thing.\n\n## Why “prediction model” is not enough\n\nA prediction model answers questions like:\n\n- How many orders will arrive?\n- How long will travel take?\n- Which delivery will be late?\n- How much fuel will a route use?\n\nThose can be useful. But your stated pain is not “I do not know something.” Your pain is “I must choose routes that cost less and still meet promises.”\n\nIf you predict, for example, that certain routes will use too much fuel, but you still have no structured way to compare alternative routes, assign orders, sequence stops, and respect time windows, the prediction does not solve the business problem.\n\nSo the core problem is closer to:\n\n> vehicle routing with time windows and operational constraints\n\nPrediction can be part of the solution, especially for estimating travel time and service time, but the primary missing piece is probably a decision-support system for route planning.\n\n## Approaches that could solve it\n\n### 1. Improve the process without a model\n\nThis means making your morning planning process explicit: standard rules, checklists, clear inputs, and recording what you actually decide.\n\nWhat it costs:\n\n- Mostly time from you and maybe a supervisor.\n- Simple changes to how the plan is recorded.\n\nWhat it gives:\n\n- A baseline.\n- Less confusion about constraints.\n- Ability to tell later whether anything improves.\n- A way to see whether the problem is really “no model” or “poor process.”\n\nThis sounds small, but it is often the most important first step. If you do not know how your current manual method works, you cannot compare it with any model.\n\n### 2. Use a static route optimizer\n\nA static optimizer takes the known orders, addresses, time windows, van constraints, and rough travel times, then suggests a daily route plan.\n\nWhat it costs:\n\n- You need exported, clean order data.\n- Addresses need to be usable, probably geocoded.\n- You need travel-time estimates or a distance/time matrix.\n- You need to define vehicle capacity, start/end, time window rules, and driver-hour rules.\n- You need a human to review and adapt the plans, at least at first.\n\nWhat it gives:\n\n- Alternative daily plans to compare.\n- A possible reduction in fuel and driver hours if the optimizer reflects reality well.\n- A structured way to make the trade-off between time-window satisfaction and route efficiency.\n\nRisk:\n\n- It can produce unrealistic routes if constraints or travel times are wrong.\n- Drivers may reject suggestions that ignore parking, customer access, loading order, or local delivery realities.\n\n### 3. Build a prediction model alone\n\nA prediction model could forecast things like delivery delays, traffic variability, demand for a future day, or fuel consumption of planned routes.\n\nWhat it costs:\n\n- Clean historical data.\n- Feature preparation: addresses, time windows, order size, day of week, traffic patterns, GPS-derived actual times.\n- Validation.\n- Maintenance.\n\nWhat it gives:\n\n- Better estimates of what will happen.\n- Alerts, such as “this route looks likely to miss many windows.”\n- Potentially better planning if used carefully.\n\nRisk:\n\n- If it does not connect directly to the route decision, it may not reduce fuel or driver hours.\n- A good prediction is not the same thing as a good plan.\n\n### 4. Use prediction inside a route optimizer\n\nThis is the more mature option. You predict travel time, service time, or risk of delay, then feed those predictions into a route-planning engine.\n\nWhat it costs:\n\n- More data engineering.\n- More model validation.\n- More integration with your morning process.\n- More trust from drivers and planners.\n\nWhat it gives:\n\n- Plans that are more robust to variability.\n- Better trade-off between short routes and reliable time-window performance.\n- Potential value in high-variability environments.\n\nBut I would not start here unless the simpler route optimizer shows promise and the variability is genuinely damaging the plan.\n\n## What I would do first\n\nI would not start by building a prediction model.\n\nI would start by making the current planning process measurable and getting the right data into a usable form.\n\nThe first practical step is:\n\n> export and structure a recent sample of the order log and GPS traces, then reconstruct what actually happened on a few recent delivery days.\n\nThat means you are not modeling yet. You are building a mirror of today’s operation.\n\n### Step 1: Write down the decision you make every morning\n\nBefore touching the data, record the planning logic you already use.\n\nAsk yourself:\n\n- How do you group orders into routes?\n- What do you optimize first: customer promise, distance, fuel, driver hours, or van capacity?\n- Which orders can be combined easily?\n- Which vans can serve which areas?\n- How do you treat early arrivals?\n- How do you treat late arrivals?\n- What causes the worst costs: empty miles, waiting, poor sequencing, route overlaps, unnecessary fuel, or driver overtime?\n\nThis is not a model. This is the business constraint and objective that the model must reflect.\n\nIf you cannot state the current method, any new method is uncheckable.\n\n### Step 2: Export the right data, not everything\n\nSince you have not exported the data yet, the next step is to export a small recent set of days. You do not need all history at first. You need enough to see how one day is planned and executed.\n\nFrom the order log, I would want fields such as:\n\n- order identifier,\n- customer address,\n- promised delivery time window,\n- actual delivery time,\n- assigned van,\n- assigned driver,\n- order sequence or stop number if you record it,\n- order value or size if that affects capacity,\n- special delivery instructions,\n- cancellation or rescheduling marks.\n\nFrom the GPS traces, I would want fields such as:\n\n- van identifier,\n- driver identifier if linked to the van,\n- timestamp,\n- latitude and longitude,\n- route path,\n- stop locations inferred from speed changes or dwell time,\n- engine or fuel data if your GPS device captures it, otherwise fuel data from another source if possible.\n\nThe exact fields depend on what your systems contain. The point is to be able to answer:\n\n- what orders were due,\n- what route was planned,\n- what route was actually driven,\n- where delays happened,\n- how much time and fuel were consumed.\n\n### Step 3: Geocode the addresses and clean them\n\nYou may need addresses converted into coordinates so you can calculate distances and travel times.\n\nWhat this needs:\n\n- Address cleaning.\n- Building access points or parking locations if addresses are too generic.\n- A routing source or distance/time estimate.\n\nWhat it gives:\n\n- A usable map of the delivery network.\n- The ability to test alternative routes instead of only describing routes in words.\n\nThis is often where operational problems become visible. Some addresses may be ambiguous, some customers may be hard to access, and some GPS traces may not align cleanly with deliveries.\n\n### Step 4: Create a baseline from your current manual method\n\nBefore proposing anything better, measure your current way.\n\nUseful metrics would be:\n\n- proportion of time windows missed,\n- proportion of orders delivered too early or too late,\n- total planned distance or time by van,\n- driver hours by van,\n- fuel use or fuel proxy by van,\n- stops per hour,\n- waiting time,\n- route overlaps between vans,\n- cancellations or reschedules caused by capacity or delay,\n- the reasons for route changes.\n\nYou do not need fancy analytics yet. You need a clear before picture.\n\n### Step 5: Build the simplest possible route planner\n\nOnly after that would I build a planning tool.\n\nI would start simple:\n\n- input: addresses, time windows, van count, depot, van constraints, basic travel-time estimate;\n- output: a suggested route for each van;\n- compare it to the manual plan for the same day.\n\nAt first, do not add machine learning.\n\nUse simple rules or basic optimization:\n\n- group orders geographically,\n- respect hard time windows,\n- keep routes short,\n- balance driver workload,\n- avoid obvious overlap between vans.\n\nThe result is checked by asking:\n\n- Is this plan physically possible?\n- Would drivers accept it?\n- Does it respect the promises?\n- Does it reduce distance, time, or fuel compared with what you did?\n- Does it create new problems: too many late arrivals, overloaded vans, unrealistic sequencing?\n\n### Step 6: Test the optimizer on past days\n\nTake recent days after you have reconstructed them. Ask the optimizer to plan those days using only the information you would have known in the morning.\n\nThen compare:\n\n- optimizer plan versus actual manual plan,\n- predicted route cost versus actual route cost,\n- predicted time-window feasibility versus actual outcomes.\n\nThis is important because it tests whether the optimizer can beat your current method without disrupting the business.\n\nIf it cannot beat your manual plan in replay, a prediction model is probably premature.\n\n### Step 7: Add prediction only where it changes decisions\n\nOnce the route planner works, then prediction can be added where it gives a concrete decision benefit.\n\nFor example, prediction could help with:\n\n- travel-time estimates by time of day and area,\n- service-time estimates by customer type,\n- likelihood of missing a time window,\n- demand forecasting for future days,\n- fuel consumption by route pattern,\n- risk of traffic delay.\n\nEach prediction must be validated separately.\n\nThe question is not only “is the prediction accurate?” but “does using this prediction change the plan for the better?”\n\n## What the final answer should look like\n\nThe final useful output is not a prediction score.\n\nIt is a morning plan you can review, such as:\n\n- van assignment list,\n- ordered stops per van,\n- expected arrival times,\n- expected return time,\n- driver-hour load,\n- expected fuel or distance,\n- time-window risks,\n- suggested manual adjustments.\n\nThen, after the day, you compare the plan with execution. That comparison is what turns planning into learning.\n\n## When to stop or change direction\n\nI would stop building toward a predictive model if:\n\n- the current process cannot be measured,\n- the data cannot be linked between orders, vans, and GPS traces,\n- route constraints are still unclear,\n- the simple route optimizer does not beat your manual baseline,\n- drivers reject plans because they are operationally unrealistic,\n- prediction does not improve route quality,\n- the cost savings are uncertain and require more effort than they are worth.\n\nI would continue with prediction if:\n\n- your biggest losses come from variability, such as unpredictable traffic or service times,\n- the optimizer works but performs poorly when real conditions differ from the morning assumptions,\n- you can validate that predicted travel or service times improve the final plan,\n- the organization will use the prediction daily, not just as a report.\n\n## Direct answer to your question\n\nNo, a prediction model is probably not what you need first.\n\nYou first need to turn your morning route planning into a measurable decision problem. Then I would start with a simple route-planning process, not a predictive model. Prediction should be added later only if it helps estimate travel times, service times, delays, or demand in a way that makes the daily route plan better.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    95.14
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0028,
+   "judge_spent_eur": 0.0
+  },
+  {
+   "id": "hab-08",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I cannot compute the actual predictions from the schema alone, but I can lay out the problem and the model plan as requested.\n\n## 1. What the problem is\n\nThe business decision is which active customers the retention team should contact next month in an attempt to prevent churn.\n\nThe result will be used by the retention team, so the important output is a risk ranking for every active customer at the start of each scoring month. The retention team does not necessarily need a hard yes/no churn label; it needs a trustworthy ordering from lowest to highest next-month churn risk.\n\nThe unit is one active customer at one moment in time, specifically the customer’s state at the beginning of a month. The target, `churned_next_month`, concerns whether that customer churns during the month after the scoring moment. This means each row in the table should ideally represent a customer snapshot at a known scoring date, not just a generic customer record.\n\nWhat is known from what you gave:\n\n- The table has 1200 rows.\n- There is one row per customer.\n- Available fields include `customer_id`, `signup_date`, `segment`, `city`, `plan`, `tenure_months`, `monthly_spend`, `support_tickets_90d`, and `churned_next_month`.\n- The retention team will score all active customers at the start of each month.\n- The team will contact the riskiest customers.\n\nWhat is not known:\n\n- Whether `churned_next_month` is a clear yes/no outcome or a coded value.\n- The exact definition of churn.\n- The scoring date for each row.\n- Whether `monthly_spend` and `support_tickets_90d` are measured before or after the target month.\n- Whether the table is a one-time sample of customers, or whether customers appear again in future months.\n- How many customers the retention team can contact.\n- How many customers churn in the outcome column.\n- Whether the data contains missing values or quality issues.\n- Whether `city` is useful or mostly noise.\n- Whether segment and plan have stable meanings over time.\n- What constitutes actionability for the retention team.\n\n## 2. Approaches that could solve it\n\n### Approach A: No model, just simple business rules\n\nThe retention team could select customers using transparent rules, for example:\n\n- flag customers with more recent support tickets,\n- flag customers with low tenure,\n- flag customers with low monthly spend,\n- flag customers in plans known to churn more.\n\nCost: very low. It needs no training, no model deployment, no complex validation.\n\nWhat it gives: a simple, explainable contact list that can be used immediately. It also serves as the baseline every model should beat.\n\nMain limitation: the rules are arbitrary unless validated. They may miss interactions, for example a customer with a high plan and many tickets may behave differently from a customer with a low plan and many tickets.\n\n### Approach B: Regularized logistic regression\n\nTrain a supervised classification model where the target is `churned_next_month` and the features are customer attributes known at the scoring date. Logistic regression would produce a probability or score for each customer. Regularization reduces overfitting, which matters because 1200 rows is a small modeling table.\n\nCost: moderate. It requires data preparation, categorical encoding, validation, and monitoring.\n\nWhat it gives:\n\n- a ranked list of risk scores,\n- understandable factor directions,\n- a stable baseline model,\n- reasonably fast scoring,\n- output that is easier for the retention team and stakeholders to trust.\n\nMain limitation: it may miss nonlinear relationships or interactions unless they are manually engineered.\n\n### Approach C: Tree-based model, such as gradient boosted trees\n\nUse a model such as gradient boosted decision trees or random forests. These can capture nonlinear effects and interactions between tenure, spend, plan, segment, and support tickets.\n\nCost: higher than logistic regression because it needs stronger validation, careful hyperparameter checking, and more monitoring for overfitting.\n\nWhat it gives: potentially better ranking, especially if churn behavior is not linear.\n\nMain limitation: with only 1200 rows, it can overfit if not evaluated very carefully. It is also harder to explain than logistic regression.\n\n### Approach D: Survival model\n\nA survival model estimates when churn happens rather than only whether churn happens in the next month. This is useful when you have many months of customer history and want to estimate time-to-churn.\n\nCost: higher. It requires clear customer start dates, end dates, censoring logic, and repeated customer observations.\n\nWhat it gives: a richer model for retention planning over multiple future months.\n\nMain limitation: probably too much complexity for the immediate need of scoring next-month churn risk.\n\n## 3. Chosen approach\n\nI would choose regularized logistic regression as the primary model.\n\nReasoning:\n\n- The retention team needs a reliable ranking, not necessarily a complex black-box model.\n- The table has 1200 rows, so a simpler model is less likely to overfit.\n- Logistic regression is interpretable and easier to validate with the business.\n- It can be compared fairly against simple rules.\n- A tree-based model can be tested later as a challenger, but the first production-ready model should be stable and explainable.\n\nIf the logistic model fails to beat simple rules, the right decision may be to use rules. If a tree-based model clearly improves ranking and remains stable, it can replace logistic regression later.\n\n## 4. Plan\n\n### Step 1: Confirm the scoring unit and timing\n\nBefore modeling, confirm what each row represents.\n\nNeeded:\n\n- A clear scoring date for each customer row, if possible.\n- Confirmation that `monthly_spend` and `support_tickets_90d` are known before the churn outcome occurs.\n- Confirmation that `churned_next_month` refers to the month after that scoring date.\n- Confirmation of the churn definition.\n\nWhy this matters: a churn model can easily leak future information if the features are measured too close to, or after, the churn event.\n\nIf there is no explicit scoring date, the next best option may be to derive one if you know when the snapshot was taken. If even that is not possible, the model becomes weaker and must be treated as a prototype rather than a production monthly scoring system.\n\n### Step 2: Prepare the target\n\nNeeded:\n\n- Convert `churned_next_month` into a clear binary churn outcome: churned or not churned.\n- Check that missing or ambiguous outcomes are excluded from training.\n- Check whether the outcome is very rare or fairly common.\n\nWhy this matters: if the churn rate is very low, the model should be evaluated by ranking and lift rather than by simple accuracy.\n\n### Step 3: Clean the features\n\nNeeded:\n\n- Convert `signup_date` into a date type.\n- Keep `tenure_months` as numeric.\n- Keep `monthly_spend` as numeric.\n- Keep `support_tickets_90d` as numeric count, unless it is better treated as a small ordinal category.\n- Check missing values in each feature.\n- Decide how missing values are handled.\n\nFor logistic regression, I would:\n\n- standardize numeric features,\n- include a missing indicator if a field has meaningful missingness,\n- impute only when missingness is clearly random or low,\n- avoid imputation choices that leak information.\n\n### Step 4: Encode categorical fields\n\nNeeded:\n\n- Encode `segment`, `city`, and `plan`.\n- For low-cardinality fields, use indicator columns.\n- For high-cardinality fields such as city, if there are many cities, group very rare cities or test whether city adds stable value.\n\nWhy this matters: `city` may improve prediction, but it could also overfit if many cities appear very few times.\n\nI would compare models with and without city to see whether it improves holdout ranking.\n\n### Step 5: Build simple engineered features if needed\n\nNeeded:\n\n- Possibly tenure groups,\n- possibly a support-ticket activity indicator,\n- possibly spend relative to plan,\n- possibly interactions such as tenure and plan.\n\nWhy this matters: logistic regression may benefit from a few sensible interactions, especially if churn risk depends on combinations of attributes.\n\nConstraint: every engineered feature must be available at the beginning of the scoring month. Do not create features that reveal future churn.\n\n### Step 6: Split the data\n\nBest case:\n\n- If there is a valid scoring month, split by time:\n  - train on earlier months,\n  - validate on more recent months.\n\nThis matters because the model will be used to score future months, not a random mixture of past and future.\n\nIf repeated customer history is unavailable and each customer appears only once:\n\n- use a stratified train/validation split,\n- but clearly label it as less robust because it cannot prove the model will work on future months.\n\nIf customers appear more than once:\n\n- group by `customer_id` during cross-validation so the same customer is not split across train and test.\n\n### Step 7: Fit the baseline models\n\nTrain three things:\n\n1. A simple rule-based list, such as ranking by recent support tickets or lowest tenure.\n2. A majority-class baseline, which predicts everyone will not churn.\n3. A regularized logistic regression churn risk model.\n\nNeeded:\n\n- a feature matrix from the prepared customer rows,\n- the binary churn outcome,\n- the train/validation split.\n\n### Step 8: Fit the candidate churn model\n\nNeeded:\n\n- fit logistic regression with regularization,\n- consider class weighting if churn is rare,\n- produce a risk score for each validation customer,\n- produce feature directions so the team can understand what drives risk.\n\nThe output should include:\n\n- `customer_id`,\n- scoring month,\n- risk score,\n- risk rank,\n- optional churn probability if calibration is acceptable.\n\n### Step 9: Evaluate the model\n\nDo not evaluate only by accuracy. For retention contact, the key question is whether the top-risk list contains more churners than a simple approach would.\n\nNeeded checks:\n\n- Compare the model’s ranking against the majority baseline.\n- Compare the model’s ranking against simple rules.\n- Evaluate how well the top-ranked customers capture churners.\n- Use the business’s contact capacity to choose the evaluation slice, not an invented threshold.\n- Check whether the model works for different segments, plans, tenure groups, and cities.\n- Check whether the score distribution is stable over time.\n- Check whether probabilities are well calibrated if the team will use them directly.\n- Check whether the model is sensitive to outliers in spend or support tickets.\n\nUseful metrics:\n\n- ranking quality,\n- lift over baseline,\n- precision in the top-risk group,\n- recall in the top-risk group,\n- calibration,\n- performance across customer segments.\n\nIf churn is rare, accuracy can be misleading because a model that predicts no churn for everyone may look accurate but gives the retention team no useful ranking.\n\n### Step 10: Decide whether to stop or continue\n\nStop model development and choose the better option when:\n\n- the logistic model clearly beats the majority baseline and simple rules on recent or held-out months,\n- the top-risk list is actionable for the retention team,\n- the score ranks are stable enough to contact customers weekly or monthly,\n- the model is not wildly different across segments unless those differences are explained,\n- no severe data leakage is found.\n\nStop and revert to rules if:\n\n- the model does not beat simple rules on a proper holdout,\n- validation is unstable because each customer appears only once and there is no true scoring date,\n- feature timing cannot be confirmed,\n- the outcome is too poorly defined,\n- the model depends too heavily on `city` or `plan` in a way that feels arbitrary,\n- the retention team cannot use the top list operationally.\n\nContinue to a more advanced model if:\n\n- the logistic model is already useful,\n- there is a clear pattern of missed interactions,\n- a gradient boosted tree model beats the logistic model on proper time-based validation,\n- the tree model remains stable and explainable enough for operations.\n\n### Step 11: Operational deployment\n\nNeeded:\n\n- Monthly scoring pipeline for active customers.\n- Feature inputs known at the start of each scoring month.\n- Output of risk rank for all active customers.\n- Contact capacity decision from retention operations.\n- Logging of which customers were contacted.\n- Follow-up outcome labels so future models can learn whether intervention worked.\n\nImportant caution:\n\nThis model predicts churn risk. It does not yet predict which customers would respond to retention contact. If the team later wants to maximize retention success rather than just target high-risk customers, the next stage would be a response or uplift model, but that requires contact history and outcomes after contact.\n\n## 5. Assumptions versus given information\n\nGiven by you:\n\n- The table has one row per customer.\n- The retention team scores all active customers at the start of each month.\n- They contact the riskiest customers.\n- The columns are `customer_id`, `signup_date`, `segment`, `city`, `plan`, `tenure_months`, `monthly_spend`, `support_tickets_90d`, and `churned_next_month`.\n- The table has 1200 rows.\n\nAssumed, not confirmed:\n\n- `churned_next_month` is a yes/no churn outcome.\n- Each row represents a customer at a scoring moment before the target month.\n- `monthly_spend` and `support_tickets_90d` are available before churn occurs.\n- `segment`, `plan`, and `city` are stable enough to use.\n- The retention team has a fixed capacity for how many customers to contact.\n- There is enough churn-positive outcome data to train a model.\n- The model will be used for ranking, not necessarily for setting an absolute churn probability threshold.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    124.63
+   ],
+   "safety": {
+    "uncited": [
+     "11"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0035,
+   "judge_spent_eur": 0.0
+  }
+ ],
+ "scores": {
+  "model_only": [
+   {
+    "run": "HAB-022",
+    "case": "hab-01",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 93.67,
+    "spent_eur": 0.0031,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-022",
+    "case": "hab-02",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 157.49,
+    "spent_eur": 0.0043,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-022",
+    "case": "hab-03",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 177.57,
+    "spent_eur": 0.0048,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-022",
+    "case": "hab-04",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 287.25,
+    "spent_eur": 0.0078,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-022",
+    "case": "hab-05",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 204.8,
+    "spent_eur": 0.0059,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-022",
+    "case": "hab-06",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.75,
+    "forbidden_done": 0,
+    "safety_failures": 5,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 84.06,
+    "spent_eur": 0.0025,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-022",
+    "case": "hab-07",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 95.14,
+    "spent_eur": 0.0028,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-022",
+    "case": "hab-08",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.75,
+    "forbidden_done": 0,
+    "safety_failures": 1,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 124.63,
+    "spent_eur": 0.0035,
+    "first_divergence": null,
+    "wanted_right": null
+   }
+  ]
+ },
+ "summary": {
+  "model_only": {
+   "conversations": 8,
+   "judged": 8,
+   "failed": 0,
+   "understanding": 4.0,
+   "solution_design": 4.0,
+   "planning": 4.0,
+   "evidence_discipline": 4.0,
+   "adaptation": null,
+   "accepted_rate": 1.0,
+   "understood_share": 0.9375,
+   "forbidden_done": 0,
+   "safety_failures": 6,
+   "seconds": 153.0763,
+   "spent_eur": 0.0347
+  }
+ },
+ "paired": {},
+ "first_divergence_counts": {},
+ "incomplete": null
+}

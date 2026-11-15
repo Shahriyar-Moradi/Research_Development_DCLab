@@ -1,0 +1,1758 @@
+{
+ "id": "HAB-019",
+ "split": "dev",
+ "set": "dev",
+ "at": "2026-11-15T19:34:00+00:00",
+ "arms": [
+  "case"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "nvidia/nemotron-3.5-super-vl:free",
+  "judge": "qwen/qwen3.8-27b",
+  "route_check": "nvidia/nemotron-3.5-super-vl:free"
+ },
+ "spent_eur": 0.0184,
+ "cap_eur": 0.3,
+ "judge_only": true,
+ "kept": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-019",
+ "manifest": {
+  "run_id": "HAB-019",
+  "at": "2026-11-15T19:09:23+00:00",
+  "arms": [
+   "case"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.3,
+  "code": {
+   "commit": "0ef8e7f3dcd698f0fbf27825e485e1466ef54dc7",
+   "dirty": [],
+   "diff_sha256": null,
+   "untracked_sha256": null,
+   "untracked_files": 0
+  },
+  "models": {
+   "arms": "nvidia/nemotron-3.5-super-vl:free",
+   "judge": null,
+   "route_check": "nvidia/nemotron-3.5-super-vl:free"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "04956cc04a4915d4",
+   "route_check": "61027a2803db8856"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "96fcda10b0e3e919"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "67a47729b96ad6f30fb3eaaabf52e040bbfe86a4424672c85f3e369371eb1275",
+  "set": "dev",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "stage-2"
+ },
+ "capture": {
+  "exchanges": 26,
+  "ok": 26,
+  "whole": 26,
+  "with_thinking": 26,
+  "without_thinking": [],
+  "purposes": [
+   "case_agent",
+   "exam_judge",
+   "route_check"
+  ]
+ },
+ "label": "stage-2",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better; judged after the run, from the kept conversations",
+ "conversations": [
+  {
+   "id": "hab-05",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I understood your situation: your retention team can phone 50 of about 1,200 customers each month, and you want the call list where each call is most likely to save a customer worth their monthly spend. The table (customers.csv, 1,200 rows) has one row per customer — signup date, segment, city, plan, tenure, monthly spend, recent support tickets, and whether they churned the next month. Calls cost the same per customer, and you don't yet know whether a call changes anyone's mind.\n\nHere's the real problem: ranking customers by churn risk is only half the job. The value of calling someone depends on whether they'd have stayed anyway *and* whether a call can change their mind — and that second part is unknown. So my approach is to offer three paths that handle that unknown differently:\n\n1. **Prediction first** — train a churn-risk model on the table, score all 1,200 customers, rank by predicted risk × monthly spend, and call the top 50 each month.\n2. **Experiment first** — run a randomized pilot: call 50 random customers, hold out a matched 50 not called, and compare next-month churn to learn whether calls work at all before you target.\n3. **Simple ranking now** — rank by the risk signals already visible (support tickets, tenure, plan, segment) × monthly spend, no model, immediate call list.\n\nThe plan, whichever you pick:\n\n1. You choose an option; I check it against your table and confirm what gets built.\n2. Build or run it: model training and scoring, or the pilot split, or the table ranking — producing your first top-50 call list.\n3. You call the 50, record who was called, and measure next-month churn among called vs. not-called customers.\n4. Review whether calls moved the number; re-score or re-run monthly, and stop or expand once the effect is clear enough to trust.\n\nSince we don't know whether calls work, I'd lean toward Option 2 (experiment first) so your targeting rests on evidence rather than assumption — or pairing a pilot with Option 1 so you learn while you target.\n\nWhich direction would you like to take — or would you rather I decide for you?",
+     "choices": [
+      {
+       "title": "Option 1 — Prediction first: rank by churn risk × monthly spend",
+       "what": "Train a model on customers.csv to predict next-month churn from signup date, segment, city, plan, tenure, monthly spend, and recent support tickets. Score all 1,200 customers, rank by predicted churn probability × monthly spend (expected value of saving them), and call the top 50 each month. You get: A churn-risk score for every customer, a ranked top-50 call list each month, and model performance metrics so you can see how well the score separates leavers from stayers. Trade-off: It assumes the customers most likely to churn are the ones a call can save — that's unproven, and the model cannot tell you whether calls work at all. Effort: Moderate: one model build, then a monthly re-score and call list.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      },
+      {
+       "title": "Option 2 — Experiment first: test whether calls change anyone's mind",
+       "what": "Run a small randomized pilot: call 50 customers chosen at random, hold out a matched group of 50 who are not called, and compare next-month churn between the two groups (and across segments). That gives a direct answer to whether a call changes anyone's mind and how much it is worth per segment before you spend all 50 calls on targeting. You get: An evidence-based answer to whether calls work at all, an estimated effect size per segment, and a go/no-go on whether targeting is worth doing. Trade-off: This month's calls fund learning rather than guaranteed saves, and you need a few months of pilot results to trust the effect. Effort: Low: defining the random split and measuring outcomes; no model training.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      },
+      {
+       "title": "Option 3 — Simple ranking now: no model, just the signals you already see",
+       "what": "Rank customers using the risk signals already in the table — recent support tickets, short tenure, plan, segment — combined with monthly spend, and call the top 50 without training anything. You get: An immediate top-50 call list this month, fast and transparent, with no model to maintain. Trade-off: Less precise than a model, and it still rests on the unproven idea that high-risk customers are the most savable. Effort: Minutes: a few aggregate queries over the table.",
+       "track": "analysis",
+       "tool": "query",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Option 1 — Prediction first: rank by churn risk × monthly spend",
+     "pick": "Option 1 — Prediction first: rank by churn risk × monthly spend",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The leakage check came back clean — no column in customers.csv appears to be written after the outcome, so none would give the model the answer in advance. All eight columns are safe to use as features.\n\nHere's what I'd build: a churn-risk model trained on your table that scores all 1,200 customers on the probability they churn next month. Each score gets multiplied by that customer's monthly spend, giving the expected retention value of keeping them. Your call list is the top 50 by that number. Features: signup date, segment, city, plan, tenure months, monthly spend, and support tickets in the last 90 days. The model's own holdout metrics will tell you how well it separates churners from stayers before you ever dial.\n\nShall I go ahead and build it?",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I'll go with Option 1 — Prediction first. I'll build a churn-risk model on customers.csv, score all 1,200 customers, rank by predicted risk × monthly spend, and deliver your top-50 call list each month. I'm treating churned_next_month as \"customer left the next month.\" Go ahead.\n\nDCLab is now checking the remaining build requirements for your churn-risk model. I'll let you know once it's ready.",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "ml_project",
+   "routed_by": "option",
+   "ended": "answered",
+   "assistant_turns": 3,
+   "picked": 1,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    67.88,
+    9.21,
+    13.41
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-05",
+     "version": 16,
+     "words": [
+      "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind.\n\n(I shared a table: customers.csv)",
+      "I pick: Option 1 — Prediction first: rank by churn risk × monthly spend",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "choose which 50 customers to phone each month out of about 1,200 to maximize retention value",
+      "status": "said",
+      "quote": "I want to know which 50 to call",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "which 50 customers to call each month",
+      "status": "said",
+      "quote": "I want to know which 50 to call",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "manager of a small retention team at a subscription company",
+      "status": "said",
+      "quote": "I manage a small retention team at a subscription company",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "customers.csv, 1,200 rows, one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, whether they churned the next month",
+      "status": "said",
+      "quote": "The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [
+      {
+       "value": "whether a call actually changes anyone's mind",
+       "status": "said",
+       "quote": "We do not know yet whether a call changes anyone's mind",
+       "computed": null,
+       "after_words": null
+      }
+     ],
+     "constraints": [
+      {
+       "value": "only 50 calls per month; call cost is about the same for every customer; a customer who stays is worth their monthly spend",
+       "status": "said",
+       "quote": "A call costs us about the same for every customer; a customer who stays is worth their monthly spend",
+       "computed": null,
+       "after_words": null
+      }
+     ],
+     "assumptions": [
+      {
+       "value": "churned_next_month = customer left the next month",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "unknowns": [
+      {
+       "field": "call_effectiveness",
+       "question": "We do not know whether a phone call changes any customer's mind — without that, the expected value of calling each customer cannot be computed.",
+       "blocks": "some",
+       "rank": 1
+      }
+     ],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "Option 1 — Prediction first: rank by churn risk × monthly spend",
+       "what": "Train a model on customers.csv to predict next-month churn from signup date, segment, city, plan, tenure, monthly spend, and recent support tickets. Score all 1,200 customers, rank by predicted churn probability × monthly spend (expected value of saving them), and call the top 50 each month.",
+       "gets": "A churn-risk score for every customer, a ranked top-50 call list each month, and model performance metrics so you can see how well the score separates leavers from stayers.",
+       "tradeoff": "It assumes the customers most likely to churn are the ones a call can save — that's unproven, and the model cannot tell you whether calls work at all.",
+       "effort": "Moderate: one model build, then a monthly re-score and call list.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": [
+        "signup_date",
+        "segment",
+        "city",
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      },
+      {
+       "title": "Option 2 — Experiment first: test whether calls change anyone's mind",
+       "what": "Run a small randomized pilot: call 50 customers chosen at random, hold out a matched group of 50 who are not called, and compare next-month churn between the two groups (and across segments). That gives a direct answer to whether a call changes anyone's mind and how much it is worth per segment before you spend all 50 calls on targeting.",
+       "gets": "An evidence-based answer to whether calls work at all, an estimated effect size per segment, and a go/no-go on whether targeting is worth doing.",
+       "tradeoff": "This month's calls fund learning rather than guaranteed saves, and you need a few months of pilot results to trust the effect.",
+       "effort": "Low: defining the random split and measuring outcomes; no model training.",
+       "track": "business",
+       "tool": "business_brief",
+       "columns": [
+        "customer_id",
+        "segment",
+        "monthly_spend",
+        "churned_next_month"
+       ]
+      },
+      {
+       "title": "Option 3 — Simple ranking now: no model, just the signals you already see",
+       "what": "Rank customers using the risk signals already in the table — recent support tickets, short tenure, plan, segment — combined with monthly spend, and call the top 50 without training anything.",
+       "gets": "An immediate top-50 call list this month, fast and transparent, with no model to maintain.",
+       "tradeoff": "Less precise than a model, and it still rests on the unproven idea that high-risk customers are the most savable.",
+       "effort": "Minutes: a few aggregate queries over the table.",
+       "track": "analysis",
+       "tool": "query",
+       "columns": [
+        "segment",
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      }
+     ],
+     "chosen": "Option 1 — Prediction first: rank by churn risk × monthly spend",
+     "route": {
+      "track": "prediction",
+      "tool": "ml_project",
+      "reasons": "",
+      "by": "person"
+     },
+     "card": null,
+     "findings": [],
+     "build": {
+      "tool": "ml_project",
+      "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     },
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind.\n\n(I shared a table: customers.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "choose which 50 customers to phone each month out of about 1,200 to maximize retention value",
+        "status": "said",
+        "quote": "I want to know which 50 to call",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "which 50 customers to call each month",
+        "status": "said",
+        "quote": "I want to know which 50 to call",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "manager of a small retention team at a subscription company",
+        "status": "said",
+        "quote": "I manage a small retention team at a subscription company",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "customers.csv, 1,200 rows, one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, whether they churned the next month",
+        "status": "said",
+        "quote": "The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 7,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "only 50 calls per month; call cost is about the same for every customer; a customer who stays is worth their monthly spend",
+         "status": "said",
+         "quote": "A call costs us about the same for every customer; a customer who stays is worth their monthly spend",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "churned_next_month = customer left the next month",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "cannot_answer",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "whether a call actually changes anyone's mind",
+         "status": "said",
+         "quote": "We do not know yet whether a call changes anyone's mind",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 10,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [],
+       "after": [
+        {
+         "field": "call_effectiveness",
+         "question": "We do not know whether a phone call changes any customer's mind — without that, the expected value of calling each customer cannot be computed.",
+         "blocks": "some",
+         "rank": 1
+        }
+       ]
+      },
+      {
+       "version": 11,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "Option 1 — Prediction first: rank by churn risk × monthly spend",
+         "what": "Train a model on customers.csv to predict next-month churn from signup date, segment, city, plan, tenure, monthly spend, and recent support tickets. Score all 1,200 customers, rank by predicted churn probability × monthly spend (expected value of saving them), and call the top 50 each month.",
+         "gets": "A churn-risk score for every customer, a ranked top-50 call list each month, and model performance metrics so you can see how well the score separates leavers from stayers.",
+         "tradeoff": "It assumes the customers most likely to churn are the ones a call can save — that's unproven, and the model cannot tell you whether calls work at all.",
+         "effort": "Moderate: one model build, then a monthly re-score and call list.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": [
+          "signup_date",
+          "segment",
+          "city",
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        },
+        {
+         "title": "Option 2 — Experiment first: test whether calls change anyone's mind",
+         "what": "Run a small randomized pilot: call 50 customers chosen at random, hold out a matched group of 50 who are not called, and compare next-month churn between the two groups (and across segments). That gives a direct answer to whether a call changes anyone's mind and how much it is worth per segment before you spend all 50 calls on targeting.",
+         "gets": "An evidence-based answer to whether calls work at all, an estimated effect size per segment, and a go/no-go on whether targeting is worth doing.",
+         "tradeoff": "This month's calls fund learning rather than guaranteed saves, and you need a few months of pilot results to trust the effect.",
+         "effort": "Low: defining the random split and measuring outcomes; no model training.",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": [
+          "customer_id",
+          "segment",
+          "monthly_spend",
+          "churned_next_month"
+         ]
+        },
+        {
+         "title": "Option 3 — Simple ranking now: no model, just the signals you already see",
+         "what": "Rank customers using the risk signals already in the table — recent support tickets, short tenure, plan, segment — combined with monthly spend, and call the top 50 without training anything.",
+         "gets": "An immediate top-50 call list this month, fast and transparent, with no model to maintain.",
+         "tradeoff": "Less precise than a model, and it still rests on the unproven idea that high-risk customers are the most savable.",
+         "effort": "Minutes: a few aggregate queries over the table.",
+         "track": "analysis",
+         "tool": "query",
+         "columns": [
+          "segment",
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        }
+       ]
+      },
+      {
+       "version": 12,
+       "field": "chosen",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": "Option 1 — Prediction first: rank by churn risk × monthly spend"
+      },
+      {
+       "version": 13,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": {
+        "track": "prediction",
+        "tool": "ml_project",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 14,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind.\n\n(I shared a table: customers.csv)"
+       ],
+       "after": [
+        "I pick: Option 1 — Prediction first: rank by churn risk × monthly spend"
+       ]
+      },
+      {
+       "version": 15,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind.\n\n(I shared a table: customers.csv)",
+        "I pick: Option 1 — Prediction first: rank by churn risk × monthly spend"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 16,
+       "field": "build",
+       "op": "set",
+       "by": "person",
+       "why": "the person said yes to the build",
+       "before": null,
+       "after": {
+        "tool": "ml_project",
+        "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": {
+     "tool": "ml_project",
+     "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+    },
+    "exposure": [
+     {
+      "columns_related": [
+       [
+        "customer_id",
+        "churned_next_month"
+       ],
+       [
+        "signup_date",
+        "churned_next_month"
+       ],
+       [
+        "segment",
+        "churned_next_month"
+       ],
+       [
+        "city",
+        "churned_next_month"
+       ],
+       [
+        "plan",
+        "churned_next_month"
+       ],
+       [
+        "tenure_months",
+        "churned_next_month"
+       ],
+       [
+        "monthly_spend",
+        "churned_next_month"
+       ],
+       [
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      ],
+      "rows": "all"
+     }
+    ],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     true,
+     true,
+     false
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 1,
+    "evidence_discipline": 2,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0049,
+   "first_divergence": {
+    "id": "hab-05",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-019/case/hab-05-r1",
+    "events": 9,
+    "first": {
+     "reason": "no_gate",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route prediction/ml_project by option"
+    },
+    "all": [
+     {
+      "reason": "outcome_not_named",
+      "at": "2026-11-15T19:10:45.865087+00:00",
+      "seq": 43,
+      "tool": "case_request_build",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": true,
+      "before_route": false,
+      "evidence": "error: the person has not named churned_next_month: ask which column is the outcome, or leave outcome out"
+     }
+    ],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 7,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "prediction",
+    "tool": "ml_project",
+    "routed_by": "option",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-06",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "When you decide what the support team works on next month, what exactly would you be choosing between — for example, which complaint themes to assign staff to, which products or issues to flag, or something else?",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "[DCLab drew a dashboard above this message]\n\nI've looked at your situation and here's what I judge best: **don't build an AI model yet.** You have no dataset and no labelled reasons, and a model can't learn complaint themes from free text without examples to learn from. Building one now would give you a black box you can't trust. Here's the plan I'd take instead:\n\n1. **Label a sample of tickets** — Pull the tickets since March and have someone (you or a team lead) read a sample and tag each with a theme: delivery delay, defective part, installation issue, billing, returns, etc. This gives you the labels your director's AI model will eventually need. 2. now. That tells you exactly which themes are growing, so you can decide next month's priorities with real numbers instead of guesswork. 3. **Build the model later** — Once you have a few hundred labelled tickets, a text classification model can auto-tag new tickets and route them to the right team. That's the AI your director wants, but it needs step one first. The blueprint I prepared assumes figures like monthly ticket volume, cost per action, and value saved — you didn't give me those, so they're placeholders, not facts. Don't quote them as real. What would you like to start with: labelling a sample of tickets so we can see what's driving the increase?\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": [],
+     "shown": [
+      "no_data_solution"
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "[DCLab drew a dashboard above this message]\n\nHere's what I'd do, since you have no dataset and no labelled complaint reasons yet. I've built a no-data blueprint for you — three layers: what to decide, what data you'd need, and what the model would do. Your director wants an AI model, but a model can't learn complaint themes from text without examples to learn from. So the right first step isn't a model — it's labelling. **The blueprint:**\n\n*Business layer.* You decide which complaint themes the team tackles next month. To do that, someone reads a sample of tickets since March and tags each one with a theme — delivery delay, defective part, installation, billing, returns, etc. That labelled sample becomes your training data and also gives you the numbers to pick next month's priorities today. *Data layer.* From your helpdesk export you'd need: ticket ID, date, free-text body, agent name, and the theme label you assign. Once you have a few hundred labelled tickets, you can split them, train a text model, and test it on held-out tickets so you know its error rate before trusting it. *ML layer.* A text classification model auto-tags new tickets by theme and routes them to the right team or agent. That's the AI your director wants — but it only works after step one. **The figures in this blueprint (monthly ticket volume, cost per action, value saved per issue prevented, share of actions that work) are placeholders.** You didn't give me those numbers, so I marked them as assumed — don't quote them as facts. **Plan, in order:**\n1. Export tickets since March from your helpdesk (date, text, agent name). 3. Review the labelled themes to see what's driving the increase; that tells you what to assign the team next month. 4. Only then build a text classification model to auto-tag and route new tickets.\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": [],
+     "shown": [
+      "no_data_solution"
+     ]
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 3,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    34.53,
+    47.33,
+    19.7
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-06",
+     "version": 10,
+     "words": [
+      "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Reduce the rise in support complaints and decide what the support team works on next month",
+      "status": "assumed",
+      "quote": null,
+      "computed": null,
+      "after_words": 1
+     },
+     "decision": {
+      "value": "Which complaint themes or actions the support team takes on next month",
+      "status": "assumed",
+      "quote": null,
+      "computed": null,
+      "after_words": 1
+     },
+     "user": {
+      "value": "Operations manager at a home appliance retailer; decides what the support team works on next month",
+      "status": "said",
+      "quote": "I am the operations manager of a home appliance retailer",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "Helpdesk tickets exist as free text with a date and an agent name; no reason labels; not yet shared",
+      "status": "said",
+      "quote": "the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [
+      {
+       "value": "What specific reasons are driving the increase; a supervised model cannot be built without labels",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "constraints": [
+      {
+       "value": "Director wants an AI model; no labelled dataset exists yet",
+       "status": "said",
+       "quote": "My director wants an AI model to fix this",
+       "computed": null,
+       "after_words": null
+      }
+     ],
+     "assumptions": [],
+     "unknowns": [],
+     "asked": 1,
+     "declined": 0,
+     "options": [],
+     "chosen": null,
+     "route": null,
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Operations manager at a home appliance retailer; decides what the support team works on next month",
+        "status": "said",
+        "quote": "I am the operations manager of a home appliance retailer",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Reduce the rise in support complaints and decide what the support team works on next month",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 1
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Which complaint themes or actions the support team takes on next month",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 1
+       }
+      },
+      {
+       "version": 5,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Helpdesk tickets exist as free text with a date and an agent name; no reason labels; not yet shared",
+        "status": "said",
+        "quote": "the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "Director wants an AI model; no labelled dataset exists yet",
+         "status": "said",
+         "quote": "My director wants an AI model to fix this",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 7,
+       "field": "cannot_answer",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "What specific reasons are driving the increase; a supervised model cannot be built without labels",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "asked",
+       "op": "counts",
+       "by": "agent",
+       "why": "a question was asked",
+       "before": 0,
+       "after": {
+        "asked": 1,
+        "declined": 0
+       }
+      },
+      {
+       "version": 9,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 10,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?",
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      }
+     ]
+    },
+    "ready": false,
+    "asked": 1,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     false,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false,
+     false
+    ],
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0058,
+   "first_divergence": {
+    "id": "hab-06",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-019/case/hab-06-r1",
+    "events": 4,
+    "first": {
+     "reason": "no_route",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route None/None by None"
+    },
+    "all": [],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 5,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": null,
+    "tool": null,
+    "routed_by": null,
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-07",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Thanks — I’ve got it: 12 vans, about 300 orders a day in Dubai, each order with an address and a promised time window; fuel and driver hours cost too much; you plan the routes every morning; you have an order log and the vans’ GPS traces but haven’t exported them; a consultant told you to build a prediction model.\n\nShort answer: a prediction model is probably not the first thing. The decision you face each morning — which orders go on which van and in what order to hit the time windows at the lowest fuel and driver cost — is a route-planning problem. Prediction (expected travel time per leg, delivery duration, demand by area) can improve that, but only after we see what your data actually contains and where the cost is leaking.\n\nFirst step I’d take: look at the order log and GPS trace columns together — addresses, time windows, actual times, any cost or duration fields — and then decide whether prediction or optimization is the right lever.\n\nCan you share the order log and a GPS trace export (even a sample) so I can inspect the columns?",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "You understood the situation right: 12 vans, about 300 orders a day in Dubai, each order with an address and a promised time window, and you plan the routes every morning while fuel and driver hours cost too much. My judgment is that a prediction model is not what you need first. Your real decision each morning is which orders go on which van and in what order, so you hit the time windows at the lowest fuel and driver cost. That is a routing problem, not a prediction problem. Prediction—expected travel time per leg, delivery duration, demand by area—can improve routing later, but only after we know what your order log and GPS traces actually contain. Here is what I would do, in order:\n\n1. Look at the columns in your order log and a sample of GPS traces—address, promised time window, actual times, van id, timestamps—so we know what is measurable. 2. Build a baseline from what already happened: actual route time and distance per day versus the promised windows, so we can see exactly where fuel and driver hours leak. 3. Decide the lever: if travel times are the unknown, add prediction; if the order-to-van assignment is the problem, use route optimization instead of prediction. The work waits on your table. Share the order log export (and a GPS trace sample when you have it), and I will inspect the columns and build that baseline for you. No model gets built until the data shows it is the right lever.",
+     "choices": []
+    }
+   ],
+   "route": "advice",
+   "tool": "cited_answer",
+   "routed_by": "self",
+   "ended": "answered",
+   "assistant_turns": 2,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    53.08,
+    32.62
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-07",
+     "version": 8,
+     "words": [
+      "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Reduce fuel and driver hours for 12 vans and about 300 orders a day in Dubai, each order with an address and promised time window.",
+      "status": "said",
+      "quote": "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much.",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Whether to build a prediction model or use another approach for planning morning routes.",
+      "status": "said",
+      "quote": "Is a prediction model what I need, and what would you do first?",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "The person who plans the routes every morning.",
+      "status": "said",
+      "quote": "I am the one who plans the routes every morning.",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "Order log and vans' GPS traces, not yet exported or shared.",
+      "status": "said",
+      "quote": "I have the order log and the vans' GPS traces, but I have not exported them yet.",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [
+      {
+       "value": "The order log has one row per order with address and promised time window; GPS traces show van location over time. A prediction model is probably not the right first step before seeing the table columns.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [],
+     "chosen": null,
+     "route": {
+      "track": "advice",
+      "tool": "cited_answer",
+      "reasons": "",
+      "by": "agent"
+     },
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Reduce fuel and driver hours for 12 vans and about 300 orders a day in Dubai, each order with an address and promised time window.",
+        "status": "said",
+        "quote": "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "The person who plans the routes every morning.",
+        "status": "said",
+        "quote": "I am the one who plans the routes every morning.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Order log and vans' GPS traces, not yet exported or shared.",
+        "status": "said",
+        "quote": "I have the order log and the vans' GPS traces, but I have not exported them yet.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "The order log has one row per order with address and promised time window; GPS traces show van location over time. A prediction model is probably not the right first step before seeing the table columns.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 6,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Whether to build a prediction model or use another approach for planning morning routes.",
+        "status": "said",
+        "quote": "Is a prediction model what I need, and what would you do first?",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 7,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 8,
+       "field": "route",
+       "op": "set",
+       "by": "agent",
+       "why": "work started",
+       "before": null,
+       "after": {
+        "track": "advice",
+        "tool": "cited_answer",
+        "reasons": "",
+        "by": "agent"
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     false,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 2,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0038,
+   "first_divergence": {
+    "id": "hab-07",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-019/case/hab-07-r1",
+    "events": 4,
+    "first": {
+     "reason": "no_gate",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route advice/cited_answer by self"
+    },
+    "all": [],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 5,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "advice",
+    "tool": "cited_answer",
+    "routed_by": "self",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-08",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I understood exactly what you need. You want a model that scores every active customer's chance of churning next month (`churned_next_month`), so your retention team can reach out to the riskiest ones at the start of each month. Your table has one row per customer with customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and the churn outcome. DCLab is now building the prediction model (`ml_project`) with `churned_next_month` as the outcome. Here is what happens next, in order:\n\n1. **Build and train the model** — DCLab trains a prediction model on your customer table, using the customer attributes as inputs and `churned_next_month` as the target. The holdout and metrics are handled by the code, so every number you see comes from the actual run, not an estimate. 2. **Check for data leakage** — DCLab checks whether any column was written after the outcome is known (for example, a cancellation date), which would make the model look better than it really is. If a leak is found, it will be flagged before scoring. 3. **Produce monthly risk scores** — Once built, the model will score each active customer with a churn probability, ranked from riskiest to safest, ready for the retention team to act on at the start of each month. DCLab is checking the remaining build requirements now. I will share the results — including any leakage flags and the model's performance — as soon as the run finishes.",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "ml_project",
+   "routed_by": "self",
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    38.09
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-08",
+     "version": 8,
+     "words": [
+      "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)"
+     ],
+     "goal": {
+      "value": "Build a model predicting churned_next_month for each customer",
+      "status": "said",
+      "quote": "Please build a model that predicts churned_next_month for each customer.",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Contact the riskiest customers at the start of each month",
+      "status": "said",
+      "quote": "The retention team will score all active customers at the start of each month and contact the riskiest ones.",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "Analyst at a subscription company; retention team will score and contact customers",
+      "status": "said",
+      "quote": "I am an analyst at a subscription company.",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "customers.csv: 1200 rows, 9 columns — customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month",
+      "status": "said",
+      "quote": "The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month.",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [],
+     "chosen": null,
+     "route": {
+      "track": "prediction",
+      "tool": "ml_project",
+      "reasons": "",
+      "by": "agent"
+     },
+     "card": null,
+     "findings": [],
+     "build": {
+      "tool": "ml_project",
+      "quote": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)"
+     },
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Build a model predicting churned_next_month for each customer",
+        "status": "said",
+        "quote": "Please build a model that predicts churned_next_month for each customer.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Contact the riskiest customers at the start of each month",
+        "status": "said",
+        "quote": "The retention team will score all active customers at the start of each month and contact the riskiest ones.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Analyst at a subscription company; retention team will score and contact customers",
+        "status": "said",
+        "quote": "I am an analyst at a subscription company.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "customers.csv: 1200 rows, 9 columns — customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month",
+        "status": "said",
+        "quote": "The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 7,
+       "field": "route",
+       "op": "set",
+       "by": "agent",
+       "why": "work started",
+       "before": null,
+       "after": {
+        "track": "prediction",
+        "tool": "ml_project",
+        "reasons": "",
+        "by": "agent"
+       }
+      },
+      {
+       "version": 8,
+       "field": "build",
+       "op": "set",
+       "by": "person",
+       "why": "the person said yes to the build",
+       "before": null,
+       "after": {
+        "tool": "ml_project",
+        "quote": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)"
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": {
+     "tool": "ml_project",
+     "quote": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)",
+     "outcome": "churned_next_month"
+    },
+    "exposure": [],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     true,
+     false,
+     false
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0038,
+   "first_divergence": {
+    "id": "hab-08",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-019/case/hab-08-r1",
+    "events": 4,
+    "first": {
+     "reason": "no_gate",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route prediction/ml_project by self"
+    },
+    "all": [],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 2,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "prediction",
+    "tool": "ml_project",
+    "routed_by": "self",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  }
+ ],
+ "scores": {
+  "case": [
+   {
+    "run": "HAB-019",
+    "case": "hab-05",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 1,
+    "evidence_discipline": 2,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.5,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": "prediction",
+    "tool": "ml_project",
+    "assistant_turns": 3,
+    "picked": 1,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 90.5,
+    "spent_eur": 0.0,
+    "first_divergence": "no_gate",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-019",
+    "case": "hab-06",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.5,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 3,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 101.56,
+    "spent_eur": 0.0,
+    "first_divergence": "no_route",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-019",
+    "case": "hab-07",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 2,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.75,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": "advice",
+    "tool": "cited_answer",
+    "assistant_turns": 2,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 85.7,
+    "spent_eur": 0.0,
+    "first_divergence": "no_gate",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-019",
+    "case": "hab-08",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.25,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": "prediction",
+    "tool": "ml_project",
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 38.09,
+    "spent_eur": 0.0,
+    "first_divergence": "no_gate",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   }
+  ]
+ },
+ "summary": {
+  "case": {
+   "conversations": 4,
+   "judged": 4,
+   "failed": 0,
+   "understanding": 2.25,
+   "solution_design": 2.25,
+   "planning": 1.75,
+   "evidence_discipline": 3.0,
+   "adaptation": null,
+   "accepted_rate": 0.5,
+   "understood_share": 0.5,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": 78.9625,
+   "spent_eur": 0.0
+  }
+ },
+ "paired": {},
+ "first_divergence_counts": {
+  "no_gate": 3,
+  "no_route": 1
+ },
+ "incomplete": null
+}

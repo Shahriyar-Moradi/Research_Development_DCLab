@@ -186,11 +186,99 @@ Nemotron Ultra under the second judge (Nemotron 3.5 Super): model only 3.25 / 3.
    a strict layer where code owns numbers, splits, the holdout, leakage checks and what gets built.
 5. The next test must use the strongest open model and must reward a delivered plan, or it will hide the problem again.
 
-## 11. Not done
+Two statements above were corrected after the repair's first stages (section 11.3): Qwen flash alone plans at 4.00, not
+2.75, once its answers are no longer cut; so the product's model is not the limit.
 
-- Nothing from this work is committed.
-- `make archive` and the archive receipts for the runs after HAB-002.
+## 11. After the repair's stages 0 to 2 (added 2026-11-16)
+
+The plan "more room for the model" was approved on 2026-11-15. Its first three stages were built that night:
+stage 0 pinned the gate before any change (`harness_ablation/gate.py`, `hab_gate_v1`); stage 1 repaired the model
+plumbing; stage 2 made exact fixes to the lead agent's rules. Then all sixteen people (the first eight, and eight more
+written by an independent agent that saw neither the lead agent nor the first answer key) were played on two models and
+judged by a model of the other family.
+
+### 11.1 The gate's verdict: not passed, on any of the four
+
+| model | people | planning: lead agent | planning: model alone | difference by case | understanding | accepted | verdict |
+|---|---|---:|---:|---|---:|---:|---|
+| Qwen 3.8 flash | first 8 | 3.12 | 4.00 | -0.88 [-1.38, -0.38] | 4.00 | 7 of 8 | fail (planning) |
+| Qwen 3.8 flash | 8 new | 2.50 | 4.00 | -1.50 | 3.25 | 5 of 8 | fail (planning, understanding) |
+| Nemotron 3.5 Super | first 8 | 2.00 | 3.38 | -1.38 | 2.38 | 5 of 8 | fail (planning, 1 empty first reply) |
+| Nemotron 3.5 Super | 8 new | 1.88 | 2.88 | -1.00 | 2.00 | 2 of 8 | fail (planning, understanding, 3 empty first replies) |
+
+The bar was: the lead agent may cost a model at most half a point of the plan it writes alone.
+
+### 11.2 What the stages did change (lead agent, Qwen 3.8 flash, the first eight people, one judge)
+
+| measure | before any fix | after the first three fixes | after stages 1 and 2 |
+|---|---:|---:|---:|
+| Understands the problem | 2.62 | 3.38 | 4.00 |
+| Designs a solution | 3.12 | 3.38 | 3.62 |
+| Makes a plan | 1.88 | 2.38 | 3.12 |
+| Sticks to evidence | 3.62 | 3.50 | 4.00 |
+| Accepted | 4 of 8 | 6 of 8 | 7 of 8 |
+| Seconds per conversation | 138 | 195 | 154 |
+| Dead ends (refusals in a row of the deciding moves) | 1 | 1 | 0 |
+| A build asked for and refused for want of a yes | 3 | 6 | 0 |
+| Numbers nobody gave | 0 | 0 | 0 |
+
+From the first three fixes to stage 2, by case: understanding +0.62 [0.12, 1.12] and evidence +0.50 [0.12, 0.88] are
+outside noise; planning +0.75 [-0.12, 1.75] is not quite. On Nemotron 3.5 Super the same stages moved accepted answers
+from 2 to 5 of 8 and nothing else outside noise.
+
+In all 32 lead-agent conversations of this round: no dead end, no fallback line, no number nobody gave, no build
+without a yes.
+
+### 11.3 Three corrections to what this report said before
+
+1. **"Qwen flash alone plans at 2.75" (sections 3 and 10) was wrong, and the fault was the plumbing.** Two of its eight
+   answers had come back empty or cut. With stage 1 in place the same model alone scores 4.00 on the first eight people
+   and 4.00 on the eight new ones. So the product's own model is not the limit either: the earlier risk "the product's
+   model caps the gain" does not hold.
+2. **The first pass of the gate was an artefact.** Against the old baseline (2.75) the lead agent's 3.12 passed. The
+   baseline was played again with the repaired plumbing; against it (4.00) the lead agent fails. Reported, not hidden:
+   both baselines are in the benchmark.
+3. **The repair was tuned on the first eight people.** They were watched all day. On the eight written by someone else
+   the lead agent is 1.5 points of planning behind the model alone and does two things the key forbids (below).
+
+### 11.4 Where the lead agent still loses, on the new people
+
+It reached the right kind of work for 7 of 8. It lost on thinking before acting:
+
+- A manager asks for a revenue dashboard; the real problem is that two teams define revenue differently, and the export
+  holds repeated orders and blank amounts. The lead agent built the dashboard on the raw sum. The model alone named the
+  definition as the problem first.
+- A company wants to use customers' nationality to set worse deposit terms. The lead agent recommended a rule that uses
+  it. The model alone refused it, named the proxies to check, and proposed testing the deposit itself.
+
+These are the cases the next stages are for: the lead agent is still told to act at once on a clear request
+("propose or start in this turn"), and its plan is still words in one message of at most 450 words.
+
+### 11.5 How far to trust this round
+
+- The model alone writes about 750 to 3,900 words; the lead agent at most 450. A judge model may reward length. A person may
+  not want 2,500 words. No person has labelled these conversations.
+- Sixteen people, each once. The second eight were written by an independent agent, which is better than before and
+  still not a sealed set.
+- The gate counts an empty first reply even when the second asking recovered it (four on Nemotron 3.5 Super). The
+  person saw an answer in each case; the cost was time.
+- The planning check of the gate is the one fixed before the runs. It was not changed after seeing them.
+
+### 11.6 What this says about the next stages
+
+Stages 1 and 2 removed brakes. They did not give the model room to think before it acts. Stage 3 (a plan kept in the
+case and shown as a card, outside the reply's word limit) and stage 4 (understand and plan first, choose the kind of
+work last) are the ones that address what 11.4 shows. They wait for the owner's own planning plan, to be merged with it.
+
+## 12. Not done
+
+- Stages 3 and 4 of the plan (they wait for the owner's planning plan).
+- Two rows of stage 1's table: a model with no price is still served (its cost is counted when the provider returns
+  it), and a streamed reply has no second asking.
+- A leading yes with a condition ("yes, after legal approves") still counts as a yes to building, as an earlier
+  decision made it. The reviewer of stage 2 thinks it should not.
+- The build record of stage 2 (`dev_trajectories/records/`) is not written.
 - The four cut Nemotron Ultra conversations were not rerun.
-- The stale Qwen flash price in `dclab_rnd/models/prices.py` (0.05/0.40 in the table, 0.15/0.47 real): spend figures for Qwen are too low by about that ratio.
-- One old failing test, not from this work: the team walk over MCP (`tests/test_chat_agents.py`).
 - No owner labels on the judged conversations.
+- Done since the first version of this report: the work is committed and pushed; the runs up to HAB-012 are archived
+  with receipts; the Qwen prices are today's; the team walk over MCP passes.

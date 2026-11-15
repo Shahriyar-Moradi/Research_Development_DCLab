@@ -1,0 +1,2454 @@
+{
+ "id": "HAB-018",
+ "split": "dev",
+ "set": "dev",
+ "at": "2026-11-15T19:34:15+00:00",
+ "arms": [
+  "case"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "nvidia/nemotron-3.5-super-vl:free",
+  "judge": "qwen/qwen3.8-27b",
+  "route_check": "nvidia/nemotron-3.5-super-vl:free"
+ },
+ "spent_eur": 0.0298,
+ "cap_eur": 0.3,
+ "judge_only": true,
+ "kept": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-018",
+ "manifest": {
+  "run_id": "HAB-018",
+  "at": "2026-11-15T19:08:52+00:00",
+  "arms": [
+   "case"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.3,
+  "code": {
+   "commit": "0ef8e7f3dcd698f0fbf27825e485e1466ef54dc7",
+   "dirty": [],
+   "diff_sha256": null,
+   "untracked_sha256": null,
+   "untracked_files": 0
+  },
+  "models": {
+   "arms": "nvidia/nemotron-3.5-super-vl:free",
+   "judge": null,
+   "route_check": "nvidia/nemotron-3.5-super-vl:free"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "04956cc04a4915d4",
+   "route_check": "61027a2803db8856"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "96fcda10b0e3e919"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "67a47729b96ad6f30fb3eaaabf52e040bbfe86a4424672c85f3e369371eb1275",
+  "set": "dev",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "stage-2"
+ },
+ "capture": {
+  "exchanges": 41,
+  "ok": 41,
+  "whole": 41,
+  "with_thinking": 41,
+  "without_thinking": [],
+  "purposes": [
+   "case_agent",
+   "exam_judge",
+   "route_check"
+  ]
+ },
+ "label": "stage-2",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better; judged after the run, from the kept conversations",
+ "conversations": [
+  {
+   "id": "hab-01",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months. [shares sales.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "[DCLab drew a chart with its numbers table above this message]\n\nYour order export runs from 1 January 2025 to 31 March 2026, with 2,020 orders and 472,888.33 in total. Revenue did fall: Q4 2025 brought in 101,379.97 across 433 orders, while Q1 2026 brought in 84,653.28 across 378 orders. The drop is real in the data, but we do not yet know whether the latest months are complete, or which region, channel, category, or order status drove it. The decision this serves is where the head of sales spends next quarter's marketing money, so a single total-revenue forecast would not be enough — we need to know where revenue is leaking and where upside is largest.\n\nHere is how I would tackle it:\n\n1. First check whether the Q1 2026 export is complete, using monthly order counts; if recent months look thin we treat Q1 2026 as preliminary.\n2. Diagnose the drop by splitting revenue and orders by region, channel, product category, and order status between Q4 2025 and Q1 2026, so the head of sales can see exactly where revenue fell.\n3. Only then build a segment-level revenue prediction for next quarter, after checking that no column leaks the answer (status is a likely candidate) and cleaning the data.\n\nThree options to pick from:\n\nPick the option that fits, or tell me to start with the diagnostic.",
+     "choices": [
+      {
+       "title": "Diagnose the revenue drop",
+       "what": "Break revenue and orders down by region, channel, product category, and order status comparing Q4 2025 vs Q1 2026, plus a monthly order-count check to test whether the latest-export is complete. You get: Numbers showing where revenue fell and whether Q1 2026 data looks missing, ready to take to the head of sales. Trade-off: Explains the past but does not forecast next quarter. Effort: quick.",
+       "track": "analysis",
+       "tool": "query",
+       "kind": "option"
+      },
+      {
+       "title": "Predict revenue by segment for next quarter",
+       "what": "Build a model predicting revenue per segment for the coming quarter so marketing spend can be allocated where upside is largest; first check for leaking columns (for example status) and prepare the table. You get: A segment-level revenue forecast and guidance on where to spend the marketing budget. Trade-off: Takes longer to build, and only helps spend decisions if the segments are stable. Effort: moderate.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      },
+      {
+       "title": "Keep a live revenue dashboard by segment",
+       "what": "A refreshed dashboard of revenue and orders by region, channel, and category so the head of sales can monitor the impact of spend each month. You get: An always-current view of where revenue stands by segment. Trade-off: Monitors performance but does not explain the drop or forecast ahead. Effort: low-medium.",
+       "track": "reporting",
+       "tool": "dashboard",
+       "kind": "option"
+      }
+     ],
+     "shown": [
+      "answer"
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Diagnose the revenue drop",
+     "pick": "Diagnose the revenue drop",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "[DCLab drew a chart with its numbers table and a chart with its numbers table and a chart with its numbers table and a chart with its numbers table and a chart with its numbers table above this message]\n\nThe export looks complete for Q1 2026 — monthly order counts held steady from October through March (141, 139, 153, then 130, 128, 120), so March is not a truncated month.\n\nRevenue fell from 101,379.97 in Q4 2025 to 84,653.28 in Q1 2026. Store was essentially flat (16,940.93 to 16,858.60) and web fell only modestly (44,412.09 to 40,371.17).\n\nBy category, fashion fell from 26,240.42 to 19,826.96 and home from 27,612.76 to 19,578.90, while electronics actually rose from 22,896.16 to 24,488.49. By region, Ajman fell most sharply (11,578.89 to 7,764.00) and Ras Al Khaimah next (7,249.16 to 5,177.75); Sharjah was nearly flat (17,037.78 to 16,510.67). Paid orders drove the decline (87,551.17 to 72,682.06), while refunded orders edged up (8,318.30 to 8,699.27).\n\nFor the head of sales: the leak is in the app channel, especially fashion and home, and Ajman and Ras Al Khaimah are the weakest regions. Next quarter's marketing money looks like it should target app recovery in fashion and home, plus Ajman and RAK, rather than a blanket increase.\n\nShall I move on to building the revenue prediction by segment for next quarter, using these segments as the focus?\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": [],
+     "shown": [
+      "answer",
+      "answer",
+      "answer",
+      "answer",
+      "answer"
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I choose to build a revenue prediction by segment for next quarter — the goal you stated explicitly includes it, and the head of sales needs segment-level guidance on where to spend, not just a single total. Before any model, I'll check which columns could leak the answer (status is a likely one, since an order's status can already tell you whether its amount counts as revenue).\n\nNo column leaks the answer — status does not give away the amount, so the data is safe to model. I'm starting the revenue prediction now: per-order amount as the outcome, with region, channel, product category, and order date as features, so the model can forecast next quarter's revenue by segment for the head of sales' marketing decision.\n\nThe work is started. I didn't pass an outcome column because you didn't name one explicitly — I'll proceed without it and let the setup confirm what the model predicts.\n\nDCLab is checking the remaining build requirements for the revenue prediction now; I'll share results once it has run.",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "ml_project",
+   "routed_by": "option",
+   "ended": "answered",
+   "assistant_turns": 3,
+   "picked": 1,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    194.03,
+    47.67,
+    61.02
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-01",
+     "version": 14,
+     "words": [
+      "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months.\n\n(I shared a table: sales.csv)",
+      "I pick: Diagnose the revenue drop",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Verify whether revenue fell Q1 2026 vs Q4 2025, understand why, and build a revenue prediction to guide next-quarter marketing spend",
+      "status": "said",
+      "quote": "I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Where to spend next quarter's marketing money, decided by the head of sales",
+      "status": "said",
+      "quote": "the result goes to the head of sales, who decides where to spend the next quarter's marketing money",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "The analyst (the person); results consumed by the head of sales",
+      "status": "said",
+      "quote": "I am the analyst",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "sales.csv: one row per order; order_date, region, channel, product_category, amount, status, customer_id; 2,020 rows; 2025-01-01 to 2026-03-31",
+      "status": "said",
+      "quote": "The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [
+      {
+       "value": "Revenue = sum of amount; Q4 2025 vs Q1 2026 compared; the computed drop is real (101,379.97 vs 84,653.28); whether the Q1 2026 export is complete is unknown",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "Diagnose the revenue drop",
+       "what": "Break revenue and orders down by region, channel, product category, and order status comparing Q4 2025 vs Q1 2026, plus a monthly order-count check to test whether the latest-export is complete.",
+       "gets": "Numbers showing where revenue fell and whether Q1 2026 data looks missing, ready to take to the head of sales.",
+       "tradeoff": "Explains the past but does not forecast next quarter.",
+       "effort": "quick",
+       "track": "analysis",
+       "tool": "query",
+       "columns": [
+        "order_date",
+        "region",
+        "channel",
+        "product_category",
+        "amount",
+        "status"
+       ]
+      },
+      {
+       "title": "Predict revenue by segment for next quarter",
+       "what": "Build a model predicting revenue per segment for the coming quarter so marketing spend can be allocated where upside is largest; first check for leaking columns (for example status) and prepare the table.",
+       "gets": "A segment-level revenue forecast and guidance on where to spend the marketing budget.",
+       "tradeoff": "Takes longer to build, and only helps spend decisions if the segments are stable.",
+       "effort": "moderate",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": [
+        "order_date",
+        "region",
+        "channel",
+        "product_category",
+        "amount",
+        "status"
+       ]
+      },
+      {
+       "title": "Keep a live revenue dashboard by segment",
+       "what": "A refreshed dashboard of revenue and orders by region, channel, and category so the head of sales can monitor the impact of spend each month.",
+       "gets": "An always-current view of where revenue stands by segment.",
+       "tradeoff": "Monitors performance but does not explain the drop or forecast ahead.",
+       "effort": "low-medium",
+       "track": "reporting",
+       "tool": "dashboard",
+       "columns": [
+        "order_date",
+        "region",
+        "channel",
+        "product_category",
+        "amount"
+       ]
+      }
+     ],
+     "chosen": "Diagnose the revenue drop",
+     "route": {
+      "track": "prediction",
+      "tool": "ml_project",
+      "reasons": "",
+      "by": "person"
+     },
+     "card": null,
+     "findings": [],
+     "build": {
+      "tool": "ml_project",
+      "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     },
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months.\n\n(I shared a table: sales.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "sales.csv: 2020 rows, 8 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (sales.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Verify whether revenue fell Q1 2026 vs Q4 2025, understand why, and build a revenue prediction to guide next-quarter marketing spend",
+        "status": "said",
+        "quote": "I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Where to spend next quarter's marketing money, decided by the head of sales",
+        "status": "said",
+        "quote": "the result goes to the head of sales, who decides where to spend the next quarter's marketing money",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "The analyst (the person); results consumed by the head of sales",
+        "status": "said",
+        "quote": "I am the analyst",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "sales.csv: 2020 rows, 8 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (sales.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "sales.csv: one row per order; order_date, region, channel, product_category, amount, status, customer_id; 2,020 rows; 2025-01-01 to 2026-03-31",
+        "status": "said",
+        "quote": "The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 7,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "Revenue = sum of amount; Q4 2025 vs Q1 2026 compared; the computed drop is real (101,379.97 vs 84,653.28); whether the Q1 2026 export is complete is unknown",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "Diagnose the revenue drop",
+         "what": "Break revenue and orders down by region, channel, product category, and order status comparing Q4 2025 vs Q1 2026, plus a monthly order-count check to test whether the latest-export is complete.",
+         "gets": "Numbers showing where revenue fell and whether Q1 2026 data looks missing, ready to take to the head of sales.",
+         "tradeoff": "Explains the past but does not forecast next quarter.",
+         "effort": "quick",
+         "track": "analysis",
+         "tool": "query",
+         "columns": [
+          "order_date",
+          "region",
+          "channel",
+          "product_category",
+          "amount",
+          "status"
+         ]
+        },
+        {
+         "title": "Predict revenue by segment for next quarter",
+         "what": "Build a model predicting revenue per segment for the coming quarter so marketing spend can be allocated where upside is largest; first check for leaking columns (for example status) and prepare the table.",
+         "gets": "A segment-level revenue forecast and guidance on where to spend the marketing budget.",
+         "tradeoff": "Takes longer to build, and only helps spend decisions if the segments are stable.",
+         "effort": "moderate",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": [
+          "order_date",
+          "region",
+          "channel",
+          "product_category",
+          "amount",
+          "status"
+         ]
+        },
+        {
+         "title": "Keep a live revenue dashboard by segment",
+         "what": "A refreshed dashboard of revenue and orders by region, channel, and category so the head of sales can monitor the impact of spend each month.",
+         "gets": "An always-current view of where revenue stands by segment.",
+         "tradeoff": "Monitors performance but does not explain the drop or forecast ahead.",
+         "effort": "low-medium",
+         "track": "reporting",
+         "tool": "dashboard",
+         "columns": [
+          "order_date",
+          "region",
+          "channel",
+          "product_category",
+          "amount"
+         ]
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "chosen",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": "Diagnose the revenue drop"
+      },
+      {
+       "version": 10,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": {
+        "track": "analysis",
+        "tool": "query",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 11,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months.\n\n(I shared a table: sales.csv)"
+       ],
+       "after": [
+        "I pick: Diagnose the revenue drop"
+       ]
+      },
+      {
+       "version": 12,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months.\n\n(I shared a table: sales.csv)",
+        "I pick: Diagnose the revenue drop"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 13,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "the person asked: Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+       "before": {
+        "track": "analysis",
+        "tool": "query",
+        "reasons": "",
+        "by": "person"
+       },
+       "after": {
+        "track": "prediction",
+        "tool": "ml_project",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 14,
+       "field": "build",
+       "op": "set",
+       "by": "person",
+       "why": "the person said yes to the build",
+       "before": null,
+       "after": {
+        "tool": "ml_project",
+        "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": {
+     "tool": "ml_project",
+     "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+    },
+    "exposure": [
+     {
+      "plan_hash": "bdfa0049993073af",
+      "columns_related": [],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "bc901139d1a5fc62",
+      "columns_related": [
+       [
+        "order_date",
+        "amount"
+       ],
+       [
+        "order_date",
+        "order_id"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "50ed150d607f8138",
+      "columns_related": [
+       [
+        "order_date",
+        "amount"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "a03b7100e24693ed",
+      "columns_related": [
+       [
+        "order_date",
+        "amount"
+       ],
+       [
+        "region",
+        "amount"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "e0978f6c501c3403",
+      "columns_related": [
+       [
+        "channel",
+        "amount"
+       ],
+       [
+        "order_date",
+        "amount"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "82ca3ec8848c661b",
+      "columns_related": [
+       [
+        "order_date",
+        "amount"
+       ],
+       [
+        "product_category",
+        "amount"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "0750fb3f386ebe18",
+      "columns_related": [
+       [
+        "order_date",
+        "amount"
+       ],
+       [
+        "status",
+        "amount"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "columns_related": [
+       [
+        "order_id",
+        "amount"
+       ],
+       [
+        "order_date",
+        "amount"
+       ],
+       [
+        "region",
+        "amount"
+       ],
+       [
+        "channel",
+        "amount"
+       ],
+       [
+        "product_category",
+        "amount"
+       ],
+       [
+        "status",
+        "amount"
+       ],
+       [
+        "customer_id",
+        "amount"
+       ]
+      ],
+      "rows": "all"
+     }
+    ],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     false,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0107,
+   "first_divergence": {
+    "id": "hab-01",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-018/case/hab-01-r1",
+    "events": 17,
+    "first": {
+     "reason": "picked_wrong_option",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route prediction/ml_project by option"
+    },
+    "all": [
+     {
+      "reason": "outcome_not_named",
+      "at": "2026-11-15T19:13:31.962501+00:00",
+      "seq": 59,
+      "tool": "case_request_build",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": true,
+      "before_route": false,
+      "evidence": "error: the person has not named amount: ask which column is the outcome, or leave outcome out"
+     }
+    ],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 11,
+     "empty_answers": 1,
+     "cut_replies": 1
+    },
+    "route": "prediction",
+    "tool": "ml_project",
+    "routed_by": "option",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-02",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the product manager of a travel booking site. We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip. The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled. Today free cancellation is offered on some trips and not on others; partners and our pricing team choose which, nobody assigned it at random. Tell me what you would do to answer this. [shares bookings.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "What I understand: you run a travel booking site, free cancellation is already offered on some trips (chosen by partners and your pricing team, not at random), and you want to know if offering it on every trip would reduce cancellations, using bookings.csv (1,500 bookings with booking and travel dates, destination, nationality, channel, lead time, price, free cancellation flag, and cancelled flag).\n\nThe real problem is causal, not descriptive: because free cancellation was never assigned at random, a simple comparison of cancellation rates between trips with and without it would likely reflect who chose it rather than what it does. What I still need to know before the final number matters: will you decide based on the cancellation rate alone, or do you also need to know what free cancellation does to revenue or profit (refunds, costs)?\n\nHere is what I would do:\n\n1. Compare cancellation rates between free-cancellation and non-free bookings, split by destination, channel, price band, lead time, and booking date, so we can see how different the two groups are and where the confounding lives. It needs only your table, which we have. The step is done when the breakdown is visible; we should expect the raw comparison to be misleading.\n\n2. Adjust for confounding by modeling cancelled on free_cancellation while controlling for destination, channel, price, lead_time_days, nationality, and the booking and travel dates — either a regression or propensity-score matching/weighting — to isolate the effect of offering free cancellation. It needs no new data. It is checked by whether the treated and control groups look balanced after adjustment and whether the estimate stays stable across model choices; stop when the estimate stops moving much.\n\n3. Stress-test the result by checking whether the effect holds within each segment or whether one segment drives it. It is checked by segment-level estimates; stop when the picture is consistent enough to support a decision.\n\nOne question: will you decide based on the cancellation rate alone, or do you also need to know what free cancellation does to revenue or profit?\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "[DCLab drew a chart with its numbers table and a chart with its numbers table and a chart with its numbers table above this message]\n\nI'll go with a stratified analysis: compare cancellation rates between free-cancellation and non-free bookings overall and within destination, channel, price, and lead-time segments. This shows the raw difference and how much it shifts when we account for the factors partners and pricing use to choose — the best we can do with observational data, since free cancellation wasn't randomly assigned and the table can't show financial impact.\n\nHere is what the bookings show. Overall, cancelled bookings are 23.3% among free-cancellation trips (623 bookings) versus 22.6% among non-free-cancellation trips (877 bookings) — so the raw comparison actually runs the wrong way. But it flips by segment: free cancellation pairs with lower cancellation on the app (20.3% vs 24.2%) and through agents (23.0% vs 24.4%) and in Paris (18.2% vs 19.5%), yet with higher cancellation in Bangkok (28.6% vs 21.9%) and on the web (25.2% vs 20.9%). Price could not be grouped because it is stored as an identifier, and lead time was not broken out. What this means: because free cancellation was never assigned at random — partners and your pricing team choose which trips get it — this raw comparison is confounded. The segment pattern changing direction across destination and channel is exactly the signature of that confounding. The table alone cannot isolate the true effect of free cancellation, and it contains no cost or revenue data, so it cannot show whether offering it everywhere is worth it financially. To go further, I would adjust for the confounders — destination, channel, price band, lead time, and booking/travel dates — using a regression or propensity-score approach, which sits outside what simple table queries can do.",
+     "choices": [],
+     "shown": [
+      "answer",
+      "answer",
+      "answer"
+     ]
+    }
+   ],
+   "route": "analysis",
+   "tool": "query",
+   "routed_by": "self",
+   "ended": "answered",
+   "assistant_turns": 2,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    89.51,
+    67.24
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-02",
+     "version": 10,
+     "words": [
+      "I am the product manager of a travel booking site. We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip. The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled. Today free cancellation is offered on some trips and not on others; partners and our pricing team choose which, nobody assigned it at random. Tell me what you would do to answer this.\n\n(I shared a table: bookings.csv)",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Determine whether offering free cancellation reduces the share of bookings that get cancelled",
+      "status": "said",
+      "quote": "whether offering free cancellation makes fewer people cancel",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Whether to offer free cancellation on every trip or keep it selective",
+      "status": "said",
+      "quote": "decide whether to offer it on every trip",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "Product manager of a travel booking site",
+      "status": "said",
+      "quote": "I am the product manager of a travel booking site",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "bookings.csv: 1500 rows, 11 columns",
+      "status": "computed",
+      "quote": null,
+      "computed": "the upload's profile (bookings.csv)",
+      "after_words": null
+     },
+     "cannot_answer": [
+      {
+       "value": "The table shows whether cancellation was free and whether the booking cancelled, but not what free cancellation costs or any revenue/refund impact, so it cannot alone show whether offering it everywhere is worth it financially",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "constraints": [],
+     "assumptions": [
+      {
+       "value": "Free cancellation is not randomly assigned - partners and the pricing team choose which trips get it, so a naive group comparison would be confounded by destination, channel, price, lead time, and dates",
+       "status": "said",
+       "quote": "nobody assigned it at random",
+       "computed": null,
+       "after_words": null
+      },
+      {
+       "value": "cancelled = 1 means the booking was cancelled",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [],
+     "chosen": null,
+     "route": {
+      "track": "analysis",
+      "tool": "query",
+      "reasons": "",
+      "by": "agent"
+     },
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am the product manager of a travel booking site. We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip. The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled. Today free cancellation is offered on some trips and not on others; partners and our pricing team choose which, nobody assigned it at random. Tell me what you would do to answer this.\n\n(I shared a table: bookings.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "bookings.csv: 1500 rows, 11 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (bookings.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Determine whether offering free cancellation reduces the share of bookings that get cancelled",
+        "status": "said",
+        "quote": "whether offering free cancellation makes fewer people cancel",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Whether to offer free cancellation on every trip or keep it selective",
+        "status": "said",
+        "quote": "decide whether to offer it on every trip",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Product manager of a travel booking site",
+        "status": "said",
+        "quote": "I am the product manager of a travel booking site",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "Free cancellation is not randomly assigned - partners and the pricing team choose which trips get it, so a naive group comparison would be confounded by destination, channel, price, lead time, and dates",
+         "status": "said",
+         "quote": "nobody assigned it at random",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 7,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "Free cancellation is not randomly assigned - partners and the pricing team choose which trips get it, so a naive group comparison would be confounded by destination, channel, price, lead time, and dates",
+         "status": "said",
+         "quote": "nobody assigned it at random",
+         "computed": null,
+         "after_words": null
+        }
+       ],
+       "after": [
+        {
+         "value": "cancelled = 1 means the booking was cancelled",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "cannot_answer",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "The table shows whether cancellation was free and whether the booking cancelled, but not what free cancellation costs or any revenue/refund impact, so it cannot alone show whether offering it everywhere is worth it financially",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the product manager of a travel booking site. We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip. The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled. Today free cancellation is offered on some trips and not on others; partners and our pricing team choose which, nobody assigned it at random. Tell me what you would do to answer this.\n\n(I shared a table: bookings.csv)"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 10,
+       "field": "route",
+       "op": "set",
+       "by": "agent",
+       "why": "work started",
+       "before": null,
+       "after": {
+        "track": "analysis",
+        "tool": "query",
+        "reasons": "",
+        "by": "agent"
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [
+     {
+      "columns_related": [
+       [
+        "booking_id",
+        "cancelled"
+       ],
+       [
+        "booking_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "nationality",
+        "cancelled"
+       ],
+       [
+        "channel",
+        "cancelled"
+       ],
+       [
+        "lead_time_days",
+        "cancelled"
+       ],
+       [
+        "price",
+        "cancelled"
+       ],
+       [
+        "free_cancellation",
+        "cancelled"
+       ],
+       [
+        "customer_id",
+        "cancelled"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "16adbdb27a2a878e",
+      "columns_related": [
+       [
+        "free_cancellation",
+        "cancelled"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "91f40e555fc68822",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "free_cancellation",
+        "cancelled"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "db33b8d869eeb3f9",
+      "columns_related": [
+       [
+        "channel",
+        "cancelled"
+       ],
+       [
+        "free_cancellation",
+        "cancelled"
+       ]
+      ],
+      "rows": "all"
+     }
+    ],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     false,
+     false
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0083,
+   "first_divergence": {
+    "id": "hab-02",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-018/case/hab-02-r1",
+    "events": 9,
+    "first": {
+     "reason": "no_gate",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route analysis/query by self"
+    },
+    "all": [
+     {
+      "reason": "other_refusal",
+      "at": "2026-11-15T19:16:21.159882+00:00",
+      "seq": 116,
+      "tool": "case_answer",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": false,
+      "evidence": "error: group: price is identifier-like; grouping by it would list rows"
+     }
+    ],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 6,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "analysis",
+    "tool": "query",
+    "routed_by": "self",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-03",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I lead retention at a subscription company. I want a model that tells us, for each customer, which discount to offer (none, 10 percent or 25 percent) so that they do not leave. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. We have never given discounts before, so there is no record of any offer or of how customers reacted. The retention team would use the result every month. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Thank you — your table is confirmed: 1,200 customers with segment, city, plan, tenure, monthly spend, support tickets, and a churn flag. Let me record what I've understood and lay out honest options.\n\nHere's what I understood and how I'd approach it.\n\n**What the problem really is.** You want to pick, for each customer every month, one of three discounts (none, 10%, 25%) so they don't churn. Your table only records what happened when no discount was offered — every customer's churn flag reflects the no-discount condition, and there's no record of who received an offer or how they reacted. So the obvious idea — training a model to predict \"which discount works\" — can't be done from this history alone. What we *can* learn is who is likely to churn without any discount.\n\n**My approach.** Rather than pretend we can predict discount response from data that has none, I'd start with what's actually learnable: a churn-risk model that scores every customer, so the retention team knows whom to prioritize. Separately, a small randomized pilot (none / 10% / 25%) would let you learn which discount actually works, and later build a true recommendation model. The risk model gives you something to act on now; the pilot is what makes the discount recommendation possible.\n\n**Plan:**\n1. Build a churn-risk model from segment, city, plan, tenure, monthly spend, and support tickets to predict churned_next_month.\n2. Score and rank all 1,200 customers by churn risk so the team can prioritize outreach each month.\n3. (Optional) Design a randomized discount pilot for next month's at-risk customers, then convert the results into a per-customer discount recommendation.\n\nHere are three ways to proceed. They differ in what they give you and how quickly.",
+     "choices": [
+      {
+       "title": "Churn-risk model + risk-ranked discount targeting",
+       "what": "Train a model to predict each customer's chance of churning next month from segment, plan, tenure, spend, and support tickets. Rank all 1,200 customers by risk so the retention team knows whom to prioritize for a discount. You get: A monthly churn-risk score per customer, plus the factors driving risk (segment, plan, tenure_months, monthly_spend, support_tickets_90d). Trade-off: Tells you who is likely to leave, but not which discount level will save them — you'd choose one discount level as a business rule since no discount history exists. Effort: Moderate (a few days).",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      },
+      {
+       "title": "Discount-response experiment design",
+       "what": "Design a randomized pilot: similar customers are randomly offered none, 10%, or 25% off next month, with defined group sizes and a success metric (who stayed, was the discount worth it). You get: A ready-to-run experiment plan and, after the pilot, the data to build a true per-customer discount recommendation model. Trade-off: You learn what actually works, but you wait one month for results and some customers receive discounts that turn out not to be best for them. Effort: Low to moderate.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      },
+      {
+       "title": "Current churn-pattern analysis",
+       "what": "Aggregate churn by segment, city, plan, tenure, and support tickets to see which groups leave most right now. You get: A snapshot of where churn is concentrated, with numbers you can act on immediately without modeling. Trade-off: No per-customer model and no discount recommendation — just insight for manual targeting. Effort: Low.",
+       "track": "analysis",
+       "tool": "query",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Churn-risk model + risk-ranked discount targeting",
+     "pick": "Churn-risk model + risk-ranked discount targeting",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "No leakage issues — all eight columns are legitimate predictors, and customer_id is an identifier we won't use as a feature.\n\n**What will be built:** A churn-risk model using segment, city, plan, tenure_months, monthly_spend, and support_tickets_90d to predict churned_next_month for each customer. You'll get a per-customer risk score and ranking, so the retention team knows whom to prioritize each month — and the discount (none / 10% / 25%) they choose can then be targeted at those at-risk customers rather than applied blindly.\n\n**What this will and won't do:** It will tell you *who* is likely to leave without a discount. It will not tell you which discount level actually works — we have no history of offers yet, so that would require a pilot.\n\nShall I go ahead and build the churn-risk model now?",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I've chosen to build the churn-risk model on your data — it scores every customer's likelihood of leaving so the retention team can target discounts where they matter most. Since you said go ahead, I'm requesting the build now.\n\nYou said go ahead, and I'll build it. Before I do, I need one thing: which column should the model predict — is it \"churned_next_month\" (whether they churned the next month), or a different column?\n\nWhich column should the model predict — churned_next_month, or another column?",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I'll build it. Since your last words were \"choose what you judge best and go ahead,\" I'm starting the prediction and requesting the build now — no need to wait. The model will predict churned_next_month using segment, city, plan, tenure_months, monthly_spend, and support_tickets_90d — exactly the columns your table has. Every customer gets a churn-risk score, so the retention team can rank customers each month and target discounts at those most likely to leave. Starting the work and requesting the build.\n\nThe build needs the outcome column named exactly, and you described it in words rather than naming the column — so I'll submit the build without specifying it, and DCLab will pick it up from your table. I'm resubmitting now.\n\nDCLab is checking the remaining build requirements for your churn-risk model now. Once it clears, the model will train and score all 1,200 customers — you'll get a per-customer churn-risk ranking the retention team can use each month to target discounts where they matter most. No results yet; I'll share them as soon as the build runs.",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "ml_project",
+   "routed_by": "option",
+   "ended": "answered",
+   "assistant_turns": 4,
+   "picked": 1,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    66.36,
+    9.86,
+    31.15,
+    31.73
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-03",
+     "version": 15,
+     "words": [
+      "I lead retention at a subscription company. I want a model that tells us, for each customer, which discount to offer (none, 10 percent or 25 percent) so that they do not leave. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. We have never given discounts before, so there is no record of any offer or of how customers reacted. The retention team would use the result every month.\n\n(I shared a table: customers.csv)",
+      "I pick: Churn-risk model + risk-ranked discount targeting",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Build a per-customer discount recommendation (none / 10% / 25%) to prevent churn, used monthly by the retention team",
+      "status": "said",
+      "quote": "I want a model that tells us, for each customer, which discount to offer (none, 10 percent or 25 percent) so that they do not leave",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Which discount level to offer each customer every month",
+      "status": "said",
+      "quote": "The retention team would use the result every month",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "Retention team",
+      "status": "said",
+      "quote": "I lead retention at a subscription company",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "customers.csv, 1200 rows, one row per customer; columns customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month",
+      "status": "said",
+      "quote": "The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [
+      {
+       "value": "No discount or offer was ever given, so churned_next_month reflects the no-discount condition for every customer; discount response cannot be learned directly from this history",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "unknowns": [],
+     "asked": 1,
+     "declined": 0,
+     "options": [
+      {
+       "title": "Churn-risk model + risk-ranked discount targeting",
+       "what": "Train a model to predict each customer's chance of churning next month from segment, plan, tenure, spend, and support tickets. Rank all 1,200 customers by risk so the retention team knows whom to prioritize for a discount.",
+       "gets": "A monthly churn-risk score per customer, plus the factors driving risk (segment, plan, tenure_months, monthly_spend, support_tickets_90d).",
+       "tradeoff": "Tells you who is likely to leave, but not which discount level will save them — you'd choose one discount level as a business rule since no discount history exists.",
+       "effort": "Moderate (a few days)",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": [
+        "segment",
+        "city",
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      },
+      {
+       "title": "Discount-response experiment design",
+       "what": "Design a randomized pilot: similar customers are randomly offered none, 10%, or 25% off next month, with defined group sizes and a success metric (who stayed, was the discount worth it).",
+       "gets": "A ready-to-run experiment plan and, after the pilot, the data to build a true per-customer discount recommendation model.",
+       "tradeoff": "You learn what actually works, but you wait one month for results and some customers receive discounts that turn out not to be best for them.",
+       "effort": "Low to moderate",
+       "track": "business",
+       "tool": "business_brief",
+       "columns": [
+        "segment",
+        "city",
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      },
+      {
+       "title": "Current churn-pattern analysis",
+       "what": "Aggregate churn by segment, city, plan, tenure, and support tickets to see which groups leave most right now.",
+       "gets": "A snapshot of where churn is concentrated, with numbers you can act on immediately without modeling.",
+       "tradeoff": "No per-customer model and no discount recommendation — just insight for manual targeting.",
+       "effort": "Low",
+       "track": "analysis",
+       "tool": "query",
+       "columns": [
+        "segment",
+        "city",
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      }
+     ],
+     "chosen": "Churn-risk model + risk-ranked discount targeting",
+     "route": {
+      "track": "prediction",
+      "tool": "ml_project",
+      "reasons": "",
+      "by": "person"
+     },
+     "card": null,
+     "findings": [],
+     "build": {
+      "tool": "ml_project",
+      "quote": "\"Everything I know is in what I wrote. Choose what you judge best and go ahead.\""
+     },
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I lead retention at a subscription company. I want a model that tells us, for each customer, which discount to offer (none, 10 percent or 25 percent) so that they do not leave. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. We have never given discounts before, so there is no record of any offer or of how customers reacted. The retention team would use the result every month.\n\n(I shared a table: customers.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Build a per-customer discount recommendation (none / 10% / 25%) to prevent churn, used monthly by the retention team",
+        "status": "said",
+        "quote": "I want a model that tells us, for each customer, which discount to offer (none, 10 percent or 25 percent) so that they do not leave",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Which discount level to offer each customer every month",
+        "status": "said",
+        "quote": "The retention team would use the result every month",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Retention team",
+        "status": "said",
+        "quote": "I lead retention at a subscription company",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "customers.csv, 1200 rows, one row per customer; columns customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month",
+        "status": "said",
+        "quote": "The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 7,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "No discount or offer was ever given, so churned_next_month reflects the no-discount condition for every customer; discount response cannot be learned directly from this history",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "Churn-risk model + risk-ranked discount targeting",
+         "what": "Train a model to predict each customer's chance of churning next month from segment, plan, tenure, spend, and support tickets. Rank all 1,200 customers by risk so the retention team knows whom to prioritize for a discount.",
+         "gets": "A monthly churn-risk score per customer, plus the factors driving risk (segment, plan, tenure_months, monthly_spend, support_tickets_90d).",
+         "tradeoff": "Tells you who is likely to leave, but not which discount level will save them — you'd choose one discount level as a business rule since no discount history exists.",
+         "effort": "Moderate (a few days)",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": [
+          "segment",
+          "city",
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        },
+        {
+         "title": "Discount-response experiment design",
+         "what": "Design a randomized pilot: similar customers are randomly offered none, 10%, or 25% off next month, with defined group sizes and a success metric (who stayed, was the discount worth it).",
+         "gets": "A ready-to-run experiment plan and, after the pilot, the data to build a true per-customer discount recommendation model.",
+         "tradeoff": "You learn what actually works, but you wait one month for results and some customers receive discounts that turn out not to be best for them.",
+         "effort": "Low to moderate",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": [
+          "segment",
+          "city",
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        },
+        {
+         "title": "Current churn-pattern analysis",
+         "what": "Aggregate churn by segment, city, plan, tenure, and support tickets to see which groups leave most right now.",
+         "gets": "A snapshot of where churn is concentrated, with numbers you can act on immediately without modeling.",
+         "tradeoff": "No per-customer model and no discount recommendation — just insight for manual targeting.",
+         "effort": "Low",
+         "track": "analysis",
+         "tool": "query",
+         "columns": [
+          "segment",
+          "city",
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "chosen",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": "Churn-risk model + risk-ranked discount targeting"
+      },
+      {
+       "version": 10,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": {
+        "track": "prediction",
+        "tool": "ml_project",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 11,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I lead retention at a subscription company. I want a model that tells us, for each customer, which discount to offer (none, 10 percent or 25 percent) so that they do not leave. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. We have never given discounts before, so there is no record of any offer or of how customers reacted. The retention team would use the result every month.\n\n(I shared a table: customers.csv)"
+       ],
+       "after": [
+        "I pick: Churn-risk model + risk-ranked discount targeting"
+       ]
+      },
+      {
+       "version": 12,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I lead retention at a subscription company. I want a model that tells us, for each customer, which discount to offer (none, 10 percent or 25 percent) so that they do not leave. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. We have never given discounts before, so there is no record of any offer or of how customers reacted. The retention team would use the result every month.\n\n(I shared a table: customers.csv)",
+        "I pick: Churn-risk model + risk-ranked discount targeting"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 13,
+       "field": "asked",
+       "op": "counts",
+       "by": "agent",
+       "why": "a question was asked",
+       "before": 0,
+       "after": {
+        "asked": 1,
+        "declined": 0
+       }
+      },
+      {
+       "version": 14,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I lead retention at a subscription company. I want a model that tells us, for each customer, which discount to offer (none, 10 percent or 25 percent) so that they do not leave. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. We have never given discounts before, so there is no record of any offer or of how customers reacted. The retention team would use the result every month.\n\n(I shared a table: customers.csv)",
+        "I pick: Churn-risk model + risk-ranked discount targeting",
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 15,
+       "field": "build",
+       "op": "set",
+       "by": "person",
+       "why": "the person said yes to the build",
+       "before": null,
+       "after": {
+        "tool": "ml_project",
+        "quote": "\"Everything I know is in what I wrote. Choose what you judge best and go ahead.\""
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 1,
+    "declined": 0,
+    "consulted": [],
+    "build": {
+     "tool": "ml_project",
+     "quote": "\"Everything I know is in what I wrote. Choose what you judge best and go ahead.\""
+    },
+    "exposure": [
+     {
+      "columns_related": [
+       [
+        "customer_id",
+        "churned_next_month"
+       ],
+       [
+        "signup_date",
+        "churned_next_month"
+       ],
+       [
+        "segment",
+        "churned_next_month"
+       ],
+       [
+        "city",
+        "churned_next_month"
+       ],
+       [
+        "plan",
+        "churned_next_month"
+       ],
+       [
+        "tenure_months",
+        "churned_next_month"
+       ],
+       [
+        "monthly_spend",
+        "churned_next_month"
+       ],
+       [
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      ],
+      "rows": "all"
+     }
+    ],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     true,
+     false
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0062,
+   "first_divergence": {
+    "id": "hab-03",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-018/case/hab-03-r1",
+    "events": 12,
+    "first": {
+     "reason": "no_gate",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route prediction/ml_project by option"
+    },
+    "all": [
+     {
+      "reason": "outcome_not_named",
+      "at": "2026-11-15T19:18:09.161973+00:00",
+      "seq": 168,
+      "tool": "case_request_build",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": true,
+      "before_route": false,
+      "evidence": "error: the person has not named churned_next_month: ask which column is the outcome, or leave outcome out"
+     },
+     {
+      "reason": "outcome_not_named",
+      "at": "2026-11-15T19:18:36.305715+00:00",
+      "seq": 179,
+      "tool": "case_request_build",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": true,
+      "before_route": false,
+      "evidence": "error: the person has not named churned_next_month: ask which column is the outcome, or leave outcome out"
+     }
+    ],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 10,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "prediction",
+    "tool": "ml_project",
+    "routed_by": "option",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-04",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am a data scientist at a travel agency. I want to predict, at the moment a booking is made, whether it will be cancelled, so the operations team can overbook the right trips. The table I shared is our bookings up to late February 2026: booking date, travel date, destination, nationality, channel, lead time in days, price, free cancellation, and whether it was cancelled. Some of the trips in it have not happened yet. Operations would score every new booking once, on the day it is made. [shares bookings.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "No column leaks the cancellation outcome, which is good since scoring must use only what's known at booking time. Let me record what I've understood and lay out options.\n\nI understood the problem like this: at the moment a booking is made, you want to know whether it will be cancelled, so the operations team can overbook the trips where cancellations are most likely. Each new booking is scored once, on its booking day. I've recorded your goal, the overbooking decision, and that operations is the user. My working assumptions: cancelled is a 0/1 flag; any booking whose travel date hasn't arrived yet has no known outcome and stays out of training; scoring uses only information known on the booking date. I checked the ten feature columns against the outcome and found none that leak the answer.\n\nApproach: rather than modelling all rows at once, I'd use a time-based holdout — train on older bookings, validate on newer ones — so the model is tested the way it will actually be used, scoring future bookings from information available at booking time. This beats the obvious option of using everything available or including post-booking details, which would overstate accuracy.\n\nPlan:\n1. Build the labelled set: keep bookings with a known cancelled value, dropping trips whose travel date hasn't happened yet, and confirm cancelled is 0/1. Needs: the table. Checked by row counts before and after. Stop if too few bookings are labelled.\n2. Build booking-day features only (destination, nationality, channel, lead time, price, free cancellation) and re-verify no leakage. Needs: the column list. Checked by a leakage re-check. Stop if a clean feature set exists.\n3. Train the model on older bookings and evaluate on a recent holdout, measuring how well it ranks high-risk bookings. Needs: cancelled as the outcome. Checked by holdout metrics. Stop if performance is usable.\n4. Convert the probability into an overbooking rule with operations' costs (empty seat vs. denied boarding). Needs: cost inputs you don't have in the table. Checked by a threshold policy. Stop if operations can apply it.\n\nWhich direction fits best — the prediction model, the cancellation analysis, or the business overbooking rule? Once you pick, I'll say what DCLab would build and ask once whether to go ahead.",
+     "choices": [
+      {
+       "title": "Build a booking-time cancellation prediction model",
+       "what": "DCLab trains a model on bookings whose outcome is already known, using only information available on the booking date — destination, nationality, channel, lead time, price, free cancellation — and validates with a time-based holdout so it behaves like scoring a new booking today. You get: A model that returns a cancellation probability for every new booking, plus holdout metrics showing how well it ranks high-risk bookings, so operations can choose which trips to overbook. Trade-off: It predicts risk but does not set the overbooking number itself — you still need a cost rule (empty seat vs. denied boarding) to turn probability into how many extra bookings to accept, and it assumes future bookings look like past ones. Effort: Moderate — one model build with a holdout check.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      },
+      {
+       "title": "Measure where cancellations happen now (analysis)",
+       "what": "DCLab computes the overall cancellation rate and breaks it down by destination, channel, lead time, and free cancellation, plus how the rate changes over booking date. You get: Numbers showing which segments lose the most bookings to cancellation and whether cancellation risk is rising over time. Trade-off: Describes the past only; it won't score a future booking or tell operations how much to overbook. Effort: Light — a few aggregate queries.",
+       "track": "analysis",
+       "tool": "query",
+       "kind": "option"
+      },
+      {
+       "title": "Turn risk into an overbooking rule (business brief)",
+       "what": "DCLab translates a cancellation probability into an accept-overbook rule using the cost of an empty seat versus the cost of turning a customer away, and lists what cost inputs you'd need from operations. You get: A threshold policy (e.g., overbook when predicted cancellation probability × seat value exceeds denied-boarding cost) and the list of missing cost inputs. Trade-off: Needs cost numbers the table doesn't contain; works best once the prediction model exists, though it can start from today's average cancellation rate. Effort: Light.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Build a booking-time cancellation prediction model",
+     "pick": "Build a booking-time cancellation prediction model",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I'll build the booking-time cancellation prediction model. DCLab will train on bookings with a known outcome (trips that have already taken place), using only what's known at booking time — destination, nationality, channel, lead time, price, free cancellation — and test on a recent holdout so scoring matches how operations will actually use it. No booking-day column leaks the cancellation answer.\n\nShall I go ahead and build it? Say yes and I'll request the build.",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I chose to build the cancellation prediction model using booking-day features only (destination, nationality, channel, lead time, price, free cancellation), trained on completed trips and tested on a recent holdout — because scoring must use only what's known at booking time. Requesting the build now.\n\nDCLab is checking the remaining build requirements now; I'll share results once the model has run.",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "ml_project",
+   "routed_by": "option",
+   "ended": "answered",
+   "assistant_turns": 3,
+   "picked": 1,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    101.15,
+    14.45,
+    20.92
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-04",
+     "version": 12,
+     "words": [
+      "I am a data scientist at a travel agency. I want to predict, at the moment a booking is made, whether it will be cancelled, so the operations team can overbook the right trips. The table I shared is our bookings up to late February 2026: booking date, travel date, destination, nationality, channel, lead time in days, price, free cancellation, and whether it was cancelled. Some of the trips in it have not happened yet. Operations would score every new booking once, on the day it is made.\n\n(I shared a table: bookings.csv)",
+      "I pick: Build a booking-time cancellation prediction model",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Predict at booking time whether each booking will be cancelled",
+      "status": "said",
+      "quote": "I want to predict, at the moment a booking is made, whether it will be cancelled",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Operations team overbooks the right trips based on cancellation risk",
+      "status": "said",
+      "quote": "so the operations team can overbook the right trips",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "Operations team scores every new booking once, on the day it is made",
+      "status": "said",
+      "quote": "Operations would score every new booking once, on the day it is made.",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "bookings.csv: 1500 rows, 11 columns",
+      "status": "computed",
+      "quote": null,
+      "computed": "the upload's profile (bookings.csv)",
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [
+      {
+       "value": "cancelled is a 0/1 flag; bookings whose travel date has not occurred yet have no known outcome and are excluded from training; scoring uses only information known on booking_date; no column leaks the outcome",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "Build a booking-time cancellation prediction model",
+       "what": "DCLab trains a model on bookings whose outcome is already known, using only information available on the booking date — destination, nationality, channel, lead time, price, free cancellation — and validates with a time-based holdout so it behaves like scoring a new booking today.",
+       "gets": "A model that returns a cancellation probability for every new booking, plus holdout metrics showing how well it ranks high-risk bookings, so operations can choose which trips to overbook.",
+       "tradeoff": "It predicts risk but does not set the overbooking number itself — you still need a cost rule (empty seat vs. denied boarding) to turn probability into how many extra bookings to accept, and it assumes future bookings look like past ones.",
+       "effort": "Moderate — one model build with a holdout check.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": [
+        "booking_date",
+        "travel_date",
+        "destination",
+        "nationality",
+        "channel",
+        "lead_time_days",
+        "price",
+        "free_cancellation",
+        "cancelled"
+       ]
+      },
+      {
+       "title": "Measure where cancellations happen now (analysis)",
+       "what": "DCLab computes the overall cancellation rate and breaks it down by destination, channel, lead time, and free cancellation, plus how the rate changes over booking date.",
+       "gets": "Numbers showing which segments lose the most bookings to cancellation and whether cancellation risk is rising over time.",
+       "tradeoff": "Describes the past only; it won't score a future booking or tell operations how much to overbook.",
+       "effort": "Light — a few aggregate queries.",
+       "track": "analysis",
+       "tool": "query",
+       "columns": [
+        "destination",
+        "channel",
+        "lead_time_days",
+        "free_cancellation",
+        "cancelled",
+        "booking_date"
+       ]
+      },
+      {
+       "title": "Turn risk into an overbooking rule (business brief)",
+       "what": "DCLab translates a cancellation probability into an accept-overbook rule using the cost of an empty seat versus the cost of turning a customer away, and lists what cost inputs you'd need from operations.",
+       "gets": "A threshold policy (e.g., overbook when predicted cancellation probability × seat value exceeds denied-boarding cost) and the list of missing cost inputs.",
+       "tradeoff": "Needs cost numbers the table doesn't contain; works best once the prediction model exists, though it can start from today's average cancellation rate.",
+       "effort": "Light.",
+       "track": "business",
+       "tool": "business_brief",
+       "columns": []
+      }
+     ],
+     "chosen": "Build a booking-time cancellation prediction model",
+     "route": {
+      "track": "prediction",
+      "tool": "ml_project",
+      "reasons": "",
+      "by": "person"
+     },
+     "card": null,
+     "findings": [],
+     "build": {
+      "tool": "ml_project",
+      "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     },
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am a data scientist at a travel agency. I want to predict, at the moment a booking is made, whether it will be cancelled, so the operations team can overbook the right trips. The table I shared is our bookings up to late February 2026: booking date, travel date, destination, nationality, channel, lead time in days, price, free cancellation, and whether it was cancelled. Some of the trips in it have not happened yet. Operations would score every new booking once, on the day it is made.\n\n(I shared a table: bookings.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "bookings.csv: 1500 rows, 11 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (bookings.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Predict at booking time whether each booking will be cancelled",
+        "status": "said",
+        "quote": "I want to predict, at the moment a booking is made, whether it will be cancelled",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Operations team overbooks the right trips based on cancellation risk",
+        "status": "said",
+        "quote": "so the operations team can overbook the right trips",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Operations team scores every new booking once, on the day it is made",
+        "status": "said",
+        "quote": "Operations would score every new booking once, on the day it is made.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "cancelled is a 0/1 flag; bookings whose travel date has not occurred yet have no known outcome and are excluded from training; scoring uses only information known on booking_date; no column leaks the outcome",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 7,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "Build a booking-time cancellation prediction model",
+         "what": "DCLab trains a model on bookings whose outcome is already known, using only information available on the booking date — destination, nationality, channel, lead time, price, free cancellation — and validates with a time-based holdout so it behaves like scoring a new booking today.",
+         "gets": "A model that returns a cancellation probability for every new booking, plus holdout metrics showing how well it ranks high-risk bookings, so operations can choose which trips to overbook.",
+         "tradeoff": "It predicts risk but does not set the overbooking number itself — you still need a cost rule (empty seat vs. denied boarding) to turn probability into how many extra bookings to accept, and it assumes future bookings look like past ones.",
+         "effort": "Moderate — one model build with a holdout check.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": [
+          "booking_date",
+          "travel_date",
+          "destination",
+          "nationality",
+          "channel",
+          "lead_time_days",
+          "price",
+          "free_cancellation",
+          "cancelled"
+         ]
+        },
+        {
+         "title": "Measure where cancellations happen now (analysis)",
+         "what": "DCLab computes the overall cancellation rate and breaks it down by destination, channel, lead time, and free cancellation, plus how the rate changes over booking date.",
+         "gets": "Numbers showing which segments lose the most bookings to cancellation and whether cancellation risk is rising over time.",
+         "tradeoff": "Describes the past only; it won't score a future booking or tell operations how much to overbook.",
+         "effort": "Light — a few aggregate queries.",
+         "track": "analysis",
+         "tool": "query",
+         "columns": [
+          "destination",
+          "channel",
+          "lead_time_days",
+          "free_cancellation",
+          "cancelled",
+          "booking_date"
+         ]
+        },
+        {
+         "title": "Turn risk into an overbooking rule (business brief)",
+         "what": "DCLab translates a cancellation probability into an accept-overbook rule using the cost of an empty seat versus the cost of turning a customer away, and lists what cost inputs you'd need from operations.",
+         "gets": "A threshold policy (e.g., overbook when predicted cancellation probability × seat value exceeds denied-boarding cost) and the list of missing cost inputs.",
+         "tradeoff": "Needs cost numbers the table doesn't contain; works best once the prediction model exists, though it can start from today's average cancellation rate.",
+         "effort": "Light.",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": []
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "chosen",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": "Build a booking-time cancellation prediction model"
+      },
+      {
+       "version": 9,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": {
+        "track": "prediction",
+        "tool": "ml_project",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 10,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am a data scientist at a travel agency. I want to predict, at the moment a booking is made, whether it will be cancelled, so the operations team can overbook the right trips. The table I shared is our bookings up to late February 2026: booking date, travel date, destination, nationality, channel, lead time in days, price, free cancellation, and whether it was cancelled. Some of the trips in it have not happened yet. Operations would score every new booking once, on the day it is made.\n\n(I shared a table: bookings.csv)"
+       ],
+       "after": [
+        "I pick: Build a booking-time cancellation prediction model"
+       ]
+      },
+      {
+       "version": 11,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am a data scientist at a travel agency. I want to predict, at the moment a booking is made, whether it will be cancelled, so the operations team can overbook the right trips. The table I shared is our bookings up to late February 2026: booking date, travel date, destination, nationality, channel, lead time in days, price, free cancellation, and whether it was cancelled. Some of the trips in it have not happened yet. Operations would score every new booking once, on the day it is made.\n\n(I shared a table: bookings.csv)",
+        "I pick: Build a booking-time cancellation prediction model"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 12,
+       "field": "build",
+       "op": "set",
+       "by": "person",
+       "why": "the person said yes to the build",
+       "before": null,
+       "after": {
+        "tool": "ml_project",
+        "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": {
+     "tool": "ml_project",
+     "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "outcome": "cancelled"
+    },
+    "exposure": [
+     {
+      "columns_related": [
+       [
+        "booking_id",
+        "cancelled"
+       ],
+       [
+        "booking_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "nationality",
+        "cancelled"
+       ],
+       [
+        "channel",
+        "cancelled"
+       ],
+       [
+        "lead_time_days",
+        "cancelled"
+       ],
+       [
+        "price",
+        "cancelled"
+       ],
+       [
+        "free_cancellation",
+        "cancelled"
+       ],
+       [
+        "customer_id",
+        "cancelled"
+       ]
+      ],
+      "rows": "all"
+     }
+    ],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 3,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0045,
+   "first_divergence": {
+    "id": "hab-04",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-018/case/hab-04-r1",
+    "events": 8,
+    "first": {
+     "reason": "no_gate",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route prediction/ml_project by option"
+    },
+    "all": [],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 6,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "prediction",
+    "tool": "ml_project",
+    "routed_by": "option",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  }
+ ],
+ "scores": {
+  "case": [
+   {
+    "run": "HAB-018",
+    "case": "hab-01",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.5,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": "prediction",
+    "tool": "ml_project",
+    "assistant_turns": 3,
+    "picked": 1,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 302.72,
+    "spent_eur": 0.0,
+    "first_divergence": "picked_wrong_option",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 1,
+    "cut_replies": 1,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-018",
+    "case": "hab-02",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.25,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": "analysis",
+    "tool": "query",
+    "assistant_turns": 2,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 156.75,
+    "spent_eur": 0.0,
+    "first_divergence": "no_gate",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-018",
+    "case": "hab-03",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.5,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": "prediction",
+    "tool": "ml_project",
+    "assistant_turns": 4,
+    "picked": 1,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 139.1,
+    "spent_eur": 0.0,
+    "first_divergence": "no_gate",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-018",
+    "case": "hab-04",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 3,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": "prediction",
+    "tool": "ml_project",
+    "assistant_turns": 3,
+    "picked": 1,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 136.52,
+    "spent_eur": 0.0,
+    "first_divergence": "no_gate",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   }
+  ]
+ },
+ "summary": {
+  "case": {
+   "conversations": 4,
+   "judged": 4,
+   "failed": 0,
+   "understanding": 2.5,
+   "solution_design": 2.25,
+   "planning": 2.25,
+   "evidence_discipline": 3.0,
+   "adaptation": null,
+   "accepted_rate": 0.75,
+   "understood_share": 0.5625,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": 183.7725,
+   "spent_eur": 0.0
+  }
+ },
+ "paired": {},
+ "first_divergence_counts": {
+  "picked_wrong_option": 1,
+  "no_gate": 3
+ },
+ "incomplete": null
+}
