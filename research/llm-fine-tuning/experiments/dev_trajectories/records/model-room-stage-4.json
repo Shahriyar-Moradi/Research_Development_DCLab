@@ -1,0 +1,107 @@
+{
+ "package": "model-room-stage-4",
+ "title": "More room for the model, stage 4: think first, choose the kind of work last, behind a switch",
+ "date": "2026-11-16",
+ "request": "The owner asked for stage four before stage three: the lead agent writes the problem, what needs care, the approach and the plan before it chooses a kind of work, then does the first step in the same turn.",
+ "spec": "A switch, off by default, with nothing changed while it is off. A new prompt file, a first-turn note, room for the message, and a rewrite at the same length. A held-out set of people, a second gate pinned before any change, and the model alone held to the lead agent's length.",
+ "plan": [
+  "lock a held-out set written outside this work and pin a second gate",
+  "write the new prompt as its own file and the switch in code",
+  "add the model alone held to the same length",
+  "review, fix, test, then measure"
+ ],
+ "decisions": [
+  {
+   "decision": "A new prompt file, not an edit of the old one",
+   "why": "with the switch off the lead agent must stay exactly as it was"
+  },
+  {
+   "decision": "The held-out set is written outside this work and read only as means",
+   "why": "fixes made while watching the earlier sets did not carry to new people"
+  },
+  {
+   "decision": "The second gate compares both judged checks with the same model alone",
+   "why": "no floor taken from a set the repair was tuned on"
+  },
+  {
+   "decision": "A figures request keeps its table-first rule with the switch on",
+   "why": "the owner's rule that a figure is answered first stands"
+  }
+ ],
+ "change": "The lead agent's switch, prompt choice, first-turn note, reply limit and rewrite; a new prompt; the model alone held to the same length; a second gate; the benchmark keeps runs of the switch on apart and a held-out run to its means; the test runner blanks the switch.",
+ "findings": [
+  {
+   "id": "MR4-F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With the switch on, a figures request lost its table-first note.",
+   "scenario": "A request for a chart of their table was told to write the long message first.",
+   "fix": "A figures request keeps the old note, and the prompt says it comes first.",
+   "test": "test_fix_1_a_chart_of_their_table_is_still_answered_with_the_table_first",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR4-F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The tool results asked for the message a second time.",
+   "scenario": "The plan was written twice and the limit cut the copy.",
+   "fix": "With the switch on the result says a message already written stands.",
+   "test": "test_fix_2_a_message_already_written_is_not_asked_for_again",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR4-F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The rule to offer the sound way met gates that refuse a single option.",
+   "scenario": "One option was refused for want of a second, and the start as not ready.",
+   "fix": "The prompt asks for two sound ways of different kinds, or the sound version inside a Home pick.",
+   "test": "test_fix_3_the_sound_way_is_offered_as_two_options_and_comes_first",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR4-F4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Runs with the switch on and off could be read as one run.",
+   "scenario": "The same label, model and judge joined them and kept only the later conversations.",
+   "fix": "The switch is part of a run's key and its name.",
+   "test": "test_fix_4_a_run_with_the_switch_on_stays_apart_from_one_with_it_off",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR4-F5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A second-gate verdict was drawn under the first gate's headings.",
+   "scenario": "A check of the second gate had no column and the title named the first.",
+   "fix": "Each gate has its own table.",
+   "test": "test_fix_5_each_gate_is_drawn_under_its_own_headings",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR4-F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The benchmark file kept a held-out run person by person.",
+   "scenario": "The page hid it; the file beside it did not.",
+   "fix": "A held-out run is stored as means only.",
+   "test": "test_fix_6_a_held_out_run_is_kept_to_its_means",
+   "verdict": "confirmed"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The switch, the prompt and the measurement are in place and tested; with the switch off nothing changed. Whether thinking first closes the gap is measured next, last of all on the held-out people.",
+ "lessons": [
+  "A switch that changes a prompt must also change the tool results that answer it.",
+  "A held-out set is only held out if every place that stores results keeps it to its means."
+ ],
+ "risks": [
+  "Longer replies and more time per turn.",
+  "A confident plan can still be wrong; code checks its steps, not its idea."
+ ],
+ "commits": [
+  "bb9f53e8"
+ ]
+}

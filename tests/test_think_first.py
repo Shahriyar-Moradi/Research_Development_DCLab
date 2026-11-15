@@ -218,3 +218,116 @@ class MeasurementTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The review of stage 4 (2026-11-16): one test per fix.
+
+class ReviewFixTests(unittest.TestCase):
+    OPTIONS = [{"title": "Rank customers by risk", "what": "a weekly ranked list", "track": "prediction", "tool": "ml_project",
+                "columns": ["churned_next_month"], "gets": "a list your team can act on", "tradeoff": "needs past outcomes", "effort": "a day"},
+               {"title": "Compare churn by plan", "what": "churn per plan", "track": "analysis", "tool": "query", "columns": ["plan"],
+                "gets": "a table of rates", "tradeoff": "explains, does not predict", "effort": "an hour"}]
+
+    def first_request(self, words, env):
+        client = Script(("A short answer for you.", []))
+        with mock.patch.dict(os.environ, env):
+            if not env:
+                os.environ.pop(A.THINK_FIRST, None)
+            A.turn(state(), client, words)
+        return json.dumps(client.seen[0])
+
+    def test_fix_1_a_chart_of_their_table_is_still_answered_with_the_table_first(self):
+        chart = "Which plan loses the most customers? Show me a chart."
+        s = state()
+        A.heard(s, chart)
+        self.assertTrue(s.wants_figures)
+        on = self.first_request(chart, ON)
+        self.assertIn("start/query/answer", on)
+        self.assertNotIn(A.CLEAR_THINK_FIRST, on)
+        self.assertIn(A.CLEAR_THINK_FIRST, self.first_request(BRIEF, ON))  # a need to work out gets the new note
+        self.assertIn("is answered first, with the table", prompts.text("case_agent_think_first"))
+
+    def test_fix_2_a_message_already_written_is_not_asked_for_again(self):
+        def proposed(env):
+            s = state()
+            A.heard(s, BRIEF)
+            A.heard(s, "show me options")
+            with mock.patch.dict(os.environ, env):
+                if not env:
+                    os.environ.pop(A.THINK_FIRST, None)
+                return A._propose(s, self.OPTIONS)["next"]
+
+        self.assertIn("it stands", proposed(ON))
+        self.assertIn("do not write the plan", proposed(ON))
+        self.assertIn("now write that message", proposed({}))  # unchanged with the switch off
+        self.assertIn("it stands", A.WRITTEN_NEXT)
+
+    def test_fix_3_the_sound_way_is_offered_as_two_options_and_comes_first(self):
+        text = prompts.text("case_agent_think_first")
+        self.assertIn("offer two sound\nways", text)
+        self.assertIn("start the sound\nversion of it instead", text)
+        self.assertIn("This comes before every rule below about\nstarting or building at once", text)
+
+    def doc(self, name, flag, set_="dev"):
+        rows = [{"case": f"x{i}", "judged": True, "understanding": 3, "solution_design": 3, "planning": 3, "evidence_discipline": 3,
+                 "accepted": True, "forbidden_done": 0, "safety_failures": 0, "seconds": 10, "assistant_turns": 2, "spent_eur": 0.0}
+                for i in range(8)]
+        convs = [{"id": f"x{i}", "arm": "case", "ended": "answered", "transcript": [], "safety": {}} for i in range(8)]
+        return {"id": name, "split": "dev", "set": set_, "label": "stage-4", "models": {"arms": "test/model", "judge": "test/judge"},
+                "manifest": {"flags": {"DCLAB_CASE_THINK_FIRST": flag}}, "scores": {"case": rows}, "conversations": convs}
+
+    def built(self, *docs):
+        import tempfile
+
+        from dclab_rnd.agent_eval.harness_ablation import benchmark
+
+        folder = Path(tempfile.mkdtemp())
+        for d in docs:
+            (folder / f"{d['id']}_dev.json").write_text(json.dumps(d), encoding="utf-8")
+        with mock.patch.object(benchmark, "RESULTS", folder):
+            return benchmark, benchmark.build()
+
+    def test_fix_4_a_run_with_the_switch_on_stays_apart_from_one_with_it_off(self):
+        benchmark, data = self.built(self.doc("HAB-901", "1"), self.doc("HAB-902", None))
+        self.assertEqual(sorted((r["id"], r["think_first"]) for r in data["runs"]), [("HAB-901", True), ("HAB-902", False)])
+        self.assertTrue(benchmark.think_first_of(self.doc("a", "on")))
+        self.assertFalse(benchmark.think_first_of(self.doc("a", "0")))
+        self.assertIn("think first", benchmark._row_name({"model": "m", "judge": "j", "think_first": True}))
+
+    def test_fix_5_each_gate_is_drawn_under_its_own_headings(self):
+        from dclab_rnd.agent_eval.harness_ablation import benchmark
+
+        def rows(planning):
+            zero = {name: 0 for name in G.ZERO_V2}
+            return [{"case": f"x{i}", "judged": True, "planning": planning, "understanding": 3, **zero} for i in range(8)]
+
+        model = "qwen/qwen3.8-flash"
+        one = {"run": "R1", "label": None, "set": "dev", **G.verdict(model, G.JUDGE_OF[model], rows(3), rows(3))}
+        two = {"run": "R2", "label": None, "set": "dev3", **G.verdict(model, G.JUDGE_OF[model], rows(3), rows(3), gate=G.GATE_V2)}
+        data = benchmark.build()
+        data["gate"] = [one, two]
+        text = benchmark.markdown(data)
+        self.assertIn("## The gate (`hab_gate_v1`", text)
+        self.assertIn("## The gate (`hab_gate_v2`", text)
+        v2 = text[text.index("`hab_gate_v2`"):text.index("`hab_gate_v1`")]
+        self.assertIn("forbidden done", v2)
+        self.assertIn("understanding: lead agent minus the model alone", v2)
+        self.assertIn("hab_gate_v2", benchmark.page(data))
+
+    def test_fix_6_a_held_out_run_is_kept_to_its_means(self):
+        benchmark, data = self.built(self.doc("HAB-903", None, set_="dev3"))
+        run = next(r for r in data["runs"] if r["id"] == "HAB-903")
+        self.assertTrue(run["held_out"])
+        self.assertNotIn("by_case", run["arms"]["case"])
+        self.assertNotIn("interventions_by_case", run)
+        self.assertNotIn("counted", run)
+        self.assertNotIn("x1", json.dumps(run))  # no person's id
+        self.assertEqual(run["arms"]["case"]["planning"], 3)  # the means stay
+
+    def test_the_test_runner_blanks_the_switch(self):
+        sys.path.insert(0, str(ROOT / "tests"))
+        import run_parallel
+
+        self.assertIn(A.THINK_FIRST, run_parallel.OWNER_MEMORY_MODEL)
+        self.assertEqual(run_parallel.child_env("/tmp")[A.THINK_FIRST], "")

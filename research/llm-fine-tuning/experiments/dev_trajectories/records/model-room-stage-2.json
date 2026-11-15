@@ -1,0 +1,148 @@
+{
+ "package": "model-room-stage-2",
+ "title": "More room for the model, stage 2: exact fixes to the lead agent's rules",
+ "date": "2026-11-15",
+ "request": "The owner approved stage 2 of the plan: close the lead agent's dead ends, read a build's yes in code, accept true quotes, record several facts at once, keep working notes out of the message, make the number check cut a line instead of a list, and let the team walk run a project it cannot map. The safety rules stay.",
+ "spec": "Each row of the stage's table gets a test. A build still needs the person's yes, the outcome is still never guessed, and a number nobody gave never reaches the person. One test proves that in every state it tries, a move that decides what the person gets is open.",
+ "plan": [
+  "fix the yes to a build, the dead ends, the options and the second reading",
+  "fix the quote rule in the core, notes in a list, the reply's assembly, the number check's unit and the team walk",
+  "extract what a turn does on hearing a message, so tests start from real states",
+  "write a test per row and the way-forward test",
+  "rerun the harness suites, review, measure"
+ ],
+ "decisions": [
+  {
+   "decision": "Code reads the yes to a build from the person's latest message; the quote is optional",
+   "why": "the rule is that a build needs their yes, not that the model copies it word for word"
+  },
+  {
+   "decision": "A go-ahead opens the options, not a start",
+   "why": "the person keeps the choice; what is open is stated as assumptions"
+  },
+  {
+   "decision": "Only a message that is nothing but a go-ahead answers a question about building",
+   "why": "the review showed a go-ahead about something else was read as a yes to build"
+  },
+  {
+   "decision": "Readiness is unchanged: an assumption still does not count as known",
+   "why": "that rule is deliberate and measured by the exam; notes in a list remove the cost instead"
+  },
+  {
+   "decision": "A leading yes with a condition still counts as a yes",
+   "why": "an earlier decision of the owner made it so; the reviewer disagrees and it is reported as open"
+  }
+ ],
+ "change": "The lead agent's start, propose, ask, note and build tools, the number check, the reply's assembly and the second reading; the core's quote rule; the team walk's fallback to the stage path; the trace reader's names for refusals; a test file for the stage.",
+ "findings": [
+  {
+   "id": "MR2-F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A go-ahead about something else was read as a yes to building.",
+   "scenario": "The agent asked whether to build or first show a rate; the person asked for the rate; a build was recorded.",
+   "fix": "Only a message that is nothing but a go-ahead counts, and only after a question whose own sentence names the build.",
+   "test": "test_a_go_ahead_about_something_else_is_never_a_yes_to_building",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR2-F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The team walk's fallback could not pass the person's approval.",
+   "scenario": "The first walk ran its stages; the walk after the approval was refused as existing work.",
+   "fix": "A project that walked its stages directly keeps doing so; it is recorded in the workspace.",
+   "test": "test_a_team_walk_started_over_mcp_pauses_and_resumes_on_the_persons_answer",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR2-F3",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "A new refusal name was read before an older, more exact one.",
+   "scenario": "A closed-list refusal was counted as a bad argument and a test failed.",
+   "fix": "The new names come after the closed-list ones.",
+   "test": "tests/test_harness_ablation.py",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR2-F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A go-ahead skipped a doubt about the kind of work that had never been told.",
+   "scenario": "A report was asked for, the person said go ahead, and a prediction started with no word of their request.",
+   "fix": "A go-ahead skips only a doubt already told for that move.",
+   "test": "test_a_go_ahead_does_not_hide_a_doubt_that_was_never_told",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR2-F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An option could leave the person's own pick by naming another kind of work.",
+   "scenario": "The kind of work was derived from the tool after the pick was checked.",
+   "fix": "It is derived before.",
+   "test": "test_an_option_cannot_leave_the_persons_pick_by_naming_another_kind",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR2-F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A short real answer beside the options was dropped as a working note.",
+   "scenario": "The person got the fallback line under the options.",
+   "fix": "Only short notes beside bookkeeping calls are dropped, and a turn's only words always stay.",
+   "test": "test_words_beside_options_or_a_question_are_for_the_person",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR2-F7",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "One option passing the checks led to two refusals each way.",
+   "scenario": "No table, a go-ahead: the options were refused for want of a second, and the start as not ready.",
+   "fix": "The one option that passed may be started after a go-ahead, in that turn only.",
+   "test": "OneOptionTests",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR2-F8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A leading yes with a condition still counts as a yes to building.",
+   "scenario": "A yes that waits for someone else's approval records a build.",
+   "fix": "Not changed: an earlier owner decision; reported as open.",
+   "test": "none",
+   "verdict": "open"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The gate on the lead agent after stages one and two",
+   "gate": "hab_gate_v1, pinned before the repair: every check must hold",
+   "fixed_before_run": true,
+   "result": "not passed for either model or set of people; no dead end, no fallback line, no made-up number and no build without a yes in any lead-agent conversation; on the people the repair was not tuned on, no score moved outside noise",
+   "verdict": "fail",
+   "cost_eur": 0.4,
+   "next": "stage four: think first, choose the kind of work last",
+   "limits": [
+    "few written people, each played once; the judge is a model",
+    "the repair was tuned on the first set"
+   ]
+  }
+ ],
+ "outcome": "The lead agent no longer gets stuck, refuses a real yes, or drops a list for one number. It still plans below the same model alone, and on new people its scores did not move.",
+ "lessons": [
+  "A rule that reads intent from words must be tested on words that mean something else.",
+  "Gains measured on the cases watched during a fix must be checked on cases nobody watched."
+ ],
+ "risks": [
+  "Reading the yes in code could accept a yes that was not about building."
+ ],
+ "commits": [
+  "0ef8e7f3",
+  "afb28a92",
+  "7375db14",
+  "c0ab9432"
+ ]
+}
