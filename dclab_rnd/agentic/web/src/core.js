@@ -114,23 +114,23 @@
   };
   const NAV = [
     { group: 'Workspace', items: [
-      { id: 'home', label: 'Home', icon: 'home' },
-      { id: 'new', label: 'New project', icon: 'plus' },
-      { id: 'intern', label: 'Intern', icon: 'intern', count: '1' },
-      { id: 'compute', label: 'Compute & jobs', icon: 'cpu', count: '2' },
+      { id: 'home', label: 'Workbench Home', icon: 'home' },
+      { id: 'new', label: 'New project', icon: 'plus', devOnly: true },
+      { id: 'intern', label: 'Autonomous Agent', icon: 'intern', count: '1' },
+      { id: 'compute', label: 'Compute & Jobs', icon: 'cpu', count: '2' },
     ] },
-    { group: 'Project', items: [
-      { id: 'project', label: 'Workflow', icon: 'graph' },
-      { id: 'solution', label: 'Solution & data', icon: 'solution' },
-      { id: 'notebook', label: 'Notebook', icon: 'notebook', count: '10' },
-      { id: 'audit', label: 'Leakage & features', icon: 'shield' },
-      { id: 'models', label: 'Models', icon: 'models' },
-      { id: 'evaluation', label: 'Evaluation', icon: 'matrix' },
-      { id: 'decision', label: 'Decision', icon: 'scale' },
-      { id: 'reliability', label: 'Reliability', icon: 'pulse' },
-      { id: 'brief', label: 'Decision brief', icon: 'brief' },
+    { group: 'Project Pipeline', badgeId: 'side-project-pill', items: [
+      { id: 'project', label: 'Workflow DAG', icon: 'graph' },
+      { id: 'solution', label: 'Datasets & Schemas', icon: 'solution' },
+      { id: 'notebook', label: 'Interactive Notebook', icon: 'notebook', count: '.ipynb' },
+      { id: 'audit', label: 'Leakage & Drift', icon: 'shield' },
+      { id: 'models', label: 'Models & Registry', icon: 'models' },
+      { id: 'evaluation', label: 'Evaluation', icon: 'matrix', more: true },
+      { id: 'decision', label: 'Decision', icon: 'scale', more: true },
+      { id: 'reliability', label: 'Reliability', icon: 'pulse', more: true },
+      { id: 'brief', label: 'Decision brief', icon: 'brief', more: true },
     ] },
-    { group: 'Knowledge', items: [
+    { group: 'Knowledge', more: true, items: [
       { id: 'evidence', label: 'Evidence library', icon: 'book', count: String(RECORDS.length || 133) },
       // dclab:closed-begin  (the research pages: the full edition's)
       { id: 'lab', label: 'Research lab', icon: 'flask' },
@@ -138,7 +138,7 @@
       { id: 'policy', label: 'Policy model', icon: 'brain' },
       // dclab:closed-end
     ] },
-    { group: 'Platform', items: [
+    { group: 'Platform', more: true, items: [
       { id: 'packs', label: 'Domain packs', icon: 'layers' },
       { id: 'integrations', label: 'Integrations', icon: 'plug' },
       { id: 'admin', label: 'Admin', icon: 'gear' },
@@ -151,8 +151,24 @@
   function renderNav() {
     const nav = $('#nav');
     if (!nav) return;
-    nav.innerHTML = NAV.map(g => `<div class="nav-group"><div class="nav-label">${esc(g.group)}</div>${g.items.map(it =>
-      `<a class="nav-item" href="#${it.id}" data-nav="${it.id}">${icon(it.icon)}<span>${esc(it.label)}</span>${it.count != null ? `<span class="count">${esc(it.count)}</span>` : ''}</a>`).join('')}</div>`).join('');
+    const itemHtml = it => `<a class="nav-item${it.devOnly ? ' ds-hide' : ''}" href="#${it.id}" data-nav="${it.id}">${icon(it.icon)}<span>${esc(it.label)}</span>${it.count != null ? `<span class="count">${esc(it.count)}</span>` : ''}</a>`;
+    const primary = [], secondary = [];
+    NAV.forEach(g => {
+      if (g.more) {
+        secondary.push(`<div class="nav-group"><div class="nav-label">${esc(g.group)}</div>${g.items.map(itemHtml).join('')}</div>`);
+        return;
+      }
+      const coreItems = g.items.filter(i => !i.more);
+      const extraItems = g.items.filter(i => i.more);
+      const head = g.badgeId
+        ? `<div class="nav-label nav-label-row"><span>${esc(g.group)}</span><span class="nav-proj-pill ds-only" id="${esc(g.badgeId)}">Draft</span></div>`
+        : `<div class="nav-label">${esc(g.group)}</div>`;
+      primary.push(`<div class="nav-group">${head}${coreItems.map(itemHtml).join('')}${extraItems.length ? `<div class="nav-extra-dev">${extraItems.map(itemHtml).join('')}</div>` : ''}</div>`);
+      if (extraItems.length) {
+        secondary.unshift(`<div class="nav-group"><div class="nav-label">Project details</div>${extraItems.map(itemHtml).join('')}</div>`);
+      }
+    });
+    nav.innerHTML = primary.join('') + `<details class="nav-more ds-only" id="nav-more"><summary class="nav-more-sum"><span>Knowledge &amp; platform</span><span class="nav-more-chev" aria-hidden="true">▾</span></summary><div class="nav-more-body">${secondary.join('')}</div></details>`;
   }
 
   /* The sidebar's project group follows the project that is open on the project pages. */
@@ -162,9 +178,17 @@
     if (c) c.textContent = text == null ? '' : String(text);
   }
   function setProjectLabel(name) {
-    setNavCount('notebook', '');  // the sample's "10 findings" does not belong to a real project
-    const label = $$('#nav .nav-label').find(l => l.textContent.startsWith('Project'));
-    if (label) label.textContent = 'Project · ' + (name || 'none');
+    setNavCount('notebook', document.documentElement.dataset.mode === 'ds' ? '.ipynb' : '');
+    const pill = $('#side-project-pill');
+    if (pill) pill.textContent = name || 'Draft';
+    const branchPill = $('#top-branch-pill'), branchLbl = $('#top-branch-label');
+    if (branchPill && branchLbl) {
+      const slug = (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 26);
+      branchLbl.textContent = slug ? `exp/${slug}` : 'draft/main';
+      branchPill.hidden = false;
+    }
+    const label = $$('#nav .nav-label').find(l => l.textContent.startsWith('Project Pipeline') || l.textContent.startsWith('Project'));
+    if (label && !label.classList.contains('nav-label-row')) label.textContent = 'Project · ' + (name || 'none');
     PROJECT_VIEWS.forEach(v => { if (VIEW_META[v]) VIEW_META[v].crumbs = [name || 'Project']; });
     const meta = VIEW_META[state.view];
     if (meta && PROJECT_VIEWS.includes(state.view)) $('#crumbs').innerHTML = meta.crumbs.map(c => `<span>${esc(c)}</span><span class="sep">›</span>`).join('') + `<b>${esc(meta.label)}</b>`;
@@ -655,7 +679,10 @@
     if (el) projectSwitch.mount(name, el);
     if (def && el) {
       if (!def.inited) { def.inited = true; try { def.init && def.init(el); } catch (e) { console.error('init ' + name, e); } buildPaneTabs(el); hydrate(el); }
+      if (PROJECT_VIEWS.includes(name) || name === 'evidence') wfFlow.mountView(name, el);
       enterView(name, def, el);
+    } else if (el && (PROJECT_VIEWS.includes(name) || name === 'evidence')) {
+      wfFlow.mountView(name, el);
     }
     if (el) selectPane(el, paneId || '', { url: !!paneId });
     // nav highlight
@@ -831,12 +858,12 @@
         DC.client.listDrafts({ quiet: true }).catch(() => []), DC.client.listProjects({ quiet: true }).catch(() => [])]);
       const when = x => String(x.updated || x.updated_at || x.created || x.created_at || '');
       const items = [
-        ...(drafts || []).filter(d => !d.project_id && d.problem).map(d => ({ key: 'd:' + d.id, id: d.id, kind: 'chat', title: d.problem, at: when(d) })),
+        ...(drafts || []).filter(d => !d.project_id && d.problem).map(d => ({ key: 'd:' + d.id, id: d.id, kind: d.no_data_solution ? 'no-data' : ((d.intent && d.intent.track) || 'draft'), title: d.problem, at: when(d) })),
         ...(projects || []).map(p => ({ key: 'p:' + p.id, id: p.id, kind: 'project', title: p.name || p.id, at: when(p) })),
-      ].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 14);
-      box.innerHTML = items.length ? items.map(i => `<button type="button" class="ds-recent" data-recent="${esc(i.key)}" data-kind="${i.kind}" title="${esc(i.title)}">`
-        + `<span class="ds-recent-title">${esc(i.title)}</span>${i.kind === 'project' ? '<span class="ds-recent-tag">project</span>' : ''}</button>`).join('')
-        : '<div class="ds-recent-empty">Your conversations and projects appear here.</div>';
+      ].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 12);
+      box.innerHTML = items.length ? items.map(i => `<button type="button" class="ds-recent" data-recent="${esc(i.key)}" data-kind="${esc(i.kind)}" title="${esc(i.title)}">`
+        + `<span class="ds-recent-title">${esc(i.title)}</span><span class="ds-recent-tag">${esc(i.kind)}</span></button>`).join('')
+        : '<div class="ds-recent-empty">Your experiments and conversations appear here.</div>';
       $$('[data-recent]', box).forEach(b => b.addEventListener('click', () => {
         const [kind, id] = [b.dataset.recent.slice(0, 1), b.dataset.recent.slice(2)];
         if (kind === 'd') {  // the way Admin's Sessions reopens a conversation: Home's enter reads it
@@ -1026,6 +1053,10 @@
   });
   document.addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#palette').hidden ? openPalette() : closePalette(); return; }
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'n') {
+      const nc = $('#ds-new-chat');
+      if (nc && document.documentElement.dataset.mode === 'ds') { e.preventDefault(); nc.click(); return; }
+    }
     if (!$('#palette').hidden) {
       if (e.key === 'Escape') closePalette();
       else if (e.key === 'ArrowDown') { e.preventDefault(); palIndex = Math.min(palItems.length - 1, palIndex + 1); renderPalette(); }
@@ -1589,7 +1620,232 @@
     },
   };
 
-  window.DC = { ui, decisionForm, states, projectSwitch, loading, showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  /* ---------------- floating tooltips ([data-tip]) ---------------- */
+  const tooltip = (() => {
+    let tipEl = null, activeTarget = null;
+    function ensure() {
+      if (tipEl && tipEl.isConnected) return tipEl;
+      tipEl = document.createElement('div');
+      tipEl.className = 'dc-tip';
+      tipEl.id = 'dc-tooltip';
+      tipEl.setAttribute('role', 'tooltip');
+      tipEl.hidden = true;
+      document.body.appendChild(tipEl);
+      return tipEl;
+    }
+    function position(target) {
+      if (!tipEl || !target || !target.isConnected) return;
+      const r = target.getBoundingClientRect();
+      const vw = window.innerWidth || 1280, vh = window.innerHeight || 800;
+      const tr = tipEl.getBoundingClientRect();
+      let left = r.left + (r.width - tr.width) / 2;
+      left = Math.max(8, Math.min(vw - tr.width - 8, left));
+      let top = r.top - tr.height - 8;
+      if (top < 8) top = Math.min(vh - tr.height - 8, r.bottom + 8);
+      tipEl.style.left = Math.round(left) + 'px';
+      tipEl.style.top = Math.round(Math.max(8, top)) + 'px';
+    }
+    function show(target) {
+      const text = target && target.getAttribute ? (target.getAttribute('data-tip') || '').trim() : '';
+      if (!text) return;
+      if (target.hasAttribute('title')) target.removeAttribute('title');
+      activeTarget = target;
+      const el = ensure();
+      el.textContent = text;
+      el.hidden = false;
+      position(target);
+    }
+    function hide() {
+      activeTarget = null;
+      if (tipEl) tipEl.hidden = true;
+    }
+    document.addEventListener('pointerover', e => {
+      const t = e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+      if (!t) { if (activeTarget) hide(); return; }
+      if (t !== activeTarget) show(t);
+    });
+    document.addEventListener('pointerout', e => {
+      if (!activeTarget) return;
+      const rel = e.relatedTarget;
+      if (rel && activeTarget.contains && activeTarget.contains(rel)) return;
+      const nextTip = rel && rel.closest ? rel.closest('[data-tip]') : null;
+      if (nextTip && nextTip !== activeTarget) show(nextTip);
+      else hide();
+    });
+    document.addEventListener('focusin', e => {
+      const t = e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+      if (t) show(t);
+    });
+    document.addEventListener('focusout', () => hide());
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
+    document.addEventListener('scroll', () => { if (activeTarget) hide(); }, true);
+    return { show, hide };
+  })();
+
+  /* ---------------- explicit workflow progression (data -> plan -> run -> evidence) ---------------- */
+  const WF_KEYS = ['data', 'plan', 'run', 'evidence'];
+  const WF_TITLE = { data: 'Data', plan: 'Plan', run: 'Run', evidence: 'Evidence' };
+  const WF_TIP = {
+    data: 'Inspect tables, types, schema joins, and raw row counts before any model reads them.',
+    plan: 'Lock the target, prediction moment, validation split, and forbidden leaky columns.',
+    run: 'Train models on CV training folds inside a strict Temporal Leakage Guard; holdout stays sealed.',
+    evidence: 'Open the untouched holdout once for calibration, decision economics, and audit records.',
+  };
+  const VIEW_TO_WF = {
+    solution: 'data', project: 'plan', notebook: 'run', audit: 'run', models: 'run',
+    evaluation: 'evidence', decision: 'evidence', reliability: 'evidence', brief: 'evidence', evidence: 'evidence',
+  };
+  const wfWiredBoxes = new WeakSet();
+  const wfFlow = {
+    render(box, model) {
+      if (!box || !model || !model.stages) return;
+      const cur = model.current || 'data';
+      if (box.dataset.wfLastCurrent !== cur) {
+        box.dataset.wfPicked = model.selected || cur;
+        box.dataset.wfLastCurrent = cur;
+      }
+      const picked = WF_KEYS.includes(box.dataset.wfPicked) ? box.dataset.wfPicked : cur;
+      const stages = model.stages;
+      const active = stages[picked] || stages[cur] || stages.data;
+      const arrowSvg = '<span class="wf-flow-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>';
+      const stepsHtml = WF_KEYS.map((k, idx) => {
+        const s = stages[k] || {};
+        const st = s.state || 'todo';
+        const isPicked = k === picked;
+        const badge = st === 'done' ? '✓' : String(idx + 1);
+        const sub = s.summary || (st === 'done' ? 'Done' : st === 'current' ? 'Active' : 'Next');
+        return (idx > 0 ? arrowSvg : '')
+          + `<button type="button" class="wf-flow-step is-${esc(st)}${isPicked ? ' is-selected' : ''}" data-wf-step="${k}" aria-pressed="${isPicked ? 'true' : 'false'}" data-tip="${esc(WF_TIP[k] || '')}">`
+          + `<span class="wf-flow-badge" aria-hidden="true">${badge}</span>`
+          + `<span class="wf-flow-meta"><span class="wf-flow-name">${esc(WF_TITLE[k])}</span><span class="wf-flow-state">${esc(sub)}</span></span>`
+          + `</button>`;
+      }).join('');
+      const actBtn = active.action && active.action.label
+        ? (active.action.href
+          ? `<a class="btn sm ${active.state === 'current' ? 'primary' : ''}" href="${esc(active.action.href)}">${esc(active.action.label)}</a>`
+          : `<button type="button" class="btn sm ${active.state === 'current' ? 'primary' : ''}" data-wf-act="${esc(active.action.id || '')}">${esc(active.action.label)}</button>`)
+        : '';
+      const outsHtml = (active.outputs || []).map(o => {
+        const cls = `wf-flow-out ${o.ready ? 'is-ready' : 'is-soon'}`;
+        const dot = '<span class="wf-dot" aria-hidden="true"></span>';
+        if (o.href && o.ready) return `<a class="${cls}" href="${esc(o.href)}" data-tip="${esc(o.title || o.label)}">${dot}<span>${esc(o.label)}</span></a>`;
+        if (o.action && o.ready) return `<button type="button" class="${cls}" data-wf-act="${esc(o.action)}" data-tip="${esc(o.title || o.label)}">${dot}<span>${esc(o.label)}</span></button>`;
+        return `<span class="${cls}" data-tip="${esc(o.title || (o.ready ? 'Available' : 'Available once this stage runs'))}">${dot}<span>${esc(o.label)}</span></span>`;
+      }).join('');
+      box.innerHTML = `<div class="wf-flow" role="region" aria-label="Workflow progression: data, plan, run, evidence">`
+        + `<div class="wf-flow-track">${stepsHtml}</div>`
+        + `<div class="wf-flow-detail">`
+        + `<div class="wf-flow-info"><span class="wf-flow-kv"><b>Where you are:</b> ${esc(active.where || '')}</span><span class="wf-flow-kv"><b>Next:</b> ${esc(active.next || '')}</span>${actBtn}</div>`
+        + (outsHtml ? `<div class="wf-flow-outs"><span class="wf-flow-out-label">Outputs:</span>${outsHtml}</div>` : '')
+        + `</div></div>`;
+      box._wfModel = model;
+      if (!wfWiredBoxes.has(box)) {
+        wfWiredBoxes.add(box);
+        box.addEventListener('click', e => {
+          const stepBtn = e.target.closest('[data-wf-step]');
+          if (stepBtn && box._wfModel) {
+            box.dataset.wfPicked = stepBtn.dataset.wfStep;
+            wfFlow.render(box, Object.assign({}, box._wfModel, { selected: stepBtn.dataset.wfStep }));
+            return;
+          }
+          const actEl = e.target.closest('[data-wf-act]');
+          if (actEl && box._wfModel && typeof box._wfModel.onAction === 'function') {
+            box._wfModel.onAction(actEl.dataset.wfAct, box._wfModel);
+          }
+        });
+      }
+    },
+    fromProject(project, viewName) {
+      const stagesMap = (project && project.stages) || {};
+      const stStatus = k => {
+        const v = stagesMap[k];
+        return typeof v === 'string' ? v : (v && v.status) || '';
+      };
+      const isDone = s => s === 'completed' || s === 'approved';
+      const hasData = Boolean(project && project.data);
+      const dataDone = hasData && (isDone(stStatus('data')) || Boolean(project.solution) || !project);
+      const planDone = Boolean(project && project.solution && (project.solution.signed || isDone(stStatus('leakage')) || isDone(stStatus('features')) || isDone(stStatus('models'))));
+      const runDone = isDone(stStatus('models')) || isDone(stStatus('final'));
+      const evDone = isDone(stStatus('final')) || Number(project && project.holdout_uses || 0) > 0;
+      const cur = !project ? (VIEW_TO_WF[viewName] || 'data')
+        : !hasData || (!dataDone && !planDone) ? 'data'
+        : !planDone ? 'plan'
+        : !runDone ? 'run'
+        : 'evidence';
+      const viewStage = VIEW_TO_WF[viewName] || cur;
+      const dInfo = project && project.data ? `${project.data.name || 'Dataset'}${project.data.rows != null ? ' · ' + int(project.data.rows) + ' rows' : ''}` : 'Sample workspace data';
+      const runModels = Array.isArray(stagesMap.models && stagesMap.models.candidates) ? stagesMap.models.candidates.length : 0;
+      return {
+        current: cur,
+        selected: viewStage,
+        stages: {
+          data: {
+            state: !project ? (viewStage === 'data' ? 'current' : 'done') : (dataDone ? 'done' : 'current'),
+            summary: project && project.data ? (project.data.rows != null ? int(project.data.rows) + ' rows' : 'Ready') : 'Sample',
+            where: project ? dInfo : 'Inspecting sample project schema and data lineage.',
+            next: project && !planDone ? 'Define or sign the solution & split on Solution & data.' : 'Review schemas, lineage, or move on to Plan.',
+            action: viewName !== 'solution' ? { label: 'Datasets & Schemas', href: '#solution' } : { label: 'Open Workflow DAG', href: '#project' },
+            outputs: [
+              { label: 'Schemas & Lineage', href: '#solution', ready: true },
+              { label: 'Notebook (.ipynb)', href: '#notebook', ready: Boolean(!project || runDone || isDone(stStatus('features'))) },
+            ],
+          },
+          plan: {
+            state: !project ? (viewStage === 'plan' ? 'current' : viewStage === 'data' ? 'todo' : 'done') : (planDone ? 'done' : cur === 'plan' ? 'current' : 'todo'),
+            summary: planDone ? 'Signed' : cur === 'plan' ? 'Needs contract' : 'Next',
+            where: planDone ? 'Solution contract, prediction moment, and split rule are set.' : 'Waiting to confirm solution contract and split rule.',
+            next: runDone ? 'Training stages already ran — inspect models or Evidence.' : 'Run leakage audit, feature ladder, and candidate model screen.',
+            action: viewName !== 'project' ? { label: 'Workflow DAG', href: '#project' } : { label: 'Solution & data', href: '#solution' },
+            outputs: [
+              { label: 'Solution & Split', href: '#solution', ready: true },
+              { label: 'Workflow Graph (WF-01..10)', href: '#project', ready: true },
+            ],
+          },
+          run: {
+            state: !project ? (viewStage === 'run' ? 'current' : (viewStage === 'evidence' ? 'done' : 'todo')) : (runDone ? 'done' : cur === 'run' ? 'current' : 'todo'),
+            summary: runDone ? (runModels ? `${runModels} models` : 'Trained') : cur === 'run' ? 'In progress' : 'After plan',
+            where: runDone ? 'Leakage audit and CV candidate screening finished (holdout sealed).' : 'Runs execute on training folds while keeping the holdout sealed.',
+            next: runDone && !evDone ? 'Approve opening the holdout once to generate final Evidence.' : evDone ? 'Inspect final metrics, Decision Brief, and Evidence.' : 'Inspect Notebook, Leakage & Drift, or Models.',
+            action: viewName !== 'models' ? { label: 'Models & Registry', href: '#models' } : { label: 'Leakage & Drift', href: '#audit' },
+            outputs: [
+              { label: 'Leakage & Drift', href: '#audit', ready: Boolean(!project || isDone(stStatus('leakage')) || runDone) },
+              { label: runModels ? `Models (${runModels})` : 'Models & Registry', href: '#models', ready: Boolean(!project || runDone) },
+              { label: 'Interactive Notebook', href: '#notebook', ready: true },
+            ],
+          },
+          evidence: {
+            state: !project ? (viewStage === 'evidence' ? 'current' : 'todo') : (evDone ? 'done' : cur === 'evidence' ? 'current' : 'todo'),
+            summary: evDone ? 'Brief & CI ready' : cur === 'evidence' ? 'Ready to verify' : 'After run',
+            where: evDone ? 'Holdout scored once; calibration, brief, and evidence records are ready.' : 'Holdout evaluation, calibration, decision table, and brief live here.',
+            next: evDone ? 'Review the Decision Brief and accept verified lessons into the Evidence Library.' : 'Complete Run stages, then open the holdout once in Reliability.',
+            action: viewName !== 'brief' ? { label: 'Decision Brief', href: '#brief' } : { label: 'Evidence Library', href: '#evidence' },
+            outputs: [
+              { label: 'Evaluation', href: '#evaluation', ready: Boolean(!project || evDone || runDone) },
+              { label: 'Reliability & Holdout', href: '#reliability', ready: Boolean(!project || evDone || runDone) },
+              { label: 'Decision Brief', href: '#brief', ready: Boolean(!project || evDone) },
+              { label: 'Evidence Library', href: '#evidence', ready: true },
+            ],
+          },
+        },
+      };
+    },
+    mountView(name, el) {
+      let slot = $(':scope > [data-wf-slot]', el);
+      if (!slot) {
+        const vh = $(':scope > .vh', el);
+        if (!vh) return;
+        slot = document.createElement('div');
+        slot.dataset.wfSlot = '1';
+        vh.insertAdjacentElement('afterend', slot);
+      }
+      wfFlow.render(slot, wfFlow.fromProject(null, name));
+      currentProject.get().then(p => {
+        if (state.view === name && p) wfFlow.render(slot, wfFlow.fromProject(p, name));
+      }).catch(() => {});
+    },
+  };
+
+  window.DC = { ui, tooltip, wfFlow, decisionForm, states, projectSwitch, loading, showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   const start = () => config().catch(() => null).then(boot);  // the server says first whether someone must sign in
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else setTimeout(start, 0);
 })();

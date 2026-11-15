@@ -23,7 +23,7 @@ from typing import Annotated, Any, Optional, TypedDict
 from ..agents import harness
 from . import NothingToResume, thread_id
 
-ACTS = ("answer", "draw_map", "confirm_map", "bring_table", "analyse", "plan_workflow", "build")
+ACTS = ("answer", "ask", "draw_map", "confirm_map", "bring_table", "analyse", "plan_workflow", "build")
 _SESSION: contextvars.ContextVar[Any] = contextvars.ContextVar("orchestra_walk_session")
 _PAUSES: contextvars.ContextVar[list] = contextvars.ContextVar("orchestra_walk_pauses")  # the pauses a node closed, in order
 AGAIN = 5  # at most this many times a node asks again because what is open changed while the walk waited

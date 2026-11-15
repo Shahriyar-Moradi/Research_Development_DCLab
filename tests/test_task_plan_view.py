@@ -354,3 +354,25 @@ class TaskPlanApiTests(unittest.TestCase):
         self.assertTrue(cp['owner_confirmed'])
         self.assertEqual(cp['owner_note'], '30 days horizon')
         self.assertIn('confirm_catalog_owner', self._audit_text(self.s.audit))
+
+    def test_unsigned_project_reports_safe_signoff_blocker_and_needs_signoff_flag(self):
+        csrf = self.client.get('/api/config').json()['csrf']
+        h = {'X-DCLab-Token': csrf}
+        pid = make_project(self.s.projects)
+        self.s.projects.update(pid, signoff={}, goal='Unsigned task-plan test PRIVATE_GOAL_STRING')
+        r = self.client.get(f'/api/projects/{pid}/task-plan')
+        self.assertEqual(r.status_code, 200, r.text)
+        body = r.json()
+        self.assertTrue(body['needs_signoff'])
+        self.assertNotIn('PRIVATE_GOAL_STRING', json.dumps(body))
+        data_node = next(n for n in body['nodes'] if n['id'] == 'data')
+        self.assertEqual(data_node['status'], 'blocked')
+        self.assertIn('sign', data_node['reason'].lower())
+
+        # Signoff via existing /approvals route unlocks needs_signoff and removes signoff blocker
+        sign = self.client.post(f'/api/projects/{pid}/approvals', json={'gate': 'solution', 'reason': 'Signed for planner'}, headers=h)
+        self.assertEqual(sign.status_code, 200, sign.text)
+        after = self.client.get(f'/api/projects/{pid}/task-plan').json()
+        self.assertFalse(after['needs_signoff'])
+        data_after = next(n for n in after['nodes'] if n['id'] == 'data')
+        self.assertNotEqual(data_after['status'], 'blocked')

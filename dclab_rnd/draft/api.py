@@ -250,6 +250,24 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                 await asyncio.to_thread(HomeAgent(drafts, None).replan, draft_id)
         return drafts.get(draft_id)
 
+    @router.post("/api/drafts/{draft_id}/no-data-solution", response_model=Doc)
+    async def draft_no_data_solution(draft_id: str, payload: AnyObject | None = Body(None)):
+        get(draft_id)
+        body = dump(payload)
+        refresh = bool(body.get("refresh", True))
+        ask_sim = bool(body.get("ask_simulate", False))
+        note = str(body.get("note") or body.get("problem") or "").strip()
+        econ = body.get("economics") if isinstance(body.get("economics"), dict) else None
+
+        def _run() -> dict[str, Any]:
+            ha = HomeAgent(drafts, None)
+            sol = ha.provide_no_data_solution(draft_id, note=note, refresh=refresh, economics_overrides=econ)
+            if ask_sim:
+                ha.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
+            return {"solution": sol, "draft": drafts.get(draft_id)}
+
+        return await asyncio.to_thread(_run)
+
     def clean_frame(draft: dict[str, Any]):
         import pandas as pd
 

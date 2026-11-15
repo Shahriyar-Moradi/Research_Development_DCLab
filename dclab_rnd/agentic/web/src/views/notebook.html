@@ -24,11 +24,11 @@
       <div class="panel" data-f="nb.review">
         <div class="nb-toolbar">
           <span class="small strong" id="nb-file">first-pass.ipynb</span><span class="pill bad" id="nb-count">10</span>
-          <button type="button" class="btn sm" id="nb-runall"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>Run all</button>
-          <button type="button" class="btn sm ghost" id="nb-restart" data-real-only hidden>Restart kernel</button>
-          <button type="button" class="btn sm proof" id="nb-fixall">Apply all safe fixes</button>
-          <button type="button" class="btn sm ghost" id="nb-reset">Reset demo</button>
-          <div class="seg" data-seg="drive" role="group" aria-label="Who drives"><button type="button" data-v="me" aria-pressed="true">I drive</button><button type="button" data-v="intern" aria-pressed="false">Intern drives</button></div>
+          <button type="button" class="btn sm" id="nb-runall" data-tip="Execute training cells inside this sandboxed notebook without opening holdout data"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>Run all</button>
+          <button type="button" class="btn sm ghost" id="nb-restart" data-real-only hidden data-tip="Restart the Python kernel cleanly while keeping cell edits">Restart kernel</button>
+          <button type="button" class="btn sm proof" id="nb-fixall" data-tip="Apply Copilot's verified leakage and calibration fixes; original cells stay in history">Apply all safe fixes</button>
+          <button type="button" class="btn sm ghost" id="nb-reset" data-tip="Restore the sample notebook to its initial buggy baseline">Reset demo</button>
+          <div class="seg" data-seg="drive" role="group" aria-label="Who drives"><button type="button" data-v="me" aria-pressed="true" data-tip="You control each cell run while Copilot audits for leakage">I drive</button><button type="button" data-v="intern" aria-pressed="false" data-tip="Autonomous Intern writes and runs next cells inside the workflow rules">Intern drives</button></div>
           <span class="kernel" data-f="nb.cells" id="nb-kernel"><span class="dot ok"></span>Python 3.12 · sandbox · 2 vCPU · idle</span>
         </div>
         <div class="callout bad" id="nb-banner" data-style="margin:12px 12px 0"><span class="ic">${icon:alert}</span><span id="nb-banner-text"></span></div>
@@ -37,7 +37,7 @@
           <div class="agent-cell" data-f="nb.agentcells">
             <div class="row"><span class="pack-ic" data-style="width:26px;height:26px">${icon:spark}</span><b>Ask the agent to write the next cell</b><span class="pill outline">you accept or reject</span></div>
             <div id="agent-out"></div>
-            <div class="row" id="agent-ask"><label class="sr-only" for="agent-prompt">Instruction</label><input id="agent-prompt" type="text" value="Calibrate the forest's probabilities on the training folds and show the Brier score" data-style="flex:1;min-width:200px"><button type="button" class="btn sm primary" id="agent-go">Write cell</button><button type="button" class="btn sm" id="agent-add" hidden>+ Add code cell</button></div>
+            <div class="field-row" id="agent-ask"><label class="field-label" for="agent-prompt">Next cell instruction</label><div class="row"><input id="agent-prompt" type="text" value="Calibrate the forest's probabilities on the training folds and show the Brier score" placeholder="Describe the transformation, diagnostic, or calibration cell to generate…" data-style="flex:1;min-width:200px"><button type="button" class="btn sm primary" id="agent-go">Write cell</button><button type="button" class="btn sm" id="agent-add" hidden>+ Add code cell</button></div></div>
             <div class="stack tight" id="own-cell" hidden>
               <label class="small strong" for="own-code">Your cell: Python, run in this project's kernel on the training rows (X_train, y_train, cv, pipeline are there once the notebook ran)</label>
               <textarea id="own-code" class="code-input" rows="8" spellcheck="false" placeholder="# for example\nprint(X_train.shape)"></textarea>

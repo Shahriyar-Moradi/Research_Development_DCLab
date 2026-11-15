@@ -1,4 +1,4 @@
-.PHONY: bench bench-read bakeoff store store-check students lake priors archive capture twin-eval tester-setup share collect catalog datasets decisions-gen decision-models decisions-export decision-gate workflow-models solver-data own-models benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval memory-retrieval memory-upkeep coverage capture-coverage outcomes-follow agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval decision-r3 benchmark-v4 pitfalls-by-kind results-by-kind learning-baseline refusal-test
+.PHONY: bench bench-read bakeoff store store-check students lake priors archive capture twin-eval tester-setup share collect catalog datasets decisions-gen decision-models decisions-export decision-gate workflow-models solver-data own-models benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval memory-retrieval memory-upkeep coverage capture-coverage outcomes-follow agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check journeys harness-eval harness-ablation decision-r3 benchmark-v4 pitfalls-by-kind results-by-kind learning-baseline refusal-test
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -445,6 +445,9 @@ home-eval:  ## the Home agent measured (H1): 72 written requests, six tracks, pl
 harness-eval:  ## 21.5: the regression cases (the owner's morning first), accepted session cases (ARGS="--home DIR") and the dev journeys, graded step by step; a change to a prompt, a model or a gate is on only after it passes
 	DCLAB_MEMORY=off $(if $(findstring --live,$(ARGS)),,DCLAB_NO_LIVE_MODELS=1) $(PYTHON) -m dclab_rnd.agent_eval.regression $(ARGS)
 
+harness-ablation:  ## the harness against the model alone (HAB): prints the plan; ARGS=--recorded-dev reads the kept dev exam runs (free); ARGS=--freeze pins the reviewed cases; ARGS="--yes --cap-eur 3" runs the pilot
+	$(if $(findstring --yes,$(ARGS)),,DCLAB_NO_LIVE_MODELS=1) $(PYTHON) -m dclab_rnd.agent_eval.harness_ablation $(ARGS)
+
 business-examples:  ## 30.5: the business-examples knowledge base (tracks, replicas, the owner's solution, written examples), each with its source; ARGS="--find 'words'" searches it; ARGS=--practice measures the search on the practice questions (30.8)
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.business_examples $(ARGS)
 
@@ -475,6 +478,9 @@ clean:  ## remove caches and empty folders (dry run; `make clean APPLY=1` to rem
 	$(PYTHON) scripts/clean_workspace.py $(if $(APPLY),--apply,)
 
 
-.PHONY: task-planning-eval
+.PHONY: task-planning-eval no-data-eval
 task-planning-eval:  ## TP-06: frozen invented DEV A/B comparisons; C proposal probe only, no live or sealed evaluation
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval.task_planning --split dev
+
+no-data-eval:  ## 3-arm evaluation of No-Data Problem Understanding & 5-Gate Scientific Harness (ARGS="--live --cap-eur 0.60" for live models)
+	$(if $(findstring --live,$(ARGS)),,DCLAB_NO_LIVE_MODELS=1) $(PYTHON) -m dclab_rnd.agent_eval.no_data --split $(or $(SPLIT),dev) $(ARGS)

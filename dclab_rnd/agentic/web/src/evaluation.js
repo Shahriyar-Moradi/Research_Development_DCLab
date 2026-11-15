@@ -247,11 +247,74 @@ DC.evaluation = (function () {
     box.addEventListener('segchange', e => { if (e.target.closest('[data-seg="ev-rows"]') && sets[e.detail]) { which = e.detail; paint(); } });
     paint();
   }
-  /* The panels for a project in a box, with the page's usual states: no project, no final stage yet, a failed read. */
+  /* Interim evaluation before the final holdout stage completes: shows CV screening, fold scores, and completed safety checks clearly badged as training-fold only. */
+  function renderInterim(box, p) {
+    const R = p.records || {}, m = R.models || {}, lk = R.leakage || {}, fx = R.features || {};
+    const me = m.evidence || {}, res = Array.isArray(me.model_results) ? me.model_results : [];
+    const chosen = (m.decision || {}).chosen || me.selected_model || '';
+    const metric = m.primary_metric || (me.primary_metric) || 'score';
+    const higher = metric !== 'mae' && metric !== 'rmse' && metric !== 'log_loss' && metric !== 'brier' && metric !== 'mape';
+    const picked = res.find(r => r.family === chosen) || res[0];
+    const fmtCv = (r) => r && r.mean != null ? `${f(r.mean, 4)}${r.std != null ? ' ± ' + f(r.std, 4) : ''}` : '—';
+    const stageBadges = ['data', 'leakage', 'features', 'models', 'final'].map(k => {
+      const rec = R[k], st = rec ? 'done' : ((p.stages || {})[k] === 'running' ? 'warn' : 'outline');
+      const tone = st === 'done' ? 'ok' : st;
+      return `<span class="pill ${tone}">${esc(k)}: ${rec ? 'completed' : ((p.stages || {})[k] === 'running' ? 'running' : 'pending')}</span>`;
+    }).join('');
+    let body = `<div class="callout info"><span class="ic">${charts && DC.icon ? DC.icon('info') : ''}</span>`
+      + `<span><b>Interim evaluation (training CV folds only · holdout still sealed).</b> `
+      + `${res.length ? 'Inspect CV screening metrics and stage checks below while the run progresses. Final holdout evaluation unlocks once WF-09 runs.' : 'Completed stage checks appear here automatically while candidate models train.'} `
+      + `<a href="#models">Models &amp; registry</a> · <a href="#audit">Leakage &amp; drift</a></span></div>`;
+    body += `<div class="row wrap small" data-style="gap:6px">${stageBadges}</div>`;
+    if (res.length) {
+      const sorted = [...res].sort((a, b) => higher ? ((b.mean ?? -Infinity) - (a.mean ?? -Infinity)) : ((a.mean ?? Infinity) - (b.mean ?? Infinity)));
+      body += `<div class="stats">`
+        + `<div class="stat"><span class="v">${esc(chosen || sorted[0].family || '—')}</span><span class="l">current CV leader</span></div>`
+        + `<div class="stat"><span class="v">${esc(fmtCv(picked || sorted[0]))}</span><span class="l">mean CV ${esc(metric)}${picked && picked.folds ? ' (' + picked.folds + ' folds)' : ''}</span></div>`
+        + `<div class="stat"><span class="v">${N(res.length)}</span><span class="l">model families screened</span></div>`
+        + `<div class="stat"><span class="v">Sealed</span><span class="l">holdout stays untouched until WF-09</span></div>`
+        + `</div>`;
+      const bars = charts.barsH(sorted.map(r => ({
+        label: String(r.family || 'model') + (r.family === chosen ? ' ★' : ''),
+        value: Number(r.mean ?? 0),
+        valueText: fmtCv(r),
+        strong: r.family === chosen,
+        cls: r.family === chosen ? '' : 'soft',
+      })), { width: 520, labelW: 150, valW: 110, rowH: 26, aria: `Interim CV ${metric} comparison` });
+      const rowsHtml = sorted.map((r, i) => `<tr class="${r.family === chosen ? 'selected' : ''}">`
+        + `<td><b>${esc(r.family || '—')}</b>${r.family === chosen ? ' <span class="pill ok">selected</span>' : ''}</td>`
+        + `<td class="num mono">${f(r.mean, 4)}</td>`
+        + `<td class="num mono">${r.std != null ? '± ' + f(r.std, 4) : '—'}</td>`
+        + `<td class="num mono">${r.folds != null ? N(r.folds) : '—'}</td>`
+        + `<td class="num mono">${r.fit_seconds != null ? Number(r.fit_seconds).toFixed(2) + ' s' : '—'}</td>`
+        + `<td class="num">#${i + 1}</td></tr>`).join('');
+      body += `<div class="grid g2">`
+        + `<div class="panel"><div class="panel-head"><div class="panel-title"><h2>CV screen (${esc(metric)})</h2><span class="sub">Intermediate comparison on training folds</span></div></div><div class="panel-body">${bars}</div></div>`
+        + `<div class="panel"><div class="panel-head"><div class="panel-title"><h2>Screened families</h2><span class="sub">Live model candidates before holdout check</span></div></div>`
+        + `<div class="table-wrap"><table class="data compact"><thead><tr><th>Family</th><th class="num">Mean</th><th class="num">Spread</th><th class="num">Folds</th><th class="num">Fit time</th><th class="num">Rank</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div></div>`;
+    }
+    const evIds = [m.evidence_id, lk.evidence_id, fx.evidence_id, ...(Array.isArray(me.evidence_ids) ? me.evidence_ids : [])].filter(Boolean);
+    if (evIds.length) {
+      body += `<div class="panel"><div class="panel-head"><div class="panel-title"><h3>Stage evidence recorded so far</h3></div></div>`
+        + `<div class="panel-body">${DC.chips ? DC.chips(evIds) : evIds.map(id => esc(id)).join(', ')}</div></div>`;
+    }
+    box.innerHTML = `<div class="stack">${body}</div>`;
+    DC.applyDataStyles(box);
+    if (DC.hydrate) DC.hydrate(box);
+  }
+  /* The panels for a project in a box, with the page's usual states: no project, interim CV before final, a failed read. */
   async function mount(box, p) {
     if (!box) return;
     if (!p) { DC.states.empty(box, 'No project is open, so there is no model to evaluate. Start one on Home.', { href: '#home', action: 'Go to Home' }); return; }
-    if (!(p.records || {}).final) { DC.states.empty(box, 'The final stage has not run yet: the held-back cases are scored once, there, and the evaluation is read from that record.', { href: '#project', action: 'Open the workflow' }); return; }
+    const recs = p.records || {};
+    if (!recs.final) {
+      if (recs.models || recs.leakage || recs.features || recs.data || p.running) {
+        renderInterim(box, p);
+        return;
+      }
+      DC.states.empty(box, 'No evaluation stages have run yet. Open the workflow or run candidate screening to see live CV evaluation here.', { href: '#project', action: 'Open the workflow' });
+      return;
+    }
     DC.states.loading(box, { text: 'Reading the evaluation…' });
     let data;
     try { data = await DC.client.projectEvaluation(p.id); }

@@ -354,13 +354,83 @@ class HomeAgent:
         """Someone asked for simulated data: ask how (the owner, 2026-10-20), never start it unasked. One way is AI building the
         table from the conversation, the other is describing it in the chat and approving its design before it is created.
         The offer carries what the AI way would use; the page makes the choice a button (Home's Synthetic tab has both)."""
-        last = (self.store.get(draft_id).get("messages") or [None])[-1]
+        draft = self.store.get(draft_id)
+        last = (draft.get("messages") or [None])[-1]
         if last and last.get("kind") == "synthetic_way":
             return None  # asked already, and not answered: never twice in a row
-        return self.say(draft_id, "How should I make the synthetic data? I can build the table with AI from this conversation, or you describe it "
-                                  "here, see its design, and approve it before I create anything. It will be labelled synthetic everywhere.",
-                        kind="synthetic_way", offer={"prompt": (prompt or "")[:2500], "rows": max(100, min(int(rows or SIM_ROWS), SIM_ROWS))},
-                        actions=["simulate_ai", "simulate_describe"])
+        sol = draft.get("no_data_solution") or {}
+        qs = (sol.get("simulation") or {}).get("questions") or []
+        seed = (sol.get("simulation") or {}).get("seed_description") or ""
+        prompt_text = (prompt or seed or draft.get("problem") or "")[:2500]
+        extra_ask = (" Tell me first how it should look (e.g., " + "; ".join(qs[:2]) + "), or choose a way below.") if qs else ""
+        return self.say(
+            draft_id,
+            "How should I make the synthetic data? I can build the table with AI from this conversation, or you describe it "
+            "here, see its design, and approve it before I create anything. It will be labelled synthetic everywhere." + extra_ask,
+            kind="synthetic_way",
+            offer={"prompt": prompt_text, "rows": max(100, min(int(rows or SIM_ROWS), SIM_ROWS))},
+            actions=["simulate_ai", "simulate_describe"],
+        )
+
+    def provide_no_data_solution(
+        self,
+        draft_id: str,
+        note: str = "",
+        refresh: bool = False,
+        economics_overrides: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Deliver an honest 3-layer Business + Data Science + ML solution blueprint before any dataset exists."""
+        from . import no_data
+
+        draft = self.store.get(draft_id)
+        note_clean = str(note or "").strip()
+        if note_clean:
+            existing_notes = str((draft.get("understanding") or {}).get("notes") or "").strip()
+            combined_notes = (existing_notes + " " + note_clean).strip() if note_clean not in existing_notes else existing_notes
+            self.record(draft_id, "notes", combined_notes[:1800])
+            draft = self.store.get(draft_id)
+        all_user = " ".join(
+            [str(draft.get("problem") or "")]
+            + [str(m.get("text") or "") for m in draft.get("messages") or [] if m.get("role") == "user"]
+            + ([note_clean] if note_clean else [])
+        )
+        stance = no_data.detect_no_data_stance(all_user, draft)
+        target_hint = (draft.get("understanding") or {}).get("target")
+        gw = getattr(self, "models", None) or getattr(self, "gateway", None)
+        sol = no_data.solve_without_data(
+            all_user or str(draft.get("problem") or ""),
+            understanding=draft.get("understanding"),
+            economics_overrides=economics_overrides,
+            withholding_privacy=bool(stance.get("withholding_privacy")),
+            gateway=gw,
+            models=gw,
+            draft_id=draft_id,
+            target_hint=str(target_hint) if target_hint else None,
+        )
+
+        def save_sol(d: dict[str, Any]) -> None:
+            d["no_data_solution"] = sol
+            u = d.setdefault("understanding", {})
+            if not u.get("data_plan"):
+                u["data_plan"] = sol["mode_label"]
+            for q in d.get("questions") or []:
+                if (q.get("field") in ("data_plan", "intent") or stance["matched"]) and q.get("field") != "confirm_step" and not q.get("answered"):
+                    q["answered"] = note_clean[:400] or sol["mode_label"]
+
+        self.store.update(draft_id, save_sol)
+        self.moved(draft_id, "design_solution_without_data", {"family": sol["family"]}, {"ok": True})
+        msgs = self.store.get(draft_id).get("messages") or []
+        already_top = bool(msgs and msgs[-1].get("kind") == "no_data_solution" and not refresh)
+        if not already_top:
+            self.say(
+                draft_id,
+                sol["summary"],
+                kind="no_data_solution",
+                solution=sol,
+                actions=["ask_simulate", "copy_spec"],
+            )
+        self.refresh_workflow(draft_id)
+        return sol
 
     def ask(self, draft_id: str, field: str, question: str, options: list[str] | None = None, why: str = "",
             source: str | None = None, extra: dict[str, Any] | None = None) -> dict[str, Any] | None:
@@ -1673,12 +1743,27 @@ class HomeAgent:
         else:
             reading = self.set_intent(draft_id, intents.read(draft["problem"], self.intent_client, plans.user_text(draft)))
         if reading["status"] == "asked":
+            from . import no_data
+            stance = no_data.detect_no_data_stance(draft["problem"], draft)
+            if stance["matched"] and self.understand_client is None:
+                self.set_intent(draft_id, intents.chosen("prediction"))
+                sol = self.provide_no_data_solution(draft_id, refresh=True)
+                if stance.get("wants_simulation"):
+                    self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
+                return
             if self.understand_client is not None:
                 self.understand(draft_id)  # the owner's Telco test: a conversation first, never six buttons on the first turn
                 return
             self.ask_intent(draft_id, reading)
             return
         self.open_track(draft_id)
+        from . import no_data
+        fresh = self.store.get(draft_id)
+        stance = no_data.detect_no_data_stance(fresh["problem"], fresh)
+        if stance["matched"] and not fresh.get("assets"):
+            sol = self.provide_no_data_solution(draft_id, refresh=True)
+            if stance.get("wants_simulation"):
+                self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
 
     UNDERSTAND_TURNS = 2  # open questions before Home routes by the buttons alone
 
@@ -1900,6 +1985,16 @@ class HomeAgent:
         if self.track(self.store.get(draft_id)) == "preparation" and rec.get("unread_said") and not rec.get("done"):
             if self.prepare_table(draft_id, said=text) is not None:  # H9: Home asked for the steps one at a time: this is them
                 return
+        if open_question is not None and open_question["field"] in ("intent", "data_plan") and self.client is None:
+            from . import no_data
+            stance = no_data.detect_no_data_stance(text, self.store.get(draft_id))
+            if stance["matched"]:
+                if open_question["field"] == "intent":
+                    self.set_intent(draft_id, intents.chosen("prediction"))
+                sol = self.provide_no_data_solution(draft_id, note=text, refresh=True)
+                if stance.get("wants_simulation"):
+                    self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
+                return
         if open_question is not None and open_question["field"] in ("intent", checks.FIELD):  # H2, H3.1: code reads these answers
             self.take_answer(draft_id, open_question, text)
             return
@@ -1969,6 +2064,10 @@ class HomeAgent:
         if done.get("rule") == "column check" and self.ask_column_check(draft_id) is not None:
             return  # H3.1: a column kept out on statistics alone is the person's to decide; the build goes on after the answer
         if done.get("refused"):  # what is missing, with the step that clears it when there is one
+            if done.get("rule") == "team waiting":
+                pending = self.pending(self.store.get(draft_id))
+                if pending and pending.get("text") and pending["text"] in done["refused"]:
+                    return
             actions = ["confirm_map", "show_map"] if done.get("rule") == "problem map not confirmed" else \
                 ["upload", "connect", "simulate"] if "no table" in done["refused"] else []
             self.say(draft_id, done["refused"], actions=actions, rule=done.get("rule"))
@@ -2483,7 +2582,14 @@ class HomeAgent:
 
     def _script_turn(self, draft_id: str, text: str) -> None:
         draft = self.store.get(draft_id)
+        from . import no_data
+        stance = no_data.detect_no_data_stance(text, draft)
         q = self.pending(draft)
+        if stance["matched"] and (q is None or q.get("field") != "confirm_step"):
+            sol = self.provide_no_data_solution(draft_id, note=text, refresh=True)
+            if stance.get("wants_simulation"):
+                self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
+            return
         if q is not None:
             self.moved(draft_id, "take_answer", {"field": q.get("field")})
             self.take_answer(draft_id, q, text)
@@ -2492,12 +2598,22 @@ class HomeAgent:
             self.moved(draft_id, "simulate", {}, {"asked_how": True})
             self.offer_synthetic(draft_id, draft["problem"] + " " + text)
             return
+        from . import no_data
+        stance = no_data.detect_no_data_stance(text, draft)
+        if stance["matched"]:
+            sol = self.provide_no_data_solution(draft_id, note=text, refresh=True)
+            if stance.get("wants_simulation"):
+                self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
+            return
         if BUILD_WORDS.search(text):
             if self.track(draft) != "prediction":  # H2: only a prediction builds a solution
                 self.say(draft_id, "Building a solution is for predictions. If you need a model, change the type of help above.")
                 return
             self.moved(draft_id, "summarize", {})
             self.summarize(draft_id)
+            return
+        if draft.get("no_data_solution") and not draft.get("assets") and not BUILD_WORDS.search(text):
+            self.provide_no_data_solution(draft_id, note=text, refresh=True)
             return
         self.record(draft_id, "notes", ((draft.get("understanding") or {}).get("notes", "") + " " + text).strip())
         self.moved(draft_id, "record", {"field": "notes"})

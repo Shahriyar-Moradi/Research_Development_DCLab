@@ -44,6 +44,7 @@ ARM_PROMPTS: dict[str, tuple[str, ...]] = {"case": ("case_agent", "route_check")
 EVERY_ARM = ("exam_person", "exam_judge")  # the written person and the judge take part in every arm's conversations
 SUITE_PROMPTS: dict[str, tuple[str, ...]] = {
     "conversation_exam_v1": ("case_agent", "route_check", "exam_plain", "exam_person", "exam_judge"),
+    "harness_ablation_v1": ("case_agent", "route_check", "exam_plain", "ablation_model_only", "ablation_minimal_agent", "ablation_judge"),
     "home_v1": ("home_agent", "home_intent", "home_understand", "home_orchestrator", "home_business", "home_plan", "home_query"),
     "journeys_v1": ("home_agent", "home_intent", "home_understand", "home_orchestrator"),
     "journeys_built_v1": ("home_agent", "home_orchestrator"),

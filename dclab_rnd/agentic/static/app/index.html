@@ -13,23 +13,25 @@
     <div class="brand">
       <span class="brand-mark" aria-hidden="true">DC</span>
       <span class="brand-name">DCLab</span>
-      <button type="button" class="icon-btn side-toggle" id="side-toggle" aria-label="Hide the menu" aria-expanded="true" title="Hide the menu for more room"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <span class="ds-only ds-mle-tag">MLE</span>
+      <button type="button" class="icon-btn side-toggle" id="side-toggle" aria-label="Hide the menu" aria-expanded="true" title="Hide the menu for more room"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
       <span class="brand-tag">Preview</span>
     </div>
     <button type="button" class="ws-switch" data-toast="In the product: switch between workspaces (your lab, a client lab, a sandbox).">
       <span class="ws-name">Workspace</span>
       <span class="ws-sub">4 members · EU region <span aria-hidden="true">⌄</span></span>
     </button>
-    <div class="seg mode-switch" id="mode-switch" role="group" aria-label="Look of the app"><button type="button" data-mode="dev" data-action="mode-dev" aria-pressed="true" title="The product as it is: dashboards and panels">Developer</button><button type="button" data-mode="ds" data-action="mode-ds" aria-pressed="false" title="The same product as a conversation, in Claude Code's calm style">Data science</button></div>
-    <button type="button" class="nav-item ds-only ds-new" id="ds-new-chat" title="Start a new problem: describe it, DCLab asks a few questions, then builds it"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New chat</span></button>
-    <div class="ds-only ds-recents" id="ds-recents"><div class="ds-sec">Recents</div><div class="ds-recent-list" id="ds-recent-list"><div class="ds-recent-empty">Your conversations and projects appear here.</div></div></div>
-    <button type="button" class="ds-only ds-sec ds-pages-toggle" id="ds-pages-toggle" aria-expanded="true" aria-controls="nav">Pages<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <div class="seg mode-switch" id="mode-switch" role="group" aria-label="Look of the app"><button type="button" data-mode="dev" data-action="mode-dev" aria-pressed="true" data-tip="Developer view: full dashboards, tables, and audit panels">Developer</button><button type="button" data-mode="ds" data-action="mode-ds" aria-pressed="false" data-tip="Data science view: conversation-first notebook and workflow canvas">Data science</button></div>
+    <button type="button" class="nav-item ds-only ds-new" id="ds-new-chat" data-tip="Start a fresh ML problem or experiment draft (⌘N)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New experiment</span><kbd class="ds-kbd">⌘N</kbd></button>
+    <button type="button" class="ds-only ds-sec ds-pages-toggle" id="ds-pages-toggle" aria-expanded="true" aria-controls="nav">Navigation<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
     <nav id="nav" aria-label="Main"></nav>
+    <div class="ds-only ds-recents" id="ds-recents"><div class="ds-sec">Experiment threads</div><div class="ds-recent-list" id="ds-recent-list"><div class="ds-recent-empty">Your experiments and conversations appear here.</div></div></div>
     <div class="side-foot">
       <div class="nav-label">Preview</div>
       <!-- dclab:closed-begin  (the blueprint layer: the full edition's planning view) -->
-      <label class="nav-item switch-item" title="Outline every feature as built, partial, to build or research"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span>Blueprint layer</span><span class="switch"><input type="checkbox" id="bp-switch"><span class="track"></span></span></label>
+      <label class="nav-item switch-item" data-tip="Show planned, partial, and research features alongside what is built today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span>Blueprint layer</span><span class="switch"><input type="checkbox" id="bp-switch"><span class="track"></span></span></label>
       <!-- dclab:closed-end -->
+      <div class="ds-only ds-kernel-foot" id="ds-kernel-foot" data-tip="Local analytical SQL &amp; ML execution kernel running on this machine"><span class="ds-live-dot" aria-hidden="true"></span><span>DuckDB + Py3.11</span><span class="ds-foot-meta" id="ds-kernel-stat">local</span></div>
       <div class="ds-only ds-account"><span class="avatar">SM</span><span class="ds-account-name">Shahriyar<small>Owner · this machine</small></span><button type="button" class="icon-btn" data-ds-settings="1" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
       <button type="button" class="nav-item" id="side-tours"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 10 4l4 10 2-4 4 10"/></svg><span>Guided tours</span></button>
     </div>
@@ -41,13 +43,15 @@
       <span class="ds-only ds-arrows"><button type="button" class="icon-btn" id="ds-back" aria-label="Back" title="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button><button type="button" class="icon-btn" id="ds-fwd" aria-label="Forward" title="Forward"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></span>
       <span class="ds-only ds-home-crumb">DCLab</span>
       <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
-      <button type="button" class="search-btn" id="search-btn" aria-label="Search pages, actions and evidence"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search this workspace or jump to…</span><kbd>⌘K</kbd></button>
+      <button type="button" class="ds-only top-branch-pill" id="top-branch-pill" hidden data-tip="Active ML project or conversation draft context"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M3 12h6M15 12h6"/></svg><span id="top-branch-label">draft/main</span></button>
+      <button type="button" class="ds-only top-compute-pill" id="top-compute-pill" data-go="compute" data-tip="Compute, workers, and local runtime telemetry"><span class="ds-live-dot" aria-hidden="true"></span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg><span id="top-compute-label">Py3.11 · DuckDB</span></button>
+      <button type="button" class="search-btn" id="search-btn" aria-label="Search pages, actions and evidence" data-tip="Search projects, evidence records, rules, and actions (⌘K)"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search tables, runs…</span><kbd>⌘K</kbd></button>
       <div class="top-actions">
-        <label class="role-pick" title="See the product as another user would"><span class="sr-only">View as</span><span class="dot accent"></span><select class="role-select" id="role-select"><option value="developer">Developer view</option><option value="business">Business view</option><option value="researcher">Researcher view</option><option value="admin">Admin view</option></select></label>
-        <span class="demo-pill" title="Sample data, except where a record chip such as EXP-007 cites the repository">Sample data · Demo</span>
-        <button type="button" class="icon-btn ds-only" id="ds-rail-btn" aria-label="Show or hide the side panel" title="Side panel" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
-        <button type="button" class="icon-btn ds-only" data-ds-settings="1" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-        <button type="button" class="icon-btn" id="theme-btn" aria-label="Switch light or dark theme"></button>
+        <label class="role-pick" data-tip="Preview the interface through another team role"><span class="sr-only">View as</span><span class="dot accent"></span><select class="role-select" id="role-select"><option value="developer">Developer view</option><option value="business">Business view</option><option value="researcher">Researcher view</option><option value="admin">Admin view</option></select></label>
+        <span class="demo-pill" data-tip="Uses sample workspace records unless a record cites an exact campaign ID">Sample data · Demo</span>
+        <button type="button" class="icon-btn ds-only" id="ds-rail-btn" aria-label="Show or hide the side panel" data-tip="Show or hide understanding &amp; context side panel" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+        <button type="button" class="icon-btn ds-only" data-ds-settings="1" aria-label="Settings" data-tip="Workspace theme, models, and budget settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+        <button type="button" class="icon-btn" id="theme-btn" aria-label="Switch light or dark theme" data-tip="Switch between light and dark appearance"></button>
         <span class="avatar top-avatar" title="Shahriyar · owner">SM</span>
       </div>
     </header>
@@ -69,6 +73,8 @@
     </div>
   </header>
 
+  <div class="wf-flow-wrap" id="home-wf-flow"></div>
+
   <div class="pane" data-pane="overview" data-label="Overview">
     <div class="stats" data-f="home.kpis">
       <div class="stat"><span class="v">9</span><span class="l">leaky columns blocked before training · duration, final fares, PageValues…</span></div>
@@ -83,41 +89,78 @@
           <div class="panel-body stack tight">
             <div class="spread"><div class="eyebrow">Start from one sentence</div><span class="small muted">DCLab drafts the solution first, then the plan.</span></div>
             <div class="composer">
-              <label class="sr-only" for="home-task">Describe the model you need</label>
-              <textarea id="home-task" placeholder="Describe the problem in one sentence, or ask for any kind of model. For example: rank our clients for next month's call campaign; a call costs about €8 and a subscription is worth about €110."></textarea>
+              <div class="composer-head">
+                <div class="comp-proj-wrap ds-only">
+                  <button type="button" class="comp-proj-btn" id="home-comp-proj" aria-expanded="false" aria-haspopup="listbox" data-tip="Switch ML project context or start a fresh draft">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                    <span class="comp-proj-tag">PROJECT</span>
+                    <span class="comp-proj-name" id="home-comp-proj-name">New draft</span>
+                    <svg class="comp-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="comp-proj-menu" id="home-comp-proj-menu" hidden role="listbox" aria-label="Switch ML project context"></div>
+                </div>
+                <div class="help-kinds" data-f="home.help_kinds" role="group" aria-label="The kind of help you want (optional)">
+                  <button type="button" class="help-kind" data-help="prediction" aria-pressed="false" data-tip="Train, cross-validate &amp; tune predictive models with strict holdout safety"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg><span>Model</span></button>
+                  <button type="button" class="help-kind" data-help="business" aria-pressed="false" data-tip="Scope validation strategy, decision thresholds, or a no-data blueprint"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m14.8 9.2-1.8 4.6-4.6 1.8 1.8-4.6z"/></svg><span>Plan</span></button>
+                  <button type="button" class="help-kind" data-help="reporting" aria-pressed="false" data-tip="Generate SHAP diagnostics, calibration curves &amp; executive briefs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg><span>Report</span></button>
+                  <button type="button" class="help-kind" data-help="analysis" aria-pressed="false" data-tip="Explore cohort drift, Population Stability Index (PSI) &amp; feature distributions"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v10h10A10 10 0 1 1 12 2z"/><path d="M15 2a8 8 0 0 1 7 7h-7z"/></svg><span>Analyze</span></button>
+                  <button type="button" class="help-kind" data-help="preparation" aria-pressed="false" data-tip="Clean schemas, build point-in-time joins, or reshape tables without future leakage"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M8 6v4M4 12h16M16 12v4M4 18h16M10 18v-4"/></svg><span>Prepare</span></button>
+                  <button type="button" class="help-kind" data-help="advice" aria-pressed="false" data-tip="Audit temporal leakage or ask DCLab to explain an ML rule or concept"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></svg><span>Learn</span></button>
+                </div>
+              </div>
+              <div class="comp-spec-bar ds-only" id="home-spec-bar" hidden>
+                <button type="button" class="spec-pill" id="spec-target-btn" data-tip="Outcome column (y) to predict; click to set or cycle detected columns"><span class="spec-k">target:</span> <span class="spec-v" id="spec-target-val">auto-detect</span></button>
+                <button type="button" class="spec-pill" id="spec-cv-btn" data-tip="Cross-validation split rule used to score candidates before touching holdout"><span class="spec-k">cv:</span> <span class="spec-v" id="spec-cv-val">Leakage-safe (auto)</span></button>
+                <button type="button" class="spec-pill" id="spec-metric-btn" data-tip="Primary optimization metric &amp; business payout rule"><span class="spec-k">metric:</span> <span class="spec-v" id="spec-metric-val">Auto</span></button>
+                <button type="button" class="spec-pill spec-guard ok" id="spec-leak-btn" data-tip="Temporal Leakage Guard blocks post-decision columns and target peeking across splits"><span class="spec-k">Leakage Guard:</span> <span class="spec-v" id="spec-leak-val">Strict</span></button>
+              </div>
+              <div class="composer-input-wrap" id="home-task-wrap">
+                <div class="comp-label-row">
+                  <label class="field-label" for="home-task" id="home-task-label">Problem or modeling objective</label>
+                  <span class="field-hint">Type naturally or reference tables with <code>@table_name</code></span>
+                </div>
+                <div class="comp-textarea-box">
+                  <textarea id="home-task" placeholder="Describe the problem in one sentence, or ask for any kind of model. For example: rank our clients for next month's call campaign; a call costs about €8 and a subscription is worth about €110."></textarea>
+                  <div class="composer-placeholder ds-only" id="home-task-ph" aria-hidden="true">
+                    <p class="cp-lead">Specify your hypothesis, feature engineering logic, or <span class="cp-mode" id="ph-mode-word">model</span> objective. Reference tables with <code>@table_name</code>.</p>
+                    <p class="cp-ex">Example: “Train a Monotonic LightGBM classifier on @customers_q3.parquet; rank active accounts by expected net retention value where a call costs €8 and saves €110.”</p>
+                  </div>
+                </div>
+              </div>
               <div class="composer-bar">
-                <button type="button" class="btn sm ghost" id="home-connect" aria-expanded="false" aria-controls="home-bring"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Connect data</button>
-                <span class="pill outline" id="home-data-pill" hidden></span>
+                <div class="comp-bar-left">
+                  <button type="button" class="btn sm ghost" id="home-connect" aria-expanded="false" aria-controls="home-bring" data-tip="Upload CSV/Parquet, attach a studied benchmark table, or connect a warehouse"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span class="ds-only">+ Attach table</span><span class="ds-hide">Connect data</span></button>
+                  <span class="pill outline" id="home-data-pill" hidden></span>
+                  <div class="comp-chips ds-only" id="home-attached-chips"></div>
+                </div>
                 <div class="seg" data-seg="mode" id="home-mode" role="group" aria-label="Who drives">
-                  <button type="button" data-v="notebook" aria-pressed="true">I drive · notebook</button>
-                  <button type="button" data-v="intern" aria-pressed="false">Intern drives</button>
+                  <button type="button" data-v="notebook" aria-pressed="true" data-tip="You write and inspect each notebook cell with Copilot checks">I drive · notebook</button>
+                  <button type="button" data-v="intern" aria-pressed="false" data-tip="Autonomous Intern proposes plans, runs experiments within budget, and pauses at key approvals">Intern drives</button>
                 </div>
                 <label class="sr-only" for="home-budget">Budget</label>
-                <select id="home-budget" data-style="width:auto">
+                <select id="home-budget" data-style="width:auto" data-tip="Maximum tool calls, wall-clock time, and spend cap per session">
                   <option>Budget · 24 tool calls · 20 min · €5</option>
                   <option>Budget · 48 tool calls · 60 min · €15</option>
                   <option>Budget · 12 tool calls · 5 min · €1</option>
                 </select>
-                <button type="button" class="btn primary send" id="home-start">Draft the solution<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+                <span class="comp-shortcut ds-only" aria-hidden="true">↵ ⌘↵</span>
+                <button type="button" class="btn primary send" id="home-start" data-tip="Start drafting the solution contract and workflow plan (⌘↵)"><span id="home-start-label">Draft the solution</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
               </div>
-            </div>
-            <div class="help-kinds" data-f="home.help_kinds" role="group" aria-label="The kind of help you want (optional)">
-              <button type="button" class="help-kind" data-help="prediction" aria-pressed="false" title="A model that predicts what has not happened yet">Model</button>
-              <button type="button" class="help-kind" data-help="business" aria-pressed="false" title="A decision or a plan: what to do, who to call">Plan</button>
-              <button type="button" class="help-kind" data-help="reporting" aria-pressed="false" title="A report or a dashboard of what happened">Report</button>
-              <button type="button" class="help-kind" data-help="analysis" aria-pressed="false" title="Figures and answers from your table">Analyze</button>
-              <button type="button" class="help-kind" data-help="preparation" aria-pressed="false" title="Clean, join or reshape your data">Prepare</button>
-              <button type="button" class="help-kind" data-help="advice" aria-pressed="false" title="An answer or an explanation, no work on data">Learn</button>
             </div>
             <div class="row small muted" data-f="home.quickstarts">
               <span>Examples:</span>
               <div class="chips">
-                <button type="button" class="chip" data-example="Predict which customers will cancel their subscription next month, so the retention team can call them first.">Predict churn</button>
-                <button type="button" class="chip" data-example="Show me our sales per region and per month for this year.">Analyse my sales</button>
-                <button type="button" class="chip" data-example="I want to find groups of customers who behave alike, to target offers.">Find customer segments</button>
-                <button type="button" class="chip" data-example="Merge my two customer files and remove the duplicate rows.">Clean or combine files</button>
-                <button type="button" class="chip" data-example="Build a weekly dashboard of orders and revenue per channel for my manager.">Weekly dashboard</button>
+                <button type="button" class="chip" data-help-mode="prediction" data-tip="Cost-sensitive churn ranking tuned on PR-AUC and net retention value" data-example="Predict which customers will cancel their subscription next month, so the retention team can call them first where a retention call costs €8 and saves €110."><span>Train cost-sensitive LightGBM</span><span class="starter-tag ds-only">PR-AUC + EV</span></button>
+                <button type="button" class="chip" data-help-mode="advice" data-tip="Detect post-cutoff target leakage and distribution shift via PSI and SHAP" data-example="Run a temporal leakage and Population Stability Index (PSI) audit across my tables relative to the prediction cutoff timestamp."><span>Audit target leakage &amp; drift</span><span class="starter-tag ds-only">PSI + SHAP</span></button>
+                <button type="button" class="chip" data-help-mode="analysis" data-tip="Segment active customers using UMAP embeddings and HDBSCAN clustering" data-example="I want to find behavioral customer segments using RFM and usage velocity cohorts to target retention offers."><span>UMAP + HDBSCAN behavioral clusters</span><span class="starter-tag ds-only">Cohort</span></button>
+                <button type="button" class="chip" data-help-mode="preparation" data-tip="Combine profile and transaction tables using point-in-time cutoff semantics" data-example="Merge my customer profile and transaction history files with point-in-time feature joins and remove duplicate rows."><span>Point-in-time feature join</span><span class="starter-tag ds-only">DuckDB SQL</span></button>
+                <button type="button" class="chip" data-help-mode="reporting" data-tip="Compare probability calibration, PR curves, and campaign profit across runs" data-example="Build a calibration, precision-recall, and cumulative profit curve executive report across candidate runs."><span>Calibration &amp; profit curve report</span><span class="starter-tag ds-only">Eval Suite</span></button>
+                <button type="button" class="chip" data-help-mode="business" data-tip="Design schema requirements, economics, and leakage guards before data exists" data-example="We do not have historical training data yet. Design the business unit economics, schema requirements, leakage rules, and ML architecture first."><span>Solve without data</span><span class="starter-tag ds-only">Blueprint</span></button>
               </div>
+            </div>
+            <div class="ds-only pro-deck" id="home-pro-deck" hidden>
+              <div class="pro-cards" id="home-pro-cards"></div>
+              <div class="pro-board" id="home-pro-board"></div>
             </div>
             <div class="row small muted" data-f="home.pack">
               <span>Domain pack:</span>
@@ -255,7 +298,7 @@
 
     <div class="grid g-chat" id="home-lanes">
     <div class="panel" id="home-chat" hidden data-f="home.chat">
-      <div class="panel-head"><div class="panel-title"><h2>Conversation</h2><span class="sub" id="home-chat-sub">A few questions to understand the problem, and the data as it gets ready.</span></div><span class="row" data-style="gap:8px;align-items:center"><span class="pill outline" id="home-chat-mode" hidden></span><button type="button" class="btn primary sm" id="home-create" title="DCLab builds the project from what this chat settled and its agent plans and runs it">Build this chat as a project</button></span></div>
+      <div class="panel-head"><div class="panel-title"><h2>Conversation</h2><span class="sub" id="home-chat-sub">A few questions to understand the problem, and the data as it gets ready.</span></div><span class="row" data-style="gap:8px;align-items:center"><span class="pill outline" id="home-chat-mode" hidden></span><button type="button" class="btn sm ghost" id="home-inspect-toggle" aria-expanded="false" aria-controls="home-inspect" data-tip="Inspect live datasets, execution logs, interim evaluation, and cited evidence during this session">Inspect work</button><button type="button" class="btn sm ghost" id="home-planner-toggle" aria-expanded="false" aria-controls="home-planner" hidden data-tip="Show or hide the live task plan, clarification checks, and blueprint">Planner</button><button type="button" class="btn primary sm" id="home-create" data-tip="Promote this conversation into a full project with Leakage Guard, CV runs, and Evidence">Build this chat as a project</button></span></div>
       <div class="panel-foot bar" id="home-intent" hidden data-f="home.intent">
         <span class="small"><span class="muted">Type of help:</span> <b id="home-intent-label"></b> <span class="muted" id="home-intent-why"></span></span>
         <span class="chips" id="home-intent-change" role="group" aria-label="Change the type of help"></span>
@@ -264,16 +307,32 @@
         <div class="small muted">What DCLab understood (change anything that is wrong):</div>
         <div class="stack small" id="home-brief-list"></div>
       </div>
+      <section class="home-planner" id="home-planner" hidden aria-label="Planner"></section>
+      <section class="home-inspect" id="home-inspect" hidden aria-label="Session work inspector">
+        <div class="home-inspect-head">
+          <div class="tabs home-inspect-tabs" role="tablist" aria-label="Inspect work sections">
+            <button type="button" class="tab" data-inspect-tab="data" role="tab" aria-selected="true" data-tip="Inspect attached tables, schema summaries, distributions, and raw rows">Datasets <span class="pill outline" id="hi-cnt-data">0</span></button>
+            <button type="button" class="tab" data-inspect-tab="logs" role="tab" aria-selected="false" data-tip="Follow live agent tool calls, case updates, workflow transitions, and compute jobs">Logs <span class="pill outline" id="hi-cnt-logs">0</span></button>
+            <button type="button" class="tab" data-inspect-tab="eval" role="tab" aria-selected="false" data-tip="Inspect interim cross-validation metrics and completed stage checks while holdout stays sealed">Evaluation <span class="pill outline" id="hi-cnt-eval">—</span></button>
+            <button type="button" class="tab" data-inspect-tab="evidence" role="tab" aria-selected="false" data-tip="Read cited evidence records and recent lab evidence without waiting for the run to end">Evidence <span class="pill outline" id="hi-cnt-ev">0</span></button>
+          </div>
+          <div class="row home-inspect-actions">
+            <button type="button" class="btn sm ghost" id="home-inspect-refresh" data-tip="Refresh live datasets, logs, evaluation, and evidence">Refresh</button>
+            <button type="button" class="link-btn small" id="home-inspect-hide">Hide</button>
+          </div>
+        </div>
+        <div class="home-inspect-body" id="home-inspect-body"></div>
+      </section>
       <div class="panel-body"><div class="thread" id="home-thread" aria-live="polite"></div></div>
       <div class="panel-foot">
         <div class="composer">
-          <div class="callout info small" id="home-syn-banner" hidden><span class="ic">${icon:info}</span><span>Describing synthetic data: your next messages shape the table, and DCLab shows its design before creating anything. Say “approve” to create it.</span><button type="button" class="link-btn small" id="home-syn-leave">Leave this</button></div>
-          <label class="sr-only" for="home-reply">Reply to DCLab</label>
-          <textarea id="home-reply" placeholder="Answer, ask, or say “create a project”."></textarea>
+          <div class="callout info small" id="home-syn-banner" hidden><span class="ic">${icon:info}</span><span id="home-syn-banner-text">Describing synthetic data: your next messages shape the table, and DCLab shows its design before creating anything. Say “approve” to create it.</span><button type="button" class="link-btn small" id="home-syn-leave">Leave this</button></div>
+          <div class="composer-field-head"><label class="field-label" for="home-reply">Reply to DCLab</label><span class="field-hint">Press Enter or Send to continue</span></div>
+          <div class="composer-grow"><textarea id="home-reply" placeholder="Answer, ask, or say “create a project”."></textarea></div>
           <div class="composer-bar">
-            <button type="button" class="btn sm ghost" data-open-bring="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Connect data</button>
-            <button type="button" class="link-btn small" data-wizard="1">Review step by step instead</button>
-            <label class="sr-only" for="home-to">Send to</label>
+            <button type="button" class="btn sm ghost" data-open-bring="1" data-tip="Attach or upload a table for this conversation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Connect data</button>
+            <button type="button" class="link-btn small" data-wizard="1" data-tip="Open the guided multi-step wizard instead of chat">Review step by step instead</button>
+            <label class="field-label" for="home-to" id="home-to-label" hidden>Send to</label>
             <select id="home-to" data-style="width:auto" hidden>
               <option value="both">To DCLab and Claude</option>
               <option value="system">To DCLab only</option>
@@ -304,6 +363,7 @@
   </div>
 
   <div class="pane" data-pane="projects" data-label="Projects" data-count="8">
+      <div class="ds-back-bar ds-only"><button type="button" class="btn sm" data-back-overview>← Back to Workbench</button><button type="button" class="btn sm" data-go-pane="activity">Activity</button></div>
       <div class="panel" data-f="home.projects">
         <div class="panel-head">
           <div class="panel-title"><h2>Projects</h2><span class="sub">A score appears only once it is honest: leakage-safe, with an interval and a source record.</span></div>
@@ -325,6 +385,7 @@
   </div>
 
   <div class="pane" data-pane="activity" data-label="Activity">
+    <div class="ds-back-bar ds-only"><button type="button" class="btn sm" data-back-overview>← Back to Workbench</button><button type="button" class="btn sm" data-go-pane="projects">Projects</button></div>
     <div class="grid g2">
       <div class="panel" data-f="home.activity">
         <div class="panel-head"><h2>Live</h2><a class="link-btn small" href="#compute">Compute →</a></div>
@@ -823,11 +884,11 @@
       <div class="panel" data-f="nb.review">
         <div class="nb-toolbar">
           <span class="small strong" id="nb-file">first-pass.ipynb</span><span class="pill bad" id="nb-count">10</span>
-          <button type="button" class="btn sm" id="nb-runall"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>Run all</button>
-          <button type="button" class="btn sm ghost" id="nb-restart" data-real-only hidden>Restart kernel</button>
-          <button type="button" class="btn sm proof" id="nb-fixall">Apply all safe fixes</button>
-          <button type="button" class="btn sm ghost" id="nb-reset">Reset demo</button>
-          <div class="seg" data-seg="drive" role="group" aria-label="Who drives"><button type="button" data-v="me" aria-pressed="true">I drive</button><button type="button" data-v="intern" aria-pressed="false">Intern drives</button></div>
+          <button type="button" class="btn sm" id="nb-runall" data-tip="Execute training cells inside this sandboxed notebook without opening holdout data"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>Run all</button>
+          <button type="button" class="btn sm ghost" id="nb-restart" data-real-only hidden data-tip="Restart the Python kernel cleanly while keeping cell edits">Restart kernel</button>
+          <button type="button" class="btn sm proof" id="nb-fixall" data-tip="Apply Copilot's verified leakage and calibration fixes; original cells stay in history">Apply all safe fixes</button>
+          <button type="button" class="btn sm ghost" id="nb-reset" data-tip="Restore the sample notebook to its initial buggy baseline">Reset demo</button>
+          <div class="seg" data-seg="drive" role="group" aria-label="Who drives"><button type="button" data-v="me" aria-pressed="true" data-tip="You control each cell run while Copilot audits for leakage">I drive</button><button type="button" data-v="intern" aria-pressed="false" data-tip="Autonomous Intern writes and runs next cells inside the workflow rules">Intern drives</button></div>
           <span class="kernel" data-f="nb.cells" id="nb-kernel"><span class="dot ok"></span>Python 3.12 · sandbox · 2 vCPU · idle</span>
         </div>
         <div class="callout bad" id="nb-banner" data-style="margin:12px 12px 0"><span class="ic">${icon:alert}</span><span id="nb-banner-text"></span></div>
@@ -836,7 +897,7 @@
           <div class="agent-cell" data-f="nb.agentcells">
             <div class="row"><span class="pack-ic" data-style="width:26px;height:26px">${icon:spark}</span><b>Ask the agent to write the next cell</b><span class="pill outline">you accept or reject</span></div>
             <div id="agent-out"></div>
-            <div class="row" id="agent-ask"><label class="sr-only" for="agent-prompt">Instruction</label><input id="agent-prompt" type="text" value="Calibrate the forest's probabilities on the training folds and show the Brier score" data-style="flex:1;min-width:200px"><button type="button" class="btn sm primary" id="agent-go">Write cell</button><button type="button" class="btn sm" id="agent-add" hidden>+ Add code cell</button></div>
+            <div class="field-row" id="agent-ask"><label class="field-label" for="agent-prompt">Next cell instruction</label><div class="row"><input id="agent-prompt" type="text" value="Calibrate the forest's probabilities on the training folds and show the Brier score" placeholder="Describe the transformation, diagnostic, or calibration cell to generate…" data-style="flex:1;min-width:200px"><button type="button" class="btn sm primary" id="agent-go">Write cell</button><button type="button" class="btn sm" id="agent-add" hidden>+ Add code cell</button></div></div>
             <div class="stack tight" id="own-cell" hidden>
               <label class="small strong" for="own-code">Your cell: Python, run in this project's kernel on the training rows (X_train, y_train, cv, pipeline are there once the notebook ran)</label>
               <textarea id="own-code" class="code-input" rows="8" spellcheck="false" placeholder="# for example\nprint(X_train.shape)"></textarea>
@@ -1338,7 +1399,7 @@
         <div class="panel-body stack tight small" id="so-sample">
           <div class="msg"><span class="avatar sm c">RZ</span><div class="msg-body"><span class="who">Reza <span>Oct 4, 10:05</span></span><div class="bubble" data-style="background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px">Is €8 the full cost of a call? With follow-up time it is closer to €11.</div></div></div>
           <div class="msg"><span class="avatar sm">SM</span><div class="msg-body"><span class="who">Shahriyar <span>Oct 4, 11:20</span></span><div class="bubble" data-style="background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px">At €11 a call still pays above a 10% hit rate. The top 2,000 hit about 39%, so the recommendation holds. Try it in the calculator.</div></div></div>
-          <label class="sr-only" for="so-comment">Comment</label><textarea id="so-comment" rows="2" placeholder="Add a comment for the team"></textarea>
+          <div class="field-row"><label class="field-label" for="so-comment">Comment for the team</label><textarea id="so-comment" rows="2" placeholder="Add a comment for the team"></textarea></div>
           <div class="row"><button type="button" class="btn primary" id="so-approve">Approve the pilot</button><button type="button" class="btn" data-toast="Changes requested. The intern drafts v2 of the brief and notifies Ava.">Request changes</button></div>
           <span class="xs muted">Approving the brief approves a pilot, not a launch ${chip:DCLAB-R22}.</span>
         </div>
@@ -1366,15 +1427,17 @@
       <p class="lede">Give it the task: it plans, calls tools, runs code in a sandbox and writes a report. Every move passes the same graph and validator as a person, so it stops and asks instead of guessing.</p>
     </div>
     <div class="vh-actions">
-      <label class="sr-only" for="intern-model">Model</label>
-      <select id="intern-model" data-f="intern.model" data-style="width:auto">
-        <option value="router">Model · open model via Hugging Face router</option>
-        <option value="local">Model · local (Ollama)</option>
-        <option value="standard">No model · standard plan</option>
-        <!-- dclab:closed-begin  (the policy model: the full edition's) -->
-        <option value="policy">DCLab policy model (planned)</option>
-        <!-- dclab:closed-end -->
-      </select>
+      <div class="row" data-style="gap:6px">
+        <label class="field-label" for="intern-model">Model</label>
+        <select id="intern-model" data-f="intern.model" data-style="width:auto" data-tip="Choose which LLM backend or deterministic plan drives autonomous steps">
+          <option value="router">Model · open model via Hugging Face router</option>
+          <option value="local">Model · local (Ollama)</option>
+          <option value="standard">No model · standard plan</option>
+          <!-- dclab:closed-begin  (the policy model: the full edition's) -->
+          <option value="policy">DCLab policy model (planned)</option>
+          <!-- dclab:closed-end -->
+        </select>
+      </div>
       <button type="button" class="btn primary" data-go="home">New task</button>
     </div>
   </header>
@@ -1396,9 +1459,9 @@
         <div class="panel-body"><div class="thread" id="thread"></div></div>
         <div class="panel-body" data-style="border-top:1px solid var(--line)">
           <div class="composer">
-            <label class="sr-only" for="intern-follow">Follow-up</label>
+            <div class="composer-field-head"><label class="field-label" for="intern-follow">Instruction for ML Intern</label><span class="field-hint">Use slash commands below for quick stage jumps</span></div>
             <textarea id="intern-follow" rows="2" placeholder="Give the next instruction, or type / for commands"></textarea>
-            <div class="composer-bar"><div class="chips"><button type="button" class="chip" data-cmd="/solution">/solution</button><button type="button" class="chip" data-cmd="/audit">/audit</button><button type="button" class="chip" data-cmd="/brief">/brief</button><button type="button" class="chip" data-cmd="/stop">/stop</button><button type="button" class="chip" data-cmd="/new" id="intern-new-cmd" hidden>/new</button></div><button type="button" class="btn primary send" id="intern-send">Send</button></div>
+            <div class="composer-bar"><div class="chips"><button type="button" class="chip" data-cmd="/solution" data-tip="Review or edit the target, prediction moment, and split contract">/solution</button><button type="button" class="chip" data-cmd="/audit" data-tip="Inspect temporal leakage and validation checks">/audit</button><button type="button" class="chip" data-cmd="/brief" data-tip="Draft or inspect the executive decision brief">/brief</button><button type="button" class="chip" data-cmd="/stop" data-tip="Halt the active agent loop cleanly">/stop</button><button type="button" class="chip" data-cmd="/new" id="intern-new-cmd" hidden data-tip="Start a fresh Intern session">/new</button></div><button type="button" class="btn primary send" id="intern-send">Send</button></div>
           </div>
         </div>
       </div>
@@ -1537,7 +1600,10 @@
 
     <div class="panel" data-f="ev.search" data-tour="ev-search">
       <div class="panel-body stack tight" data-style="border-bottom:1px solid var(--line)">
-        <div class="row"><label class="sr-only" for="ev-q">Search the evidence</label><input id="ev-q" type="search" value="oversampling before split" data-style="flex:1;min-width:220px"><select id="ev-ds" data-style="width:auto" aria-label="Dataset"></select></div>
+        <div class="row">
+          <div class="field-row" data-style="flex:1;min-width:220px"><label class="field-label" for="ev-q">Search evidence library</label><input id="ev-q" type="search" value="oversampling before split" placeholder="Search rules, campaigns, pitfalls, or precedents…" data-tip="Full-text + ranked retrieval across DCLab rules, measured experiments, pitfalls, and lessons"></div>
+          <div class="field-row" data-style="width:auto;min-width:170px"><label class="field-label" for="ev-ds">Dataset scope</label><select id="ev-ds" data-style="width:auto" aria-label="Dataset" data-tip="Narrow evidence search to a specific benchmark or workspace dataset"></select></div>
+        </div>
         <div class="chips" id="ev-types"></div>
         <div class="xs muted">Filter, then rank: the type and dataset filters narrow the candidates before the text is scored, so a precise question never drowns in loosely related records.</div>
       </div>

@@ -79,10 +79,61 @@ def _project_graph(project, caps):
     return adapt_workflow(workflow, plan_from_project(project), project, capabilities=caps)[0]
 
 
+_SAFE_STATIC_BLOCKER_MAP = {
+    'Outcome and prediction contract require current human solution signoff':
+        'Solution is not signed yet — sign the solution to unlock this step.',
+    'Current saved solution is outside this basic binary adapter':
+        'Current saved solution is outside the basic binary adapter.',
+    'Time/group/spatial splits or partial/attached labels require a separately reviewed source mapping':
+        'Time, group, spatial splits or partial labels require a reviewed source mapping.',
+    'Programme, solution-map and related-table projects require their existing atomic owner; this adapter cannot flatten them':
+        'Programme, solution-map and related-table projects keep their existing atomic workflow.',
+    'Current dataset column metadata is missing or invalid':
+        'Dataset column metadata is missing or invalid.',
+    'Saved solution columns do not match current dataset metadata':
+        'Saved solution columns do not match current dataset columns.',
+}
+_SAFE_STATIC_BLOCKER_PREFIXES = (
+    'Required registered capability is missing: ',
+    'Registered capability scope/effect/move differs from the existing authority: ',
+    'Host policy or missing project guard blocks capability: ',
+    'Schema references require resolution outside this non-executing adapter: ',
+    'Registered argument schema cannot represent this existing operation: ',
+    'Registered capability has an invalid parameter schema: ',
+)
+
+
+def _static_blocker_reason(node):
+    raw = getattr(node, 'blocker_reason', None)
+    if not isinstance(raw, str) or not raw.strip():
+        return 'The workflow needs data, permission or a supported capability.'
+    safe = []
+    for part in (p.strip() for p in raw.split(';')):
+        if not part:
+            continue
+        if part in _SAFE_STATIC_BLOCKER_MAP:
+            safe.append(_SAFE_STATIC_BLOCKER_MAP[part])
+            continue
+        for prefix in _SAFE_STATIC_BLOCKER_PREFIXES:
+            if part.startswith(prefix):
+                cap = part[len(prefix):].strip()
+                if cap and re.fullmatch(r'[a-z_][a-z0-9_]*', cap):
+                    safe.append(f'{prefix}{cap}.')
+                break
+    return ' '.join(safe) if safe else 'The workflow needs data, permission or a supported capability.'
+
+
 def task_plan_view(projects, home, project_id, *, enabled=False, execution_enabled=False):
+    from dclab_rnd.studio.graph import solution_signed
     project = projects.get(project_id)  # authenticate the workspace before touching a shared saver
     exec_on = bool(execution_enabled)
+    signoff = project.get('signoff') or {}
+    needs_signoff = not (
+        solution_signed(project)
+        and all(isinstance(signoff.get(key), str) and signoff[key].strip() for key in ('by', 'at'))
+    )
     out = {'project_id': project_id, 'read_only': True, 'execution_enabled': exec_on, 'developer_preview': not exec_on,
+           'needs_signoff': needs_signoff,
            'status': 'disabled', 'nodes': [], 'revisions': [], 'budget': None,
            'release': ('Opt-in task execution is enabled in Admin → Teams (task_planning_v3 tp06.gate.v2 PASS).' if exec_on
                        else 'Task execution passed task_planning_v3 (tp06.gate.v2 PASS); off by default until enabled by the owner in Admin → Teams.')}
@@ -149,7 +200,7 @@ def task_plan_view(projects, home, project_id, *, enabled=False, execution_enabl
                     approval = 'approved' if approved and not stale else 'awaiting approval'
                     value, reason = ('completed' if approved and not stale else 'blocked'), 'Owner approval or independent evidence is required; this is a check, not tool work.'
                 elif node.kind == 'blocked':
-                    value, reason = 'blocked', 'The workflow needs data, permission or a supported capability.'
+                    value, reason = 'blocked', _static_blocker_reason(node)
                 if a:
                     proof = proofs.get(a.get('verification_id')) or {}
                     if (a.get('status') in TERMINAL and a.get('acceptance_verification') == 'verified'

@@ -368,6 +368,48 @@ class ChatAnswersTests(unittest.TestCase):
         self.assertEqual((seen[2]["task_execution"], seen[2]["admit_proposals"]), (False, False))
         self.assertIsNone(seen[2]["gateway"])
 
+    def test_open_field_triggers_ask_node_in_orchestra_walk_and_built_does_not_duplicate(self):
+        import pandas as pd
+        from dclab_rnd import experience
+        from dclab_rnd.draft import pipeline
+        from dclab_rnd.draft.chat import HomeAgent
+        from dclab_rnd.draft.store import DraftStore
+        from dclab_rnd.orchestra import service as team
+        from dclab_rnd.orchestra.walk import ACTS
+        from dclab_rnd.studio import ProjectStore
+
+        self.assertIn("ask", ACTS)
+        home = Path(tempfile.mkdtemp())
+        experience.install(experience.FileLog(home / "experience", "c"))
+        self.addCleanup(experience.install, None)
+        drafts, projects = DraftStore(home / "drafts"), ProjectStore(home / "projects")
+        agent = HomeAgent(drafts, None)
+        did = drafts.create("Predict delivery ETA minutes so dispatchers can warn customers")["id"]
+        frame = pd.DataFrame({
+            "order_id": range(40),
+            "distance_km": [float(i % 10 + 1) for i in range(40)],
+            "ordered_at": pd.date_range("2026-01-01", periods=40, freq="h").astype(str),
+            "eta_minutes": [20.0 + (i % 15) for i in range(40)],
+        })
+        csv_path = drafts.data_dir(did) / "orders.csv"
+        frame.to_csv(csv_path, index=False)
+        asset = pipeline.new_asset(drafts, did, "upload", "orders.csv", "orders.csv")
+        pipeline.run(drafts, did, asset["id"], agent=agent)
+        drafts.update(did, lambda d: d.update(
+            intent={"track": "prediction", "status": "chosen", "source": "user"},
+            understanding={"target": "eta_minutes", "prediction_moment": "when the order is placed", "action": None},
+        ))
+        agent.refresh_workflow(did)
+        with self.assertRaises(team.TeamWaits) as caught:
+            team.build_draft(home, drafts, projects, agent, did)
+        self.assertNotIn("was never asked", str(caught.exception))
+        self.assertEqual(caught.exception.rule, "team waiting")
+        asks = team.pending(home, f"draft:{did}") or {}
+        self.assertEqual((asks.get("kind"), asks.get("field")), ("question", "action"))
+        before_msgs = len(drafts.get(did)["messages"])
+        agent.built(did, {"refused": str(caught.exception), "rule": caught.exception.rule})
+        self.assertEqual(len(drafts.get(did)["messages"]), before_msgs)
+
 
 if __name__ == "__main__":
     unittest.main()

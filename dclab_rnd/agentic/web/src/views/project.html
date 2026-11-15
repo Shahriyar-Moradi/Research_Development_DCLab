@@ -434,10 +434,14 @@ DC.view('project', {
     async function loadTaskPlan() {
       const box = $('#proj-task-plan-body', el), want = proj, request = ++taskPlanRequest;
       if (!isReal(proj)) { box.setAttribute('aria-busy', 'false'); DC.states.empty(box, 'Open your project to inspect its task plan. Sample workflows do not have recorded task attempts.', { href: '#home', action: 'Open Home' }); return; }
+      const pid = REAL[want].id;
       box.setAttribute('aria-busy', 'true');
       DC.states.loading(box, { text: 'Reading task progress…' });
       try {
-        const r = await DC.client.projectTaskPlan(REAL[want].id);
+        const [r, team] = await Promise.all([
+          DC.client.projectTaskPlan(pid),
+          DC.client.projectTeam(pid, { quiet: true }).catch(() => null),
+        ]);
         if (request !== taskPlanRequest || want !== proj) return;
         const sub = $('#task-plan-sub', el);
         if (sub) sub.textContent = r.execution_enabled
@@ -457,7 +461,7 @@ DC.view('project', {
             + `<span>Source workflow: ${esc((n.source_step_ids || []).join(', ') || 'logical grouping')}</span>`
             + `<span>Verification: ${esc(n.verification || 'not measured')}</span>${n.evidence_url ? `<a href="${esc(n.evidence_url)}" target="_blank" rel="noopener">Open recorded evidence</a>` : ''}</div>`;
           const statusClass = n.status === 'completed' ? 'ok' : n.status === 'stale' || n.status === 'blocked' ? 'warn' : '';
-          return `<li><details${n.kind === 'group' ? ' open' : ''}><summary><b>${esc(n.title)}</b> <span class="tag ${statusClass}">${esc(n.status)}</span></summary>` + info
+          return `<li><details${n.kind === 'group' || n.status === 'blocked' || n.status === 'running' ? ' open' : ''}><summary><b>${esc(n.title)}</b> <span class="tag ${statusClass}">${esc(n.status)}</span></summary>` + info
             + (children.length ? `<ol class="task-plan-tree">${children.map(c => nodeHTML(c, [...seen, n.id])).join('')}</ol>` : '') + '</details></li>';
         };
         const b = r.budget;
@@ -481,17 +485,51 @@ DC.view('project', {
             + (traps ? `<div class="small">Caught traps: ${traps}</div>` : '<p class="xs muted">No extra traps flagged in pre-holdout plan.</p>')
             + clarifyUI + `</div>`;
         })() : '';
+        const teamDone = Boolean(team && team.walk && team.walk.status === 'done');
+        const wait = team && team.waiting;
+        const waitBlock = wait ? (wait.kind === 'question'
+          ? `<div class="callout info small stack tight" id="proj-plan-wait"><b>Team needs your answer</b><span>${esc(wait.text || '')}</span><div class="row"><input type="text" id="proj-plan-wait-in" placeholder="Type your answer (or leave blank to skip)"><button type="button" class="btn sm primary" id="proj-plan-wait-send">Answer</button></div></div>`
+          : `<div class="callout info small stack tight" id="proj-plan-wait"><b>${esc(wait.kind === 'confirmation' ? 'Confirm the problem map?' : 'Approve: ' + (wait.gate || 'step'))}</b><div class="row"><button type="button" class="btn sm primary" data-proj-team-ok="1">Yes</button><button type="button" class="btn sm" data-proj-team-ok="0">No</button></div></div>`) : '';
+        const actionBar = (r.needs_signoff || (!teamDone && !wait))
+          ? `<div class="row" data-style="gap:8px;flex-wrap:wrap;margin-block:.5rem">${r.needs_signoff ? '<button type="button" class="btn sm primary" id="proj-plan-sign">Sign solution</button>' : ''}${(!teamDone && !wait) ? `<button type="button" class="btn sm" id="proj-plan-team-run">${team && team.board ? 'Continue Solution Team' : 'Run Solution Team'}</button>` : ''}</div>`
+          : '';
         box.innerHTML = `<p role="status">${esc(r.message)} Graph revision ${esc(String(r.graph_revision))}.</p><p class="small muted">${esc(r.release)} ${esc(budget)}</p>`
+          + actionBar + waitBlock
           + cpBlock
           + `<ol class="task-plan-tree">${r.nodes.filter(n => !n.parent_id).map(n => nodeHTML(n)).join('')}</ol>`
           + `<details><summary>Plan revision history and preserved work</summary>${revisions ? `<ol class="small">${revisions}</ol>` : '<p class="small muted">No plan revisions recorded.</p>'}</details>`;
+        const signBtn = $('#proj-plan-sign', box);
+        if (signBtn) signBtn.addEventListener('click', async () => {
+          signBtn.disabled = true; signBtn.textContent = 'Signing…';
+          try { await DC.client.approveGate(pid, { body: { gate: 'solution', reason: 'Signed from Project Task Plan' } }); toast('Solution signed.'); loadTaskPlan(); }
+          catch (err) { toast(err.message || 'Could not sign solution.', { ok: false }); signBtn.disabled = false; signBtn.textContent = 'Sign solution'; }
+        });
+        const runTeamBtn = $('#proj-plan-team-run', box);
+        if (runTeamBtn) runTeamBtn.addEventListener('click', async () => {
+          runTeamBtn.disabled = true; runTeamBtn.textContent = 'Running…';
+          try { await DC.client.projectTeamWalk(pid, { body: {} }); toast('Solution Team stepped.'); loadTaskPlan(); }
+          catch (err) { toast(err.message || 'Could not run Solution Team.', { ok: false }); runTeamBtn.disabled = false; runTeamBtn.textContent = 'Run Solution Team'; }
+        });
+        const waitSend = $('#proj-plan-wait-send', box);
+        if (waitSend) waitSend.addEventListener('click', async () => {
+          waitSend.disabled = true;
+          try { await DC.client.projectTeamWalk(pid, { body: { answer: ($('#proj-plan-wait-in', box).value || '') } }); loadTaskPlan(); }
+          catch (err) { toast(err.message || 'Failed to send answer.', { ok: false }); waitSend.disabled = false; }
+        });
+        box.querySelectorAll('[data-proj-team-ok]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            try { await DC.client.projectTeamWalk(pid, { body: { approve: btn.dataset.projTeamOk === '1' } }); loadTaskPlan(); }
+            catch (err) { toast(err.message || 'Failed to record approval.', { ok: false }); btn.disabled = false; }
+          });
+        });
         const clarifyBtn = $('#catalog-clarify-submit', box);
         if (clarifyBtn) clarifyBtn.addEventListener('click', async () => {
           const inp = $('#catalog-clarify-answer', box);
           const ans = inp ? inp.value.trim() : '';
           if (!ans) { toast('Write an answer before sending.', { ok: false }); return; }
           clarifyBtn.disabled = true;
-          try { await DC.client.confirmTaskPlan(REAL[want].id, { body: { answer: ans } }); toast('Clarification recorded.'); loadTaskPlan(); }
+          try { await DC.client.confirmTaskPlan(pid, { body: { answer: ans } }); toast('Clarification recorded.'); loadTaskPlan(); }
           catch (err) { toast(err.message || 'Could not record clarification.', { ok: false }); clarifyBtn.disabled = false; }
         });
       } catch (error) {

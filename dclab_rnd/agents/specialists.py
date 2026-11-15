@@ -40,7 +40,42 @@ SPECIALISTS: dict[str, str] = {
 }
 
 
-def allowed(name: str, case: C.CaseFile, table: Optional[Mapping[str, Any]], consulted: list[str]) -> Optional[str]:
+def virtual_table_text(virtual_tables: list[Mapping[str, Any]], prediction_moment: str = "") -> str:
+    """Format a pre-data virtual schema blueprint so specialists can inspect columns, roles, and grain without physical rows."""
+    if not virtual_tables:
+        return "No table or virtual schema has been shared."
+    lines = ["[VIRTUAL SCHEMA BLUEPRINT — NO PHYSICAL ROWS UPLOADED]"]
+    if prediction_moment:
+        lines.append(f"Prediction moment: {prediction_moment}")
+    for vt in virtual_tables[:6]:
+        if not isinstance(vt, Mapping):
+            continue
+        tname = str(vt.get("name") or "virtual_table")
+        grain = str(vt.get("grain") or "one row per entity/event")
+        ekey = str(vt.get("entity_key") or "entity_id")
+        tcol = str(vt.get("time_col") or "event_timestamp")
+        target = str(vt.get("target") or "target")
+        must = [str(c) for c in (vt.get("must_have_columns") or []) if c]
+        tier2 = [str(c) for c in (vt.get("tier2_engineered_columns") or []) if c]
+        forbid = [str(c) for c in (vt.get("forbidden_leakage_columns") or []) if c]
+        lines.append(
+            f"- Table {tname} (grain: {grain}; entity_key: {ekey}; time_col: {tcol}; target: {target} [outcome-like name]): "
+            f"Tier-1 columns: {', '.join(must) or 'none'}; "
+            f"Tier-2 engineered: {', '.join(tier2) or 'none'}; "
+            f"Known forbidden leakage traps: {', '.join(forbid) or 'none'}."
+        )
+    return "\n".join(lines)
+
+
+def allowed(
+    name: str,
+    case: C.CaseFile,
+    table: Optional[Mapping[str, Any]],
+    consulted: list[str],
+    *,
+    virtual_columns: Optional[list[str]] = None,
+    has_blueprint: bool = False,
+) -> Optional[str]:
     """Why a specialist may not be sent now (None when it may): its trigger, and the case's budget of consults."""
     if name not in SPECIALISTS:
         return f"no specialist {name!r}; there are: {', '.join(SPECIALISTS)}"
@@ -48,17 +83,24 @@ def allowed(name: str, case: C.CaseFile, table: Optional[Mapping[str, Any]], con
         return f"this case has used its {MAX_CONSULTS} consults: decide with what you have"
     if name in consulted:
         return f"the {name} was already consulted on this case: read its findings in the case file"
-    columns = (table or {}).get("columns") or []
-    if name in ("data_investigator", "leakage_auditor") and not columns:
+    columns = list((table or {}).get("columns") or [])
+    vcols = [str(c) for c in (virtual_columns or []) if str(c).strip()]
+    if name in ("data_investigator", "leakage_auditor") and not columns and not vcols:
         return "no table has been shared: there is nothing for it to read"
-    if name == "leakage_auditor" and not any("outcome-like name" in (c.get("noticed") or []) for c in columns) \
-            and not (case.route and case.route.track == "prediction") and not any(o.track == "prediction" for o in case.options):
+    if (
+        name == "leakage_auditor"
+        and not vcols
+        and not has_blueprint
+        and not any("outcome-like name" in (c.get("noticed") or []) for c in columns if isinstance(c, Mapping))
+        and not (case.route and case.route.track == "prediction")
+        and not any(o.track == "prediction" for o in case.options)
+    ):
         return "no prediction is in view (no outcome-like column, option or route): leakage cannot arise yet"
-    if name == "solution_designer" and case.route is None:
+    if name == "solution_designer" and case.route is None and not has_blueprint:
         return "nothing has started yet: the solution designer sets up work that has begun"
-    if name == "critic" and not C.readiness(case).may_propose:
+    if name == "critic" and not C.readiness(case).may_propose and not has_blueprint:
         return "the critic reads an understanding ready for options: ask what is still missing first"
-    if name == "domain_expert" and not C.known(case.goal):
+    if name == "domain_expert" and not C.known(case.goal) and not has_blueprint:
         return "the domain expert needs the person's goal first"
     return None
 
@@ -90,4 +132,4 @@ def consult(client: Any, name: str, question: str, case_text: str, table_text: s
     return {"specialist": name, "findings": findings, "dropped": problems}
 
 
-__all__ = ["KINDS", "MAX_CONSULTS", "PURPOSE", "SPECIALISTS", "allowed", "check", "consult"]
+__all__ = ["KINDS", "MAX_CONSULTS", "PURPOSE", "SPECIALISTS", "allowed", "check", "consult", "virtual_table_text"]

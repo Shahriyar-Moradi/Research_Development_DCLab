@@ -335,7 +335,7 @@ def _retrain_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str,
                                                                 "why": TEXT.get(reason, "The comparison ended before it finished")})
 
 
-def _collect_run(s: Any, payload: dict[str, Any]) -> None:
+def _collect_next_run(s: Any, payload: dict[str, Any]) -> None:
     from ..studio import collect
 
     pid = payload["project_id"]
@@ -348,7 +348,7 @@ def _collect_run(s: Any, payload: dict[str, Any]) -> None:
             s.projects.update(pid, running=None)
 
 
-def _collect_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+def _collect_next_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
     p = s.projects.get(payload["project_id"])
     if p.get("running") == "collect_next":
         s.projects.update(payload["project_id"], running=None)
@@ -365,7 +365,7 @@ def register() -> None:
     handler("improve", _improve_run, _improve_settle)
     handler("data_value", _data_value_run, _data_value_settle)
     handler("retrain", _retrain_run, _retrain_settle)  # 34.11
-    handler("collect_next", _collect_run, _collect_settle)  # 34.14
+    handler("collect_next", _collect_next_run, _collect_next_settle)  # 34.14
     from ..extensions import available
 
     if available("twin"):  # the closed parts' jobs exist only in the full edition

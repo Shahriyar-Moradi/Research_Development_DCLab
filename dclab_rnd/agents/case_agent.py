@@ -31,7 +31,7 @@ PROMPT = "case_agent"
 PURPOSE = "case_agent"
 SWITCH = "DCLAB_CASE_AGENT"
 TOOLS = ("read_table", "query", "answer", "dashboard", "check_leakage", "preview_step", "note", "add_unknown", "resolve", "confirm_assumption", "ask", "propose",
-         "start", "request_build", "consult")  # 37.6: the guard layer's tools; 37.7: consult sends a specialist
+         "start", "request_build", "consult", "design_solution_without_data")  # 37.6: the guard layer's tools; 37.7: consult sends a specialist
 BUILDS = ("ml_project", "segmentation_project")  # what a build request starts: a project
 ENDS_TURN = ("ask",)  # a question ends the turn; after options or a start the agent writes its message (CEX-005: both came bare)
 NO_DATA_WORK = ("advice",)  # an answer with no data work starts without a ready case: nothing is built
@@ -277,6 +277,9 @@ class CaseState:
     group_names: set[str] = field(default_factory=set)  # every group name the case was shown (at most data_tools.MAX_NAMES)
     exposure: list[dict[str, Any]] = field(default_factory=list)  # what the answers looked at (H8): carried to a build
     specialist_client: Any = None  # 37.7: the client specialists are sent with (purpose case_specialist); None: none may be sent
+    models: Any = None  # gateway for multi-model no-data understanding & harness
+    draft_id: Optional[str] = None  # draft id for gateway telemetry
+    no_data_solution: Optional[dict[str, Any]] = None  # latest no-data blueprint for virtual-schema specialist consults
     consulted: list[str] = field(default_factory=list)  # 37.7: the specialists already sent on this case
     spent_eur: float = 0.0  # 37.8: what this case's model work has cost so far
     cap_eur: float = field(default_factory=lambda: __import__("dclab_rnd.agents.case_session", fromlist=["cap_eur"]).cap_eur())  # 37.8: the soft cap (DCLAB_CASE_CAP_EUR), raised by the person's yes
@@ -486,8 +489,8 @@ def _request_build(state: CaseState, quote: str, outcome: Optional[str] = None) 
     except C.CaseRefused as error:
         return state.refuse(error)
     # the live check of 37.11 (2026-11-01): "nothing is built yet" was said word for word while Home started the build
-    return {"recorded": route.tool, "next": "tell the person in a sentence that their yes is recorded and the build starts now; "
-                                            "give no result or number before it has run"}
+    return {"recorded": route.tool, "next": "tell the person in one short sentence that DCLab is checking the remaining build "
+                                            "requirements now; give no result or number before it has run"}
 
 
 def _consult(state: CaseState, specialist: str, question: str) -> dict[str, Any]:
@@ -497,7 +500,25 @@ def _consult(state: CaseState, specialist: str, question: str) -> dict[str, Any]
 
     if state.specialist_client is None:
         return {"error": "no specialist can be sent in this session"}
-    why = S.allowed(specialist, state.case, state.table, state.consulted)
+    nd_sol = state.no_data_solution or next(
+        (c.get("solution") for c in reversed(state.cards) if c.get("kind") == "no_data_solution" and isinstance(c.get("solution"), dict)),
+        None,
+    )
+    nd_ds = (nd_sol or {}).get("data_science") or {}
+    vtable_specs = list(nd_ds.get("virtual_table_specs") or [])
+    vcols = [
+        str(col)
+        for cols in (nd_ds.get("virtual_tables") or {}).values()
+        for col in (cols or [])
+    ]
+    why = S.allowed(
+        specialist,
+        state.case,
+        state.table,
+        state.consulted,
+        virtual_columns=vcols or None,
+        has_blueprint=bool(nd_sol),
+    )
     if why:
         return {"error": why}
     plain = [c for c in state.computed if '"groups_not_shown"' not in c]  # never a query's answers
@@ -507,7 +528,14 @@ def _consult(state: CaseState, specialist: str, question: str) -> dict[str, Any]
         state.specialist_client.request_cells = named
     except AttributeError:
         pass
-    out = S.consult(state.specialist_client, specialist, question, case_text, ctx_.table_text(state.table), plain)
+    if state.table is not None:
+        t_txt = ctx_.table_text(state.table)
+    elif vtable_specs:
+        pred_mom = str((((nd_sol or {}).get("understanding") or {}).get("fields") or {}).get("prediction_moment", {}).get("value") or nd_ds.get("prediction_time") or "")
+        t_txt = S.virtual_table_text(vtable_specs, pred_mom)
+    else:
+        t_txt = ctx_.table_text(state.table)
+    out = S.consult(state.specialist_client, specialist, question, case_text, t_txt, plain)
     state.consulted.append(specialist)
     if "error" in out:
         return out
@@ -657,6 +685,9 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
                              "describe) and let them pick"}
     if state.chip and not state.case.chosen:
         if track in CHIP_NEEDS_TABLE and track == state.chip and state.table is None:
+            from ..draft import no_data
+            if no_data.detect_no_data_stance(" ".join(state.case.words)).get("matched"):
+                return {"error": "the person has no data yet or prefers not to upload it: call design_solution_without_data to give the full 3-layer Business, Data Science, and ML blueprint instead of demanding an upload."}
             return {"error": f"they want {C.CHIPS.get(state.chip, state.chip)} ({state.chip}): ask them to share the table it runs on, then start it"}
         if track != state.chip:
             return {"error": f"the person picked {C.CHIPS.get(state.chip, state.chip)} ({state.chip}): start {state.chip}, or, when their words "
@@ -676,6 +707,9 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
         return {"error": "the person's need points to data work (a shared table, or a list, report, model or cleaning): advice "
                          "answers a question with no work on data. Propose or start the work their need calls for."}
     if track in CHIP_NEEDS_TABLE and state.table is None:
+        from ..draft import no_data
+        if no_data.detect_no_data_stance(" ".join(state.case.words)).get("matched"):
+            return {"error": "the person has no data yet or prefers not to upload it: call design_solution_without_data first to give their full 3-layer Business, Data Science, and ML blueprint."}
         return {"error": f"they want {track}: ask them to share or upload the table it runs on, then start it"}
     # a clear person is proposed to at once (readiness), never started on before the case is ready: "send me the customers who
     # churned ... call list by friday" is both a go-ahead and a named analysis, on a real-prediction trap (the second review of step 1)
@@ -691,8 +725,91 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     return {"started": f"{track}/{tool}", "next": "now tell the person in a few sentences what happens next, then stop"}
 
 
+def _design_solution_without_data(
+    state: CaseState,
+    problem: Optional[str] = None,
+    monthly_volume: Optional[float] = None,
+    base_rate: Optional[float] = None,
+    action_cost: Optional[float] = None,
+    value_saved: Optional[float] = None,
+    action_success_rate: Optional[float] = None,
+    target_hint: Optional[str] = None,
+) -> dict[str, Any]:
+    """Build an honest 3-layer Business + Data Science + ML blueprint when no dataset is shared yet."""
+    from ..draft import no_data
+
+    problem_text = str(problem or " ".join(state.case.words) or "").strip()
+    if not problem_text:
+        return {"error": "describe the person's problem first before building a no-data solution blueprint"}
+    overrides = {
+        k: v
+        for k, v in (
+            ("monthly_volume", monthly_volume),
+            ("base_rate", base_rate),
+            ("action_cost", action_cost),
+            ("value_saved", value_saved),
+            ("action_success_rate", action_success_rate),
+        )
+        if v is not None
+    }
+    case_facts = {}
+    for fname in (*C.SINGLE, *C.LISTS):
+        val = getattr(state.case, fname, None)
+        if isinstance(val, list):
+            case_facts[fname] = [v.model_dump(mode="json") if hasattr(v, "model_dump") else v for v in val]
+        elif val is not None:
+            case_facts[fname] = val.model_dump(mode="json") if hasattr(val, "model_dump") else val
+    stance = no_data.detect_no_data_stance(" ".join(state.case.words))
+    rem_cap = min(0.25, max(0.04, float(state.cap_eur or 0.5) - float(state.spent_eur or 0.0)))
+    sol = no_data.solve_without_data(
+        problem_text,
+        case_facts=case_facts,
+        economics_overrides=overrides or None,
+        withholding_privacy=bool(stance.get("withholding_privacy")),
+        gateway=state.models,
+        models=state.models,
+        draft_id=state.draft_id,
+        cap_eur=rem_cap,
+        target_hint=target_hint,
+    )
+    state.no_data_solution = sol
+    state.spent_eur += float((sol.get("harness_report") or {}).get("cost_eur") or 0.0)
+    for item in sol.get("as_said") or []:
+        if item not in state.computed:
+            state.computed.append(item)
+    state.cards.append({"kind": "no_data_solution", "solution": sol})
+    if state.case.data is None:
+        try:
+            state.case = C.apply(
+                state.case,
+                "data",
+                C.CaseFact(value="No uploaded table yet; 3-layer pre-data solution blueprint created.", status="assumed"),
+                by="agent",
+                why="pre-data solution design",
+            )
+        except (C.CaseRefused, ValueError):
+            pass
+    return {
+        "blueprint_ready": True,
+        "family": sol["family"],
+        "understanding": sol.get("understanding"),
+        "economics": sol["economics"],
+        "virtual_tables": sol["data_science"]["virtual_tables"],
+        "ml_architecture": sol["ml"]["architecture"],
+        "debate": sol["ml"].get("debate"),
+        "harness_report": sol.get("harness_report"),
+        "simulation_questions": sol["simulation"]["questions"],
+        "next": (
+            "A full interactive 3-layer Business, Data Science, and ML blueprint card (with Epistemic Problem Understanding "
+            "and Multi-Model Debate rulings) is now shown to the person. Write a short, helpful reply (<180 words) using only "
+            "numbers from economics above, ask if any business constraint or economic assumption should be refined, and if they "
+            "might want synthetic data, ask them how many rows, columns, and outcome rate they want BEFORE offering to design/simulate it."
+        ),
+    }
+
+
 MOVES = {"consult": "case.consult", "request_build": "case.build", "note": "case.note", "add_unknown": "case.unknown", "resolve": "case.resolve", "confirm_assumption": "case.confirm",
-         "ask": "case.ask", "propose": "case.propose", "start": "case.start"}
+         "ask": "case.ask", "propose": "case.propose", "start": "case.start", "design_solution_without_data": "case.no_data_solution"}
 
 
 class CaseGuard:
@@ -756,6 +873,22 @@ def register(registry: Registry) -> None:
         ("start", "Start the work the person chose, or that their clear need calls for (an advice answer too); then tell them what happens next. "
                   "To change work already started, quote the person's latest words asking for the change.",
          {"track": {"type": "string", "enum": list(C.TRACKS)}, "tool": {"type": "string", "enum": list(C.TOOLS)}, "quote": S}, ["track", "tool"], _start, "write"),
+        ("design_solution_without_data",
+         "When no table is uploaded and the person does not have data yet, is planning collection, or prefers not to upload private data, "
+         "build a complete 3-layer Business + Data Science + ML blueprint (economics, Minimum Viable Data Spec, leakage traps, and pre-data task plan). "
+         "Never fabricate results or auto-create synthetic data; ask the user first how simulated data should look if they want a prototype.",
+         {
+             "problem": S,
+             "monthly_volume": {"type": "number"},
+             "base_rate": {"type": "number"},
+             "action_cost": {"type": "number"},
+             "value_saved": {"type": "number"},
+             "action_success_rate": {"type": "number"},
+             "target_hint": S,
+         },
+         [],
+         _design_solution_without_data,
+         "write"),
     ]
     for name, description, props, required, handler, effect in defs:
         registry.register(Tool(name=f"case_{name}", description=description, parameters={"type": "object", "properties": props, "required": required},

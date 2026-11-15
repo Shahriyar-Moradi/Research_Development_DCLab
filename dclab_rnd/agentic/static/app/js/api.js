@@ -311,6 +311,7 @@
     drawMap: ["POST", "/drafts/{draft_id}/map", ["draft_id"], []],
     editMap: ["POST", "/drafts/{draft_id}/map/edit", ["draft_id"], []],
     message: ["POST", "/drafts/{draft_id}/messages", ["draft_id"], []],
+    draftNoDataSolution: ["POST", "/drafts/{draft_id}/no-data-solution", ["draft_id"], []],
     choosePack: ["POST", "/drafts/{draft_id}/pack", ["draft_id"], []],
     preparedTable: ["GET", "/drafts/{draft_id}/prepared", ["draft_id"], ["format"]],
     draftSettings: ["PUT", "/drafts/{draft_id}/settings", ["draft_id"], []],
@@ -860,6 +861,12 @@
    *  @returns {Promise<Doc>} */
   client.message = (...args) => call('message', args);
   client.path.message = (...args) => build('message', args).path;
+  /** POST /api/drafts/{draft_id}/no-data-solution: Draft No Data Solution
+   *  @param {string} draft_id
+   *  @param {{body?: (AnyObject|null), headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.draftNoDataSolution = (...args) => call('draftNoDataSolution', args);
+  client.path.draftNoDataSolution = (...args) => build('draftNoDataSolution', args).path;
   /** POST /api/drafts/{draft_id}/pack: Choose Pack
    *  @param {string} draft_id
    *  @param {{body: AnyObject, headers?: Object}} [opts]

@@ -732,6 +732,45 @@ class BuildFlowTests(CardsTests):
         self.assertFalse(self.store.get(self.draft["id"]).get("understanding", {}).get("target"))
         self.assertEqual(calls, ["build"])
 
+    def test_a_build_refusal_does_not_emit_premature_build_started_text(self):
+        calls = []
+
+        def refused_build(did, what, args):
+            calls.append(what)
+            return {"refused": "When is the prediction made, and what is known at that moment?", "rule": "prediction moment"}
+
+        home = CaseHome(self.store, Models(Script(
+            ("", self.NOTES),
+            ("Month-to-month loses the most.", []),
+            ("Your yes is recorded — the model build starts now.", [
+                ("start", {"track": "prediction", "tool": "ml_project", "quote": "make prediction models"}),
+                ("request_build", {"quote": "make prediction models", "outcome": "Churn"}),
+            ]),
+        )), on_request=refused_build)
+        self.prepare(home)
+        home._run(self.draft["id"], "make prediction models")
+        texts = [m.get("text") or "" for m in self.store.get(self.draft["id"])["messages"] if m.get("role") == "agent"]
+        self.assertEqual(calls, ["build"])
+        self.assertFalse(any("build starts now" in t for t in texts), texts)
+        self.assertTrue(any("When is the prediction made" in t for t in texts), texts)
+
+    def test_vague_at_the_moment_is_not_echoed_or_stored_as_prediction_moment(self):
+        home, calls = self.home_with_builds(
+            ("", self.NOTES), ("Month-to-month loses the most.", []),
+            ("Tell me which step in your workflow triggers the prediction.", []),
+        )
+        self.prepare(home)
+        self.store.update(self.draft["id"], lambda d: d.update(build_waiting="prediction moment"))
+        home.reply(self.draft["id"], "yes at the moment")
+        draft = self.store.get(self.draft["id"])
+        self.assertNotIn("moment_said", draft)
+        self.assertNotIn("prediction_moment", draft.get("understanding") or {})
+        self.store.update(self.draft["id"], lambda d: d.update(build_waiting="confirm moment", moment_said="at checkout"))
+        home2, _ = self.home_with_builds()
+        with mock.patch.object(A, "turn", return_value={"text": "Clarify please."}):
+            home2.reply(self.draft["id"], "yes at the moment")
+        self.assertEqual(self.store.get(self.draft["id"]).get("moment_said"), "at checkout")
+
 
 if __name__ == "__main__":
     unittest.main()

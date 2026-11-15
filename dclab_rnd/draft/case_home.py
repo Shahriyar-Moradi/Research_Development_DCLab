@@ -72,6 +72,9 @@ class CaseHome(HomeAgent):
         elif state.case.route is None and intent.get("source") != "user":
             state.chip, state.chip_checked, state.chip_intent = None, False, None
         state.personal = {c["name"] for c in briefs.columns_of(draft) if str(c.get("sensitivity") or "none") in home_query.SENSITIVE}
+        state.models = self.models
+        state.draft_id = draft["id"]
+        state.no_data_solution = draft.get("no_data_solution")
         state.specialist_client = self.models.client("case_specialist", draft_id=draft["id"]) if self.models is not None else None
         # the plan's step 1: Home gets the cheap route check the exam measured (before, only the exam's arm had it)
         state.route_client = self.models.client("route_check", draft_id=draft["id"], model=A.route_model()) if self.models is not None else None
@@ -130,7 +133,7 @@ class CaseHome(HomeAgent):
         self.store.update(draft_id, lambda d: d["messages"].append(msg))
         self.store.emit(draft_id, "chat", msg)
 
-    def _save(self, draft_id: str, state: A.CaseState, out: dict[str, Any]) -> None:
+    def _save(self, draft_id: str, state: A.CaseState, out: dict[str, Any], *, emit_text: bool = True) -> None:
         snapshot = case_session.snapshot(state)
         view = {**C.views(state.case), "findings": [f.model_dump(mode="json") for f in state.case.findings],
                 "route": state.case.route.model_dump(mode="json") if state.case.route else None}
@@ -160,7 +163,7 @@ class CaseHome(HomeAgent):
             self.refresh_workflow(draft_id)  # emits "workflow": without it the page's Solution workflow card stays empty
         for card in out.get("cards") or []:  # the answers and dashboards of this turn, drawn before the words that read them
             self._card(draft_id, card)
-        if out.get("text"):
+        if emit_text and out.get("text"):
             self.say(draft_id, out["text"], kind="text", by="case_agent")
         if out.get("options"):
             self.say(draft_id, "", kind="case_options", options=[o.model_dump(mode="json") for o in out["options"]])
@@ -174,6 +177,11 @@ class CaseHome(HomeAgent):
         from .. import home_query
 
         try:
+            if card.get("kind") == "no_data_solution" and isinstance(card.get("solution"), dict):
+                sol = dict(card["solution"])
+                self.store.update(draft_id, lambda d: d.update(no_data_solution=sol))
+                self.say(draft_id, "", kind="no_data_solution", solution=sol, actions=["ask_simulate", "copy_spec"])
+                return
             from . import brief as briefs
 
             draft = self.store.get(draft_id)
@@ -206,9 +214,13 @@ class CaseHome(HomeAgent):
         state = self._state(draft)
         state.build = None  # the review of 37.11: a yes counts in the turn it is said (a second yes after a refusal builds again)
         out = A.pick(state, client, pick) if pick else A.turn(state, client, words)
-        self._save(draft_id, state, out)
-        if state.build and state.build.get("tool") in A.BUILDS:
+        building = bool(state.build and state.build.get("tool") in A.BUILDS)
+        self._save(draft_id, state, out, emit_text=not building)
+        if building:
+            before = len(self.store.get(draft_id).get("messages") or [])
             self._build(draft_id, outcome=state.build.get("outcome"))  # the person's yes starts the build, as "build it" does on the rules-first Home
+            if out.get("text") and len(self.store.get(draft_id).get("messages") or []) == before:
+                self.say(draft_id, out["text"], kind="text", by="case_agent")
 
     BUILD_NEEDS = ("outcome column", "prediction moment")  # "confirm moment" follows the second  # the build's own refusals whose answer code reads (draft/api.py quick_build)
 
@@ -260,6 +272,11 @@ class CaseHome(HomeAgent):
                           re.IGNORECASE)
     TIME_WORDS = re.compile(r"(?<!look )(?<!looking )\bat\b(?! once\b| all\b| the moment\b(?! of))|\b(?:when|after|before|once|upon|during|moment|time|day|days|week|weeks|month|months|hour|hours)\b",
                             re.IGNORECASE)
+    VAGUE_MOMENT = re.compile(
+        r"^\W*(?:(?:yes|yeah|yep|yup|ok(?:ay)?|sure)\b\W*)*"
+        r"(?:at\s+(?:the|this)\s+moment(?:\s+of)?|right\s+now|now|currently|today|at\s+present|for\s+now|the\s+moment)\W*$",
+        re.IGNORECASE,
+    )
     LEADING_ANSWER = re.compile(r"^\W*(?:(?:yes|yeah|yep|ok(?:ay)?|sure|no|nope|not(?: quite)?|wait|actually|sorry|rather|instead)\b\W*)*"
                                 r"(?:but\b\W*)?", re.IGNORECASE)
 
@@ -302,7 +319,7 @@ class CaseHome(HomeAgent):
             self._build(draft_id)
             return True
         if need == "prediction moment":
-            if len(said.split()) < 3:
+            if len(said.split()) < 3 or self.VAGUE_MOMENT.match(said):
                 return False
             self._say_moment_back(draft_id, said)
             return True
@@ -315,7 +332,7 @@ class CaseHome(HomeAgent):
                 # not a plain yes: never built. A time named is the new moment, said back ("Yes, but it is at checkout");
                 # other words get the question again, with the moment kept
                 moment = self.LEADING_ANSWER.sub("", said, count=1)
-                if self.TIME_WORDS.search(moment) and len(moment.split()) >= 2:
+                if self.TIME_WORDS.search(moment) and not self.VAGUE_MOMENT.match(moment) and len(moment.split()) >= 2:
                     self._say_moment_back(draft_id, moment)
                 elif not self.YES_WORD.search(said):  # no yes and no moment ("let us look at groups instead"): the agent reads it
                     self.store.update(draft_id, lambda d: (d.pop("build_waiting", None), d.pop("moment_said", None)))

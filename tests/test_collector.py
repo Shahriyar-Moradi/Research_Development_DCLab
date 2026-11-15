@@ -336,6 +336,18 @@ class ExamTest(unittest.TestCase):
         with mock.patch.dict(os.environ, {"DCLAB_COLLECTOR": "0"}):
             self.assertFalse(collector.due(home, night() + 3 * 86400))
 
+    def test_collect_handler_not_shadowed_by_collect_next(self):
+        from dclab_rnd.jobs import handlers
+
+        self.assertIsNot(handlers._collect_run, handlers._collect_next_run)
+        self.assertIsNot(handlers._collect_settle, handlers._collect_next_settle)
+        fake = mock.MagicMock()
+        with mock.patch("dclab_rnd.extensions.optional", return_value=fake):
+            handlers._collect_run(None, {})
+            handlers._collect_settle(None, {}, "failed", {"id": "j1"})
+        fake.run.assert_called_once()
+        fake.failed.assert_called_once_with(reason="failed")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -260,7 +260,7 @@ DC.view('brief', {
         <div class="row"><a class="btn" href="#solution">Review the solution</a>${F.fin ? `<a class="btn" href="${esc(DC.client.href.exportReport(F.p.id))}" download>Export the report</a>` : ''}</div>
         <span class="xs muted">Approving a brief approves a pilot, not a launch ${chip('DCLAB-R22')}.</span>`;
       return `<p>Sign the solution behind this brief: target ${code(s.target)}, prediction moment “${quote(s.prediction_moment || 'not written yet')}”, ${(s.forbidden || []).length} forbidden column(s)${F.gate && F.gate.required ? '. The workspace policy requires this signature' : ''}. The signature is logged with your reason; it does not approve production use.</p>
-        <label class="sr-only" for="so-reason">Reason</label><textarea id="so-reason" rows="2" placeholder="Why you sign (kept in the project log)"></textarea>
+        <div class="field-row"><label class="field-label" for="so-reason">Sign-off reason (logged in project record)</label><textarea id="so-reason" rows="2" placeholder="Why you sign (kept in the project log)"></textarea></div>
         <div class="row"><button type="button" class="btn primary" data-so-sign>Sign the solution</button><a class="btn" href="#solution">Review the solution</a></div>
         <span class="xs muted">Approving a brief approves a pilot, not a launch ${chip('DCLAB-R22')}.</span>`;
     }

@@ -6,15 +6,17 @@
       <p class="lede">Give it the task: it plans, calls tools, runs code in a sandbox and writes a report. Every move passes the same graph and validator as a person, so it stops and asks instead of guessing.</p>
     </div>
     <div class="vh-actions">
-      <label class="sr-only" for="intern-model">Model</label>
-      <select id="intern-model" data-f="intern.model" data-style="width:auto">
-        <option value="router">Model · open model via Hugging Face router</option>
-        <option value="local">Model · local (Ollama)</option>
-        <option value="standard">No model · standard plan</option>
-        <!-- dclab:closed-begin  (the policy model: the full edition's) -->
-        <option value="policy">DCLab policy model (planned)</option>
-        <!-- dclab:closed-end -->
-      </select>
+      <div class="row" data-style="gap:6px">
+        <label class="field-label" for="intern-model">Model</label>
+        <select id="intern-model" data-f="intern.model" data-style="width:auto" data-tip="Choose which LLM backend or deterministic plan drives autonomous steps">
+          <option value="router">Model · open model via Hugging Face router</option>
+          <option value="local">Model · local (Ollama)</option>
+          <option value="standard">No model · standard plan</option>
+          <!-- dclab:closed-begin  (the policy model: the full edition's) -->
+          <option value="policy">DCLab policy model (planned)</option>
+          <!-- dclab:closed-end -->
+        </select>
+      </div>
       <button type="button" class="btn primary" data-go="home">New task</button>
     </div>
   </header>
@@ -36,9 +38,9 @@
         <div class="panel-body"><div class="thread" id="thread"></div></div>
         <div class="panel-body" data-style="border-top:1px solid var(--line)">
           <div class="composer">
-            <label class="sr-only" for="intern-follow">Follow-up</label>
+            <div class="composer-field-head"><label class="field-label" for="intern-follow">Instruction for ML Intern</label><span class="field-hint">Use slash commands below for quick stage jumps</span></div>
             <textarea id="intern-follow" rows="2" placeholder="Give the next instruction, or type / for commands"></textarea>
-            <div class="composer-bar"><div class="chips"><button type="button" class="chip" data-cmd="/solution">/solution</button><button type="button" class="chip" data-cmd="/audit">/audit</button><button type="button" class="chip" data-cmd="/brief">/brief</button><button type="button" class="chip" data-cmd="/stop">/stop</button><button type="button" class="chip" data-cmd="/new" id="intern-new-cmd" hidden>/new</button></div><button type="button" class="btn primary send" id="intern-send">Send</button></div>
+            <div class="composer-bar"><div class="chips"><button type="button" class="chip" data-cmd="/solution" data-tip="Review or edit the target, prediction moment, and split contract">/solution</button><button type="button" class="chip" data-cmd="/audit" data-tip="Inspect temporal leakage and validation checks">/audit</button><button type="button" class="chip" data-cmd="/brief" data-tip="Draft or inspect the executive decision brief">/brief</button><button type="button" class="chip" data-cmd="/stop" data-tip="Halt the active agent loop cleanly">/stop</button><button type="button" class="chip" data-cmd="/new" id="intern-new-cmd" hidden data-tip="Start a fresh Intern session">/new</button></div><button type="button" class="btn primary send" id="intern-send">Send</button></div>
           </div>
         </div>
       </div>

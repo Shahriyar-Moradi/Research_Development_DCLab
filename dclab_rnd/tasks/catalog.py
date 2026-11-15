@@ -330,6 +330,8 @@ def _deterministic_fallback_payload(
     }
     if refusals:
         out["refusals"] = refusals
+    if facts.get("virtual_schema"):
+        out["schema_source"] = "virtual_blueprint"
     return out
 
 
@@ -351,7 +353,7 @@ def plan_with_model(
         det = deterministic_catalog_plan(brief, tables, facts)
         target = str(facts.get("target") or "target")
         kind = "regression" if "price" in target or "revenue" in target or "duration" in target else "classification"
-        return {
+        det_out: dict[str, Any] = {
             **det,
             "routed_to": "deterministic",
             "subproblems": [kind],
@@ -371,6 +373,9 @@ def plan_with_model(
             "cost_usd": 0.0,
             "seconds": round(time.monotonic() - t0, 4),
         }
+        if facts.get("virtual_schema"):
+            det_out["schema_source"] = "virtual_blueprint"
+        return det_out
 
     sources = grounding_context(brief, tables)
     from dclab_rnd import experience, prompts
@@ -476,7 +481,7 @@ def plan_with_model(
     total_cost = round(max(0.0, float(getattr(client, "spent_eur", 0.0) or 0.0) - before_spent), 6)
     all_cites = sorted({c for call in valid_calls for c in call.citations if c in sources})
     last_req = rev_req or (experience.last_model_request() if experience.last_model_request() != before_req else None)
-    return {
+    model_out: dict[str, Any] = {
         "routed_to": "model",
         "selected_tasks": sorted({c.task_type for c in valid_calls}),
         "calls": [c.model_dump(mode="json") for c in valid_calls],
@@ -492,6 +497,9 @@ def plan_with_model(
         "seconds": round(time.monotonic() - t0, 4),
         "mode": "adaptive_model",
     }
+    if facts.get("virtual_schema"):
+        model_out["schema_source"] = "virtual_blueprint"
+    return model_out
 
 
 def _collect_traps(
