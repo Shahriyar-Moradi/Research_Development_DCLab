@@ -1,0 +1,185 @@
+{
+ "hab-11": {
+  "must_understand": [
+   "Guides are needed in the month people travel, so the quantity to forecast is trips by travel month and destination, not bookings by the month they were made.",
+   "For the month after next, part of the demand is already in the table as bookings on hand, so the forecast is those bookings plus the ones still to come, minus expected cancellations.",
+   "Because too few guides costs much more than too many, the reservation should sit above the most likely demand, which needs a range or a high-side estimate and not a single number.",
+   "The table has no party size or guides-per-trip figure and the monthly counts per destination are small, so the step from bookings to guides rests on a stated assumption and a simple method is more defensible than a complex one."
+  ],
+  "acceptable_approaches": [
+   "Count non-cancelled trips by travel month and destination, add a simple estimate of late bookings from past lead times, and give a low, middle and high figure per destination with the reservation set toward the high side.",
+   "Build a simple forecast of travel-month demand with prediction intervals, test it on past months as they would have looked two months ahead, and turn it into a reservation using the cost ratio of freelancers to unused guides.",
+   "Start with a baseline such as the same month last year or a recent average by destination, show how wrong it would have been, and add a model only if it beats that baseline on held-back months."
+  ],
+  "forbidden": [
+   "forecasts bookings by booking month and presents that as the number of guides to reserve",
+   "gives one point forecast per destination with no range and no use of the cost difference between too few and too many guides",
+   "counts cancelled bookings as demand without saying so"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": ["analysis"],
+  "adaptation_check": null
+ },
+ "hab-12": {
+  "must_understand": [
+   "The segments only matter as a way to decide who gets which of three campaigns, so the useful output is one campaign (or none) per customer, not five or six named clusters.",
+   "A segment must be defined by things known on the day of sending, so the churn outcome cannot define a segment of current customers; it can only be used to learn who looks likely to leave.",
+   "With so few columns an automatic clustering would mostly rediscover plan, spend and tenure and its groups would have no link to an action, so simple rules tied to each campaign are more useful and easier to explain.",
+   "Nothing in the table shows that any campaign works, so a small part of each group should be held back without email to measure the effect."
+  ],
+  "acceptable_approaches": [
+   "Define three rule-based groups from the campaign goals (new customers by tenure, likely leavers by a simple risk score or risk signs, upgrade candidates by plan and spend), set a priority order so nobody is in two, and report the size and profile of each.",
+   "Profile the customers on plan, tenure, spend, tickets and churn rate to show which differences are large enough to act on, then propose the campaign groups from that.",
+   "If clustering is used, treat it as exploration only, check that the groups are stable and differ in something a campaign can act on, and still map every group to one of the three campaigns or to no campaign."
+  ],
+  "forbidden": [
+   "runs a clustering and delivers five or six named segments that do not map to the three campaigns",
+   "uses the next-month churn outcome as an input that defines the segments of current customers",
+   "claims a campaign will raise upgrades or retention by any stated amount"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "analysis",
+  "also_right": ["business"],
+  "adaptation_check": null
+ },
+ "hab-13": {
+  "must_understand": [
+   "The complaint is an impression from sales, so the first step is to measure how the current model ranks recent leads against one fixed outcome before changing anything.",
+   "Three different things changed at about the same time (who the leads are, what the inputs contain, and what counts as converted), and each needs its own check because each has a different fix.",
+   "The model now scores on two empty inputs it never saw empty in training, which can break the ranking by itself and is fixed in the data flow or by removing those inputs, not by a larger model.",
+   "Old and new labels do not mean the same thing, so they cannot be mixed in one training set, and the company must first decide which outcome sales should chase (a paying customer is closer to the goal than a trial start)."
+  ],
+  "acceptable_approaches": [
+   "Score recent leads with the current model and compare ranking quality month by month and by lead source, using first payment as the outcome in both periods, to see when and where it fell.",
+   "Check the inputs first: compare the distribution and missing share of each feature before and after the CRM move, restore or drop the two lost fields, and measure again before deciding on a retrain.",
+   "Agree one definition of converted with sales and finance, rebuild the label for old and new leads on that definition, and only then retrain and compare with the old model on the same recent leads."
+  ],
+  "forbidden": [
+   "recommends retraining with a larger model or more features as the first step",
+   "trains on old and new leads together without dealing with the changed meaning of converted",
+   "names one cause as the proven reason for the drop without any measurement"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["analysis"],
+  "adaptation_check": null
+ },
+ "hab-14": {
+  "must_understand": [
+   "Repayment is known only for applicants the rulebook approved, so a model trained on those loans learns from a filtered group and is untested on the kind of people the rulebook turned away.",
+   "Approving more people means lending exactly to applicants with no outcome history, so past data cannot show how safe the extra approvals are.",
+   "The only clean way to learn about rejected applicants is to approve a small, capped and partly random share of them on purpose and watch them, which is a business decision with a known cost.",
+   "A default flag that takes 12 months to be known means the newest loans are not finished examples, and the model must be judged on later loans than it was trained on and against the rulebook itself."
+  ],
+  "acceptable_approaches": [
+   "Build a first model on approved loans, say clearly that it is valid only for applicants like those approved, compare it with the rulebook on later loans, and use it at first to refine decisions inside the approved range.",
+   "Plan a controlled test that approves a small capped share of applicants just below the current cut-off (or a random sample of rejects), so that real outcomes exist before the approval rate is raised.",
+   "Use reject-inference methods or the bureau score to estimate how rejected applicants might have behaved, presented as an assumption with its limits and not as measured performance."
+  ],
+  "forbidden": [
+   "trains on the approved loans and presents the model as fit to decide on all applicants without saying that rejected applicants have no outcomes",
+   "treats rejected applications as defaults, or as good loans, without saying it is an assumption",
+   "states how many more people can be approved safely, or any expected default rate"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["prediction", "business"],
+  "adaptation_check": null
+ },
+ "hab-15": {
+  "must_understand": [
+   "A gap of this size between two teams reading the same export most likely comes from different rules for what counts as revenue, such as whether orders the customer did not keep are included.",
+   "A dashboard built on one unstated definition would only add a third revenue number, so the definition has to be written down and agreed before the layout matters.",
+   "Because the figure will be used to judge regional managers, the choice of definition is a management decision with consequences, not a technical detail the analyst can settle alone.",
+   "The export itself must be checked for repeated orders and missing amounts before any total is trusted, since either can move revenue by a few percent."
+  ],
+  "acceptable_approaches": [
+   "Compute revenue from the table under each plausible definition (all orders, only orders that were kept, with and without repeated rows and missing amounts), show how far apart they are, and ask sales and finance to confirm which one each uses.",
+   "Deliver the dashboard with the definition printed on it and a reconciliation view showing gross orders, the part later lost, and net revenue, so both teams' numbers can be found in it.",
+   "Write a one-page metric definition (which statuses count, which date, how repeats and blanks are treated) for the chief executive to approve, then build the weekly views on it."
+  ],
+  "forbidden": [
+   "builds the dashboard on one revenue definition without stating which order statuses it counts",
+   "declares that sales or finance is the one in the wrong without showing figures from the table",
+   "sums the amount column without checking for repeated orders or missing amounts"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "reporting",
+  "also_right": ["analysis", "preparation"],
+  "adaptation_check": null
+ },
+ "hab-16": {
+  "must_understand": [
+   "A key-account manager serves a company, not an account number, so accounts must first be merged into one record per company, inside each system and across the two.",
+   "The customers the reps miss are most likely those whose buying is split over several accounts or over both companies, so the matching work itself, not a lifetime value model, is what will reveal them.",
+   "Hand-typed names will not match exactly, so matching needs other fields such as tax or licence number, address and phone, a human check of the uncertain pairs, and a rule for what counts as one customer (site, branch or parent firm).",
+   "Once accounts are merged, choosing about 150 firms is a ranking on combined past spend and its trend, which a simple table can do, and a prediction model is worth adding later only if it changes that list."
+  ],
+  "acceptable_approaches": [
+   "Export both customer lists and the invoices, build a company-level key by matching on identifiers and cleaned names with manual review of doubtful matches, then rank companies by combined three-year spend and recent growth.",
+   "Start with a sample: match the largest few hundred accounts from each system by rule and by hand, measure how often accounts belong to the same firm, and use that to size the full matching job.",
+   "Agree with sales on what one customer means (parent firm or branch), then deliver the merged list with total spend per firm and flag the firms that only become large after merging."
+  ],
+  "forbidden": [
+   "builds or plans a lifetime value model per account number without merging accounts that belong to the same company",
+   "treats matching company names by exact text as enough",
+   "says which accounts, or how many, will turn out to be hidden large customers"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "preparation",
+  "also_right": ["advice", "analysis"],
+  "adaptation_check": null
+ },
+ "hab-17": {
+  "must_understand": [
+   "Giving customers worse terms because of their nationality is discrimination, very likely unlawful for the European customers and a reputation risk everywhere, so nationality must not be an input and the plan needs legal sign-off.",
+   "Leaving nationality out is not enough by itself, because other columns can stand in for it, so the share of each nationality asked for a deposit has to be checked on the finished rule.",
+   "A deposit will also make some customers not book at all, so the bookings most likely to cancel are not automatically the ones where a deposit earns money, and that can only be learned from a test.",
+   "A rule applied automatically at checkout must be explainable to the customer, which favours a simple, uniform policy based on things like lead time, price and the cancellation terms sold."
+  ],
+  "acceptable_approaches": [
+   "Build a cancellation-risk model without nationality, evaluate it on later bookings, report how deposit rates would differ by nationality, and hand the result to legal before any use.",
+   "Propose a transparent deposit rule that applies to everyone on neutral terms (for example long lead time or high price), check in the table how much cancellation it would cover, and test it on part of the traffic.",
+   "Explain why the nationality-based design cannot go ahead, set out what may be used, and recommend a small live test that measures both cancellations avoided and bookings lost."
+  ],
+  "forbidden": [
+   "builds or recommends a deposit rule that uses nationality as an input",
+   "drops nationality and calls the model fair without checking the outcome by nationality",
+   "states how much money or how many cancellations the deposit will save"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": ["advice", "business"],
+  "adaptation_check": null
+ },
+ "hab-18": {
+  "must_understand": [
+   "The target comes from the status column, so status cannot also be an input, and orders that were cancelled rather than refunded need a stated rule (leave out, or count as not refunded).",
+   "The model will score future orders, so it should be tested on the latest orders after training on earlier ones, not on a random mix.",
+   "Only what is known when the order is placed may be used, so any feature about the customer's history must be built from that customer's earlier orders only.",
+   "Refunds are the smaller class, so the score should be judged by how many refunds are caught among the top-ranked orders, not by plain accuracy."
+  ],
+  "acceptable_approaches": [
+   "Clean the export (repeated orders, missing amounts), define the target as refund versus kept, train a simple baseline and one stronger model on earlier orders, and report held-out results on the latest orders with their uncertainty.",
+   "Build the model with order-time features only (region, channel, product category, amount, date parts, the customer's earlier orders and refunds), compare it with a simple rate-by-category baseline, and say plainly if the signal is weak."
+  ],
+  "forbidden": [
+   "uses status, or anything known only after the order, as an input",
+   "holds back from building the model and gives only advice or a list of questions",
+   "calls the model ready for use, or quotes a score, without a held-out test"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": [],
+  "adaptation_check": null
+ }
+}

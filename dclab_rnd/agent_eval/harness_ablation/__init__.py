@@ -49,6 +49,20 @@ ROOT = HERE.parents[2]
 CASES = HERE / "cases_dev.json"
 KEY = HERE / "answer_key_dev.json"
 PIN = HERE / "cases_dev.sha256"
+# The sets of written people. "dev": the eight of the pilot, written by the runner's author. "dev2" (2026-11-15): eight
+# more written by an independent agent that read neither the lead agent's code or prompt, nor the first set's key, nor any
+# result, so the repair is not judged only on people its author knew.
+SETS = {"dev": ("cases_dev.json", "answer_key_dev.json", "cases_dev.sha256"), "dev2": ("cases_dev2.json", "answer_key_dev2.json", "cases_dev2.sha256")}
+SET = "dev"
+
+
+def use_set(name: str) -> None:
+    """The set of people a run reads, pins and judges with (``--set``; a kept run names its own in its manifest)."""
+    global CASES, KEY, PIN, SET
+    if name not in SETS:
+        raise ValueError(f"no set {name!r}: {', '.join(SETS)}")
+    cases, key, pin = SETS[name]
+    CASES, KEY, PIN, SET = HERE / cases, HERE / key, HERE / pin, name
 CAMPAIGN = ROOT / "evidence" / "campaigns" / "harness_ablation_v1"
 RESULTS = CAMPAIGN / "results"
 KEEP_ROOT = ROOT / "agent_runs" / "live_tests"
@@ -168,7 +182,7 @@ def manifest(run: str, arms: list[str], repeats: int, cap_eur: Optional[float], 
             "prompt_sha256": {name: prints.get(f"prompt:{name}") for name in PROMPTS},
             "tool_schema_sha256": {"open": schema_hash(READ_TOOLS), "plain": schema_hash(PLAIN_TOOLS), "case": prints.get("tools:case")},
             "flags": {name: os.environ.get(name) for name in ("DCLAB_CASE_AGENT", "DCLAB_ROUTE_MODEL", "DCLAB_THINKING_EFFORT", "DCLAB_LLM_PROVIDER")},
-            "cases_sha256": fingerprint(), "max_turns": MAX_TURNS, "go_ahead": GO_AHEAD}
+            "cases_sha256": fingerprint(), "set": SET, "max_turns": MAX_TURNS, "go_ahead": GO_AHEAD}
 
 
 def _pick(choices: list[Mapping[str, Any]], key: Optional[Mapping[str, Any]]) -> Optional[int]:
@@ -539,6 +553,9 @@ def _judge_run(run_dir: Path, key: Mapping[str, Mapping[str, Any]], args: Any) -
     run_dir = Path(run_dir).resolve()
     info = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     run = str(info["run_id"])
+    if str(info.get("set") or "dev") != SET:  # judged with the key of the set it was played on
+        use_set(str(info.get("set") or "dev"))
+        _, key = load()
     if info.get("cases_sha256") != fingerprint():
         print("refused: the cases or their key changed since this run was played", file=sys.stderr)
         return 2
@@ -587,7 +604,7 @@ def _judge_run(run_dir: Path, key: Mapping[str, Mapping[str, Any]], args: Any) -
     tag = f"{EXAM}{run}:"
 
     def judge_client(name: str, arm: str) -> Any:
-        bound = Bound(gateway, PURPOSE["judge"], _settings.purpose(PURPOSE["judge"]), tier, None, f"{tag}judge:{arm}-{name}")
+        bound = Bound(gateway, PURPOSE["judge"], _settings.purpose(PURPOSE["judge"]), tier, None, f"{tag}judge:{arm}-{name}", fixed=True)
         budget.clients.append((f"{tag}judge:{arm}-{name}", bound))
         return _Capped(bound, budget)
 
@@ -600,7 +617,7 @@ def _judge_run(run_dir: Path, key: Mapping[str, Mapping[str, Any]], args: Any) -
               f"run the same command again. Spent €{budget.spent_eur():.4f}", file=sys.stderr)
         return 2
     write_scorecard(run_dir / ("scorecard_judged.csv" if beside_name == "judged.json" else f"scorecard_{beside_name[:-5]}.csv"), result["scores"])
-    record = {"id": run, "split": "dev", "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "arms": info["arms"], "repeats": info["repeats"],
+    record = {"id": run, "split": "dev", "set": SET, "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "arms": info["arms"], "repeats": info["repeats"],
               "models": {**info["models"], "judge": args.judge_model}, "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur,
               "judge_only": True, "kept": _rel(run_dir), "manifest": info, "capture": capture(run_dir), "label": info.get("label"),
               "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better; judged after the run, from the kept conversations", **result}
@@ -618,6 +635,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--arms", default=",".join(ARMS))
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--only", default=None, help="a comma list of case ids")
+    parser.add_argument("--set", default="dev", choices=sorted(SETS), help="the set of written people: dev (the pilot's eight) or dev2 (eight by an independent author)")
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--cap-eur", type=float, default=None)
     parser.add_argument("--judge-model", default=JUDGE_MODEL)
@@ -651,6 +669,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         got = receipt(Path(args.receipt), Path(args.snapshot) if args.snapshot else None)
         print(json.dumps({k: v for k, v in got.items() if k != "file_sha256"}, indent=1))
         return 0 if got["archived"] is not False else 2
+    if args.set != SET:  # the default set is left as the module holds it
+        use_set(args.set)
     cases, key = load()
     if args.freeze:
         PIN.write_text(fingerprint() + "\n", encoding="utf-8")
@@ -724,7 +744,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return budget.client(f"{tag}{key_}", purpose, model or args.arm_model)
 
     def judge_client(name: str, arm: str) -> Any:
-        bound = Bound(gateway, PURPOSE["judge"], _settings.purpose(PURPOSE["judge"]), tier, None, f"{tag}judge:{arm}-{name}")
+        bound = Bound(gateway, PURPOSE["judge"], _settings.purpose(PURPOSE["judge"]), tier, None, f"{tag}judge:{arm}-{name}", fixed=True)
         budget.clients.append((f"{tag}judge:{arm}-{name}", bound))
         return _Capped(bound, budget)
 
@@ -742,7 +762,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                      spent_for=lambda name, arm: {"arm": budget.spent_eur(f"{tag}{arm}-{name}"), "judge": budget.spent_eur(f"{tag}judge:{arm}-{name}")})
     write_scorecard(run_dir / "scorecard.csv", result["scores"])
     kept = capture(run_dir)
-    record = {"id": run, "split": "dev", "at": info["at"], "arms": arms, "repeats": args.repeats, "models": info["models"],
+    record = {"id": run, "split": "dev", "set": SET, "at": info["at"], "arms": arms, "repeats": args.repeats, "models": info["models"],
               "spent_eur": round(budget.spent_eur(), 4), "cap_eur": args.cap_eur, "kept": _rel(run_dir), "manifest": info,
               "capture": kept, "label": args.label, "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
               "code": "uncommitted edits (the owner's choice): see manifest.code" if state["dirty"] else "one commit", **result}

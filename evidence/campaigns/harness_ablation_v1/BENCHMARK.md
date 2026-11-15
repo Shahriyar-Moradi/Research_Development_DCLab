@@ -294,6 +294,16 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 | A table is needed first | 1 |
 | Work refused: the case is "not ready" | 1 |
 
+## HAB-013: arms on `qwen/qwen3.8-flash`, played and not judged yet
+
+No judge has scored these conversations. What code can count:
+
+| arm | conversations | turns | seconds | numbers nobody gave | € |
+|---|---:|---:|---:|---:|---:|
+| Current DCLab (lead agent) | 3 | 2.3 | 109 | 0 | 0.02 |
+
+Where the lead agent's code stepped in: Another refusal (a build without a yes, a bad argument) (6), An option kept, one sentence with a number removed (2), Work refused: the case is "not ready" (1).
+
 ## The same cases on two models: `qwen/qwen3.8-flash` minus `anthropic/claude-sonnet-5.5`
 
 | arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | Accepted |
@@ -342,10 +352,10 @@ Before: HAB-002. After: HAB-007 + HAB-008 + HAB-009 + HAB-010. Only the lead age
 | An option removed by a check | 3 | 1 |
 | The turn's step budget ran out | 3 | 1 |
 | Work refused: the case is "not ready" | 1 | 1 |
-| An option kept, one sentence with a number removed | 0 | 1 |
 | A table is needed first | 1 | 0 |
-| Advice refused: the words ask for data work | 1 | 0 |
 | The model's call was malformed | 1 | 0 |
+| An option kept, one sentence with a number removed | 0 | 1 |
+| Advice refused: the words ask for data work | 1 | 0 |
 
 ## Two judges on the same conversations (HAB-002)
 

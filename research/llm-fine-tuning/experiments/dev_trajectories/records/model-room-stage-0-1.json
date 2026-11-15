@@ -1,0 +1,281 @@
+{
+ "package": "model-room-stage-0-1",
+ "title": "More room for the model, stages 0 and 1: the repair's gate pinned first, then the model plumbing made to stop breaking answers (2026-11-15)",
+ "date": "2026-11-15",
+ "request": "The owner asked for a plan that gives the model more room to understand, break down, plan and solve, with code in charge of numbers and safety, and approved it with two decisions: thinking effort is never lowered, and stages 0 to 2 are built before the owner's own planning plan is merged.",
+ "spec": "Stage 0: fix and pin the gate before any behaviour changes, add counts code can read without a judge, repair the runner's own fault, and have people written by an independent author. Stage 1: an answer that is only a spent limit is asked again, a cut reply is told so, an empty provider reply is retried and recorded, a tool call written as text is run or taken out of the words, arguments one step from the schema are put right, the provider's own cost is counted, the usage log is read once, the second reading starts with the turn, a client built for one model stays on it, and a reasoning summary is read as thinking.",
+ "plan": [
+  "pin the gate and its counters before touching the lead agent or the gateway",
+  "have eight more people written by an agent that read neither the lead agent nor the first key",
+  "fix each row of the plumbing table with a scripted test",
+  "probe the two fixes that need a provider with a tiny live call",
+  "review the diff, then the quick set of three people on the lead agent"
+ ],
+ "decisions": [
+  {
+   "decision": "The planning check is relative to the same model alone, not an absolute score",
+   "why": "the product's model plans at a lower level alone than a strong one, so an absolute bar would judge the model and not the harness"
+  },
+  {
+   "decision": "An empty, cut answer keeps the outcome ok and gains a field, instead of a new outcome",
+   "why": "several readers key on the outcome being ok (the exchange keeper, the capture check, the metrics); a new value would have dropped those calls from the kept records"
+  },
+  {
+   "decision": "The retry asks again with more room and the same effort, not with less thinking",
+   "why": "the owner decided that thinking effort is never lowered; a larger limit keeps the thinking and gets the answer"
+  },
+  {
+   "decision": "A number sent as text is still refused",
+   "why": "an earlier package decided that a wrong type comes back as an error to read; only a list or an object sent as its text is put right, which is what the live runs showed"
+  },
+  {
+   "decision": "No price is guessed for a model the table lacks; the provider's own figure is used when it gives one",
+   "why": "the price module's rule is that a price is checked, dated and sourced; the provider's charge for a request is a fact, an assumed price is not"
+  },
+  {
+   "decision": "The second set of people is kept apart from the first in every table",
+   "why": "its people were written by another author and have other ids; joined, a mean over sixteen would be compared with a mean over eight"
+  }
+ ],
+ "change": "A gate file with pinned terms and its verdict in the benchmark; dead ends, fallback lines, empty and cut answers counted from kept runs; the minimal agent told when its last request comes; a second frozen set of eight people; and in the gateway, the client, the registry, the loop and the usage log, the nine fixes of the stage's table, each with a scripted test.",
+ "findings": [
+  {
+   "id": "MR1-F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The model's thinking used the whole reply limit and the answer came back empty, kept as an ordinary answer.",
+   "scenario": "A planner role asked for a structured plan: the reply held only thinking, the rules answered instead after a long wait.",
+   "fix": "An answer cut at its limit with no word and no tool call is asked once more with four times the room, the same effort; both requests are kept and counted, the first marked as empty and cut.",
+   "test": "test_an_answer_that_is_only_a_spent_limit_is_asked_again_with_room",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A provider reply with no choice raised a type error outside every handler: no retry, no usage row, no kept exchange.",
+   "scenario": "A free model answered with nothing; the conversation ended on the error.",
+   "fix": "The client raises a retryable error; the gateway records any failure before raising it.",
+   "test": "test_a_reply_with_nothing_in_it_is_an_error_worth_one_more_try; test_a_failure_that_is_no_runtime_error_is_recorded_before_it_is_raised",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A tool call written as text was shown to the person as the answer.",
+   "scenario": "The last request of a turn offered no tool; the model wrote the call in a tagged block.",
+   "fix": "Such a block is run as a call when it names a tool the request offered, and taken out of the words otherwise; the reply says which.",
+   "test": "test_a_tool_call_written_as_text_runs_as_a_call_when_the_tool_was_offered; test_a_tool_call_written_as_text_never_reaches_the_person_as_the_answer",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A list sent as its JSON text, a tool named without its prefix and an unknown argument were refused with nothing the model could act on.",
+   "scenario": "The lead agent called request_build for case_request_build and sent filters as a quoted list; each was refused and tried again the same way.",
+   "fix": "The registry reads a list or an object sent as text and splits one argument holding the next ones; the loop finds the one allowed tool that ends with the name; an unknown argument is refused with the valid names.",
+   "test": "tests/test_plumbing_stage1.py::ArgumentTests; test_a_tool_named_without_its_prefix_is_found",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F5",
+   "source": "measurement",
+   "severity": "latent",
+   "defect": "The price rows of the product's model were out of date, and a request's own charge was never read.",
+   "scenario": "The recorded spend was well under the provider's bill, so a cap in euros moved too slowly.",
+   "fix": "Rows read from the provider's model list that day, dated; the provider's cost of a request is counted when it returns one.",
+   "test": "test_the_models_in_use_have_todays_prices; test_the_providers_own_cost_is_what_is_counted",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F6",
+   "source": "measurement",
+   "severity": "latent",
+   "defect": "Every cap check parsed the whole usage log again.",
+   "scenario": "With a large log and a monthly cap, each model request waited for a full read of the file.",
+   "fix": "The parsed rows are kept and only what was appended is read; a replaced, shortened or rewritten file is read again from its start.",
+   "test": "tests/test_plumbing_stage1.py::UsageTests",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F7",
+   "source": "self",
+   "severity": "latent",
+   "defect": "A client built for one tier was moved to the purpose's routed tier on its first request.",
+   "scenario": "A judge of another family than the arms ran on the arms' model until its kept exchange was read.",
+   "fix": "A client built as fixed is never routed; the ablation's judges are built so.",
+   "test": "test_a_client_built_for_one_model_stays_on_it",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F8",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The runner's new set option rebound the pin path that a test had replaced.",
+   "scenario": "The test of an unfrozen set passed a missing pin and the run was no longer refused for it.",
+   "fix": "The default set is left as the module holds it; only another set rebinds the paths.",
+   "test": "test_a_run_is_refused_until_the_cases_are_frozen_and_the_code_is_one_commit",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F9",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The first version of the argument repair also turned a number sent as text into a number.",
+   "scenario": "A setting sent as quoted digits was accepted, against the earlier decision that a wrong type is refused with words to read.",
+   "fix": "Only a list or an object is read from its text.",
+   "test": "test_the_toolbox_checks_types_and_bounds_as_the_loop_does; test_a_list_or_an_object_sent_as_its_text_is_read",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A tool call written as text and cut at the reply's limit ran with half an argument.",
+   "scenario": "The reply ended inside the block; the call was parsed, the step succeeded and the person was shown half a sentence.",
+   "fix": "A block the reply ended inside is never run: it goes on as a raw call, which the loop answers with a message that the reply was cut, and its text never reaches the person; the whole blocks before it still run.",
+   "test": "test_a_text_call_cut_at_the_limit_is_never_run_with_half_an_argument",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A request costed by the provider was counted as having no configured price.",
+   "scenario": "The totals of a run said that no request was priced and that euro caps could not stop them, on the pages that show spend.",
+   "fix": "The provider basis counts as priced.",
+   "test": "test_the_providers_own_cost_is_what_is_counted",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The second reading started ahead was paid for on turns that could not use it, and a finished turn waited for it without a limit.",
+   "scenario": "A turn that only asks a question made a route request it never read; a rate limit on the route model held a ready answer.",
+   "fix": "It starts only where a propose or a start can reach it this turn, and a finished turn waits a few seconds at most.",
+   "test": "test_a_turn_that_can_only_ask_is_not_charged_and_a_finished_turn_does_not_wait",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F13",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The thread's request lost the run it belongs to.",
+   "scenario": "The context was copied before the loop bound the run, so the route request's events carried no run or conversation.",
+   "fix": "The thread binds the turn's run itself; a thread left by a failed turn is cleared at the next start.",
+   "test": "test_a_turn_that_can_only_ask_is_not_charged_and_a_finished_turn_does_not_wait",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F14",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The kept rows of the usage log held every prompt's text in memory, in every server and worker.",
+   "scenario": "With a large log the cache was several times the file's size and grew without end.",
+   "fix": "A kept row holds whether it has a prompt, never the text; the file keeps the text.",
+   "test": "test_the_kept_rows_hold_no_prompt_text",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F15",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The note that an answer was a second asking never reached the kept exchange, and a retry refused by a cap raised where the caller used to get the empty answer.",
+   "scenario": "The note was set after the request had been recorded; a run near its cap got an error instead of the reply it had.",
+   "fix": "The note is put on the answer before it is kept; a refused retry returns the first answer with the refusal said.",
+   "test": "test_an_answer_that_is_only_a_spent_limit_is_asked_again_with_room; test_a_retry_a_cap_refuses_leaves_the_caller_with_the_empty_answer_it_had",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F16",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A provider cost of zero on a model the table prices above zero stopped the caps from moving.",
+   "scenario": "An account with its own key is told the provider's fee only.",
+   "fix": "A zero charge is believed only for a model the table prices at zero or does not price.",
+   "test": "test_a_provider_cost_of_zero_on_a_priced_model_is_not_believed",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "MR1-F17",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Two rows of the stage's table are not built: a model with no price is still served, and a streamed reply has no second asking.",
+   "scenario": "A model the table lacks is counted only when the provider returns its cost; the Home page's streamed replies can still come back empty.",
+   "fix": "Not fixed: refusing a model with no price would stop a role the owner configured, and the lead agent does not stream; both are named in the report as open.",
+   "test": "none",
+   "verdict": "open"
+  },
+  {
+   "id": "MR1-F18",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Two repairs made after the review went against earlier decisions: the cache without prompt text also fed the reader of the latest rows, and a number read from a tagged block was turned into text for a text argument.",
+   "scenario": "The test that the latest row keeps its prompt failed, and two tests that a wrong type is refused through every entry point failed.",
+   "fix": "The latest rows are read whole from the file's end; a tagged value is text unless it is written as a list or an object, and no number is turned into text.",
+   "test": "test_every_request_is_logged_without_the_key_or_the_prompt; test_every_entry_point_checks_argument_types; test_a_wrong_type_is_still_a_wrong_type",
+   "verdict": "confirmed"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The gate on the runs made before the repair",
+   "gate": "hab_gate_v1, pinned before any behaviour changed: every check must hold",
+   "fixed_before_run": false,
+   "result": "every run fails it: the product's model on one dead end and one empty answer, the stronger open model on planning, two dead ends, a fallback line and five empty answers",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "next": "stages one and two, then the same people again",
+   "limits": [
+    "the runs were made before the gate was written, so this is a description of where the repair starts",
+    "few written people, each played once; the judge is a model"
+   ]
+  },
+  {
+   "name": "Live probe of the empty-answer retry and the provider's cost",
+   "gate": "none: a probe of two fixes that need a provider, no threshold",
+   "fixed_before_run": false,
+   "result": "with a limit too small for the thinking the first reply was empty and cut, the second, asked with more room, held the answer; both were kept with their thinking and the usage rows carried the provider's own cost",
+   "verdict": "not scored",
+   "cost_eur": 0.002,
+   "next": "the quick set of three people on the lead agent",
+   "limits": [
+    "one invented question on one model",
+    "the first question did not trigger the case and the limit had to be made smaller on purpose"
+   ]
+  },
+  {
+   "name": "The quick set of three people on the lead agent after stage one",
+   "gate": "none: the quick set is an everyday check and never the gate's verdict",
+   "fixed_before_run": true,
+   "result": "every conversation ended on an answer; no empty answer, no cut reply and no fallback line; one dead end remained, three refused requests to build in a row",
+   "verdict": "not scored",
+   "cost_eur": 0.02,
+   "next": "stage two: the yes to a build is read by code from the person's message",
+   "limits": [
+    "three people, not judged",
+    "counts read by code only"
+   ]
+  }
+ ],
+ "outcome": "The gate is pinned and fails on every earlier run, as it should. The plumbing no longer returns an empty answer as an ordinary one, crashes on an empty reply, shows a tool call as words or under-counts a request; twenty-three scripted tests and a live probe cover it. Whether this moves the lead agent's scores is measured after stage two.",
+ "lessons": [
+  "Fix and pin the gate before the first change: a threshold chosen after a result is not a gate.",
+  "A new value of a field that other code keys on is a wider change than a new field beside it.",
+  "A test that pins an earlier decision is the cheapest review of a repair that went one step too far.",
+  "A probe that does not trigger the case proves nothing about it: force the case, and say that it was forced.",
+  "A parser that accepts the end of the text as the end of a block will run whatever a cut reply left of it: decide what a cut means before deciding what to parse.",
+  "A new basis, outcome or state must be searched for in every reader that maps the old ones."
+ ],
+ "risks": [
+  "The retry spends a second request; a role that always thinks past its limit now costs two calls.",
+  "A thread started inside a turn can outlive a failure of that turn.",
+  "The provider's cost is in its own currency, entered as euros like the table's prices."
+ ],
+ "commits": [
+  "905bd132"
+ ]
+}

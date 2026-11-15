@@ -186,7 +186,7 @@ class ProviderSwitchTest(unittest.TestCase):
             self.assertEqual(sent[1]["messages"][1]["reasoning_details"], details)
             self.assertEqual(sent[1]["extra_body"], {"reasoning": {"enabled": True}})
         price = prices.load()["qwen/qwen3.8-flash"]
-        self.assertEqual((price.input, price.output), (0.05, 0.40))
+        self.assertEqual((price.input, price.output), (0.15, 0.47))  # read from OpenRouter's model list on 2026-11-15 (0.05 and 0.40 before)
         self.assertIsNotNone(prices.estimate("qwen/qwen3.8-flash", False, 3000, 1000))
 
 

@@ -265,6 +265,40 @@ class FirstDivergenceTests(unittest.TestCase):
         self.assertTrue(all(r["plain_right_case_wrong"] is not None and r["people"] for r in found["runs"]))
 
 
+class SecondSetTests(unittest.TestCase):
+    """The eight people of 2026-11-15 written by an independent agent (dev2): frozen, apart from the first eight, and a run
+    on them is judged with their own key."""
+
+    def tearDown(self):
+        H.use_set("dev")
+
+    def test_the_second_set_is_frozen_and_shares_no_person_with_the_first(self):
+        first = {c["id"] for c in H.load()[0]}
+        H.use_set("dev2")
+        cases, key = H.load()
+        self.assertIsNone(H.frozen())
+        self.assertEqual((len(cases), set(key)), (8, {c["id"] for c in cases}))
+        self.assertFalse(first & set(key))
+        self.assertGreaterEqual(sum(c["upload"] is None for c in cases), 2)
+        self.assertEqual(H.SET, "dev2")
+        with self.assertRaises(ValueError):
+            H.use_set("sealed")
+
+    def test_the_benchmark_keeps_the_two_sets_apart(self):
+        from dclab_rnd.agent_eval.harness_ablation import benchmark
+
+        def run(name, set_, label=None):
+            rows = {"case": {"by_case": {f"{name}-{i}": {"planning": 2, "understanding": 3} for i in range(8)}}}
+            return {"id": name, "model": "m", "judge": "j", "label": label, "set": set_, "arms": rows, "interventions": {}, "counted": {}}
+
+        made = benchmark.before_after([{**run("a", "dev"), "arms": {"case": {"by_case": {}, "seconds": 1, "assistant_turns": 1, "numbers_nobody_gave": 0,
+                                                                               "spent_eur": 0, "accepted": 0, "cases": 0, **{d: None for d in benchmark.DIMENSIONS}}}},
+                                       {**run("b", "dev2", "stage-1"), "arms": {"case": {"by_case": {}, "seconds": 1, "assistant_turns": 1, "numbers_nobody_gave": 0,
+                                                                                         "spent_eur": 0, "accepted": 0, "cases": 0, **{d: None for d in benchmark.DIMENSIONS}}}}])
+        self.assertEqual(made, [])  # a run on other people is no "before" of this one
+        self.assertLess(benchmark._order("after-three-fixes"), benchmark._order("stage-1"))
+
+
 class GateTests(unittest.TestCase):
     """The gate of the repair (stage 0 of the plan of 2026-11-15): pinned before any behaviour changed, an AND of its checks."""
 

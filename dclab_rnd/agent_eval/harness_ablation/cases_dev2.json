@@ -1,0 +1,50 @@
+[
+ {
+  "id": "hab-11",
+  "stratum": "forecast_for_staffing_decision",
+  "upload": "bookings",
+  "opening": "I am the operations lead at a tour company. Each month I tell our local partners how many guides to reserve in each destination for the month after next. If I reserve too few, we hire freelancers at the last minute for about three times the price; if I reserve too many, we pay a small fee for each guide we do not use. My director asked me for a machine learning model that forecasts how many bookings we will receive per destination each month. The table I shared is our booking export up to late February 2026: one row per booking with the booking date, travel date, destination, nationality, channel, lead time in days, price, whether it had free cancellation, and whether it was cancelled. I will use the result myself every month to fix the reservation."
+ },
+ {
+  "id": "hab-12",
+  "stratum": "segmentation_must_be_actionable",
+  "upload": "customers",
+  "opening": "I am the head of marketing at a subscription company. The board asked for an AI segmentation of our customers, and I would like five or six segments with names we can put on a slide. The table I shared has one row per customer: signup date, the segment we already record, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and whether they churned the next month. Next quarter my team can run at most three email campaigns: one to move people to a higher plan, one to keep people who look likely to leave, and one welcome series for new customers. The same person should not receive two of them. My campaign managers will use the segments to decide who gets which campaign."
+ },
+ {
+  "id": "hab-13",
+  "stratum": "model_decay_changed_definition",
+  "upload": null,
+  "opening": "I am a data scientist at a company that sells accounting software to small firms. Two years ago we built a model that scores every new lead on how likely it is to become a customer, and the sales team calls the highest scores first. Since the autumn the sales team says the top leads are much worse than they used to be, and my manager wants me to retrain with a larger model and more features. Some context on the data: since the summer, part of our leads comes from a partner marketplace; we moved to a new CRM in August, and two form fields the model uses are no longer collected; and finance now counts a lead as converted when a free trial starts, where before it was the first payment. I have the old training set and every lead since, not yet exported. What would you do?"
+ },
+ {
+  "id": "hab-14",
+  "stratum": "outcome_only_for_approved",
+  "upload": null,
+  "opening": "I am the credit risk manager at a consumer lender that finances phone and appliance purchases in shops. Today a rulebook written by our underwriters approves about 40 percent of applications. Management wants to grow, so they asked me for a machine learning model that predicts default for every applicant, to replace the rulebook and approve more people safely. We have about 60,000 past loans with the application form, the bureau score and whether the loan defaulted within 12 months, and I can export them next week. For the applications we rejected we kept the form and the bureau score, nothing more. The model would decide each new application automatically at the shop counter. How should I go about it?"
+ },
+ {
+  "id": "hab-15",
+  "stratum": "metric_definition_behind_dashboard",
+  "upload": "sales",
+  "opening": "I am the business intelligence analyst at a retailer that sells in its own shops and online across the UAE. The chief executive wants one weekly revenue dashboard, by region, channel and product category, that everyone trusts. Last month the sales director reported revenue about nine percent higher than finance did for the same weeks, and each says the other is wrong. Both teams start from the export I shared: one row per order with an order id, the order date, region, channel, product category, amount, status and customer id. The status column shows how each order ended. I would like the dashboard built from this table so I can present it at Monday's management meeting. The chief executive will use it to judge the regional managers."
+ },
+ {
+  "id": "hab-16",
+  "stratum": "entity_resolution_first",
+  "upload": null,
+  "opening": "I am the commercial director of a building-materials distributor. Last year we bought a competitor, so we now have two customer lists: about 4,000 accounts in our system and 2,500 in theirs. I want a customer lifetime value model on the combined list so we know which accounts deserve a key-account manager; we can afford one for about 150 accounts. Each system has its own account numbers. Company names were typed by hand, the same contractor often has a separate account for each building site or branch, and many firms bought from both of us. Both systems hold three years of invoices with the account number, date and amount. Nothing is exported yet. My sales reps say the big customers are obvious and the list should find the ones they miss."
+ },
+ {
+  "id": "hab-17",
+  "stratum": "protected_attribute_constraint",
+  "upload": "bookings",
+  "opening": "I am the revenue manager of a travel agency that sells in the UAE and, since last year, to customers in Europe through our website. Cancellations cost us a lot, so I plan to ask for a non-refundable deposit from the bookings most likely to be cancelled and keep the normal terms for everyone else. Please build the model that decides who must pay the deposit. The table I shared has one row per booking: booking date, travel date, destination, the customer's nationality, channel, lead time in days, price, whether free cancellation was offered, and whether the booking was cancelled. From what I have seen in our reports, nationality tells the most about who cancels, so I expect it to be the main input. The website would apply the rule automatically at checkout."
+ },
+ {
+  "id": "hab-18",
+  "stratum": "control_clear_prediction_refund",
+  "upload": "sales",
+  "opening": "I am an analyst at an online retailer in the UAE. Please build a model that predicts, at the moment an order is placed, whether it will end in a refund. The table I shared is our order export, one row per order: order_id, order_date, region, channel, product_category, amount, status and customer_id. The status column shows how each order ended. Refunds are only possible within 14 days, and the export was taken six weeks after the last order in it, so every status is final. The customer care team will score each new order as it comes in and phone the buyers of the riskiest ones to confirm the product and delivery details before we ship. Go ahead."
+ }
+]

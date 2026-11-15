@@ -20,10 +20,12 @@ checks the Home agent's writes. A write in a scope without a guard never runs.
 from __future__ import annotations
 
 import inspect
+import json
+import re
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
-from typing import Any, Callable, Protocol
+from typing import Any, Callable, Mapping, Protocol
 
 import jsonschema
 
@@ -65,6 +67,37 @@ class Tool:
 class Guard(Protocol):
     def __call__(self, tool: Tool, context: Any, arguments: dict[str, Any], proceed: Callable[[], Any]) -> Any:
         """Check the write; return a refusal (``{"error": ...}``) without calling ``proceed``, or ``proceed()``'s result."""
+
+
+_PARAMETER_TAG = re.compile(r"<parameter=([\w.-]+)>\s*(.*?)\s*(?:</parameter>|(?=<parameter=)|$)", re.S)
+_TYPED = {"array": list, "object": dict}
+
+
+def repaired(arguments: dict[str, Any], properties: Mapping[str, Any]) -> dict[str, Any]:
+    """Arguments one step from the schema, put right before they are checked (2026-11-15: ten refusals in eight conversations
+    were a list or an object sent as its JSON text, or one argument's text holding the next ones as ``<parameter=name>``
+    blocks). Only what parses to the type the schema asks for is changed; anything else goes to the check as it came."""
+    out = dict(arguments)
+    for name, value in list(out.items()):
+        if not isinstance(value, str) or "<parameter=" not in value:
+            continue
+        head, _, rest = value.partition("<parameter=")
+        out[name] = head.replace("</parameter>", "").strip()
+        for key, raw in _PARAMETER_TAG.findall("<parameter=" + rest):
+            out.setdefault(key, raw.strip())
+    for name, value in list(out.items()):
+        wanted = (properties.get(name) or {}).get("type") if isinstance(properties.get(name), Mapping) else None
+        if not isinstance(wanted, str):  # no type, or several: nothing to put right
+            continue
+        if not isinstance(value, str) or wanted not in _TYPED:  # a number sent as text stays a wrong type to read (H1, 2026-10-23)
+            continue
+        try:
+            parsed = json.loads(value)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if isinstance(parsed, _TYPED[wanted]):
+            out[name] = parsed
+    return out
 
 
 @dataclass
@@ -111,8 +144,9 @@ class Registry:
         given = {k: v for k, v in arguments.items() if v is not None}
         properties = tool.parameters.get("properties", {})
         unknown = set(arguments) - set(properties)  # a null the handler cannot take is still unknown
-        if unknown:
-            return f"Unknown argument(s) for {tool.name}: {', '.join(sorted(unknown))}"
+        if unknown:  # 2026-11-15: the valid names are said, so the next call can be right (a refusal that named none was repeated)
+            return (f"Unknown argument(s) for {tool.name}: {', '.join(sorted(unknown))}. "
+                    f"Its arguments are: {', '.join(sorted(properties)) or 'none'}")
         missing = [r for r in tool.parameters.get("required", []) if r not in given]
         if missing:
             return f"Missing required argument(s) for {tool.name}: {', '.join(missing)}"
@@ -135,7 +169,7 @@ class Registry:
         if tool is None or (scope is not None and tool.scope != scope):
             available = ", ".join(self.names(scope))
             return {"error": f"Unknown tool {name!r}. Available: {available}"}
-        arguments = dict(arguments or {})
+        arguments = repaired(dict(arguments or {}), tool.parameters.get("properties", {}))
         if "_raw" in arguments:  # the model's arguments were not valid JSON
             return {"error": f"The arguments for {tool.name} were not valid JSON; send a JSON object that fits the schema."}
         problem = self.check(tool, arguments, check)

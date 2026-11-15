@@ -69,7 +69,7 @@ def _totals(entries: list[dict[str, Any]]) -> dict[str, Any]:
         out["requests"] += 1
         out["failed"] += 0 if ok else 1
         basis = e.get("cost_basis")
-        out[{"price": "priced", "local": "local"}.get(basis, "unpriced")] += 1
+        out[{"price": "priced", "provider": "priced", "local": "local"}.get(basis, "unpriced")] += 1  # a request the provider costed is priced
         if e.get("cost_eur") is not None:
             out["eur"] += float(e["cost_eur"])
             key = str(e.get("project_id") or "(no project)")
@@ -101,12 +101,25 @@ def month_start(now: datetime | None = None) -> str:
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat(timespec="seconds")
 
 
+def _light(row: Any) -> Any:
+    """A row as the cache holds it: its prompt's text replaced by whether it has one (the review of stage 1: the kept rows of
+    a 60 MB log held about 360 MB in every server and worker; no reader of the cache needs the text, the file keeps it)."""
+    if isinstance(row, dict) and row.get("prompt"):
+        row["prompt"] = True
+    return row
+
+
 class FileUsage:
     def __init__(self, path: Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.checks = self.path.with_name(self.path.stem + "_checks.jsonl")
         self._lock = threading.Lock()
+        # 2026-11-15: every cap re-read the whole file on every request (60 MB, 6.5 s a scan). The parsed rows are kept and
+        # only what was appended since is read; a file replaced or shortened (forget_prompts) is read again from its start.
+        self._read_lock = threading.Lock()
+        self._rows: list[dict[str, Any]] = []
+        self._offset, self._inode, self._mtime = 0, None, None
 
     def record(self, entry: dict[str, Any]) -> None:
         entry = _person(entry)
@@ -115,18 +128,57 @@ class FileUsage:
             handle.write(line + "\n")
 
     def _all(self) -> list[dict[str, Any]]:
-        if not self.path.is_file():
+        with self._read_lock:
+            try:
+                stat = self.path.stat()
+            except OSError:
+                self._rows, self._offset, self._inode = [], 0, None
+                return []
+            rewritten = stat.st_size == self._offset and stat.st_mtime_ns != self._mtime  # written over in place, to the same length
+            if stat.st_ino != self._inode or stat.st_size < self._offset or rewritten:
+                self._rows, self._offset, self._inode = [], 0, stat.st_ino
+            self._mtime = stat.st_mtime_ns
+            if stat.st_size > self._offset:
+                with self.path.open("rb") as handle:
+                    handle.seek(self._offset)
+                    data = handle.read()
+                end = data.rfind(b"\n") + 1  # a line still being written is read next time, whole
+                for line in data[:end].decode("utf-8", errors="replace").splitlines():
+                    try:
+                        self._rows.append(_light(json.loads(line)))
+                    except json.JSONDecodeError:
+                        continue
+                tail = data[end:].decode("utf-8", errors="replace").strip()
+                if tail:  # a last line with no newline after it: read now when it is whole
+                    try:
+                        self._rows.append(_light(json.loads(tail)))
+                        end = len(data)
+                    except json.JSONDecodeError:
+                        pass
+                self._offset += end
+            return list(self._rows)
+
+    def recent(self, limit: int = 50) -> list[dict[str, Any]]:
+        """The latest rows, whole (with the prompt where one is kept): read from the file's end, not from the kept rows,
+        which hold no prompt text."""
+        if limit <= 0 or not self.path.is_file():
             return []
+        with self.path.open("rb") as handle:
+            handle.seek(0, 2)
+            size, block, data = handle.tell(), 65536, b""
+            while size > 0 and data.count(b"\n") <= limit:
+                step = min(block, size)
+                size -= step
+                handle.seek(size)
+                data = handle.read(step) + data
+                block *= 2
         out = []
-        for line in self.path.read_text(encoding="utf-8").splitlines():
+        for line in data.decode("utf-8", errors="replace").splitlines()[-limit:] if size == 0 else data.decode("utf-8", errors="replace").splitlines()[1:][-limit:]:
             try:
                 out.append(json.loads(line))
             except json.JSONDecodeError:
                 continue
-        return out
-
-    def recent(self, limit: int = 50) -> list[dict[str, Any]]:
-        return list(reversed(self._all()[-limit:]))
+        return list(reversed(out))
 
     def window(self, since: str, limit: int = 50_000) -> list[dict[str, Any]]:
         """B8: the rows since a time, without the kept prompt text (the monitors need names and numbers only)."""

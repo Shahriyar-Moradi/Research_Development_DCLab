@@ -66,10 +66,49 @@ def route_now(state: "CaseState") -> Optional[str]:
     """The second reading of the route for the person's words so far, read again only when they said something new."""
     if state.route_client is None:
         return None
+    thread, state.route_thread = state.route_thread, None
+    if thread is not None:  # read ahead at the turn's start (route_ahead): waited for here, never asked twice
+        thread.join()
     heard = len(state.case.words)
     if state.route_seen is None or state.route_seen[0] != heard:
         state.route_seen = (heard, route_reading(state.route_client, state))
     return state.route_seen[1]
+
+
+ROUTE_WAIT = 3.0  # seconds a finished turn waits for a second reading it did not need (the review of stage 1: never a ready answer held)
+
+
+def route_ahead(state: "CaseState") -> None:
+    """Start the second reading when the turn starts, beside the lead model's own work (stage 1 of 2026-11-15: read inline at a
+    propose or a start it held the turn for about 14 seconds). The same request with the same thinking: only the waiting
+    changes. Not started where it would not be read: a chip or a choice decides, or the person's own words name the help."""
+    if os.environ.get("DCLAB_ROUTE_AHEAD", "1").strip().lower() in ("0", "off", "false"):
+        return
+    if state.route_thread is not None and not state.route_thread.is_alive():
+        state.route_thread = None  # one left by a turn that failed: finished, and no longer in the way
+    if state.route_client is None or state.case.chosen or state.chip or state.route_thread is not None:
+        return
+    heard = len(state.case.words)
+    if state.route_seen is not None and state.route_seen[0] == heard:
+        return
+    if any(t != "advice" for t in C.named_tracks(state.case.words)):
+        return
+    # only where a propose or a start could reach the second reading this turn: a turn that can only ask is not charged for it
+    if not (C.readiness(state.case, state.table).may_propose or state.wants_options or state.budget_reached or state.clear_on_arrival or state.go_ahead):
+        return
+    import contextvars
+    import threading
+
+    from dclab_rnd import experience
+
+    run_id = getattr(state.trace, "run_id", None)
+
+    def read() -> None:
+        with experience.bind(run=run_id, conversation=run_id):  # the turn's run is bound after this thread's context is copied
+            state.route_seen = (heard, route_reading(state.route_client, state))
+
+    state.route_thread = threading.Thread(target=contextvars.copy_context().run, args=(read,), daemon=True)  # the turn's ids go with it
+    state.route_thread.start()
 
 
 def route_doubt(state: "CaseState", move: str, tracks: set[str]) -> Optional[str]:
@@ -274,6 +313,7 @@ class CaseState:
     clear_on_arrival: bool = False  # request is crystal-clear on arrival (goal, subject/target and table known)
     route_told: list[str] = field(default_factory=list)  # the plan's step 1: each route doubt (a move and what it pointed to) told once
     route_seen: Optional[tuple[int, Optional[str]]] = None  # the second reading for the words heard so far: read again on new words only
+    route_thread: Any = None  # the second reading under way since the turn's start (route_ahead); never kept in a checkpoint
     rewriting: bool = False  # the agent is rewriting dropped sentences: no move may run (the review: a question counted twice)
     trace: Any = None  # one tracer for the whole case, so its turns are one conversation in the record
     frame: Any = None  # the shared table itself (never sent to a model; the data tools read it)
@@ -938,7 +978,8 @@ def register(registry: Registry) -> None:
 
 
 TOOL_NAMES = tuple(f"case_{t}" for t in TOOLS)
-POLICY = Policy(name="case", system="", tools=TOOL_NAMES, max_steps=20, max_replies=12, stop_after=tuple(f"case_{t}" for t in ENDS_TURN))  # 2026-11-15: 14 and 8 ended three of eight turns (HAB-002)
+POLICY = Policy(name="case", system="", tools=TOOL_NAMES, max_steps=20, max_replies=12, stop_after=tuple(f"case_{t}" for t in ENDS_TURN),
+                max_tokens=3000, warn_last=True)  # 2026-11-15 (stage 1): a reply of 1,800 tokens cut two calls mid-argument; the last step is announced  # 2026-11-15: 14 and 8 ended three of eight turns (HAB-002)
 
 
 DECISION_Q = re.compile(r"\b(?:what (?:will|would|do) you (?:do|want to do)|are you deciding|what (?:decision|is the decision)|how will you use|"
@@ -1117,6 +1158,7 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     start = len(messages)
     before = _spent(client) + _spent(state.specialist_client) + _spent(state.route_client)  # the review: the route check counts too
     client = _Cells(client, state)  # 37.6: a request holds cell values only when a query's answer is in it
+    route_ahead(state)
     result = run_policy(POLICY, client, registry, messages, context=state, trace=state.trace)
     texts = [str(m.get("content") or "").strip() for m in result.messages[start:] if m.get("role") == "assistant" and str(m.get("content") or "").strip()]
     if not texts and not state.said:  # CEX-011 d-04: every reply spent on queries, no word for the person: asked once, no move allowed
@@ -1194,6 +1236,9 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     if not any(words_out):  # never a silent turn (the review): code's own line, and the question if one was asked
         words_out, notes = [FALLBACK_NUMBERS if dropped else FALLBACK] + ([q for q in (checked(q, state) for q in state.said) if q] or []), []
     text = "\n\n".join([w for w in words_out if w] + notes)
+    thread, state.route_thread = state.route_thread, None
+    if thread is not None:  # a second reading nobody waited for: given a moment so its cost is this turn's, never waited on for long
+        thread.join(timeout=ROUTE_WAIT)
     state.spent_eur += max(0.0, _spent(client) + _spent(state.specialist_client) + _spent(state.route_client) - before)  # 37.8: what this turn cost
     state.turns.append({"role": "assistant", "content": text + ("\n(Options: " + "; ".join(o.title for o in state.shown) + ")" if state.shown else "")})
     if state.checkpoint:  # 37.8: saved after every turn, so a stop or a crash loses nothing

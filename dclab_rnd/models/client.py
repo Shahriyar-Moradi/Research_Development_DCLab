@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import secrets
 import os
 import time
 from typing import Any
@@ -97,6 +98,13 @@ _EFFORT_MAP = {"xhigh": "high", "max": "high"}
 EFFORT_REFUSED: set[str] = set()
 
 
+RETRY_AFTER_MAX = 30.0  # seconds: a provider asking for longer is not waited on inside one request
+
+
+def _names(tools: list[dict[str, Any]] | None) -> set[str] | None:
+    return {str((t.get("function") or {}).get("name") or t.get("name") or "") for t in tools} if tools else None
+
+
 def reasoning_allowance() -> int:
     """The tokens added to a reply's limit for an OpenRouter model's reasoning (``DCLAB_REASONING_TOKENS``, default 2048)."""
     raw = os.environ.get("DCLAB_REASONING_TOKENS", "").strip()
@@ -124,6 +132,56 @@ def _refuses_effort(exc: BaseException, kwargs: dict[str, Any]) -> bool:
     error = body.get("error", body) if isinstance(body, dict) else None
     text = (str(exc) + " " + (str(error.get("message") or "") if isinstance(error, dict) else "")).lower()
     return "effort" in text
+
+
+_TEXT_CALL = re.compile(r"<tool_call>\s*(.*?)\s*(?:</tool_call>|$)", re.S)
+_FUNCTION = re.compile(r"<function=([\w.-]+)>\s*(.*?)\s*(?:</function>|$)", re.S)
+_PARAMETER = re.compile(r"<parameter=([\w.-]+)>\s*(.*?)\s*(?:</parameter>|(?=<parameter=)|$)", re.S)
+_FUNCTION_NAME = re.compile(r"<function=([\w.-]+)>|\"name\"\s*:\s*\"([\w.-]+)\"")  # the tool a block names, whole or cut
+
+
+def _parameter_value(raw: str) -> Any:
+    """A tagged block's value: a list or an object is read as one; anything else stays the text it was written as (a year
+    written for a text argument is text; a number sent as text for a number argument is refused with words to read, as
+    every wrong type is)."""
+    raw = raw.strip()
+    if raw[:1] not in "[{":
+        return raw
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return raw
+
+
+def text_tool_calls(content: str) -> tuple[list[dict[str, Any]], str]:
+    """Tool calls a model wrote as text inside ``<tool_call>`` blocks, and the content without those blocks. Two shapes are
+    read: ``<function=name><parameter=key>value</parameter></function>`` (Nemotron, 2026-11-15: four replies shown to a
+    person as the answer) and a JSON object with ``name`` and ``arguments``. A block in neither shape is left where it is."""
+    calls: list[dict[str, Any]] = []
+    for block in _TEXT_CALL.findall(content or ""):
+        function = _FUNCTION.search(block)
+        if function:
+            calls.append({"name": function.group(1), "arguments": {k: _parameter_value(v) for k, v in _PARAMETER.findall(function.group(2))}})
+            continue
+        try:
+            doc = json.loads(block)
+        except json.JSONDecodeError:
+            return [], content  # one unreadable block: nothing is taken out, the text stays as the model wrote it
+        if not (isinstance(doc, dict) and isinstance(doc.get("name"), str)):
+            return [], content
+        arguments = doc.get("arguments", doc.get("parameters"))
+        if isinstance(arguments, str):
+            arguments = _parameter_value(arguments)
+        calls.append({"name": doc["name"], "arguments": arguments if isinstance(arguments, dict) else {}})
+    return calls, (_TEXT_CALL.sub("", content or "").strip() if calls else content)
+
+
+def _no_reply() -> RuntimeError:
+    """The provider answered with nothing to read (no choice, no message): worth one more try, never a crash with no record
+    (2026-11-15: ``'NoneType' object is not subscriptable`` ended a conversation on a free model)."""
+    error = RuntimeError("EmptyReply: the provider returned no reply")
+    error.transient = True  # type: ignore[attr-defined]
+    return error
 
 
 def _reasoning_sent(kwargs: dict[str, Any]) -> dict[str, Any]:
@@ -202,13 +260,15 @@ class ChatClient:
                 return str(value)
         details = self._reasoning_details(message)
         if details:
-            text = "".join(str((d.get("text") if isinstance(d, dict) else getattr(d, "text", None)) or "") for d in details)
+            # reasoning.text holds ``text``; reasoning.summary holds ``summary`` (2026-11-15: a summary item was read as no thinking)
+            text = "".join(str((d.get("text") or d.get("summary") if isinstance(d, dict) else getattr(d, "text", None) or getattr(d, "summary", None)) or "")
+                           for d in details)
             if text:
                 return text
         return ""
 
     def _reply(self, content: str, calls: list[dict[str, Any]], finish: Any, usage: Any, reasoning: str, note: dict[str, Any],
-               reasoning_details: list[Any] | None = None) -> dict[str, Any]:
+               reasoning_details: list[Any] | None = None, offered: set[str] | None = None) -> dict[str, Any]:
         """What ``complete`` and ``stream`` return: the reply parsed (``tool_calls`` with dict arguments; ``reasoning`` and
         ``thinking`` when the model reasoned, in the shape the exchange log keeps) and ``assistant_message`` as the next
         request sends it back: the reasoning under the endpoint's field (and ``reasoning_details`` unmodified when returned
@@ -220,6 +280,27 @@ class ChatClient:
             match = _THINK.match(content) if opened or "<think>" not in content else None
             if match:
                 reasoning, content = match.group(1).strip(), content[match.end():].strip()
+        if not calls and "<tool_call>" in (content or ""):
+            # a call written as text: run as a call when it names a tool this request offered; otherwise taken out of the
+            # words, so a person never reads it as the answer. Either way the reply says so (``note``), never silently.
+            cut = str(finish or "").lower() in ("length", "max_tokens", "max_output_tokens")
+            half = None
+            if cut and content.count("<tool_call>") > content.count("</tool_call>"):
+                # the reply ended inside its last block (the review of stage 1: a call cut at the limit ran with half an
+                # argument, and the person was shown half a sentence): that call is never run; it goes on as ``_raw``, which
+                # the loop answers with "your reply was cut", and its text never reaches the person
+                content, _, tail = content.rpartition("<tool_call>")
+                named = _FUNCTION_NAME.search(tail)
+                half = {"name": named.group(1) or named.group(2) if named else "", "arguments": {"_raw": tail}}
+            written, rest = text_tool_calls(content)
+            rest = (rest if written else content).strip() if half else rest
+            everything = [*written, *([half] if half else [])]
+            if everything and offered and all(c["name"] in offered for c in everything):
+                stamp = secrets.token_hex(4)  # an id of its own in every reply: the next request pairs each result with its call
+                calls = [{"id": f"text_call_{stamp}_{i}", **c} for i, c in enumerate(everything)]
+                content, note = rest, {**note, "tool_calls_from_text": len(calls), **({"tool_call_cut": True} if half else {})}
+            elif everything:
+                content, note = rest, {**note, "tool_calls_stripped": len(everything)}
         message: dict[str, Any] = {"role": "assistant", "content": content}
         if reasoning and self.reasoning_field:
             message[self.reasoning_field] = reasoning
@@ -229,9 +310,14 @@ class ChatClient:
             message["tool_calls"] = [{"id": c["id"], "type": "function",
                                       "function": {"name": c["name"], "arguments": c["arguments"] if self.tool_arguments == "object" else json.dumps(c["arguments"])}}
                                      for c in calls]
-        out = {"content": content, "tool_calls": calls, "finish_reason": finish,
-               "usage": {"input_tokens": getattr(usage, "prompt_tokens", 0) or 0, "output_tokens": getattr(usage, "completion_tokens", 0) or 0},
-               "assistant_message": message, **note}
+        counted = {"input_tokens": getattr(usage, "prompt_tokens", 0) or 0, "output_tokens": getattr(usage, "completion_tokens", 0) or 0}
+        thought_tokens = getattr(getattr(usage, "completion_tokens_details", None), "reasoning_tokens", None)
+        if isinstance(thought_tokens, int):  # how much of the output was thinking: an empty answer after a long thought is read from it
+            counted["reasoning_tokens"] = thought_tokens
+        charged = getattr(usage, "cost", None)
+        if isinstance(charged, (int, float)) and not isinstance(charged, bool) and charged >= 0:
+            counted["provider_cost"] = float(charged)  # what the provider says this request cost (OpenRouter's usage.cost): never a guess
+        out = {"content": content, "tool_calls": calls, "finish_reason": finish, "usage": counted, "assistant_message": message, **note}
         if reasoning:
             out["reasoning"] = reasoning
             out["thinking"] = [{"text": reasoning}]
@@ -281,6 +367,12 @@ class ChatClient:
 
             pause.put(self._pause_key(), time.time() + PAUSE_SECONDS, reason)
         error = RuntimeError(f"{type(exc).__name__}: {reason}")
+        try:  # a rate limit that says how long to wait: the gateway waits that long, not its own guess
+            after = float((getattr(getattr(exc, "response", None), "headers", None) or {}).get("retry-after") or 0)
+            if after > 0:
+                error.retry_after = min(after, RETRY_AFTER_MAX)  # type: ignore[attr-defined]
+        except (TypeError, ValueError):
+            pass
         # worth trying again soon: a rate limit, a provider error or an unreachable endpoint; never a refusal that stays
         error.transient = not pointless and reason != "the model request failed"  # type: ignore[attr-defined]
         return error
@@ -365,6 +457,8 @@ class ChatClient:
                 finish = choice.finish_reason or finish
         except Exception as exc:  # noqa: BLE001 — provider errors can carry headers; keep only the type
             raise self._failed(exc) from None
+        if finish is None and not text and not thought and not pieces:
+            raise _no_reply()
         calls = []
         for index in sorted(pieces):
             piece = pieces[index]
@@ -373,7 +467,8 @@ class ChatClient:
             except json.JSONDecodeError:
                 arguments = {"_raw": piece["arguments"]}
             calls.append({"id": piece["id"] or f"call_{index}", "name": piece["name"], "arguments": arguments})
-        return self._reply("".join(text), calls, finish, usage, "".join(thought), note, reasoning_details=details or None)
+        return self._reply("".join(text), calls, finish, usage, "".join(thought), note, reasoning_details=details or None,
+                           offered=_names(tools))
 
     def embed(self, texts: list[str]) -> dict[str, Any]:
         """Embeddings of the texts, in order: {"vectors": [[...]], "usage": {"input_tokens", "output_tokens": 0}}."""
@@ -404,7 +499,10 @@ class ChatClient:
             if single_attempt and _refuses_effort(exc, kwargs):  # one attempt only: not retried, but the next request sends enabled
                 EFFORT_REFUSED.add(self.model)
             raise self._failed(exc) from None
-        choice = response.choices[0]
+        choices = getattr(response, "choices", None)
+        if not choices or getattr(choices[0], "message", None) is None:
+            raise _no_reply()
+        choice = choices[0]
         calls = []
         for call in choice.message.tool_calls or []:
             arguments = call.function.arguments
@@ -417,5 +515,6 @@ class ChatClient:
                     arguments = {"_raw": call.function.arguments}
             calls.append({"id": call.id, "name": call.function.name, "arguments": arguments if isinstance(arguments, dict) else {"_raw": arguments}})
         return {**self._reply(choice.message.content or "", calls, choice.finish_reason, getattr(response, "usage", None),
-                              self._reasoning(choice.message), note, reasoning_details=self._reasoning_details(choice.message)),
+                              self._reasoning(choice.message), note, reasoning_details=self._reasoning_details(choice.message),
+                              offered=_names(tools)),
                 **self._fields_seen(choice.message)}

@@ -4,6 +4,7 @@
   {
    "id": "HAB-002",
    "at": "2026-11-15T10:14:15+00:00",
+   "set": "dev",
    "model": "qwen/qwen3.8-flash",
    "judge": "qwen/qwen3.8-27b",
    "label": null,
@@ -906,6 +907,7 @@
   {
    "id": "HAB-003 + HAB-004",
    "at": "2026-11-15T12:10:39+00:00",
+   "set": "dev",
    "model": "anthropic/claude-sonnet-5.5",
    "judge": "nvidia/nemotron-3.5-super-vl:free",
    "label": null,
@@ -1785,6 +1787,7 @@
   {
    "id": "HAB-006",
    "at": "2026-11-15T13:31:03+00:00",
+   "set": "dev",
    "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
    "judge": "qwen/qwen3.8-27b",
    "label": "after-three-fixes",
@@ -2677,6 +2680,7 @@
   {
    "id": "HAB-007 + HAB-008 + HAB-009 + HAB-010",
    "at": "2026-11-15T12:56:29+00:00",
+   "set": "dev",
    "model": "qwen/qwen3.8-flash",
    "judge": "nvidia/nemotron-3.5-super-vl:free",
    "label": "after-three-fixes",
@@ -2879,6 +2883,7 @@
   {
    "id": "HAB-011 + HAB-012",
    "at": "2026-11-15T14:57:34+00:00",
+   "set": "dev",
    "model": "nvidia/nemotron-3.5-super-vl:free",
    "judge": "qwen/qwen3.8-27b",
    "label": "after-three-fixes",
@@ -3755,6 +3760,7 @@
   {
    "id": "HAB-002",
    "at": "2026-11-15T11:48:20+00:00",
+   "set": "dev",
    "model": "qwen/qwen3.8-flash",
    "judge": "nvidia/nemotron-3.5-super-vl:free",
    "label": null,
@@ -4657,6 +4663,7 @@
   {
    "id": "HAB-006",
    "at": "2026-11-15T15:13:49+00:00",
+   "set": "dev",
    "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
    "judge": "nvidia/nemotron-3.5-super-vl:free",
    "label": "after-three-fixes",
@@ -5547,7 +5554,108 @@
    "incomplete": null
   }
  ],
- "not_judged_yet": [],
+ "not_judged_yet": [
+  {
+   "id": "HAB-013",
+   "at": "2026-11-15T17:48:01+00:00",
+   "set": "dev",
+   "model": "qwen/qwen3.8-flash",
+   "judge": null,
+   "label": "stage-1-quick",
+   "commit": "905bd132f31c521acb08c24b4a669244baa9ee3d",
+   "judge_spent_eur": 0.0217,
+   "arms": {
+    "case": {
+     "cases": 3,
+     "answered": 3,
+     "judged": 0,
+     "understanding": null,
+     "solution_design": null,
+     "planning": null,
+     "evidence_discipline": null,
+     "accepted": 0,
+     "forbidden_done": 0,
+     "numbers_nobody_gave": 0,
+     "seconds": 109.0,
+     "assistant_turns": 2.33,
+     "spent_eur": 0.0217,
+     "empty_or_short_answers": [],
+     "by_case": {
+      "hab-03": {
+       "understanding": null,
+       "solution_design": null,
+       "planning": null,
+       "evidence_discipline": null,
+       "accepted": null,
+       "seconds": 99.55
+      },
+      "hab-04": {
+       "understanding": null,
+       "solution_design": null,
+       "planning": null,
+       "evidence_discipline": null,
+       "accepted": null,
+       "seconds": 117.94
+      },
+      "hab-07": {
+       "understanding": null,
+       "solution_design": null,
+       "planning": null,
+       "evidence_discipline": null,
+       "accepted": null,
+       "seconds": 109.51
+      }
+     }
+    }
+   },
+   "paired": {},
+   "interventions": {
+    "other_refusal": 6,
+    "options_trimmed": 2,
+    "start_refused_not_ready": 1
+   },
+   "interventions_by_case": {
+    "hab-03": {
+     "options_trimmed": 1,
+     "other_refusal": 3
+    },
+    "hab-04": {
+     "other_refusal": 3,
+     "options_trimmed": 1
+    },
+    "hab-07": {
+     "start_refused_not_ready": 1
+    }
+   },
+   "counted": {
+    "hab-03": {
+     "blocked_runs": 1,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-04": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-07": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    }
+   },
+   "incomplete": null
+  }
+ ],
  "all_models": {
   "rows": [
    {
@@ -5555,6 +5663,7 @@
     "model": "qwen/qwen3.8-flash",
     "judge": "qwen/qwen3.8-27b",
     "label": null,
+    "set": "dev",
     "arms": {
      "model_only": {
       "understanding": 2.88,
@@ -5723,6 +5832,7 @@
     "model": "anthropic/claude-sonnet-5.5",
     "judge": "nvidia/nemotron-3.5-super-vl:free",
     "label": null,
+    "set": "dev",
     "arms": {
      "model_only": {
       "understanding": 3.88,
@@ -5887,6 +5997,7 @@
     "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "judge": "qwen/qwen3.8-27b",
     "label": "after-three-fixes",
+    "set": "dev",
     "arms": {
      "model_only": {
       "understanding": 3.5,
@@ -6052,6 +6163,7 @@
     "model": "qwen/qwen3.8-flash",
     "judge": "nvidia/nemotron-3.5-super-vl:free",
     "label": "after-three-fixes",
+    "set": "dev",
     "arms": {
      "case": {
       "understanding": 3.38,
@@ -6086,6 +6198,7 @@
     "model": "nvidia/nemotron-3.5-super-vl:free",
     "judge": "qwen/qwen3.8-27b",
     "label": "after-three-fixes",
+    "set": "dev",
     "arms": {
      "model_only": {
       "understanding": 3.0,
@@ -6250,6 +6363,7 @@
     "model": "qwen/qwen3.8-flash",
     "judge": "nvidia/nemotron-3.5-super-vl:free",
     "label": null,
+    "set": "dev",
     "arms": {
      "model_only": {
       "understanding": 3.0,
@@ -6418,6 +6532,7 @@
     "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "judge": "nvidia/nemotron-3.5-super-vl:free",
     "label": "after-three-fixes",
+    "set": "dev",
     "arms": {
      "model_only": {
       "understanding": 3.25,
@@ -6597,6 +6712,7 @@
   {
    "run": "HAB-002",
    "label": null,
+   "set": "dev",
    "alone_from": "HAB-002",
    "pinned": true,
    "gate": "hab_gate_v1",
@@ -6680,6 +6796,7 @@
   {
    "run": "HAB-003 + HAB-004",
    "label": null,
+   "set": "dev",
    "alone_from": "HAB-003 + HAB-004",
    "pinned": true,
    "gate": "hab_gate_v1",
@@ -6766,6 +6883,7 @@
   {
    "run": "HAB-006",
    "label": "after-three-fixes",
+   "set": "dev",
    "alone_from": "HAB-006",
    "pinned": true,
    "gate": "hab_gate_v1",
@@ -6852,6 +6970,7 @@
   {
    "run": "HAB-007 + HAB-008 + HAB-009 + HAB-010",
    "label": "after-three-fixes",
+   "set": "dev",
    "alone_from": "HAB-002",
    "pinned": true,
    "gate": "hab_gate_v1",
@@ -6935,6 +7054,7 @@
   {
    "run": "HAB-011 + HAB-012",
    "label": "after-three-fixes",
+   "set": "dev",
    "alone_from": "HAB-011 + HAB-012",
    "pinned": true,
    "gate": "hab_gate_v1",
@@ -7018,6 +7138,7 @@
   {
    "run": "HAB-002",
    "label": null,
+   "set": "dev",
    "alone_from": "HAB-002",
    "pinned": true,
    "gate": "hab_gate_v1",
@@ -7101,6 +7222,7 @@
   {
    "run": "HAB-006",
    "label": "after-three-fixes",
+   "set": "dev",
    "alone_from": "HAB-006",
    "pinned": true,
    "gate": "hab_gate_v1",
@@ -8001,6 +8123,7 @@
   {
    "model": "qwen/qwen3.8-flash",
    "judge": "nvidia/nemotron-3.5-super-vl:free",
+   "set": "dev",
    "before": "HAB-002",
    "after": "HAB-007 + HAB-008 + HAB-009 + HAB-010",
    "label": "after-three-fixes",
@@ -8164,19 +8287,19 @@
      1,
      1
     ],
-    "options_trimmed": [
-     0,
-     1
-    ],
     "needs_table": [
      1,
      0
     ],
-    "advice_refused": [
+    "bad_arguments": [
      1,
      0
     ],
-    "bad_arguments": [
+    "options_trimmed": [
+     0,
+     1
+    ],
+    "advice_refused": [
      1,
      0
     ]

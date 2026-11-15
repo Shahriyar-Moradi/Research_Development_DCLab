@@ -58,8 +58,15 @@ PRICES: dict[str, Price] = {  # only checked prices belong here, with the date a
     "claude-haiku-5-5": Price(0.10, 0.50, "2026-10-15", "platform.claude.com/docs/en/about-claude/pricing, prompts up to 100,000 tokens, USD per 1M tokens entered as EUR",
                               cache_read=0.1),  # the prompt-caching page, 2026-10-20: most models read at 0.1
     "gpt-6-luna": Price(0.10, 0.50, "2026-10-07", "developers.openai.com/api/docs/pricing, standard tier, USD per 1M tokens entered as EUR"),
-    "qwen/qwen3.8-flash": Price(0.05, 0.40, "2026-11-09", "openrouter.ai/qwen/qwen3.8-flash, base input and output, USD per 1M tokens entered as EUR"),
-    "qwen3.8-flash": Price(0.05, 0.40, "2026-11-09", "openrouter.ai/qwen/qwen3.8-flash, base input and output, USD per 1M tokens entered as EUR"),
+    # 2026-11-15: read from openrouter.ai/api/v1/models that day. The rows of 2026-11-09 (0.05 and 0.40) under-counted the
+    # lead agent's spend about 2.4 times; where the provider returns a request's own cost, that is used instead (``cost``).
+    "qwen/qwen3.8-flash": Price(0.15, 0.47, "2026-11-15", "openrouter.ai/api/v1/models, prompt and completion, USD per 1M tokens entered as EUR"),
+    "qwen3.8-flash": Price(0.15, 0.47, "2026-11-15", "openrouter.ai/api/v1/models, prompt and completion, USD per 1M tokens entered as EUR"),
+    "qwen/qwen3.8-27b": Price(0.15, 1.875, "2026-11-15", "openrouter.ai/api/v1/models, prompt and completion, USD per 1M tokens entered as EUR"),
+    "nvidia/nemotron-3.5-super-vl": Price(0.15, 0.50, "2026-11-15", "openrouter.ai/api/v1/models, prompt and completion, USD per 1M tokens entered as EUR"),
+    "nvidia/nemotron-3-ultra-550b-a55b": Price(0.60, 2.40, "2026-11-15", "openrouter.ai/api/v1/models, prompt and completion, USD per 1M tokens entered as EUR"),
+    "nvidia/nemotron-3.5-super-vl:free": Price(0.0, 0.0, "2026-11-15", "openrouter.ai/api/v1/models, the free variant"),
+    "nvidia/nemotron-3-ultra-550b-a55b:free": Price(0.0, 0.0, "2026-11-15", "openrouter.ai/api/v1/models, the free variant"),
 }
 
 
@@ -111,13 +118,18 @@ def estimate(model: str, local: bool, prompt_chars: int, max_tokens: int | None)
 
 
 def cost(model: str, local: bool, input_tokens: int, output_tokens: int, cache_read: int = 0, cache_write: int = 0,
-         cache_write_1h: int = 0) -> tuple[float | None, str]:
-    """(euros or None, basis): basis is "price" (from the table), "local" (free) or "no price" (not configured).
+         cache_write_1h: int = 0, provider_cost: float | None = None) -> tuple[float | None, str]:
+    """(euros or None, basis): basis is "provider" (what the provider said the request cost: its own figure, in its
+    currency entered as euros like the table's), "price" (from the table), "local" (free) or "no price" (not configured).
     ``input_tokens`` is every input token of the request; of them, ``cache_read`` were read from the prompt cache and
     ``cache_write`` written to it (``cache_write_1h`` of those for an hour), each priced at its own rate."""
     if local:
         return 0.0, "local"
     price = price_of(model)
+    # the request's own charge: also counts a model the table lacks. A charge of zero on a model the table prices above zero
+    # is not believed (a bring-your-own-key account is told the provider's fee only): the table's price counts then, so a cap moves
+    if provider_cost is not None and provider_cost >= 0 and (provider_cost > 0 or price is None or (price.input == 0 and price.output == 0)):
+        return round(float(provider_cost), 6), "provider"
     if price is None:
         return None, "no price"
     read, write, write_1h = max(0, cache_read or 0), max(0, cache_write or 0), max(0, cache_write_1h or 0)

@@ -117,7 +117,7 @@ def read_run(doc: dict[str, Any]) -> dict[str, Any]:
                      "spent_eur": round(sum(float(r.get("spent_eur") or 0) for r in rows), 4),
                      "empty_or_short_answers": sorted(cid for cid, n in chars.items() if n < 1000 and arm != "case"),
                      "by_case": {r["case"]: {**{d: r.get(d) for d in DIMENSIONS}, "accepted": r.get("accepted"), "seconds": r.get("seconds")} for r in rows}}
-    return {"id": doc["id"], "at": doc.get("at"), "model": (doc.get("models") or {}).get("arms"), "judge": (doc.get("models") or {}).get("judge"),
+    return {"id": doc["id"], "at": doc.get("at"), "set": doc.get("set") or "dev", "model": (doc.get("models") or {}).get("arms"), "judge": (doc.get("models") or {}).get("judge"),
             "label": label_of(doc) if " + " not in str(doc.get("id")) else doc.get("label") or (doc.get("manifest") or {}).get("label") or next(
                 (LABEL_OF[p] for p in str(doc["id"]).split(" + ") if p in LABEL_OF), None),
             "commit": ((doc.get("manifest") or {}).get("code") or {}).get("commit"), "judge_spent_eur": doc.get("spent_eur"),
@@ -142,6 +142,13 @@ def across_models(a: Mapping[str, Any], b: Mapping[str, Any]) -> dict[str, Any]:
     return out
 
 
+LABEL_ORDER = (None, "after-three-fixes", "stage-1", "stage-2", "stage-3", "stage-4")  # the states of the lead agent, in the order they were made
+
+
+def _order(label: Any) -> int:
+    return LABEL_ORDER.index(label) if label in LABEL_ORDER else len(LABEL_ORDER)
+
+
 def before_after(runs: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
     """The lead agent before and after a change: two runs of one model under one judge whose labels differ (the unlabelled
     run is the earlier state). The other arms do not change with the lead agent's code, so only its arm is compared."""
@@ -150,7 +157,12 @@ def before_after(runs: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
     out = []
     for a in runs:
         for b in runs:
-            if a is b or a["model"] != b["model"] or a["judge"] != b["judge"] or a.get("label") or not b.get("label"):
+            if a is b or a["model"] != b["model"] or a["judge"] != b["judge"] or a["set"] != b["set"] or not b.get("label"):
+                continue
+            # each state against the one before it that was measured (no label: the pilot; then the labels in their order)
+            earlier = [r for r in runs if r["model"] == b["model"] and r["judge"] == b["judge"] and r["set"] == b["set"] and "case" in r["arms"]
+                       and _order(r.get("label")) < _order(b.get("label"))]
+            if not earlier or a is not max(earlier, key=lambda r: _order(r.get("label"))):
                 continue
             if "case" not in a["arms"] or "case" not in b["arms"]:
                 continue
@@ -163,7 +175,7 @@ def before_after(runs: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
                 paired[name] = core.paired(by_case(before), by_case(after))
             counted = {key: (before.get(key), after.get(key)) for key in ("seconds", "assistant_turns", "numbers_nobody_gave", "spent_eur", "accepted", "cases")}
             reasons = sorted(set(a["interventions"]) | set(b["interventions"]), key=lambda r: -(a["interventions"].get(r, 0) + b["interventions"].get(r, 0)))
-            out.append({"model": a["model"], "judge": a["judge"], "before": a["id"], "after": b["id"], "label": b["label"],
+            out.append({"model": a["model"], "judge": a["judge"], "set": b["set"], "before": a["id"], "after": b["id"], "label": b["label"],
                         "means": {d: (before.get(d), after.get(d)) for d in DIMENSIONS}, "paired": paired, "counted": counted,
                         "interventions": {r: (a["interventions"].get(r, 0), b["interventions"].get(r, 0)) for r in reasons}})
     return out
@@ -261,7 +273,7 @@ def build() -> dict[str, Any]:
             doc = load(path)
             models = doc.get("models") or {}
             label = label_of(doc)  # the state of the code a run measures
-            groups.setdefault((models.get("arms"), models.get("judge"), label), []).append(doc)
+            groups.setdefault((models.get("arms"), models.get("judge"), label, doc.get("set") or "dev"), []).append(doc)
         return [read_run(join(docs)) for docs in groups.values()]
 
     # a run's first judgment, and any other judge's judgment of the same conversations, each as its own row
@@ -274,7 +286,7 @@ def build() -> dict[str, Any]:
     pairs = []
     for i, a in enumerate(runs):
         for b in runs[i + 1:]:
-            if a["model"] != b["model"] and a["judge"] == b["judge"] and a.get("label") == b.get("label"):  # two models: one judge, one state of the code
+            if a["model"] != b["model"] and a["judge"] == b["judge"] and a.get("label") == b.get("label") and a["set"] == b["set"]:  # two models: one judge, one state of the code, one set of people
                 pairs.append({"a": a["id"], "a_model": a["model"], "b": b["id"], "b_model": b["model"], "judge": a["judge"], "arms": across_models(a, b)})
     return {"what": "the harness ablation's benchmark: built from the result files, nothing run", "runs": runs, "not_judged_yet": waiting,
             "all_models": all_models(runs), "gate": gated(runs),
@@ -300,9 +312,10 @@ def gated(runs: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
     for run in runs:
         if "case" not in run["arms"]:
             continue
-        alone = next((r for r in [run, *runs] if r["model"] == run["model"] and r["judge"] == run["judge"] and "model_only" in r["arms"]), None)
+        alone = next((r for r in [run, *runs] if r["model"] == run["model"] and r["judge"] == run["judge"] and r["set"] == run["set"]
+                      and "model_only" in r["arms"]), None)
         verdict = G.verdict(str(run["model"]), run["judge"], rows(run, "case"), rows(alone, "model_only") if alone else [])
-        out.append({"run": run["id"], "label": run.get("label"), "alone_from": alone["id"] if alone else None, "pinned": G.pinned() is None, **verdict})
+        out.append({"run": run["id"], "label": run.get("label"), "set": run["set"], "alone_from": alone["id"] if alone else None, "pinned": G.pinned() is None, **verdict})
     return out
 
 
@@ -323,7 +336,7 @@ def all_models(runs: list[Mapping[str, Any]]) -> dict[str, Any]:
                          "spent_eur": (s["spent_eur"] / s["answered"]) if s.get("answered") and s.get("spent_eur") is not None else None,
                          "short": len(s["empty_or_short_answers"])}
         pair = (run.get("paired") or {}).get("case_minus_open") or {}
-        rows.append({"id": run["id"], "model": run["model"], "judge": run["judge"], "label": run.get("label"), "arms": arms,
+        rows.append({"id": run["id"], "model": run["model"], "judge": run["judge"], "label": run.get("label"), "set": run.get("set"), "arms": arms,
                      "harness": {d: pair[d] for d in (*DIMENSIONS, "accepted") if d in pair},
                      "interventions": dict(run["interventions"]), "interventions_total": sum(run["interventions"].values())})
     reasons = sorted({r for row in rows for r in row["interventions"]}, key=lambda r: -sum(row["interventions"].get(r, 0) for row in rows))
@@ -331,7 +344,8 @@ def all_models(runs: list[Mapping[str, Any]]) -> dict[str, Any]:
 
 
 def _row_name(row: Mapping[str, Any]) -> str:
-    return f"{row['model']}" + (f" ({row['label']})" if row.get("label") else "") + f" · judge {row['judge']}"
+    return (f"{row['model']}" + (f" ({row['label']})" if row.get("label") else "") + f" · judge {row['judge']}"
+            + (f" · people {row['set']}" if row.get("set") not in (None, "dev") else ""))
 
 
 def _counted(arm: Mapping[str, Any], key: str) -> str:

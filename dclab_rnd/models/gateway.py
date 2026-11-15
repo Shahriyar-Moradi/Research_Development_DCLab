@@ -335,7 +335,8 @@ class Gateway:
         read, write = int((usage or {}).get("cache_read_tokens") or 0), int((usage or {}).get("cache_write_tokens") or 0)
         try:
             eur, basis = prices.cost(model, public["local"], tokens_in, tokens_out, cache_read=read, cache_write=write,
-                                     cache_write_1h=int((usage or {}).get("cache_write_1h_tokens") or 0))
+                                     cache_write_1h=int((usage or {}).get("cache_write_1h_tokens") or 0),
+                                     provider_cost=(usage or {}).get("provider_cost"))
         except ValueError:  # a broken price file: the answer is kept and the request counted in tokens
             eur, basis = None, "no price"
         from .. import agent_metrics  # the agents' ledger: one line per request, whatever the usage log is
@@ -484,10 +485,29 @@ def _asked_of(transport: Any) -> str | None:
     value = getattr(transport, "thinking", None)
     return value if isinstance(value, str) or value is None else str(value)
 
+MORE_ROOM_MAX = int(_number("DCLAB_RETRY_MAX_TOKENS", 32000))  # the largest limit a request is sent again with after an empty, cut answer
+
+
+def empty_cut(out: Any) -> bool:
+    """An answer that is no answer: cut at its limit with no word and no tool call (the limit went to the thinking)."""
+    return (isinstance(out, dict) and str(out.get("finish_reason") or "").lower() in ("length", "max_tokens", "max_output_tokens")
+            and not str(out.get("content") or "").strip() and not out.get("tool_calls"))
+
+
+def more_room(max_tokens: int | None) -> int | None:
+    """The limit to ask again with: four times the first, at least 8,000 more, never above MORE_ROOM_MAX; None when there is none to add."""
+    if not isinstance(max_tokens, int) or max_tokens >= MORE_ROOM_MAX:
+        return None
+    return min(MORE_ROOM_MAX, max(4 * max_tokens, max_tokens + 8000))
+
+
 class Bound:
     def __init__(self, gateway: Gateway, purpose: str, p: settings.Purpose, tier: dict[str, Any] | None, project_id: str | None,
-                 draft_id: str | None, model: str | None = None):
+                 draft_id: str | None, model: str | None = None, fixed: bool = False):
         self.gateway, self.purpose, self.p, self.project_id, self.draft_id, self._model_override = gateway, purpose, p, project_id, draft_id, model
+        # 2026-11-15: a client built for one tier (a judge of another family than the arms) was moved to the purpose's routed
+        # tier on its first request, silently, whenever the tier's name was not the routed one. ``fixed`` keeps it where it was put.
+        self._fixed = bool(fixed and tier is not None)
         # 37.6: a caller that knows whether this request holds cell values says so (True/False); None keeps the purpose's rule.
         # A purpose allowed cells only when a tool brings them (the lead agent's query) keeps its other requests whole.
         self.request_cells: bool | None = None
@@ -505,6 +525,8 @@ class Bound:
     def _route(self) -> None:
         """Follow the workspace's routing (A6.4): a long-lived client (the intern's) moves when a person moves the purpose."""
         if self._serving == settings.EMBEDDING_LOCAL:  # 35.5: the local embedding model is the purpose's own; routing never moves it
+            return
+        if getattr(self, "_fixed", False):
             return
         serve, shadow = self.gateway.route(self.purpose)
         if serve != self._serving:
@@ -592,6 +614,26 @@ class Bound:
             out = self._call(lambda: self._transport.complete(messages, tools, max_tokens, **options), messages,
                              can_retry=lambda: not single_attempt, max_tokens=max_tokens, tools=tools,
                              require_price=require_price, max_total_tokens=max_total_tokens, request_options=options)
+            more = more_room(max_tokens) if empty_cut(out) and not single_attempt and max_total_tokens is None else None
+            if more:
+                # 2026-11-15: the thinking used the whole limit and no word of the answer came (37 times in one day, each kept
+                # as "ok"). Asked once more with room for both, the same thinking effort; both requests are kept and counted.
+                first = out
+                said = {"limit": max_tokens, "again_with": more, "first_output_tokens": (first.get("usage") or {}).get("output_tokens")}
+
+                def again() -> dict[str, Any]:
+                    answer = self._transport.complete(messages, tools, more, **options)
+                    if isinstance(answer, dict):
+                        answer["retried_after_empty"] = said  # on the answer before it is kept, so the kept exchange says it too
+                    return answer
+
+                try:
+                    out = self._call(again, messages, can_retry=lambda: True, max_tokens=more, tools=tools,
+                                     require_price=require_price, max_total_tokens=None, request_options=options)
+                except RuntimeError as error:  # a cap refuses the larger request: the caller gets the empty answer it had, as before
+                    if not str(error).startswith("BudgetExceeded"):
+                        raise
+                    out = {**first, "retry_refused": str(error)[:200]}
         if snapshot is not None:
             self._shadow(snapshot, tools, max_tokens, out)
         return out
@@ -690,10 +732,13 @@ class Bound:
             except RuntimeError as error:
                 transient = bool(getattr(error, "transient", False))
                 if transient and attempts <= RETRIES and can_retry():
-                    self.gateway.sleep(delay)
+                    self.gateway.sleep(max(delay, float(getattr(error, "retry_after", 0) or 0)))  # a rate limit that names its wait is waited for
                     delay *= 2
                     continue
                 self._record(messages, None, time.monotonic() - started, attempts, str(error).split(": ", 1)[-1][:200], tools)
+                raise
+            except Exception as error:  # noqa: BLE001 - anything else a transport raises: the request is recorded before it is raised
+                self._record(messages, None, time.monotonic() - started, attempts, f"{type(error).__name__}: the request failed"[:200], tools)
                 raise
             if isinstance(out, dict):  # a request the provider refused before the client sent it again counts as an attempt
                 attempts += int(out.pop("refused_attempts", 0) or 0)
@@ -752,6 +797,13 @@ class Bound:
                                    "tools_sha256": hashlib.sha256(json.dumps(tools, sort_keys=True, default=str).encode()).hexdigest()[:16] if tools else None}
             if (out or {}).get("reasoning_request"):  # what the request asked of OpenRouter's reasoning (an effort, or enabled)
                 doc["reasoning_asked"] = out["reasoning_request"]
+            if out:  # 2026-11-15: how the reply ended, so a cut reply and an answer that is only a spent limit are read, not guessed
+                doc["finish_reason"] = out.get("finish_reason")
+                if empty_cut(out):
+                    doc["empty_cut"] = True
+                for name in ("tool_calls_from_text", "tool_calls_stripped", "retried_after_empty"):
+                    if out.get(name):
+                        doc[name] = out[name]
             # the raw reasoning (and OpenRouter's reasoning_details) is words: kept only where the words are (below, and in a
             # sealed exam's vault); a shape-only line keeps its redacted copy in thinking_redacted, as Claude's thinking does
             raw_reasoning = {**({"reasoning": reasoning} if reasoning else {}),

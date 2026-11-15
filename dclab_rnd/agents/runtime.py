@@ -38,6 +38,8 @@ class Policy:
     stop_when: Callable[["Step"], bool] | None = None  # or a successful step whose result says so (a simulation that started)
     max_replies: int | None = None  # model requests per run() call, besides the tool-call budget
     result_chars: int = 4000  # what one tool result may add to the conversation
+    max_tokens: int | None = None  # the limit of each reply (None: the client's own); a reply cut at it is told so, never run half
+    warn_last: bool = False  # the result of the last step or reply a turn has left says so, so the turn ends on words
     must_act: bool = False  # an answer before any tool call is not one (the intern's first turn: it has not looked at anything)
 
 
@@ -87,6 +89,10 @@ def tools_hash(schemas: list[dict[str, Any]]) -> str | None:
 # do this; package 8.1 found it with qwen2.5-coder in Ollama, in several shapes: a ```json fence, a <tools> tag, a bare
 # object): nothing ran. A known tool's name inside such a block, in a run where no tool has run, is that case.
 _BLOCKS = re.compile(r"```.*?(?:```|$)|<tools?\b.*?(?:</tools?>|$)|\{(?:[^{}]|\{[^{}]*\})*\}", re.S)
+
+
+LAST_STEP = ("[DCLab's code] Your next reply is the last one of this turn: no tool will run after it. "
+             "Write your message to the person now, with what you have.")
 
 
 def writes_tool_calls(text: str, allowed: list[str] | set[str]) -> bool:
@@ -180,13 +186,15 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
         if end:
             result.stopped = end
             return result
+        limit = {"max_tokens": policy.max_tokens} if policy.max_tokens else {}
         if stream is not None and hasattr(client, "stream"):
-            out = client.stream(messages, schemas, on_text=stream)
+            out = client.stream(messages, schemas, on_text=stream, **limit)
         else:
-            out = client.complete(messages, schemas)
+            out = client.complete(messages, schemas, **limit)
         reply += 1
         finish_reason = str(out.get("finish_reason") or "").lower()
-        if finish_reason in ("length", "max_tokens", "max_output_tokens"):
+        was_cut = finish_reason in ("length", "max_tokens", "max_output_tokens")
+        if was_cut:
             consecutive_length_hits += 1
             if consecutive_length_hits >= 2:
                 result.final = (out.get("content") or "").strip()
@@ -222,6 +230,10 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
             # or its budget was used: the budget is checked before each call, not only before each model request.
             name = call["name"]
             tool = registry.get(name)
+            if tool is None:  # 2026-11-15: thirteen calls named a tool without its scope's prefix (request_build for case_request_build)
+                same = [a for a in allowed if a.endswith("_" + name) and a.split("_", 1)[-1] == name]
+                if len(same) == 1:
+                    name, tool = same[0], registry.get(same[0])
             ending = tool is not None and tool.name in terminal
             if end in (None, "stop_after") or (end == "steps" and ending):  # a used-up budget still lets the run end
                 end = spent(ending=ending) or (None if end == "steps" else end)
@@ -231,8 +243,12 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
             if trace is not None:
                 trace.before()  # the row records what the agent saw, not the state after its move
             clock = time.monotonic()
-            if tool is None or tool.name not in allowed:
-                value: Any = {"error": f"Tool {name!r} is not available here. Available: {', '.join(allowed)}"}
+            if was_cut and "_raw" in (call.get("arguments") or {}):
+                # the reply ended at its length limit inside this call: said as that, so the model sends less, not "invalid JSON" again
+                value: Any = {"error": f"Not run: your reply was cut at its length limit before the call to {name} was complete. "
+                                       "Send that call again by itself, with shorter arguments."}
+            elif tool is None or tool.name not in allowed:
+                value = {"error": f"Tool {name!r} is not available here. Available: {', '.join(allowed)}"}
             else:
                 from dclab_rnd import experience as _experience
 
@@ -255,7 +271,13 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
             from ..ledger import capture  # 19.7: the tool the model chose among those it was offered
 
             capture.tool_choice(policy, step, allowed, trace)
-            messages.append({"role": "tool", "tool_call_id": call["id"], "content": _text(value, policy.result_chars)})
+            said = _text(value, policy.result_chars)
+            if policy.warn_last and call is calls[-1]:
+                left = policy.max_steps - count
+                replies_left = policy.max_replies - reply - 1 if policy.max_replies is not None else None
+                if left <= 1 or replies_left == 1:  # one more reply or step: the turn must end on words for the person
+                    said += "\n" + LAST_STEP
+            messages.append({"role": "tool", "tool_call_id": call["id"], "content": said})
             # Only a call that ran ends the run or the turn: a refused finish or question goes back to the model to correct.
             if step.ok and tool is not None and tool.name in terminal:
                 end = "terminal"
