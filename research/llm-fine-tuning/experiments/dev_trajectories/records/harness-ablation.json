@@ -283,6 +283,16 @@
    "fix": "An undecided draft is read by the fit check; the button is drawn only for a prediction or an undecided draft; an empty plan reloads the draft and says why.",
    "test": "tests/test_no_data_solution.py (the route), make web",
    "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F24",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "A test compared a stored result with what the code reads from conversations kept under a folder git does not carry.",
+   "scenario": "The commit's gate runs in a clean checkout: the kept conversations are absent, every lost pair is named not kept, and the test failed there while passing in the working tree.",
+   "fix": "The counts that depend only on committed results are always compared; the first reasons are compared only where the kept conversations exist.",
+   "test": "test_the_kept_dev_runs_are_read_without_a_sealed_one (run with and without the folder)",
+   "verdict": "confirmed"
   }
  ],
  "measurements": [
@@ -365,7 +375,8 @@
   "Read the conversations before explaining a score: the minimal agent's low score on Nemotron Ultra was the runner's request limit, not the model's use of tools.",
   "A closed list of kinds of work offered at the start narrows the answer even when it is not a problem type: it took planning from 3.50 to 2.25 on one model and from 2.88 to 1.38 on another.",
   "Rerun only the arm whose code changed, in parallel processes, and count the recorded refusals before paying for a judge.",
-  "Widening what a query may ask changes every reader of its result and every privacy rule keyed on a column's kind: check the chart, the labels, the exposure record and the cell-value count in the same change."
+  "Widening what a query may ask changes every reader of its result and every privacy rule keyed on a column's kind: check the chart, the labels, the exposure record and the cell-value count in the same change.",
+  "A test that reads a folder git ignores passes in the working tree and fails in the commit's gate: run a new test once with that folder moved away."
  ],
  "risks": [
   "The author of the cases also knows the harness",
