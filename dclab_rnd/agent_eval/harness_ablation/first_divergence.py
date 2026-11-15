@@ -109,6 +109,50 @@ def moves(evs: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def blocked_runs(ms: Iterable[Mapping[str, Any]]) -> list[list[str]]:
+    """The dead ends of one conversation: runs of refused moves with no allowed one between them, three in a row or two of
+    different tools (the model asked for one thing, was refused, asked for another, was refused). Each as its tools in order.
+    A table question refused for its shape is no dead end (the model asks again in another shape): only the moves that
+    decide what the person gets count."""
+    deciding = ("case_start", "case_propose", "case_answer", "case_dashboard", "case_request_build", "case_ask")
+    runs, current = [], []
+    for move in ms:
+        if move.get("what") != "tool" or move.get("tool") not in deciding:
+            continue
+        if move.get("verdict") == "ok":
+            if len(current) >= 3 or len(set(current)) >= 2:
+                runs.append(current)
+            current = []
+        else:
+            current = [*current, str(move["tool"])]
+    if len(current) >= 3 or len(set(current)) >= 2:
+        runs.append(current)
+    return runs
+
+
+def counters(folder: Path, conv: Optional[Mapping[str, Any]] = None) -> dict[str, Any]:
+    """What code can count in one kept lead-agent conversation without a judge (the gate's zero checks): dead ends, the
+    turns that ended on code's own fallback line, and the model's answers that came back empty or cut."""
+    from dclab_rnd.agents import case_agent
+
+    folder = Path(folder)
+    fallback = (case_agent.FALLBACK, case_agent.FALLBACK_NUMBERS)
+    said = [str(t.get("text") or "") for t in (conv or {}).get("transcript") or [] if t.get("role") == "assistant"]
+    empty = cut = calls = 0
+    for path in sorted(folder.parents[1].glob("model_exchanges/**/*.jsonl")):  # the run keeps its exchanges once, each with its conversation's id
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("purpose") != "case_agent" or not str(row.get("draft") or "").endswith(f":case-{folder.name}") or row.get("outcome") != "ok":
+                continue
+            calls += 1
+            empty += not str(row.get("reply") or "").strip() and not row.get("tool_calls")
+            cut += row.get("finish_reason") == "length"
+    return {"blocked_runs": blocked_runs(moves(events(folder))), "fallback_lines": sum(any(s.startswith(f) for f in fallback) for s in said),
+            "model_calls": calls, "empty_answers": int(empty), "cut_replies": int(cut)}
+
+
 def reason_of(move: Mapping[str, Any], following: Optional[Mapping[str, Any]] = None) -> Optional[str]:
     """The reason code of one move, or None when DCLab's code did nothing to it."""
     if move["what"] == "case":
@@ -191,7 +235,7 @@ def read(folder: Path, person: Optional[Mapping[str, Any]] = None, conv: Optiona
         first = {"reason": reason, "at": None, "seq": None, "tool": None, "wanted": None, "wanted_right": None, "safety": False,
                  "before_route": None, "evidence": f"ended {conv.get('ended')}, route {route}/{conv.get('tool')} by {conv.get('routed_by')}"}
     return {"id": (person or {}).get("id") or (conv or {}).get("id"), "folder": str(folder.relative_to(ROOT)) if folder.is_relative_to(ROOT) else str(folder),
-            "events": len(ms), "first": first, "all": found, "route": route, "tool": (conv or {}).get("tool"), "routed_by": (conv or {}).get("routed_by"),
+            "events": len(ms), "first": first, "all": found, "counters": counters(folder, conv), "route": route, "tool": (conv or {}).get("tool"), "routed_by": (conv or {}).get("routed_by"),
             "not_detectable": list(NOT_DETECTABLE)}
 
 

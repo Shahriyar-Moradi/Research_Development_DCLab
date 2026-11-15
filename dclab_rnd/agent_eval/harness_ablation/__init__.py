@@ -235,6 +235,11 @@ def score(conv: Mapping[str, Any], run: str = "") -> dict[str, Any]:
                 "seconds": round(sum(conv.get("seconds") or []), 2), "spent_eur": conv.get("spent_eur"),
                 "first_divergence": first.get("reason") if conv.get("arm") == "case" else None,
                 "wanted_right": first.get("wanted_right") if conv.get("arm") == "case" else None})
+    counted = (conv.get("first_divergence") or {}).get("counters") if conv.get("arm") == "case" else None
+    if counted:  # the gate's zero checks, counted by code from what the run kept (harness_ablation/gate.py)
+        row.update({"blocked_runs": len(counted["blocked_runs"]), "fallback_lines": counted["fallback_lines"],
+                    "empty_answers": counted["empty_answers"], "cut_replies": counted["cut_replies"],
+                    "built_without_yes": int(s.get("built_without_yes") or 0), "numbers_nobody_gave": len(s.get("uncited") or [])})
     return row
 
 

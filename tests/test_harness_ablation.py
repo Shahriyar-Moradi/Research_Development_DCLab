@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT))
 from dclab_rnd import experience, prompts  # noqa: E402
 from dclab_rnd.agent_eval import harness_ablation as H  # noqa: E402
 from dclab_rnd.agent_eval.conversation_exam import arms as exam_arms  # noqa: E402
-from dclab_rnd.agent_eval.harness_ablation import arms, first_divergence as F, judge  # noqa: E402
+from dclab_rnd.agent_eval.harness_ablation import arms, first_divergence as F, gate as G, judge  # noqa: E402
 from dclab_rnd.models import gateway as gw  # noqa: E402
 from dclab_rnd.models import settings as model_settings  # noqa: E402
 from dclab_rnd.models.usage import FileUsage  # noqa: E402
@@ -141,6 +141,19 @@ class ArmsTests(unittest.TestCase):
         no_table.open({"id": "y", "opening": "what should we do?", "upload": None})
         self.assertIsNone(no_table.client.seen[0]["tools"])
 
+    def test_the_open_arm_is_told_when_its_last_request_comes(self):
+        """HAB-006: a model still looking at the table on the last request, sent with no tools and no word about it, answered
+        with a tool call written as text. The runner now says it was the last look."""
+        look = {"tool_calls": [{"id": "c", "name": "profile_table", "arguments": {}}]}
+        client = Script(*([look] * (arms.MAX_CALLS - 1)), "My answer, from what I saw.")
+        arm = arms.OpenArm(client)
+        turn = arm.open({"id": "x", "opening": "predict churn", "upload": "customers"})
+        self.assertEqual(turn["text"], "My answer, from what I saw.")
+        last = client.seen[-1]
+        self.assertIsNone(last["tools"])
+        self.assertEqual(last["messages"][-1], {"role": "user", "content": arms.LAST_REQUEST})
+        self.assertNotIn(arms.LAST_REQUEST, json.dumps(client.seen[-2]["messages"]))  # said once, on the last request only
+
     def test_no_new_prompt_asks_for_reasoning_in_its_answer(self):
         from tests.test_prompt_audit import ASKS_REASONING
 
@@ -250,6 +263,49 @@ class FirstDivergenceTests(unittest.TestCase):
         if set(found["first_reason_counts"]) != {"not_kept"}:
             self.assertEqual(stored["first_reason_counts"], found["first_reason_counts"])
         self.assertTrue(all(r["plain_right_case_wrong"] is not None and r["people"] for r in found["runs"]))
+
+
+class GateTests(unittest.TestCase):
+    """The gate of the repair (stage 0 of the plan of 2026-11-15): pinned before any behaviour changed, an AND of its checks."""
+
+    QWEN = "qwen/qwen3.8-flash"
+
+    def rows(self, planning, understanding=4, **counted):
+        zero = {name: 0 for name in G.ZERO}
+        return [{"case": f"hab-0{i}", "judged": True, "planning": planning, "understanding": understanding, **zero, **counted} for i in range(1, 9)]
+
+    def test_the_gate_is_the_pinned_one(self):
+        self.assertIsNone(G.pinned())
+        self.assertEqual(G.TERMS["id"], "hab_gate_v1")  # other terms are another gate: a new id and a new pin
+        self.assertEqual(set(G.QUICK_SET) - {c["id"] for c in H.load()[0]}, set())
+
+    def test_every_check_must_hold(self):
+        judge_ = G.JUDGE_OF[self.QWEN]
+        self.assertTrue(G.verdict(self.QWEN, judge_, self.rows(3), self.rows(3.5))["passed"])  # half a point below the model alone
+        self.assertFalse(G.verdict(self.QWEN, judge_, self.rows(2), self.rows(3.5))["passed"])
+        self.assertFalse(G.verdict(self.QWEN, judge_, self.rows(3, understanding=3), self.rows(3.5))["passed"])  # below the floor
+        for name in G.ZERO:
+            failed = G.verdict(self.QWEN, judge_, self.rows(3, **{name: 1}), self.rows(3.5))
+            self.assertFalse(failed["passed"], name)
+            self.assertEqual([c["check"] for c in failed["checks"] if not c["ok"]], [name.replace("_", " ")])
+
+    def test_what_cannot_be_read_is_not_passed(self):
+        judge_ = G.JUDGE_OF[self.QWEN]
+        uncounted = [{k: v for k, v in r.items() if k != "empty_answers"} for r in self.rows(3)]
+        self.assertEqual(G.verdict(self.QWEN, judge_, uncounted, self.rows(3.5))["not_read"], ["empty answers"])
+        self.assertFalse(G.verdict(self.QWEN, "qwen/qwen3.8-27b", self.rows(3), self.rows(3.5))["passed"])  # a judge of the arm's own family
+        self.assertFalse(G.verdict(self.QWEN, judge_, self.rows(3)[:3], self.rows(3.5)[:3])["passed"])  # the quick set is no verdict
+        self.assertFalse(G.verdict("some/other-model", "a judge", self.rows(3), self.rows(3.5))["passed"])  # no floor was fixed for it
+
+    def test_a_dead_end_is_refusals_in_a_row_of_the_moves_that_decide(self):
+        def move(tool, ok=False):
+            return {"what": "tool", "tool": tool, "verdict": "ok" if ok else "refused"}
+
+        self.assertEqual(F.blocked_runs([move("case_start"), move("case_request_build")]), [["case_start", "case_request_build"]])
+        self.assertEqual(F.blocked_runs([move("case_start")] * 3), [["case_start"] * 3])
+        self.assertEqual(F.blocked_runs([move("case_start"), move("case_start")]), [])  # one move tried twice is a retry
+        self.assertEqual(F.blocked_runs([move("case_start"), move("case_propose", ok=True), move("case_request_build")]), [])
+        self.assertEqual(F.blocked_runs([move("case_query")] * 5), [])  # a table question asked in another shape is no dead end
 
 
 class RunTests(unittest.TestCase):

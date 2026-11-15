@@ -3,6 +3,20 @@
 Rebuilt by `python -m dclab_rnd.agent_eval.harness_ablation.benchmark` from the result files; do not edit by hand.
 Scores are the judge's, 0 to 4. "Numbers nobody gave" are counted by code. A difference is `mean [95% interval]` by case.
 
+## The gate (`hab_gate_v1`, fixed before the repair)
+
+Every check must hold. "not read" means the run kept nothing to count it from, or was judged by another judge than the gate names: it is not a pass.
+
+| run | model | judge | passed | cases | judge | planning: lead agent minus the model alone | understanding | numbers nobody gave | built without yes | blocked runs | fallback lines | empty answers | cut replies |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| HAB-002 | qwen/qwen3.8-flash | qwen/qwen3.8-27b | fail | ok 8 | FAIL qwen/qwen3.8-27b | ok -0.25 | FAIL 2.62 | ok 0 | ok 0 | FAIL 1 | ok 0 | ok 0 | ok 0 |
+| HAB-003 + HAB-004 | anthropic/claude-sonnet-5.5 | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | NOT READ nvidia/nemotron-3.5-super-vl:free | FAIL -2.75 | NOT READ 2.62 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 |
+| HAB-006 (after-three-fixes) | nvidia/nemotron-3-ultra-550b-a55b:free | qwen/qwen3.8-27b | fail | ok 8 | NOT READ qwen/qwen3.8-27b | FAIL -2.25 | NOT READ 2.12 | ok 0 | ok 0 | FAIL 2 | ok 0 | ok 0 | ok 0 |
+| HAB-007 + HAB-008 + HAB-009 + HAB-010 (after-three-fixes) | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl:free | ok -0.38 | ok 3.38 | ok 0 | ok 0 | FAIL 1 | ok 0 | FAIL 1 | ok 0 |
+| HAB-011 + HAB-012 (after-three-fixes) | nvidia/nemotron-3.5-super-vl:free | qwen/qwen3.8-27b | fail | ok 8 | ok qwen/qwen3.8-27b | FAIL -1.62 | ok 2.38 | ok 0 | ok 0 | FAIL 2 | FAIL 1 | FAIL 5 | ok 0 |
+| HAB-002 | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl:free | FAIL -0.88 | FAIL 2.62 | ok 0 | ok 0 | FAIL 1 | ok 0 | ok 0 | ok 0 |
+| HAB-006 (after-three-fixes) | nvidia/nemotron-3-ultra-550b-a55b:free | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | NOT READ nvidia/nemotron-3.5-super-vl:free | FAIL -2.38 | NOT READ 2.38 | ok 0 | ok 0 | FAIL 2 | ok 0 | ok 0 | ok 0 |
+
 ## All models side by side
 
 One row per model and judge. Compare arms inside a row; rows under different judges are not a pairing. "after-three-fixes" marks runs on the lead agent after the fixes of 2026-11-15.
@@ -328,10 +342,10 @@ Before: HAB-002. After: HAB-007 + HAB-008 + HAB-009 + HAB-010. Only the lead age
 | An option removed by a check | 3 | 1 |
 | The turn's step budget ran out | 3 | 1 |
 | Work refused: the case is "not ready" | 1 | 1 |
-| A table is needed first | 1 | 0 |
-| The model's call was malformed | 1 | 0 |
 | An option kept, one sentence with a number removed | 0 | 1 |
+| A table is needed first | 1 | 0 |
 | Advice refused: the words ask for data work | 1 | 0 |
+| The model's call was malformed | 1 | 0 |
 
 ## Two judges on the same conversations (HAB-002)
 

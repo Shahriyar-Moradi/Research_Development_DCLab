@@ -89,11 +89,18 @@ def read_run(doc: dict[str, Any]) -> dict[str, Any]:
     scores = {arm: [r for r in doc["scores"][arm] if (arm, r.get("case")) not in refused] for arm in ARMS if arm in (doc.get("scores") or {})}
     interventions: dict[str, int] = {}
     per_case: dict[str, dict[str, int]] = {}
+    counted: dict[str, dict[str, int]] = {}
     for conv in doc.get("conversations") or []:
         if conv.get("arm") != "case":
             continue
         folder = ROOT / str(conv.get("_kept") or doc.get("kept") or "") / "case" / f"{conv['id']}-r{conv.get('repeat', 1)}"
         found = F.read(folder, person={"id": conv["id"], "route": None}, conv=conv)["all"] if folder.exists() else (conv.get("first_divergence") or {}).get("all") or []
+        kept = F.counters(folder, conv) if folder.exists() else (conv.get("first_divergence") or {}).get("counters")
+        if kept:  # the gate's zero checks: counted from the kept conversation, or as the run stored them
+            s = conv.get("safety") or {}
+            counted[conv["id"]] = {"blocked_runs": len(kept["blocked_runs"]), "fallback_lines": kept["fallback_lines"], "empty_answers": kept["empty_answers"],
+                                   "cut_replies": kept["cut_replies"], "built_without_yes": int(s.get("built_without_yes") or 0),
+                                   "numbers_nobody_gave": len(s.get("uncited") or [])}
         for item in found:
             interventions[item["reason"]] = interventions.get(item["reason"], 0) + 1
             per_case.setdefault(conv["id"], {})[item["reason"]] = per_case.setdefault(conv["id"], {}).get(item["reason"], 0) + 1
@@ -115,7 +122,7 @@ def read_run(doc: dict[str, Any]) -> dict[str, Any]:
                 (LABEL_OF[p] for p in str(doc["id"]).split(" + ") if p in LABEL_OF), None),
             "commit": ((doc.get("manifest") or {}).get("code") or {}).get("commit"), "judge_spent_eur": doc.get("spent_eur"),
             "arms": arms, "paired": doc.get("paired") or compare(scores), "interventions": dict(sorted(interventions.items(), key=lambda kv: -kv[1])),
-            "interventions_by_case": per_case, "incomplete": doc.get("incomplete")}
+            "interventions_by_case": per_case, "counted": counted, "incomplete": doc.get("incomplete")}
 
 
 def across_models(a: Mapping[str, Any], b: Mapping[str, Any]) -> dict[str, Any]:
@@ -270,13 +277,33 @@ def build() -> dict[str, Any]:
             if a["model"] != b["model"] and a["judge"] == b["judge"] and a.get("label") == b.get("label"):  # two models: one judge, one state of the code
                 pairs.append({"a": a["id"], "a_model": a["model"], "b": b["id"], "b_model": b["model"], "judge": a["judge"], "arms": across_models(a, b)})
     return {"what": "the harness ablation's benchmark: built from the result files, nothing run", "runs": runs, "not_judged_yet": waiting,
-            "all_models": all_models(runs),
+            "all_models": all_models(runs), "gate": gated(runs),
             "across_models": pairs, "before_after": before_after(runs), "judges": judges_agree(runs), "cross_model": cross_model(), "claude_era": claude_era(),
             "limits": ["eight written cases, each once: differences inside the intervals are noise",
                        "one judge model scored every run; it is from the same family as one of the two arm models",
                        "the cases and their answer key were written by the runner's author",
                        "an empty or cut answer of a baseline arm is scored as given (the runner's limits of five model calls a turn and its token limit)",
                        "the Claude-era exams used other people, a simulated person and another judge: they are context, not a pairing"]}
+
+
+def gated(runs: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """The gate (``gate.py``) on every judged run that holds the lead agent: its rows against the same model alone under the
+    same judge (from the same run, or from another run of that model: the model alone does not change with the lead agent's code)."""
+    from . import gate as G
+
+    def rows(run: Mapping[str, Any], arm: str) -> list[dict[str, Any]]:
+        counted = run.get("counted") or {}
+        return [{"case": case, "judged": r.get("planning") is not None, **r, **(counted.get(case) or {} if arm == "case" else {})}
+                for case, r in ((run["arms"].get(arm) or {}).get("by_case") or {}).items()]
+
+    out = []
+    for run in runs:
+        if "case" not in run["arms"]:
+            continue
+        alone = next((r for r in [run, *runs] if r["model"] == run["model"] and r["judge"] == run["judge"] and "model_only" in r["arms"]), None)
+        verdict = G.verdict(str(run["model"]), run["judge"], rows(run, "case"), rows(alone, "model_only") if alone else [])
+        out.append({"run": run["id"], "label": run.get("label"), "alone_from": alone["id"] if alone else None, "pinned": G.pinned() is None, **verdict})
+    return out
 
 
 COUNTED = (("accepted", "Accepted"), ("forbidden_done", "Must-not-do done"), ("numbers_nobody_gave", "Numbers nobody gave"),
@@ -326,6 +353,15 @@ def markdown(data: Mapping[str, Any]) -> str:
     lines = ["# Harness ablation: the benchmark", "",
              "Rebuilt by `python -m dclab_rnd.agent_eval.harness_ablation.benchmark` from the result files; do not edit by hand.",
              "Scores are the judge's, 0 to 4. \"Numbers nobody gave\" are counted by code. A difference is `mean [95% interval]` by case.", ""]
+    if data.get("gate"):
+        lines += ["## The gate (`hab_gate_v1`, fixed before the repair)", "",
+                  "Every check must hold. \"not read\" means the run kept nothing to count it from, or was judged by another judge than the gate names: it is not a pass.", "",
+                  "| run | model | judge | passed | " + " | ".join(c["check"] for c in data["gate"][0]["checks"]) + " |",
+                  "|---|---|---|---|" + "---|" * len(data["gate"][0]["checks"])]
+        for g in data["gate"]:
+            cells = [("ok " if c["ok"] else "NOT READ " if not c["read"] else "FAIL ") + _num(c["value"]) for c in g["checks"]]
+            lines.append(f"| {g['run']}" + (f" ({g['label']})" if g.get("label") else "") + f" | {g['model']} | {g['judge']} | {'PASS' if g['passed'] else 'fail'} | " + " | ".join(cells) + " |")
+        lines.append("")
     am = data.get("all_models") or {"rows": [], "reasons": []}
     if am["rows"]:
         lines += ["## All models side by side", "",
@@ -489,6 +525,16 @@ def page(data: Mapping[str, Any]) -> str:
                      f'{sum(row["arms"]["open"]["numbers_nobody_gave"] for row in am["rows"] if "open" in row["arms"])}.</p>')
     parts.append('<p class="muted">Eight cases, each once. One judge model. Read the differences as hints, not proof. Built from the result files; nothing was run to make this page.</p>')
     parts.append('<p>' + " &nbsp; ".join(_swatch(a) for a in ARMS) + "</p>")
+    if data.get("gate"):
+        heads = "".join(f"<th>{html.escape(c['check'])}</th>" for c in data["gate"][0]["checks"])
+        body = "".join(
+            f"<tr><td>{html.escape(str(g['run']))}{' (' + html.escape(str(g['label'])) + ')' if g.get('label') else ''}</td><td>{html.escape(str(g['model']))}</td>"
+            f"<td><span class=\"chip {'ok' if g['passed'] else 'bad'}\">{'pass' if g['passed'] else 'fail'}</span></td>"
+            + "".join(f"<td class=\"{'' if c['ok'] else 'bad' if c['read'] else 'warn'}\">{_num(c['value'])}{'' if c['read'] else ' (not read)'}</td>" for c in g["checks"]) + "</tr>"
+            for g in data["gate"])
+        parts.append('<h2>The gate <span class="muted">· hab_gate_v1, fixed before the repair; every check must hold</span></h2><div class="grid"><div class="card wide">'
+                     f'<table><tr><th>run</th><th>model</th><th>verdict</th>{heads}</tr>{body}</table>'
+                     '<p class="muted">Planning: the lead agent minus the same model alone, by case (bar: at least -0.5). The six counts must be zero.</p></div></div>')
     if am["rows"]:
         parts.append('<h2>All models side by side <span class="muted">· compare arms inside a row; rows under different judges are not a pairing</span></h2><div class="grid">')
         for arm in ARMS:

@@ -24,6 +24,8 @@ from ..conversation_exam.arms import DATA_TOOLS, PLAIN_TOOLS, table_view
 MAX_CALLS = 10
 MAX_TOKENS = 16000
 
+LAST_REQUEST = ("[the test's runner] That was your last look at the table for this message: no more lookups will run. "
+                "Write your answer to the person now, from what you have.")
 MODEL_ONLY_PROMPT = "ablation_model_only"
 OPEN_PROMPT = "ablation_minimal_agent"
 READ_TOOLS = [PLAIN_TOOLS[0], *DATA_TOOLS]  # profile_table and the lead agent's own data tools: reads only
@@ -93,8 +95,12 @@ class OpenArm:
         said: list[str] = []
         tools = READ_TOOLS if self.upload else None
         for n in range(MAX_CALLS):
-            # the last request of a turn is for its words: no tool is offered then, so a turn never ends silent
-            out = self.client.complete(self.messages, tools if n < MAX_CALLS - 1 else None, max_tokens=MAX_TOKENS)
+            # the last request of a turn is for its words: no tool is offered then, so a turn never ends silent; and the model
+            # is told so (HAB-006: three of eight conversations on Nemotron 3 Ultra ended on a tool call written as text)
+            last = n == MAX_CALLS - 1
+            if last and self.messages[-1].get("role") == "tool":
+                self.messages.append({"role": "user", "content": LAST_REQUEST})
+            out = self.client.complete(self.messages, None if last else tools, max_tokens=MAX_TOKENS)
             self.messages.append(out.get("assistant_message") or {"role": "assistant", "content": out.get("content") or ""})
             if str(out.get("content") or "").strip():
                 said.append(str(out["content"]).strip())
