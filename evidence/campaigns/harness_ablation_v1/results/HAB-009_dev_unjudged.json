@@ -1,0 +1,1606 @@
+{
+ "id": "HAB-009",
+ "split": "dev",
+ "at": "2026-11-15T12:39:51+00:00",
+ "arms": [
+  "case"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": null,
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.0265,
+ "cap_eur": 0.3,
+ "kept": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-009",
+ "manifest": {
+  "run_id": "HAB-009",
+  "at": "2026-11-15T12:39:51+00:00",
+  "arms": [
+   "case"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.3,
+  "code": {
+   "commit": "22ad1bf806f3ef9f3f9260499e11a4473c57f25f",
+   "dirty": [
+    "dclab_core/CHANGELOG.md",
+    "dclab_core/__init__.py",
+    "dclab_core/case.py",
+    "dclab_core/pyproject.toml",
+    "dclab_core/query.py",
+    "dclab_rnd/agents/case_agent.py",
+    "dclab_rnd/agents/data_tools.py",
+    "dclab_rnd/draft/api.py",
+    "dclab_rnd/draft/chat.py",
+    "dclab_rnd/draft/no_data.py",
+    "dclab_rnd/draft/no_data_harness.py",
+    "dclab_rnd/prompts/case_agent.md",
+    "dclab_rnd/agent_eval/harness_ablation/",
+    "dclab_rnd/prompts/ablation_judge.md",
+    "dclab_rnd/prompts/ablation_minimal_agent.md",
+    "dclab_rnd/prompts/ablation_model_only.md",
+    "dclab_rnd/prompts/no_data_compact_json.md",
+    "dclab_rnd/prompts/no_data_eval_plain.md",
+    "dclab_rnd/prompts/no_data_expert_brief.md",
+    "dclab_rnd/prompts/no_data_schema_brief.md",
+    "dclab_rnd/prompts/no_data_workflow_repair.md"
+   ],
+   "diff_sha256": "126848a9734f13fde0dbaf7fa2e79b0fc477fa47656907062e84749c3af9d9ad",
+   "untracked_sha256": "d2976321c45a2fe7824020c02b397c08ff7312962f5175ed4453f3a580c1bcee",
+   "untracked_files": 17
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": null,
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "546af3a142a56f09",
+   "route_check": "61027a2803db8856"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "a013f01fd377ee81"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "67a47729b96ad6f30fb3eaaabf52e040bbfe86a4424672c85f3e369371eb1275",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "after-three-fixes"
+ },
+ "capture": {
+  "exchanges": 31,
+  "ok": 31,
+  "whole": 31,
+  "with_thinking": 31,
+  "without_thinking": [],
+  "purposes": [
+   "case_agent",
+   "case_specialist",
+   "route_check"
+  ]
+ },
+ "label": "after-three-fixes",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
+ "code": "uncommitted edits (the owner's choice): see manifest.code",
+ "conversations": [
+  {
+   "id": "hab-05",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I'll look at the table first so the options I give you are grounded in your actual numbers.\n\nHere's what your table says and how I'd read the problem. The real decision isn't \"who is most likely to churn\" — it's \"which 50 slots return the most money.\" Since a call costs the same whoever picks up, the ranking should be predicted churn risk multiplied by that customer's monthly spend. Your base churns at 17.4% a month, and the customers who left carry 7,282.75 of monthly spend between them. Fifty calls cover a small slice of 1,200 people, so the choice of names is most of the value. The signals are already visible: basic plan churns at 22.4% against 11.1% for plus, and customers with 3 or more support tickets in the last 90 days sit at 24.5% versus 15.5% for those with none. Tickets and plan pull in different directions on spend though, and no single rule weighs them against each other — that's what a model buys you. I also checked the columns for leakage: nothing looks written after the outcome, and signups run from 2022-01-01 to 2025-10-31, so I can validate on the latest customers rather than grade on the ones the model already saw. One honest gap: you said you don't know whether a call changes anyone's mind, and this table can't tell us — there's no record of who was called. A risk score finds who is likely to leave, which is not the same as who is persuadable. The cheapest fix is to leave a few of each month's 50 uncontacted at random, so the calling itself proves its worth. The three options below are a model-built list, a rules-only list today, and the brief that sizes and tests the programme. Which fits how your team works?",
+     "choices": [
+      {
+       "title": "Score all 1,200, hand the team a ranked list of 50",
+       "what": "Train a churn model on signup_date, segment, city, plan, tenure_months, monthly_spend and support_tickets_90d against churned_next_month, validate it on the latest signups, then score all 1,200 and rank by risk x monthly_spend. You get: A ranked 50-name call list with each customer's churn risk and value at stake, plus a check on how many churners the list captures versus picking 50 at random. Trade-off: It ranks who is likely to leave, not who a call can save - so I would build in a small randomly held-aside group so you learn lift while you call. Effort: One build now; a refreshed list each month, retrain every 1-3 months.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      },
+      {
+       "title": "Value-at-risk shortlist from the rules you can see now",
+       "what": "Rank the base right now on the risk signals already visible (plan, tickets, tenure, spend) and score each customer as risk x monthly_spend. You get: A defensible 50-name list today and the revenue it puts under the phone. Trade-off: Blunter: it cannot weigh the signals against each other, so some slots go to customers who would have stayed anyway. Effort: Fastest: minutes, nothing to retrain.",
+       "track": "analysis",
+       "tool": "query",
+       "kind": "option"
+      },
+      {
+       "title": "Work out what 50 calls a month is actually worth, and prove it",
+       "what": "Size the prize from your table (churn runs at 17.4%, and customers who left carry 7,282.75 of monthly spend), then set the 50 calls up as a small randomised test: risk-ranked customers split into called and deliberately-not-called, with the measure, the sample size needed and the stop rule. You get: A yes or no on whether the phone programme earns its keep, so you know whether to keep the calls at 50 a month or push for more capacity, and what the team does with each list either way. Trade-off: You spend part of this month's capacity learning rather than saving, and the answer takes a couple of months of calls. Effort: A brief now; it then runs alongside your normal calling.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Score all 1,200, hand the team a ranked list of 50",
+     "pick": "Score all 1,200, hand the team a ranked list of 50",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Your project is set up: a prediction of `churned_next_month` for all 1,200 customers, ranked by risk × monthly_spend so the 50 slots go where the revenue is. What DCLab does next:\n\n1. Trains on your rows, then tests on the latest cohort by date — so the score is graded on customers it hasn't seen, not the ones it memorised. You'll get its accuracy and how much better it sorts risk than your plan-and-tickets rule. 2. Scores every customer, multiplies by their spend, and outputs a ranked list: your 50 calls plus the next 50 as a watch list. I'm keeping my two assumptions as stated: churned_next_month = 1 means left in the month after the row, and value saved = risk × monthly_spend. Say the word and DCLab trains it on these 1,200 rows now.",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "ml_project",
+   "routed_by": "option",
+   "ended": "answered",
+   "assistant_turns": 2,
+   "picked": 1,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    145.9,
+    23.15
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-05",
+     "version": 13,
+     "words": [
+      "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind.\n\n(I shared a table: customers.csv)",
+      "I pick: Score all 1,200, hand the team a ranked list of 50"
+     ],
+     "goal": {
+      "value": "Decide which 50 customers per month the retention team should phone, so the limited calling capacity saves the most revenue.",
+      "status": "said",
+      "quote": "I want to know which 50 to call",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Monthly allocation of a hard call capacity of 50 out of ~1,200 customers; each call costs the same, so the choice is purely who gets the slot.",
+      "status": "said",
+      "quote": "We can phone only 50 customers a month, out of about 1,200",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "Retention team manager and their agents, who need a ranked call list of 50 names per month.",
+      "status": "said",
+      "quote": "I manage a small retention team at a subscription company",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "customers.csv: 1,200 rows, one per customer, columns customer_id, signup_date (2022-01-01 to 2025-10-31), segment (business 239 / consumer 961), city, plan (basic 603 / plus 369 / premium 228), tenure_months, monthly_spend (median 31.78), support_tickets_90d (0-5), churned_next_month (0/1). Observed churn 17.4% overall; basic 22.4%, plus 11.1%, premium 14.5%; 3+ tickets 24.5% vs 0 tickets 15.5%; monthly spend lost to churners 7,282.75.",
+      "status": "said",
+      "quote": "The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month.",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [
+      {
+       "value": "A customer worth saving is scored as predicted churn risk multiplied by monthly_spend, since call cost is identical for everyone. churned_next_month = 1 means the customer left in the month after the row's snapshot.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "unknowns": [
+      {
+       "field": "call_lift",
+       "question": "Does an outbound call actually reduce the chance a customer churns? Unknown from this table (no record of past calls), and the person said so.",
+       "blocks": "some",
+       "rank": 1
+      }
+     ],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "Score all 1,200, hand the team a ranked list of 50",
+       "what": "Train a churn model on signup_date, segment, city, plan, tenure_months, monthly_spend and support_tickets_90d against churned_next_month, validate it on the latest signups, then score all 1,200 and rank by risk x monthly_spend.",
+       "gets": "A ranked 50-name call list with each customer's churn risk and value at stake, plus a check on how many churners the list captures versus picking 50 at random.",
+       "tradeoff": "It ranks who is likely to leave, not who a call can save - so I would build in a small randomly held-aside group so you learn lift while you call.",
+       "effort": "One build now; a refreshed list each month, retrain every 1-3 months.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": [
+        "signup_date",
+        "segment",
+        "city",
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      },
+      {
+       "title": "Value-at-risk shortlist from the rules you can see now",
+       "what": "Rank the base right now on the risk signals already visible (plan, tickets, tenure, spend) and score each customer as risk x monthly_spend.",
+       "gets": "A defensible 50-name list today and the revenue it puts under the phone.",
+       "tradeoff": "Blunter: it cannot weigh the signals against each other, so some slots go to customers who would have stayed anyway.",
+       "effort": "Fastest: minutes, nothing to retrain.",
+       "track": "analysis",
+       "tool": "query",
+       "columns": [
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d"
+       ]
+      },
+      {
+       "title": "Work out what 50 calls a month is actually worth, and prove it",
+       "what": "Size the prize from your table (churn runs at 17.4%, and customers who left carry 7,282.75 of monthly spend), then set the 50 calls up as a small randomised test: risk-ranked customers split into called and deliberately-not-called, with the measure, the sample size needed and the stop rule.",
+       "gets": "A yes or no on whether the phone programme earns its keep, so you know whether to keep the calls at 50 a month or push for more capacity, and what the team does with each list either way.",
+       "tradeoff": "You spend part of this month's capacity learning rather than saving, and the answer takes a couple of months of calls.",
+       "effort": "A brief now; it then runs alongside your normal calling.",
+       "track": "business",
+       "tool": "business_brief",
+       "columns": [
+        "churned_next_month",
+        "monthly_spend",
+        "plan",
+        "support_tickets_90d"
+       ]
+      }
+     ],
+     "chosen": "Score all 1,200, hand the team a ranked list of 50",
+     "route": {
+      "track": "prediction",
+      "tool": "ml_project",
+      "reasons": "",
+      "by": "person"
+     },
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind.\n\n(I shared a table: customers.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Decide which 50 customers per month the retention team should phone, so the limited calling capacity saves the most revenue.",
+        "status": "said",
+        "quote": "I want to know which 50 to call",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Monthly allocation of a hard call capacity of 50 out of ~1,200 customers; each call costs the same, so the choice is purely who gets the slot.",
+        "status": "said",
+        "quote": "We can phone only 50 customers a month, out of about 1,200",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Retention team manager and their agents, who need a ranked call list of 50 names per month.",
+        "status": "said",
+        "quote": "I manage a small retention team at a subscription company",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "A customer worth saving is scored as predicted churn risk multiplied by monthly_spend, since call cost is identical for everyone. churned_next_month = 1 means the customer left in the month after the row's snapshot.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 7,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [],
+       "after": [
+        {
+         "field": "call_lift",
+         "question": "Does an outbound call actually reduce the chance a customer churns? Unknown from this table (no record of past calls), and the person said so.",
+         "blocks": "some",
+         "rank": 1
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "customers.csv: 1,200 rows, one per customer, columns customer_id, signup_date (2022-01-01 to 2025-10-31), segment (business 239 / consumer 961), city, plan (basic 603 / plus 369 / premium 228), tenure_months, monthly_spend (median 31.78), support_tickets_90d (0-5), churned_next_month (0/1). Observed churn 17.4% overall; basic 22.4%, plus 11.1%, premium 14.5%; 3+ tickets 24.5% vs 0 tickets 15.5%; monthly spend lost to churners 7,282.75.",
+        "status": "said",
+        "quote": "The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 9,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "Score all 1,200, hand the team a ranked list of 50",
+         "what": "Train a churn model on signup_date, segment, city, plan, tenure_months, monthly_spend and support_tickets_90d against churned_next_month, validate it on the latest signups, then score all 1,200 and rank by risk x monthly_spend.",
+         "gets": "A ranked 50-name call list with each customer's churn risk and value at stake, plus a check on how many churners the list captures versus picking 50 at random.",
+         "tradeoff": "It ranks who is likely to leave, not who a call can save - so I would build in a small randomly held-aside group so you learn lift while you call.",
+         "effort": "One build now; you get a refreshed list each month and a retrain every 1-3 months.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": [
+          "signup_date",
+          "segment",
+          "city",
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        },
+        {
+         "title": "Value-at-risk shortlist from the rules you can see now",
+         "what": "Rank the base right now on the risk signals already visible (plan, tickets, tenure, spend) and score each customer as risk x monthly_spend.",
+         "gets": "A defensible 50-name list today and the revenue it puts under the phone.",
+         "tradeoff": "Blunter: it cannot weigh the signals against each other, so some slots go to customers who would have stayed anyway.",
+         "effort": "Fastest: minutes, nothing to retrain.",
+         "track": "analysis",
+         "tool": "query",
+         "columns": [
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d"
+         ]
+        }
+       ]
+      },
+      {
+       "version": 10,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [
+        {
+         "title": "Score all 1,200, hand the team a ranked list of 50",
+         "what": "Train a churn model on signup_date, segment, city, plan, tenure_months, monthly_spend and support_tickets_90d against churned_next_month, validate it on the latest signups, then score all 1,200 and rank by risk x monthly_spend.",
+         "gets": "A ranked 50-name call list with each customer's churn risk and value at stake, plus a check on how many churners the list captures versus picking 50 at random.",
+         "tradeoff": "It ranks who is likely to leave, not who a call can save - so I would build in a small randomly held-aside group so you learn lift while you call.",
+         "effort": "One build now; you get a refreshed list each month and a retrain every 1-3 months.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": [
+          "signup_date",
+          "segment",
+          "city",
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        },
+        {
+         "title": "Value-at-risk shortlist from the rules you can see now",
+         "what": "Rank the base right now on the risk signals already visible (plan, tickets, tenure, spend) and score each customer as risk x monthly_spend.",
+         "gets": "A defensible 50-name list today and the revenue it puts under the phone.",
+         "tradeoff": "Blunter: it cannot weigh the signals against each other, so some slots go to customers who would have stayed anyway.",
+         "effort": "Fastest: minutes, nothing to retrain.",
+         "track": "analysis",
+         "tool": "query",
+         "columns": [
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d"
+         ]
+        }
+       ],
+       "after": [
+        {
+         "title": "Score all 1,200, hand the team a ranked list of 50",
+         "what": "Train a churn model on signup_date, segment, city, plan, tenure_months, monthly_spend and support_tickets_90d against churned_next_month, validate it on the latest signups, then score all 1,200 and rank by risk x monthly_spend.",
+         "gets": "A ranked 50-name call list with each customer's churn risk and value at stake, plus a check on how many churners the list captures versus picking 50 at random.",
+         "tradeoff": "It ranks who is likely to leave, not who a call can save - so I would build in a small randomly held-aside group so you learn lift while you call.",
+         "effort": "One build now; a refreshed list each month, retrain every 1-3 months.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": [
+          "signup_date",
+          "segment",
+          "city",
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        },
+        {
+         "title": "Value-at-risk shortlist from the rules you can see now",
+         "what": "Rank the base right now on the risk signals already visible (plan, tickets, tenure, spend) and score each customer as risk x monthly_spend.",
+         "gets": "A defensible 50-name list today and the revenue it puts under the phone.",
+         "tradeoff": "Blunter: it cannot weigh the signals against each other, so some slots go to customers who would have stayed anyway.",
+         "effort": "Fastest: minutes, nothing to retrain.",
+         "track": "analysis",
+         "tool": "query",
+         "columns": [
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d"
+         ]
+        },
+        {
+         "title": "Work out what 50 calls a month is actually worth, and prove it",
+         "what": "Size the prize from your table (churn runs at 17.4%, and customers who left carry 7,282.75 of monthly spend), then set the 50 calls up as a small randomised test: risk-ranked customers split into called and deliberately-not-called, with the measure, the sample size needed and the stop rule.",
+         "gets": "A yes or no on whether the phone programme earns its keep, so you know whether to keep the calls at 50 a month or push for more capacity, and what the team does with each list either way.",
+         "tradeoff": "You spend part of this month's capacity learning rather than saving, and the answer takes a couple of months of calls.",
+         "effort": "A brief now; it then runs alongside your normal calling.",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": [
+          "churned_next_month",
+          "monthly_spend",
+          "plan",
+          "support_tickets_90d"
+         ]
+        }
+       ]
+      },
+      {
+       "version": 11,
+       "field": "chosen",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": "Score all 1,200, hand the team a ranked list of 50"
+      },
+      {
+       "version": 12,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": {
+        "track": "prediction",
+        "tool": "ml_project",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 13,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind.\n\n(I shared a table: customers.csv)"
+       ],
+       "after": [
+        "I pick: Score all 1,200, hand the team a ranked list of 50"
+       ]
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [
+     {
+      "plan_hash": "dcee06f1cba3733e",
+      "columns_related": [
+       [
+        "segment",
+        "churned_next_month"
+       ],
+       [
+        "segment",
+        "monthly_spend"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "columns_related": [
+       [
+        "customer_id",
+        "churned_next_month"
+       ],
+       [
+        "signup_date",
+        "churned_next_month"
+       ],
+       [
+        "segment",
+        "churned_next_month"
+       ],
+       [
+        "city",
+        "churned_next_month"
+       ],
+       [
+        "plan",
+        "churned_next_month"
+       ],
+       [
+        "tenure_months",
+        "churned_next_month"
+       ],
+       [
+        "monthly_spend",
+        "churned_next_month"
+       ],
+       [
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "90342e1a9d87acae",
+      "columns_related": [],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "89d3306b32eff2fd",
+      "columns_related": [
+       [
+        "support_tickets_90d",
+        "churned_next_month"
+       ],
+       [
+        "support_tickets_90d",
+        "monthly_spend"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "dee9b6b7470fa589",
+      "columns_related": [
+       [
+        "plan",
+        "churned_next_month"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "1f3fdddf20baacd3",
+      "columns_related": [
+       [
+        "plan",
+        "churned_next_month"
+       ],
+       [
+        "plan",
+        "monthly_spend"
+       ],
+       [
+        "support_tickets_90d",
+        "churned_next_month"
+       ],
+       [
+        "support_tickets_90d",
+        "monthly_spend"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "3d78d8d858a299bf",
+      "columns_related": [],
+      "rows": "all"
+     }
+    ],
+    "spent_eur": 0.0118
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0118,
+   "judge_spent_eur": 0,
+   "first_divergence": {
+    "id": "hab-05",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-009/case/hab-05-r1",
+    "events": 25,
+    "first": {
+     "reason": "route_overruled",
+     "at": "2026-11-15T12:41:30.948970+00:00",
+     "seq": 50,
+     "tool": "case_propose",
+     "wanted": {
+      "tracks": [
+       "analysis",
+       "business",
+       "prediction"
+      ]
+     },
+     "wanted_right": true,
+     "safety": false,
+     "before_route": true,
+     "evidence": "error: the person's need may call for business (a second reading of their words), which none of your options offers (analysis, prediction). Their latest words: \"I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which"
+    },
+    "all": [
+     {
+      "reason": "route_overruled",
+      "at": "2026-11-15T12:41:30.948970+00:00",
+      "seq": 50,
+      "tool": "case_propose",
+      "wanted": {
+       "tracks": [
+        "analysis",
+        "business",
+        "prediction"
+       ]
+      },
+      "wanted_right": true,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: the person's need may call for business (a second reading of their words), which none of your options offers (analysis, prediction). Their latest words: \"I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which"
+     },
+     {
+      "reason": "other_refusal",
+      "at": "2026-11-15T12:41:50.179959+00:00",
+      "seq": 57,
+      "tool": "case_propose",
+      "wanted": {
+       "tracks": [
+        "analysis",
+        "business",
+        "prediction"
+       ]
+      },
+      "wanted_right": true,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: Invalid argument for case_propose: options.0: 'tool' is a required property"
+     },
+     {
+      "reason": "options_dropped",
+      "at": "2026-11-15T12:41:57.502621+00:00",
+      "seq": 61,
+      "tool": "case_propose",
+      "wanted": {
+       "tracks": [
+        "analysis",
+        "business",
+        "prediction"
+       ]
+      },
+      "wanted_right": true,
+      "safety": false,
+      "before_route": true,
+      "evidence": "{\"shown\": [\"Score all 1,200, hand the team a ranked list of 50\", \"Value-at-risk shortlist from the rules you can see now\"], \"refused\": {\"Work out what 50 calls a month is actually worth, and prove it\": \"numbers nobody gave: 200,\"}, \"next\": \"the person sees these under your message: now write that me"
+     },
+     {
+      "reason": "other_refusal",
+      "at": "2026-11-15T12:42:27.052438+00:00",
+      "seq": 77,
+      "tool": "case_request_build",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": false,
+      "evidence": "error: a build needs the person's yes to building in their latest message (a yes to your question, or an order such as 'build the model'): pass their own words as quote, the whole message when it is short. Never ask them to type a particular phrase."
+     }
+    ],
+    "route": "prediction",
+    "tool": "ml_project",
+    "routed_by": "option",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-06",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Here's how I read it: your director asked for a model, but the real question is narrower and older — *what changed in March*. A 30% rise in a helpdesk is almost never a mystery that needs prediction; it's two or three causes (a faulty batch, one product line, a delivery or install problem, a warranty policy change, a new promotion) that grew faster than the rest. Prediction models answer \"will this happen\"; you need \"what is already happening, and what should the team stop doing to it next month.\"\n\nTwo things I'd flag before anything else. First, I'm reading your 30% as a raw count of tickets per week, not complaints per unit sold or per order shipped. If sales or the installed base grew since March, part of that rise is just more appliances in homes — that changes the whole story, so if you have monthly sales or shipment counts, they're worth having next to the tickets. Second, agent names in the data can mislead: a few agents can look like the cause simply because they picked up the surge. The honest answer on the AI model: it can't be built yet, and not because of the volume of tickets. With no reason labels there is nothing to learn from and nothing to check a model against. Labelling the reasons is the step that unlocks both your plan for next month and any model later, so I'd do that first and let the model be a second phase. Pick whichever of these fits what you want to hand your director. Each one needs the same thing from you: an export from the helpdesk covering roughly December through now — ticket text, date, and product or category, order number, repeat-contact flag if the system can attach them.",
+     "choices": [
+      {
+       "title": "A decision brief for you and your director",
+       "what": "You share the ticket export (text, date, plus product/category or order number if the helpdesk can attach them). I tag complaint reasons from the text, compare March-to-now with the months before, and write it up as a decision brief: ranked causes, what each would take to fix, and a straight answer on whether an AI model is the right next move. You get: A short brief you can hand your director: the causes behind the rise, what the support team should work on next month in priority order, and what an AI model would actually need before it could help. Trade-off: It reasons from the export and your own weekly reports rather than a statistical model, so numbers are as good as the data you can pull. Effort: Medium: needs the ticket export, then a written brief.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      },
+      {
+       "title": "Find the actual cause of the 30%",
+       "what": "You export the tickets (text, date, and product/category or order number if the helpdesk can attach them). I clean that export, tag every ticket with a reason category read from the text, then compare March-to-now against the months before to rank which reasons, products and weeks drove the increase. You get: A ranked list of the two or three causes worth the team's time next month, with ticket counts and share of the rise for each. Trade-off: Needs a real export from the helpdesk and one pass of reason-tagging, so it is a few days of setup before the first number, not an instant answer. Effort: Medium: one export, one tagging pass, then numbers.",
+       "track": "analysis",
+       "tool": "query",
+       "kind": "option"
+      },
+      {
+       "title": "Build the labelled ticket table you do not have",
+       "what": "Turn the raw export into a tidy, de-duplicated ticket table: one row per ticket, parsed date, reason category, product/category, agent, repeat-contact flag. This is the dataset your director is implicitly asking for. You get: A reusable table that answers any future question (by product, by agent, by week) and the foundation any model would need. Trade-off: Gives you structure rather than an answer today; you still need the cause analysis to decide the fix. Effort: Small to medium: export shape and rules agreed once.",
+       "track": "preparation",
+       "tool": "recipe",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "A decision brief for you and your director",
+     "pick": "A decision brief for you and your director",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I'll start the brief and get one piece of domain depth on it first.\n\nBrief started. Here is its substance — this is what you'd put in front of your director. **The line for your director.** The cause of the March rise is findable in days from tickets you already have, and a model is the right *second* step, not the first: with no reason labels there is nothing for a model to learn from and nothing to check it against. **First, is service actually worse?** Your 30% is a raw count of tickets per week. Three possible outcomes: the rate is flat, and the rise is growth rather than a problem — that changes your answer completely; the rate is up everywhere, a genuine deterioration; or the rate is up only in certain categories or products, which is the best case because it's targeted. I'm assuming you can get weekly order or shipment counts out of another system; if you can't, say so, because that's the first gap to close. **The four usual suspects, in the order they show up in free text.** One product or batch failing (same category, near-identical phrasing, dates clustered after March) — most common and most expensive to troubleshoot. Delivery or install damage: \"arrived dented\", \"missing parts\", \"installer broke the door\" — not a product problem, owned by a different team. A policy change: warranty terms, a charge, a returns rule announced around March, which reads as repeat contacts and escalations. Mix and season: a spring push on cooling or laundry, or a promotion driving volume, not defects. You'll know which story is true within a week. **Next month's team plan, before you even know the cause.** Protect capacity on two fronts: reopened and repeat tickets, which cost you two or three touches for one customer; and any suspected batch or product fault, which should go straight to a hold/replace route instead of re-troubleshooting, because diagnosis burns hours that can't fix a bad batch. One thing would sharpen the brief a lot: when you export tickets, can the helpdesk also give you product or category, order number, and whether a ticket is a repeat contact — or is it text, date and agent name only?\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I'll close the open points with my own judgment and lock the brief.\n\nBrief locked and complete. Here it is, written so you can hand it over with your name on it. **Part 1 — Read the number before you repeat it.** Three things could make \"up 30%\" misleading, and each costs under a day to check. First, the denominator: this is a raw count of tickets per week, and complaints per hundred units shipped is a different number. If sales grew since March, part of the rise is simply more appliances in more homes. Second, how the report is counted: does one customer reply creating a second ticket stay one ticket, or does a reopen count again? A change in that default, or a new intake channel switched on around March, can lift a weekly count with no change in service at all. Third, the shape: is it a step in one week or a gradual climb? A step points at an event — a product launch, a policy change, a batch, a channel change. A climb points at mix, growth or season. Note which it is before you say anything to your director. Write the codebook first, about ten reason tags — product fault, damaged on arrival, install problem, missing or wrong part, delivery timing, warranty or policy dispute, repair turnaround, billing or return, other, and unable to tell. \"Unable to tell\" is real information; keep it. Have two people code the same fifty tickets independently and compare. If agreement is poor, the tags are the problem, not the people — and this matters beyond this exercise, because a codebook is the ceiling on any model you build later. Then compare the mix since March against the baseline mix. One bucket carrying the growth gives you a cause and an owner. Growth spread evenly everywhere is a system problem: process, capacity or the report's definition. Use the agent name last and cautiously — whoever absorbs a surge looks like its cause. **Part 3 — Next month's workload, which you can set today.** Put a fix-it-first queue on repeat and reopened contacts: a second touch costs two to three times and means the first answer didn't resolve. Route anything matching a suspected batch or fault pattern to a hold-or-replace decision rather than troubleshooting, because diagnosis cannot repair a bad batch. Assign a named owner outside support for anything pointing at delivery, installs or policy — support owns the ticket, not the cause.\n\n(That is the short version. Ask me about any part and I will go deeper.)\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The brief is settled, so here is the sheet you can run this week without waiting on anybody. **Day 1, ask for two exports.** From the helpdesk: one row per ticket, December to today, with the date created, the full text including the subject line, the agent, and whatever else the system offers (channel, product field, order number, a reopen or repeat flag) — take what exists, don't wait for what doesn't. From wherever your orders live: weekly order or shipment counts for the same weeks, plus a dated list of anything that changed around March — promotions, new product launches, warranty or returns policy, a new chat or phone channel. **Days 2–3, code by hand.** Write the ten tags down first: product fault, damaged on arrival, install problem, missing or wrong part, delivery timing, warranty or policy dispute, repair turnaround, billing or return, other, unable to tell. Take roughly sixty tickets from January–February and sixty from March onward, picking every fifth one in date order rather than the interesting-looking ones — cherry-picking will point at whatever you already suspect. Have a second person code the same fifty independently and compare notes before you go further. **Day 4, read what you get.** One tag carrying most of the increase is your cause, and it usually names its owner outside support. Growth spread evenly across all tags is not a product story: it's capacity, process, or the weekly report's definition changing. Either way you now have a countable basis for next month's queue priorities, not an impression. **The line for your director:** the tagging is the model's training data, done by hand first so it can be checked — the automated version becomes phase 2, scoped against labels that already exist. Roughly three or four hours of work, and no procurement. When you have the export, drop it here and I'll run the before-and-after mix comparison and give you the chart with the numbers.",
+     "choices": []
+    }
+   ],
+   "route": "business",
+   "tool": "business_brief",
+   "routed_by": "option",
+   "ended": "answered",
+   "assistant_turns": 4,
+   "picked": 1,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    59.89,
+    102.91,
+    74.88,
+    30.61
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-06",
+     "version": 22,
+     "words": [
+      "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?",
+      "I pick: A decision brief for you and your director",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Understand why support complaints rose about 30% since March, and turn that into a prioritised workload plan for the support team for next month",
+      "status": "said",
+      "quote": "Our support complaints went up by about 30 percent since March",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Deliver the decision brief in full now, with my own judgment on the open points: treat the 30% as an unverified raw weekly count; assume the export gives only text, date and agent; find the cause by hand-coding a sample of post-March tickets against a Dec-Feb baseline with a ~10-tag reason codebook; set next month's workload priorities from repeats, suspected batch faults and cause-ownership; scope the AI model as a phase-2 auto-tagging job that only becomes possible once reasons exist.",
+      "status": "said",
+      "quote": "Choose what you judge best and go ahead",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "The operations manager (home appliance retailer, support team lead); their director is expecting an AI model",
+      "status": "said",
+      "quote": "I am the operations manager of a home appliance retailer",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "No dataset and no table shared. Available raw material is the helpdesk itself: free-text tickets with a date and an agent name, no labelled reasons (manager's own description). Orders/units shipped, installs, promo dates and warranty-policy dates are not in hand but sit in other systems and would be needed to turn the raw count into a rate.",
+      "status": "said",
+      "quote": "We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [
+      {
+       "value": "Director expects an AI model; no labelled dataset exists, so any predictive model is premature until complaint reasons are captured",
+       "status": "said",
+       "quote": "My director wants an AI model to fix this.",
+       "computed": null,
+       "after_words": null
+      }
+     ],
+     "assumptions": [
+      {
+       "value": "The ~30% rise is a raw weekly count of tickets, not complaints per unit sold or per order shipped; if sales or installed base grew since March, part of the rise may be volume rather than a new problem.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "unknowns": [
+      {
+       "field": "Export fields and volume data",
+       "question": "Can the helpdesk export carry product/category, order number, channel and a reopen/repeat flag, and can weekly order or shipment counts for Dec-now be obtained from another system? Needed to compare complaint mix since March against baseline and to turn the raw count into a rate.",
+       "blocks": "some",
+       "rank": 1
+      }
+     ],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "A decision brief for you and your director",
+       "what": "You share the ticket export (text, date, plus product/category or order number if the helpdesk can attach them). I tag complaint reasons from the text, compare March-to-now with the months before, and write it up as a decision brief: ranked causes, what each would take to fix, and a straight answer on whether an AI model is the right next move.",
+       "gets": "A short brief you can hand your director: the causes behind the rise, what the support team should work on next month in priority order, and what an AI model would actually need before it could help.",
+       "tradeoff": "It reasons from the export and your own weekly reports rather than a statistical model, so numbers are as good as the data you can pull.",
+       "effort": "Medium: needs the ticket export, then a written brief",
+       "track": "business",
+       "tool": "business_brief",
+       "columns": []
+      },
+      {
+       "title": "Find the actual cause of the 30%",
+       "what": "You export the tickets (text, date, and product/category or order number if the helpdesk can attach them). I clean that export, tag every ticket with a reason category read from the text, then compare March-to-now against the months before to rank which reasons, products and weeks drove the increase.",
+       "gets": "A ranked list of the two or three causes worth the team's time next month, with ticket counts and share of the rise for each.",
+       "tradeoff": "Needs a real export from the helpdesk and one pass of reason-tagging, so it is a few days of setup before the first number, not an instant answer.",
+       "effort": "Medium: one export, one tagging pass, then numbers",
+       "track": "analysis",
+       "tool": "query",
+       "columns": []
+      },
+      {
+       "title": "Build the labelled ticket table you do not have",
+       "what": "Turn the raw export into a tidy, de-duplicated ticket table: one row per ticket, parsed date, reason category, product/category, agent, repeat-contact flag. This is the dataset your director is implicitly asking for.",
+       "gets": "A reusable table that answers any future question (by product, by agent, by week) and the foundation any model would need.",
+       "tradeoff": "Gives you structure rather than an answer today; you still need the cause analysis to decide the fix.",
+       "effort": "Small to medium: export shape and rules agreed once",
+       "track": "preparation",
+       "tool": "recipe",
+       "columns": []
+      }
+     ],
+     "chosen": "A decision brief for you and your director",
+     "route": {
+      "track": "business",
+      "tool": "business_brief",
+      "reasons": "",
+      "by": "person"
+     },
+     "card": null,
+     "findings": [
+      {
+       "by": "domain_expert",
+       "kind": "assumption",
+       "text": "The reported rise is a raw weekly ticket count, so it can be inflated by more orders, more customers, or more channels rather than worse service. Normalizing complaints against sales, orders, installs, or traffic is essential before judging it as a service-quality problem.",
+       "field": "data"
+      },
+      {
+       "by": "domain_expert",
+       "kind": "risk",
+       "text": "An AI model is premature because the tickets have no labelled reasons; building now would chase noise and could hide the controllable causes.",
+       "field": "constraints"
+      },
+      {
+       "by": "domain_expert",
+       "kind": "question",
+       "text": "Can the helpdesk and operations data be aligned to orders shipped, products sold, installations, website traffic, promotions, warranty changes, and channel releases so complaint rates can be compared week by week?",
+       "field": "data"
+      },
+      {
+       "by": "domain_expert",
+       "kind": "fact",
+       "text": "In home appliance retail, step-change complaint rises usually come from batch faults, delivery or install damage, new products, promotions, seasonal categories, website or channel changes, and warranty or policy changes. The brief should test these against changes in mix, volume, timing, and agent patterns.",
+       "field": "goal"
+      },
+      {
+       "by": "domain_expert",
+       "kind": "question",
+       "text": "What are the cheapest triage levers now: can the team quickly spot highest-volume or highest-severity complaint buckets, repeated issues, and whether particular products, orders, deliveries, installs, channels, or policy changes dominate them?",
+       "field": "decision"
+      },
+      {
+       "by": "domain_expert",
+       "kind": "assumption",
+       "text": "Before modelling, the minimum labels are a small stable set of reason and context tags: why the complaint happened, what it concerns, whether it relates to sale, delivery, install, warranty, promotion, seasonal category, channel, or repeat contact, plus severity and outcome.",
+       "field": "data"
+      }
+     ],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Understand why support complaints rose about 30% since March, and turn that into a prioritised workload plan for the support team for next month",
+        "status": "said",
+        "quote": "Our support complaints went up by about 30 percent since March",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "What the support team works on next month (which complaint causes to attack first)",
+        "status": "said",
+        "quote": "I decide what the support team works on next month.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "The operations manager (home appliance retailer, support team lead); their director is expecting an AI model",
+        "status": "said",
+        "quote": "I am the operations manager of a home appliance retailer",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Helpdesk tickets only: free text body, date, agent name. No reason labels, no export shared yet. No structured link to product, order or sales volume mentioned.",
+        "status": "said",
+        "quote": "the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "The ~30% rise is a raw weekly count of tickets, not complaints per unit sold or per order shipped; if sales or installed base grew since March, part of the rise may be volume rather than a new problem.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 7,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "Director expects an AI model; no labelled dataset exists, so any predictive model is premature until complaint reasons are captured",
+         "status": "said",
+         "quote": "My director wants an AI model to fix this.",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [],
+       "after": [
+        {
+         "field": "export_fields",
+         "question": "What can the helpdesk export contain beyond text/date/agent: product or category, order number, warranty status, region, ticket status/resolution, first-contact or repeat flag?",
+         "blocks": "some",
+         "rank": 1
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "A decision brief for you and your director",
+         "what": "You share the ticket export (text, date, plus product/category or order number if the helpdesk can attach them). I tag complaint reasons from the text, compare March-to-now with the months before, and write it up as a decision brief: ranked causes, what each would take to fix, and a straight answer on whether an AI model is the right next move.",
+         "gets": "A short brief you can hand your director: the causes behind the rise, what the support team should work on next month in priority order, and what an AI model would actually need before it could help.",
+         "tradeoff": "It reasons from the export and your own weekly reports rather than a statistical model, so numbers are as good as the data you can pull.",
+         "effort": "Medium: needs the ticket export, then a written brief",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": []
+        },
+        {
+         "title": "Find the actual cause of the 30%",
+         "what": "You export the tickets (text, date, and product/category or order number if the helpdesk can attach them). I clean that export, tag every ticket with a reason category read from the text, then compare March-to-now against the months before to rank which reasons, products and weeks drove the increase.",
+         "gets": "A ranked list of the two or three causes worth the team's time next month, with ticket counts and share of the rise for each.",
+         "tradeoff": "Needs a real export from the helpdesk and one pass of reason-tagging, so it is a few days of setup before the first number, not an instant answer.",
+         "effort": "Medium: one export, one tagging pass, then numbers",
+         "track": "analysis",
+         "tool": "query",
+         "columns": []
+        },
+        {
+         "title": "Build the labelled ticket table you do not have",
+         "what": "Turn the raw export into a tidy, de-duplicated ticket table: one row per ticket, parsed date, reason category, product/category, agent, repeat-contact flag. This is the dataset your director is implicitly asking for.",
+         "gets": "A reusable table that answers any future question (by product, by agent, by week) and the foundation any model would need.",
+         "tradeoff": "Gives you structure rather than an answer today; you still need the cause analysis to decide the fix.",
+         "effort": "Small to medium: export shape and rules agreed once",
+         "track": "preparation",
+         "tool": "recipe",
+         "columns": []
+        }
+       ]
+      },
+      {
+       "version": 10,
+       "field": "chosen",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": "A decision brief for you and your director"
+      },
+      {
+       "version": 11,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": {
+        "track": "business",
+        "tool": "business_brief",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 12,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?"
+       ],
+       "after": [
+        "I pick: A decision brief for you and your director"
+       ]
+      },
+      {
+       "version": 13,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "What the support team works on next month (which complaint causes to attack first)",
+        "status": "said",
+        "quote": "I decide what the support team works on next month.",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "Deliverable chosen: a decision brief for the operations manager and their director. Its job is to (1) explain the ~30% rise as causes to confirm, (2) set next month's support workload priorities, and (3) answer the director's AI-model request honestly: reason labelling first, model second.",
+        "status": "said",
+        "quote": "I pick: A decision brief for you and your director",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 14,
+       "field": "findings",
+       "op": "add",
+       "by": "specialist:domain_expert",
+       "why": "Home appliance retail: support complaints rose ~30% since March (raw weekly ticket counts). What are the most common real drivers of such a step-change (product/batch faults, delivery and install dama",
+       "before": [],
+       "after": [
+        {
+         "by": "domain_expert",
+         "kind": "assumption",
+         "text": "The reported rise is a raw weekly ticket count, so it can be inflated by more orders, more customers, or more channels rather than worse service. Normalizing complaints against sales, orders, installs, or traffic is essential before judging it as a service-quality problem.",
+         "field": "data"
+        },
+        {
+         "by": "domain_expert",
+         "kind": "risk",
+         "text": "An AI model is premature because the tickets have no labelled reasons; building now would chase noise and could hide the controllable causes.",
+         "field": "constraints"
+        },
+        {
+         "by": "domain_expert",
+         "kind": "question",
+         "text": "Can the helpdesk and operations data be aligned to orders shipped, products sold, installations, website traffic, promotions, warranty changes, and channel releases so complaint rates can be compared week by week?",
+         "field": "data"
+        },
+        {
+         "by": "domain_expert",
+         "kind": "fact",
+         "text": "In home appliance retail, step-change complaint rises usually come from batch faults, delivery or install damage, new products, promotions, seasonal categories, website or channel changes, and warranty or policy changes. The brief should test these against changes in mix, volume, timing, and agent patterns.",
+         "field": "goal"
+        },
+        {
+         "by": "domain_expert",
+         "kind": "question",
+         "text": "What are the cheapest triage levers now: can the team quickly spot highest-volume or highest-severity complaint buckets, repeated issues, and whether particular products, orders, deliveries, installs, channels, or policy changes dominate them?",
+         "field": "decision"
+        },
+        {
+         "by": "domain_expert",
+         "kind": "assumption",
+         "text": "Before modelling, the minimum labels are a small stable set of reason and context tags: why the complaint happened, what it concerns, whether it relates to sale, delivery, install, warranty, promotion, seasonal category, channel, or repeat contact, plus severity and outcome.",
+         "field": "data"
+        }
+       ]
+      },
+      {
+       "version": 15,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Helpdesk tickets only: free text body, date, agent name. No reason labels, no export shared yet. No structured link to product, order or sales volume mentioned.",
+        "status": "said",
+        "quote": "the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "To turn the raw ticket rise into a rate, helpdesk tickets need to be alignable week by week with orders shipped / units sold (and ideally installs and any promo or policy change dates). For labelling, the minimum useful scheme is 8-12 reason tags plus product category, repeat-contact flag and resolution.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 2
+       }
+      },
+      {
+       "version": 16,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?",
+        "I pick: A decision brief for you and your director"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 17,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Deliverable chosen: a decision brief for the operations manager and their director. Its job is to (1) explain the ~30% rise as causes to confirm, (2) set next month's support workload priorities, and (3) answer the director's AI-model request honestly: reason labelling first, model second.",
+        "status": "said",
+        "quote": "I pick: A decision brief for you and your director",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "Manager gave no further input, so I decided: (1) the 30% is treated as an unverified raw weekly count with no denominator; (2) the helpdesk export is assumed to give only ticket text, date and agent name, so cause-finding runs on hand-coded text, not on structured fields; (3) method is a codebook of ~10 reason tags applied to a post-March sample plus a Dec-Feb baseline sample, with an inter-coder agreement check; (4) the AI model is scoped as phase 2 (auto-tagging) only after labels exist.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 3
+       }
+      },
+      {
+       "version": 18,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "To turn the raw ticket rise into a rate, helpdesk tickets need to be alignable week by week with orders shipped / units sold (and ideally installs and any promo or policy change dates). For labelling, the minimum useful scheme is 8-12 reason tags plus product category, repeat-contact flag and resolution.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 2
+       },
+       "after": {
+        "value": "No dataset and no table shared. Available raw material is the helpdesk itself: free-text tickets with a date and an agent name, no labelled reasons (manager's own description). Orders/units shipped, installs, promo dates and warranty-policy dates are not in hand but sit in other systems and would be needed to turn the raw count into a rate.",
+        "status": "said",
+        "quote": "We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 19,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Manager gave no further input, so I decided: (1) the 30% is treated as an unverified raw weekly count with no denominator; (2) the helpdesk export is assumed to give only ticket text, date and agent name, so cause-finding runs on hand-coded text, not on structured fields; (3) method is a codebook of ~10 reason tags applied to a post-March sample plus a Dec-Feb baseline sample, with an inter-coder agreement check; (4) the AI model is scoped as phase 2 (auto-tagging) only after labels exist.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 3
+       },
+       "after": {
+        "value": "Deliver the decision brief in full now, with my own judgment on the open points: treat the 30% as an unverified raw weekly count; assume the export gives only text, date and agent; find the cause by hand-coding a sample of post-March tickets against a Dec-Feb baseline with a ~10-tag reason codebook; set next month's workload priorities from repeats, suspected batch faults and cause-ownership; scope the AI model as a phase-2 auto-tagging job that only becomes possible once reasons exist.",
+        "status": "said",
+        "quote": "Choose what you judge best and go ahead",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 20,
+       "field": "unknowns",
+       "op": "remove",
+       "by": "agent",
+       "why": "answered",
+       "before": [
+        {
+         "field": "export_fields",
+         "question": "What can the helpdesk export contain beyond text/date/agent: product or category, order number, warranty status, region, ticket status/resolution, first-contact or repeat flag?",
+         "blocks": "some",
+         "rank": 1
+        }
+       ],
+       "after": "export_fields"
+      },
+      {
+       "version": 21,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?",
+        "I pick: A decision brief for you and your director",
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 22,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [],
+       "after": [
+        {
+         "field": "Export fields and volume data",
+         "question": "Can the helpdesk export carry product/category, order number, channel and a reopen/repeat flag, and can weekly order or shipment counts for Dec-now be obtained from another system? Needed to compare complaint mix since March against baseline and to turn the raw count into a rate.",
+         "blocks": "some",
+         "rank": 1
+        }
+       ]
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [
+     "domain_expert"
+    ],
+    "build": null,
+    "exposure": [],
+    "spent_eur": 0.0147
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0147,
+   "judge_spent_eur": 0,
+   "first_divergence": {
+    "id": "hab-06",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-009/case/hab-06-r1",
+    "events": 21,
+    "first": {
+     "reason": "route_overruled",
+     "at": "2026-11-15T12:43:27.003052+00:00",
+     "seq": 117,
+     "tool": "case_propose",
+     "wanted": {
+      "tracks": [
+       "analysis",
+       "preparation",
+       "reporting"
+      ]
+     },
+     "wanted_right": true,
+     "safety": false,
+     "before_route": true,
+     "evidence": "error: the person's need may call for business (their words: \"What should we do\"), which none of your options offers (analysis, preparation, reporting). Their latest words: \"I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by m"
+    },
+    "all": [
+     {
+      "reason": "route_overruled",
+      "at": "2026-11-15T12:43:27.003052+00:00",
+      "seq": 117,
+      "tool": "case_propose",
+      "wanted": {
+       "tracks": [
+        "analysis",
+        "preparation",
+        "reporting"
+       ]
+      },
+      "wanted_right": true,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: the person's need may call for business (their words: \"What should we do\"), which none of your options offers (analysis, preparation, reporting). Their latest words: \"I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by m"
+     }
+    ],
+    "route": "business",
+    "tool": "business_brief",
+    "routed_by": "option",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  }
+ ],
+ "scores": {
+  "case": [
+   {
+    "run": "HAB-009",
+    "case": "hab-05",
+    "arm": "case",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": "prediction",
+    "tool": "ml_project",
+    "assistant_turns": 2,
+    "picked": 1,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 169.05,
+    "spent_eur": 0.0118,
+    "first_divergence": "route_overruled",
+    "wanted_right": true
+   },
+   {
+    "run": "HAB-009",
+    "case": "hab-06",
+    "arm": "case",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": "business",
+    "tool": "business_brief",
+    "assistant_turns": 4,
+    "picked": 1,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 268.29,
+    "spent_eur": 0.0147,
+    "first_divergence": "route_overruled",
+    "wanted_right": true
+   }
+  ]
+ },
+ "summary": {
+  "case": {
+   "conversations": 2,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": 218.67,
+   "spent_eur": 0.0265
+  }
+ },
+ "paired": null,
+ "first_divergence_counts": {
+  "route_overruled": 2
+ },
+ "incomplete": null
+}

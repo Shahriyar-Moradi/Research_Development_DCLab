@@ -33,7 +33,7 @@ def _floor() -> int:
 
 def plan_of(frame: pd.DataFrame, group_by: Optional[list[str]] = None, measures: Optional[list[Mapping[str, Any]]] = None,
             filters: Optional[list[Mapping[str, Any]]] = None, sort: Optional[list[Mapping[str, Any]]] = None,
-            personal: Optional[set[str]] = None) -> tuple[Any, list[str], dict[str, Any]]:
+            personal: Optional[set[str]] = None, period: Optional[Mapping[str, Any]] = None) -> tuple[Any, list[str], dict[str, Any]]:
     """The checked plan an agent's arguments mean, and what was made right in them (``Q.repair``); or ``(None, [], {"error": ...})``
     with the reasons, and how to write it. One reading for a query, an answer card and a dashboard tile."""
     from dclab_core import query as Q
@@ -42,7 +42,8 @@ def plan_of(frame: pd.DataFrame, group_by: Optional[list[str]] = None, measures:
         return None, [], {"error": f"group by at most {MAX_GROUP_BY} columns at a time"}
     try:
         plan = Q.QueryPlan(group_by=list(group_by or []), measures=[Q.Measure(**m) for m in measures or [{"name": "rows", "op": "count"}]],
-                           filters=[Q.Filter(**f) for f in filters or []], sort=[Q.Sort(**s) for s in sort or []], limit=500)  # dclab_core.query's most
+                           filters=[Q.Filter(**f) for f in filters or []], sort=[Q.Sort(**s) for s in sort or []], limit=500,  # dclab_core.query's most
+                           period=Q.Period(**{k: v for k, v in period.items() if v not in (None, "")}) if period else None)
     except (TypeError, ValueError) as error:
         return None, [], {"error": f"the question could not be read: {error}"}
     plan, counted = Q.repair(plan, frame)  # a plain misreading is made right and said, never silently
@@ -58,12 +59,13 @@ def plan_of(frame: pd.DataFrame, group_by: Optional[list[str]] = None, measures:
 
 def query(frame: pd.DataFrame, group_by: Optional[list[str]] = None, measures: Optional[list[Mapping[str, Any]]] = None,
           filters: Optional[list[Mapping[str, Any]]] = None, sort: Optional[list[Mapping[str, Any]]] = None,
-          seen: Optional[set[str]] = None, keep: Optional[list[Any]] = None, personal: Optional[set[str]] = None) -> dict[str, Any]:
+          seen: Optional[set[str]] = None, keep: Optional[list[Any]] = None, personal: Optional[set[str]] = None,
+          period: Optional[Mapping[str, Any]] = None) -> dict[str, Any]:
     """``seen``: the group names the case has already been shown; an answer that would take it past MAX_NAMES is refused.
     ``keep``: a list the checked plan is appended to when the query ran (the lead agent's answer card is drawn from it)."""
     from dclab_core import query as Q
 
-    plan, counted, refused = plan_of(frame, group_by, measures, filters, sort, personal)
+    plan, counted, refused = plan_of(frame, group_by, measures, filters, sort, personal, period)
     if plan is None:
         return refused
     try:
@@ -71,7 +73,11 @@ def query(frame: pd.DataFrame, group_by: Optional[list[str]] = None, measures: O
     except (ValueError, TypeError) as error:  # the review: a plan valid on paper that cannot run is a refusal, never a crash
         return {"error": f"the question could not run: {error}"[:300]}
     rows = result.rows[:MAX_GROUPS]
-    names = {str(v) for row in rows for v in row[:len(plan.group_by)]}
+    keys = len(plan.group_by)
+    names = {str(v) for row in rows for v in row[:keys]}  # a period's own label (2026-Q1) is no group name of the table
+    if plan.period is not None and plan.period.grain == "day":  # but a day's label is the date column's own value
+        names |= {str(row[keys]) for row in rows}
+    names |= {v for row in rows for v in row[keys + (1 if plan.period is not None else 0):] if isinstance(v, str)}  # a first or last date: one row's own
     if seen is not None and len(seen | names) > MAX_NAMES:
         return {"error": f"this case has seen {len(seen)} group names; this answer would pass {MAX_NAMES}: narrow it with a filter"}
     if seen is not None:
@@ -89,13 +95,14 @@ def query(frame: pd.DataFrame, group_by: Optional[list[str]] = None, measures: O
 def _as_said(plan: Any, rows: list[list[Any]]) -> list[list[str]]:
     """Each row as it may be said to the person: a share as a percentage with one decimal (26.5%), a count with its thousands
     separated. These strings are what the guard compares a sentence with, so a correct sentence is never dropped for rounding."""
-    keys = len(plan.group_by)
+    keys = len(plan.group_by) + (1 if plan.period is not None else 0)  # a period adds its own column of labels
     ops = [m.op for m in plan.measures]
     out = []
     for row in rows:
         said = [str(v) for v in row[:keys]]
         for op, v in zip(ops, row[keys:]):
-            said.append("withheld" if v is None else f"{v * 100:.1f}%" if op == "rate" else f"{v:,}" if isinstance(v, int)
+            said.append("withheld" if v is None else str(v) if isinstance(v, str)  # a date: the first or the last of a time column
+                        else f"{v * 100:.1f}%" if op == "rate" else f"{v:,}" if isinstance(v, int)
                         else f"{v:,.2f}".rstrip("0").rstrip("."))
         out.append(said)
     return out
@@ -159,6 +166,9 @@ SCHEMAS = {
         "filters": {"type": "array", "items": {"type": "object", "required": ["column", "op"], "properties": {
             "column": {"type": "string"}, "op": {"type": "string", "enum": ["eq", "ne", "in", "not_in", "gt", "ge", "lt", "le", "between", "is_null", "not_null"]},
             "value": {}}}},
+        "period": {"type": "object", "required": ["column"], "properties": {
+            "column": {"type": "string"}, "grain": {"type": "string", "enum": ["day", "week", "month", "quarter", "year"]},
+            "start": {"type": "string"}, "end": {"type": "string"}}},
         "sort": {"type": "array", "items": {"type": "object", "required": ["by"], "properties": {"by": {"type": "string"}, "desc": {"type": "boolean"}}}}}},
     "leakage": {"type": "object", "required": ["outcome"], "properties": {"outcome": {"type": "string"}}},
     "preview_step": {"type": "object", "required": ["kind"], "properties": {
@@ -170,7 +180,11 @@ DESCRIPTIONS = {
     "query": "Ask the shared table an aggregate question: counts, rates, means, sums by group. DCLab's code computes it; only "
              "aggregates come back, never a row, and small groups are hidden. A share is {name, op:'rate', where:{column, op:'eq', "
              "value}} (the condition is the where; the measure has no column); the rows meeting a condition are {name, op:'count', "
-             "where:{...}}. Say a result's numbers exactly as 'as_said' gives them.",
+             "where:{...}}. Any measure may carry its own where, so one question compares two periods or two groups: "
+             "{name:'q4', op:'sum', column:'amount', where:{column:'order_date', op:'between', value:['2025-10-01','2025-12-31']}} beside "
+             "the same for another quarter. For one row per month or quarter, give period:{column:<a date column>, grain:'quarter'} "
+             "(with start and end to cut it). The first and last date of a date column are op:'min' and op:'max' on it. "
+             "Say a result's numbers exactly as 'as_said' gives them.",
     "leakage": "Check which columns look written after the outcome (they would leak the answer). DCLab's code tests them.",
     "preview_step": "Preview what a cleaning step would do to the table: rows before and after, and whether it needs the person's "
                     "yes. Nothing is applied.",

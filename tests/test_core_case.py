@@ -169,6 +169,26 @@ class OptionTests(unittest.TestCase):
         self.assertIn("lifetime_spend", reasons)
         self.assertIn("12", reasons)
 
+    def test_a_number_nobody_gave_costs_its_sentence_not_the_option(self):
+        """HAB-002 (2026-11-15): the right option, a randomised pilot, was refused whole because its text named a rate nobody
+        gave. The sentence goes, the option stays, and the note says so; a number in the title still refuses the option."""
+        pilot = C.CaseOption(title="A randomised pilot", what="Assign the offer at random for a month. About 23% cancel today, so a small test is enough.",
+                             gets="the effect of the offer, measured", tradeoff="takes a month", effort="a week to set up", track="business", tool="business_brief")
+        other = self.option("Compare churn by plan", "analysis", "query", ["plan"])
+        kept, notes = C.check_options([pilot, other], C.new("c", WORDS), columns=self.COLUMNS, computed=[])
+        self.assertEqual([o.title for o in kept], ["A randomised pilot", "Compare churn by plan"])
+        self.assertEqual(kept[0].what, "Assign the offer at random for a month.")
+        self.assertIn("23", notes["A randomised pilot (kept)"])
+        # the number is in what they get, and nothing else is left there: refused, as before
+        empty = C.CaseOption(title="A quick estimate", what="An estimate.", gets="23% fewer cancellations.", tradeoff="rough", effort="an hour",
+                             track="advice", tool="cited_answer")
+        kept, notes = C.check_options([empty, other], C.new("c", WORDS), columns=self.COLUMNS, computed=[])
+        self.assertEqual([o.title for o in kept], ["Compare churn by plan"])
+        self.assertIn("numbers nobody gave", notes["A quick estimate"])
+        # a number the person gave or a query returned is no reason to cut anything
+        kept, notes = C.check_options([pilot, other], C.new("c", WORDS), columns=self.COLUMNS, computed=['{"as_said": [["23%"]]}'])
+        self.assertEqual((kept[0].what, [k for k in notes if "kept" in k]), (pilot.what, []))
+
     def test_one_tool_is_one_kind_whatever_the_track_says(self):  # the review: three tracks on ml_project were kept
         options = [self.option("Rank by risk", "prediction", "ml_project"), self.option("Advice on risk", "advice", "ml_project"),
                    self.option("Business case", "business", "business_brief")]

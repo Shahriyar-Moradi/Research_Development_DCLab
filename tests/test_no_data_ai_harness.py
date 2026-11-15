@@ -57,8 +57,10 @@ class NoDataAIHarnessTests(unittest.TestCase):
         fields = und["fields"]
         for req_key in ("goal", "decision_action", "decision_unit", "prediction_moment", "outcome_and_horizon", "primary_metric"):
             self.assertIn(req_key, fields)
-            self.assertIn(fields[req_key]["status"], ("user_stated", "ai_inferred"))
+            self.assertIn(fields[req_key]["status"], ("user_stated", "rules_read", "dclab_default"))  # no model ran: nothing is "AI inferred"
             self.assertTrue(fields[req_key]["value"])
+        self.assertNotIn("AI inferred", sol["markdown"])
+        self.assertIn("DCLab default", sol["markdown"])
         self.assertGreaterEqual(len(und["alternatives"]), 1)
         self.assertGreaterEqual(len(und["eda_plan"]), 2)
         self.assertTrue(all(p["inside_folds"] for p in und["preprocessing_plan"]))
@@ -67,8 +69,105 @@ class NoDataAIHarnessTests(unittest.TestCase):
         self.assertGreater(len(ds["verified_feature_programs"]), 0)
         hrep = sol["harness_report"]
         self.assertTrue(hrep["all_gates_passed"])
+        self.assertEqual(hrep["mode"], "deterministic_floor")
         self.assertEqual(hrep["gates"]["gate_2_number_grounding"]["ungrounded_numbers_remaining"], 0)
-        self.assertEqual(hrep["gates"]["gate_5_zero_auto_simulation_and_budget"]["auto_simulated_tables"], 0)
+        self.assertEqual(hrep["gates"]["gate_2_number_grounding"]["assumed_inputs"], ["share of actions that work"])
+        self.assertEqual(set(hrep["gates"]), {"gate_1_epistemic_provenance", "gate_2_number_grounding", "gate_3_virtual_schema_and_features",
+                                               "gate_4_workflow_and_debate", "gate_5_budget"})
+
+    def test_every_gate_can_fail_and_the_card_says_which(self):
+        """The review of 22ad1bf8: two gates were the constant True and a third could not fail; a failed gate changed nothing."""
+        with mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"}):
+            sol = no_data.solve_without_data("No data yet. I want to predict which customers will churn next month.")
+        report = sol["harness_report"]
+        self.assertTrue(report["all_gates_passed"])
+        # gate 2: a model-written sentence with a number nobody gave, or a claim of production readiness
+        sol["business"]["domain_expert_findings"] = [{"kind": "fact", "text": "This will save 3600 a month and the model is production-ready.", "by": "domain_expert"}]
+        report = no_data_harness.finish_gates(sol, sol["problem"])
+        gate2 = report["gates"]["gate_2_number_grounding"]
+        self.assertEqual((gate2["passed"], gate2["ungrounded_numbers_remaining"] > 0, gate2["overclaims"]), (False, True, 1))
+        self.assertFalse(report["all_gates_passed"])
+        self.assertIn("Gates passed: `4/5` · not passed: numbers", no_data.to_markdown(sol))
+        # gate 5: the money cap (a role that cost more than the case had left)
+        with mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "0"}), \
+                mock.patch.object(no_data_harness, "_call_ai_first_expert", lambda *a, **k: (None, [], 0.5, None)):
+            over = no_data.solve_without_data("No data yet. I want to predict which customers will churn next month.", gateway=_FakeGateway({}),
+                                              models=None, cap_eur=0.1)
+        self.assertFalse(over["harness_report"]["gates"]["gate_5_budget"]["passed"])
+        self.assertIn("not passed: budget", over["markdown"])
+
+    def test_broken_model_replies_are_never_called_an_ai_result(self):
+        """The review of 22ad1bf8: with every role returning malformed JSON the card said ai_harnessed, 5/5, and "AI inferred"."""
+        broken = _FakeGateway({})
+        for purpose in ("ai_first", "synthetic_schema", "case_specialist", "problem_analyst", "brief_checker", "understanding_critic", "feature_engineer",
+                        "decomposer", "map_reviewer", "solution_router", "solution_planner", "solution_challenger", "debate_judge", "task_decomposer"):
+            broken.by_purpose[purpose] = ["this is not JSON at all"]
+        with mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "0"}):
+            sol = no_data.solve_without_data("No data yet. I want to predict which customers will churn next month.", gateway=broken, models=broken, cap_eur=0.25)
+        report = sol["harness_report"]
+        self.assertEqual(report["mode"], "deterministic_floor")  # models were asked; none gave a usable answer
+        self.assertTrue(report["model_requests_made"])
+        statuses = {f["status"] for f in sol["understanding"]["fields"].values()}
+        self.assertNotIn("ai_inferred", statuses)
+        self.assertNotIn("AI inferred", sol["markdown"])
+        self.assertNotIn("Planner-Challenger-Judge Debate Verdict", sol["markdown"])
+
+    def test_the_harness_never_switches_the_thinking_off_and_keeps_it(self):
+        """The owner's rule (CLAUDE.md rule 8) and the review of 22ad1bf8: a retry sent reasoning off, the first call lowered
+        the effort, and the words of these calls were not kept. Through the real gateway, with a scripted transport."""
+        import shutil
+        import tempfile
+        from pathlib import Path
+
+        from dclab_rnd import experience
+        from dclab_rnd.models import gateway as gw
+        from dclab_rnd.models.usage import FileUsage
+
+        home = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, home, True)
+        seen: list[dict[str, Any]] = []
+
+        class T:
+            def __init__(self):
+                self.thinking = {"type": "adaptive"}
+
+            def complete(self, messages, tools=None, max_tokens=1800, **options):
+                seen.append({"max_tokens": max_tokens, **options})
+                cut = len(seen) in (1, 3)  # the first answer of each role is cut before its JSON
+                text = "" if cut else json.dumps({"columns": [{"name": "tenure_months"}], "problem": {"restatement": "Predict churn"}})
+                return {"content": text, "tool_calls": [], "finish_reason": "length" if cut else "stop", "usage": {"input_tokens": 1, "output_tokens": 1},
+                        "thinking": [{"text": "the summary"}], "assistant_message": {"role": "assistant", "content": text}}
+
+        transport = T()
+        clean = {k: "" for k in ("OPENAI_BASE_URL", "OPENAI_MODEL", "DCLAB_LLM_BASE_URL", "DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "DCLAB_NO_LIVE_MODELS",
+                                 "DCLAB_THINKING", "OPENROUTER_API_KEY", "DCLAB_BLOCK_PROVIDERS")} | {"OPENAI_API_KEY": "k", "DCLAB_AGENT_HOME": str(home)}
+        with mock.patch.object(gw, "_transport", lambda tier, purpose: transport), mock.patch.dict(os.environ, clean), \
+                mock.patch.object(experience, "current_log", lambda: None):
+            g = gw.Gateway(FileUsage(home / "usage.jsonl"), transport=gw._transport)
+            g.home = home
+            no_data_harness._call_ai_first_expert(g, "Predict churn with no data yet", family_key="churn", virtual_tables=[], as_said=[])
+            no_data_harness._call_synthetic_schema_architect(g, "Predict churn with no data yet", family_key="churn",
+                                                             prediction_moment="month start", target_name="churned", cap_eur=0.05)
+        self.assertEqual(len(seen), 4)  # each role asked again once, with more room
+        for call in seen:
+            self.assertNotIn("reasoning", json.dumps(call.get("extra_body") or {}))  # never switched off, never lowered
+        self.assertGreater(seen[1]["max_tokens"], seen[0]["max_tokens"])
+        docs = [json.loads(line) for p in sorted(home.rglob("model_exchanges/**/*.jsonl")) for line in p.read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(sorted({d["purpose"] for d in docs}), ["ai_first", "synthetic_schema"])
+        self.assertTrue(all(d["thinking"] == [{"text": "the summary"}] for d in docs))
+        self.assertTrue(all(d["whole"] is True for d in docs))  # no table exists: the words are kept whole
+
+    def test_a_prompt_of_the_harness_is_a_file(self):
+        from dclab_rnd import prompts
+
+        from pathlib import Path
+
+        source = Path(no_data_harness.__file__).read_text(encoding="utf-8")
+        for name in ("no_data_expert_brief", "no_data_compact_json", "no_data_workflow_repair", "no_data_schema_brief"):
+            self.assertIn(name, prompts.names())
+            self.assertIn(f'"{name}"', source)
+        self.assertNotIn("extra_body", source)
+        self.assertNotIn("Output ONLY ONE compact", source)  # no instruction is built as a string in the code
 
     def test_multi_model_harness_repairs_workflow_strips_hallucinated_numbers_and_excludes_leaks(self):
         # First reply from ai_first has a workflow ordering bug (final before leakage) AND an ungrounded number ("97.4% accuracy on 412,000 patients")
@@ -229,7 +328,7 @@ class NoDataAIHarnessTests(unittest.TestCase):
 
         hrep = sol["harness_report"]
         self.assertEqual(hrep["mode"], "ai_harnessed")
-        self.assertTrue(hrep["all_gates_passed"])
+        self.assertTrue(hrep["all_gates_passed"], hrep["gates"])
         # Self-repair turn was triggered on the bad workflow order
         self.assertGreaterEqual(len(hrep["repairs_applied"]), 1)
         self.assertEqual(fake_gw.clients["ai_first"].calls, 2)
@@ -287,18 +386,52 @@ class NoDataAIHarnessTests(unittest.TestCase):
         out = A._consult(state, "leakage_auditor", "Check virtual schema for point-in-time leaks.")
         self.assertIn("findings", out)
         self.assertEqual(out["findings"][0]["kind"], "risk")
+        # once a real table is shared, the blueprint no longer stands in for it: the specialists' own rules decide again
+        late = A.CaseState(case=C.new("draft-late"), table=A.table_of("orders.csv", [{"name": "order_id", "kind": "text", "noticed": []}], 10))
+        late.specialist_client = state.specialist_client
+        late.no_data_solution = state.no_data_solution
+        self.assertIn("error", A._consult(late, "leakage_auditor", "Check for leaks."))
 
-    def test_three_arm_no_data_evaluation_gate_passes(self):
+    def test_the_evaluation_measures_every_arm_and_its_gate_can_fail(self):
+        """The review of 22ad1bf8: the plain arm's scores were constants, the harness's safety read two constants, the domain
+        words were the template's own columns, and nothing checked the family."""
         with mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"}):
             res = no_data_eval.evaluate(split="dev")
-        self.assertEqual(res["gate_id"], "no_data_gate_v1")
+            cases = no_data_eval.load_cases("dev")
+            wrong = no_data_eval.evaluate(cases=[dict(c, expected_family="uplift", expected_inputs={"monthly_volume": 7}) for c in cases[:3]])
+        self.assertEqual(res["gate_id"], "no_data_gate_v2")
         self.assertTrue(res["passed"], f"Failed gate checks: {res['checks']}")
-        self.assertGreater(
-            res["summaries"]["ai_harnessed"]["mean_understanding_completeness"],
-            res["summaries"]["rules"]["mean_understanding_completeness"],
-        )
-        self.assertEqual(res["summaries"]["ai_harnessed"]["ungrounded_number_rate"], 0.0)
-        self.assertEqual(res["summaries"]["ai_harnessed"]["workflow_and_feature_safety_rate"], 1.0)
+        # with no model the plain arm is not measured: no constant, no canned reply, and nothing is compared with it
+        plain = res["summaries"]["plain"]
+        self.assertEqual((plain["measured"], plain["mean_domain_recall"], plain["ungrounded_number_rate"]), (0, None, None))
+        self.assertIsNone(res["compare"]["domain_recall_minus_plain"])
+        # every stated number of the cases is read, and the family is checked
+        ai = res["summaries"]["ai_harnessed"]
+        self.assertEqual(ai["economics_inputs_exact_rate"], 1.0)
+        self.assertGreaterEqual(ai["family_right_rate"], 0.9)
+        self.assertLess(ai["family_right_rate"], 1.0)  # ND-06 is read as a stream of sensor rows: reported, not hidden
+        # a default is not understanding: with no model the harness's floor understands no more than the rules do
+        self.assertEqual(res["compare"]["understanding_minus_rules"], 0.0)
+        # the gate fails on wrong families and wrong numbers; an unmeasured check is None, never a pass
+        self.assertFalse(wrong["passed"])
+        self.assertEqual((wrong["checks"]["family_right"], wrong["checks"]["economics_inputs_exact"]), (False, False))
+        self.assertFalse(no_data_eval.verdict({"ai_harnessed": {}})["passed"])
+        # the domain words are written from the domain, never the generic template's own column names
+        generic = {"entity", "decision", "tenure", "activity", "outcome", "timestamp", "rate", "record_id", "decision_timestamp", "segment", "historical", "settlement"}
+        for case in cases:
+            if case["id"] in ("ND-05", "ND-06", "ND-07", "ND-10"):
+                self.assertFalse(generic & set(case["domain_keywords"]), case["id"])
+
+    def test_the_plain_arm_is_scored_on_what_a_model_really_returned(self):
+        case = no_data_eval.load_cases("dev")[0]
+        gateway = _FakeGateway({"exam_plain": ["Collect tenure and usage per account, then compare churned and kept accounts. Expect 94.3% accuracy."]})
+        row = no_data_eval._score_plain_arm(case, gateway=gateway)
+        self.assertTrue(row["measured"])
+        self.assertEqual(row["ungrounded_numbers"], 1)  # 94.3% is nobody's number
+        self.assertGreater(row["domain_recall"], 0.0)
+        self.assertIsNone(row["understanding_completeness"])  # free text has no provenance fields: not scored, not guessed
+        silent = no_data_eval._score_plain_arm(case, gateway=_FakeGateway({"exam_plain": [""]}))
+        self.assertFalse(silent["measured"])
 
 
 if __name__ == "__main__":

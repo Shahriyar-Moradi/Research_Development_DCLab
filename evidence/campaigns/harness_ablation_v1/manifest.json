@@ -1,0 +1,6 @@
+{
+  "campaign_id": "harness_ablation_v1",
+  "objective": "Does DCLab's harness improve, keep or hold back the model it runs? The same model answers eight written cases in four arms: the model alone with no tools, a minimal agent with read tools and a neutral prompt, the same agent told DCLab's six kinds of work, and the lead agent as the product runs it. A scripted person, a judge that is not the arms' model, and for every lead-agent conversation the first place its code refused or changed the model's move, read from the events the run kept. HAB-000 reads the kept dev runs of the conversation exam again at no cost.",
+  "rule": "Eight written cases, each once, judged by a model: the product is the traces and the reason codes. No arm is called better from a difference inside its interval, and nothing here says anything about production readiness.",
+  "command": "python -m dclab_rnd.agent_eval.harness_ablation [--recorded-dev | --freeze | --yes --cap-eur N [--arm-model M] [--no-judge] | --judge RUN --judge-model M]; python -m dclab_rnd.agent_eval.harness_ablation.benchmark"
+}

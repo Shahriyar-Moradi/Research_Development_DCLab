@@ -1,0 +1,273 @@
+{
+ "id": "NDE-002",
+ "split": "dev",
+ "at": "2026-11-15T12:34:26+00:00",
+ "arms": [
+  "rules",
+  "ai_harnessed",
+  "plain"
+ ],
+ "cap_eur": 0.4,
+ "kept": "agent_runs/live_tests/2026-11-15-no-data-eval-NDE-002",
+ "gate_id": "no_data_gate_v2",
+ "passed": false,
+ "checks": {
+  "family_right": true,
+  "economics_inputs_exact": true,
+  "zero_ungrounded_numbers": true,
+  "workflow_and_feature_safety": false,
+  "within_cost_cap": true
+ },
+ "live": true,
+ "spent_eur": 0.081877,
+ "summaries": {
+  "rules": {
+   "cases": 3,
+   "measured": 3,
+   "mean_understanding_completeness": 0.2778,
+   "family_right_rate": 1.0,
+   "mean_domain_recall": 1.0,
+   "economics_inputs_exact_rate": null,
+   "ungrounded_number_rate": 0.0,
+   "workflow_and_feature_safety_rate": null,
+   "mean_cost_eur": 0.0,
+   "total_cost_eur": 0.0
+  },
+  "ai_harnessed": {
+   "cases": 3,
+   "measured": 3,
+   "mean_understanding_completeness": 1.0,
+   "family_right_rate": 1.0,
+   "mean_domain_recall": 1.0,
+   "economics_inputs_exact_rate": 1.0,
+   "ungrounded_number_rate": 0.0,
+   "workflow_and_feature_safety_rate": 0.0,
+   "mean_cost_eur": 0.024853,
+   "total_cost_eur": 0.074558
+  },
+  "plain": {
+   "cases": 3,
+   "measured": 3,
+   "mean_understanding_completeness": null,
+   "family_right_rate": null,
+   "mean_domain_recall": 0.8889,
+   "economics_inputs_exact_rate": null,
+   "ungrounded_number_rate": 0.0,
+   "workflow_and_feature_safety_rate": null,
+   "mean_cost_eur": 0.00244,
+   "total_cost_eur": 0.007319
+  }
+ },
+ "compare": {
+  "understanding_minus_rules": 0.7222,
+  "domain_recall_minus_rules": 0.0,
+  "domain_recall_minus_plain": 0.1111,
+  "ungrounded_rate_minus_plain": 0.0
+ },
+ "rows": {
+  "rules": [
+   {
+    "id": "ND-01",
+    "arm": "rules",
+    "measured": true,
+    "understanding_completeness": 0.1667,
+    "family": "churn",
+    "family_source": "words",
+    "family_right": true,
+    "domain_recall": 1.0,
+    "ungrounded_numbers": 0,
+    "workflow_and_feature_safe": null,
+    "cost_eur": 0.0
+   },
+   {
+    "id": "ND-02",
+    "arm": "rules",
+    "measured": true,
+    "understanding_completeness": 0.3333,
+    "family": "fraud",
+    "family_source": "words",
+    "family_right": true,
+    "domain_recall": 1.0,
+    "ungrounded_numbers": 0,
+    "workflow_and_feature_safe": null,
+    "cost_eur": 0.0
+   },
+   {
+    "id": "ND-03",
+    "arm": "rules",
+    "measured": true,
+    "understanding_completeness": 0.3333,
+    "family": "forecasting",
+    "family_source": "kind",
+    "family_right": true,
+    "domain_recall": 1.0,
+    "ungrounded_numbers": 0,
+    "workflow_and_feature_safe": null,
+    "cost_eur": 0.0
+   }
+  ],
+  "ai_harnessed": [
+   {
+    "id": "ND-01",
+    "arm": "ai_harnessed",
+    "measured": true,
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "understanding_completeness": 1.0,
+    "defaults": 0,
+    "family": "churn",
+    "family_source": "words",
+    "family_right": true,
+    "fits": true,
+    "domain_recall": 1.0,
+    "economics_inputs_exact": true,
+    "assumed_inputs": 1,
+    "ungrounded_numbers": 0,
+    "workflow_and_feature_safe": false,
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": false,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": false,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.025825
+   },
+   {
+    "id": "ND-02",
+    "arm": "ai_harnessed",
+    "measured": true,
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "understanding_completeness": 1.0,
+    "defaults": 0,
+    "family": "fraud",
+    "family_source": "words",
+    "family_right": true,
+    "fits": true,
+    "domain_recall": 1.0,
+    "economics_inputs_exact": true,
+    "assumed_inputs": 1,
+    "ungrounded_numbers": 0,
+    "workflow_and_feature_safe": false,
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": false,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.023975
+   },
+   {
+    "id": "ND-03",
+    "arm": "ai_harnessed",
+    "measured": true,
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "understanding_completeness": 1.0,
+    "defaults": 0,
+    "family": "forecasting",
+    "family_source": "kind",
+    "family_right": true,
+    "fits": true,
+    "domain_recall": 1.0,
+    "economics_inputs_exact": null,
+    "assumed_inputs": 5,
+    "ungrounded_numbers": 0,
+    "workflow_and_feature_safe": false,
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": false,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.024758
+   }
+  ],
+  "plain": [
+   {
+    "id": "ND-01",
+    "arm": "plain",
+    "measured": true,
+    "understanding_completeness": null,
+    "family_right": null,
+    "domain_recall": 0.8333,
+    "ungrounded_numbers": 0,
+    "workflow_and_feature_safe": null,
+    "cost_eur": 0.002677,
+    "reply_chars": 15403
+   },
+   {
+    "id": "ND-02",
+    "arm": "plain",
+    "measured": true,
+    "understanding_completeness": null,
+    "family_right": null,
+    "domain_recall": 1.0,
+    "ungrounded_numbers": 0,
+    "workflow_and_feature_safe": null,
+    "cost_eur": 0.001415,
+    "reply_chars": 6196
+   },
+   {
+    "id": "ND-03",
+    "arm": "plain",
+    "measured": true,
+    "understanding_completeness": null,
+    "family_right": null,
+    "domain_recall": 0.8333,
+    "ungrounded_numbers": 0,
+    "workflow_and_feature_safe": null,
+    "cost_eur": 0.003227,
+    "reply_chars": 7005
+   }
+  ]
+ }
+}

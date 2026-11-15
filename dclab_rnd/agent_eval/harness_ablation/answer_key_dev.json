@@ -1,0 +1,180 @@
+{
+ "hab-01": {
+  "must_understand": [
+   "a revenue forecast would not tell the head of sales where to spend: the decision needs to know where revenue moved, so the model asked for does not serve it",
+   "revenue has to be defined before quarters are compared: refunded and cancelled orders, repeated order rows and missing amounts change the figure",
+   "one quarter against the one before can differ for reasons that are no real fall, such as the season or a last month that is not fully exported: compare whole months, or the same quarter a year earlier",
+   "the breakdown worth making is by what marketing can act on: region, channel and product category"
+  ],
+  "acceptable_approaches": [
+   "first compute revenue by period and by region, channel, product category and status to confirm and locate the fall",
+   "check the export's completeness and data quality before comparing quarters",
+   "a forecast is offered only later, if at all, once the cause is understood"
+  ],
+  "forbidden": [
+   "starts or recommends building a revenue prediction model as the first step",
+   "states a cause of the fall as a fact without computing it from the table"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "analysis",
+  "also_right": ["business", "reporting"],
+  "adaptation_check": null
+ },
+ "hab-02": {
+  "must_understand": [
+   "trips that were given free cancellation differ from the others in ways that also drive cancellations (price, destination, lead time, channel): it names at least one such difference",
+   "free cancellation can change who books and how many book, not only who cancels: the decision needs bookings or revenue as well as the cancellation rate",
+   "a clean answer needs the company to decide who gets the offer, at random, for a period: it names the unit that is assigned",
+   "a booking's outcome is settled only once its travel date has passed, so the test must wait for that before it is read"
+  ],
+  "acceptable_approaches": [
+   "design a randomised test: the unit, how trips or customers are assigned, the outcome, the length, and how the size needed would be worked out from the current cancellation rate",
+   "describe the difference seen in the table only as a description, with what could explain it named",
+   "an adjusted comparison on the existing table is offered as weaker evidence, and said to be weaker"
+  ],
+  "forbidden": [
+   "presents the difference between the two groups in the table as the effect of free cancellation",
+   "proposes only a model that predicts cancellation as the answer to the question"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": false,
+  "route": null,
+  "also_right": [],
+  "adaptation_check": null
+ },
+ "hab-03": {
+  "must_understand": [
+   "there are two questions here: who is likely to leave, which the table can answer, and what a discount changes, which it cannot",
+   "the customers most likely to leave are not the same as the customers a discount would keep: a discount given to someone who would have stayed anyway is money lost",
+   "the missing evidence can only come from giving discounts to some customers and not to others, chosen at random, starting small",
+   "whether a discount pays depends on what the customer spends: the aim is the value kept after the discount, not the number of customers kept"
+  ],
+  "acceptable_approaches": [
+   "a churn risk model now, kept apart from the discount question",
+   "a randomised pilot of the discounts to collect how customers react, and only then a model of who to give which discount",
+   "a simple starting rule for the pilot (for example by risk and spend), said to be a rule and not something learned"
+  ],
+  "forbidden": [
+   "claims the table can tell which discount works for which customer",
+   "gives any number for the effect of a discount"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": ["business", "advice"],
+  "adaptation_check": null
+ },
+ "hab-04": {
+  "must_understand": [
+   "a booking whose trip has not happened yet is recorded as not cancelled, but it still can be: counting it as kept makes cancellations look rarer, most of all for recent bookings and long lead times, so those rows are left out or cut by a rule",
+   "the model must be checked on bookings made later than the ones it learned from, because it will be used on future bookings",
+   "every input must be known on the booking day; a column filled in later would not exist when the score is made",
+   "to overbook, operations needs a trustworthy probability for each trip (how many are expected to cancel), not only a ranking or an accuracy figure, and overbooking too much costs differently from too little"
+  ],
+  "acceptable_approaches": [
+   "drop or treat apart the bookings whose travel date is after the export date",
+   "split by booking date for validation",
+   "clean the price (text with a currency) and leave identifiers out before modelling",
+   "write down what is predicted, when, and from what, before looking at any score"
+  ],
+  "forbidden": [
+   "validates on a random split with no word about time",
+   "treats trips that have not happened yet as never cancelled without saying so"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": [],
+  "adaptation_check": null
+ },
+ "hab-05": {
+  "must_understand": [
+   "what matters is how good the 50 chosen customers are, not how often the model is right over all customers",
+   "the list should be ordered by what is at stake, the chance of leaving together with the monthly spend, not by the chance of leaving alone",
+   "the customers most likely to leave are not surely the ones a call would keep: to learn whether calls work, some at-risk customers must be left uncalled on purpose and compared",
+   "a simple list made without a model (for example high spenders with recent support tickets) is the yardstick the model has to beat on those 50"
+  ],
+  "acceptable_approaches": [
+   "rank by churn risk times monthly spend, judged by precision or value in the top 50",
+   "say that the effect of a call is unknown and propose holding back a random group to measure it",
+   "compare the model's list with a simple rule's list before trusting it"
+  ],
+  "forbidden": [
+   "judges the model by overall accuracy only",
+   "claims the calls will save a stated number of customers or money"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": ["analysis", "business"],
+  "adaptation_check": null
+ },
+ "hab-06": {
+  "must_understand": [
+   "the first question is why complaints rose: what changed around March (a product, a supplier, a delivery partner, a policy)",
+   "a count of complaints alone can mislead: if sales rose too, complaints per order may not have changed, so the count needs something to be compared with",
+   "the quickest evidence is to read a sample of tickets from before and after March and tally the reasons by hand, before any tool is built",
+   "a model could later sort complaints by reason, but sorting does not reduce them: reducing them means fixing the cause that the tally shows"
+  ],
+  "acceptable_approaches": [
+   "export the tickets and read or label a sample to find the main reasons and what changed in March",
+   "count complaints by reason, product and week once they are labelled, before any model",
+   "name a classifier of reasons only as a later step, once labels exist"
+  ],
+  "forbidden": [
+   "proposes training a model as the first step",
+   "states causes, shares or savings as numbers nobody gave",
+   "calls the problem a classification problem and lays out a model pipeline with no word that the data does not exist"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "business",
+  "also_right": ["advice", "analysis"],
+  "adaptation_check": null
+ },
+ "hab-07": {
+  "must_understand": [
+   "deciding which van takes which order, and in what sequence, is a planning problem solved by an optimiser: a prediction does not produce routes",
+   "before changing anything, today's routes should be measured from the GPS traces (distance, hours, late deliveries), to know how much room there is",
+   "the limits decide the answer: van capacity, driver hours and the depot matter as well as the time windows, and it asks about or allows for the ones not given",
+   "a prediction could help only as an input (how long a leg or a stop takes at a given hour), and only if the measurement shows those estimates are the problem; a ready-made routing tool may be enough"
+  ],
+  "acceptable_approaches": [
+   "say that route planning with time windows is a vehicle routing problem, solved with an optimiser or a routing tool",
+   "first measure today's routes from the GPS traces as the baseline",
+   "a prediction of travel or service time only as an input to the optimiser, if the baseline shows it is needed"
+  ],
+  "forbidden": [
+   "recommends a prediction model as the main solution",
+   "promises a stated saving"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": false,
+  "route": null,
+  "also_right": [],
+  "adaptation_check": null
+ },
+ "hab-08": {
+  "must_understand": [
+   "customer_id only names a customer: it is left out of the model's inputs",
+   "each input must be as it was at the start of the month being predicted: a figure measured during or after that month would give the answer away, so the columns are checked for that",
+   "because the team contacts only the riskiest customers, the model is judged on how good the top of its list is, not on overall accuracy; customers who leave are the minority",
+   "the final check uses customers kept aside and looked at once, and it says what cannot be checked with this table (for example that it holds one snapshot and no month)"
+  ],
+  "acceptable_approaches": [
+   "start the prediction work at once, with at most one check",
+   "check for leakage and leave the identifier out",
+   "say how the model will be validated and that the held-out part is read once"
+  ],
+  "forbidden": [
+   "asks several questions the person already answered before doing anything",
+   "reports a score for a model that was not run"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "prediction",
+  "also_right": [],
+  "adaptation_check": null
+ }
+}

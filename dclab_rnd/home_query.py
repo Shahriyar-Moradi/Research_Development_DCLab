@@ -339,7 +339,8 @@ def describe(plan: Q.QueryPlan) -> str:
     operation and column, the filters, the period and its date column."""
     m = plan.measures[0]
     what = {"count": "number of rows" + (f" where {condition_text(m.where)}" if m.where else ""), "count_distinct": f"number of distinct {m.column}",
-            "rate": f"share of rows where {m.where.column if m.where else ''}"}.get(m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}")
+            "rate": f"share of rows where {m.where.column if m.where else ''}"}.get(
+                m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}" + (f" where {condition_text(m.where)}" if m.where else ""))
     if plan.group_by:
         what += " by " + ", ".join(plan.group_by)
     if plan.filters:
@@ -357,7 +358,8 @@ def model_text(plan: Q.QueryPlan) -> str:
     itself; home_agent is shown no cell values (its limit is 0), and its prompts are kept whole for training."""
     m = plan.measures[0]
     what = {"count": "number of rows" + (f" meeting a condition on {m.where.column}" if m.where else ""), "count_distinct": f"number of distinct {m.column}",
-            "rate": f"share of rows by a condition on {m.where.column if m.where else ''}"}.get(m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}")
+            "rate": f"share of rows by a condition on {m.where.column if m.where else ''}"}.get(
+                m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}" + (f" over the rows meeting a condition on {m.where.column}" if m.where else ""))
     if plan.group_by:
         what += " by " + ", ".join(plan.group_by)
     if plan.filters:

@@ -47,10 +47,14 @@ class CountWhereAndShare(unittest.TestCase):
         self.assertIn("a rate needs the condition it counts (where)", out["error"])
         self.assertIn('"op": "rate", "where"', out["error"])  # the fix is in the refusal
 
-    def test_a_condition_on_a_mean_is_refused_and_says_what_a_condition_belongs_to(self):
-        out = data_tools.query(telco(), measures=[{"name": "m", "op": "mean", "column": "tenure",
-                                                  "where": {"column": "Churn", "op": "eq", "value": "Yes"}}])
-        self.assertIn("belongs to a count or a share", out["error"])
+    def test_a_condition_on_a_mean_is_the_mean_of_the_rows_that_meet_it(self):
+        """Refused until dclab-core 0.159.0 ("belongs to a count or a share"); HAB-002 showed the lead agent refused eleven times
+        for asking a sum or a mean of some rows. The condition never names one identifier."""
+        frame = telco()
+        out = data_tools.query(frame, measures=[{"name": "m", "op": "mean", "column": "tenure",
+                                                "where": {"column": "Churn", "op": "eq", "value": "Yes"}}])
+        self.assertNotIn("error", out)
+        self.assertAlmostEqual(out["rows"][0][0], float(frame.loc[frame["Churn"] == "Yes", "tenure"].mean()), places=6)
 
     def test_the_result_carries_each_number_as_it_may_be_said(self):
         out = data_tools.query(telco(), group_by=["Contract"], measures=[
@@ -77,3 +81,69 @@ class CountWhereAndShare(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TimesAfterTheReview(unittest.TestCase):
+    """The cloud review of 0.159.0 (2026-11-15): a time kept as text is compared as a time, one value of a timestamp is one
+    row, a conditioned measure is a comparison H8 must see, and a day's label or a first date is a cell value."""
+
+    def frame(self):
+        stamps = pd.date_range("2025-10-01 09:30", periods=92, freq="D").strftime("%Y-%m-%d %H:%M")
+        return pd.DataFrame({"at": list(stamps), "amount": [10.0] * 92, "region": ["north", "south"] * 46,
+                             "left": ["Yes", "No", "No", "No"] * 23})
+
+    def test_a_day_bound_covers_the_whole_of_that_day_on_a_text_timestamp(self):
+        plan = Q.QueryPlan(measures=[{"name": "q4", "op": "sum", "column": "amount",
+                                      "where": {"column": "at", "op": "between", "value": ["2025-10-01", "2025-12-31"]}}])
+        frame = self.frame()
+        self.assertEqual(Q.validate(plan, frame), [])
+        self.assertEqual(Q.execute(plan, frame).rows[0][0], 920.0)  # 2025-12-31 09:30 is inside "to 2025-12-31"
+
+    def test_a_date_written_day_first_is_compared_as_a_date_not_as_text(self):
+        frame = pd.DataFrame({"at": pd.date_range("2025-11-13", periods=40, freq="D").strftime("%d/%m/%Y"), "amount": [1.0] * 40})
+        plan = Q.QueryPlan(measures=[{"name": "n", "op": "count"}], filters=[{"column": "at", "op": "ge", "value": "2025-12-01"}])
+        self.assertEqual(Q.execute(plan, frame).rows[0][0], 22)  # as text, "13/11/2025" >= "2025-12-01" matched nothing
+
+    def test_one_value_of_a_timestamp_is_one_row_and_is_refused(self):
+        frame = self.frame()
+        one = frame["at"][5]
+        refused = Q.validate(Q.QueryPlan(measures=[{"name": "s", "op": "sum", "column": "amount"}], filters=[{"column": "at", "op": "ne", "value": one}]), frame)
+        self.assertTrue(any("range" in w for w in refused), refused)
+        refused = Q.validate(Q.QueryPlan(measures=[{"name": "s", "op": "sum", "column": "amount", "where": {"column": "at", "op": "ne", "value": one}}]), frame)
+        self.assertTrue(any("range" in w for w in refused), refused)
+        refused = Q.validate(Q.QueryPlan(measures=[{"name": "s", "op": "rate", "where": {"column": "at", "op": "eq", "value": one}}]), frame)
+        self.assertTrue(any("range" in w for w in refused), refused)
+        ranged = Q.QueryPlan(measures=[{"name": "s", "op": "sum", "column": "amount"}], filters=[{"column": "at", "op": "lt", "value": "2025-11-01"}])
+        self.assertEqual(Q.validate(ranged, frame), [])
+
+    def test_a_conditioned_measure_is_recorded_as_a_comparison_with_its_condition(self):
+        plan = Q.QueryPlan(measures=[{"name": "stay", "op": "mean", "column": "amount", "where": {"column": "left", "op": "eq", "value": "No"}},
+                                     {"name": "go", "op": "mean", "column": "amount", "where": {"column": "left", "op": "eq", "value": "Yes"}}])
+        self.assertEqual(Q.exposure(plan)["columns_related"], [["left", "amount"]])
+
+    def test_a_days_label_and_a_first_date_count_as_cell_values(self):
+        frame, seen = self.frame(), set()
+        out = data_tools.query(frame, measures=[{"name": "n", "op": "count"}], seen=seen,
+                               period={"column": "at", "grain": "month", "start": "2025-10-01", "end": "2025-12-31"})
+        self.assertNotIn("error", out)
+        self.assertEqual(seen, set())  # a month's label is derived: no cell value
+        frame = pd.concat([frame] * 12, ignore_index=True)
+        out = data_tools.query(frame, measures=[{"name": "n", "op": "count"}], seen=seen,
+                               period={"column": "at", "grain": "day", "start": "2025-10-01", "end": "2025-10-05"})
+        self.assertNotIn("error", out)
+        self.assertEqual(len(seen), 5)  # five dates of the column were shown
+        out = data_tools.query(frame, measures=[{"name": "first", "op": "min", "column": "at"}], seen=seen)
+        self.assertNotIn("error", out)
+        self.assertEqual(len(seen), 6)
+
+    def test_a_first_date_per_group_is_a_table_and_a_conditioned_total_says_its_condition(self):
+        from dclab_rnd import home_chart, home_query
+
+        frame = pd.concat([self.frame()] * 3, ignore_index=True)
+        plan = Q.QueryPlan(group_by=["region"], measures=[{"name": "last", "op": "max", "column": "at"}])
+        self.assertEqual(home_chart.spec(plan, Q.execute(plan, frame))["kind"], "table")  # no bar has a date's height: it crashed on the sort
+        plan = Q.QueryPlan(measures=[{"name": "q4", "op": "sum", "column": "amount", "where": {"column": "at", "op": "between", "value": ["2025-10-01", "2025-12-31"]}}])
+        self.assertIn("where at between", home_query.describe(plan))
+        self.assertIn("where at between", home_chart.spec(plan, Q.execute(plan, frame))["table"]["columns"][0])
+        self.assertIn("condition on at", home_query.model_text(plan))
+        self.assertNotIn("2025", home_query.model_text(plan))  # the Home model is shown no value

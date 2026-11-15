@@ -258,13 +258,27 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         ask_sim = bool(body.get("ask_simulate", False))
         note = str(body.get("note") or body.get("problem") or "").strip()
         econ = body.get("economics") if isinstance(body.get("economics"), dict) else None
+        from . import no_data as _no_data
+
+        try:  # a number the person typed is checked before anything is built: "abc" or a negative cost is a 422, never a 500
+            econ = _no_data.checked_overrides(econ) or None
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from None
+        draft = drafts.get(draft_id)
+        if HomeAgent.track(draft) not in ("prediction", "undecided"):  # a kind of help not chosen yet is no refusal: the fit check below reads the words
+            raise HTTPException(409, f"This draft is not a prediction ({HomeAgent.track(draft)}): a model blueprint does not answer it")
+        said = " ".join([str(draft.get("problem") or ""), note] + [str(m.get("text") or "") for m in draft.get("messages") or [] if m.get("role") == "user"])
+        fit = _no_data.blueprint_fit(said)
 
         def _run() -> dict[str, Any]:
             ha = HomeAgent(drafts, None)
+            if not fit["fits"]:  # nothing to predict was named: no model plan is drawn; the person is told what is needed
+                ha.say(draft_id, _no_data.NOT_A_BLUEPRINT, kind="no_data_note")
+                return {"solution": None, "fit": fit, "draft": drafts.get(draft_id)}
             sol = ha.provide_no_data_solution(draft_id, note=note, refresh=refresh, economics_overrides=econ)
             if ask_sim:
                 ha.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
-            return {"solution": sol, "draft": drafts.get(draft_id)}
+            return {"solution": sol, "fit": fit, "draft": drafts.get(draft_id)}
 
         return await asyncio.to_thread(_run)
 

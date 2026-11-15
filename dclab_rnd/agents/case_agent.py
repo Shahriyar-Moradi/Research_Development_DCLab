@@ -86,6 +86,10 @@ def route_doubt(state: "CaseState", move: str, tracks: set[str]) -> Optional[str
     second = None if strong else route_now(state)  # their own words outrank the second reading
     missing = {t: p for t, p in named.items() if t not in tracks}
     points = {**missing, **({second: ""} if second and second not in tracks else {})}
+    # The gates must agree (HAB-002, the delivery-routes case: the second reading named advice, advice was then refused as data
+    # work, analysis was refused for lack of a table, and no kind of help was left). A kind of help the next gate would refuse is
+    # never asked for here: advice while the words ask for data work, and work on a table while none is shared.
+    points = {t: p for t, p in points.items() if not ((t in NO_DATA_WORK and data_work(state)) or (t in CHIP_NEEDS_TABLE and state.table is None))}
     if not points:
         return None
     state.route_told.append(key)
@@ -280,6 +284,7 @@ class CaseState:
     models: Any = None  # gateway for multi-model no-data understanding & harness
     draft_id: Optional[str] = None  # draft id for gateway telemetry
     no_data_solution: Optional[dict[str, Any]] = None  # latest no-data blueprint for virtual-schema specialist consults
+    no_data_built: bool = False  # the blueprint was built in this turn (once a turn: one pass is a dozen model calls)
     consulted: list[str] = field(default_factory=list)  # 37.7: the specialists already sent on this case
     spent_eur: float = 0.0  # 37.8: what this case's model work has cost so far
     cap_eur: float = field(default_factory=lambda: __import__("dclab_rnd.agents.case_session", fromlist=["cap_eur"]).cap_eur())  # 37.8: the soft cap (DCLAB_CASE_CAP_EUR), raised by the person's yes
@@ -334,8 +339,11 @@ def _read_table(state: CaseState) -> dict[str, Any]:
     return out
 
 
-QUERIES_A_TURN = 4  # questions of the table that ran in one turn, kept by code (the owner's Telco session, 2026-11-02: two was too few
-QUERY_ERRORS_A_TURN = 3  # to repair a refusal and still answer); a refused question is not counted, but three refusals end the tries
+# Questions of the table that ran in one turn, kept by code (the owner's Telco session, 2026-11-02: two was too few to repair a
+# refusal and still answer; HAB-002, 2026-11-15: four stopped an analysis of a fall by region, channel and category half way, ten
+# times in eight conversations: eight now). A refused question is not counted, but four refusals end the tries.
+QUERIES_A_TURN = 8
+QUERY_ERRORS_A_TURN = 4
 
 
 def _data(state: CaseState, name: str, **arguments: Any) -> dict[str, Any]:
@@ -350,7 +358,7 @@ def _data(state: CaseState, name: str, **arguments: Any) -> dict[str, Any]:
         if state.queries >= QUERIES_A_TURN:  # CEX-014: queries took over the turns once the table was read by code
             return {"error": f"the table has been asked {state.queries} times this turn: write to the person now with what you found"}
         if state.query_errors >= QUERY_ERRORS_A_TURN:
-            return {"error": "three questions of the table were refused this turn: tell the person in plain words what did not work "
+            return {"error": f"{state.query_errors} questions of the table were refused this turn: tell the person in plain words what did not work "
                              "and what you found without it; do not say you will try again later"}
         arguments["seen"] = state.group_names
         arguments["personal"] = state.personal
@@ -368,8 +376,9 @@ def _data(state: CaseState, name: str, **arguments: Any) -> dict[str, Any]:
 
 
 def _query(state: CaseState, group_by: Optional[list[str]] = None, measures: Optional[list[dict[str, Any]]] = None,
-           filters: Optional[list[dict[str, Any]]] = None, sort: Optional[list[dict[str, Any]]] = None) -> dict[str, Any]:
-    return _data(state, "query", group_by=group_by, measures=measures, filters=filters, sort=sort)
+           filters: Optional[list[dict[str, Any]]] = None, sort: Optional[list[dict[str, Any]]] = None,
+           period: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    return _data(state, "query", group_by=group_by, measures=measures, filters=filters, sort=sort, period=period)
 
 
 MAX_TILES = 6  # a dashboard's tiles: a page the person can read
@@ -400,13 +409,14 @@ NOT_NOW_CARD = {"error": "a model is the work now: tell the person what happens 
 
 
 def _answer(state: CaseState, group_by: Optional[list[str]] = None, measures: Optional[list[dict[str, Any]]] = None,
-            filters: Optional[list[dict[str, Any]]] = None, sort: Optional[list[dict[str, Any]]] = None) -> dict[str, Any]:
+            filters: Optional[list[dict[str, Any]]] = None, sort: Optional[list[dict[str, Any]]] = None,
+            period: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """Ask the table and show the person the answer: a chart and its numbers, drawn by code from this very result (the owner's
     Telco session, 2026-11-02: a report was promised and nothing was ever shown). The numbers come back to the agent too."""
     if _model_work(state):
         return NOT_NOW_CARD
     kept: list[Any] = []
-    out = _data(state, "query", group_by=group_by, measures=measures, filters=filters, sort=sort, keep=kept)
+    out = _data(state, "query", group_by=group_by, measures=measures, filters=filters, sort=sort, keep=kept, period=period)
     if "error" in out or not kept:
         return out
     state.cards.append({"kind": "answer", "plan": kept[-1].model_dump(mode="json")})
@@ -429,7 +439,7 @@ def _dashboard(state: CaseState, tiles: Optional[list[dict[str, Any]]] = None, t
     plans = []
     for n, tile in enumerate(tiles, 1):
         plan, _, refused = data_tools.plan_of(state.frame, (tile or {}).get("group_by"), (tile or {}).get("measures"), (tile or {}).get("filters"),
-                                              (tile or {}).get("sort"), state.personal)
+                                              (tile or {}).get("sort"), state.personal, (tile or {}).get("period"))
         if plan is None:
             return {"error": f"tile {n}: {refused['error']}", **({"columns": refused["columns"]} if "columns" in refused else {})}
         plans.append(plan.model_dump(mode="json"))
@@ -504,6 +514,8 @@ def _consult(state: CaseState, specialist: str, question: str) -> dict[str, Any]
         (c.get("solution") for c in reversed(state.cards) if c.get("kind") == "no_data_solution" and isinstance(c.get("solution"), dict)),
         None,
     )
+    if state.table is not None:
+        nd_sol = None  # a real table is shared: its columns are what a specialist reads, and its own rules decide who may be sent
     nd_ds = (nd_sol or {}).get("data_science") or {}
     vtable_specs = list(nd_ds.get("virtual_table_specs") or [])
     vcols = [
@@ -686,7 +698,7 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     if state.chip and not state.case.chosen:
         if track in CHIP_NEEDS_TABLE and track == state.chip and state.table is None:
             from ..draft import no_data
-            if no_data.detect_no_data_stance(" ".join(state.case.words)).get("matched"):
+            if no_data.detect_no_data_stance(" ".join(state.case.words)).get("matched") and no_data.blueprint_fit(" ".join(state.case.words))["fits"]:
                 return {"error": "the person has no data yet or prefers not to upload it: call design_solution_without_data to give the full 3-layer Business, Data Science, and ML blueprint instead of demanding an upload."}
             return {"error": f"they want {C.CHIPS.get(state.chip, state.chip)} ({state.chip}): ask them to share the table it runs on, then start it"}
         if track != state.chip:
@@ -708,7 +720,7 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
                          "answers a question with no work on data. Propose or start the work their need calls for."}
     if track in CHIP_NEEDS_TABLE and state.table is None:
         from ..draft import no_data
-        if no_data.detect_no_data_stance(" ".join(state.case.words)).get("matched"):
+        if track == "prediction" and no_data.detect_no_data_stance(" ".join(state.case.words)).get("matched") and no_data.blueprint_fit(" ".join(state.case.words))["fits"]:
             return {"error": "the person has no data yet or prefers not to upload it: call design_solution_without_data first to give their full 3-layer Business, Data Science, and ML blueprint."}
         return {"error": f"they want {track}: ask them to share or upload the table it runs on, then start it"}
     # a clear person is proposed to at once (readiness), never started on before the case is ready: "send me the customers who
@@ -738,20 +750,26 @@ def _design_solution_without_data(
     """Build an honest 3-layer Business + Data Science + ML blueprint when no dataset is shared yet."""
     from ..draft import no_data
 
-    problem_text = str(problem or " ".join(state.case.words) or "").strip()
+    if state.table is not None:
+        return {"error": "a table is shared: work on it (read it, query it, propose or start). This tool is for a person with no data."}
+    if state.no_data_built:
+        return {"error": "the blueprint was already built in this turn: write to the person now"}
+    # the person's own words decide: the problem, whether it is a prediction at all, and every number (the model's wording
+    # of the problem is never a source of numbers: the review of 22ad1bf8)
+    problem_text = " ".join(state.case.words).strip()
     if not problem_text:
         return {"error": "describe the person's problem first before building a no-data solution blueprint"}
-    overrides = {
-        k: v
-        for k, v in (
-            ("monthly_volume", monthly_volume),
-            ("base_rate", base_rate),
-            ("action_cost", action_cost),
-            ("value_saved", value_saved),
-            ("action_success_rate", action_success_rate),
-        )
-        if v is not None
-    }
+    fit = no_data.blueprint_fit(problem_text)
+    if not fit["fits"]:
+        return {"error": f"no model blueprint fits here: {fit['why']}. Do not show a model plan. Answer what they asked (propose "
+                         "or start the work it calls for), or ask which outcome they want predicted."}
+    left = float(state.cap_eur or 0.5) - float(state.spent_eur or 0.0)
+    if left <= 0:
+        return {"error": "this case has used its model budget: tell the person what you have, with no new blueprint"}
+    given = {"monthly_volume": monthly_volume, "base_rate": base_rate, "action_cost": action_cost, "value_saved": value_saved,
+             "action_success_rate": action_success_rate}
+    overrides = {k: v for k, v in given.items() if v is not None and _said_number(v, problem_text, share=k in ("base_rate", "action_success_rate"))}
+    ignored = sorted(k for k, v in given.items() if v is not None and k not in overrides)
     case_facts = {}
     for fname in (*C.SINGLE, *C.LISTS):
         val = getattr(state.case, fname, None)
@@ -760,7 +778,10 @@ def _design_solution_without_data(
         elif val is not None:
             case_facts[fname] = val.model_dump(mode="json") if hasattr(val, "model_dump") else val
     stance = no_data.detect_no_data_stance(" ".join(state.case.words))
-    rem_cap = min(0.25, max(0.04, float(state.cap_eur or 0.5) - float(state.spent_eur or 0.0)))
+    try:
+        overrides = no_data.checked_overrides(overrides)
+    except ValueError as error:
+        return {"error": str(error)}
     sol = no_data.solve_without_data(
         problem_text,
         case_facts=case_facts,
@@ -769,9 +790,10 @@ def _design_solution_without_data(
         gateway=state.models,
         models=state.models,
         draft_id=state.draft_id,
-        cap_eur=rem_cap,
+        cap_eur=min(0.25, left),  # never more than the case has left
         target_hint=target_hint,
     )
+    state.no_data_built = True
     state.no_data_solution = sol
     state.spent_eur += float((sol.get("harness_report") or {}).get("cost_eur") or 0.0)
     for item in sol.get("as_said") or []:
@@ -792,6 +814,8 @@ def _design_solution_without_data(
     return {
         "blueprint_ready": True,
         "family": sol["family"],
+        "assumed_inputs": list(sol["economics"].get("assumed") or []),
+        **({"ignored_numbers": ignored, "why_ignored": "the person did not say these numbers: they are not used"} if ignored else {}),
         "understanding": sol.get("understanding"),
         "economics": sol["economics"],
         "virtual_tables": sol["data_science"]["virtual_tables"],
@@ -800,12 +824,27 @@ def _design_solution_without_data(
         "harness_report": sol.get("harness_report"),
         "simulation_questions": sol["simulation"]["questions"],
         "next": (
-            "A full interactive 3-layer Business, Data Science, and ML blueprint card (with Epistemic Problem Understanding "
-            "and Multi-Model Debate rulings) is now shown to the person. Write a short, helpful reply (<180 words) using only "
-            "numbers from economics above, ask if any business constraint or economic assumption should be refined, and if they "
+            "A 3-layer Business, Data Science, and ML blueprint card is now shown to the person. Write a short, helpful reply "
+            "(<180 words). State a number only if the person said it: the inputs listed in assumed_inputs are DCLab's placeholders, "
+            "so say they are placeholders and ask for the real ones; never quote a figure computed from them. If they "
             "might want synthetic data, ask them how many rows, columns, and outcome rate they want BEFORE offering to design/simulate it."
         ),
     }
+
+
+def _said_number(value: Any, words: str, share: bool = False) -> bool:
+    """Whether the person's own words hold this number (a share also as its percent)."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return False
+    forms = {f"{v:g}", f"{v:,.0f}" if v == int(v) else f"{v:,.2f}"}
+    if v == int(v):
+        forms.add(str(int(v)))
+    if share:
+        forms |= {f"{v * 100:g}%", f"{v * 100:g} %", f"{v * 100:g} percent"}
+    text = str(words or "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩٬٫٪", "01234567890123456789,.%"))
+    return any(re.search(r"(?<![\d.,])" + re.escape(form) + r"(?![\d])", text) for form in forms)
 
 
 MOVES = {"consult": "case.consult", "request_build": "case.build", "note": "case.note", "add_unknown": "case.unknown", "resolve": "case.resolve", "confirm_assumption": "case.confirm",
@@ -874,8 +913,10 @@ def register(registry: Registry) -> None:
                   "To change work already started, quote the person's latest words asking for the change.",
          {"track": {"type": "string", "enum": list(C.TRACKS)}, "tool": {"type": "string", "enum": list(C.TOOLS)}, "quote": S}, ["track", "tool"], _start, "write"),
         ("design_solution_without_data",
-         "When no table is uploaded and the person does not have data yet, is planning collection, or prefers not to upload private data, "
-         "build a complete 3-layer Business + Data Science + ML blueprint (economics, Minimum Viable Data Spec, leakage traps, and pre-data task plan). "
+         "Only when no table is shared, the person has no data yet (or will not upload it), AND they want a prediction, a forecast, a score or groups: "
+         "build a 3-layer Business + Data Science + ML blueprint (economics, Minimum Viable Data Spec, leakage traps, and pre-data task plan). "
+         "Not for a why-question, a test's design, a route plan, a report or an explanation: answer those as what they are. "
+         "Pass a number only if the person said it. "
          "Never fabricate results or auto-create synthetic data; ask the user first how simulated data should look if they want a prototype.",
          {
              "problem": S,
@@ -897,7 +938,7 @@ def register(registry: Registry) -> None:
 
 
 TOOL_NAMES = tuple(f"case_{t}" for t in TOOLS)
-POLICY = Policy(name="case", system="", tools=TOOL_NAMES, max_steps=14, max_replies=8, stop_after=tuple(f"case_{t}" for t in ENDS_TURN))
+POLICY = Policy(name="case", system="", tools=TOOL_NAMES, max_steps=20, max_replies=12, stop_after=tuple(f"case_{t}" for t in ENDS_TURN))  # 2026-11-15: 14 and 8 ended three of eight turns (HAB-002)
 
 
 DECISION_Q = re.compile(r"\b(?:what (?:will|would|do) you (?:do|want to do)|are you deciding|what (?:decision|is the decision)|how will you use|"
@@ -980,7 +1021,7 @@ REWRITE_STRICT = ("[DCLab's code] Your message was cut again and the person woul
 # EUR 0.73 and ended without the code. The check is unchanged (it is the 0 against 139 invented numbers); what is capped is what it
 # costs: a message holds at most SHOWN_WORDS words, and a reply longer than REWRITE_WORDS that loses sentences to the check is not
 # written again by the model (what survived reaches the person, with a plain note).
-SHOWN_WORDS = 300
+SHOWN_WORDS = 450  # 2026-11-15: a person who gave a full brief gets the problem, the approach and the plan in one message (HAB-002: 300 cut them)
 REWRITE_WORDS = 150
 CUT_NOTE = "(That is the short version. Ask me about any part and I will go deeper.)"
 WITHHELD_NOTE = ("(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words "
@@ -1054,6 +1095,7 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     state.wants_figures = (bool(state.table) and C.wants_figures([str(words)])  # this message only: figures first, unless it is a model or a decision
                            and not ({"prediction", "business"} & set(C.named_tracks([str(words)]))))  # asked for (what was said before does not count)
     state.queries = state.query_errors = 0
+    state.no_data_built = False
     state.cards = []
     if state.table and not any(str(c).startswith('{"table": ') for c in state.computed):  # 2026-10-31: code reads the shared
         _read_table(state)  # table (again after a restore), so no model call is spent on it and its counts may be said

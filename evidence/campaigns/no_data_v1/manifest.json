@@ -1,0 +1,6 @@
+{
+  "campaign_id": "no_data_v1",
+  "objective": "The no-data blueprint, measured (gate no_data_gate_v2, fixed 2026-11-15 before any run under it): twelve written English and Persian briefs of people with no data, each with the family an expert would name, the numbers the person stated and domain words written by hand. Three arms scored by the same code on what each returned: DCLab's rules alone, the blueprint with its model roles and gates, and one model request with a neutral prompt and no harness. An arm with no model answer is not measured, never given a constant.",
+  "rule": "A development set of twelve written cases: what the blueprint gets right on them says nothing about other people's problems or production readiness. The first version of this measurement (gate v1) could not fail and is replaced.",
+  "command": "python -m dclab_rnd.agent_eval.no_data [--live --yes --cap-eur N [--limit K]]"
+}

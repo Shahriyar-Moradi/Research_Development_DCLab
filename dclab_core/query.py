@@ -9,7 +9,10 @@ prediction on the same table knows what the person already looked at.
 The rules:
 - every plan aggregates: no plan lists rows, ever;
 - no unknown column; no free-text column in a group or a filter's value; no grouping by an identifier-like column;
-- a sum, mean, median, minimum, maximum or percentile only on a numeric column; at most 3 groups; a limit of at most 500;
+- a sum, mean, median or percentile only on a numeric column; a minimum or maximum on a numeric column or a time (the
+  first and last date); any measure may carry its own condition (``where``: the rows it is computed over), so two periods
+  or two groups are compared in one plan; a condition never names one identifier or a free text, and a conditioned
+  measure over fewer than ``floor`` rows is withheld; at most 3 groups; a limit of at most 500;
 - a group of fewer than ``floor`` rows (5 by default) is removed and counted in ``suppressed_groups``.
 
 The contract is ``QueryPlan`` v1 (a host stores it with the answer) and ``QueryResult`` v1. Only numpy, pandas and
@@ -57,7 +60,7 @@ class Measure(Contract):
     name: str = Field(max_length=80)
     op: MeasureOp
     column: Optional[str] = Field(default=None, max_length=200)  # none for a count of rows
-    where: Optional[Filter] = None  # rate: the share of rows where this holds
+    where: Optional[Filter] = None  # rate: the share of rows where this holds; any other measure: the rows it is computed over (0.159.0)
     q: Optional[float] = Field(default=None, ge=0, le=100)  # percentile: which one
 
 
@@ -105,6 +108,8 @@ def _kinds(frame: pd.DataFrame) -> dict[str, str]:
         elif pd.api.types.is_numeric_dtype(s):  # a number is an identifier only when its name says so (an amount can be unique)
             out[str(c)] = "identifier" if ID_NAME.search(str(c)) and unique / n > 0.95 else "numeric"
         elif pd.api.types.is_datetime64_any_dtype(s):
+            out[str(c)] = "datetime"
+        elif is_time(s):  # dates kept as text (2025-11-28): a time, never an identifier however many distinct days it holds (0.159.0)
             out[str(c)] = "datetime"
         else:
             text = s.dropna().astype(str)
@@ -195,6 +200,9 @@ def validate(plan: QueryPlan, frame: pd.DataFrame) -> list[str]:
         if kinds[f.column] in ("text", "identifier") and f.op not in ("is_null", "not_null"):
             why.append(f"filter: {f.column} is {'free text' if kinds[f.column] == 'text' else 'identifier-like'}; it is not filtered by "
                        "value (filtering one row out of a total would reveal it)")
+        if _names_a_moment(frame, kinds, f):
+            why.append(f"filter: {f.column} is a time with nearly one row a value; compare it with a range (between, gt, lt), "
+                       "never one value (filtering one row out of a total would reveal it)")
         if f.op == "between" and not (isinstance(f.value, list) and len(f.value) == 2):
             why.append(f"filter: between on {f.column} needs two values")
         values = f.value if isinstance(f.value, list) else [f.value]
@@ -211,13 +219,16 @@ def validate(plan: QueryPlan, frame: pd.DataFrame) -> list[str]:
         if plan.period.column in plan.group_by:
             why.append(f"period: {plan.period.column} is also a group")
     for m in plan.measures:
-        if m.where is not None and m.op not in ("count", "rate"):
-            why.append(f"measure {m.name}: a condition (where) belongs to a count or a share, not to {m.op}: {WHERE_FIX}")
-            continue
-        if m.op == "count" and m.where is not None:  # a count of the rows that meet a condition (the owner's Telco session, 2026-11-02)
+        # a measure over the rows that meet a condition: a count (the owner's Telco session, 2026-11-02) and, since 0.159.0, a
+        # sum, a mean or any other measure (HAB-002: "the sum of the amounts in one quarter" was refused eleven times)
+        if m.op != "rate" and m.where is not None:
             if known(m.where.column, f"measure {m.name} condition") and kinds[m.where.column] in ("text", "identifier") \
                     and m.where.op not in ("is_null", "not_null"):
-                why.append(f"measure {m.name}: a count's condition never names one identifier or a free text")
+                why.append(f"measure {m.name}: a measure's condition never names one identifier or a free text")
+            if m.where.column in kinds and _names_a_moment(frame, kinds, m.where):
+                why.append(f"measure {m.name}: {m.where.column} is a time with nearly one row a value; its condition is a range, never one value")
+            if m.where.op == "between" and not (isinstance(m.where.value, list) and len(m.where.value) == 2):
+                why.append(f"measure {m.name}: between needs two values")
         if m.op == "count" and m.column is None:
             continue
         if m.op == "rate":
@@ -225,8 +236,12 @@ def validate(plan: QueryPlan, frame: pd.DataFrame) -> list[str]:
                 why.append(f"measure {m.name}: a rate needs the condition it counts (where). {WHERE_FIX}")
             elif kinds[m.where.column] in ("text", "identifier") and m.where.op not in ("is_null", "not_null"):
                 why.append(f"measure {m.name}: a rate's condition never names one identifier or a free text")
+            elif _names_a_moment(frame, kinds, m.where):
+                why.append(f"measure {m.name}: {m.where.column} is a time with nearly one row a value; a rate's condition is a range, never one value")
             continue
         if known(m.column, f"measure {m.name}"):
+            if m.op in EXTREME and kinds[m.column] != "numeric" and is_time(frame[m.column]):
+                continue  # the first and the last date of a time column
             if m.op in NUMERIC_OPS and kinds[m.column] != "numeric":
                 why.append(f"measure {m.name}: {m.op} needs a numeric column; {m.column} is {kinds[m.column]}")
             if m.op not in ("count", "count_distinct") and kinds[m.column] in ("text", "identifier"):
@@ -244,12 +259,76 @@ def validate(plan: QueryPlan, frame: pd.DataFrame) -> list[str]:
     return why
 
 
+def _names_a_moment(frame: pd.DataFrame, kinds: dict[str, str], f: Filter) -> bool:
+    """A condition that names single values of a time column holding nearly one row a value (a timestamp): the same row
+    differencing an identifier's value would allow (the review of 0.159.0: text dates are times, no longer identifiers)."""
+    if kinds.get(f.column) != "datetime" or f.op not in ("eq", "ne", "in", "not_in"):
+        return False
+    s = frame[f.column]
+    n = len(s)
+    return n > 20 and s.nunique(dropna=True) / n > 0.5
+
+
+_DAY = re.compile(r"^\s*\d{4}-\d{2}-\d{2}\s*$")
+
+
+def _time_mask(s: pd.Series, f: Filter) -> Optional[pd.Series]:
+    """A condition on a time column compared as times, never as text (28/11/2025 against 2025-10-01), a bound given as a
+    day covering the whole of that day (2025-12-31 14:00 is inside "to 2025-12-31"), as a period's end does. None when a
+    bound is no time: the caller then compares the values as they are."""
+    import warnings
+
+    def stamp(v: Any) -> tuple[pd.Timestamp, bool]:
+        t = pd.Timestamp(v)
+        if t is pd.NaT:
+            raise ValueError(v)
+        return (t.tz_convert(None) if t.tzinfo is not None else t), bool(isinstance(v, str) and _DAY.match(v))
+
+    try:
+        values = [stamp(v) for v in (f.value if isinstance(f.value, list) else [f.value])]
+    except (ValueError, TypeError):
+        return None
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        t = pd.to_datetime(s if pd.api.types.is_datetime64_any_dtype(s) else s.astype(str).where(s.notna()), errors="coerce", utc=True).dt.tz_localize(None)
+    day = pd.Timedelta(days=1)
+    upto = lambda v, whole: (t < v + day) if whole else (t <= v)  # noqa: E731
+    if f.op == "between":
+        if len(values) != 2:
+            return None
+        (lo, _), (hi, whole) = values
+        return (t >= lo) & upto(hi, whole)
+    if f.op in ("in", "not_in"):
+        hit = pd.Series(False, index=s.index)
+        for v, whole in values:
+            hit |= (t.dt.normalize() == v) if whole else (t == v)
+        return hit if f.op == "in" else ~hit
+    v, whole = values[0]
+    if f.op == "eq":
+        return (t.dt.normalize() == v) if whole else (t == v)
+    if f.op == "ne":
+        return ~((t.dt.normalize() == v) if whole else (t == v))
+    if f.op == "ge":
+        return t >= v
+    if f.op == "gt":
+        return (t >= v + day) if whole else (t > v)
+    if f.op == "le":
+        return upto(v, whole)
+    if f.op == "lt":
+        return t < v
+    return None
+
+
 def _mask(frame: pd.DataFrame, f: Filter) -> pd.Series:
     s, v = frame[f.column], f.value
     if f.op == "is_null":
         return s.isna()
     if f.op == "not_null":
         return s.notna()
+    if not pd.api.types.is_numeric_dtype(s) and not pd.api.types.is_bool_dtype(s) and is_time(s):
+        timed = _time_mask(s, f)
+        if timed is not None:
+            return timed
     if f.op == "in":
         return s.isin(v if isinstance(v, list) else [v])
     if f.op == "not_in":
@@ -261,7 +340,40 @@ def _mask(frame: pd.DataFrame, f: Filter) -> pd.Series:
     return getattr(s, ops[f.op])(v)
 
 
+_DATE_LIKE = re.compile(r"^\s*(?:\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})(?:[ T]\d{1,2}:\d{2}.*)?\s*$")
+
+
+def is_time(series: pd.Series) -> bool:
+    """A column of dates or times: so typed, or text of which at least half reads as a date (never a number)."""
+    if pd.api.types.is_datetime64_any_dtype(series):
+        return True
+    if pd.api.types.is_numeric_dtype(series) or pd.api.types.is_bool_dtype(series):
+        return False
+    text = series.dropna().astype(str)
+    if not len(text) or text.str.match(_DATE_LIKE).mean() < 0.5:  # written as a date (a year alone, or a code of digits, is none)
+        return False
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return bool(pd.to_datetime(text, errors="coerce", utc=True).notna().mean() >= 0.5)
+
+
 def _measure(rows: pd.DataFrame, m: Measure, floor: int = FLOOR) -> Any:
+    if m.op not in ("count", "rate") and m.where is not None:  # computed over the rows that meet the condition
+        rows = rows[_mask(rows, m.where)]
+        if 0 < len(rows) < floor:
+            return None  # a sum or a mean over one or two rows is those rows' own values: withheld
+    if m.op in EXTREME and m.column is not None and not pd.api.types.is_numeric_dtype(rows[m.column]) and is_time(rows[m.column]):
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            t = pd.to_datetime(rows[m.column].astype(str), errors="coerce", utc=True).dropna()
+        if len(t) < 2 * floor:
+            return None  # one row's own date in a small group: withheld, like any extreme
+        found = t.min() if m.op == "min" else t.max()
+        return found.strftime("%Y-%m-%d") if found == found.normalize() else found.strftime("%Y-%m-%d %H:%M")
     if m.op == "count":
         if m.where is not None:  # only the rows that meet the condition are counted
             rows = rows[_mask(rows, m.where)]
@@ -334,11 +446,15 @@ def exposure(plan: QueryPlan) -> dict[str, Any]:
     analysis becomes a prediction on the same table)."""
     sides = sorted({*plan.group_by, *(f.column for f in plan.filters), *([plan.period.column] if plan.period else [])})
     measured = sorted({c for m in plan.measures for c in ([m.column] if m.column else []) + ([m.where.column] if m.where else [])})
-    return {"plan_hash": plan_hash(plan), "columns_related": [[a, b] for a in sides for b in measured if a != b],
+    related = [[a, b] for a in sides for b in measured if a != b]
+    for m in plan.measures:  # mean(tenure where churned = Yes) compares tenure with churned as a group by churned does
+        if m.where is not None and m.column and m.where.column != m.column and [m.where.column, m.column] not in related:
+            related.append([m.where.column, m.column])
+    return {"plan_hash": plan_hash(plan), "columns_related": related,
             "rows": "filter" if plan.filters else "all"}
 
 
-__all__ = ["QueryPlan", "QueryResult", "Filter", "Period", "Measure", "Sort", "validate", "execute", "exposure", "plan_hash", "FLOOR"]
+__all__ = ["QueryPlan", "QueryResult", "Filter", "Period", "Measure", "Sort", "validate", "execute", "exposure", "plan_hash", "is_time", "FLOOR"]
 
 # The contracts that read this module's names, registered once it is complete: imported here rather than by
 # contracts.py, so `from dclab_core import query` as a program's first import works (contracts.py imports this module

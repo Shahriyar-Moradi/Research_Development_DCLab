@@ -1,0 +1,378 @@
+{
+ "package": "harness-ablation",
+ "title": "The harness against the model alone: four arms on written cases, a judge on another model, and the first divergence of the lead agent read from kept events",
+ "date": "2026-11-15",
+ "request": "The owner brought two plans and a reviewer's comment saying DCLab binds a problem to a fixed type before the model understands it, and asked for the controlled comparison first: the model alone, a minimal agent and the current harness on the same model, with the architecture changed only if traces show where the model's good ideas are lost.",
+ "spec": "Reuse the conversation exam where it already does the job; add what it lacks: an arm with no tools, an arm with read tools and no list of kinds of work, a scripted person, a judge on a model that is not the arms', and an extractor that names the first place the lead agent's code refused or changed the model's move. Every model call through the gateway with the run's own folder and its thinking kept. Nothing sent until the owner froze the cases and committed the lead agent's pending edits.",
+ "plan": [
+  "read the real runtime path and the existing evaluations before designing anything",
+  "diagnose the kept dev exam runs for free: where plain was right and the lead agent wrong, find the first intervention of code",
+  "write eight cases with their key apart: four whose right answer is no model, two outside the six kinds of work, one control",
+  "build the two new arms, the judge, the runner, the manifest and the receipt on the exam's budget and safety code",
+  "test with scripted models, rerun the prompt gates, have the reviewer attack the diff, fix what it finds"
+ ],
+ "decisions": [
+  {
+   "decision": "Extend the conversation exam instead of building a new runner under experiments/",
+   "why": "it already plays the model alone against the lead agent with a blind judge, a budget and kept events; the plans were written without knowing it"
+  },
+  {
+   "decision": "Add an open arm beside the exam's plain arm",
+   "why": "the plain arm's prompt and tools name the same six kinds of work as the lead agent, so it is no control for a forced type; plain against open isolates the closed list, case against plain isolates the gates"
+  },
+  {
+   "decision": "A scripted person, not a simulated one",
+   "why": "three of the eight recorded losses came from the simulated person's own pick; a script removes that noise from a pilot of eight cases"
+  },
+  {
+   "decision": "The judge on Anthropic's endpoint with a fixed tier",
+   "why": "on OpenRouter the exam serves the person, the judge and the arms with one model; a judge must not be the model it judges"
+  },
+  {
+   "decision": "Reason codes tied to fragments of the refusal messages, with a test that each fragment is still in the source",
+   "why": "a reworded message would otherwise be read as no gate having fired"
+  },
+  {
+   "decision": "No ProblemFrame contract in this package",
+   "why": "forcing the current harness to emit it would change the arm that is being measured; it belongs to the late-binding arm"
+  },
+  {
+   "decision": "Refuse a live run until the cases are frozen and the lead agent's code is one commit",
+   "why": "the owner chose a pinned commit for the current-harness arm, and a case edited after a run is a new set"
+  }
+ ],
+ "change": "A new package under the agent evaluations with a runner, two arms, a judge, a first-divergence extractor, eight cases and their key; three prompt files; the campaign added to the bench layers; a make target; a plan document; and a stored result of the free diagnosis.",
+ "findings": [
+  {
+   "id": "HAB-F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The judge's requests were sent on the arms' model, not on Opus, while the manifest and the result said Opus.",
+   "scenario": "The judge's fixed tier was named strong; the judge purpose belongs to the standard tier, so the client moved itself to the standard tier on its first request.",
+   "cause": "A bound client follows the purpose's routing whenever its tier's name differs from the routed one.",
+   "fix": "Name the fixed tier as the purpose's own tier, and assert on the model of the kept judge exchange.",
+   "test": "the thinking test and the end-to-end test read the kept exchange's model",
+   "impact": "The whole pilot would have been judged by the model under test, with a record claiming otherwise.",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A lead-agent conversation with the right route and no refusal was labelled a model error.",
+   "scenario": "The fallback labels written for lost pairs were applied to every conversation of a run.",
+   "cause": "The extractor never checked whether the route was wrong before calling it an error.",
+   "fix": "Call it an error only when the route is not the person's; otherwise no gate, or no route.",
+   "test": "test_a_conversation_no_code_touched_is_an_error_only_when_its_route_is_wrong",
+   "impact": "The count of model errors would have grown with every good conversation.",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A refusal that matched no fragment was read as no gate having fired, against the module's own claim.",
+   "scenario": "A start with a tool outside the list is refused by the registry's schema check, whose message is a library's; the new no-data redirect has its own message.",
+   "cause": "Only the lead agent's own messages were listed.",
+   "fix": "Fragments for the schema refusal and the no-data redirect, and any other refusal of a deciding move kept as other refusal with its words.",
+   "test": "test_a_refused_start_a_second_reading_and_a_route_set_by_code_are_told_apart",
+   "impact": "The closed-list reason, the main hypothesis, could never have been observed.",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The script could never click the lead agent's option cards, and the agent's turn budget was out of reach.",
+   "scenario": "The agent proposes options, the script says go ahead, the agent starts work and its readiness gate refuses because nobody chose.",
+   "cause": "The script only sent words, and stopped one turn before the agent's own budget lifts the gate.",
+   "fix": "The script clicks the first option whose kind of work the key accepts, the turn limit is four, and each conversation records its picks and unpicked options.",
+   "test": "test_the_script_clicks_an_option_the_key_accepts_and_says_go_ahead_otherwise",
+   "impact": "The readiness refusal would have been inflated by the script and read as a gate to fix.",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A turn ended by its reply limit was not seen as a budget ending.",
+   "scenario": "Eight replies of one tool call each end the turn with six steps left.",
+   "cause": "Only a stop with no step left was read.",
+   "fix": "A stop the ledger records as made by the budget rule counts too.",
+   "test": "test_a_turn_ended_by_its_reply_limit_is_a_budget_ending",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The owner's live switch and the workspace's monthly cap did not apply to the run.",
+   "scenario": "The run's gateway lives in the run's folder, where there is no control file and no month of spend.",
+   "cause": "Keeping every exchange under the run's folder moved the gateway's home away from the workspace.",
+   "fix": "Read the workspace's switch and its month of spend before the run folder is made, and refuse.",
+   "test": "test_the_owners_switch_and_monthly_cap_are_read_before_anything_is_sent",
+   "open": "The run's spend is in its own usage log and its result, not in the workspace's monthly log.",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A conversation stopped by the run's cap was scored as an arm's failure with zeros.",
+   "scenario": "The lead agent's arm runs last and costs most, so the cap falls on it.",
+   "cause": "Every broken conversation was appended to the scores.",
+   "fix": "A conversation the cap or the account stopped is kept on disk and left out of the scores.",
+   "test": "test_a_conversation_the_cap_stopped_is_kept_out_of_the_scores",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The documented command's cap was under the runner's own estimate for two repeats.",
+   "scenario": "Sixty-four conversations with an Opus judge are estimated above the documented cap.",
+   "fix": "One repeat by default, the estimate stated, and a note when the cap is under the estimate.",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The judge was asked about numbers no tool computed without seeing any tool output, and one key approach asked for a number the safety check would count as invented.",
+   "scenario": "A stated sample size is a number nobody gave.",
+   "fix": "Numbers are left to code in the judge's prompt, and the key asks how the size would be worked out.",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The plan document claimed more than the stored diagnosis supports.",
+   "scenario": "Runs with no plain arm were listed as comparisons, pairs were called people, and no refusal recorded was written as no code intervened.",
+   "cause": "The diagnosis kept any run with a lead-agent arm.",
+   "fix": "Only runs that played both arms, distinct people counted, what is visible stated, and the limits of the oldest run written down; the result regenerated before any commit.",
+   "test": "test_the_kept_dev_runs_are_read_without_a_sealed_one",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Most openings state two or three of the key's points almost in the key's words.",
+   "scenario": "The share of points understood rewards restating the opening, which the two new prompts ask for.",
+   "fix": "Written as a known weak point for the owner's review of the cases; the route fields of the key are now checked.",
+   "open": "The key's points still need rewriting as inferences the opening does not hand over.",
+   "verdict": "open"
+  },
+  {
+   "id": "HAB-F12",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A run with no model would have stored a result of zeros, the receipt never checked the archive, and the live path had no test.",
+   "scenario": "The live flag with no key gives every arm no client and sixty-four failures.",
+   "fix": "Refuse when no model serves an arm, a receipt that compares every file with the snapshot, more pinned paths, and an end-to-end test of the live path with a scripted transport.",
+   "test": "test_a_live_run_end_to_end_with_a_scripted_transport",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F13",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The lead agent's table tool refused basic questions (a condition on one measure, the first and last date, two periods in one question) and stopped at four questions a turn.",
+   "scenario": "HAB-002: 21 of the 41 times code stepped in were these two refusals; an analysis stopped half way.",
+   "fix": "A condition on any measure, a period, the first and last value of a time column; eight questions and four errors a turn.",
+   "test": "test_one_question_compares_two_periods_and_reads_the_first_and_last_date; test_a_condition_on_a_mean_is_the_mean_of_the_rows_that_meet_it",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F14",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A turn ended before the model could write a plan: 14 steps and 8 replies a turn, about 80 words asked for and 300 shown.",
+   "scenario": "On Claude Sonnet the lead agent's planning was 1.25 where the model alone had 4.00.",
+   "fix": "20 steps, 12 replies, 450 shown words; the prompt allows up to about 300 words with the problem, the approach and a plan of three to five steps when the brief is enough.",
+   "test": "test_a_fifth_query_in_one_turn_is_refused (the limits), the prompt's hash gate",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F15",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The second reading of the person's words could ask for a kind of help the next gate refuses, so every path was closed.",
+   "scenario": "The second reading says advice; the start gate refuses advice because the words ask for data work; the model's own choice was already refused.",
+   "fix": "The second reading drops a kind of work the next gate would refuse (advice when the words ask for data work, a table's work with no table).",
+   "test": "test_the_second_reading_never_asks_for_help_the_next_gate_would_refuse",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F16",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "One unsourced number in an option removed the whole option.",
+   "scenario": "HAB-002: three options dropped by the check.",
+   "fix": "The sentence with the number is removed and the option kept; a number in the title, or an emptied field, still refuses.",
+   "test": "test_a_number_nobody_gave_costs_its_sentence_not_the_option",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F17",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The minimal agent's last request offers no tool and says nothing about it: a model still exploring answers with a tool call written as text.",
+   "scenario": "HAB-006 on Nemotron 3 Ultra: three of eight conversations ended that way and were scored 0 on planning.",
+   "fix": "Not fixed: reported in REPORT.md; the redesign gives the model a last-step signal.",
+   "test": "none",
+   "verdict": "open"
+  },
+  {
+   "id": "HAB-F18",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A text timestamp became a time before the identifier rule, so one value of a nearly unique timestamp could be filtered out of a total.",
+   "scenario": "A sum beside the same sum where the timestamp is not one row's value: both pass the floor and their difference is that row's amount.",
+   "fix": "A condition naming single values of a time column that holds nearly one row a value is refused; a range is allowed.",
+   "test": "test_one_value_of_a_timestamp_is_one_row_and_is_refused",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F19",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A period by day and the first or last date of a column showed the date column's own values without counting them against the case's limit of cell values.",
+   "scenario": "The lead agent moves a period of days across questions and reads any number of dates.",
+   "fix": "A day's label and a date returned by a minimum or a maximum count as shown names; a month's or a quarter's label does not.",
+   "test": "test_a_days_label_and_a_first_date_count_as_cell_values",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F20",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A condition on a date kept as text compared strings.",
+   "scenario": "A date written day first matched nothing against an ISO bound; a timestamp on the end day fell outside a range ending that day; the wrong sum was stated as computed by code.",
+   "fix": "The column and the bounds are read as times; a bound given as a day covers the whole day.",
+   "test": "test_a_day_bound_covers_the_whole_of_that_day_on_a_text_timestamp; test_a_date_written_day_first_is_compared_as_a_date_not_as_text",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F21",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A measure with its own condition compared a column with the outcome and the exposure record did not say so.",
+   "scenario": "The mean of a column where the outcome is yes beside the same where it is no, with no group: nothing recorded, so the later prediction is not warned about that column.",
+   "fix": "The exposure pairs a conditioned measure's column with its condition's column.",
+   "test": "test_a_conditioned_measure_is_recorded_as_a_comparison_with_its_condition",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F22",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The chart sorted bars by a number and a first or last date is text; the title and the headers named a conditioned total as the whole table's.",
+   "scenario": "The last order date by region crashed after the answer was stored; two quarters' totals were both headed total of amount.",
+   "fix": "A date per group is drawn as a table; the description, the header and the Home model's line say the condition (the Home model's line names the column, never a value).",
+   "test": "test_a_first_date_per_group_is_a_table_and_a_conditioned_total_says_its_condition",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "HAB-F23",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The no-data route refused a draft whose kind of help was not chosen yet, and the Home page handled neither the refusal nor an empty plan.",
+   "scenario": "The button on a business draft gave an error; with nothing to predict the page said the blueprint was updated and hid the server's note.",
+   "fix": "An undecided draft is read by the fit check; the button is drawn only for a prediction or an undecided draft; an empty plan reloads the draft and says why.",
+   "test": "tests/test_no_data_solution.py (the route), make web",
+   "verdict": "confirmed"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the kept dev exam runs read again",
+   "gate": "none: a description of recorded conversations, no threshold fixed and none claimed",
+   "fixed_before_run": false,
+   "result": "11 runs played both arms; the lead agent lost the right route on 8 conversations and won it on 12; first reasons of the 8: 3 a wrong option picked, 2 a start refused as not ready where the model asked for the right work, 1 a model error, 1 a broken run, 1 work done with no route recorded",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "the pilot, once the owner froze the cases and committed the lead agent's edits",
+   "limits": [
+    "dev runs were tuned on and some people were replayed",
+    "only refused or changed tool calls are visible",
+    "five of the eight are from a run that kept no route changes",
+    "another model and older gates than today's"
+   ]
+  },
+  {
+   "name": "HAB-002: the four arms on qwen/qwen3.8-flash, 32 conversations",
+   "gate": "none: a pilot for traces and reason codes",
+   "fixed_before_run": false,
+   "result": "no arm differs from another outside its interval; the lead agent's code stepped in 41 times, first the table tool that could not ask the question (11) and its limit of four questions a turn (10); two judges agree on accepted or not for 25 of 32",
+   "verdict": "not scored",
+   "cost_eur": 0.33,
+   "next": "the same cases on a strong model",
+   "limits": [
+    "few written cases, each played once; the judge is a model; no owner labels",
+    "a third of the baseline answers were short or empty under the runner's own limits"
+   ]
+  },
+  {
+   "name": "HAB-003 + HAB-004: the four arms on anthropic/claude-sonnet-5.5 (the last Claude run), judged by nvidia/nemotron-3.5-super-vl:free",
+   "gate": "none: a pilot read for traces and reason codes, no threshold fixed and none claimed",
+   "fixed_before_run": false,
+   "result": "planning: model only 4.00, minimal agent 3.50, with the six kinds of work 2.25, lead agent 1.25; lead agent minus minimal agent on planning -2.25 [-3.12, -1.00]; numbers nobody gave: minimal agent 76, lead agent 0",
+   "verdict": "not scored",
+   "cost_eur": 2.93,
+   "next": "three fixes to the lead agent, then the lead agent alone again",
+   "limits": [
+    "few written cases, each played once; the judge is a model; no owner labels",
+    "by the owner's rule of the same day no test uses a Claude model again"
+   ]
+  },
+  {
+   "name": "HAB-007 to HAB-010: the lead agent on qwen/qwen3.8-flash after three fixes, against HAB-002 under one judge",
+   "gate": "none: a pilot read for traces and reason codes, no threshold fixed and none claimed",
+   "fixed_before_run": false,
+   "result": "understanding 2.62 to 3.38 (+0.75 [0.37, 1.25]); design 3.12 to 3.38; planning 1.88 to 2.38 (+0.50 [-0.12, 1.25], not outside noise); accepted 4 to 6 of 8; seconds 138 to 195; the table tool's two refusals 21 to 2; numbers nobody gave 0 and 0",
+   "verdict": "not scored",
+   "cost_eur": 0.1,
+   "next": "the redesign: a free layer for understanding and planning over the strict execution layer",
+   "limits": [
+    "few written cases, each played once; the judge is a model; no owner labels",
+    "only the lead agent's eight conversations were run again"
+   ]
+  },
+  {
+   "name": "HAB-006 and HAB-011 + HAB-012: the four arms on nvidia/nemotron-3-ultra-550b-a55b:free and nvidia/nemotron-3.5-super-vl:free",
+   "gate": "none: a pilot read for traces and reason codes, no threshold fixed and none claimed",
+   "fixed_before_run": false,
+   "result": "planning alone 3.75 and 3.38; in the lead agent 1.50 and 1.75; on Nemotron 3.5 Super the lead agent minus the minimal agent is -1.12 [-1.88, -0.38]; on Ultra three of eight minimal-agent conversations ended on the runner's limit of ten requests with a tool call written as text, and one crashed; under one judge the lead agent on Qwen flash (6 of 8 accepted) is above the lead agent on Ultra (2 of 8)",
+   "verdict": "not scored",
+   "cost_eur": 0.3,
+   "next": "a last-request signal for the minimal agent; the redesign",
+   "limits": [
+    "few written cases, each played once; the judge is a model; no owner labels",
+    "the four cut Ultra conversations were not run again",
+    "Nemotron 3.5 Super was an arm model and, for other rows, the judge: it never judged itself"
+   ]
+  }
+ ],
+ "outcome": "The runner, the arms, the judge and the extractor are built and tested with scripted models; the free diagnosis is stored; no live run was made. Two of eight recorded losses show a valid proposal refused by the readiness gate, which points at one gate and not at the architecture. After the pilot: five model runs judged (benchmark and REPORT.md under docs/evaluations/harness-vs-model), three fixes to the lead agent measured before and after, and the direction for the redesign: a free layer for understanding and planning over the strict execution layer.",
+ "lessons": [
+  "Read the working tree before accepting a diagnosis written from a quick read of the repository: the lead agent never chose a family, and the comparison asked for already existed.",
+  "A fixed tier given to a bound client must carry the purpose's own tier name, or the client moves to the routed tier on its first request; assert the model of the kept exchange, not the value passed in.",
+  "A label written for failures must not be applied to every case: check the outcome is wrong before calling it an error.",
+  "A script that cannot do what a person does in the product (click an option) creates the refusals it then counts.",
+  "A harness test on a weak model hides the harness: on Qwen flash the arms were equal, on a strong model the lead agent lost 2.25 points of planning.",
+  "Read the conversations before explaining a score: the minimal agent's low score on Nemotron Ultra was the runner's request limit, not the model's use of tools.",
+  "A closed list of kinds of work offered at the start narrows the answer even when it is not a problem type: it took planning from 3.50 to 2.25 on one model and from 2.88 to 1.38 on another.",
+  "Rerun only the arm whose code changed, in parallel processes, and count the recorded refusals before paying for a judge.",
+  "Widening what a query may ask changes every reader of its result and every privacy rule keyed on a column's kind: check the chart, the labels, the exposure record and the cell-value count in the same change."
+ ],
+ "risks": [
+  "The author of the cases also knows the harness",
+  "A judge cannot be blind to an arm's manner",
+  "Eight cases cannot support a claim that one arm is better",
+  "A weaker model may need a harness more than a strong one",
+  "Planning after the fixes (2.38) is still far below what a good model reaches alone (3.4 to 4.0); the gain on planning is inside the noise."
+ ],
+ "commits": []
+}

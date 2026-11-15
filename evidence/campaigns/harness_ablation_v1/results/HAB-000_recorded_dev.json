@@ -1,0 +1,454 @@
+{
+ "id": "HAB-000",
+ "split": "dev",
+ "at": "2026-11-15T07:58:41+00:00",
+ "what": "the kept dev conversation-exam runs read again: no model call",
+ "spent_eur": 0.0,
+ "runs": [
+  {
+   "run": "CEX-009",
+   "split": "dev",
+   "at": "2026-10-30T17:52:53+00:00",
+   "model": "claude-sonnet-5-5 (the product's)",
+   "people": 41,
+   "plain_right_case_wrong": [
+    "d-08",
+    "d-19",
+    "d-20",
+    "d-35",
+    "d-37"
+   ],
+   "case_right_plain_wrong": [
+    "d-05",
+    "d-11",
+    "d-33"
+   ]
+  },
+  {
+   "run": "CEX-020",
+   "split": "dev",
+   "at": "2026-11-01T02:15:00+04:00",
+   "model": "claude-sonnet-5-5 (the product's)",
+   "people": 10,
+   "plain_right_case_wrong": [],
+   "case_right_plain_wrong": [
+    "d-25",
+    "d-40"
+   ]
+  },
+  {
+   "run": "CEX-022",
+   "split": "dev",
+   "at": "2026-10-31T23:02:10+00:00",
+   "model": "claude-sonnet-5-5 (the product's)",
+   "people": 3,
+   "plain_right_case_wrong": [],
+   "case_right_plain_wrong": []
+  },
+  {
+   "run": "CEX-024",
+   "split": "dev",
+   "at": "2026-10-31T23:23:29+00:00",
+   "model": "claude-sonnet-5-5 (the product's)",
+   "people": 1,
+   "plain_right_case_wrong": [],
+   "case_right_plain_wrong": [
+    "d-40"
+   ]
+  },
+  {
+   "run": "CEX-025",
+   "split": "dev_route",
+   "at": "2026-11-01T17:11:09+00:00",
+   "model": "claude-sonnet-5-5 (the product's)",
+   "people": 10,
+   "plain_right_case_wrong": [],
+   "case_right_plain_wrong": [
+    "r-04",
+    "r-08"
+   ]
+  },
+  {
+   "run": "CEX-026",
+   "split": "dev_route",
+   "at": "2026-11-01T18:32:04+00:00",
+   "model": "claude-sonnet-5-5 (the product's)",
+   "people": 1,
+   "plain_right_case_wrong": [],
+   "case_right_plain_wrong": [
+    "r-11"
+   ]
+  },
+  {
+   "run": "CEX-027",
+   "split": "dev_route",
+   "at": "2026-11-01T18:47:38+00:00",
+   "model": "claude-sonnet-5-5 (the product's)",
+   "people": 2,
+   "plain_right_case_wrong": [
+    "r-17"
+   ],
+   "case_right_plain_wrong": []
+  },
+  {
+   "run": "CEX-029",
+   "split": "dev_route",
+   "at": "2026-11-01T19:19:01+00:00",
+   "model": "claude-sonnet-5-5 (the product's)",
+   "people": 2,
+   "plain_right_case_wrong": [],
+   "case_right_plain_wrong": []
+  },
+  {
+   "run": "CEX-030",
+   "split": "dev_route",
+   "at": "2026-11-01T19:30:30+00:00",
+   "model": "claude-sonnet-5-5 (the product's)",
+   "people": 10,
+   "plain_right_case_wrong": [
+    "r-17"
+   ],
+   "case_right_plain_wrong": [
+    "r-04",
+    "r-08",
+    "r-11"
+   ]
+  },
+  {
+   "run": "CEX-031",
+   "split": "dev_route",
+   "at": "2026-11-01T19:34:02+00:00",
+   "model": "claude-sonnet-5-5 (the product's)",
+   "people": 1,
+   "plain_right_case_wrong": [],
+   "case_right_plain_wrong": []
+  },
+  {
+   "run": "CEX-033",
+   "split": "dev_real",
+   "at": "2026-11-02T06:44:36+00:00",
+   "model": "claude-sonnet-5-5 (the product's)",
+   "people": 3,
+   "plain_right_case_wrong": [
+    "q-01"
+   ],
+   "case_right_plain_wrong": []
+  }
+ ],
+ "lost_pairs": [
+  {
+   "run": "CEX-009",
+   "id": "d-08",
+   "folder": "agent_runs/live_tests/2026-10-30-conversation-exam/CEX-009/case/d-08",
+   "events": 16,
+   "first": {
+    "reason": "model_error",
+    "at": null,
+    "seq": null,
+    "tool": null,
+    "wanted": null,
+    "wanted_right": null,
+    "safety": false,
+    "before_route": null,
+    "evidence": "ended routed, route advice/cited_answer by self"
+   },
+   "all": [],
+   "route": "advice",
+   "tool": "cited_answer",
+   "routed_by": "self",
+   "not_detectable": [
+    "result_truncated",
+    "reply_rewritten",
+    "context_missing"
+   ],
+   "case_changes_kept": false
+  },
+  {
+   "run": "CEX-009",
+   "id": "d-19",
+   "folder": "agent_runs/live_tests/2026-10-30-conversation-exam/CEX-009/case/d-19",
+   "events": 27,
+   "first": {
+    "reason": "picked_wrong_option",
+    "at": null,
+    "seq": null,
+    "tool": null,
+    "wanted": null,
+    "wanted_right": null,
+    "safety": false,
+    "before_route": null,
+    "evidence": "ended turns, route advice/cited_answer by option"
+   },
+   "all": [],
+   "route": "advice",
+   "tool": "cited_answer",
+   "routed_by": "option",
+   "not_detectable": [
+    "result_truncated",
+    "reply_rewritten",
+    "context_missing"
+   ],
+   "case_changes_kept": false
+  },
+  {
+   "run": "CEX-009",
+   "id": "d-20",
+   "folder": "agent_runs/live_tests/2026-10-30-conversation-exam/CEX-009/case/d-20",
+   "events": 12,
+   "first": {
+    "reason": "start_refused_not_ready",
+    "at": "2026-10-30T18:37:17.293443+00:00",
+    "seq": 1093,
+    "tool": "case_start",
+    "wanted": {
+     "track": "preparation",
+     "tool": "recipe"
+    },
+    "wanted_right": true,
+    "safety": false,
+    "before_route": true,
+    "evidence": "error: the person has not chosen and the case is not ready: decision is not known yet; user is not known yet"
+   },
+   "all": [
+    {
+     "reason": "start_refused_not_ready",
+     "at": "2026-10-30T18:37:17.293443+00:00",
+     "seq": 1093,
+     "tool": "case_start",
+     "wanted": {
+      "track": "preparation",
+      "tool": "recipe"
+     },
+     "wanted_right": true,
+     "safety": false,
+     "before_route": true,
+     "evidence": "error: the person has not chosen and the case is not ready: decision is not known yet; user is not known yet"
+    },
+    {
+     "reason": "options_dropped",
+     "at": "2026-10-30T18:37:46.425120+00:00",
+     "seq": 1113,
+     "tool": "case_propose",
+     "wanted": {
+      "tracks": [
+       "analysis",
+       "preparation"
+      ]
+     },
+     "wanted_right": true,
+     "safety": false,
+     "before_route": true,
+     "evidence": "{\"shown\": [\"Cut only rows the revenue report can't use\", \"Count the blanks first, then decide\"], \"refused\": {\"Delete every row with any blank, as you asked\": \"the same kind as an option already kept\"}, \"next\": \"the person sees these under your message: now write that message (a sentence or two leadi"
+    }
+   ],
+   "route": "analysis",
+   "tool": "query",
+   "routed_by": "option",
+   "not_detectable": [
+    "result_truncated",
+    "reply_rewritten",
+    "context_missing"
+   ],
+   "case_changes_kept": false
+  },
+  {
+   "run": "CEX-009",
+   "id": "d-35",
+   "folder": "agent_runs/live_tests/2026-10-30-conversation-exam/CEX-009/case/d-35",
+   "events": 22,
+   "first": {
+    "reason": "picked_wrong_option",
+    "at": null,
+    "seq": null,
+    "tool": null,
+    "wanted": null,
+    "wanted_right": null,
+    "safety": false,
+    "before_route": null,
+    "evidence": "ended routed, route advice/cited_answer by option"
+   },
+   "all": [],
+   "route": "advice",
+   "tool": "cited_answer",
+   "routed_by": "option",
+   "not_detectable": [
+    "result_truncated",
+    "reply_rewritten",
+    "context_missing"
+   ],
+   "case_changes_kept": false
+  },
+  {
+   "run": "CEX-009",
+   "id": "d-37",
+   "folder": "agent_runs/live_tests/2026-10-30-conversation-exam/CEX-009/case/d-37",
+   "events": 28,
+   "first": {
+    "reason": "picked_wrong_option",
+    "at": null,
+    "seq": null,
+    "tool": null,
+    "wanted": null,
+    "wanted_right": null,
+    "safety": false,
+    "before_route": null,
+    "evidence": "ended routed, route business/business_brief by option"
+   },
+   "all": [],
+   "route": "business",
+   "tool": "business_brief",
+   "routed_by": "option",
+   "not_detectable": [
+    "result_truncated",
+    "reply_rewritten",
+    "context_missing"
+   ],
+   "case_changes_kept": false
+  },
+  {
+   "run": "CEX-027",
+   "id": "r-17",
+   "folder": "agent_runs/live_tests/2026-11-01-conversation-exam/CEX-027/case/r-17",
+   "events": 27,
+   "first": {
+    "reason": "start_refused_not_ready",
+    "at": "2026-11-01T18:48:00.313035+00:00",
+    "seq": 34,
+    "tool": "case_start",
+    "wanted": {
+     "track": "preparation",
+     "tool": "recipe"
+    },
+    "wanted_right": true,
+    "safety": false,
+    "before_route": true,
+    "evidence": "error: the person has not chosen and the case is not ready: decision is not known yet; user is not known yet; the person said their goal and named the help they want (preparation: \"clean this\"): propose now, stating what is open as assumptions"
+   },
+   "all": [
+    {
+     "reason": "start_refused_not_ready",
+     "at": "2026-11-01T18:48:00.313035+00:00",
+     "seq": 34,
+     "tool": "case_start",
+     "wanted": {
+      "track": "preparation",
+      "tool": "recipe"
+     },
+     "wanted_right": true,
+     "safety": false,
+     "before_route": true,
+     "evidence": "error: the person has not chosen and the case is not ready: decision is not known yet; user is not known yet; the person said their goal and named the help they want (preparation: \"clean this\"): propose now, stating what is open as assumptions"
+    }
+   ],
+   "route": "advice",
+   "tool": "cited_answer",
+   "routed_by": "option",
+   "not_detectable": [
+    "result_truncated",
+    "reply_rewritten",
+    "context_missing"
+   ],
+   "case_changes_kept": true
+  },
+  {
+   "run": "CEX-030",
+   "id": "r-17",
+   "folder": "agent_runs/live_tests/2026-11-01-conversation-exam/CEX-025/case/r-17",
+   "events": 0,
+   "first": {
+    "reason": "arm_error",
+    "at": null,
+    "seq": null,
+    "tool": null,
+    "wanted": null,
+    "wanted_right": null,
+    "safety": false,
+    "before_route": null,
+    "evidence": "ended error, route None/None by None"
+   },
+   "all": [],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "not_detectable": [
+    "result_truncated",
+    "reply_rewritten",
+    "context_missing"
+   ],
+   "case_changes_kept": true
+  },
+  {
+   "run": "CEX-033",
+   "id": "q-01",
+   "folder": "agent_runs/live_tests/2026-11-02-conversation-exam/CEX-033/case/q-01",
+   "events": 9,
+   "first": {
+    "reason": "work_done_no_route",
+    "at": null,
+    "seq": null,
+    "tool": null,
+    "wanted": null,
+    "wanted_right": null,
+    "safety": false,
+    "before_route": null,
+    "evidence": "figures were shown, and no route was recorded for the conversation"
+   },
+   "all": [
+    {
+     "reason": "work_done_no_route",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "figures were shown, and no route was recorded for the conversation"
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "not_detectable": [
+    "result_truncated",
+    "reply_rewritten",
+    "context_missing"
+   ],
+   "case_changes_kept": true
+  }
+ ],
+ "first_reason_counts": {
+  "picked_wrong_option": 3,
+  "start_refused_not_ready": 2,
+  "model_error": 1,
+  "arm_error": 1,
+  "work_done_no_route": 1
+ },
+ "lost": 8,
+ "won": 12,
+ "lost_people": [
+  "d-08",
+  "d-19",
+  "d-20",
+  "d-35",
+  "d-37",
+  "q-01",
+  "r-17"
+ ],
+ "won_people": [
+  "d-05",
+  "d-11",
+  "d-25",
+  "d-33",
+  "d-40",
+  "r-04",
+  "r-08",
+  "r-11"
+ ],
+ "what_is_visible": "refused or changed calls of the lead agent's tools, and (where case.changed was kept) the route's changes; a lost pair with no such event is not proof that no code shaped it",
+ "not_detectable": [
+  "result_truncated",
+  "reply_rewritten",
+  "context_missing"
+ ]
+}

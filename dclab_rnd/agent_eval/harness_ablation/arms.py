@@ -1,0 +1,139 @@
+"""The two arms the conversation exam does not have (the exam's ``plain`` and ``case`` arms are used as they are):
+
+* ``model_only`` (arm A): one request, no tools. The model gets the person's words and, when a table is shared, the same
+  column view the other arms can read (names, kinds, what DCLab noticed, the row count; never a value). It is compared on
+  understanding and the plan only, never on work done.
+* ``open`` (arm B): one model loop with the read tools (the table's profile, an aggregate query, the leakage check, a
+  cleaning preview) and a neutral prompt. Unlike the exam's ``plain`` arm it is given no list of kinds of work and no tool
+  that names one, so nothing asks it to file the problem under a type. ``plain`` against ``open`` therefore measures the
+  closed list alone; ``case`` against ``plain`` measures the lead agent's case file, gates and budgets.
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Any, Mapping, Optional
+
+from dclab_rnd import prompts
+
+from ..conversation_exam.arms import DATA_TOOLS, PLAIN_TOOLS, table_view
+
+# The two arms' own limits (2026-11-15). With the exam's (five model requests a turn, 6,000 tokens) 8 of 24 baseline answers
+# of HAB-002 came back empty or cut: a turn that spent its requests on tools had none left for its words, and a thinking
+# model used the tokens before the answer. A baseline held back by the runner says nothing about the harness.
+MAX_CALLS = 10
+MAX_TOKENS = 16000
+
+MODEL_ONLY_PROMPT = "ablation_model_only"
+OPEN_PROMPT = "ablation_minimal_agent"
+READ_TOOLS = [PLAIN_TOOLS[0], *DATA_TOOLS]  # profile_table and the lead agent's own data tools: reads only
+NO_ROUTE = {"route": None, "tool": None, "routed_by": None}
+
+
+def view_text(upload: Optional[str]) -> str:
+    """The shared table as the model-only arm reads it: what ``profile_table`` returns to the other arms."""
+    if not upload:
+        return ""
+    from ..home import tables
+
+    return json.dumps({"table": f"{upload}.csv", "rows": len(tables.build(upload)), "columns": table_view(upload)}, default=str)
+
+
+class ModelOnlyArm:
+    name = "model_only"
+
+    def __init__(self, client: Any):
+        self.client = client
+        self.computed: list[str] = []
+
+    def open(self, person: Mapping[str, Any]) -> dict[str, Any]:
+        view = view_text(person.get("upload"))
+        if view:
+            self.computed.append(view)
+        words = str(person["opening"]) + (f"\n\n(I shared a table: {person['upload']}.csv)\n\nThe table, without its values:\n{view}" if view else "")
+        out = self.client.complete([{"role": "system", "content": prompts.text(MODEL_ONLY_PROMPT)}, {"role": "user", "content": words}],
+                                   None, max_tokens=MAX_TOKENS)
+        return {"text": str(out.get("content") or "").strip(), "choices": []}
+
+    def send(self, words: str) -> dict[str, Any]:
+        raise RuntimeError("the model-only arm answers once: it is never sent a second message")
+
+    def outcome(self) -> dict[str, Any]:
+        return dict(NO_ROUTE)
+
+    def sources(self) -> list[str]:
+        return list(self.computed)
+
+    def notes(self) -> dict[str, Any]:
+        return {}
+
+
+class OpenArm:
+    name = "open"
+
+    def __init__(self, client: Any):
+        self.client = client
+        self.messages: list[dict[str, Any]] = [{"role": "system", "content": prompts.text(OPEN_PROMPT)}]
+        self.upload: Optional[str] = None
+        self.frame: Any = None
+        self.computed: list[str] = []
+        self.group_names: set[str] = set()
+        self.calls: list[dict[str, Any]] = []  # every tool call and whether it was answered or refused (the arm's own trace)
+
+    def open(self, person: Mapping[str, Any]) -> dict[str, Any]:
+        self.upload = person.get("upload") or None
+        if self.upload:
+            from ..home import tables
+
+            self.frame = tables.build(self.upload)
+        return self.send(str(person["opening"]) + (f"\n\n(I shared a table: {self.upload}.csv)" if self.upload else ""))
+
+    def send(self, words: str) -> dict[str, Any]:
+        self.messages.append({"role": "user", "content": words})
+        said: list[str] = []
+        tools = READ_TOOLS if self.upload else None
+        for n in range(MAX_CALLS):
+            # the last request of a turn is for its words: no tool is offered then, so a turn never ends silent
+            out = self.client.complete(self.messages, tools if n < MAX_CALLS - 1 else None, max_tokens=MAX_TOKENS)
+            self.messages.append(out.get("assistant_message") or {"role": "assistant", "content": out.get("content") or ""})
+            if str(out.get("content") or "").strip():
+                said.append(str(out["content"]).strip())
+            calls = out.get("tool_calls") or []
+            if not calls:
+                break
+            for c in calls:
+                value = self._run(c["name"], c.get("arguments") or {})
+                self.calls.append({"tool": c["name"], "ok": "error" not in value})
+                self.messages.append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps(value, default=str)})
+        return {"text": "\n\n".join(said), "choices": []}
+
+    def _run(self, name: str, args: Mapping[str, Any]) -> dict[str, Any]:
+        from dclab_rnd.agents import data_tools
+
+        if self.frame is None:
+            return {"error": "no table has been shared"}
+        if name == "profile_table":
+            value: dict[str, Any] = {"table": f"{self.upload}.csv", "rows": len(self.frame), "columns": table_view(self.upload)}
+        elif name in ("query_table", "check_leakage", "preview_step"):
+            fn = {"query_table": "query", "check_leakage": "leakage", "preview_step": "preview_step"}[name]
+            kept = {k: v for k, v in args.items() if k in set(data_tools.SCHEMAS[fn]["properties"])}  # the schema the lead agent's registry checks
+            if fn == "query":
+                kept["seen"] = self.group_names
+            try:
+                value = data_tools.TOOLS[fn](self.frame, **kept)
+            except TypeError as error:
+                return {"error": f"the arguments do not fit the tool: {error}"[:300]}
+        else:
+            return {"error": f"no tool {name!r} here"}
+        if "error" not in value:
+            self.computed.append(json.dumps(value, default=str))
+        return value
+
+    def outcome(self) -> dict[str, Any]:
+        return dict(NO_ROUTE)
+
+    def sources(self) -> list[str]:
+        return list(self.computed)
+
+    def notes(self) -> dict[str, Any]:
+        return {"tool_calls": list(self.calls)}

@@ -1,0 +1,1047 @@
+{
+ "id": "HAB-010",
+ "split": "dev",
+ "at": "2026-11-15T12:39:57+00:00",
+ "arms": [
+  "case"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": null,
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.012,
+ "cap_eur": 0.3,
+ "kept": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-010",
+ "manifest": {
+  "run_id": "HAB-010",
+  "at": "2026-11-15T12:39:57+00:00",
+  "arms": [
+   "case"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.3,
+  "code": {
+   "commit": "22ad1bf806f3ef9f3f9260499e11a4473c57f25f",
+   "dirty": [
+    "dclab_core/CHANGELOG.md",
+    "dclab_core/__init__.py",
+    "dclab_core/case.py",
+    "dclab_core/pyproject.toml",
+    "dclab_core/query.py",
+    "dclab_rnd/agents/case_agent.py",
+    "dclab_rnd/agents/data_tools.py",
+    "dclab_rnd/draft/api.py",
+    "dclab_rnd/draft/chat.py",
+    "dclab_rnd/draft/no_data.py",
+    "dclab_rnd/draft/no_data_harness.py",
+    "dclab_rnd/prompts/case_agent.md",
+    "dclab_rnd/agent_eval/harness_ablation/",
+    "dclab_rnd/prompts/ablation_judge.md",
+    "dclab_rnd/prompts/ablation_minimal_agent.md",
+    "dclab_rnd/prompts/ablation_model_only.md",
+    "dclab_rnd/prompts/no_data_compact_json.md",
+    "dclab_rnd/prompts/no_data_eval_plain.md",
+    "dclab_rnd/prompts/no_data_expert_brief.md",
+    "dclab_rnd/prompts/no_data_schema_brief.md",
+    "dclab_rnd/prompts/no_data_workflow_repair.md"
+   ],
+   "diff_sha256": "126848a9734f13fde0dbaf7fa2e79b0fc477fa47656907062e84749c3af9d9ad",
+   "untracked_sha256": "d2976321c45a2fe7824020c02b397c08ff7312962f5175ed4453f3a580c1bcee",
+   "untracked_files": 17
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": null,
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "546af3a142a56f09",
+   "route_check": "61027a2803db8856"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "a013f01fd377ee81"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "67a47729b96ad6f30fb3eaaabf52e040bbfe86a4424672c85f3e369371eb1275",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "after-three-fixes"
+ },
+ "capture": {
+  "exchanges": 21,
+  "ok": 21,
+  "whole": 21,
+  "with_thinking": 21,
+  "without_thinking": [],
+  "purposes": [
+   "case_agent",
+   "route_check"
+  ]
+ },
+ "label": "after-three-fixes",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
+ "code": "uncommitted edits (the owner's choice): see manifest.code",
+ "conversations": [
+  {
+   "id": "hab-07",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Short answer: no — a prediction model is not the first thing you need, and I'd push back on the consultant gently. Your cost problem is a *planning* problem, not a *forecasting* problem. Every morning you already know the orders, their addresses and their promised windows. Nothing is unknown. What you don't know is whether the sequence you chose is close to the cheapest one that still hits the windows. A prediction model answers \"what will happen\"; your money is lost in \"what should I do\" — which van takes which stops, in what order. Prediction only becomes valuable later, as an input to that plan (drive time between zones at 5pm vs 10am, chance a stop misses its window). What I'd do first, in order:\n\n1. Get a baseline you can defend. A few days of the order log plus the GPS traces, turned into km per stop, stops per driver-hour, load per van, and % of deliveries outside the promised window — split by area and driver. Without this, any saving is a guess. 2. Find where the waste sits. 3. Re-plan one real day and compare. Take a day's orders, build window-respecting assignments and sequences, then measure that plan against the routes your traces show were actually driven. That comparison is the honest test — better on paper, and your own knowledge of delivery access and building parking gets to disagree with it. 4. Only then consider a model, for travel times and lateness risk. The single thing that unblocks all of this is the export. Three options below — which one fits how you want to start?\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": [
+      {
+       "title": "First measure what today's routing really costs",
+       "what": "You export the order log (address, time window, promised vs actual delivery) and the GPS traces (per-van positions/km/hours). DCLab turns them into a daily baseline: km per stop, stops per driver-hour, load factor per van, % of deliveries outside the promised window, split by area and by driver. You get: A number you can defend: where the fuel and hours actually go, and how big the prize is before you spend anything on modelling. Trade-off: It doesn't change tomorrow's routes by itself — it tells you which part of the plan to fix. Effort: Small: one export of a few days, results in this chat the same day.",
+       "track": "analysis",
+       "tool": "query",
+       "kind": "option"
+      },
+      {
+       "title": "Fix the morning plan itself (routing, not prediction)",
+       "what": "Treat it as a vehicle-routing problem: take one day's orders and build van assignments and sequences that respect the time windows while minimising km and driver hours, then compare that plan against the routes the GPS traces show you actually drove. You get: A saving you can measure in km and hours on the very next day you run it, plus a simple checklist for the morning. Trade-off: Needs reasonably clean addresses and time windows; the first version will still need your local knowledge (one-way streets, Dubai delivery access, building parking) to be trusted. Effort: Medium: a week of order history plus one day's GPS export, then an iterative first plan.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      },
+      {
+       "title": "Predict travel time and lateness risk per stop",
+       "what": "A model on the GPS traces and order log: expected drive time between zones by time of day (Sheikh Zayed Road at 5pm vs 10am), and the chance a stop misses its window. You get: Better inputs for the routing plan and for what you promise customers — useful once the routing logic exists. Trade-off: On its own it changes nothing: a prediction tells you what will happen, not what to do. Built first, it costs time and leaves the fuel bill where it is. Effort: Large: needs weeks of clean traces, feature work and a holdout before you'd trust it.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Done — I chose the routing/planning work over a prediction model, and started it as a decision brief. What happens next. DCLab is writing the brief for your morning plan: how to turn 300 orders and 12 vans into window-respecting assignments and sequences, where the two cost lines (km driven, driver hours) actually come from, and what to check before a new plan goes on the road. It states plainly what is assumed — that the money is lost in assignment and sequence rather than in not knowing tomorrow's demand — so you can correct it if your experience says otherwise. What I need from you to move past paper: the export, two files covering the same days (a fortnight is plenty). - **Order log, one row per order:** date, order timestamp, address plus area/district, promised window start and end, basket size or weight/volume, assigned van, and whether it was delivered inside the window. - **GPS traces:** van ID, timestamp, latitude/longitude at roughly the same interval for all vans — no need to clean them, raw is fine. Once those land, two things follow in order: a baseline (km per stop, stops per driver-hour, % outside the window, by area and driver), then re-planning one real day and scoring it against the routes the traces show were actually driven. That comparison is the honest test — better on paper, and your own knowledge of delivery access and building parking gets to overrule it. Prediction comes last, and only if travel time or lateness risk turns out to be the swing factor.",
+     "choices": []
+    }
+   ],
+   "route": "business",
+   "tool": "business_brief",
+   "routed_by": "self",
+   "ended": "answered",
+   "assistant_turns": 2,
+   "picked": 0,
+   "options_unpicked": 1,
+   "silent": 0,
+   "seconds": [
+    71.81,
+    53.05
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-07",
+     "version": 14,
+     "words": [
+      "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Cut the cost of running ~300 grocery deliveries a day on 12 vans in Dubai — fuel and driver hours are too high.",
+      "status": "said",
+      "quote": "Fuel and driver hours cost too much.",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Each morning: which orders go on which van and in what sequence, given each order's address and promised time window.",
+      "status": "said",
+      "quote": "I am the one who plans the routes every morning.",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "The delivery lead himself — the person who plans the routes every morning; needs something usable before the vans leave.",
+      "status": "said",
+      "quote": "I run deliveries for a grocery company in Dubai",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "An order log (address + promised time window) and van GPS traces exist, but nothing has been exported to DCLab yet. Scale: 12 vans, ~300 orders/day.",
+      "status": "said",
+      "quote": "I have the order log and the vans' GPS traces, but I have not exported them yet.",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [
+      {
+       "value": "The money is lost mostly in route assignment and sequence (km driven, idle/idling hours, failed or late windows), not in not knowing tomorrow's demand — so a route-optimisation problem, with prediction only as an optional input.",
+       "status": "confirmed",
+       "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "unknowns": [
+      {
+       "field": "baseline_cost",
+       "question": "What the current plan costs per day and per stop (km per van, driver hours, % of deliveries late vs promised window) — needed to size any saving.",
+       "blocks": "some",
+       "rank": 1
+      },
+      {
+       "field": "export_ready",
+       "question": "What fields the order log and GPS traces can be exported with (order date/time, address or area, promised window start/end, van, driver, GPS timestamps, stop arrive/depart) and how many days of history they can give.",
+       "blocks": "some",
+       "rank": 1
+      }
+     ],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "First measure what today's routing really costs",
+       "what": "You export the order log (address, time window, promised vs actual delivery) and the GPS traces (per-van positions/km/hours). DCLab turns them into a daily baseline: km per stop, stops per driver-hour, load factor per van, % of deliveries outside the promised window, split by area and by driver.",
+       "gets": "A number you can defend: where the fuel and hours actually go, and how big the prize is before you spend anything on modelling.",
+       "tradeoff": "It doesn't change tomorrow's routes by itself — it tells you which part of the plan to fix.",
+       "effort": "Small: one export of a few days, results in this chat the same day.",
+       "track": "analysis",
+       "tool": "query",
+       "columns": []
+      },
+      {
+       "title": "Fix the morning plan itself (routing, not prediction)",
+       "what": "Treat it as a vehicle-routing problem: take one day's orders and build van assignments and sequences that respect the time windows while minimising km and driver hours, then compare that plan against the routes the GPS traces show you actually drove.",
+       "gets": "A saving you can measure in km and hours on the very next day you run it, plus a simple checklist for the morning.",
+       "tradeoff": "Needs reasonably clean addresses and time windows; the first version will still need your local knowledge (one-way streets, Dubai delivery access, building parking) to be trusted.",
+       "effort": "Medium: a week of order history plus one day's GPS export, then an iterative first plan.",
+       "track": "business",
+       "tool": "business_brief",
+       "columns": []
+      },
+      {
+       "title": "Predict travel time and lateness risk per stop",
+       "what": "A model on the GPS traces and order log: expected drive time between zones by time of day (Sheikh Zayed Road at 5pm vs 10am), and the chance a stop misses its window.",
+       "gets": "Better inputs for the routing plan and for what you promise customers — useful once the routing logic exists.",
+       "tradeoff": "On its own it changes nothing: a prediction tells you what will happen, not what to do. Built first, it costs time and leaves the fuel bill where it is.",
+       "effort": "Large: needs weeks of clean traces, feature work and a holdout before you'd trust it.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": []
+      }
+     ],
+     "chosen": null,
+     "route": {
+      "track": "business",
+      "tool": "business_brief",
+      "reasons": "",
+      "by": "agent"
+     },
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Cut the cost of running ~300 grocery deliveries a day on 12 vans in Dubai — fuel and driver hours are too high.",
+        "status": "said",
+        "quote": "Fuel and driver hours cost too much.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Each morning: which orders go on which van and in what sequence, given each order's address and promised time window.",
+        "status": "said",
+        "quote": "I am the one who plans the routes every morning.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "The delivery lead himself — the person who plans the routes every morning; needs something usable before the vans leave.",
+        "status": "said",
+        "quote": "I run deliveries for a grocery company in Dubai",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "An order log (address + promised time window) and van GPS traces exist, but nothing has been exported to DCLab yet. Scale: 12 vans, ~300 orders/day.",
+        "status": "said",
+        "quote": "I have the order log and the vans' GPS traces, but I have not exported them yet.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "The money is lost mostly in route assignment and sequence (km driven, idle/idling hours, failed or late windows), not in not knowing tomorrow's demand — so a route-optimisation problem, with prediction only as an optional input.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 7,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [],
+       "after": [
+        {
+         "field": "baseline_cost",
+         "question": "What the current plan costs per day and per stop (km per van, driver hours, % of deliveries late vs promised window) — needed to size any saving.",
+         "blocks": "some",
+         "rank": 1
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "First measure what today's routing really costs",
+         "what": "You export the order log (address, time window, promised vs actual delivery) and the GPS traces (per-van positions/km/hours). DCLab turns them into a daily baseline: km per stop, stops per driver-hour, load factor per van, % of deliveries outside the promised window, split by area and by driver.",
+         "gets": "A number you can defend: where the fuel and hours actually go, and how big the prize is before you spend anything on modelling.",
+         "tradeoff": "It doesn't change tomorrow's routes by itself — it tells you which part of the plan to fix.",
+         "effort": "Small: one export of a few days, results in this chat the same day.",
+         "track": "analysis",
+         "tool": "query",
+         "columns": []
+        },
+        {
+         "title": "Fix the morning plan itself (routing, not prediction)",
+         "what": "Treat it as a vehicle-routing problem: take one day's orders and build van assignments and sequences that respect the time windows while minimising km and driver hours, then compare that plan against the routes the GPS traces show you actually drove.",
+         "gets": "A saving you can measure in km and hours on the very next day you run it, plus a simple checklist for the morning.",
+         "tradeoff": "Needs reasonably clean addresses and time windows; the first version will still need your local knowledge (one-way streets, Dubai delivery access, building parking) to be trusted.",
+         "effort": "Medium: a week of order history plus one day's GPS export, then an iterative first plan.",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": []
+        },
+        {
+         "title": "Predict travel time and lateness risk per stop",
+         "what": "A model on the GPS traces and order log: expected drive time between zones by time of day (Sheikh Zayed Road at 5pm vs 10am), and the chance a stop misses its window.",
+         "gets": "Better inputs for the routing plan and for what you promise customers — useful once the routing logic exists.",
+         "tradeoff": "On its own it changes nothing: a prediction tells you what will happen, not what to do. Built first, it costs time and leaves the fuel bill where it is.",
+         "effort": "Large: needs weeks of clean traces, feature work and a holdout before you'd trust it.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": []
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 10,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [
+        {
+         "field": "baseline_cost",
+         "question": "What the current plan costs per day and per stop (km per van, driver hours, % of deliveries late vs promised window) — needed to size any saving.",
+         "blocks": "some",
+         "rank": 1
+        }
+       ],
+       "after": [
+        {
+         "field": "export_ready",
+         "question": "What fields the order log and GPS traces can be exported with (order date/time, address or area, promised window start/end, van, driver, GPS timestamps, stop arrive/depart) and how many days of history they can give.",
+         "blocks": "some",
+         "rank": 1
+        }
+       ]
+      },
+      {
+       "version": 11,
+       "field": "assumptions",
+       "op": "set",
+       "by": "person",
+       "why": "confirmed by the person",
+       "before": [
+        {
+         "value": "The money is lost mostly in route assignment and sequence (km driven, idle/idling hours, failed or late windows), not in not knowing tomorrow's demand — so a route-optimisation problem, with prediction only as an optional input.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ],
+       "after": [
+        {
+         "value": "The money is lost mostly in route assignment and sequence (km driven, idle/idling hours, failed or late windows), not in not knowing tomorrow's demand — so a route-optimisation problem, with prediction only as an optional input.",
+         "status": "confirmed",
+         "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 12,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Each morning: which orders go on which van and in what sequence, given each order's address and promised time window.",
+        "status": "said",
+        "quote": "I am the one who plans the routes every morning.",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "Route assignment and sequencing work comes first, not a prediction model: 1) a decision brief for the morning plan with the minimum export spec, 2) baseline cost measurement from the order log and GPS traces, 3) re-plan one real day and compare it with the routes actually driven.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 2
+       }
+      },
+      {
+       "version": 13,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Route assignment and sequencing work comes first, not a prediction model: 1) a decision brief for the morning plan with the minimum export spec, 2) baseline cost measurement from the order log and GPS traces, 3) re-plan one real day and compare it with the routes actually driven.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 2
+       },
+       "after": {
+        "value": "Each morning: which orders go on which van and in what sequence, given each order's address and promised time window.",
+        "status": "said",
+        "quote": "I am the one who plans the routes every morning.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 14,
+       "field": "route",
+       "op": "set",
+       "by": "agent",
+       "why": "work started",
+       "before": null,
+       "after": {
+        "track": "business",
+        "tool": "business_brief",
+        "reasons": "",
+        "by": "agent"
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [],
+    "spent_eur": 0.0077
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0077,
+   "judge_spent_eur": 0,
+   "first_divergence": {
+    "id": "hab-07",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-010/case/hab-07-r1",
+    "events": 19,
+    "first": {
+     "reason": "start_refused_not_ready",
+     "at": "2026-11-15T12:41:46.329865+00:00",
+     "seq": 53,
+     "tool": "case_start",
+     "wanted": {
+      "track": "business",
+      "tool": "business_brief"
+     },
+     "wanted_right": null,
+     "safety": false,
+     "before_route": true,
+     "evidence": "error: the person has not chosen and the case is not ready: decision is not known yet; the person said their goal and named the help they want (): propose now, stating what is open as assumptions"
+    },
+    "all": [
+     {
+      "reason": "start_refused_not_ready",
+      "at": "2026-11-15T12:41:46.329865+00:00",
+      "seq": 53,
+      "tool": "case_start",
+      "wanted": {
+       "track": "business",
+       "tool": "business_brief"
+      },
+      "wanted_right": null,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: the person has not chosen and the case is not ready: decision is not known yet; the person said their goal and named the help they want (): propose now, stating what is open as assumptions"
+     }
+    ],
+    "route": "business",
+    "tool": "business_brief",
+    "routed_by": "self",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-08",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I'll look at the table and check for leakage before kicking off the build.\n\nModel build is underway — DCLab is checking the remaining build requirements now, and I'll have the metrics as soon as it has run. What I verified first: 1,200 rows, one per customer, base churn 17.4%, and none of your eight predictor columns looks like it was written after the outcome, so nothing obvious is leaking. Two assumptions I'm working under, correct me if either is off: `churned_next_month = 1` means the customer left in the month after that row was scored; and since `signup_date` is your only date, I'm validating on a time-ordered holdout (later signups) rather than a random split, which better matches scoring fresh cohorts each month. You'll get a ranked risk score per customer plus how well the top of that list actually catches churners — that ranking is what your retention team's outreach capacity depends on.",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "ml_project",
+   "routed_by": "self",
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    45.27
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-08",
+     "version": 10,
+     "words": [
+      "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)"
+     ],
+     "goal": {
+      "value": "Build a model that predicts churned_next_month for each customer, scored per customer.",
+      "status": "said",
+      "quote": "Please build a model that predicts churned_next_month for each customer",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Score all active customers at the start of each month and contact the riskiest ones (retention outreach capacity goes to the top of the risk list).",
+      "status": "said",
+      "quote": "score all active customers at the start of each month and contact the riskiest ones",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "The retention team (analyst requesting it); they need a ranked risk score per active customer each month.",
+      "status": "said",
+      "quote": "The retention team will score all active customers",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "customers.csv: 1,200 rows, one per customer (customer_id all distinct). Churn base rate 17.4% (churned_next_month = 1). signup_date spans 2022-01-01 to 2025-10-31. Predictors: segment, city, plan, tenure_months, monthly_spend, support_tickets_90d. Leakage check flagged no column as written after the outcome.",
+      "status": "said",
+      "quote": "The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [
+      {
+       "value": "churned_next_month = 1 means the customer churned in the month after this row was scored; 0 means they stayed.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      },
+      {
+       "value": "signup_date is the only date in the table, so rows are validated with a time-ordered split on signup_date (later signups held out) instead of a random split, and monthly_spend / support_tickets_90d are read as of the scoring date.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [],
+     "chosen": null,
+     "route": {
+      "track": "prediction",
+      "tool": "ml_project",
+      "reasons": "",
+      "by": "agent"
+     },
+     "card": null,
+     "findings": [],
+     "build": {
+      "tool": "ml_project",
+      "quote": "Please build a model that predicts churned_next_month for each customer."
+     },
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Build a model that predicts churned_next_month for each customer, scored per customer.",
+        "status": "said",
+        "quote": "Please build a model that predicts churned_next_month for each customer",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Score all active customers at the start of each month and contact the riskiest ones (retention outreach capacity goes to the top of the risk list).",
+        "status": "said",
+        "quote": "score all active customers at the start of each month and contact the riskiest ones",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "The retention team (analyst requesting it); they need a ranked risk score per active customer each month.",
+        "status": "said",
+        "quote": "The retention team will score all active customers",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "route",
+       "op": "set",
+       "by": "agent",
+       "why": "work started",
+       "before": null,
+       "after": {
+        "track": "prediction",
+        "tool": "ml_project",
+        "reasons": "",
+        "by": "agent"
+       }
+      },
+      {
+       "version": 7,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "customers.csv: 1,200 rows, one per customer (customer_id all distinct). Churn base rate 17.4% (churned_next_month = 1). signup_date spans 2022-01-01 to 2025-10-31. Predictors: segment, city, plan, tenure_months, monthly_spend, support_tickets_90d. Leakage check flagged no column as written after the outcome.",
+        "status": "said",
+        "quote": "The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 8,
+       "field": "build",
+       "op": "set",
+       "by": "person",
+       "why": "the person said yes to the build",
+       "before": null,
+       "after": {
+        "tool": "ml_project",
+        "quote": "Please build a model that predicts churned_next_month for each customer."
+       }
+      },
+      {
+       "version": 9,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "churned_next_month = 1 means the customer churned in the month after this row was scored; 0 means they stayed.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 10,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "churned_next_month = 1 means the customer churned in the month after this row was scored; 0 means they stayed.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ],
+       "after": [
+        {
+         "value": "signup_date is the only date in the table, so rows are validated with a time-ordered split on signup_date (later signups held out) instead of a random split, and monthly_spend / support_tickets_90d are read as of the scoring date.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": {
+     "tool": "ml_project",
+     "quote": "Please build a model that predicts churned_next_month for each customer.",
+     "outcome": "churned_next_month"
+    },
+    "exposure": [
+     {
+      "columns_related": [
+       [
+        "customer_id",
+        "churned_next_month"
+       ],
+       [
+        "signup_date",
+        "churned_next_month"
+       ],
+       [
+        "segment",
+        "churned_next_month"
+       ],
+       [
+        "city",
+        "churned_next_month"
+       ],
+       [
+        "plan",
+        "churned_next_month"
+       ],
+       [
+        "tenure_months",
+        "churned_next_month"
+       ],
+       [
+        "monthly_spend",
+        "churned_next_month"
+       ],
+       [
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "f46ff49710054530",
+      "columns_related": [],
+      "rows": "all"
+     }
+    ],
+    "spent_eur": 0.0043
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0043,
+   "judge_spent_eur": 0,
+   "first_divergence": {
+    "id": "hab-08",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-010/case/hab-08-r1",
+    "events": 14,
+    "first": {
+     "reason": "no_gate",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route prediction/ml_project by self"
+    },
+    "all": [
+     {
+      "reason": "other_refusal",
+      "at": "2026-11-15T12:42:31.575578+00:00",
+      "seq": 107,
+      "tool": "case_request_build",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": false,
+      "evidence": "error: a build needs the person's yes to building in their latest message (a yes to your question, or an order such as 'build the model'): pass their own words as quote, the whole message when it is short. Never ask them to type a particular phrase."
+     }
+    ],
+    "route": "prediction",
+    "tool": "ml_project",
+    "routed_by": "self",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  }
+ ],
+ "scores": {
+  "case": [
+   {
+    "run": "HAB-010",
+    "case": "hab-07",
+    "arm": "case",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": "business",
+    "tool": "business_brief",
+    "assistant_turns": 2,
+    "picked": 0,
+    "options_unpicked": 1,
+    "silent": 0,
+    "seconds": 124.86,
+    "spent_eur": 0.0077,
+    "first_divergence": "start_refused_not_ready",
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-010",
+    "case": "hab-08",
+    "arm": "case",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": "prediction",
+    "tool": "ml_project",
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 45.27,
+    "spent_eur": 0.0043,
+    "first_divergence": "no_gate",
+    "wanted_right": null
+   }
+  ]
+ },
+ "summary": {
+  "case": {
+   "conversations": 2,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": 85.065,
+   "spent_eur": 0.012
+  }
+ },
+ "paired": null,
+ "first_divergence_counts": {
+  "start_refused_not_ready": 1,
+  "no_gate": 1
+ },
+ "incomplete": null
+}

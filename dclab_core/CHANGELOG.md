@@ -4,6 +4,24 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.159.0 (2026-11-15)
+
+- `query`: any measure may carry its own condition (`Measure.where`): a sum, a mean, a median, a minimum, a maximum, a
+  percentile or a distinct count over the rows that meet it, so two periods or two groups are compared in one plan
+  (before: only a count and a share; the harness ablation's live run HAB-002 recorded eleven refusals of "the sum of the
+  amounts in one quarter"). The condition never names one identifier or a free text, and a conditioned measure over fewer
+  than the floor's rows is withheld. A minimum or maximum of a time column gives its first or last date (`is_time`).
+- `case.check_options`: an option that holds a number nobody gave or code computed is no longer refused whole: the
+  sentences holding such a number are removed and the option is kept, said in the returned notes; an option whose title
+  holds one, or that is left without what the person gets, its trade-off or its effort, is still refused.
+- `query`, after the review of the above: a condition on a time column is compared as a time, never as text (a date
+  written 28/11/2025, a timestamp with its hour), and a bound given as a day covers the whole of that day; a condition
+  that names single values (`eq`, `ne`, `in`, `not_in`) of a time column holding nearly one row a value is refused, as an
+  identifier's value is (text dates are times now, so the identifier rule no longer caught them); `exposure` records a
+  conditioned measure as a comparison of its column with its condition's column.
+- `QueryPlan` v1 and `QueryResult` v1 keep their shape (the field existed; what it may be used with widened; a date comes
+  back as text in a row). No published schema or adapter field changes.
+
 ## 0.158.0 (2026-11-12)
 
 - TP-05: pure measured training/OOF proof helpers and criterion verdicts in `task_verification`; bounded failure

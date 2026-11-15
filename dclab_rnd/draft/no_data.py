@@ -24,28 +24,50 @@ from .. import business_examples, evidence_index, kinds, tools as rnd_tools
 from ..tasks import catalog as task_catalog
 
 
-# Natural detection (English & Persian) — no magic keyword required
+# Natural detection (English & Persian) — no magic keyword required. Only a stated lack of data, or a stated refusal to share
+# it, counts (the review of 22ad1bf8: "no data quality issues", "no data scientist", "without data leakage", a privacy word or
+# the word "simulate" alone all matched).
+_NOT_HAVING = (r"(?!\s+(?:quality|scientists?|science|engineers?|engineering|analysts?|team|leaks?|leakage|loss|breach|privacy|protection|"
+               r"issues?|problems?|governance|entry|types?|models?|warehouse|pipelines?|strategy|platform))")
+_DATA = r"(?:data|dataset|datasets|csv|file|files|table|tables|records?|samples?)"
 _NO_DATA_PATTERNS = (
-    re.compile(r"\b(no\s+(?:historical\s+)?(?:data|dataset|csv|file|table|records?)s?(?:\s+yet)?)\b", re.I),
-    re.compile(r"\b(?:do\s+not|don'?t|have\s+not|haven'?t)\s+(?:actually\s+)?have\s+(?:any\s+|a\s+)?(?:historical\s+)?(?:data|dataset|csv|table|files?|samples?)\b", re.I),
-    re.compile(r"\b(?:without|haven'?t\s+collected|have\s+not\s+collected)\s+(?:any\s+)?(?:historical\s+)?(?:data|dataset|csv|table|files?|samples?)\b", re.I),
+    re.compile(r"\bno\s+(?:historical\s+)?" + _DATA + r"\b" + _NOT_HAVING, re.I),
+    re.compile(r"\b(?:do\s+not|don'?t|have\s+not|haven'?t)\s+(?:actually\s+)?have\s+(?:any\s+|a\s+)?(?:historical\s+)?" + _DATA + r"\b" + _NOT_HAVING, re.I),
+    re.compile(r"\b(?:without|haven'?t\s+collected|have\s+not\s+collected)\s+(?:any\s+)?(?:historical\s+)?" + _DATA + r"\b" + _NOT_HAVING, re.I),
     re.compile(r"\bbefore\s+(?:we\s+|i\s+|they\s+|you\s+)?(?:collect(?:ing)?|hav(?:e|ing)|upload(?:ing)?|get(?:ting)?)\s+(?:any\s+|historical\s+)?(?:data|dataset|csv|table)\b", re.I),
     re.compile(r"\b(?:data|dataset|csv|table)\s+(?:is|are)\s+not\s+(?:ready|collected|available)(?:\s+yet)?\b", re.I),
-    re.compile(r"\b(?:solve|plan|design|solution|help|advise)\b[^.?!]{0,40}\bwithout\s+(?:uploading\s+|sharing\s+|any\s+)?data\b", re.I),
-    re.compile(r"(دیتا|داده|فایل|جدول)\s*(?:ندارم|نداریم|نیست|آماده نیست|هنوز ندارم|نمی‌خوام|نمیخوام)", re.I),
+    re.compile(r"\b(?:solve|plan|design|solution|help|advise)\b[^.?!]{0,40}\bwithout\s+(?:uploading\s+|sharing\s+|any\s+)?data\b" + _NOT_HAVING, re.I),
+    re.compile(r"\black(?:s|ing)?\s+(?:any\s+|the\s+)?(?:historical\s+)?(?:data|dataset|records)\b" + _NOT_HAVING, re.I),
+    re.compile(r"\b(?:data|dataset|datasets|table)\s+(?:does|do)\s+not\s+exist\b", re.I),
+    re.compile(r"\bzero\s+data\b" + _NOT_HAVING, re.I),
+    re.compile(r"\b(?:still|currently)\s+(?:gathering|collecting)\s+(?:the\s+|our\s+)?data\b", re.I),
+    re.compile(r"(?<!کیفیت )(?<!کیفیت\u200c)(?:دیتا|داده|فایل|جدول)\s*(?:ندارم|نداریم|نیست|آماده نیست|هنوز ندارم|نمی‌خوام|نمیخوام)", re.I),
     re.compile(r"بدون\s*(?:دیتا|داده|آپلود|فایل)", re.I),
+    re.compile(r"هیچ\s*(?:دیتا|داده)", re.I),
+    re.compile(r"(?:اطلاعات|دیتا|داده)[\u200cیا]*\s*(?:نداریم|ندارم|در\s*دسترس\s*نیست)", re.I),
 )
 
+_SHARED_THING = (r"(?:(?:my|our|the|any|this|that|customer|company|real|raw|actual|sensitive|private|confidential|internal)\s+){0,3}"
+                 r"(?:data|dataset|datasets|databases?|files?|tables?|csv|records|it|them|anything)\b")
+# a refusal to share the data itself; a privacy word alone ("the file is confidential, I will upload it now") is no refusal
 _PRIVACY_PATTERNS = (
-    re.compile(r"\b(don'?t|do\s+not|can'?t|cannot|won'?t|prefer\s+not\s+to)\s+(?:want\s+to\s+)?(?:upload|share|send|expose)\b", re.I),
-    re.compile(r"\b(confidential|nda|private|sensitive|compliance|hipaa|gdpr|internal\s+only)\b", re.I),
-    re.compile(r"(محرمانه|خصوصی|نمی‌خوام\s+آپلود|نمیخوام\s+آپلود|نمی‌تونم\s+بفرستم|به\s+اشتراک\s+نمی)", re.I),
+    re.compile(r"\bwithout\s+(?:uploading|sharing|sending|exposing)\s+" + _SHARED_THING, re.I),
+    re.compile(r"\b(?:don'?t|do\s+not|can'?t|cannot|won'?t|prefer\s+not\s+to|not\s+allowed\s+to|may\s+not)\s+(?:want\s+to\s+)?(?:upload|share|send|expose)\s+" + _SHARED_THING, re.I),
+    re.compile(r"(نمی‌خوام\s+آپلود|نمیخوام\s+آپلود|نمی‌تونم\s+بفرستم|به\s+اشتراک\s+نمی)", re.I),
 )
+_PRIVACY_WORDS = re.compile(r"\b(confidential|nda|private|sensitive|compliance|hipaa|gdpr|internal\s+only)\b|محرمانه|خصوصی", re.I)
 
 _SIMULATE_ASK_PATTERNS = (
     re.compile(r"\b(simulat\w*|synthetic|mock\s+data|dummy\s+data|fake\s+data)\b", re.I),
     re.compile(r"(شبیه‌سازی|مصنوعی|دیتای\s+فرضی|تولید\s+داده)", re.I),
 )
+
+# What the person wants is a prediction (or new groups), said in their words; and the shapes of a question that is none
+_PREDICT_WORDS = re.compile(r"\b(predict\w*|forecast\w*|classif\w*|scor(?:e|ing)\b|likely\s+to|probability|risk\s+of|which\s+\w+\s+will|who\s+will|"
+                            r"segment\w*|cluster\w*|detect\w*|estimat\w*|rank\w*)|پیش‌بینی|پیش بینی|احتمال|خوشه|سگمنت", re.I)
+_NOT_A_PREDICTION = re.compile(r"\bwhy\b|\broot\s+cause|\bwhat\s+changed|\ba/?b\s+test|\bexperiment\w*|\boptimi[sz]\w*|\broutes?\b|\brouting\b|"
+                               r"\bschedul\w*|\bexplain\w*|\bdifference\s+between|\bwhat\s+is\b|\bwhat\s+does\b|\breport\b|\bdashboard\b|"
+                               r"\bcompare\b|\bcomparison\b|چرا|علت|گزارش|داشبورد|مقایسه", re.I)
 
 _NUMBER_RE = re.compile(r"(?P<prefix>[$€£¥]?)\s*(?P<num>\d[\d,]*(?:\.\d+)?)(?P<unit>[kKmMbB])?\b(?!\s*%)")
 _DIGIT_TRANS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩٬٫٪", "01234567890123456789,.%")
@@ -59,7 +81,8 @@ def detect_no_data_stance(text: str, draft: Optional[Mapping[str, Any]] = None) 
     """Detect whether the person lacks data yet or prefers not to share/upload it."""
     raw = str(text or "").strip()
     reasons: list[str] = []
-    if any(p.search(raw) for p in _NO_DATA_PATTERNS):
+    lacks = any(p.search(raw) for p in _NO_DATA_PATTERNS)
+    if lacks:
         reasons.append("no_data_yet")
     privacy = any(p.search(raw) for p in _PRIVACY_PATTERNS)
     if privacy:
@@ -67,67 +90,182 @@ def detect_no_data_stance(text: str, draft: Optional[Mapping[str, Any]] = None) 
     wants_sim = any(p.search(raw) for p in _SIMULATE_ASK_PATTERNS)
     if wants_sim:
         reasons.append("asks_about_simulation")
-    has_asset = bool(draft and any(a.get("status") == "ready" for a in draft.get("assets") or []))
+    # a table that is still being read is data too: only a failed or stopped upload leaves the person without one
+    has_asset = bool(draft and any(str(a.get("status")) not in ("failed", "stopped", "error") for a in draft.get("assets") or []))
     return {
-        "matched": bool(reasons) and not has_asset,
+        "matched": (lacks or privacy) and not has_asset,  # the word "simulate" or a privacy word alone is no stance
         "reasons": reasons,
         "withholding_privacy": privacy,
+        "mentions_privacy": bool(_PRIVACY_WORDS.search(raw)),
         "wants_simulation": wants_sim,
         "has_ready_data": has_asset,
     }
 
 
+def _family_of(problem: str) -> tuple[str, str]:
+    """The family the person's words point to, and where it came from: "kind" (a registered kind's own detector), "words" (a
+    domain word in the sentence) or "default" (nothing pointed anywhere: no family was found)."""
+    found = kinds.detect(problem, None) or {}
+    family_key = str(found.get("family") or found.get("key") or found.get("pack") or "prediction").lower()
+    source = "default" if str(found.get("why") or "").startswith("nothing points elsewhere") or not found else "kind"
+    low = problem.lower()
+    if family_key in ("prediction", "binary", "binary_classification", "rare_event", "tabular"):
+        named = None
+        if "fraud" in low or "تقلب" in low or "کلاهبرداری" in low:
+            named = "fraud"
+        elif any(w in low for w in ("loan", "underwriting", "default rate", "credit risk", "micro-lending", "وام", "نکول")):
+            named = "credit_risk"
+        elif any(w in low for w in ("churn", "retention", "cancel", "ریزش", "لغو اشتراک")):
+            named = "churn"
+        elif any(w in low for w in ("forecast", "demand", "sales next", "inventory", "تقاضا", "پیش‌بینی فروش", "پیش بینی فروش")):
+            named = "forecasting"
+        elif (
+            any(w in low for w in ("price", "revenue", "ltv", "lifetime value", "claim severity", "expected loss", "duration", "eta", "قیمت", "درآمد"))
+            and not any(c in low for c in ("costs $", "action cost", "intervention cost", "review costs", "call costs", "visit costs", "inspection costs"))
+        ):
+            named = "regression"
+        elif any(w in low for w in ("segment", "cluster", "سگمنت", "خوشه‌بندی", "خوشه بندی")):
+            named = "segmentation"
+        if named:
+            family_key, source = named, "words"
+    return family_key, source
+
+
+def blueprint_fit(problem_text: str) -> dict[str, Any]:
+    """Whether a model blueprint answers what the person asked. It does when their words ask for a prediction, a forecast, a
+    score or groups; or when they name a family and the sentence is not a why, a test's design, a route plan, a report or
+    an explanation. Otherwise DCLab has no outcome to design for, and says so instead of drawing a yes/no model."""
+    problem = str(problem_text or "").strip()
+    family, source = _family_of(problem)
+    asks = bool(_PREDICT_WORDS.search(problem))
+    other = _NOT_A_PREDICTION.search(problem)
+    if asks and source != "default":
+        fits, why = True, "the words ask for a prediction and name its kind"
+    elif asks:
+        fits, why = True, "the words ask for a prediction; its kind is not named, so the blueprint is a general one"
+    elif source != "default" and not other:
+        fits, why = True, f"the words name a {family} problem"
+    elif other:
+        fits, why = False, f'the words ask for something that is not a prediction ("{other.group(0).strip()}")'
+    else:
+        fits, why = False, "the words name nothing to predict"
+    return {"fits": fits, "family": family, "family_source": source, "why": why}
+
+
+NOT_A_BLUEPRINT = ("You do not need to upload data to go on. I could not tell what you want to predict, so I did not draw a model "
+                   "plan. If you want a prediction, tell me the outcome in one sentence (for example: which customers will cancel "
+                   "next month). If your question is something else (why a number changed, how to design a test, how to plan "
+                   "routes, a report), say so and I will work on that instead.")
+
+
+# where a phrase ends: a number on the other side of it belongs to something else ("a $50 intervention cost, and $2,500 saved"
+# gives the cost 50, never 2,500). A comma inside a number ("2,500") is no boundary: only a comma followed by a space is.
+_CLAUSE_END = re.compile(r"[.;!?\n](?:\s|$)|,\s|\s(?:and|but)\s")
+
+
+def _occurrences(low: str, kw: str) -> list[int]:
+    """Where a keyword stands as a whole word ("rate" is not found inside "operate"); a Persian keyword as written."""
+    if re.search(r"[a-z]", kw):
+        return [m.start() for m in re.finditer(r"(?<![a-z])" + re.escape(kw) + r"(?![a-z])", low)]
+    return [m.start() for m in re.finditer(re.escape(kw), low)]
+
+
+def _windows(text: str, idx: int, kw: str, before: int, after: int) -> tuple[str, str]:
+    """The words just before and just after a keyword, cut at the end of its clause: a number in another sentence is not its."""
+    left = text[max(0, idx - before): idx]
+    ends = [m.end() for m in _CLAUSE_END.finditer(left)]
+    left = left[ends[-1]:] if ends else left
+    right = text[idx + len(kw): idx + len(kw) + after]
+    end = _CLAUSE_END.search(right)
+    return left, (right[: end.start()] if end else right)
+
+
 def _parse_money_or_count(text: str, keywords: tuple[str, ...]) -> Optional[float]:
+    """The number said with the first of these keywords the person used; when they said it again later (a correction), the
+    later number."""
     text = _norm_digits(text)
     low = text.lower()
+    found: list[tuple[int, float]] = []  # (where the keyword first stands, its latest number)
     for kw in keywords:
-        idx = low.find(kw)
-        if idx < 0:
-            continue
-        # If there is a number right after ("cost $20", "customers: 20000"), use it; else check immediately before ("20000 customers", "$20 cost")
-        after = text[idx + len(kw) : idx + len(kw) + 28]
-        before = text[max(0, idx - 22) : idx]
+        spots = _occurrences(low, kw)
         prefer_before = kw in (
             "customers", "users", "subscribers", "accounts", "applications", "discharges",
             "machines", "shipments", "orders", "tickets", "patients", "leads", "rows",
             "transactions", "مشتری", "مشترک", "کاربر", "سفارش", "تراکنش", "بیمار",
         )
-        order = ((before, True), (after, False)) if prefer_before else ((after, False), (before, True))
-        for window, pick_last in order:
-            matches = [m for m in _NUMBER_RE.finditer(window) if m.group("num")]
-            if not matches:
-                continue
-            m = matches[-1] if pick_last else matches[0]
-            val = float(m.group("num").replace(",", ""))
-            u = (m.group("unit") or "").lower()
-            if u == "k":
-                val *= 1_000.0
-            elif u == "m":
-                val *= 1_000_000.0
-            elif u == "b":
-                val *= 1_000_000_000.0
-            return val
-    return None
+        for idx in reversed(spots):  # the latest statement first
+            before, after = _windows(text, idx, kw, 22, 28)
+            order = ((before, True), (after, False)) if prefer_before else ((after, False), (before, True))
+            value = None
+            for window, pick_last in order:
+                matches = [m for m in _NUMBER_RE.finditer(window) if m.group("num")]
+                if not matches:
+                    continue
+                m = matches[-1] if pick_last else matches[0]
+                value = float(m.group("num").replace(",", "")) * {"k": 1e3, "m": 1e6, "b": 1e9}.get((m.group("unit") or "").lower(), 1.0)
+                break
+            if value is not None:
+                found.append((spots[0], value))
+                break
+    return min(found)[1] if found else None
 
 
 def _parse_rate(text: str, keywords: tuple[str, ...]) -> Optional[float]:
     text = _norm_digits(text)
     low = text.lower()
+    found: list[tuple[int, float]] = []
     for kw in keywords:
-        idx = low.find(kw)
-        if idx < 0:
+        spots = _occurrences(low, kw)
+        for idx in reversed(spots):
+            before, after = _windows(text, idx, kw, 20, 25)
+            value = None
+            for window, pick_last in ((before, True), (after, False)):
+                matches = list(re.finditer(r"(\d+(?:\.\d+)?)\s*%", window))
+                if not matches:
+                    continue
+                pct = float((matches[-1] if pick_last else matches[0]).group(1))
+                if 0.0 < pct < 100.0:
+                    value = pct / 100.0
+                    break
+            if value is not None:
+                found.append((spots[0], value))
+                break
+    return min(found)[1] if found else None
+
+
+_VOLUME_WORDS = (
+    "customers", "users", "subscribers", "accounts", "applications", "discharges",
+    "machines", "shipments", "orders", "tickets", "patients", "leads", "rows",
+    "transactions", "مشتری", "مشترک", "کاربر", "سفارش", "تراکنش", "بیمار",
+)
+_RATE_WORDS = ("rate", "churn", "fraud", "default", "convert", "conversion", "cancel", "risk", "نرخ", "ریزش")
+_COST_WORDS = ("cost per", "offer cost", "discount", "intervention", "review cost", "call cost", "costs", "cost", "هزینه")
+# what one caught case is worth: never a company's revenue or a loss in general ("we generate $2M revenue" is not it)
+_VALUE_WORDS = ("ltv", "lifetime value", "margin", "ticket size", "order value", "worth", "value per", "value of", "saves", "saved",
+                "avoids", "avoided", "penalty", "ارزش")
+ECONOMICS_INPUTS = ("monthly_volume", "base_rate", "action_cost", "value_saved", "action_success_rate")
+
+
+def checked_overrides(overrides: Optional[Mapping[str, Any]]) -> dict[str, float]:
+    """The numbers a person typed for the economics, as numbers in their range; ValueError says which one is not."""
+    out: dict[str, float] = {}
+    for name, raw in (overrides or {}).items():
+        if name not in ECONOMICS_INPUTS or raw is None or raw == "":
             continue
-        before = text[max(0, idx - 20) : idx]
-        after = text[idx + len(kw) : idx + len(kw) + 25]
-        for window, pick_last in ((before, True), (after, False)):
-            matches = list(re.finditer(r"(\d+(?:\.\d+)?)\s*%", window))
-            if not matches:
-                continue
-            m = matches[-1] if pick_last else matches[0]
-            pct = float(m.group(1))
-            if 0.0 < pct < 100.0:
-                return pct / 100.0
-    return None
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            raise ValueError(f"{name} must be a number") from None
+        if value != value or value in (float("inf"), float("-inf")):
+            raise ValueError(f"{name} must be a number")
+        if name in ("base_rate", "action_success_rate") and not 0.0 < value < 1.0:
+            raise ValueError(f"{name} must be a share between 0 and 1")
+        if name == "monthly_volume" and value < 1:
+            raise ValueError("monthly_volume must be at least 1")
+        if name in ("action_cost", "value_saved") and value < 0:
+            raise ValueError(f"{name} cannot be negative")
+        out[name] = value
+    return out
 
 
 def compute_decision_economics(
@@ -140,7 +278,7 @@ def compute_decision_economics(
     """Deterministically compute break-even precision, capacity budget, and scenario net value."""
     und = understanding or {}
     facts = case_facts or {}
-    ov = overrides or {}
+    ov = checked_overrides(overrides)
     combined = " ".join(
         str(x)
         for x in (
@@ -155,37 +293,24 @@ def compute_decision_economics(
         if x
     )
 
-    _vol_kws = (
-        "customers", "users", "subscribers", "accounts", "applications", "discharges",
-        "machines", "shipments", "orders", "tickets", "patients", "leads", "rows",
-        "transactions", "month", "مشتری", "مشترک", "کاربر", "سفارش", "تراکنش", "بیمار",
-    )
-    _vol_strict_kws = tuple(k for k in _vol_kws if k != "month")
-    monthly_volume = float(ov["monthly_volume"]) if ov.get("monthly_volume") else (
-        _parse_money_or_count(combined, _vol_kws)
-        or 10_000.0
-    )
-    volume_assumed = not bool(ov.get("monthly_volume") or _parse_money_or_count(combined, _vol_strict_kws))
+    said_volume = _parse_money_or_count(combined, _VOLUME_WORDS)
+    monthly_volume = ov.get("monthly_volume") or said_volume or 10_000.0
+    volume_assumed = not (ov.get("monthly_volume") or said_volume)
 
-    base_rate = float(ov["base_rate"]) if ov.get("base_rate") else (
-        _parse_rate(combined, ("rate", "churn", "fraud", "default", "convert", "conversion", "cancel", "risk", "نرخ", "ریزش"))
-        or 0.08
-    )
-    rate_assumed = not bool(ov.get("base_rate") or _parse_rate(combined, ("rate", "churn", "fraud", "default", "convert", "conversion", "cancel", "risk", "نرخ", "ریزش")))
+    said_rate = _parse_rate(combined, _RATE_WORDS)
+    base_rate = ov.get("base_rate") or said_rate or 0.08
+    rate_assumed = not (ov.get("base_rate") or said_rate)
 
-    action_cost = float(ov["action_cost"]) if ov.get("action_cost") else (
-        _parse_money_or_count(combined, ("cost per", "offer cost", "discount", "intervention", "review cost", "call cost", "هزینه"))
-        or 15.0
-    )
-    cost_assumed = not bool(ov.get("action_cost") or _parse_money_or_count(combined, ("cost per", "offer cost", "discount", "intervention", "review cost", "call cost", "هزینه")))
+    said_cost = _parse_money_or_count(combined, _COST_WORDS)
+    action_cost = ov["action_cost"] if "action_cost" in ov else (said_cost or 15.0)
+    cost_assumed = not ("action_cost" in ov or said_cost)
 
-    value_saved = float(ov["value_saved"]) if ov.get("value_saved") else (
-        _parse_money_or_count(combined, ("ltv", "margin", "save", "value", "loss", "ticket size", "order value", "revenue", "درآمد", "ارزش"))
-        or 180.0
-    )
-    value_assumed = not bool(ov.get("value_saved") or _parse_money_or_count(combined, ("ltv", "margin", "save", "value", "loss", "ticket size", "order value", "revenue", "درآمد", "ارزش")))
+    said_value = _parse_money_or_count(combined, _VALUE_WORDS)
+    value_saved = ov["value_saved"] if "value_saved" in ov else (said_value or 180.0)
+    value_assumed = not ("value_saved" in ov or said_value)
 
     action_success_rate = float(ov.get("action_success_rate") or 0.35)
+    monthly_volume, base_rate, action_cost, value_saved = float(monthly_volume), float(base_rate), float(action_cost), float(value_saved)
     expected_positives = round(monthly_volume * base_rate)
     effective_value_per_tp = value_saved * action_success_rate
     break_even_precision = min(1.0, round(action_cost / max(effective_value_per_tp, 1e-6), 4))
@@ -221,7 +346,7 @@ def compute_decision_economics(
             "value_per_positive": round(value_saved, 2),
             "value_per_positive_assumed": value_assumed,
             "action_success_rate": round(action_success_rate, 4),
-            "action_success_rate_assumed": not bool(ov.get("action_success_rate")),
+            "action_success_rate_assumed": "action_success_rate" not in ov,
         },
         "expected_positives_per_month": int(expected_positives),
         "effective_value_per_true_positive": round(effective_value_per_tp, 2),
@@ -234,27 +359,25 @@ def compute_decision_economics(
             "replace any assumed input once internal finance/ops numbers are confirmed."
         ),
     }
-    econ["as_said"] = [
-        json.dumps({"no_data_economics": {
-            "monthly_volume": econ["inputs"]["monthly_volume"],
-            "base_rate": econ["inputs"]["base_rate"],
-            "action_cost": econ["inputs"]["action_cost"],
-            "value_per_positive": econ["inputs"]["value_per_positive"],
-            "action_success_rate": econ["inputs"]["action_success_rate"],
-            "break_even_precision": break_even_precision,
-            "flagged_capacity_per_month": flagged_count,
-            "scenarios": scenarios,
-        }}, ensure_ascii=False),
-        (
+    labels = {"monthly_volume": "monthly volume", "base_rate": "base rate", "action_cost": "cost per action",
+              "value_per_positive": "value per caught case", "action_success_rate": "share of actions that work"}
+    econ["assumed"] = [label for key, label in labels.items() if econ["inputs"][f"{key}_assumed"]]
+    # What a model may quote as a source (the lead agent's number check reads this): the person's own numbers only. A figure
+    # DCLab assumed, and every figure computed from one, is no source: it is shown on the card, marked assumed, and nowhere else.
+    stated = {key: econ["inputs"][key] for key in labels if not econ["inputs"][f"{key}_assumed"]}
+    econ["as_said"] = [json.dumps({"no_data_stated_inputs": stated}, ensure_ascii=False)] if stated else []
+    if not econ["assumed"]:  # every input is the person's: what code computed from them is theirs to quote
+        econ["as_said"].append(json.dumps({"no_data_economics": {
+            **stated, "break_even_precision": break_even_precision, "flagged_capacity_per_month": flagged_count, "scenarios": scenarios,
+        }}, ensure_ascii=False))
+        econ["as_said"].append(
             f"Decision math: at cost {econ['inputs']['action_cost']}, value {econ['inputs']['value_per_positive']}, and "
             f"{round(action_success_rate * 100)}% save success ({econ['effective_value_per_true_positive']} effective value per caught case), "
             f"break-even precision is {round(break_even_precision * 100, 1)}%. Across {econ['inputs']['monthly_volume']} units/month "
             f"({round(base_rate * 100, 1)}% base rate = {expected_positives} events), flagging top {round(suggested_top_k_pct * 100)}% "
             f"({flagged_count} cases) yields net monthly value {scenarios[1]['net_monthly_value']} under 2.5x lift."
-        ),
-    ]
+        )
     return econ
-
 
 def _virtual_schema_for_kind(kind_key: str, problem_text: str, target_hint: Optional[str] = None) -> dict[str, Any]:
     k = kind_key.lower()
@@ -414,7 +537,7 @@ def _gather_citations(problem_text: str, kind_key: str) -> tuple[list[dict[str, 
         except Exception:  # noqa: BLE001
             hits = []
         for item in hits:
-            cid = str(item.get("id") or "")
+            cid = str(item.get("record_id") or item.get("id") or "")
             if not cid or cid in seen:
                 continue
             seen.add(cid)
@@ -426,7 +549,7 @@ def _gather_citations(problem_text: str, kind_key: str) -> tuple[list[dict[str, 
     try:
         idx = evidence_index.EvidenceIndex.load()
         for rec in idx.search(f"{kind_key} leakage holdout", k=3):
-            cid = str(rec.get("id") or "")
+            cid = str(rec.get("record_id") or rec.get("id") or "")
             if cid and cid not in seen:
                 seen.add(cid)
                 citations.append({
@@ -484,17 +607,17 @@ def build_data_science_blueprint(
         {
             "rule": "Strict as-of point-in-time join",
             "detail": f"Compute every feature strictly using events <= {schema['prediction_time']}.",
-            "cite": citations[0]["id"] if citations else "DCLAB-R01",
+            "cite": citations[0]["id"] if citations else None,
         },
         {
             "rule": "Ban post-decision columns",
             "detail": f"Drop/audit post-cutoff fields before training: {', '.join(schema.get('forbidden_traps') or [])}.",
-            "cite": citations[1]["id"] if len(citations) > 1 else "DCLAB-R01",
+            "cite": citations[1]["id"] if len(citations) > 1 else None,
         },
         {
             "rule": "Lock label maturity window",
             "detail": f"Only assign negative labels after {schema['horizon']} has elapsed, or censoring bias inflates false negatives.",
-            "cite": citations[2]["id"] if len(citations) > 2 else "DCLAB-L01",
+            "cite": citations[2]["id"] if len(citations) > 2 else None,
         },
     ]
 
@@ -522,6 +645,8 @@ def build_ml_blueprint(
     economics: Mapping[str, Any],
     understanding: Optional[Mapping[str, Any]] = None,
     gateway: Any = None,
+    project_id: Optional[str] = None,
+    planner_cap_eur: float = 0.05,
 ) -> dict[str, Any]:
     """Decompose subproblems, route solutions, and invoke Task Catalog planner (TP-08) over virtual schemas."""
     from dclab_core import problem_map as PM
@@ -558,15 +683,19 @@ def build_ml_blueprint(
         known_facts["prediction_moment"] = understanding["prediction_moment"]
 
     try:
-        catalog_plan = task_catalog.plan_with_model(
-            problem_text,
-            schema["tables"],
-            known_facts=known_facts,
-            project_id="no_data_blueprint",
-            gateway=gateway,
-            max_revisions=1,
-            cap_eur=0.05,
-        )
+        if gateway is None:  # no gateway was given: the rules' plan. Never the process's own gateway (a hidden live call)
+            catalog_plan = {**task_catalog.deterministic_catalog_plan(problem_text, schema["tables"], known_facts),
+                            "routed_to": "deterministic", "schema_source": "virtual_blueprint", "cost_usd": 0.0}
+        else:
+            catalog_plan = task_catalog.plan_with_model(
+                problem_text,
+                schema["tables"],
+                known_facts=known_facts,
+                project_id=project_id or "tp08_case",
+                gateway=gateway,
+                max_revisions=1,
+                cap_eur=planner_cap_eur,
+            )
     except Exception:  # noqa: BLE001
         catalog_plan = {"selected_tasks": [], "caught_traps": [], "clarifying_questions": [], "schema_source": "virtual_blueprint"}
 
@@ -613,6 +742,7 @@ def build_ml_blueprint(
             "selected_tasks": catalog_plan.get("selected_tasks") or [],
             "caught_traps": catalog_plan.get("caught_traps") or [],
             "clarifying_questions": catalog_plan.get("clarifying_questions") or [],
+            "cost_eur": float(catalog_plan.get("cost_usd") or catalog_plan.get("cost_eur") or 0.0),
         },
         "pre_training_deployment_rule": "Ship Stage 1 baseline + decision logging first to collect clean unbiased labels before automating Stage 2.",
     }
@@ -663,14 +793,14 @@ def to_markdown(solution: Mapping[str, Any]) -> str:
         "",
         f"**Problem:** {solution.get('problem', '')}",
         f"**Data mode:** {solution.get('mode_label', 'Pre-data design (no uploaded file)')}",
-        f"**Harness mode:** `{hrep.get('mode', 'deterministic_floor')}` · Gates passed: `{'5/5' if hrep.get('all_gates_passed', True) else 'check'}`",
+        f"**Harness mode:** `{hrep.get('mode', 'deterministic_floor')}` · {gates_line(hrep)}",
         "",
         "## 0. Deep Problem & Domain Understanding (Epistemic Provenance)",
         f"- **Restatement:** {und.get('restatement') or solution.get('problem', '')}",
     ]
     for k, item in ufields.items():
         if isinstance(item, Mapping):
-            badge = "Stated by you" if item.get("status") == "user_stated" else "AI inferred"
+            badge = BADGES.get(str(item.get("status")), "DCLab default")
             lines.append(f"- **{k.replace('_', ' ').title()}** (`{badge}`): {item.get('value')} — *{item.get('basis', '')}*")
     if und.get("alternatives"):
         lines.append("- **Alternative Problem Framings Considered:**")
@@ -681,14 +811,22 @@ def to_markdown(solution: Mapping[str, Any]) -> str:
         "## 1. Business Solution & Decision Economics",
         f"- **Decision owner & action:** {biz.get('decision_owner', '')} — {biz.get('operational_action', '')}",
         f"- **Day-0 non-ML baseline:** {biz.get('non_ml_baseline', '')}",
-        f"- **Monthly volume:** {inp.get('monthly_volume')} ({'assumed' if inp.get('monthly_volume_assumed') else 'stated'}) · **Base rate:** {round(float(inp.get('base_rate', 0)) * 100, 1)}%",
-        f"- **Break-even precision:** {round(float(econ.get('break_even_precision', 0)) * 100, 1)}% (cost {inp.get('action_cost')}, value {inp.get('value_per_positive')}, save rate {round(float(inp.get('action_success_rate', 0)) * 100)}%)",
+    ]
+    said = lambda key: "assumed by DCLab" if inp.get(f"{key}_assumed") else "stated by you"  # noqa: E731
+    if econ.get("assumed"):
+        lines.append(f"- **Read this first:** {len(econ['assumed'])} of 5 inputs below are DCLab's placeholders ({', '.join(econ['assumed'])}), "
+                     "not facts about your business. Every figure computed from them is an illustration until you give your own numbers.")
+    lines += [
+        f"- **Monthly volume:** {inp.get('monthly_volume')} ({said('monthly_volume')}) · **Base rate:** {round(float(inp.get('base_rate', 0)) * 100, 1)}% ({said('base_rate')})",
+        f"- **Cost per action:** {inp.get('action_cost')} ({said('action_cost')}) · **Value per caught case:** {inp.get('value_per_positive')} ({said('value_per_positive')}) · "
+        f"**Share of actions that work:** {round(float(inp.get('action_success_rate', 0)) * 100)}% ({said('action_success_rate')})",
+        f"- **Break-even precision:** {round(float(econ.get('break_even_precision', 0)) * 100, 1)}%" + (" (an illustration: computed from assumed inputs)" if econ.get("assumed") else ""),
     ]
     for df in (biz.get("domain_expert_findings") or [])[:3]:
         lines.append(f"- **Domain Expert ({df.get('kind', 'insight')}):** {df.get('text', '')}")
     lines += [
         "",
-        "### ROI Scenarios",
+        "### ROI Scenarios" + (" (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)" if econ.get("assumed") else " (the lifts are DCLab's assumptions)"),
         "| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |",
         "|---|---:|---:|---:|---:|---:|",
     ]
@@ -719,7 +857,7 @@ def to_markdown(solution: Mapping[str, Any]) -> str:
         "### Pre-Data Leakage Traps",
     ]
     for pit in ds.get("pitfall_checklist") or []:
-        lines.append(f"- **{pit['rule']}** ({pit['cite']}): {pit['detail']}")
+        lines.append(f"- **{pit['rule']}**" + (f" ({pit['cite']})" if pit.get("cite") else "") + f": {pit['detail']}")
     for lf in (ds.get("leakage_audit_findings") or [])[:4]:
         if lf.get("column"):
             lines.append(f"- **Leak Suspect `{lf['column']}` ({lf.get('action', 'exclude')}):** {lf.get('why', '')}")
@@ -732,7 +870,7 @@ def to_markdown(solution: Mapping[str, Any]) -> str:
         f"- **Stage 2 Primary:** {arch.get('stage2_primary', '')}",
         f"- **Stage 3 Decision Layer:** {arch.get('stage3_decision_layer', '')}",
         f"- **What Evidence Would Change Algorithm Choice:** {ml.get('would_change_trigger', '')}",
-        f"- **Planner-Challenger-Judge Debate Verdict:** Split `{debate.get('judged_split', 'time/group')}` · Metric `{debate.get('judged_metric', 'pr_auc')}` · Families `{', '.join(debate.get('judged_families') or [])}`",
+        debate_line(debate, ds),
         f"- **TP-08 Selected Pre-Data Tasks:** {', '.join((ml.get('catalog_plan') or {}).get('selected_tasks') or []) or 'baseline, leakage_check, threshold_for_cost'}",
         "",
         "## 4. Next Options (When Ready)",
@@ -741,6 +879,39 @@ def to_markdown(solution: Mapping[str, Any]) -> str:
         "- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
     ]
     return "\n".join(lines)
+
+
+BADGES = {"user_stated": "Stated by you", "ai_inferred": "AI inferred", "rules_read": "Read by DCLab's rules", "dclab_default": "DCLab default"}
+GATE_NAMES = {"gate_1_epistemic_provenance": "provenance", "gate_2_number_grounding": "numbers", "gate_3_virtual_schema_and_features": "schema and features",
+              "gate_4_workflow_and_debate": "workflow", "gate_5_budget": "budget"}
+
+
+def gates_line(report: Mapping[str, Any]) -> str:
+    """The gates as counted: how many passed, and the names of the ones that did not."""
+    gates = report.get("gates") or {}
+    if not gates:
+        return "Gates: not run"
+    failed = [GATE_NAMES.get(name, name) for name, gate in gates.items() if not gate.get("passed")]
+    return f"Gates passed: `{len(gates) - len(failed)}/{len(gates)}`" + (f" · not passed: {', '.join(failed)}" if failed else "")
+
+
+def _split_words(choice: Any) -> str:
+    if isinstance(choice, Mapping):
+        return str(choice.get("kind") or choice.get("strategy") or "") + "".join(f", {k} {v}" for k, v in choice.items() if k not in ("kind", "strategy") and v)
+    return str(choice or "")
+
+
+def debate_line(debate: Mapping[str, Any], ds: Mapping[str, Any]) -> str:
+    """The debate's verdict when models debated; when none did, the rules' plan under its own name, with the same split the
+    card gives above (a second, different split would contradict it)."""
+    sources = [str(v) for v in (debate.get("sources") or {}).values()]
+    by_models = bool(sources) and not any(v.startswith("fallback") for v in sources)
+    families = ", ".join(debate.get("judged_families") or [])
+    if by_models:
+        return (f"- **Planner-Challenger-Judge Debate Verdict:** Split `{_split_words(debate.get('judged_split')) or 'see the validation split above'}` · "
+                f"Metric `{debate.get('judged_metric') or 'see the metrics above'}` · Families `{families}`")
+    return (f"- **DCLab's rules' plan (no model debate ran):** Split: {ds.get('split_strategy') or 'see the validation split above'} · "
+            f"Metric `{(ds.get('evaluation_metrics') or ['see the metrics above'])[0]}`" + (f" · Families `{families}`" if families else ""))
 
 
 def concise_summary(solution: Mapping[str, Any]) -> str:
@@ -757,12 +928,14 @@ def concise_summary(solution: Mapping[str, Any]) -> str:
     return (
         f"You can start without uploading data. I put together your 3-layer blueprint below for **{solution.get('family', 'prediction')}**:\n\n"
         f"0. **Problem Understanding:** Predict `{ds.get('target_definition')}` per `{ds.get('entity_id')}` strictly at `{moment_val}`.\n"
-        f"1. **Business & Economics:** Break-even precision is **{round(float(econ.get('break_even_precision', 0)) * 100, 1)}%** "
-        f"(at net target scenario value **{target_sc.get('net_monthly_value', 0)}/mo** when flagging top **{round(float(econ.get('recommended_action_rate', 0.15)) * 100)}%**).\n"
+        + (f"1. **Business & Economics:** I had no numbers from you for {', '.join(econ['assumed'])}, so the card's money figures use "
+           "placeholders, each marked \"assumed by DCLab\". They are an illustration, not facts about your business.\n" if econ.get("assumed") else
+           f"1. **Business & Economics:** From your numbers, break-even precision is **{round(float(econ.get('break_even_precision', 0)) * 100, 1)}%** "
+           f"(net **{target_sc.get('net_monthly_value', 0)}/mo** in the middle scenario, whose lift is DCLab's assumption).\n") +
         f"2. **Data Science Blueprint:** Track `{ds.get('entity_id')}` at `{ds.get('prediction_time')}` ({ds.get('label_horizon')}), "
         f"excluding post-decision traps like {', '.join((ds.get('forbidden_leakage_columns') or [])[:2])}.\n"
         f"3. **ML & Debate Plan:** Start with `{arch.get('stage1_baseline', 'regularized baseline')}`, then move to gradient boosted trees calibrated to your decision threshold.\n\n"
-        f"If you want to customize any assumption (volume, cost, value, or target), tell me. "
+        f"Tell me your real volume, base rate, cost per action and value per caught case, and I will redo the figures. "
         f"And if you'd like me to **simulate a synthetic dataset** to test this flow, tell me how many rows and what distributions you want so I can design it for your approval first."
     )
 
@@ -785,25 +958,8 @@ def solve_without_data(
     from . import no_data_harness
 
     problem = str(problem_text or "Predict a business outcome without data yet").strip()
-    det = kinds.detect(problem, None) or {}
-    family_key = str(det.get("family") or det.get("key") or det.get("pack") or "prediction").lower()
-    low = problem.lower()
-    if family_key in ("prediction", "binary_classification", "rare_event", "tabular"):
-        if "fraud" in low or "تقلب" in low or "کلاهبرداری" in low:
-            family_key = "fraud"
-        elif any(w in low for w in ("loan", "underwriting", "default rate", "credit risk", "micro-lending", "وام", "نکول")):
-            family_key = "credit_risk"
-        elif any(w in low for w in ("churn", "retention", "cancel", "ریزش", "لغو اشتراک")):
-            family_key = "churn"
-        elif any(w in low for w in ("forecast", "demand", "sales next", "inventory", "تقاضا", "پیش‌بینی فروش", "پیش بینی فروش")):
-            family_key = "forecasting"
-        elif (
-            any(w in low for w in ("price", "revenue", "ltv", "lifetime value", "claim severity", "expected loss", "duration", "eta", "قیمت", "درآمد"))
-            and not any(c in low for c in ("costs $", "action cost", "intervention cost", "review costs", "call costs", "visit costs", "inspection costs"))
-        ):
-            family_key = "regression"
-        elif any(w in low for w in ("segment", "cluster", "سگمنت", "خوشه‌بندی", "خوشه بندی")):
-            family_key = "segmentation"
+    family_key, family_source = _family_of(problem)
+    fit = blueprint_fit(problem)
 
     schema = _virtual_schema_for_kind(family_key, problem, target_hint=target_hint or (understanding or {}).get("target"))
     econ = compute_decision_economics(
@@ -842,7 +998,7 @@ def solve_without_data(
         models=models,
         draft_id=draft_id,
         project_id=project_id,
-        cap_eur=max(0.05, round(cap_eur * 0.70, 4)),
+        cap_eur=round(max(0.0, cap_eur) * 0.70, 4),  # the caller's cap decides: a case with little left gets little
     )
 
     # Update schema and Data Science blueprint from harnessed AI output
@@ -873,8 +1029,17 @@ def solve_without_data(
         schema=schema,
         economics=econ,
         understanding=enriched_und,
-        gateway=gateway if harness_out["harness_report"]["mode"] != "ai_harnessed" else None,
+        # the planner's own model call only when a gateway was given, live calls are allowed, and the harness's roles did
+        # not already answer; its cost is added to the report below
+        gateway=gateway if (gateway is not None and not no_data_harness.live_models_blocked()
+                            and harness_out["harness_report"]["mode"] != "ai_harnessed") else None,
+        project_id=project_id,
+        planner_cap_eur=min(0.05, max(0.0, cap_eur * 0.2)),
     )
+    planner_cost = float((ml.get("catalog_plan") or {}).get("cost_eur") or 0.0)
+    if planner_cost:
+        harness_out["harness_report"]["cost_eur"] = round(float(harness_out["harness_report"].get("cost_eur") or 0.0) + planner_cost, 6)
+        harness_out["harness_report"].setdefault("roles_called", []).append("task_decomposer")
     if harness_out.get("subproblems_routed"):
         ml["problem_map_subproblems"] = [
             {
@@ -923,6 +1088,8 @@ def solve_without_data(
         "version": 2,
         "problem": problem,
         "family": family_key,
+        "family_source": family_source,  # "kind" or "words": found in what the person wrote; "default": nothing pointed anywhere
+        "fit": fit,
         "mode_label": "Private / Zero-Upload Design" if withholding_privacy else "No-Data Solution Design",
         "understanding": harness_out["understanding"],
         "business": business,
@@ -941,4 +1108,9 @@ def solve_without_data(
     }
     solution["markdown"] = to_markdown(solution)
     solution["summary"] = concise_summary(solution)
+    if not fit["fits"]:  # a caller that built it anyway is told, in the words the person reads first
+        solution["summary"] = ("Note: your words name nothing to predict, so this is a general template, not a plan for your problem. "
+                               + solution["summary"])
+    no_data_harness.finish_gates(solution, problem)  # gate 2 on the model-written text as it is shown, with the assumed inputs named
+    solution["markdown"] = to_markdown(solution)
     return solution

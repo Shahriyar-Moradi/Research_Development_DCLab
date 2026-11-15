@@ -570,6 +570,7 @@ def check_options(options: Iterable[CaseOption], case: CaseFile, *, columns: Ite
     sources = [*case.words, *computed]
     kept: list[CaseOption] = []
     refused: dict[str, str] = {}
+    notes: dict[str, str] = {}
     for o in options:
         why = []
         if o.tool not in runnable or TRACK_OF_TOOL.get(o.tool) != o.track:
@@ -579,18 +580,35 @@ def check_options(options: Iterable[CaseOption], case: CaseFile, *, columns: Ite
             why.append(f"the table has no column {', '.join(missing)}")
         if not (o.gets.strip() and o.tradeoff.strip() and o.effort.strip()):  # 37.5: written for the person, in full
             why.append("an option says what they get, its trade-off and its effort")
+        # a number nobody gave or code computed: the sentence that holds it is removed and the option is kept (HAB-002: the
+        # right option, a randomised pilot, was refused whole for one such number); in the title, or when what the person
+        # gets, the trade-off or the effort would be left empty, the option is refused as before
         unsaid = numbers_unsaid(" ".join((o.title, o.what, o.gets, o.tradeoff, o.effort)), sources)
-        if unsaid:
+        if unsaid and numbers_unsaid(o.title, sources):
             why.append(f"numbers nobody gave: {', '.join(unsaid)}")
+        elif unsaid:
+            trimmed = {name: _without_unsaid(getattr(o, name), sources) for name in ("what", "gets", "tradeoff", "effort")}
+            if all(trimmed[name].strip() for name in ("gets", "tradeoff", "effort")):
+                o = o.model_copy(update=trimmed)
+                notes[o.title] = f"shown without the sentences holding numbers nobody gave ({', '.join(unsaid)}): say a number only when the person gave it or a query returned it"
+            else:
+                why.append(f"numbers nobody gave: {', '.join(unsaid)}")
         if any(k.tool == o.tool for k in kept):  # the review: three tracks on one tool were one plan in three wordings
             why.append("the same kind as an option already kept")
         if not why and len(kept) >= most:
             why.append(f"at most {most} options")
         if why:
             refused[o.title] = "; ".join(why)
+            notes.pop(o.title, None)
         else:
             kept.append(o)
-    return kept, refused
+    return kept, {**refused, **{f"{title} (kept)": note for title, note in notes.items()}}
+
+
+def _without_unsaid(text: str, sources: list[str]) -> str:
+    """The text without the sentences that hold a number nobody gave or code computed."""
+    sentences = [s for s in re.split(r"(?<=[.?!;])\s+", str(text or "").strip()) if s]
+    return " ".join(s for s in sentences if not numbers_unsaid(s, sources))
 
 
 # ---------------------------------------------------------------------------------------------------- the problem card view

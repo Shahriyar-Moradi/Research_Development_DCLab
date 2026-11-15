@@ -1,0 +1,50 @@
+{
+ "package": "no-data-review-fixes",
+ "title": "The no-data blueprint after its review: no forced route, no model plan for a question that is no prediction, assumed numbers marked, gates that are computed, thinking never switched off",
+ "date": "2026-11-15",
+ "request": "The owner pushed the no-data solution design and its AI harness, asked for a complete review of that commit, and then asked for every finding of the review to be fixed and re-checked.",
+ "spec": "Fix the findings at their cause with the smallest change and a test that fails without it. Keep what the review found sound: the guarded tool, no synthetic data without the person's yes, the build still refusing a draft with no table. Change no behaviour the earlier draft-flow tests pin.",
+ "plan": [
+  "read the whole feature before changing it: the blueprint module, the harness, the Home paths, the lead agent's tool, the evaluation and its tests",
+  "the detector, the family and the fit: only a stated lack of data counts, and a model plan only when the words name something to predict",
+  "numbers: the person's own or marked assumed; nothing assumed is a source for the number check",
+  "the harness: gates computed, labels that say where a value came from, thinking never switched off, prompts as files, no hidden model call",
+  "Home and the lead agent's tool: no route set by a word pattern, open questions kept open, one call a turn inside the case's cap",
+  "the evaluation rewritten so every arm is measured and its gate can fail; tests for the failure paths",
+  "rerun the prompt gates, re-check each finding by hand, run the affected test files"
+ ],
+ "decisions": [
+  {"decision": "A blueprint only when the words name something to predict; otherwise one plain message asks for the outcome", "why": "a route plan, a why-question and an A/B test's design all came back as a yes/no model, which is the early binding the harness study is looking at"},
+  {"decision": "The route is never set from a word pattern, and never recorded as the person's choice", "why": "a sentence with the words no data scientist became a confirmed prediction that nothing may override"},
+  {"decision": "Only the person's own numbers are a source for the number check; assumed inputs are shown on the card, marked", "why": "defaults placed among the computed sources let a model quote a made-up break-even as a fact"},
+  {"decision": "Gate 2 is computed after the card exists, on the model-written text", "why": "a gate computed before the text it guards can only be a constant"},
+  {"decision": "A cut answer gets more room and a compact instruction; the thinking is never switched off or lowered", "why": "the owner's standing rule is that every call keeps its thinking; the retry had sent it off"},
+  {"decision": "The evaluation's gate was replaced by a second version fixed before any run under it", "why": "the first could not fail, so it measured nothing; an unmeasured check is now reported as not measured"},
+  {"decision": "No new ledger point for the no-data route and no job for the long harness pass in this package", "why": "each needs its own contract change in the core library or the job table; said plainly as left open"}
+ ],
+ "change": "The blueprint module, its harness, the Home agent's no-data paths, the lead agent's tool and prompt, the draft API route, the evaluation module with its cases, five prompt files, the two test files with new failure-path tests, one stale assertion in the lead agent's tests, and the review document.",
+ "findings": [
+  {"id": "NDF-1", "source": "self", "severity": "behaviour", "defect": "A patch replaced most of the blueprint module with two lines.", "scenario": "A slice was taken from the first place a line of code stood to a later anchor; an earlier patch had added the same line near the top of the file.", "cause": "The slice's start was assumed unique after the file had already been changed.", "fix": "Restored the file from the commit, re-applied both patches from saved scripts, and made every later slice assert that its start is unique and its length small.", "test": "the parse check and the line-count guard of each patch script", "impact": "The module would have lost every function below its family reader.", "verdict": "confirmed"},
+  {"id": "NDF-2", "source": "measurement", "severity": "behaviour", "defect": "The number reader returned the wrong cost or value on five of the seven cases that state them.", "scenario": "A fifty dollar intervention cost followed by a larger amount saved was read as a cost of the larger amount.", "cause": "The words after a keyword were searched across the next phrase; nothing had ever checked the result, because the evaluation computed that flag and never used it.", "fix": "A number belongs to its keyword only inside its own phrase (a comma and a space, an and, a sentence end are boundaries); cost and value words extended to the ones the cases use.", "test": "test_a_number_is_the_persons_or_it_is_marked_assumed and the evaluation's economics check", "impact": "The break-even shown to a person who gave real numbers was computed from the wrong ones.", "verdict": "confirmed"},
+  {"id": "NDF-3", "source": "test", "severity": "behaviour", "defect": "The commit under review had broken three draft-flow tests and one lead-agent test that were not rerun.", "scenario": "Asked where the data is, a person who answers no data yet got a blueprint and no summary, and their answer was not recorded as the data plan.", "cause": "The no-data path returned before the answer's own path ran.", "fix": "The card is given, then the answer is recorded like any other and the conversation goes on to its summary; no open question is closed by the blueprint.", "test": "tests.test_draft_flow, tests.test_case_agent", "impact": "The earlier contract of the scripted Home was silently changed.", "verdict": "confirmed"},
+  {"id": "NDF-4", "source": "test", "severity": "behaviour", "defect": "After a blueprint, a request to simulate data was taken as the answer to the outcome question still open.", "scenario": "Keeping open questions open meant the next message went to the answer path.", "cause": "The simulate check stood after the open-question check.", "fix": "After a blueprint, a request to simulate is handled as a request: DCLab asks how the data should look and makes none.", "test": "test_rules_first_home_solves_without_data_and_never_auto_simulates", "verdict": "confirmed"},
+  {"id": "NDF-5", "source": "reviewer", "severity": "behaviour", "defect": "The harness turned the model's thinking off on a retry and lowered the effort on the first call.", "scenario": "An answer cut before its JSON was asked for again with reasoning disabled; the kept log held thirteen such requests.", "cause": "The retry freed room for the answer by removing the thinking.", "fix": "More room and a compact instruction instead; the two clients are told no table exists, so their words are kept whole.", "test": "test_the_harness_never_switches_the_thinking_off_and_keeps_it", "impact": "Calls of a live feature kept no thinking, against the owner's rule.", "verdict": "confirmed"},
+  {"id": "NDF-6", "source": "reviewer", "severity": "gap", "defect": "No ledger point records the no-data route or the family chosen, and one harness pass runs a dozen model calls inside the person's turn.", "scenario": "A pass took seven to seventeen minutes in the kept log.", "fix": "Left open and said so: each needs a contract change of its own (a ledger point in the core library; a job for the pass).", "open": "A ledger point for the family choice and a job for the harness pass.", "verdict": "open"}
+ ],
+ "measurements": [
+  {"name": "the no-data evaluation, free run", "gate": "no_data_gate_v2: family right on at least nine in ten cases, stated numbers read on at least nine in ten, no number without a source, schema and workflow checks on every case, mean cost within the cap", "fixed_before_run": true, "result": "family right on 11 of 12 cases, stated numbers read on 7 of 7, no number without a source, schema and workflow checks on 12 of 12; the plain arm not measured without a model", "verdict": "pass", "cost_eur": 0.0, "next": "a live run of the roles and the plain arm, when the owner gives a budget for it", "limits": ["a free run: no model answered, so the harness's roles are not measured", "the number reader was repaired on these same cases, so this is a development result", "one case is read as a stream of sensor rows where an expert says classification"]}
+ ],
+ "outcome": "Eighteen of the nineteen findings are fixed and re-checked with the reviewer's own inputs; one is left open with its reason. The affected test files pass with the project's runner. No live model was called for these fixes.",
+ "lessons": [
+  "When a patch takes a slice between two anchors, assert the start is unique and the slice is short: an earlier patch may have added the same line higher in the file.",
+  "A check that is computed and never used hides a broken reader: wire every measured flag into the gate or delete it.",
+  "A gate computed before the text it guards exists is a constant by construction.",
+  "Run the earlier tests of the paths a feature enters before committing it: the feature had changed what the answer to an open question does."
+ ],
+ "risks": [
+  "A second word pattern (what is not a prediction) now decides whether a blueprint is drawn; it errs toward asking",
+  "Ticket routing is refused as not a prediction because of the word route",
+  "The harness's roles were not exercised live after the change"
+ ],
+ "commits": []
+}

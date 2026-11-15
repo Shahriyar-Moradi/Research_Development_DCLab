@@ -1,0 +1,1710 @@
+{
+ "id": "HAB-007",
+ "split": "dev",
+ "at": "2026-11-15T12:39:40+00:00",
+ "arms": [
+  "case"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": null,
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.0338,
+ "cap_eur": 0.3,
+ "kept": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-007",
+ "manifest": {
+  "run_id": "HAB-007",
+  "at": "2026-11-15T12:39:40+00:00",
+  "arms": [
+   "case"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.3,
+  "code": {
+   "commit": "22ad1bf806f3ef9f3f9260499e11a4473c57f25f",
+   "dirty": [
+    "dclab_core/CHANGELOG.md",
+    "dclab_core/__init__.py",
+    "dclab_core/case.py",
+    "dclab_core/pyproject.toml",
+    "dclab_core/query.py",
+    "dclab_rnd/agents/case_agent.py",
+    "dclab_rnd/agents/data_tools.py",
+    "dclab_rnd/draft/api.py",
+    "dclab_rnd/draft/chat.py",
+    "dclab_rnd/draft/no_data.py",
+    "dclab_rnd/draft/no_data_harness.py",
+    "dclab_rnd/prompts/case_agent.md",
+    "dclab_rnd/agent_eval/harness_ablation/",
+    "dclab_rnd/prompts/ablation_judge.md",
+    "dclab_rnd/prompts/ablation_minimal_agent.md",
+    "dclab_rnd/prompts/ablation_model_only.md",
+    "dclab_rnd/prompts/no_data_compact_json.md",
+    "dclab_rnd/prompts/no_data_eval_plain.md",
+    "dclab_rnd/prompts/no_data_expert_brief.md",
+    "dclab_rnd/prompts/no_data_schema_brief.md",
+    "dclab_rnd/prompts/no_data_workflow_repair.md"
+   ],
+   "diff_sha256": "126848a9734f13fde0dbaf7fa2e79b0fc477fa47656907062e84749c3af9d9ad",
+   "untracked_sha256": "d2976321c45a2fe7824020c02b397c08ff7312962f5175ed4453f3a580c1bcee",
+   "untracked_files": 17
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": null,
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "546af3a142a56f09",
+   "route_check": "61027a2803db8856"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "a013f01fd377ee81"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "67a47729b96ad6f30fb3eaaabf52e040bbfe86a4424672c85f3e369371eb1275",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "after-three-fixes"
+ },
+ "capture": {
+  "exchanges": 30,
+  "ok": 30,
+  "whole": 30,
+  "with_thinking": 30,
+  "without_thinking": [],
+  "purposes": [
+   "case_agent",
+   "route_check"
+  ]
+ },
+ "label": "after-three-fixes",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
+ "code": "uncommitted edits (the owner's choice): see manifest.code",
+ "conversations": [
+  {
+   "id": "hab-01",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months. [shares sales.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I'll look at the actual numbers before we choose a route.\n\nYour belief holds, and the export looks complete. Paid-only is the same story: 87,551.17 → 72,682.06. March 2026 has 120 orders, roughly October's 141, so this is not a truncated month. Order count fell 433 → 378 and average order value 240.81 → 231.29, so you lost baskets, not just basket size. Refunds ticked up (40 → 42 orders, 8,318.30 → 8,699.27). **One caution:** January (32,186.50) sat near October's level; the damage came in February (26,344.62) and March (26,122.16). December holiday season lifts Q4 in the UAE, so part of that gap is seasonal, not lost demand. Nothing in the export tells you which — that needs spend or traffic figures. The honest ML target is the order itself (2020 rows). Pick whichever fits — the brief, the model, or the dashboard:\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": [
+      {
+       "title": "Find out why Q1 fell (attribution brief)",
+       "what": "compare against the same quarters' pattern last year and separate seasonal softness from real lost demand. You get: A short brief your head of sales can act on: which segment to defend, which is seasonal, which is genuinely bleeding. Trade-off: Explains the past; predicts nothing new. Effort: Fast - one session, same table.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      },
+      {
+       "title": "Revenue model on 2020 orders (ML)",
+       "what": "Train an order-level model predicting amount from region, channel, product_category and order timing on paid orders, with a time-based holdout so accuracy is honest. You get: Expected revenue per order by segment - a ranking of where extra spend most likely pays back, plus the ML deliverable your manager asked for. Trade-off: You only have 5 quarters, so it learns segment value, not next-quarter timing. Effort: Medium - model build plus holdout validation.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      },
+      {
+       "title": "Quarterly revenue dashboard (kept current)",
+       "what": "A dashboard of revenue by month, by channel, by region and by category with paid/refunded/cancelled split, refreshable each time you export orders. You get: The sales head sees the drop and its drivers without you rebuilding charts every quarter. Trade-off: Reporting, not explanation; no forecast. Effort: Fast - built from the same queries.",
+       "track": "reporting",
+       "tool": "dashboard",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Find out why Q1 fell (attribution brief)",
+     "pick": "Find out why Q1 fell (attribution brief)",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I'll pull the drivers apart before writing the brief.\n\nApp channel looks like the epicenter. Drilling in.",
+     "choices": []
+    }
+   ],
+   "route": "business",
+   "tool": "business_brief",
+   "routed_by": "option",
+   "ended": "answered",
+   "assistant_turns": 2,
+   "picked": 1,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    121.94,
+    103.27
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-01",
+     "version": 11,
+     "words": [
+      "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months.\n\n(I shared a table: sales.csv)",
+      "I pick: Find out why Q1 fell (attribution brief)"
+     ],
+     "goal": {
+      "value": "Build a machine learning model that predicts revenue, and find out why revenue fell in Q1 2026 against Q4 2025.",
+      "status": "said",
+      "quote": "my manager wants me to build a machine learning model that predicts revenue",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Head of sales decides where to spend the next quarter's marketing money (by region, channel, category).",
+      "status": "said",
+      "quote": "the result goes to the head of sales, who decides where to spend the next quarter's marketing money",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "Analyst (the person) builds it; head of sales consumes the result; manager requested an ML model.",
+      "status": "said",
+      "quote": "I am the analyst; the result goes to the head of sales",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "sales.csv order export: one row per order, 2020 rows, 8 columns (order_id, order_date, region, channel, product_category, amount, status, customer_id).",
+      "status": "said",
+      "quote": "The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer.",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [
+      {
+       "value": "Only ~15 monthly points of revenue history in the export, so an aggregate revenue time-series ML model would be trained on 14-15 observations; order-level modelling on 2020 rows is the feasible ML route.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "assumptions": [],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "Find out why Q1 fell (attribution brief)",
+       "what": "compare against the same quarters' pattern last year and separate seasonal softness from real lost demand.",
+       "gets": "A short brief your head of sales can act on: which segment to defend, which is seasonal, which is genuinely bleeding.",
+       "tradeoff": "Explains the past; predicts nothing new.",
+       "effort": "Fast - one session, same table",
+       "track": "business",
+       "tool": "business_brief",
+       "columns": []
+      },
+      {
+       "title": "Revenue model on 2020 orders (ML)",
+       "what": "Train an order-level model predicting amount from region, channel, product_category and order timing on paid orders, with a time-based holdout so accuracy is honest.",
+       "gets": "Expected revenue per order by segment - a ranking of where extra spend most likely pays back, plus the ML deliverable your manager asked for.",
+       "tradeoff": "You only have 5 quarters, so it learns segment value, not next-quarter timing.",
+       "effort": "Medium - model build plus holdout validation",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": [
+        "region",
+        "channel",
+        "product_category",
+        "order_date",
+        "amount"
+       ]
+      },
+      {
+       "title": "Quarterly revenue dashboard (kept current)",
+       "what": "A dashboard of revenue by month, by channel, by region and by category with paid/refunded/cancelled split, refreshable each time you export orders.",
+       "gets": "The sales head sees the drop and its drivers without you rebuilding charts every quarter.",
+       "tradeoff": "Reporting, not explanation; no forecast.",
+       "effort": "Fast - built from the same queries",
+       "track": "reporting",
+       "tool": "dashboard",
+       "columns": []
+      }
+     ],
+     "chosen": "Find out why Q1 fell (attribution brief)",
+     "route": {
+      "track": "business",
+      "tool": "business_brief",
+      "reasons": "",
+      "by": "person"
+     },
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months.\n\n(I shared a table: sales.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "sales.csv: 2020 rows, 8 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (sales.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Head of sales decides where to spend the next quarter's marketing money (by region, channel, category).",
+        "status": "said",
+        "quote": "the result goes to the head of sales, who decides where to spend the next quarter's marketing money",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Analyst (the person) builds it; head of sales consumes the result; manager requested an ML model.",
+        "status": "said",
+        "quote": "I am the analyst; the result goes to the head of sales",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "Only ~15 monthly points of revenue history in the export, so an aggregate revenue time-series ML model would be trained on 14-15 observations; order-level modelling on 2020 rows is the feasible ML route.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 6,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Build a machine learning model that predicts revenue, and find out why revenue fell in Q1 2026 against Q4 2025.",
+        "status": "said",
+        "quote": "my manager wants me to build a machine learning model that predicts revenue",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 7,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "sales.csv: 2020 rows, 8 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (sales.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "sales.csv order export: one row per order, 2020 rows, 8 columns (order_id, order_date, region, channel, product_category, amount, status, customer_id).",
+        "status": "said",
+        "quote": "The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 8,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "Find out why Q1 fell (attribution brief)",
+         "what": "compare against the same quarters' pattern last year and separate seasonal softness from real lost demand.",
+         "gets": "A short brief your head of sales can act on: which segment to defend, which is seasonal, which is genuinely bleeding.",
+         "tradeoff": "Explains the past; predicts nothing new.",
+         "effort": "Fast - one session, same table",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": []
+        },
+        {
+         "title": "Revenue model on 2020 orders (ML)",
+         "what": "Train an order-level model predicting amount from region, channel, product_category and order timing on paid orders, with a time-based holdout so accuracy is honest.",
+         "gets": "Expected revenue per order by segment - a ranking of where extra spend most likely pays back, plus the ML deliverable your manager asked for.",
+         "tradeoff": "You only have 5 quarters, so it learns segment value, not next-quarter timing.",
+         "effort": "Medium - model build plus holdout validation",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": [
+          "region",
+          "channel",
+          "product_category",
+          "order_date",
+          "amount"
+         ]
+        },
+        {
+         "title": "Quarterly revenue dashboard (kept current)",
+         "what": "A dashboard of revenue by month, by channel, by region and by category with paid/refunded/cancelled split, refreshable each time you export orders.",
+         "gets": "The sales head sees the drop and its drivers without you rebuilding charts every quarter.",
+         "tradeoff": "Reporting, not explanation; no forecast.",
+         "effort": "Fast - built from the same queries",
+         "track": "reporting",
+         "tool": "dashboard",
+         "columns": []
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "chosen",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": "Find out why Q1 fell (attribution brief)"
+      },
+      {
+       "version": 10,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": {
+        "track": "business",
+        "tool": "business_brief",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 11,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months.\n\n(I shared a table: sales.csv)"
+       ],
+       "after": [
+        "I pick: Find out why Q1 fell (attribution brief)"
+       ]
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [
+     {
+      "plan_hash": "0dacf50927de0ff4",
+      "columns_related": [
+       [
+        "order_date",
+        "amount"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "6272c7d4448205ac",
+      "columns_related": [
+       [
+        "status",
+        "amount"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "6ecb9e50b762a0a5",
+      "columns_related": [
+       [
+        "order_date",
+        "amount"
+       ],
+       [
+        "status",
+        "amount"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "e79bf18c6e412430",
+      "columns_related": [
+       [
+        "order_date",
+        "amount"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "22bdefc91f7c2d75",
+      "columns_related": [
+       [
+        "region",
+        "amount"
+       ],
+       [
+        "region",
+        "order_date"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "1469f24c577f6974",
+      "columns_related": [
+       [
+        "channel",
+        "amount"
+       ],
+       [
+        "channel",
+        "order_date"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "67370bf879c1cba3",
+      "columns_related": [
+       [
+        "product_category",
+        "amount"
+       ],
+       [
+        "product_category",
+        "order_date"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "columns_related": [
+       [
+        "order_id",
+        "amount"
+       ],
+       [
+        "order_date",
+        "amount"
+       ],
+       [
+        "region",
+        "amount"
+       ],
+       [
+        "channel",
+        "amount"
+       ],
+       [
+        "product_category",
+        "amount"
+       ],
+       [
+        "status",
+        "amount"
+       ],
+       [
+        "customer_id",
+        "amount"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "16557398f95f3a13",
+      "columns_related": [
+       [
+        "region",
+        "amount"
+       ],
+       [
+        "region",
+        "order_date"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "b5b4f6063727b89b",
+      "columns_related": [
+       [
+        "channel",
+        "amount"
+       ],
+       [
+        "channel",
+        "order_date"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "87ec8504c135f8c6",
+      "columns_related": [
+       [
+        "product_category",
+        "amount"
+       ],
+       [
+        "product_category",
+        "order_date"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "bb87e830d28fa7a6",
+      "columns_related": [
+       [
+        "status",
+        "amount"
+       ],
+       [
+        "status",
+        "order_date"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "28dfaa4202d2766e",
+      "columns_related": [
+       [
+        "channel",
+        "amount"
+       ],
+       [
+        "channel",
+        "status"
+       ],
+       [
+        "order_date",
+        "amount"
+       ],
+       [
+        "order_date",
+        "status"
+       ],
+       [
+        "region",
+        "amount"
+       ],
+       [
+        "region",
+        "status"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "9a77a9d9f650cfac",
+      "columns_related": [
+       [
+        "channel",
+        "amount"
+       ],
+       [
+        "channel",
+        "customer_id"
+       ],
+       [
+        "channel",
+        "status"
+       ],
+       [
+        "order_date",
+        "amount"
+       ],
+       [
+        "order_date",
+        "customer_id"
+       ],
+       [
+        "order_date",
+        "status"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "aa59d835fc7d2dc6",
+      "columns_related": [
+       [
+        "channel",
+        "amount"
+       ],
+       [
+        "channel",
+        "customer_id"
+       ],
+       [
+        "channel",
+        "order_date"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "0f0462ed5bb273ea",
+      "columns_related": [
+       [
+        "channel",
+        "amount"
+       ],
+       [
+        "channel",
+        "order_date"
+       ],
+       [
+        "status",
+        "amount"
+       ],
+       [
+        "status",
+        "order_date"
+       ]
+      ],
+      "rows": "filter"
+     }
+    ],
+    "spent_eur": 0.0116
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0116,
+   "judge_spent_eur": 0,
+   "first_divergence": {
+    "id": "hab-01",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-007/case/hab-01-r1",
+    "events": 28,
+    "first": {
+     "reason": "options_dropped",
+     "at": "2026-11-15T12:41:33.615639+00:00",
+     "seq": 56,
+     "tool": "case_propose",
+     "wanted": {
+      "tracks": [
+       "business",
+       "prediction",
+       "reporting"
+      ]
+     },
+     "wanted_right": true,
+     "safety": false,
+     "before_route": true,
+     "evidence": "{\"shown\": [\"Find out why Q1 fell (attribution brief)\", \"Revenue model on 2020 orders (ML)\", \"Quarterly revenue dashboard (kept current)\"], \"refused\": {\"Find out why Q1 fell (attribution brief) (kept)\": \"shown without the sentences holding numbers nobody gave (16,726.69): say a number only when the p"
+    },
+    "all": [
+     {
+      "reason": "options_dropped",
+      "at": "2026-11-15T12:41:33.615639+00:00",
+      "seq": 56,
+      "tool": "case_propose",
+      "wanted": {
+       "tracks": [
+        "business",
+        "prediction",
+        "reporting"
+       ]
+      },
+      "wanted_right": true,
+      "safety": false,
+      "before_route": true,
+      "evidence": "{\"shown\": [\"Find out why Q1 fell (attribution brief)\", \"Revenue model on 2020 orders (ML)\", \"Quarterly revenue dashboard (kept current)\"], \"refused\": {\"Find out why Q1 fell (attribution brief) (kept)\": \"shown without the sentences holding numbers nobody gave (16,726.69): say a number only when the p"
+     }
+    ],
+    "route": "business",
+    "tool": "business_brief",
+    "routed_by": "option",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-02",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the product manager of a travel booking site. We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip. The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled. Today free cancellation is offered on some trips and not on others; partners and our pricing team choose which, nobody assigned it at random. Tell me what you would do to answer this. [shares bookings.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Here is what I read in your table, and what I would do. First, the honest headline: on the raw numbers free cancellation changes nothing. Cancellations run 0.23 on the 877 bookings without it and 0.23 on the 623 with it. But that gap is not your answer, because the two groups are not the same trips. The free-cancellation bookings sit out 94.14 days on average before travel versus 88.72 days for the others — and long lead time is itself a cancellation risk. So the raw equality probably hides a real effect pushing the other way. Split by segment and it gets noisier still: Bangkok cancels 0.29 with versus 0.22 without, while Pakistan-based bookers cancel 0.19 with versus 0.27 without. An average of opposite effects is meaningless for a rollout decision. So the plan:\n\n1. Fix the table's rough edges: price comes in as text, so it becomes numeric; the 8 rows with destination TEST have no free-cancellation arm at all and should be excluded; and I only count bookings whose cancellation window has really closed, since your data runs to 2026-02-24 for trips as late as 2026-08-16. 2. Compare like with like: within destination, channel, nationality, price band and lead-time band, then weight both arms to one common booking mix, with an uncertainty range rather than a single number. 3. Test where it works and where it backfires, because \"every trip\" is really a per-segment decision. 4. Be explicit about what we cannot adjust for: partners choose on something we may not see in these columns. The three routes below differ in what you get. The first is the one I would start with, and the second builds on it.",
+     "choices": [
+      {
+       "title": "Like-for-like estimate now",
+       "what": "Compare free-cancellation vs not only within matched cells (destination, channel, nationality, lead-time band, price band after fixing price to numeric), weight both arms to the same booking mix, and report the adjusted gap with its uncertainty plus where the effect differs. You get: A defensible answer to 'does it reduce cancellations', and which segments it works or backfires in. Trade-off: Only as good as the differences you can see in the table; if partners choose on something unrecorded, a residual bias stays. Effort: One pass on the table you already shared; no new data.",
+       "track": "analysis",
+       "tool": "query",
+       "kind": "option"
+      },
+      {
+       "title": "Go/no-go brief for 'offer it on every trip'",
+       "what": "Take the adjusted numbers and turn them into the decision: refund and unsold-inventory cost per cancellation, the mechanical effect that free cancellation makes cancelling costless (so recorded cancellations can rise even when the policy helps), and the minimum evidence needed to flip the recommendation. You get: A one-page recommendation with the break-even logic and the caveats stated, ready for partners and the pricing team. Trade-off: Needs a few business inputs the table does not hold (refund cost, rebooking rate, no-show rate), which you would supply. Effort: Brief write-up after the estimate; 3-4 numbers from you.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      },
+      {
+       "title": "Standing monitor for the rollout",
+       "what": "A small dashboard kept on the bookings table: cancellations and free-cancellation share over time and by destination/channel, so a wider rollout shows up as a shift instead of an argument. You get: Refreshable view you can reopen before the next pricing meeting. Trade-off: Shows what happened, not what it cost you; does not settle the causal question by itself. Effort: Quick to set up from the current table.",
+       "track": "reporting",
+       "tool": "dashboard",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I read your words as: judge it myself, no more back-and-forth. So I started the **go/no-go brief** and ran the first numbers. Here is what the bookings say so far. I restricted the analysis to the 1,165 bookings where the answer is actually in: real destinations (dropping the 8 TEST rows, which have no free-cancellation arm at all) and a travel date already past 2026-02-24, since a trip still months away has not finished cancelling. **On that set, free cancellation cancels 0.21 versus 0.23 without it** (474 vs 691 bookings). Re-weighted so both arms carry the same destination mix, the gap stays about two points. Two things about that:\n\n- It is small relative to noise. With these sample sizes a two-point gap is well inside what chance alone produces, so \"free cancellation reduces cancellations\" is **not yet established** — the honest reading is *no detectable effect*, which is not the same as *no effect*. - Lead time dominates everything else: 0.13 for trips within 30 days out, 0.18 at 31–60, 0.23 at 61–90, 0.28 beyond 91 days. So comparing arms without matching on how far out people booked is comparing different risks. Once I hold that roughly constant, the picture sharpens: **for short-lead bookings (within 60 days) free cancellation cancels 0.13 versus 0.17** — a four-point gap, with lead times nearly equal in that band (31.12 vs 29.54 days). The long-lead comparison is the one query that failed just now and I am rerunning it. Segment by segment it disagrees: app 0.19 vs 0.24 and agent 0.21 vs 0.28 favour free cancellation, web does not (0.22 vs 0.21); London 0.19 vs 0.26 favours it, Istanbul goes the other way (0.22 vs 0.19). \"Every trip\" is therefore the wrong shape of answer to expect, and the brief will argue for a per-segment rule. Next: the long-lead arm comparison, nationality strata, then the written go/no-go with margins of error and what this table cannot speak to — chief among them conversion, since it holds only bookings you already got, so any upside from persuading fence-sitters to book is invisible here.",
+     "choices": []
+    }
+   ],
+   "route": "business",
+   "tool": "business_brief",
+   "routed_by": "self",
+   "ended": "answered",
+   "assistant_turns": 2,
+   "picked": 0,
+   "options_unpicked": 1,
+   "silent": 0,
+   "seconds": [
+    116.6,
+    210.83
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-02",
+     "version": 11,
+     "words": [
+      "I am the product manager of a travel booking site. We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip. The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled. Today free cancellation is offered on some trips and not on others; partners and our pricing team choose which, nobody assigned it at random. Tell me what you would do to answer this.\n\n(I shared a table: bookings.csv)",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Estimate whether offering free cancellation causally reduces booking cancellations, so the team can decide whether to offer it on every trip.",
+      "status": "said",
+      "quote": "We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip.",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Product decision: extend free cancellation to all trips, keep it selective, or drop it; the estimate must support that go/no-go.",
+      "status": "said",
+      "quote": "so we can decide whether to offer it on every trip",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "Product manager of a travel booking site, with partners and a pricing team who currently choose which trips get free cancellation (not random).",
+      "status": "said",
+      "quote": "I am the product manager of a travel booking site",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "bookings.csv: 1500 rows, one per booking: booking_date (2025-01-01 to 2026-02-24), travel_date (to 2026-08-16), destination, nationality, channel, lead_time_days, price, free_cancellation (623 true / 877 false), cancelled, customer_id. Raw cancel rate 0.23 without vs 0.23 with free cancellation; mean lead time 88.72 vs 94.14 days. price is stored as text; a 'TEST' destination has 8 rows and no free-cancellation arm.",
+      "status": "said",
+      "quote": "The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled.",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [
+      {
+       "value": "cancelled = 1 means the booking was cancelled; free_cancellation = true means that trip was sold with free cancellation offered. Assignment was made by partners/pricing, so it is observational, not random.",
+       "status": "said",
+       "quote": "nobody assigned it at random",
+       "computed": null,
+       "after_words": null
+      }
+     ],
+     "unknowns": [
+      {
+       "field": "decision_metric",
+       "question": "Is the goal literally fewer cancellations, or net completed bookings / profit (free cancellation can raise recorded cancellations while raising conversion and rebooking)?",
+       "blocks": "some",
+       "rank": 1
+      }
+     ],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "Like-for-like estimate now",
+       "what": "Compare free-cancellation vs not only within matched cells (destination, channel, nationality, lead-time band, price band after fixing price to numeric), weight both arms to the same booking mix, and report the adjusted gap with its uncertainty plus where the effect differs.",
+       "gets": "A defensible answer to 'does it reduce cancellations', and which segments it works or backfires in.",
+       "tradeoff": "Only as good as the differences you can see in the table; if partners choose on something unrecorded, a residual bias stays.",
+       "effort": "One pass on the table you already shared; no new data.",
+       "track": "analysis",
+       "tool": "query",
+       "columns": [
+        "free_cancellation",
+        "cancelled",
+        "destination",
+        "channel",
+        "nationality",
+        "lead_time_days",
+        "price",
+        "booking_date",
+        "travel_date"
+       ]
+      },
+      {
+       "title": "Go/no-go brief for 'offer it on every trip'",
+       "what": "Take the adjusted numbers and turn them into the decision: refund and unsold-inventory cost per cancellation, the mechanical effect that free cancellation makes cancelling costless (so recorded cancellations can rise even when the policy helps), and the minimum evidence needed to flip the recommendation.",
+       "gets": "A one-page recommendation with the break-even logic and the caveats stated, ready for partners and the pricing team.",
+       "tradeoff": "Needs a few business inputs the table does not hold (refund cost, rebooking rate, no-show rate), which you would supply.",
+       "effort": "Brief write-up after the estimate; 3-4 numbers from you.",
+       "track": "business",
+       "tool": "business_brief",
+       "columns": []
+      },
+      {
+       "title": "Standing monitor for the rollout",
+       "what": "A small dashboard kept on the bookings table: cancellations and free-cancellation share over time and by destination/channel, so a wider rollout shows up as a shift instead of an argument.",
+       "gets": "Refreshable view you can reopen before the next pricing meeting.",
+       "tradeoff": "Shows what happened, not what it cost you; does not settle the causal question by itself.",
+       "effort": "Quick to set up from the current table.",
+       "track": "reporting",
+       "tool": "dashboard",
+       "columns": []
+      }
+     ],
+     "chosen": null,
+     "route": {
+      "track": "business",
+      "tool": "business_brief",
+      "reasons": "",
+      "by": "agent"
+     },
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am the product manager of a travel booking site. We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip. The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled. Today free cancellation is offered on some trips and not on others; partners and our pricing team choose which, nobody assigned it at random. Tell me what you would do to answer this.\n\n(I shared a table: bookings.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "bookings.csv: 1500 rows, 11 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (bookings.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Estimate whether offering free cancellation causally reduces booking cancellations, so the team can decide whether to offer it on every trip.",
+        "status": "said",
+        "quote": "We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Product decision: extend free cancellation to all trips, keep it selective, or drop it; the estimate must support that go/no-go.",
+        "status": "said",
+        "quote": "so we can decide whether to offer it on every trip",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Product manager of a travel booking site, with partners and a pricing team who currently choose which trips get free cancellation (not random).",
+        "status": "said",
+        "quote": "I am the product manager of a travel booking site",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "bookings.csv: 1500 rows, 11 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (bookings.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "bookings.csv: 1500 rows, one per booking: booking_date (2025-01-01 to 2026-02-24), travel_date (to 2026-08-16), destination, nationality, channel, lead_time_days, price, free_cancellation (623 true / 877 false), cancelled, customer_id. Raw cancel rate 0.23 without vs 0.23 with free cancellation; mean lead time 88.72 vs 94.14 days. price is stored as text; a 'TEST' destination has 8 rows and no free-cancellation arm.",
+        "status": "said",
+        "quote": "The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 7,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "cancelled = 1 means the booking was cancelled; free_cancellation = true means that trip was sold with free cancellation offered. Assignment was made by partners/pricing, so it is observational, not random.",
+         "status": "said",
+         "quote": "nobody assigned it at random",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [],
+       "after": [
+        {
+         "field": "decision_metric",
+         "question": "Is the goal literally fewer cancellations, or net completed bookings / profit (free cancellation can raise recorded cancellations while raising conversion and rebooking)?",
+         "blocks": "some",
+         "rank": 1
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "Like-for-like estimate now",
+         "what": "Compare free-cancellation vs not only within matched cells (destination, channel, nationality, lead-time band, price band after fixing price to numeric), weight both arms to the same booking mix, and report the adjusted gap with its uncertainty plus where the effect differs.",
+         "gets": "A defensible answer to 'does it reduce cancellations', and which segments it works or backfires in.",
+         "tradeoff": "Only as good as the differences you can see in the table; if partners choose on something unrecorded, a residual bias stays.",
+         "effort": "One pass on the table you already shared; no new data.",
+         "track": "analysis",
+         "tool": "query",
+         "columns": [
+          "free_cancellation",
+          "cancelled",
+          "destination",
+          "channel",
+          "nationality",
+          "lead_time_days",
+          "price",
+          "booking_date",
+          "travel_date"
+         ]
+        },
+        {
+         "title": "Go/no-go brief for 'offer it on every trip'",
+         "what": "Take the adjusted numbers and turn them into the decision: refund and unsold-inventory cost per cancellation, the mechanical effect that free cancellation makes cancelling costless (so recorded cancellations can rise even when the policy helps), and the minimum evidence needed to flip the recommendation.",
+         "gets": "A one-page recommendation with the break-even logic and the caveats stated, ready for partners and the pricing team.",
+         "tradeoff": "Needs a few business inputs the table does not hold (refund cost, rebooking rate, no-show rate), which you would supply.",
+         "effort": "Brief write-up after the estimate; 3-4 numbers from you.",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": []
+        },
+        {
+         "title": "Standing monitor for the rollout",
+         "what": "A small dashboard kept on the bookings table: cancellations and free-cancellation share over time and by destination/channel, so a wider rollout shows up as a shift instead of an argument.",
+         "gets": "Refreshable view you can reopen before the next pricing meeting.",
+         "tradeoff": "Shows what happened, not what it cost you; does not settle the causal question by itself.",
+         "effort": "Quick to set up from the current table.",
+         "track": "reporting",
+         "tool": "dashboard",
+         "columns": []
+        }
+       ]
+      },
+      {
+       "version": 10,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the product manager of a travel booking site. We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip. The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled. Today free cancellation is offered on some trips and not on others; partners and our pricing team choose which, nobody assigned it at random. Tell me what you would do to answer this.\n\n(I shared a table: bookings.csv)"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 11,
+       "field": "route",
+       "op": "set",
+       "by": "agent",
+       "why": "work started",
+       "before": null,
+       "after": {
+        "track": "business",
+        "tool": "business_brief",
+        "reasons": "",
+        "by": "agent"
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [
+     {
+      "columns_related": [
+       [
+        "booking_id",
+        "cancelled"
+       ],
+       [
+        "booking_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "nationality",
+        "cancelled"
+       ],
+       [
+        "channel",
+        "cancelled"
+       ],
+       [
+        "lead_time_days",
+        "cancelled"
+       ],
+       [
+        "price",
+        "cancelled"
+       ],
+       [
+        "free_cancellation",
+        "cancelled"
+       ],
+       [
+        "customer_id",
+        "cancelled"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "fc356b98dfe320cb",
+      "columns_related": [
+       [
+        "free_cancellation",
+        "cancelled"
+       ],
+       [
+        "free_cancellation",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "a08bfb74a3c6ec18",
+      "columns_related": [
+       [
+        "free_cancellation",
+        "booking_date"
+       ],
+       [
+        "free_cancellation",
+        "travel_date"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "55a8a0f689baa13c",
+      "columns_related": [
+       [
+        "channel",
+        "cancelled"
+       ],
+       [
+        "free_cancellation",
+        "cancelled"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "85310e59b939a8c7",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "free_cancellation",
+        "cancelled"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "18933a25a68ff379",
+      "columns_related": [
+       [
+        "booking_date",
+        "cancelled"
+       ],
+       [
+        "booking_date",
+        "free_cancellation"
+       ],
+       [
+        "booking_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "16b70bf7a4e8bdbc",
+      "columns_related": [
+       [
+        "free_cancellation",
+        "cancelled"
+       ],
+       [
+        "nationality",
+        "cancelled"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "54431157ed7a2f36",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "free_cancellation"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "free_cancellation"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "f803467edb7da2f8",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "free_cancellation"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "free_cancellation"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "104481ca3b6f16cb",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "free_cancellation"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "free_cancellation"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "14467f1a065fae0e",
+      "columns_related": [
+       [
+        "channel",
+        "cancelled"
+       ],
+       [
+        "channel",
+        "free_cancellation"
+       ],
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "free_cancellation"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "free_cancellation"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "5dbbd693e2177615",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "3d03049a7f17e95c",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "free_cancellation",
+        "cancelled"
+       ],
+       [
+        "free_cancellation",
+        "lead_time_days"
+       ],
+       [
+        "lead_time_days",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     }
+    ],
+    "spent_eur": 0.0222
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0222,
+   "judge_spent_eur": 0,
+   "first_divergence": {
+    "id": "hab-02",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-007/case/hab-02-r1",
+    "events": 32,
+    "first": {
+     "reason": "other_refusal",
+     "at": "2026-11-15T12:44:07.126464+00:00",
+     "seq": 115,
+     "tool": "case_query",
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": true,
+     "evidence": "error: group: price is identifier-like; grouping by it would list rows"
+    },
+    "all": [
+     {
+      "reason": "other_refusal",
+      "at": "2026-11-15T12:44:07.126464+00:00",
+      "seq": 115,
+      "tool": "case_query",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: group: price is identifier-like; grouping by it would list rows"
+     },
+     {
+      "reason": "query_cannot_express",
+      "at": "2026-11-15T12:44:40.699718+00:00",
+      "seq": 122,
+      "tool": "case_query",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: measure cheapest: min needs a numeric column; price is identifier; measure cheapest: price is identifier; only counted; measure priciest: max needs a numeric column; price is identifier; measure priciest: price is identifier; only counted"
+     },
+     {
+      "reason": "route_overruled",
+      "at": "2026-11-15T12:46:23.135807+00:00",
+      "seq": 157,
+      "tool": "case_start",
+      "wanted": {
+       "track": "analysis",
+       "tool": "query"
+      },
+      "wanted_right": null,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: the person's need may call for business (a second reading of their words), not analysis. Their latest words: \"Everything I know is in what I wrote. Choose what you judge best and go ahead.\". Read them again; start that kind of help, or propose it beside yours, unless their words clearly call "
+     },
+     {
+      "reason": "other_refusal",
+      "at": "2026-11-15T12:46:47.506887+00:00",
+      "seq": 164,
+      "tool": "case_query",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": false,
+      "evidence": "error: Invalid argument for case_query: filters: '\\n[{\"column\": \"destination\", \"op\": \"ne\", \"value\": \"TEST\"}, {\"column\": \"travel_date\", \"op\": \"le\", \"value\": \"2026-02-24\"}]\\n<parameter=measures>\\n[{\"name\": \"rows_analysed\", \"op\": \"count\"}, {\"name\": \"n_"
+     },
+     {
+      "reason": "other_refusal",
+      "at": "2026-11-15T12:47:17.498747+00:00",
+      "seq": 173,
+      "tool": "case_query",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": false,
+      "evidence": "error: Invalid argument for case_query: measures.0.column: None is not of type 'string'"
+     },
+     {
+      "reason": "other_refusal",
+      "at": "2026-11-15T12:47:22.612785+00:00",
+      "seq": 176,
+      "tool": "case_query",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": false,
+      "evidence": "error: Invalid argument for case_query: filters: '\\n[{\"column\": \"destination\", \"op\": \"ne\", \"value\": \"TEST\"}, {\"column\": \"travel_date\", \"op\": \"le\", \"value\": \"2026-02-24\"}]\\n<parameter=group_by>\\n[\"destination\"]\\n' is not of type 'array'"
+     },
+     {
+      "reason": "other_refusal",
+      "at": "2026-11-15T12:48:33.190910+00:00",
+      "seq": 191,
+      "tool": "case_query",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": false,
+      "evidence": "error: Invalid argument for case_query: measures.0.column: None is not of type 'string'"
+     },
+     {
+      "reason": "budget_exhausted",
+      "at": null,
+      "seq": null,
+      "tool": null,
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": null,
+      "evidence": "a turn of the lead agent was ended by its budget (steps, replies or time)"
+     }
+    ],
+    "route": "business",
+    "tool": "business_brief",
+    "routed_by": "self",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  }
+ ],
+ "scores": {
+  "case": [
+   {
+    "run": "HAB-007",
+    "case": "hab-01",
+    "arm": "case",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": "business",
+    "tool": "business_brief",
+    "assistant_turns": 2,
+    "picked": 1,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 225.21,
+    "spent_eur": 0.0116,
+    "first_divergence": "options_dropped",
+    "wanted_right": true
+   },
+   {
+    "run": "HAB-007",
+    "case": "hab-02",
+    "arm": "case",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": "business",
+    "tool": "business_brief",
+    "assistant_turns": 2,
+    "picked": 0,
+    "options_unpicked": 1,
+    "silent": 0,
+    "seconds": 327.43,
+    "spent_eur": 0.0222,
+    "first_divergence": "other_refusal",
+    "wanted_right": null
+   }
+  ]
+ },
+ "summary": {
+  "case": {
+   "conversations": 2,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": 276.32,
+   "spent_eur": 0.0338
+  }
+ },
+ "paired": null,
+ "first_divergence_counts": {
+  "options_dropped": 1,
+  "other_refusal": 1
+ },
+ "incomplete": null
+}

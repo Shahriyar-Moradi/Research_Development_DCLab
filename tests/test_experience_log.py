@@ -71,6 +71,8 @@ WRITE_ROUTES = {
     "POST /api/drafts/{draft_id}/data/database": (EVENTS, ["data.uploaded"]),
     "POST /api/drafts/{draft_id}/data/cloud": (EVENTS, ["data.uploaded"]),
     "POST /api/drafts/{draft_id}/messages": (EVENTS, ["chat.person", "chat.agent"]),
+    "POST /api/drafts/{draft_id}/no-data-solution": (EVENTS, ["chat.agent"]),  # 22ad1bf8: the no-data blueprint (or the note that nothing to predict was named) is a message of the conversation
+    "POST /api/projects/{project_id}/task-plan/confirm": (EVENTS, ["graph.move"]),  # 6b9e9af3: the owner's clarification of a recorded task plan, audited as the move confirm_catalog_owner
     "POST /api/projects/{project_id}/notebook/run": (NONE, "a cell's run is kept whole in the workspace's code runs (code, what it printed, its error, its pictures, who ran it): the store's code-run records, not a session event"),
     "POST /api/projects/{project_id}/notebook/cells": (NONE, "a cell the person wrote is kept on the project; its run is kept whole in the workspace's code runs, which is where its content is recorded"),
     "DELETE /api/projects/{project_id}/notebook/cells/{cell_id}": (NONE, "a cell taken out of the notebook; every run of it stays whole in the workspace's code runs, which is where its content is recorded"),

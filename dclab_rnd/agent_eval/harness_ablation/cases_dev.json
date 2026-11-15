@@ -1,0 +1,50 @@
+[
+ {
+  "id": "hab-01",
+  "stratum": "diagnose_before_model",
+  "upload": "sales",
+  "opening": "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months."
+ },
+ {
+  "id": "hab-02",
+  "stratum": "experiment_design",
+  "upload": "bookings",
+  "opening": "I am the product manager of a travel booking site. We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip. The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled. Today free cancellation is offered on some trips and not on others; partners and our pricing team choose which, nobody assigned it at random. Tell me what you would do to answer this."
+ },
+ {
+  "id": "hab-03",
+  "stratum": "action_without_treatment_data",
+  "upload": "customers",
+  "opening": "I lead retention at a subscription company. I want a model that tells us, for each customer, which discount to offer (none, 10 percent or 25 percent) so that they do not leave. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. We have never given discounts before, so there is no record of any offer or of how customers reacted. The retention team would use the result every month."
+ },
+ {
+  "id": "hab-04",
+  "stratum": "time_and_label_maturity",
+  "upload": "bookings",
+  "opening": "I am a data scientist at a travel agency. I want to predict, at the moment a booking is made, whether it will be cancelled, so the operations team can overbook the right trips. The table I shared is our bookings up to late February 2026: booking date, travel date, destination, nationality, channel, lead time in days, price, free cancellation, and whether it was cancelled. Some of the trips in it have not happened yet. Operations would score every new booking once, on the day it is made."
+ },
+ {
+  "id": "hab-05",
+  "stratum": "limited_capacity_decision",
+  "upload": "customers",
+  "opening": "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind."
+ },
+ {
+  "id": "hab-06",
+  "stratum": "no_data_no_model_yet",
+  "upload": null,
+  "opening": "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?"
+ },
+ {
+  "id": "hab-07",
+  "stratum": "optimisation_not_prediction",
+  "upload": null,
+  "opening": "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?"
+ },
+ {
+  "id": "hab-08",
+  "stratum": "control_clear_prediction",
+  "upload": "customers",
+  "opening": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead."
+ }
+]

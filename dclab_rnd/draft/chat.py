@@ -70,6 +70,7 @@ def _amounts_said(u: dict[str, Any]) -> bool:
     return any(read_spec(str(u.get(k) or "")) is not None for k in ("action", "costs"))  # each answer read on its own
 
 
+NO_DATA_REDO = re.compile(r"\b(?:updat\w*|recalculat\w*|redo|redraw|rebuild|again|chang\w*|adjust\w*|correct\w*|blueprint|assum\w*)\b", re.I)  # a request to draw the no-data blueprint again
 MAX_QUESTIONS = 5  # 20.10: the conversation gate's five; at four a rare event's review budget was never asked
 MODEL_REPLIES = 5  # model requests per user message
 MODEL_STEPS = 40  # tool calls per user message (a reply may make several)
@@ -389,11 +390,10 @@ class HomeAgent:
             combined_notes = (existing_notes + " " + note_clean).strip() if note_clean not in existing_notes else existing_notes
             self.record(draft_id, "notes", combined_notes[:1800])
             draft = self.store.get(draft_id)
-        all_user = " ".join(
-            [str(draft.get("problem") or "")]
-            + [str(m.get("text") or "") for m in draft.get("messages") or [] if m.get("role") == "user"]
-            + ([note_clean] if note_clean else [])
-        )
+        said = [str(draft.get("problem") or "")] + [str(m.get("text") or "") for m in draft.get("messages") or [] if m.get("role") == "user"]
+        if note_clean and note_clean not in said:  # the note is the person's latest message: read once, never twice
+            said.append(note_clean)
+        all_user = " ".join(said)
         stance = no_data.detect_no_data_stance(all_user, draft)
         target_hint = (draft.get("understanding") or {}).get("target")
         gw = getattr(self, "models", None) or getattr(self, "gateway", None)
@@ -410,12 +410,12 @@ class HomeAgent:
 
         def save_sol(d: dict[str, Any]) -> None:
             d["no_data_solution"] = sol
+            # no open question is closed here: each stays the person's to answer (asked where the data is, their own words are
+            # recorded by the answer's own path). With none open, the data plan is noted so Home does not ask for a table again.
             u = d.setdefault("understanding", {})
-            if not u.get("data_plan"):
+            asking_data = any(q.get("field") == "data_plan" and not q.get("answered") for q in d.get("questions") or [])
+            if not u.get("data_plan") and not asking_data:
                 u["data_plan"] = sol["mode_label"]
-            for q in d.get("questions") or []:
-                if (q.get("field") in ("data_plan", "intent") or stance["matched"]) and q.get("field") != "confirm_step" and not q.get("answered"):
-                    q["answered"] = note_clean[:400] or sol["mode_label"]
 
         self.store.update(draft_id, save_sol)
         self.moved(draft_id, "design_solution_without_data", {"family": sol["family"]}, {"ok": True})
@@ -431,6 +431,32 @@ class HomeAgent:
             )
         self.refresh_workflow(draft_id)
         return sol
+
+    def no_data_blueprint(self, draft_id: str, note: str = "", refresh: bool = True) -> bool:
+        """The no-data blueprint, when it answers what the person asked (the review of 22ad1bf8): the draft is a prediction
+        (a route this never sets), no table is shared, their words say they have no data, and their words name something to
+        predict. When they name nothing to predict, one plain message says what DCLab needs, and no model plan is drawn.
+        True when the person was answered here."""
+        from . import no_data
+
+        draft = self.store.get(draft_id)
+        if draft.get("assets") or self.track(draft) != "prediction":
+            return False
+        said = [str(draft.get("problem") or "")] + [str(m.get("text") or "") for m in draft.get("messages") or [] if m.get("role") == "user"]
+        if note and note not in said:
+            said.append(note)
+        words = " ".join(said)
+        stance = no_data.detect_no_data_stance(words, draft)
+        if not stance["matched"]:
+            return False
+        if not no_data.blueprint_fit(words)["fits"]:
+            if not any(m.get("kind") == "no_data_note" for m in (draft.get("messages") or [])[-4:]):
+                self.say(draft_id, no_data.NOT_A_BLUEPRINT, kind="no_data_note")
+            return True
+        sol = self.provide_no_data_solution(draft_id, note=note, refresh=refresh)
+        if no_data.detect_no_data_stance(note or str(draft.get("problem") or ""), draft).get("wants_simulation"):
+            self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
+        return True
 
     def ask(self, draft_id: str, field: str, question: str, options: list[str] | None = None, why: str = "",
             source: str | None = None, extra: dict[str, Any] | None = None) -> dict[str, Any] | None:
@@ -1743,27 +1769,15 @@ class HomeAgent:
         else:
             reading = self.set_intent(draft_id, intents.read(draft["problem"], self.intent_client, plans.user_text(draft)))
         if reading["status"] == "asked":
-            from . import no_data
-            stance = no_data.detect_no_data_stance(draft["problem"], draft)
-            if stance["matched"] and self.understand_client is None:
-                self.set_intent(draft_id, intents.chosen("prediction"))
-                sol = self.provide_no_data_solution(draft_id, refresh=True)
-                if stance.get("wants_simulation"):
-                    self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
-                return
+            # a person with no data is asked which kind of help they want like anyone else: a word pattern never sets the
+            # route, and never as "the person's own choice" (the review of 22ad1bf8)
             if self.understand_client is not None:
                 self.understand(draft_id)  # the owner's Telco test: a conversation first, never six buttons on the first turn
                 return
             self.ask_intent(draft_id, reading)
             return
         self.open_track(draft_id)
-        from . import no_data
-        fresh = self.store.get(draft_id)
-        stance = no_data.detect_no_data_stance(fresh["problem"], fresh)
-        if stance["matched"] and not fresh.get("assets"):
-            sol = self.provide_no_data_solution(draft_id, refresh=True)
-            if stance.get("wants_simulation"):
-                self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
+        self.no_data_blueprint(draft_id)  # only on a prediction route, and only when their words name something to predict
 
     UNDERSTAND_TURNS = 2  # open questions before Home routes by the buttons alone
 
@@ -1985,18 +1999,10 @@ class HomeAgent:
         if self.track(self.store.get(draft_id)) == "preparation" and rec.get("unread_said") and not rec.get("done"):
             if self.prepare_table(draft_id, said=text) is not None:  # H9: Home asked for the steps one at a time: this is them
                 return
-        if open_question is not None and open_question["field"] in ("intent", "data_plan") and self.client is None:
-            from . import no_data
-            stance = no_data.detect_no_data_stance(text, self.store.get(draft_id))
-            if stance["matched"]:
-                if open_question["field"] == "intent":
-                    self.set_intent(draft_id, intents.chosen("prediction"))
-                sol = self.provide_no_data_solution(draft_id, note=text, refresh=True)
-                if stance.get("wants_simulation"):
-                    self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
-                return
         if open_question is not None and open_question["field"] in ("intent", checks.FIELD):  # H2, H3.1: code reads these answers
             self.take_answer(draft_id, open_question, text)
+            if open_question["field"] == "intent" and self.client is None:
+                self.no_data_blueprint(draft_id, note=text)  # the person's answer chose the route; the blueprint only if it is a prediction
             return
         if open_question is None and self.offer_switch(draft_id, text):
             return  # the owner's Telco test: a later message naming another kind of help is said back with a Switch, never ignored
@@ -2585,10 +2591,18 @@ class HomeAgent:
         from . import no_data
         stance = no_data.detect_no_data_stance(text, draft)
         q = self.pending(draft)
+        # "I have no data" is not the answer to the outcome or the moment that was asked: the blueprint is given (on a prediction
+        # draft whose words name something to predict) and the open question stays open for the person's real answer
         if stance["matched"] and (q is None or q.get("field") != "confirm_step"):
-            sol = self.provide_no_data_solution(draft_id, note=text, refresh=True)
-            if stance.get("wants_simulation"):
-                self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
+            # asked where the data is, "no data yet" is also that question's answer: the card is given, then the answer is
+            # recorded like any other and the conversation goes on to its summary (tests/test_draft_flow.py)
+            if self.no_data_blueprint(draft_id, note=text) and not (q is not None and q.get("field") == "data_plan"):
+                return
+        # after a blueprint the person may ask for a prototype on invented data: that is a request, not the answer to the
+        # outcome or the moment still open (those questions stay open); DCLab asks how the data should look, and makes none
+        if draft.get("no_data_solution") and not draft.get("assets") and SIMULATE_WORDS.search(text) and (q is None or q.get("field") != "confirm_step"):
+            self.moved(draft_id, "simulate", {}, {"asked_how": True})
+            self.offer_synthetic(draft_id, draft["problem"] + " " + text)
             return
         if q is not None:
             self.moved(draft_id, "take_answer", {"field": q.get("field")})
@@ -2598,13 +2612,6 @@ class HomeAgent:
             self.moved(draft_id, "simulate", {}, {"asked_how": True})
             self.offer_synthetic(draft_id, draft["problem"] + " " + text)
             return
-        from . import no_data
-        stance = no_data.detect_no_data_stance(text, draft)
-        if stance["matched"]:
-            sol = self.provide_no_data_solution(draft_id, note=text, refresh=True)
-            if stance.get("wants_simulation"):
-                self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
-            return
         if BUILD_WORDS.search(text):
             if self.track(draft) != "prediction":  # H2: only a prediction builds a solution
                 self.say(draft_id, "Building a solution is for predictions. If you need a model, change the type of help above.")
@@ -2612,7 +2619,9 @@ class HomeAgent:
             self.moved(draft_id, "summarize", {})
             self.summarize(draft_id)
             return
-        if draft.get("no_data_solution") and not draft.get("assets") and not BUILD_WORDS.search(text):
+        # the blueprint is drawn again only when the person gives a number or asks for it: "thanks, what does AUC mean?" is
+        # no request for another card (the review of 22ad1bf8)
+        if draft.get("no_data_solution") and not draft.get("assets") and (re.search(r"\d", text) or NO_DATA_REDO.search(text)):
             self.provide_no_data_solution(draft_id, note=text, refresh=True)
             return
         self.record(draft_id, "notes", ((draft.get("understanding") or {}).get("notes", "") + " " + text).strip())

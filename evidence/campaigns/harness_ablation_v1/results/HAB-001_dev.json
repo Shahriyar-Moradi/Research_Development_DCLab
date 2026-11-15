@@ -1,0 +1,130 @@
+{
+ "id": "HAB-001",
+ "split": "dev",
+ "at": "2026-11-15T08:56:49+00:00",
+ "arms": [
+  "model_only",
+  "open"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": "claude-opus-5-5",
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.0022,
+ "cap_eur": 0.3,
+ "kept": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-001",
+ "manifest": {
+  "run_id": "HAB-001",
+  "at": "2026-11-15T08:56:49+00:00",
+  "arms": [
+   "model_only",
+   "open"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.3,
+  "code": {
+   "commit": "6b9e9af3b0985dab720326173ca4acb003a05596",
+   "dirty": [
+    "dclab_rnd/agents/case_agent.py",
+    "dclab_rnd/agents/specialists.py",
+    "dclab_rnd/draft/api.py",
+    "dclab_rnd/draft/case_home.py",
+    "dclab_rnd/draft/chat.py",
+    "dclab_rnd/prompts/case_agent.md",
+    "dclab_rnd/agent_eval/harness_ablation/",
+    "dclab_rnd/draft/no_data.py",
+    "dclab_rnd/draft/no_data_harness.py",
+    "dclab_rnd/prompts/ablation_judge.md",
+    "dclab_rnd/prompts/ablation_minimal_agent.md",
+    "dclab_rnd/prompts/ablation_model_only.md"
+   ],
+   "diff_sha256": "c8541f0515ce297136596edf255304adbae79cffb87d5630dab61a2d382b5a43",
+   "untracked_sha256": "4ee44d83d4556f5ba577e3bd7d76834b9bb8fa076852f18e901088db56e60fe8",
+   "untracked_files": 13
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": "claude-opus-5-5",
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "6c46a826fbe481cb",
+   "route_check": "61027a2803db8856"
+  },
+  "tool_schema_sha256": {
+   "open": "87a197ba8013b945",
+   "plain": "607296ffbd9ccef9",
+   "case": "f4155cadd6dca077"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "67a47729b96ad6f30fb3eaaabf52e040bbfe86a4424672c85f3e369371eb1275",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+ },
+ "capture": {
+  "exchanges": 2,
+  "ok": 1,
+  "whole": 1,
+  "with_thinking": 1,
+  "without_thinking": [],
+  "purposes": [
+   "exam_judge",
+   "exam_plain"
+  ]
+ },
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
+ "code": "uncommitted edits (the owner's choice): see manifest.code",
+ "conversations": [],
+ "scores": {
+  "model_only": [],
+  "open": []
+ },
+ "summary": {
+  "model_only": {
+   "conversations": 0,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": null,
+   "spent_eur": 0
+  },
+  "open": {
+   "conversations": 0,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": null,
+   "spent_eur": 0
+  }
+ },
+ "paired": null,
+ "first_divergence_counts": {},
+ "incomplete": "model account out of credit"
+}

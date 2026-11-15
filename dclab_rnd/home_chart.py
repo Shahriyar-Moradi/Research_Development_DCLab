@@ -27,8 +27,9 @@ def spec(plan: Any, result: Any) -> dict[str, Any]:
     measures = [m.name for m in plan.measures]
     keys = result.columns[:len(result.columns) - len(measures)]
     rows = result.rows
-    heads = [{"count": "rows" + (f" where {condition_text(m.where)}" if m.where else ""), "count_distinct": f"distinct {m.column}", "rate": "share"}.get(m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}")
-             for m in plan.measures]  # headers from the plan, never a measure's name
+    heads = [{"count": "rows" + (f" where {condition_text(m.where)}" if m.where else ""), "count_distinct": f"distinct {m.column}", "rate": "share"}.get(
+                 m.op, f"{OP_WORDS.get(m.op, m.op)} of {m.column}" + (f" where {condition_text(m.where)}" if m.where else ""))
+             for m in plan.measures]  # headers from the plan, never a measure's name; a measure over some rows says which
     numbers = {"columns": [*keys, *heads],  # every chart carries the numbers' table, each as the answer writes it
                "rows": [[key_text(v) for v in r[:len(keys)]] + [shown(v) for v in r[len(keys):]] for r in rows]}
     base = {"title": describe(plan), "suppressed_groups": result.suppressed_groups, "table": numbers}
@@ -52,6 +53,8 @@ def spec(plan: Any, result: Any) -> dict[str, Any]:
                 series.setdefault(name, [None] * len(xs))[xs.index(str(r[x_index]))] = r[at]
             return {**base, "kind": "line", "x": xs, "series": [{"name": n, "values": v} for n, v in sorted(series.items())]}
     if len(keys) == 1 and len(rows) <= MAX_BARS:
+        if any(isinstance(r[at], str) for r in rows):  # a first or a last date per group: no bar has a date's height
+            return table
         ordered = sorted(rows, key=lambda r: (r[at] is None, -(r[at] or 0)))
         return {**base, "kind": "bar", "x": [key_text(r[0]) for r in ordered], "values": [r[at] for r in ordered],
                 "texts": [shown(r[at]) for r in ordered]}

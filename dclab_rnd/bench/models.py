@@ -200,6 +200,41 @@ def read_exam(doc: Mapping[str, Any], ref: str, suite: str) -> list[Arm]:
     return out
 
 
+# the harness ablation (2026-11-15): the same written cases in four arms. The judge's four scores and "accepted" exist only
+# once a run is judged; what code counts (numbers nobody gave, seconds, turns, euros) exists for every conversation played.
+HAB_JUDGED = {"understanding": True, "solution_design": True, "planning": True, "evidence_discipline": True, "accepted": True}
+HAB_COUNTED = {"safety_failures": False, "seconds": False, "assistant_turns": False, "spent_eur": False}
+HAB_METRICS = {**HAB_JUDGED, **HAB_COUNTED}
+
+
+def read_hab(doc: Mapping[str, Any], ref: str, suite: str) -> list[Arm]:
+    """The harness ablation: ``scores.<arm>`` per case. A played-but-unjudged result is read for what code counts, unless
+    the same run's judged result is there too (then that one is read, once). A conversation never answered is left out."""
+    scores = doc.get("scores")
+    if not isinstance(scores, Mapping) or ref.endswith("_recorded_dev") or "_judge-" in ref:  # a second judge's result: the run is read once, by its first
+        return []
+    if ref.endswith("_unjudged") and (CAMPAIGNS / suite / "results" / (ref[: -len("_unjudged")] + ".json")).exists():
+        return []
+    out = []
+    for name, rows in scores.items():
+        if not isinstance(rows, list):
+            continue
+        model, source = model_of(doc, name)
+        if model.startswith("anthropic/"):  # a Claude model served through OpenRouter is still that Claude model
+            model, source = model[len("anthropic/"):], source + " (served through OpenRouter)"
+        a = _base(doc, suite, ref, name, (model, source))
+        for r in rows:
+            if not isinstance(r, Mapping) or not (_num(r.get("assistant_turns")) or 0) > 0:
+                continue
+            for m in HAB_COUNTED:
+                _put(a, m, r.get("case"), r.get(m))
+            if r.get("judged"):
+                for m in HAB_JUDGED:
+                    _put(a, m, r.get("case"), r.get(m))
+        out.append(a)
+    return out
+
+
 HOME_METRICS = {"track_right": True, "exit_right": True, "fields_right": True, "breaches": False, "questions": False}
 HOMECONV_METRICS = {"right": True, "right_offered": True, "turns_before_options": False, "silent": False, "repeated": False}
 _BREACHES = ("quote_invalid", "uncited", "rows_exposed", "phantom", "destructive_unconfirmed", "lost")
@@ -315,6 +350,7 @@ Reader = Callable[[Mapping[str, Any], str, str], list[Arm]]
 # a suite here is compared; a new one needs its reader and its metrics' direction
 SUITES: dict[str, tuple[Reader, dict[str, bool]]] = {
     "conversation_exam_v1": (read_exam, CEX_METRICS),
+    "harness_ablation_v1": (read_hab, HAB_METRICS),
     "home_v1": (read_home, {**HOME_METRICS, **HOMECONV_METRICS}),
     "journeys_v1": (read_journeys, JOURNEY_METRICS),
     "harness_v1": (read_harness, {"passed": True}),
@@ -323,6 +359,7 @@ SUITES: dict[str, tuple[Reader, dict[str, bool]]] = {
 }
 # arms compared inside one model across runs (the report's "lead agent against the model alone")
 ARM_PAIRS: dict[str, list[tuple[str, str]]] = {"conversation_exam_v1": [("plain", "case")], "home_v1": [("plain", "model")],
+                                               "harness_ablation_v1": [("open", "case"), ("plain", "case"), ("model_only", "case")],
                                                "journeys_v1": [("single_live", "team_live")]}
 
 

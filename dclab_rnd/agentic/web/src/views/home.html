@@ -1076,7 +1076,10 @@ DC.view('home', {
         badge = (team && team.waiting) ? 'Planner · waiting' : nd ? 'Planner · no-data blueprint' : subs.length ? `Planner · ${subs.length} steps` : 'Planner · breakdown';
         const hideBtn = `<button type="button" class="link-btn small" id="hp-hide">Hide</button>`;
         const buildBtn = `<button type="button" class="btn primary sm" data-build="1">Build project</button>`;
-        const ndBtn = `<button type="button" class="btn sm" id="hp-nodata-solve">${nd ? 'Refresh no-data plan' : 'Solve without data'}</button>`;
+        // a model blueprint answers a prediction (or a need not chosen yet): on another kind of help the server refuses it, so the button is not drawn
+        const ndTrack = !d.intent ? 'prediction' : d.intent.status === 'asked' ? 'undecided' : (d.intent.track || 'prediction');
+        const ndBtn = (ndTrack === 'prediction' || ndTrack === 'undecided')
+          ? `<button type="button" class="btn sm" id="hp-nodata-solve">${nd ? 'Refresh no-data plan' : 'Solve without data'}</button>` : '';
         const ndSimBtn = nd ? `<button type="button" class="btn sm" id="hp-nodata-sim">Ask &amp; shape synthetic data</button>` : '';
         const cardHtml = `<div class="home-planner-card"><div class="spread"><b>Draft Problem Breakdown</b><span class="pill outline">${esc((c.route && c.route.track) || (d.intent && d.intent.track) || 'draft')}</span></div>`
           + (fields.length ? `<div class="home-planner-grid">${fields.map(([k, v]) => `<span><b>${esc(k)}:</b> ${esc(v)}</span>`).join('')}</div>` : '<div class="xs muted">Describe your goal, outcome column, or data — the breakdown fills in automatically.</div>')
@@ -1163,9 +1166,14 @@ DC.view('home', {
         ndSolve.disabled = true; ndSolve.textContent = 'Planning…';
         try {
           const got = await DC.client.draftNoDataSolution(S.draft.id, { body: { refresh: true } });
-          if (got && got.solution) S.draft.no_data_solution = got.solution;
-          renderHomePlanner();
-          toast('3-layer solution blueprint updated.');
+          if (got && got.solution) {
+            S.draft.no_data_solution = got.solution;
+            renderHomePlanner();
+            toast('3-layer solution blueprint updated.');
+          } else {  // nothing to predict was named: no plan was drawn, and the server said why in the conversation
+            if (got && got.draft) { S.draft = got.draft; openDraft(got.draft); }
+            toast('No blueprint yet: say what should be predicted. See the note in the conversation.', { ok: false });
+          }
         } catch (err) {
           ndSolve.disabled = false; ndSolve.textContent = S.draft.no_data_solution ? 'Refresh no-data plan' : 'Solve without data';
           toast(err.message || 'Could not plan without data', { ok: false });

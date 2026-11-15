@@ -39,7 +39,7 @@ LAYER_OF: dict[str, str] = {
     **{c: "agents" for c in ("agent_eval_v1", "agent_verification_v1", "benchmark_v2", "benchmark_v3", "benchmark_v4", "harness_v1",
                              "journeys_v1", "journeys_programme_v1", "journeys_built_v1", "analyst_v1", "investigator_v1",
                              "brief_checker_v1", "map_roles_v1", "conversation_v1", "learning_v1", "metric_change_v1")},
-    **{c: "lead_agent" for c in ("conversation_exam_v1", "home_v1", "harness_ablation_v1")},
+    **{c: "lead_agent" for c in ("conversation_exam_v1", "home_v1", "harness_ablation_v1", "no_data_v1")},
     **{c: "llm_roles" for c in ("roles_v1", "solver_v1", "decision_llm_v1")},
     **{c: "team" for c in ("team_v1", "orchestra_v1", "department_v1")},
     **{c: "decision_models" for c in ("decision_models_v1", "decision_r3_v1", "decision_shadow_v1", "decision_workflow_v1",

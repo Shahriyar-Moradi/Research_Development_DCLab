@@ -229,7 +229,7 @@ class GuardToolTests(unittest.TestCase):  # 37.6: the guard layer's tools, each 
         s.case = C.hear(s.case, "yes please build it now")
         out = A._request_build(s, "build it now")
         self.assertEqual(out["recorded"], "ml_project")
-        self.assertIn("the build starts now", out["next"])
+        self.assertIn("checking the remaining build requirements", out["next"])  # 22ad1bf8 reworded it: a build can still be refused after the yes
         self.assertIn("no result or number", out["next"])
 
     def test_the_person_reads_each_option_in_full_and_claude_alone_has_the_same_data_tools(self):
@@ -811,7 +811,7 @@ class PrivacyEdgeTests(unittest.TestCase):  # the re-review of 37.5 to 37.8
 class NeverSilentTests(unittest.TestCase):
     def test_a_turn_spent_on_tools_is_asked_once_for_its_words_with_no_move(self):  # CEX-011 d-04
         s = state()
-        calls = [("", [("read_table", {})])] * 8
+        calls = [("", [("read_table", {})])] * A.POLICY.max_replies  # every reply of the turn spent on a tool
         client = Script(*calls, ("Your table has 1200 customers. Who will act on the list?", [("ask", {"question": "ignored: no move now"})]))
         out = A.turn(s, client, "help me with my customers")
         self.assertIn("Who will act on the list?", out["text"])
@@ -867,15 +867,16 @@ class QueryCapTests(unittest.TestCase):
         s.frame = __import__("pandas").DataFrame(self.FRAME)
         return s
 
-    def test_a_fifth_query_in_one_turn_is_refused(self):
+    def test_a_fifth_query_in_one_turn_is_refused(self):  # 2026-11-15: the ninth (HAB-002: four stopped an analysis half way)
         s = self.frame_state()
         q = ("query", {"group_by": ["plan"], "measures": [{"name": "customers", "op": "count"}]})
-        client = Script(("", [q] * 5), ("Plans x and y each have 3 customers. Who acts on this?", [("ask", {"question": "Who acts on this?"})]))
+        client = Script(("", [q] * (A.QUERIES_A_TURN + 1)), ("Plans x and y each have 3 customers. Who acts on this?", [("ask", {"question": "Who acts on this?"})]))
         A.turn(s, client, "how do my plans compare?")
         results = [m["content"] for m in client.seen[1] if m.get("role") == "tool"]
-        self.assertNotIn("error", results[3])
-        self.assertIn("asked 4 times this turn", results[4])
-        self.assertNotIn("next turn", results[4])
+        self.assertEqual(A.QUERIES_A_TURN, 8)
+        self.assertNotIn("error", results[A.QUERIES_A_TURN - 1])
+        self.assertIn("asked 8 times this turn", results[A.QUERIES_A_TURN])
+        self.assertNotIn("next turn", results[A.QUERIES_A_TURN])
         A.turn(s, Script(("", [q]), ("ok", [("ask", {"question": "Next?"})])), "and now?")  # a new turn may query again
         self.assertEqual(s.queries, 1)
 
@@ -891,11 +892,52 @@ class QueryCapTests(unittest.TestCase):
     def test_three_refused_queries_end_the_tries_with_words_to_say_now_not_a_promise_of_later(self):
         s = self.frame_state()
         bad = ("query", {"group_by": ["plan"], "measures": [{"name": "share", "op": "rate", "column": "plan"}]})
-        client = Script(("", [bad, bad, bad, bad]), ("I could not work that out; here is what I know.", [("ask", {"question": "Shall I try another way?"})]))
+        client = Script(("", [bad] * (A.QUERY_ERRORS_A_TURN + 1)), ("I could not work that out; here is what I know.", [("ask", {"question": "Shall I try another way?"})]))
         A.turn(s, client, "which plan loses more?")
         results = [m["content"] for m in client.seen[1] if m.get("role") == "tool"]
-        self.assertIn("three questions of the table were refused", results[3])
-        self.assertIn("do not say you will try again later", results[3])
+        self.assertIn("4 questions of the table were refused", results[A.QUERY_ERRORS_A_TURN])  # 2026-11-15: four tries, not three
+        self.assertIn("do not say you will try again later", results[A.QUERY_ERRORS_A_TURN])
+
+    def test_one_question_compares_two_periods_and_reads_the_first_and_last_date(self):
+        """HAB-002 (2026-11-15): "the sum of the amounts in one quarter" was refused eleven times in eight conversations, and
+        the first and last order date could not be asked. Since dclab-core 0.159.0 any measure carries its own condition."""
+        import pandas as pd
+
+        from dclab_rnd.agents import data_tools
+
+        frame = pd.DataFrame({"order_id": [f"O-{i}" for i in range(40)], "order_date": [f"2025-{10 + i % 3:02d}-{1 + i % 27:02d}" if i < 20 else f"2026-{1 + i % 3:02d}-{1 + i % 27:02d}" for i in range(40)],
+                              "amount": [100.0] * 20 + [50.0] * 20, "channel": ["web", "app"] * 20})
+        out = data_tools.query(frame, measures=[
+            {"name": "q4", "op": "sum", "column": "amount", "where": {"column": "order_date", "op": "between", "value": ["2025-10-01", "2025-12-31"]}},
+            {"name": "q1", "op": "sum", "column": "amount", "where": {"column": "order_date", "op": "between", "value": ["2026-01-01", "2026-03-31"]}},
+            {"name": "first", "op": "min", "column": "order_date"}, {"name": "last", "op": "max", "column": "order_date"}])
+        self.assertNotIn("error", out)
+        self.assertEqual(out["rows"][0][:2], [2000.0, 1000.0])
+        self.assertEqual(out["as_said"][0][2][:7], "2025-10")  # a date is said as it is
+        by_quarter = data_tools.query(frame, measures=[{"name": "total", "op": "sum", "column": "amount"}], period={"column": "order_date", "grain": "quarter"})
+        self.assertEqual([r[0] for r in by_quarter["rows"]], ["2025Q4", "2026Q1"])
+        # the privacy rules stand: a condition never names one identifier, and a measure over one or two rows is withheld
+        refused = data_tools.query(frame, measures=[{"name": "one", "op": "sum", "column": "amount", "where": {"column": "order_id", "op": "eq", "value": "O-1"}}])
+        self.assertIn("never names one identifier", refused["error"])
+        few = data_tools.query(frame, measures=[{"name": "few", "op": "sum", "column": "amount", "where": {"column": "order_date", "op": "eq", "value": frame["order_date"][0]}}])
+        self.assertIn("range", few["error"])  # one value of a date column with nearly one row a day is one row: refused (the review)
+        frame["week"] = ["2025-10-06", "2025-10-13"] * 20  # a date many rows share is no single row: its small groups are withheld
+        few = data_tools.query(frame.assign(week=["2025-10-06"] * 2 + ["2025-10-13"] * 38), measures=[
+            {"name": "few", "op": "sum", "column": "amount", "where": {"column": "week", "op": "eq", "value": "2025-10-06"}}])
+        self.assertIsNone(few["rows"][0][0])
+
+    def test_the_second_reading_never_asks_for_help_the_next_gate_would_refuse(self):
+        """HAB-002, the delivery-routes case: the second reading named advice; advice was then refused as data work; analysis
+        was refused for lack of a table; no kind of help was left."""
+        class Says:
+            def complete(self, messages, tools=None, *a, **k):
+                return {"content": "advice", "tool_calls": []}
+
+        s = A.CaseState(case=C.hear(C.new("c"), "I have the order log and the GPS traces but have not exported them. Build me a report of where the vans lose time."),
+                        route_client=Says())
+        self.assertTrue(A.data_work(s))
+        self.assertIsNone(A.route_doubt(s, "propose", {"analysis", "reporting"}))  # advice would be refused next: it is not asked for
+        self.assertIsNone(A.route_doubt(s, "start", {"advice"}))  # nor work on a table while none is shared
 
     def test_send_it_now_is_a_go_ahead(self):
         self.assertTrue(A.goes_ahead("You still haven't sent the table I asked for. Send it now."))
@@ -954,7 +996,9 @@ class LongAnswerCostTests(unittest.TestCase):
 
     LONG = " ".join(f"Step {w} explains one idea about resampling in plain words without any figure." for w in
                     ("one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen",
-                     "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "twentyone", "twentytwo", "twentythree", "twentyfour"))
+                     "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "twentyone", "twentytwo", "twentythree", "twentyfour",
+                     "twentyfive", "twentysix", "twentyseven", "twentyeight", "twentynine", "thirty", "thirtyone", "thirtytwo", "thirtythree",
+                     "thirtyfour", "thirtyfive", "thirtysix", "thirtyseven", "thirtyeight"))  # over the cap of 450 words (2026-11-15: it was 300)
 
     def test_a_message_over_the_cap_is_cut_at_a_sentence_with_a_note_and_no_rewrite(self):
         self.assertGreater(A.word_count(self.LONG), A.SHOWN_WORDS)
@@ -1006,7 +1050,7 @@ class LongAnswerCostTests(unittest.TestCase):
         self.assertIn("class weights first", out["text"])
 
     def test_a_script_without_sentence_ends_is_cut_at_a_line_and_its_fence_closed(self):
-        script = "Here is the script. ```python\n" + "\n".join(f"step_{n} = run(stage_{n})" for n in range(1, 120)) + "\n```"
+        script = "Here is the script. ```python\n" + "\n".join(f"step_{n} = run(stage_{n})" for n in range(1, 180)) + "\n```"
         self.assertGreater(A.word_count(script), A.SHOWN_WORDS)
         out, cut = A.shortened(script)
         self.assertTrue(cut)

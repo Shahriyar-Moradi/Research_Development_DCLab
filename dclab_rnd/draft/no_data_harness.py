@@ -56,8 +56,7 @@ def live_models_blocked() -> bool:
 
 SAFE_STRUCTURAL_NUMBERS = (
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-    "14", "24", "30", "60", "90", "180", "365", "100",
-    "0.5", "0.8", "0.9", "0.95",
+    "14", "24", "28", "30", "60", "90", "180", "365",
     "WF-01", "WF-02", "WF-03", "WF-04", "WF-05", "WF-06", "WF-07", "WF-08", "WF-09", "WF-10",
 )
 
@@ -280,18 +279,13 @@ def _call_ai_first_expert(
     except Exception:
         return None, [], 0.0, None
 
-    vt_summary = S.virtual_table_text(virtual_tables)
-    econ_summary = "\n".join(str(x) for x in as_said[:8])
-    user_prompt = (
-        f"Person's problem description (no data uploaded yet):\n{problem_text}\n\n"
-        f"Initial family reading: {family_key}\n"
-        f"Deterministic economics & stated figures (use ONLY these numbers if citing numbers):\n{econ_summary}\n\n"
-        f"Initial virtual schema floor (you may refine columns, roles, grain, and leak_suspects to fit this exact domain):\n{vt_summary}\n\n"
-        "Allowed workflow step IDs: WF-01..WF-10. Allowed tools: describe_data, check_leakage, query, run_stage, get_results, ask_project.\n"
-        "Remember: holdout (`final` stage / WF-09) is read once at the very end, AFTER the `leakage` audit stage (WF-05); "
-        "every preprocessing step that learns from data must set `inside_folds: true`.\n"
-        "Keep lists concise (<= 8 columns, <= 4 EDA checks, <= 3 preprocessing steps, <= 6 solution_workflow steps) so the full valid JSON object fits comfortably."
-    )
+    try:
+        client.request_cells = False  # no table exists: the request holds the person's words and invented column names only
+    except AttributeError:
+        pass
+    user_prompt = prompts.text("no_data_expert_brief", problem=problem_text, family=family_key,
+                               figures="\n".join(str(x) for x in as_said[:8]) or "(the person gave no figure)",
+                               schema=S.virtual_table_text(virtual_tables))
     messages = [
         {"role": "system", "content": prompts.text("ai_first_expert")},
         {"role": "user", "content": user_prompt},
@@ -300,26 +294,26 @@ def _call_ai_first_expert(
     before_spent = _spent_of(client)
     model_name: str | None = getattr(client, "model", None)
     best_trace: EX.ExpertTrace | None = None
-    disable_reasoning = False
+    max_tokens = 6000
+    asked_compact = False
     repaired_workflow = False
 
     for attempt in range(3):
         if _spent_of(client) - before_spent >= cap_eur:
             break
         try:
-            call_opts: dict[str, Any] = {"max_tokens": 3800}
-            call_opts["extra_body"] = {"reasoning": {"enabled": False}} if disable_reasoning else {"reasoning": {"effort": "low"}}
-            resp = client.complete(messages, None, **call_opts)
+            # the owner's rule: the thinking is never switched off or lowered here; a cut answer gets more room instead
+            resp = client.complete(messages, None, max_tokens=max_tokens)
         except Exception:
             break
         content = str((resp or {}).get("content") or "")
         model_name = str((resp or {}).get("model") or model_name or "")
         raw_obj, _ = EX.extract(content)
         if raw_obj is None:
-            if (resp or {}).get("finish_reason") == "length" and not disable_reasoning:
-                # Reasoning consumed token budget before valid JSON finished; retry without reasoning overhead.
-                disable_reasoning = True
-                messages.append({"role": "user", "content": "Output ONLY ONE compact, valid JSON object with concise short strings and <= 6 columns/steps."})
+            if (resp or {}).get("finish_reason") == "length" and not asked_compact:
+                # the thinking used the room before the JSON ended: ask once more for a compact answer, with more room
+                asked_compact, max_tokens = True, 12000
+                messages.append({"role": "user", "content": prompts.text("no_data_compact_json")})
                 continue
             break
         trace = EX.read(
@@ -338,11 +332,7 @@ def _call_ai_first_expert(
         messages.append(
             {
                 "role": "user",
-                "content": (
-                    "Your ExpertTrace JSON had workflow ordering problems checked by `dclab_core.expert.workflow_problems`:\n"
-                    + "\n".join(f"- {p}" for p in wf_probs)
-                    + "\nPlease reply with the corrected full JSON object ensuring: (1) a `leakage` stage step (WF-05) comes before `features` (WF-06) and `models` (WF-07), and (2) `final` holdout evaluation (WF-09) appears once at the end after `models`."
-                ),
+                "content": prompts.text("no_data_workflow_repair", problems="\n".join(f"- {p}" for p in wf_probs)),
             }
         )
 
@@ -369,32 +359,20 @@ def _call_synthetic_schema_architect(
     except Exception:
         return None, 0.0
     before = _spent_of(client)
-    user_msg = (
-        f"Problem description: {problem_text}\n"
-        f"Problem family: {family_key}\n"
-        f"Prediction moment: {prediction_moment}\n"
-        f"Target column name: {target_name}\n"
-        "Design a domain-specific schema of columns known strictly at the prediction moment."
-    )
+    def brief(compact: str = "") -> str:
+        return prompts.text("no_data_schema_brief", problem=problem_text, family=family_key, moment=prediction_moment, target=target_name, compact=compact)
+
+    system = prompts.text("synthetic_schema")
     try:
-        resp = client.complete(
-            [{"role": "system", "content": prompts.text("synthetic_schema")}, {"role": "user", "content": user_msg}],
-            None,
-            max_tokens=1800,
-            extra_body={"reasoning": {"effort": "low"}},
-        )
+        resp = client.complete([{"role": "system", "content": system}, {"role": "user", "content": brief()}], None, max_tokens=4000)
     except Exception:
         return None, max(0.0, _spent_of(client) - before)
     spent = max(0.0, _spent_of(client) - before)
     content = str((resp or {}).get("content") or "")
     if not content.strip() and (resp or {}).get("finish_reason") == "length" and spent < cap_eur:
-        try:
-            resp = client.complete(
-                [{"role": "system", "content": prompts.text("synthetic_schema")}, {"role": "user", "content": user_msg + "\nKeep to <= 8 columns and output ONLY compact JSON."}],
-                None,
-                max_tokens=2200,
-                extra_body={"reasoning": {"enabled": False}},
-            )
+        try:  # cut before the JSON: more room and a compact answer; the thinking stays on
+            resp = client.complete([{"role": "system", "content": system},
+                                    {"role": "user", "content": brief("\nKeep to <= 8 columns and output ONLY compact JSON.")}], None, max_tokens=8000)
             spent = max(0.0, _spent_of(client) - before)
             content = str((resp or {}).get("content") or "")
         except Exception:
@@ -460,7 +438,7 @@ def _merge_virtual_tables(
                     "test": test_clean,
                 }
             )
-            if col_name not in forbid:
+            if leak_rationales[-1]["action"] == "exclude" and col_name not in forbid:
                 forbid.append(col_name)
         for col in et0.columns:
             cname = str(col.name or "").strip()
@@ -520,8 +498,11 @@ def build_problem_understanding(
     expert_trace: EX.ExpertTrace | None,
     uc_concerns: Sequence[Mapping[str, Any]],
     allowed_corpus: str,
+    analyst_ran: bool = False,
 ) -> dict[str, Any]:
-    """Construct the Epistemic Problem Understanding Card (`user_stated` vs `ai_inferred` vs `open_question`)."""
+    """Construct the Epistemic Problem Understanding Card. Each field says where its value came from: ``user_stated`` (the
+    person's own words, quoted), ``ai_inferred`` (a model that answered), ``rules_read`` (DCLab's rules read it from the
+    sentence) or ``dclab_default`` (nobody gave it: a placeholder of this blueprint, never called an inference)."""
     ep = expert_trace.problem if expert_trace else None
     ept = expert_trace.problem_type if expert_trace else None
 
@@ -548,7 +529,7 @@ def build_problem_understanding(
                 return {
                     "field": field_name,
                     "value": clean_val or val_str,
-                    "status": "ai_inferred",
+                    "status": "ai_inferred" if analyst_ran else "rules_read",
                     "basis": str(brief_fact.reason or default_why)[:220],
                 }
         if expert_val and str(expert_val).strip():
@@ -564,8 +545,8 @@ def build_problem_understanding(
         return {
             "field": field_name,
             "value": default_val,
-            "status": "ai_inferred",
-            "basis": f"Domain blueprint default: {default_why}",
+            "status": "dclab_default",
+            "basis": f"DCLab default (nobody said it): {default_why}",
         }
 
     default_moments = {
@@ -705,6 +686,8 @@ def build_problem_understanding(
 
     user_stated_count = sum(1 for v in fields.values() if v["status"] == "user_stated")
     ai_inferred_count = sum(1 for v in fields.values() if v["status"] == "ai_inferred")
+    rules_read_count = sum(1 for v in fields.values() if v["status"] == "rules_read")
+    default_count = sum(1 for v in fields.values() if v["status"] == "dclab_default")
 
     return {
         "restatement": clean_restatement,
@@ -712,8 +695,11 @@ def build_problem_understanding(
         "provenance_summary": {
             "user_stated_count": user_stated_count,
             "ai_inferred_count": ai_inferred_count,
+            "rules_read_count": rules_read_count,
+            "default_count": default_count,
             "open_question_count": len(open_q),
-            "completeness_score": round((user_stated_count + ai_inferred_count) / max(len(fields), 1), 2),
+            # a default is not understanding: only what the person said, the rules read or a model inferred counts
+            "completeness_score": round((user_stated_count + ai_inferred_count + rules_read_count) / max(len(fields), 1), 2),
         },
         "alternatives": alternatives,
         "eda_plan": eda_plan,
@@ -819,9 +805,8 @@ def run_ai_understanding_and_harness(
     extra_cost_eur = 0.0
 
     # --- STAGE 1A: Problem Analyst & Brief Checker (`dclab_core.understand`) ---
-    virtual_file_cols = list((rules_virtual_tables[0].get("must_have_columns") or []) if rules_virtual_tables else [])
-    files_map = {"virtual_schema": virtual_file_cols} if virtual_file_cols else {}
-    brief = U.understand(problem_text, files=files_map, advisor=advisor, checker=advisor)
+    # the person shared no file: the analyst reads their words alone (DCLab's invented columns are not their file)
+    brief = U.understand(problem_text, files={}, advisor=advisor, checker=advisor)
     if advisor is not None:
         roles_called.extend(["problem_analyst", "brief_checker"])
 
@@ -909,6 +894,7 @@ def run_ai_understanding_and_harness(
         expert_trace=expert_trace,
         uc_concerns=uc_concerns,
         allowed_corpus=allowed_corpus,
+        analyst_ran=advisor is not None,
     )
 
     # --- STAGE 2C: Fold-Safe Feature Engineer (`feature_engineer` / `dclab_core.features`) ---
@@ -944,6 +930,10 @@ def run_ai_understanding_and_harness(
     if live_ok and (extra_cost_eur + (advisor.spent_eur() if advisor else 0.0)) < cap_eur:
         try:
             spec_client = gateway.client("case_specialist", draft_id=draft_id, project_id=project_id)
+            try:
+                spec_client.request_cells = False  # no table exists: nothing of a person's table is in these requests
+            except AttributeError:
+                pass
             vtable_txt = S.virtual_table_text(virtual_tables, understanding["fields"]["prediction_moment"]["value"])
             case_txt = f"Problem: {problem_text}\nGoal: {understanding['fields']['goal']['value']}\nDecision moment: {understanding['fields']['prediction_moment']['value']}"
             for spec_name, spec_q in (
@@ -1024,7 +1014,7 @@ def run_ai_understanding_and_harness(
 
     # Enrich ML architecture with ExpertTrace.algorithms (`would_change`) and judged plan decisions
     ranked_algos: list[dict[str, Any]] = []
-    would_change_trigger = "If real data shows < 500 positive outcomes or high feature missingness (>40%), prefer regularized logistic/linear models over deep trees."
+    would_change_trigger = "If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees."
     if expert_trace and expert_trace.algorithms:
         if expert_trace.algorithms.would_change:
             wc_clean, bad_nums = sanitize_grounded_text(expert_trace.algorithms.would_change, allowed_corpus)
@@ -1056,7 +1046,7 @@ def run_ai_understanding_and_harness(
             "group": [],
         },
         "stage.data": {
-            "split": "time" if family_key == "forecasting" else "stratified",
+            "split": "time" if family_key in ("forecasting", "regression") else "entity_time",
             "metric": str((rules_ml_arch.get("primary_metrics") or ["pr_auc"])[0]).lower(),
         },
         "stage.models": {
@@ -1087,20 +1077,7 @@ def run_ai_understanding_and_harness(
                     )
         except Exception:
             pass
-    else:
-        # Even in offline mode, record where the epistemic understanding card enriched missing fields
-        twin_diff.append(
-            {
-                "step": "home.understanding",
-                "rules_value": {"moment": None},
-                "ai_value": {
-                    "moment": understanding["fields"]["prediction_moment"]["value"],
-                    "unit": understanding["fields"]["decision_unit"]["value"],
-                    "metric": understanding["fields"]["primary_metric"]["value"],
-                },
-                "reasons": ["Epistemic understanding blueprint inferred prediction moment, unit, and metric where literal substring rules abstained."],
-            }
-        )
+    # with no expert trace there is no AI answer to compare: nothing is recorded as an "ai_value" (a default is not one)
 
     # --- STAGE 4: 5-Gate Scientific Harness Verification (`verify_no_data_harness`) ---
     advisor_rows = advisor.report() if advisor is not None else []
@@ -1119,41 +1096,51 @@ def run_ai_understanding_and_harness(
         else []
     )
     if wf_problems_final:
-        repairs_applied.append("Deterministic WF-01..WF-10 spine enforced because ExpertTrace workflow had ordering issues.")
+        repairs_applied.append("The expert's workflow still had ordering problems after one repair turn: gate 4 is not passed.")
 
     forbid_set = set(primary_vt.get("forbidden_leakage_columns") or [])
     active_set = set(primary_vt.get("must_have_columns") or []) | set(primary_vt.get("tier2_engineered_columns") or [])
     schema_leak_overlap = sorted(forbid_set & active_set)
 
+    statuses = [str(v.get("status")) for v in understanding["fields"].values()]
+    debate_sources = [str(v) for v in dict(debate_rec.sources).values()]
+    debated = bool(debate_sources) and not any(v.startswith("fallback") for v in debate_sources)
+    # a model's answer was used somewhere: only then is the blueprint called AI-harnessed
+    ai_contributed = bool(expert_trace is not None or synth_schema is not None or domain_findings or any(f.get("by") for f in leakage_findings)
+                          or debated or "ai_inferred" in statuses or map_source == "model" or rev_source == "model"
+                          or any(sp.get("route_source") == "model" for sp in subproblems_routed))
+    known = ("user_stated", "ai_inferred", "rules_read", "dclab_default")
     gates = {
+        # every field carries a label, and no label claims more than happened: nothing is "AI inferred" when no model answered
         "gate_1_epistemic_provenance": {
-            "passed": all(
-                v.get("status") in ("user_stated", "ai_inferred") and bool(v.get("value"))
-                for v in understanding["fields"].values()
-            ),
+            "passed": all(st in known for st in statuses) and all(bool(v.get("value")) for v in understanding["fields"].values())
+                      and not ("ai_inferred" in statuses and not ai_contributed),
             "user_stated": understanding["provenance_summary"]["user_stated_count"],
             "ai_inferred": understanding["provenance_summary"]["ai_inferred_count"],
+            "rules_read": understanding["provenance_summary"]["rules_read_count"],
+            "dclab_default": understanding["provenance_summary"]["default_count"],
         },
-        "gate_2_number_grounding": {
-            "passed": True,
-            "stripped_ungrounded_numbers": len(stripped_numbers),
-            "ungrounded_numbers_remaining": 0,
-        },
+        # computed once the card exists (``finish_gates``): the model-written text is read again for numbers nobody gave
+        "gate_2_number_grounding": {"passed": False, "pending": True, "stripped_ungrounded_numbers": len(stripped_numbers)},
         "gate_3_virtual_schema_and_features": {
             "passed": len(schema_leak_overlap) == 0 and len(verified_programs) > 0,
             "verified_feature_programs": len(verified_programs),
             "refused_feature_programs": len(refused_programs),
             "forbidden_leakage_columns_enforced": len(forbid_set),
+            "forbidden_columns_still_in_use": schema_leak_overlap,
         },
+        # the expert's workflow, when there is one, has no ordering problem left (the holdout once, after the leakage audit)
         "gate_4_workflow_and_debate": {
-            "passed": True,
+            "passed": not wf_problems_final,
+            "workflow_problems": list(wf_problems_final)[:5],
+            "debate": "models" if debated else "rules (no model debate ran)",
             "debate_kept_changes": len(kept_changes),
             "debate_rulings": len(debate_rulings),
             "repairs_applied": len(repairs_applied),
         },
-        "gate_5_zero_auto_simulation_and_budget": {
-            "passed": total_cost_eur <= max(cap_eur * 1.25, 0.05),
-            "auto_simulated_tables": 0,
+        # the money cap. (That no data is simulated without the person's yes is checked where assets are made, by a test.)
+        "gate_5_budget": {
+            "passed": total_cost_eur <= max(cap_eur, 0.0) + 1e-9,
             "cost_eur": total_cost_eur,
             "cap_eur": cap_eur,
         },
@@ -1161,7 +1148,8 @@ def run_ai_understanding_and_harness(
 
     harness_report = {
         "harness_version": "no_data_harness.v1",
-        "mode": "ai_harnessed" if (live_ok and (advisor_requests > 0 or expert_trace is not None)) else "deterministic_floor",
+        "mode": "ai_harnessed" if (live_ok and ai_contributed) else "deterministic_floor",
+        "model_requests_made": bool(live_ok and (advisor_requests > 0 or extra_cost_eur > 0)),
         "all_gates_passed": all(g["passed"] for g in gates.values()),
         "gates": gates,
         "roles_called": list(dict.fromkeys(roles_called)),
@@ -1220,8 +1208,57 @@ def run_ai_understanding_and_harness(
     }
 
 
+def _model_texts(solution: Mapping[str, Any]) -> list[str]:
+    """Every piece of text in a solution that a model may have written (never DCLab's own templates or the economics)."""
+    und = solution.get("understanding") or {}
+    ds = solution.get("data_science") or {}
+    ml = solution.get("ml") or {}
+    biz = solution.get("business") or {}
+    out = [str(und.get("restatement") or "")]
+    for item in (und.get("fields") or {}).values():
+        if isinstance(item, Mapping) and item.get("status") == "ai_inferred":
+            out += [str(item.get("value") or ""), str(item.get("basis") or "")]
+    out += [str(a.get("why_not") or "") for a in und.get("alternatives") or [] if isinstance(a, Mapping) and a not in
+            ALTERNATIVE_FRAMINGS_FLOOR.get(str(solution.get("family")), ALTERNATIVE_FRAMINGS_FLOOR["classification"])]
+    out += [str(q.get("question") or "") for q in und.get("open_questions") or [] if isinstance(q, Mapping) and q.get("source") == "ai_first_expert"]
+    out += [str(f.get("text") or "") for f in biz.get("domain_expert_findings") or [] if isinstance(f, Mapping)]
+    out += [str(f.get("text") or f.get("why") or "") for f in ds.get("leakage_audit_findings") or [] if isinstance(f, Mapping)]
+    debate = ml.get("debate") or {}
+    out += [str(r.get("why") or "") for r in [*(debate.get("rulings") or []), *(debate.get("kept_changes") or [])] if isinstance(r, Mapping)]
+    out += [str(a.get("why") or "") for a in ml.get("ranked_algorithms") or [] if isinstance(a, Mapping)]
+    out += [str(sp.get("reason") or "") for sp in ml.get("problem_map_subproblems") or [] if isinstance(sp, Mapping) and sp.get("source") == "model"]
+    return [t for t in out if t.strip()]
+
+
+def finish_gates(solution: dict[str, Any], problem_text: str) -> dict[str, Any]:
+    """Gate 2, computed on the finished solution: the model-written text is read again for numbers that neither the person
+    gave nor this blueprint's stated inputs hold; a claim of production readiness, a guarantee or a cause counts too
+    (``cited.overclaims``). The inputs DCLab assumed are named: they are shown on the card as assumed, never as the person's."""
+    report = solution.get("harness_report") or {}
+    gates = report.get("gates") or {}
+    sources = _allowed_corpus(problem_text, solution.get("as_said") or [])
+    remaining: list[str] = []
+    overclaims = 0
+    for text in _model_texts(solution):
+        remaining += cited.unsaid(text, sources)
+        overclaims += sum(1 for sentence in cited.sentences(text) if cited.overclaims(sentence))
+    assumed = list((solution.get("economics") or {}).get("assumed") or [])
+    gates["gate_2_number_grounding"] = {
+        "passed": not remaining and not overclaims,
+        "stripped_ungrounded_numbers": int((gates.get("gate_2_number_grounding") or {}).get("stripped_ungrounded_numbers") or 0),
+        "ungrounded_numbers_remaining": len(remaining),
+        "overclaims": overclaims,
+        "assumed_inputs": assumed,  # shown on the card as "assumed by DCLab"
+    }
+    report["gates"] = gates
+    report["all_gates_passed"] = all(g.get("passed") for g in gates.values())
+    solution["harness_report"] = report
+    return report
+
+
 __all__ = [
     "ALTERNATIVE_FRAMINGS_FLOOR",
+    "finish_gates",
     "build_problem_understanding",
     "run_ai_understanding_and_harness",
     "sanitize_grounded_text",
