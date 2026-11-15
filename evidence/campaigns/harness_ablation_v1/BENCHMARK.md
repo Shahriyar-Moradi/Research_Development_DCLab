@@ -3,7 +3,7 @@
 Rebuilt by `python -m dclab_rnd.agent_eval.harness_ablation.benchmark` from the result files; do not edit by hand.
 Scores are the judge's, 0 to 4. "Numbers nobody gave" are counted by code. A difference is `mean [95% interval]` by case.
 
-## The gate (`hab_gate_v1`, fixed before the repair)
+## The gate (`hab_gate_v1`, fixed before the repair, judged on the people it was then tuned on)
 
 Every check must hold. "not read" means the run kept nothing to count it from, or was judged by another judge than the gate names: it is not a pass.
 
@@ -107,22 +107,22 @@ One row per model and judge. Compare arms inside a row; rows under different jud
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Limit on table questions per turn | 10 | 5 | 2 | 0 | 0 | 3 | 1 | 0 | 0 | 1 | 0 | 1 | 0 | 6 | 10 | 2 |
 | The table tool cannot ask the question | 11 | 4 | 0 | 2 | 0 | 2 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 11 | 0 |
-| The model's call was malformed | 4 | 0 | 0 | 6 | 1 | 3 | 6 | 0 | 1 | 0 | 0 | 0 | 2 | 2 | 4 | 0 |
 | A build asked for without the person's yes | 3 | 2 | 7 | 6 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 3 | 7 |
+| The model's call was malformed | 4 | 0 | 0 | 6 | 1 | 3 | 6 | 0 | 1 | 0 | 0 | 0 | 2 | 2 | 4 | 0 |
 | Another refusal (a build without a yes, a bad argument) | 2 | 0 | 3 | 1 | 1 | 2 | 1 | 1 | 0 | 1 | 2 | 5 | 0 | 2 | 2 | 3 |
 | An option removed by a check | 3 | 1 | 4 | 1 | 1 | 1 | 1 | 0 | 0 | 2 | 0 | 1 | 1 | 1 | 3 | 4 |
 | An outcome column the person never named | 1 | 2 | 2 | 1 | 1 | 3 | 0 | 4 | 0 | 4 | 0 | 1 | 2 | 0 | 1 | 2 |
 | A second small model overrules the kind of work | 3 | 2 | 0 | 3 | 1 | 1 | 2 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 3 | 0 |
-| Work refused: the case is "not ready" | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 0 | 2 | 0 | 0 | 3 | 0 | 1 | 1 |
 | The turn's step budget ran out | 3 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 3 | 1 |
+| Work refused: the case is "not ready" | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 0 | 2 | 0 | 0 | 3 | 0 | 1 | 1 |
 | An option kept, one sentence with a number removed | 0 | 0 | 1 | 1 | 0 | 2 | 1 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 1 |
 | A table is needed first | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 1 | 1 | 1 |
-| A build asked for on a pick (a pick is not a yes) | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 2 | 0 | 0 | 0 | 0 | 0 |
 | Advice refused: the words ask for data work | 1 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| A build asked for before a project was started | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
+| A build asked for on a pick (a pick is not a yes) | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 2 | 0 | 0 | 0 | 0 | 0 |
 | Code set the kind of work | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 |
-| No new options after work started | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
+| A build asked for before a project was started | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
 | Sent to the no-data blueprint | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
+| No new options after work started | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
 | **all** | **43** | **17** | **22** | **23** | **12** | **17** | **14** | **5** | **5** | **12** | **6** | **9** | **12** | **17** | **43** | **22** |
 
 ## HAB-002: arms on `qwen/qwen3.8-flash`, judged by `qwen/qwen3.8-27b`
@@ -635,15 +635,15 @@ Before: HAB-006. After: HAB-023 + HAB-024. Only the lead agent's conversations w
 | where code stepped in | before | after |
 |---|---:|---:|
 | A build asked for without the person's yes | 7 | 0 |
-| An outcome column the person never named | 2 | 4 |
 | An option removed by a check | 4 | 2 |
+| An outcome column the person never named | 2 | 4 |
 | Another refusal (a build without a yes, a bad argument) | 3 | 1 |
 | Work refused: the case is "not ready" | 1 | 2 |
 | Limit on table questions per turn | 2 | 1 |
 | An option kept, one sentence with a number removed | 1 | 1 |
 | The turn's step budget ran out | 1 | 0 |
-| A table is needed first | 1 | 0 |
 | The table tool cannot ask the question | 0 | 1 |
+| A table is needed first | 1 | 0 |
 
 ## Current DCLab before and after: stage-2 (`qwen/qwen3.8-flash`, judge `nvidia/nemotron-3.5-super-vl:free`)
 
@@ -665,14 +665,14 @@ Before: HAB-007 + HAB-008 + HAB-009 + HAB-010. After: HAB-014 + HAB-015 + HAB-02
 | The model's call was malformed | 6 | 3 |
 | A build asked for without the person's yes | 6 | 0 |
 | An outcome column the person never named | 1 | 3 |
-| The table tool cannot ask the question | 2 | 2 |
 | A second small model overrules the kind of work | 3 | 1 |
+| The table tool cannot ask the question | 2 | 2 |
 | An option kept, one sentence with a number removed | 1 | 2 |
-| Limit on table questions per turn | 0 | 3 |
 | Another refusal (a build without a yes, a bad argument) | 1 | 2 |
+| Limit on table questions per turn | 0 | 3 |
 | An option removed by a check | 1 | 1 |
-| Work refused: the case is "not ready" | 1 | 0 |
 | The turn's step budget ran out | 1 | 0 |
+| Work refused: the case is "not ready" | 1 | 0 |
 
 ## Current DCLab before and after: stage-2 (`nvidia/nemotron-3.5-super-vl:free`, judge `qwen/qwen3.8-27b`)
 
@@ -692,14 +692,14 @@ Before: HAB-011 + HAB-012. After: HAB-018 + HAB-019. Only the lead agent's conve
 | where code stepped in | before | after |
 |---|---:|---:|
 | An outcome column the person never named | 1 | 4 |
-| The turn's step budget ran out | 2 | 0 |
 | A build asked for before a project was started | 2 | 0 |
-| Advice refused: the words ask for data work | 2 | 0 |
+| The turn's step budget ran out | 2 | 0 |
 | Another refusal (a build without a yes, a bad argument) | 1 | 1 |
-| Work refused: the case is "not ready" | 1 | 0 |
+| Advice refused: the words ask for data work | 2 | 0 |
 | An option removed by a check | 1 | 0 |
-| The model's call was malformed | 1 | 0 |
 | A second small model overrules the kind of work | 1 | 0 |
+| Work refused: the case is "not ready" | 1 | 0 |
+| The model's call was malformed | 1 | 0 |
 
 ## Current DCLab before and after: stage-2 (`qwen/qwen3.8-flash`, judge `nvidia/nemotron-3.5-super-vl:free`)
 
@@ -720,15 +720,15 @@ Before: HAB-031 + HAB-032. After: HAB-016 + HAB-017. Only the lead agent's conve
 |---|---:|---:|
 | The model's call was malformed | 2 | 6 |
 | Limit on table questions per turn | 6 | 1 |
-| Another refusal (a build without a yes, a bad argument) | 2 | 1 |
 | A second small model overrules the kind of work | 1 | 2 |
-| An option kept, one sentence with a number removed | 1 | 1 |
+| Another refusal (a build without a yes, a bad argument) | 2 | 1 |
 | An option removed by a check | 1 | 1 |
-| Work refused: the case is "not ready" | 0 | 1 |
+| An option kept, one sentence with a number removed | 1 | 1 |
+| A build asked for on a pick (a pick is not a yes) | 0 | 1 |
+| A build asked for before a project was started | 1 | 0 |
 | The turn's step budget ran out | 1 | 0 |
 | A build asked for without the person's yes | 1 | 0 |
-| A build asked for before a project was started | 1 | 0 |
-| A build asked for on a pick (a pick is not a yes) | 0 | 1 |
+| Work refused: the case is "not ready" | 0 | 1 |
 | A table is needed first | 1 | 0 |
 
 ## Current DCLab before and after: after-three-fixes (`qwen/qwen3.8-flash`, judge `nvidia/nemotron-3.5-super-vl:free`)
@@ -749,15 +749,15 @@ Before: HAB-002. After: HAB-007 + HAB-008 + HAB-009 + HAB-010. Only the lead age
 | where code stepped in | before | after |
 |---|---:|---:|
 | The table tool cannot ask the question | 11 | 2 |
-| The model's call was malformed | 4 | 6 |
 | Limit on table questions per turn | 10 | 0 |
+| The model's call was malformed | 4 | 6 |
 | A build asked for without the person's yes | 3 | 6 |
 | A second small model overrules the kind of work | 3 | 3 |
-| The turn's step budget ran out | 3 | 1 |
 | An option removed by a check | 3 | 1 |
+| The turn's step budget ran out | 3 | 1 |
 | Another refusal (a build without a yes, a bad argument) | 2 | 1 |
-| Work refused: the case is "not ready" | 1 | 1 |
 | An outcome column the person never named | 1 | 1 |
+| Work refused: the case is "not ready" | 1 | 1 |
 | An option kept, one sentence with a number removed | 0 | 1 |
 | A table is needed first | 1 | 0 |
 | Advice refused: the words ask for data work | 1 | 0 |

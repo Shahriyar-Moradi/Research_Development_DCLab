@@ -52,7 +52,12 @@ PIN = HERE / "cases_dev.sha256"
 # The sets of written people. "dev": the eight of the pilot, written by the runner's author. "dev2" (2026-11-15): eight
 # more written by an independent agent that read neither the lead agent's code or prompt, nor the first set's key, nor any
 # result, so the repair is not judged only on people its author knew.
-SETS = {"dev": ("cases_dev.json", "answer_key_dev.json", "cases_dev.sha256"), "dev2": ("cases_dev2.json", "answer_key_dev2.json", "cases_dev2.sha256")}
+SETS = {"dev": ("cases_dev.json", "answer_key_dev.json", "cases_dev.sha256"), "dev2": ("cases_dev2.json", "answer_key_dev2.json", "cases_dev2.sha256"),
+        "dev3": ("cases_dev3.json", "answer_key_dev3.json", "cases_dev3.sha256")}
+# "dev3" (2026-11-16) is held out: eight people by an independent agent, written after the developer had read the first two
+# sets' failures. Nobody who changes the lead agent reads its people, its key or a person's result; only its means are
+# read, and it is played once at the end of a stage (the benchmark shows no table by person for it).
+HELD_OUT = ("dev3",)
 SET = "dev"
 
 
@@ -67,8 +72,13 @@ CAMPAIGN = ROOT / "evidence" / "campaigns" / "harness_ablation_v1"
 RESULTS = CAMPAIGN / "results"
 KEEP_ROOT = ROOT / "agent_runs" / "live_tests"
 ARMS = ("model_only", "open", "plain", "case")
-PLAN_ONLY = ("model_only",)  # never compared on work done
-PURPOSE = {"model_only": "exam_plain", "open": "exam_plain", "plain": "exam_plain", "case": "case_agent", "judge": "exam_judge"}
+# an arm run only when named: the model alone held to the lead agent's own length (450 words), to see how much of the
+# model alone's score is the room it has to write (2026-11-16: alone it writes 750 to 3,900 words)
+EXTRA_ARMS = ("model_only_short",)
+ALL_ARMS = (*ARMS, *EXTRA_ARMS)
+PLAN_ONLY = ("model_only", "model_only_short")  # never compared on work done
+PURPOSE = {"model_only": "exam_plain", "model_only_short": "exam_plain", "open": "exam_plain", "plain": "exam_plain", "case": "case_agent",
+           "judge": "exam_judge"}
 # The judge: a free model on OpenRouter that is neither the arms' model nor of its family. The owner (2026-11-15): no Claude
 # model in any test, arm or judge, at any provider; this one instead.
 JUDGE_MODEL = "nvidia/nemotron-3.5-super-vl:free"
@@ -76,8 +86,9 @@ MAX_TURNS = 4  # assistant turns for an arm that keeps asking: the lead agent's 
 GO_AHEAD = "Everything I know is in what I wrote. Choose what you judge best and go ahead."
 PINNED_PATHS = ("dclab_rnd/agents", "dclab_rnd/draft", "dclab_rnd/prompts", "dclab_core", "dclab_rnd/models", "dclab_rnd/experience",
                 "dclab_rnd/ledger", "dclab_rnd/agent_eval/harness_ablation", "dclab_rnd/agent_eval/conversation_exam", "dclab_rnd/agent_eval/home")
-PROMPTS = ("ablation_model_only", "ablation_minimal_agent", "ablation_judge", "exam_plain", "case_agent", "route_check")
-ESTIMATE_EUR = {"model_only": 0.004, "open": 0.01, "plain": 0.01, "case": 0.03, "judge": 0.07}  # a guess until the first run measures it
+PROMPTS = ("ablation_model_only", "ablation_model_only_short", "ablation_minimal_agent", "ablation_judge", "exam_plain", "case_agent",
+           "case_agent_think_first", "route_check")
+ESTIMATE_EUR = {"model_only": 0.004, "model_only_short": 0.004, "open": 0.01, "plain": 0.01, "case": 0.03, "judge": 0.07}  # a guess until the first run measures it
 WHY = "written cases answered by a script (never a person's words or choice); the arms' replies are the systems' own"
 FIELDS = ("run", "case", "arm", "repeat", "judged", "understanding", "solution_design", "planning", "evidence_discipline", "adaptation",
           "accepted", "understood_share", "forbidden_done", "safety_failures", "route", "tool", "assistant_turns", "seconds", "spent_eur",
@@ -181,7 +192,8 @@ def manifest(run: str, arms: list[str], repeats: int, cap_eur: Optional[float], 
             "code": code_state(), "models": dict(models),
             "prompt_sha256": {name: prints.get(f"prompt:{name}") for name in PROMPTS},
             "tool_schema_sha256": {"open": schema_hash(READ_TOOLS), "plain": schema_hash(PLAIN_TOOLS), "case": prints.get("tools:case")},
-            "flags": {name: os.environ.get(name) for name in ("DCLAB_CASE_AGENT", "DCLAB_ROUTE_MODEL", "DCLAB_THINKING_EFFORT", "DCLAB_LLM_PROVIDER")},
+            "flags": {name: os.environ.get(name) for name in ("DCLAB_CASE_AGENT", "DCLAB_CASE_THINK_FIRST", "DCLAB_ROUTE_MODEL", "DCLAB_THINKING_EFFORT",
+                                                              "DCLAB_LLM_PROVIDER")},
             "cases_sha256": fingerprint(), "set": SET, "max_turns": MAX_TURNS, "go_ahead": GO_AHEAD}
 
 
@@ -287,7 +299,8 @@ def compare(scores: Mapping[str, list[Mapping[str, Any]]]) -> dict[str, Any]:
     """The paired differences by case. ``model_only`` is compared on the plan's dimensions only (it does no work)."""
     from dclab_core import bench as core
 
-    pairs = [("open", "case"), ("plain", "case"), ("open", "plain"), ("model_only", "case"), ("model_only", "open")]
+    pairs = [("open", "case"), ("plain", "case"), ("open", "plain"), ("model_only", "case"), ("model_only", "open"),
+             ("model_only_short", "case"), ("model_only", "model_only_short")]
     out: dict[str, Any] = {}
     for a, b in pairs:
         if a not in scores or b not in scores:
@@ -679,8 +692,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.judge:
         return _judge_run(Path(args.judge), key, args)
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
-    if any(a not in ARMS for a in arms):
-        parser.error(f"--arms takes {', '.join(ARMS)}")
+    if any(a not in ALL_ARMS for a in arms):
+        parser.error(f"--arms takes {', '.join(ALL_ARMS)}")
     if args.only:
         wanted = {x.strip() for x in args.only.split(",")}
         cases = [c for c in cases if c["id"] in wanted]
@@ -711,7 +724,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     from ..conversation_exam import EXAM, Budget, _Capped, practice_effort
     from ..conversation_exam.arms import CaseArm, PlainArm
-    from .arms import ModelOnlyArm, OpenArm
+    from .arms import ModelOnlyArm, ModelOnlyShortArm, OpenArm
 
     tier = None if args.no_judge else judge_tier(args.judge_model)
     if tier is None and not args.no_judge:
@@ -749,6 +762,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return _Capped(bound, budget)
 
     arm_for = {"model_only": lambda name, folder: ModelOnlyArm(client(f"model_only-{name}", PURPOSE["model_only"])),
+               "model_only_short": lambda name, folder: ModelOnlyShortArm(client(f"model_only_short-{name}", PURPOSE["model_only_short"])),
                "open": lambda name, folder: OpenArm(client(f"open-{name}", PURPOSE["open"])),
                "plain": lambda name, folder: PlainArm(client(f"plain-{name}", PURPOSE["plain"])),
                "case": lambda name, folder: CaseArm(client(f"case-{name}", PURPOSE["case"]), client(f"case-{name}", "case_specialist"), folder,

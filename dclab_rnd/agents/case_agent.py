@@ -28,6 +28,19 @@ from .registry import Registry, Tool
 from .runtime import Policy
 
 PROMPT = "case_agent"
+# Stage 4 of the plan of 2026-11-16 (think first, pick the kind of work last), behind a switch that is off by default:
+# with it off, the prompt, the first-turn note and the reply's limit are exactly what they were.
+THINK_FIRST = "DCLAB_CASE_THINK_FIRST"
+THINK_FIRST_PROMPT = "case_agent_think_first"
+
+
+def think_first() -> bool:
+    return os.environ.get(THINK_FIRST, "").strip().lower() in ("1", "on", "true", "yes")
+
+
+def prompt_name() -> str:
+    """The lead agent's prompt file: the think-first one when its switch is on."""
+    return THINK_FIRST_PROMPT if think_first() else PROMPT
 PURPOSE = "case_agent"
 SWITCH = "DCLAB_CASE_AGENT"
 TOOLS = ("read_table", "query", "answer", "dashboard", "check_leakage", "preview_step", "note", "add_unknown", "resolve", "confirm_assumption", "ask", "propose",
@@ -708,6 +721,11 @@ CHIP_NEEDS_TABLE = ("prediction", "analysis", "reporting", "preparation")  # the
 # what a start is followed by (stage 2 of 2026-11-15: "a few sentences, then stop" left no room for the plan the prompt asks for)
 STARTED_NEXT = ("now tell the person what you understood, your approach and the plan (three to five steps, in order, each with what it "
                 "checks), then stop. No number that no tool returned.")
+# with the think-first switch on the message is written before the move (the review of stage 4: "now write that message" made
+# the model write its plan a second time, and the limit then cut the copy)
+WRITTEN_NEXT = ("the person sees this under your message. If you already wrote your message in this turn (the problem, what needs "
+                "care, your approach, the plan), it stands: add one or two sentences on {what}, then stop; do not write the plan "
+                "again. If you have not written it yet, write it now, then stop. No number that no tool returned.")
 PAIRS = ", ".join(f"{track}/{tool}" for tool, track in C.TRACK_OF_TOOL.items())  # every kind of help with its tool, as a refusal names them
 
 
@@ -787,7 +805,8 @@ def _propose(state: CaseState, options: list[dict[str, Any]]) -> dict[str, Any]:
     state.case = C.apply(state.case, "options", kept, by="agent", why="proposed")
     state.shown = kept
     return {"shown": [o.title for o in kept], "refused": refused,
-            "next": "the person sees these under your message: now write that message. When their brief is enough, write what you "
+            "next": WRITTEN_NEXT.format(what="the options") if think_first() else
+                    "the person sees these under your message: now write that message. When their brief is enough, write what you "
                     "understood of the problem, your approach and a plan of three to five steps, then lead into the options; otherwise a "
                     "sentence or two. Then stop."}
 
@@ -832,7 +851,7 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
         if tool in ("query", "dashboard"):
             return {"started": f"{track}/{tool}", "next": "nothing is shown yet: ask the table (query), show it with answer or dashboard, then "
                                                           "say what it shows; do not say anything is ready before a tool returned it"}
-        return {"started": f"{track}/{tool}", "next": STARTED_NEXT}
+        return {"started": f"{track}/{tool}", "next": WRITTEN_NEXT.format(what="what happens next") if think_first() else STARTED_NEXT}
     r = C.readiness(state.case)
     if track in NO_DATA_WORK and not state.case.chosen and not r.ready and not state.budget_reached and data_work(state):
         return {"error": "the person's need points to data work (a shared table, or a list, report, model or cleaning): advice "
@@ -859,7 +878,7 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     if tool in ("query", "dashboard"):  # 2026-11-02: "work started" showed nothing; the figures are shown by this very turn
         return {"started": f"{track}/{tool}", "next": "nothing is shown yet: ask the table (query), show it with answer or dashboard, then "
                                                       "say what it shows; do not say anything is ready before a tool returned it"}
-    return {"started": f"{track}/{tool}", "next": STARTED_NEXT}
+    return {"started": f"{track}/{tool}", "next": WRITTEN_NEXT.format(what="what happens next") if think_first() else STARTED_NEXT}
 
 
 def _design_solution_without_data(
@@ -1193,6 +1212,15 @@ REWRITE_STRICT = ("[DCLab's code] Your message was cut again and the person woul
 # written again by the model (what survived reaches the person, with a plain note).
 SHOWN_WORDS = 450  # 2026-11-15: a person who gave a full brief gets the problem, the approach and the plan in one message (HAB-002: 300 cut them)
 REWRITE_WORDS = 150
+SHOWN_WORDS_PLAN = 700  # with the think-first switch on: the problem, what needs care, the approach and the plan, until the plan has its own card (stage 3)
+CLEAR_THINK_FIRST = ("The person's request is clear on arrival (the goal, the subject and the data are known). Do not ask clarifying "
+                     "questions on this turn. Write your first full message (the problem as it really is, what needs care before any "
+                     "work, your approach, the plan), then do the plan's first step in this same turn: start it, or propose it when the "
+                     "person should choose. If the request should not be done as asked, say why and propose the sound way instead.")
+REWRITE_LONG = ("[DCLab's code] Part of your message was not shown to the person, because its numbers come from nobody: the person did "
+                "not give them and no tool computed them. Write the whole message again at about the same length, keeping its parts "
+                "and its plan: no digits at all unless they are copied exactly from a tool's result or the person's words. Reply with "
+                "the message only.")
 CUT_NOTE = "(That is the short version. Ask me about any part and I will go deeper.)"
 WITHHELD_NOTE = ("(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words "
                  "and I will go through it.)")
@@ -1288,12 +1316,15 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
 
         state.trace = tracer("case")
     person_turns = sum(1 for t in state.turns if t.get("role") == "user")
-    clear_note = ("The person's request is crystal-clear on arrival (goal, subject/target, and data are already established). "
-                  "Do NOT ask clarifying questions or reflective questions on Turn 1; propose actionable options (propose) "
-                  "or start the requested work (start/query/answer) in this turn, and write in your message what you understood of "
-                  "the problem, your approach and the plan's steps.") if (state.clear_on_arrival and person_turns == 1) else None
+    # the review of stage 4: a number, a ranking or a chart of their table is answered first with the table, whatever the
+    # switch says (the owner's rule of 2026-11-02): only a need that has to be worked out gets the think-first note
+    clear_note = ((CLEAR_THINK_FIRST if think_first() and not state.wants_figures else
+                   "The person's request is crystal-clear on arrival (goal, subject/target, and data are already established). "
+                   "Do NOT ask clarifying questions or reflective questions on Turn 1; propose actionable options (propose) "
+                   "or start the requested work (start/query/answer) in this turn, and write in your message what you understood of "
+                   "the problem, your approach and the plan's steps.")) if (state.clear_on_arrival and person_turns == 1) else None
     built = ctx.build(state.case, state.turns, state.table, notes=[n for n in (chip_note(state), clear_note) if n])
-    messages = ctx.messages(prompts.text(PROMPT), built)
+    messages = ctx.messages(prompts.text(prompt_name()), built)
     start = len(messages)
     before = _spent(client) + _spent(state.specialist_client) + _spent(state.route_client)  # the review: the route check counts too
     client = _Cells(client, state)  # 37.6: a request holds cell values only when a query's answer is in it
@@ -1331,7 +1362,7 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
 
     def capped(parts: list[str]) -> tuple[list[str], bool]:
         """The messages of a turn within SHOWN_WORDS in all (an echoed note of code's is taken out first), and whether any was cut."""
-        out, was, left = [], False, SHOWN_WORDS
+        out, was, left = [], False, (SHOWN_WORDS_PLAN if think_first() else SHOWN_WORDS)
         for part in parts:
             part = str(part or "").replace(CUT_NOTE, "").replace(WITHHELD_NOTE, "").strip()
             if not part:
@@ -1361,7 +1392,8 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
         if long_reply and any(has_statement(w) for w in answers) and survivors >= 0.4 * written:
             withheld = True  # a long reply with most of its answer left is not written again (CEX-026): what survived reaches the person
         else:
-            rewritten = again(REWRITE_SHORT if long_reply else REWRITE.format(dropped="\n".join(f"- {d}" for d in dropped)))
+            rewritten = again((REWRITE_LONG if think_first() else REWRITE_SHORT) if long_reply
+                              else REWRITE.format(dropped="\n".join(f"- {d}" for d in dropped)))
             parts, rcut = capped(rewritten)
             fixed = [w for w in (checked(s, state) for s in parts) if w]
             kept = sum(len(w) for w in fixed) / max(1, sum(len(r) for r in rewritten if r))

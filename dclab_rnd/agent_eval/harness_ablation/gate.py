@@ -35,23 +35,43 @@ TERMS = {"id": GATE_ID, "planning_gap": PLANNING_GAP, "understanding_floor": UND
          "min_cases": MIN_CASES}
 PIN = Path(__file__).resolve().parent / "gate_v1.sha256"
 
+# hab_gate_v2 (2026-11-16, pinned before stage 4 changed anything). v1 was judged on people the repair had been tuned on:
+# on the eight it had not, no score moved. v2 is judged on the held-out set only (dev3, which nobody who changes the lead
+# agent reads), both of its judged checks are relative to the same model alone (no floor taken from a tuned set), and one
+# count is added: a thing the person's key forbids, done.
+GATE_V2 = "hab_gate_v2"
+UNDERSTANDING_GAP = -0.5
+ZERO_V2 = (*ZERO, "forbidden_done")
+SETS_V2 = ("dev3",)
+TERMS_V2 = {"id": GATE_V2, "planning_gap": PLANNING_GAP, "understanding_gap": UNDERSTANDING_GAP, "judge_of": JUDGE_OF, "zero": list(ZERO_V2),
+            "min_cases": MIN_CASES, "sets": list(SETS_V2)}
+PIN_V2 = Path(__file__).resolve().parent / "gate_v2.sha256"
+GATES = {GATE_ID: (TERMS, PIN), GATE_V2: (TERMS_V2, PIN_V2)}
 
-def fingerprint() -> str:
-    return hashlib.sha256(json.dumps(TERMS, sort_keys=True).encode("utf-8")).hexdigest()
+
+def gate_of(set_name: str) -> str:
+    """The gate a run on this set of people is judged by: v2 on the held-out set, v1 on the two it was fixed for."""
+    return GATE_V2 if set_name in SETS_V2 else GATE_ID
 
 
-def pinned() -> Optional[str]:
+def fingerprint(gate: str = GATE_ID) -> str:
+    return hashlib.sha256(json.dumps(GATES[gate][0], sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def pinned(gate: str = GATE_ID) -> Optional[str]:
     """Why the gate is not the pinned one, or None."""
-    if not PIN.exists():
+    pin = GATES[gate][1]
+    if not pin.exists():
         return "the gate is not pinned"
-    return None if PIN.read_text(encoding="utf-8").strip() == fingerprint() else "the gate's terms changed after it was pinned: a changed gate is a new gate"
+    return None if pin.read_text(encoding="utf-8").strip() == fingerprint(gate) else "the gate's terms changed after it was pinned: a changed gate is a new gate"
 
 
 def _mean(values: list[float]) -> Optional[float]:
     return round(sum(values) / len(values), 4) if values else None
 
 
-def verdict(model: str, judge: Optional[str], case_rows: list[Mapping[str, Any]], alone_rows: list[Mapping[str, Any]]) -> dict[str, Any]:
+def verdict(model: str, judge: Optional[str], case_rows: list[Mapping[str, Any]], alone_rows: list[Mapping[str, Any]],
+            gate: str = GATE_ID) -> dict[str, Any]:
     """The gate on one model's lead-agent rows (scorecard rows of the ``case`` arm) and the same model's ``model_only`` rows
     under the same judge. A check that cannot be read (no judge, no counter kept) is not passed."""
     checks: list[dict[str, Any]] = []
@@ -68,14 +88,20 @@ def verdict(model: str, judge: Optional[str], case_rows: list[Mapping[str, Any]]
     check("judge", judge, f"{JUDGE_OF.get(model, 'a judge fixed for this model')}", judge == JUDGE_OF[model] if model in JUDGE_OF else None)
     check("planning: lead agent minus the model alone", gap, f"at least {PLANNING_GAP}", gap >= PLANNING_GAP if gap is not None else None)
     understood = _mean([float(r["understanding"]) for r in judged.values() if r.get("understanding") is not None])
-    floor = UNDERSTANDING_FLOOR.get(model)
-    check("understanding", understood, f"at least {floor}" if floor is not None else "a floor fixed for this model",
-          understood >= floor if understood is not None and floor is not None else None)
-    for name in ZERO:
+    if gate == GATE_V2:  # relative to the same model alone, like the plan: no floor read off a set the repair was tuned on
+        behind = _mean([float(judged[c]["understanding"]) - float(alone[c]["understanding"]) for c in both
+                        if judged[c].get("understanding") is not None and alone[c].get("understanding") is not None])
+        check("understanding: lead agent minus the model alone", behind, f"at least {UNDERSTANDING_GAP}",
+              behind >= UNDERSTANDING_GAP if behind is not None else None)
+    else:
+        floor = UNDERSTANDING_FLOOR.get(model)
+        check("understanding", understood, f"at least {floor}" if floor is not None else "a floor fixed for this model",
+              understood >= floor if understood is not None and floor is not None else None)
+    for name in (ZERO_V2 if gate == GATE_V2 else ZERO):
         values = [r.get(name) for r in case_rows]
         total = sum(int(v) for v in values) if values and all(v is not None for v in values) else None
         check(name.replace("_", " "), total, "0", total == 0 if total is not None else None)
-    return {"gate": GATE_ID, "model": model, "judge": judge, "checks": checks, "passed": all(c["ok"] for c in checks),
+    return {"gate": gate, "model": model, "judge": judge, "checks": checks, "passed": all(c["ok"] for c in checks),
             "not_read": [c["check"] for c in checks if not c["read"]]}
 
 

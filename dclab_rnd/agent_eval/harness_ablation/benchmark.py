@@ -14,13 +14,13 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
-from . import ARMS, CAMPAIGN, RESULTS, ROOT, compare
+from . import ALL_ARMS, ARMS, CAMPAIGN, HELD_OUT, RESULTS, ROOT, compare
 from . import first_divergence as F
 
 PAGE = ROOT / "docs" / "evaluations" / "harness-vs-model" / "benchmark.html"
 EXAM_RESULTS = ROOT / "evidence" / "campaigns" / "conversation_exam_v1" / "results"
 DIMENSIONS = ("understanding", "solution_design", "planning", "evidence_discipline")
-NAMES = {"model_only": "Model only", "open": "Minimal agent", "plain": "Minimal agent + DCLab's 6 kinds of work", "case": "Current DCLab (lead agent)"}
+NAMES = {"model_only_short": "Model only, held to 450 words", "model_only": "Model only", "open": "Minimal agent", "plain": "Minimal agent + DCLab's 6 kinds of work", "case": "Current DCLab (lead agent)"}
 WORDS = {"understanding": "Understands the problem", "solution_design": "Designs a solution", "planning": "Makes a plan",
          "evidence_discipline": "Sticks to evidence", "accepted": "Accepted"}
 REASON_WORDS = {
@@ -39,6 +39,13 @@ REASON_WORDS = {
 # A run played before the runner had its --label switch, with the code state it measured (HAB-006 started at 12:14 UTC on
 # 2026-11-15, after the three fixes of that day went in: the same state as the runs labelled so)
 LABEL_OF = {"HAB-006": "after-three-fixes"}
+
+
+def think_first_of(doc: Mapping[str, Any]) -> bool:
+    """Whether a run played the lead agent with its think-first switch on (stage 4), as its manifest recorded it: such a run
+    is never read as one with a run of the switch off, whatever their labels."""
+    value = str((((doc.get("manifest") or {}).get("flags") or {}).get("DCLAB_CASE_THINK_FIRST")) or "").strip().lower()
+    return value in ("1", "on", "true", "yes")
 
 
 def label_of(doc: Mapping[str, Any]) -> Optional[str]:
@@ -88,7 +95,7 @@ def read_run(doc: dict[str, Any]) -> dict[str, Any]:
     # a conversation the provider refused (the key's limit, no credit, the run's cap) was never answered: it is no arm's failure
     refused = {(c.get("arm"), c.get("id")) for c in doc.get("conversations") or []
                if c.get("ended") == "error" and any(w in str(c.get("error")) for w in ("refused the key", "no credit", "ModelPaused", "BudgetExceeded"))}
-    scores = {arm: [r for r in doc["scores"][arm] if (arm, r.get("case")) not in refused] for arm in ARMS if arm in (doc.get("scores") or {})}
+    scores = {arm: [r for r in doc["scores"][arm] if (arm, r.get("case")) not in refused] for arm in ALL_ARMS if arm in (doc.get("scores") or {})}
     interventions: dict[str, int] = {}
     per_case: dict[str, dict[str, int]] = {}
     counted: dict[str, dict[str, int]] = {}
@@ -118,8 +125,9 @@ def read_run(doc: dict[str, Any]) -> dict[str, Any]:
                      "seconds": _mean([r.get("seconds") for r in rows]), "assistant_turns": _mean([r.get("assistant_turns") for r in rows]),
                      "spent_eur": round(sum(float(r.get("spent_eur") or 0) for r in rows), 4),
                      "empty_or_short_answers": sorted(cid for cid, n in chars.items() if n < 1000 and arm != "case"),
-                     "by_case": {r["case"]: {**{d: r.get(d) for d in DIMENSIONS}, "accepted": r.get("accepted"), "seconds": r.get("seconds")} for r in rows}}
-    return {"id": doc["id"], "at": doc.get("at"), "set": doc.get("set") or "dev", "model": (doc.get("models") or {}).get("arms"), "judge": (doc.get("models") or {}).get("judge"),
+                     "by_case": {r["case"]: {**{d: r.get(d) for d in DIMENSIONS}, "accepted": r.get("accepted"), "seconds": r.get("seconds"),
+                                             "forbidden_done": r.get("forbidden_done")} for r in rows}}
+    return {"id": doc["id"], "at": doc.get("at"), "set": doc.get("set") or "dev", "think_first": think_first_of(doc), "model": (doc.get("models") or {}).get("arms"), "judge": (doc.get("models") or {}).get("judge"),
             "label": label_of(doc) if " + " not in str(doc.get("id")) else doc.get("label") or (doc.get("manifest") or {}).get("label") or next(
                 (LABEL_OF[p] for p in str(doc["id"]).split(" + ") if p in LABEL_OF), None),
             "commit": ((doc.get("manifest") or {}).get("code") or {}).get("commit"), "judge_spent_eur": doc.get("spent_eur"),
@@ -132,7 +140,7 @@ def across_models(a: Mapping[str, Any], b: Mapping[str, Any]) -> dict[str, Any]:
     from dclab_core import bench as core
 
     out: dict[str, Any] = {}
-    for arm in ARMS:
+    for arm in ALL_ARMS:
         if arm not in a["arms"] or arm not in b["arms"]:
             continue
         out[arm] = {}
@@ -275,7 +283,7 @@ def build() -> dict[str, Any]:
             doc = load(path)
             models = doc.get("models") or {}
             label = label_of(doc)  # the state of the code a run measures
-            groups.setdefault((models.get("arms"), models.get("judge"), label, doc.get("set") or "dev"), []).append(doc)
+            groups.setdefault((models.get("arms"), models.get("judge"), label, doc.get("set") or "dev", think_first_of(doc)), []).append(doc)
         return [read_run(join(docs)) for docs in groups.values()]
 
     # a run's first judgment, and any other judge's judgment of the same conversations, each as its own row
@@ -290,9 +298,11 @@ def build() -> dict[str, Any]:
         for b in runs[i + 1:]:
             if a["model"] != b["model"] and a["judge"] == b["judge"] and a.get("label") == b.get("label") and a["set"] == b["set"]:  # two models: one judge, one state of the code, one set of people
                 pairs.append({"a": a["id"], "a_model": a["model"], "b": b["id"], "b_model": b["model"], "judge": a["judge"], "arms": across_models(a, b)})
-    return {"what": "the harness ablation's benchmark: built from the result files, nothing run", "runs": runs, "not_judged_yet": waiting,
-            "all_models": all_models(runs), "gate": gated(runs),
-            "across_models": pairs, "before_after": before_after(runs), "judges": judges_agree(runs), "cross_model": cross_model(), "claude_era": claude_era(),
+    derived = {"all_models": all_models(runs), "gate": gated(runs), "across_models": pairs, "before_after": before_after(runs), "judges": judges_agree(runs)}
+    shown = [means_only(r) if r.get("set") in HELD_OUT else r for r in runs]  # after everything that reads a run by person was computed
+    waiting = [means_only(r) if r.get("set") in HELD_OUT else r for r in waiting]
+    return {"what": "the harness ablation's benchmark: built from the result files, nothing run", "runs": shown, "not_judged_yet": waiting,
+            **derived, "cross_model": cross_model(), "claude_era": claude_era(),
             "limits": ["eight written cases, each once: differences inside the intervals are noise",
                        "one judge model scored every run; it is from the same family as one of the two arm models",
                        "the cases and their answer key were written by the runner's author",
@@ -316,9 +326,22 @@ def gated(runs: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
             continue
         alone = next((r for r in [run, *runs] if r["model"] == run["model"] and r["judge"] == run["judge"] and r["set"] == run["set"]
                       and "model_only" in r["arms"]), None)
-        verdict = G.verdict(str(run["model"]), run["judge"], rows(run, "case"), rows(alone, "model_only") if alone else [])
-        out.append({"run": run["id"], "label": run.get("label"), "set": run["set"], "alone_from": alone["id"] if alone else None, "pinned": G.pinned() is None, **verdict})
+        verdict = G.verdict(str(run["model"]), run["judge"], rows(run, "case"), rows(alone, "model_only") if alone else [], gate=G.gate_of(run["set"]))
+        out.append({"run": run["id"], "label": run.get("label"), "set": run["set"], "think_first": run.get("think_first"),
+                    "alone_from": alone["id"] if alone else None, "pinned": G.pinned(G.gate_of(run["set"])) is None, **verdict})
     return out
+
+
+GATE_WORDS = {"hab_gate_v1": "fixed before the repair, judged on the people it was then tuned on",
+              "hab_gate_v2": "fixed before stage 4, judged on the held-out people only"}
+
+
+def means_only(run: dict[str, Any]) -> dict[str, Any]:
+    """A held-out set's run as the benchmark keeps it: its means and counts, nothing by person (the review of stage 4: the
+    page hid the by-person tables and the JSON beside it still held them)."""
+    arms = {arm: {**{k: v for k, v in s.items() if k != "by_case"}, "empty_or_short_answers": len(s.get("empty_or_short_answers") or [])}
+            for arm, s in run["arms"].items()}
+    return {**{k: v for k, v in run.items() if k not in ("interventions_by_case", "counted")}, "arms": arms, "held_out": True}
 
 
 COUNTED = (("accepted", "Accepted"), ("forbidden_done", "Must-not-do done"), ("numbers_nobody_gave", "Numbers nobody gave"),
@@ -338,7 +361,8 @@ def all_models(runs: list[Mapping[str, Any]]) -> dict[str, Any]:
                          "spent_eur": (s["spent_eur"] / s["answered"]) if s.get("answered") and s.get("spent_eur") is not None else None,
                          "short": len(s["empty_or_short_answers"])}
         pair = (run.get("paired") or {}).get("case_minus_open") or {}
-        rows.append({"id": run["id"], "model": run["model"], "judge": run["judge"], "label": run.get("label"), "set": run.get("set"), "arms": arms,
+        rows.append({"id": run["id"], "model": run["model"], "judge": run["judge"], "label": run.get("label"), "set": run.get("set"),
+                     "think_first": run.get("think_first"), "arms": arms,
                      "harness": {d: pair[d] for d in (*DIMENSIONS, "accepted") if d in pair},
                      "interventions": dict(run["interventions"]), "interventions_total": sum(run["interventions"].values())})
     reasons = sorted({r for row in rows for r in row["interventions"]}, key=lambda r: -sum(row["interventions"].get(r, 0) for row in rows))
@@ -347,7 +371,7 @@ def all_models(runs: list[Mapping[str, Any]]) -> dict[str, Any]:
 
 def _row_name(row: Mapping[str, Any]) -> str:
     return (f"{row['model']}" + (f" ({row['label']})" if row.get("label") else "") + f" · judge {row['judge']}"
-            + (f" · people {row['set']}" if row.get("set") not in (None, "dev") else ""))
+            + (f" · people {row['set']}" if row.get("set") not in (None, "dev") else "") + (" · think first" if row.get("think_first") else ""))
 
 
 def _counted(arm: Mapping[str, Any], key: str) -> str:
@@ -369,21 +393,23 @@ def markdown(data: Mapping[str, Any]) -> str:
     lines = ["# Harness ablation: the benchmark", "",
              "Rebuilt by `python -m dclab_rnd.agent_eval.harness_ablation.benchmark` from the result files; do not edit by hand.",
              "Scores are the judge's, 0 to 4. \"Numbers nobody gave\" are counted by code. A difference is `mean [95% interval]` by case.", ""]
-    if data.get("gate"):
-        lines += ["## The gate (`hab_gate_v1`, fixed before the repair)", "",
+    for gate_id in sorted({g["gate"] for g in data.get("gate") or []}, reverse=True):  # each gate under its own headings (v2 holds checks v1 lacks)
+        of = [g for g in data["gate"] if g["gate"] == gate_id]
+        lines += [f"## The gate (`{gate_id}`, {GATE_WORDS.get(gate_id, 'fixed before its runs')})", "",
                   "Every check must hold. \"not read\" means the run kept nothing to count it from, or was judged by another judge than the gate names: it is not a pass.", "",
-                  "| run | model | judge | passed | " + " | ".join(c["check"] for c in data["gate"][0]["checks"]) + " |",
-                  "|---|---|---|---|" + "---|" * len(data["gate"][0]["checks"])]
-        for g in data["gate"]:
+                  "| run | model | judge | passed | " + " | ".join(c["check"] for c in of[0]["checks"]) + " |",
+                  "|---|---|---|---|" + "---|" * len(of[0]["checks"])]
+        for g in of:
             cells = [("ok " if c["ok"] else "NOT READ " if not c["read"] else "FAIL ") + _num(c["value"]) for c in g["checks"]]
-            lines.append(f"| {g['run']}" + (f" ({g['label']})" if g.get("label") else "") + f" | {g['model']} | {g['judge']} | {'PASS' if g['passed'] else 'fail'} | " + " | ".join(cells) + " |")
+            name = f"{g['run']}" + (f" ({g['label']})" if g.get("label") else "") + (" · think first" if g.get("think_first") else "")
+            lines.append(f"| {name} | {g['model']} | {g['judge']} | {'PASS' if g['passed'] else 'fail'} | " + " | ".join(cells) + " |")
         lines.append("")
     am = data.get("all_models") or {"rows": [], "reasons": []}
     if am["rows"]:
         lines += ["## All models side by side", "",
                   "One row per model and judge. Compare arms inside a row; rows under different judges are not a pairing. "
                   "\"after-three-fixes\" marks runs on the lead agent after the fixes of 2026-11-15.", ""]
-        for arm in ARMS:
+        for arm in [a for a in ALL_ARMS if any(a in row["arms"] for row in am["rows"])]:
             lines += [f"### {NAMES[arm]}", "", "| model | " + " | ".join(WORDS[d] for d in DIMENSIONS) + " | " + " | ".join(w for _, w in COUNTED) + " |",
                       "|---|" + "---:|" * (len(DIMENSIONS) + len(COUNTED))]
             lines += [f"| {_row_name(row)} | " + " | ".join(_num(row["arms"][arm][d]) for d in DIMENSIONS) + " | "
@@ -404,7 +430,7 @@ def markdown(data: Mapping[str, Any]) -> str:
         for arm, s in run["arms"].items():
             lines.append(f"| {NAMES[arm]} | " + " | ".join(_num(s[d]) for d in DIMENSIONS) + f" | {s['accepted']} of {s['cases']} | {s['forbidden_done']} | "
                          f"{s['numbers_nobody_gave']} | {_num(s['assistant_turns'], 1)} | {_num(s['seconds'], 0)} | {_num(s['spent_eur'])} |")
-        short = {NAMES[a]: s["empty_or_short_answers"] for a, s in run["arms"].items() if s["empty_or_short_answers"]}
+        short = {NAMES[a]: s["empty_or_short_answers"] for a, s in run["arms"].items() if s["empty_or_short_answers"] and run.get("set") not in HELD_OUT}
         if short:
             lines += ["", "Empty or very short answers (scored as given): " + "; ".join(f"{k}: {', '.join(v)}" for k, v in short.items()) + "."]
         lines += ["", "**The harness inside this model** (current DCLab minus the minimal agent):", ""]
@@ -489,7 +515,7 @@ th:first-child,td:first-child{text-align:left;white-space:normal;min-width:220px
 .bar{height:14px;border-radius:3px;background:var(--c0);display:inline-block;vertical-align:middle;margin-right:8px}
 svg text{fill:var(--text);font-size:15px}svg .tick{fill:var(--muted);font-size:14px}ul{margin:8px 0 0 20px;padding:0}
 """
-COLORS = {"case": "var(--c0)", "model_only": "var(--c1)", "open": "var(--c2)", "plain": "var(--c3)"}
+COLORS = {"case": "var(--c0)", "model_only": "var(--c1)", "open": "var(--c2)", "plain": "var(--c3)", "model_only_short": "var(--muted)"}
 
 
 def _swatch(arm: str) -> str:
@@ -540,20 +566,22 @@ def page(data: Mapping[str, Any]) -> str:
                      f'<b>{sum(row["arms"]["case"]["numbers_nobody_gave"] for row in am["rows"])}</b> numbers nobody gave; the minimal agents, '
                      f'{sum(row["arms"]["open"]["numbers_nobody_gave"] for row in am["rows"] if "open" in row["arms"])}.</p>')
     parts.append('<p class="muted">Eight cases, each once. One judge model. Read the differences as hints, not proof. Built from the result files; nothing was run to make this page.</p>')
-    parts.append('<p>' + " &nbsp; ".join(_swatch(a) for a in ARMS) + "</p>")
-    if data.get("gate"):
-        heads = "".join(f"<th>{html.escape(c['check'])}</th>" for c in data["gate"][0]["checks"])
+    parts.append('<p>' + " &nbsp; ".join(_swatch(a) for a in ALL_ARMS) + "</p>")
+    for gate_id in sorted({g["gate"] for g in data.get("gate") or []}, reverse=True):
+        of = [g for g in data["gate"] if g["gate"] == gate_id]
+        heads = "".join(f"<th>{html.escape(c['check'])}</th>" for c in of[0]["checks"])
         body = "".join(
-            f"<tr><td>{html.escape(str(g['run']))}{' (' + html.escape(str(g['label'])) + ')' if g.get('label') else ''}</td><td>{html.escape(str(g['model']))}</td>"
+            f"<tr><td>{html.escape(str(g['run']))}{' (' + html.escape(str(g['label'])) + ')' if g.get('label') else ''}{' · think first' if g.get('think_first') else ''}</td>"
+            f"<td>{html.escape(str(g['model']))}</td>"
             f"<td><span class=\"chip {'ok' if g['passed'] else 'bad'}\">{'pass' if g['passed'] else 'fail'}</span></td>"
             + "".join(f"<td class=\"{'' if c['ok'] else 'bad' if c['read'] else 'warn'}\">{_num(c['value'])}{'' if c['read'] else ' (not read)'}</td>" for c in g["checks"]) + "</tr>"
-            for g in data["gate"])
-        parts.append('<h2>The gate <span class="muted">· hab_gate_v1, fixed before the repair; every check must hold</span></h2><div class="grid"><div class="card wide">'
-                     f'<table><tr><th>run</th><th>model</th><th>verdict</th>{heads}</tr>{body}</table>'
-                     '<p class="muted">Planning: the lead agent minus the same model alone, by case (bar: at least -0.5). The six counts must be zero.</p></div></div>')
+            for g in of)
+        parts.append(f'<h2>The gate <span class="muted">· {html.escape(gate_id)}, {html.escape(GATE_WORDS.get(gate_id, "fixed before its runs"))}; every check must hold</span></h2>'
+                     f'<div class="grid"><div class="card wide"><table><tr><th>run</th><th>model</th><th>verdict</th>{heads}</tr>{body}</table>'
+                     '<p class="muted">The lead agent minus the same model alone, by case (bar: at least -0.5). Every count must be zero.</p></div></div>')
     if am["rows"]:
         parts.append('<h2>All models side by side <span class="muted">· compare arms inside a row; rows under different judges are not a pairing</span></h2><div class="grid">')
-        for arm in ARMS:
+        for arm in [a for a in ALL_ARMS if any(a in row["arms"] for row in am["rows"])]:
             body = "".join(f'<tr><td>{html.escape(_row_name(row))}</td>' + "".join(_heat(row["arms"][arm][d]) for d in DIMENSIONS)
                            + "".join(f'<td class="{"bad" if k == "numbers_nobody_gave" and row["arms"][arm][k] else ""}">{_counted(row["arms"][arm], k)}</td>' for k, _ in COUNTED) + "</tr>"
                            for row in am["rows"] if arm in row["arms"])
@@ -578,7 +606,7 @@ def page(data: Mapping[str, Any]) -> str:
                        for arm, s in run["arms"].items())
         parts.append('<div class="card wide"><h3>Scores by arm (mean, 0 to 4)</h3><table><tr><th>arm</th>' + "".join(f"<th>{WORDS[d]}</th>" for d in DIMENSIONS)
                      + "<th>Accepted</th><th>Numbers nobody gave</th><th>Turns</th><th>Seconds</th><th>€</th></tr>" + rows + "</table>")
-        short = {NAMES[a]: s["empty_or_short_answers"] for a, s in run["arms"].items() if s["empty_or_short_answers"]}
+        short = {NAMES[a]: s["empty_or_short_answers"] for a, s in run["arms"].items() if s["empty_or_short_answers"] and run.get("set") not in HELD_OUT}
         if short:
             parts.append('<p class="muted">Empty or very short answers, scored as given: ' + html.escape("; ".join(f"{k}: {', '.join(v)}" for k, v in short.items())) + ".</p>")
         parts.append("</div>")
@@ -592,8 +620,8 @@ def page(data: Mapping[str, Any]) -> str:
                      + "".join(f'<tr><td>{html.escape(REASON_WORDS.get(r, r))}</td><td><span class="bar" style="width:{max(4, int(120 * n / top))}px"></span>{n}</td></tr>'
                                for r, n in run["interventions"].items())
                      + f'</table><p class="muted">{total} interventions in 8 conversations.</p></div>')
-        cases = sorted({cid for s in run["arms"].values() for cid in s["by_case"]})
-        for dim in ("understanding", "planning"):
+        cases = sorted({cid for s in run["arms"].values() for cid in s.get("by_case") or {}})
+        for dim in ("understanding", "planning") if run.get("set") not in HELD_OUT else ():  # a held-out set shows its means only
             parts.append(f'<div class="card"><h3>{WORDS[dim]}, case by case</h3><table><tr><th>arm</th>' + "".join(f"<th>{c[-2:]}</th>" for c in cases) + "</tr>"
                          + "".join(f"<tr><td>{_swatch(arm)}</td>" + "".join(_heat((s["by_case"].get(c) or {}).get(dim)) for c in cases) + "</tr>" for arm, s in run["arms"].items())
                          + "</table></div>")

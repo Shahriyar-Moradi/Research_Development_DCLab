@@ -187,7 +187,7 @@ OWNER_MODEL_CHOICE = ("DCLAB_LLM_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_MODE
                       "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "OPENROUTER_BASE_URL", "DCLAB_BLOCK_PROVIDERS")
 # 35.0: the owner's spending caps in .env (a workspace cap of a few euros) refused a gateway test's scripted request
 OWNER_SPEND_CAPS = ("DCLAB_WORKSPACE_MONTHLY_EUR", "DCLAB_COLLECTOR_MONTHLY_EUR")
-OWNER_MEMORY_MODEL = ("DCLAB_MEMORY_EMBEDDING_BASE_URL", "DCLAB_MEMORY_EMBEDDING_MODEL")  # 35.5: a test sets its own
+OWNER_MEMORY_MODEL = ("DCLAB_MEMORY_EMBEDDING_BASE_URL", "DCLAB_MEMORY_EMBEDDING_MODEL", "DCLAB_CASE_THINK_FIRST")  # 35.5: a test sets its own (and stage 4's switch: a test turns it on itself)
 
 
 def child_env(tmp: str, threads_one: bool = True) -> dict:

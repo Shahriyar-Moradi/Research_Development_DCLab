@@ -27,6 +27,7 @@ MAX_TOKENS = 16000
 LAST_REQUEST = ("[the test's runner] That was your last look at the table for this message: no more lookups will run. "
                 "Write your answer to the person now, from what you have.")
 MODEL_ONLY_PROMPT = "ablation_model_only"
+MODEL_ONLY_SHORT_PROMPT = "ablation_model_only_short"
 OPEN_PROMPT = "ablation_minimal_agent"
 READ_TOOLS = [PLAIN_TOOLS[0], *DATA_TOOLS]  # profile_table and the lead agent's own data tools: reads only
 NO_ROUTE = {"route": None, "tool": None, "routed_by": None}
@@ -43,6 +44,7 @@ def view_text(upload: Optional[str]) -> str:
 
 class ModelOnlyArm:
     name = "model_only"
+    prompt = MODEL_ONLY_PROMPT
 
     def __init__(self, client: Any):
         self.client = client
@@ -53,7 +55,7 @@ class ModelOnlyArm:
         if view:
             self.computed.append(view)
         words = str(person["opening"]) + (f"\n\n(I shared a table: {person['upload']}.csv)\n\nThe table, without its values:\n{view}" if view else "")
-        out = self.client.complete([{"role": "system", "content": prompts.text(MODEL_ONLY_PROMPT)}, {"role": "user", "content": words}],
+        out = self.client.complete([{"role": "system", "content": prompts.text(self.prompt)}, {"role": "user", "content": words}],
                                    None, max_tokens=MAX_TOKENS)
         return {"text": str(out.get("content") or "").strip(), "choices": []}
 
@@ -68,6 +70,14 @@ class ModelOnlyArm:
 
     def notes(self) -> dict[str, Any]:
         return {}
+
+
+class ModelOnlyShortArm(ModelOnlyArm):
+    """The model alone, held to the lead agent's own length: the same prompt with "in at most 450 words". How far its
+    score falls below the model alone's says how much of that score is room to write, not thinking."""
+
+    name = "model_only_short"
+    prompt = MODEL_ONLY_SHORT_PROMPT
 
 
 class OpenArm:
