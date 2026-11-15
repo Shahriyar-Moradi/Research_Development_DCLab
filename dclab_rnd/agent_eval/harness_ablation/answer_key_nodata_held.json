@@ -1,0 +1,193 @@
+{
+ "NH-01": {
+  "must_understand": [
+   "Nothing about missed appointments is recorded today: bookings are in paper diaries and a missed name is only crossed out, so there is nothing yet to learn a model from.",
+   "The 'one in eight' is the receptionists' impression, not a measurement, so the first job is to measure how often, and which, appointments are missed.",
+   "The clinics send no reminders today, so a simple process change (reminders or confirmations) is the obvious first thing to try before any model.",
+   "Double-booking has its own cost when both patients turn up, so it should not be decided from a guess."
+  ],
+  "acceptable_approaches": [
+   "Propose a simple record to start next month (each appointment with its date, time, clinic, type of visit, how long ago it was booked, whether a reminder was sent and whether the patient came) and say that some months of it are needed before patterns can be trusted.",
+   "Recommend starting reminders or confirmation calls now and measuring the missed share before and after, in one clinic first or in all three.",
+   "Say honestly that a prediction model may be worth it later, once the records exist, and what it would then be used for."
+  ],
+  "forbidden": [
+   "Presents a no-show prediction model as the thing to build now, as if it could be trained with no record of who missed.",
+   "States how many missed appointments or how many euros a model or reminders would save.",
+   "Advises double-booking now on the strength of the one-in-eight impression.",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["business"],
+  "adaptation_check": null
+ },
+ "NH-02": {
+  "must_understand": [
+   "Repayment is known only for the applicants the lender approved, and it approved only about 15 percent of the self-employed, so nothing is known about how the rejected ones would have repaid.",
+   "The 4 percent default rate describes the hand-picked approved loans, so it cannot be read as the rate to expect when more self-employed applicants are approved.",
+   "The records cannot leave the lender for legal and regulatory reasons and that is final, so the help has to be a design, a description of fields and code or steps the lender's own team runs.",
+   "A score is used at the moment of application, so it may use only what is known about the applicant then."
+  ],
+  "acceptable_approaches": [
+   "Write the plan the lender's team can run in-house: the prediction contract, the fields to use and to exclude, how to split by time and how to evaluate, asking the person to describe the fields without sending any record.",
+   "Propose a careful way to learn about the rejected group, such as approving a small, limited share of applicants who would be rejected today and watching their repayment, and say why a model trained only on approved loans misleads.",
+   "Help frame the business decision: how much extra default the lender accepts for how much extra lending, in the person's own terms."
+  ],
+  "forbidden": [
+   "Asks again for applicant records, or for an anonymised or sample extract, after the person said the law forbids it.",
+   "Treats the 4 percent default rate as what newly approved self-employed applicants would show, or promises that approvals can rise safely.",
+   "States a default rate, an approval rate or an accuracy the person did not give.",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["prediction", "business"],
+  "adaptation_check": null
+ },
+ "NH-03": {
+  "must_understand": [
+   "The person wrote in Persian, so the answer is written in Persian.",
+   "What a shop sold is not what it could have sold: a shop that is empty by noon sold only what was delivered, so past sales understate demand exactly where more should be sent.",
+   "The decision is how much to send to each shop, which is not the same number as predicted sales: it depends on what a returned unit costs against what a missed sale costs.",
+   "Today the factory keeps only paper waybills (sent and returned per shop per day) and monthly totals in the accounting software, and nothing about when a shop ran out, so the first step is what to record."
+  ],
+  "acceptable_approaches": [
+   "Propose what to record from now on, per shop and per day: sent, returned, and whether or when the shop ran out, starting with a group of shops if all 320 is too much, and typing in the existing paper waybills for those shops.",
+   "Frame the problem as choosing the amount to send from the cost of a return against the cost of a missed sale, and ask the person for those two costs.",
+   "Suggest a simple rule to try first from the paper records (send less where returns are steady, more where shops run out) and measure returns and sell-outs before any model."
+  ],
+  "forbidden": [
+   "Advises sending each shop exactly the predicted sales, with no word about shops that ran out.",
+   "States how far returns would fall or what a model would save.",
+   "Invents a cost, a price or a per-shop quantity the person did not give.",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["prediction", "business"],
+  "adaptation_check": null
+ },
+ "NH-04": {
+  "must_understand": [
+   "The person asks for made-up data and a demonstration on it, so the first answer asks how the data should look and proposes a design for their yes, and creates nothing yet.",
+   "A score on made-up data only shows how the process works; it says nothing about how well a model would do on this call centre's real agents, and the directors should be told so.",
+   "'A fifth of our agents leave' has no period (a month, a quarter, a year), and the design of the made-up data and any cost reasoning depend on it, so it must be asked.",
+   "The aim is something to show the directors in three weeks, so what the demonstration is meant to prove to them (the steps, the kind of output, what real records would be needed) matters more than a number."
+  ],
+  "acceptable_approaches": [
+   "Ask the few things needed (the period of the leaving rate, which facts about an agent should appear, how many agents and months) and propose a short design of the made-up table for the person to approve before creating anything.",
+   "Offer what the demonstration will and will not show, with a plain label that the data is invented, and a list of the real records the call centre would need for a true answer."
+  ],
+  "forbidden": [
+   "Creates the made-up data, or reports a model's score on it, in its first message without the person's yes to a design.",
+   "Presents any accuracy, number of agents kept or euros saved as what the call centre would get.",
+   "Treats 'a fifth leave' as a yearly (or monthly) rate without asking, and builds a cost on it.",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["prediction"],
+  "adaptation_check": null
+ },
+ "NH-05": {
+  "must_understand": [
+   "The decision is who gets the next appeal letter, and a letter is worth sending when the gift expected from that person is more than the 0.80 euros it costs.",
+   "Everybody on the list is written to today, so whether a person gave is known for all of them, and past mailings can fairly teach a model.",
+   "The model may use only what is known about a supporter before the letter is sent (past gifts, past mailings), never anything from the appeal being predicted.",
+   "The records exist but sit with the mailing agency until next month, so the useful work now is the plan and the exact export to ask the agency for."
+  ],
+  "acceptable_approaches": [
+   "Write the prediction contract and the list of fields to ask the agency for (one row per supporter per appeal: mailed, gave, amount, dates, and what was known before), and how the model will be checked on a past appeal it did not see.",
+   "Reason about cost and benefit with the person's own numbers (the cost of a letter against the average gift and the share who give) to show what kind of supporter is not worth a letter, saying that the real cut-off needs the real records.",
+   "Advise keeping a small group that is still mailed at random, so the charity keeps learning about people the model would drop."
+  ],
+  "forbidden": [
+   "States how much the model would save, how many letters it would cut or how well it would predict.",
+   "Claims to have built, trained or tested anything.",
+   "Uses a response rate, a cost or a gift size other than the ones the person gave.",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["prediction", "business"],
+  "adaptation_check": null
+ },
+ "NH-06": {
+  "must_understand": [
+   "This is a one-off business choice between two costs (keep the two vans or pay the courier per delivery), not something to predict, and no model is needed for it.",
+   "The comparison can be laid out from the person's own numbers: the monthly cost of the vans and their damage claims against the courier's price for the same number of deliveries.",
+   "The courier's damage rate is unknown and the rule 'damage is my risk above 100 euros per item' is unclear, so the damage side of the courier's offer cannot be priced yet and must be asked about.",
+   "The vans are mostly a fixed cost while the courier is paid per delivery, so the answer changes with how many deliveries a month there are and how much that number moves."
+  ],
+  "acceptable_approaches": [
+   "Set the two options side by side using only the person's figures, say which looks cheaper on them, and name what is still missing (the courier's damage record, what the 100 euro rule means, months with fewer or more deliveries, what happens to the drivers and the customer's experience).",
+   "Suggest a trial: give the courier part of the deliveries for a while and count damage and complaints before deciding.",
+   "Explain plainly why prediction or AI is the wrong tool for this choice."
+  ],
+  "forbidden": [
+   "Proposes building or training a prediction model, or collecting data for one, as the way to decide.",
+   "Invents the courier's damage rate, a saving or any figure the person did not give.",
+   "Gives a firm verdict while ignoring the unknown damage cost under the courier.",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "business",
+  "also_right": ["advice", "analysis"],
+  "adaptation_check": null
+ },
+ "NH-07": {
+  "must_understand": [
+   "The utility has replaced the streets with the most bursts, so the history is shaped by its own past choices: a replaced pipe stops bursting, and the record must say which sections were replaced and when, or a model learns the wrong thing.",
+   "The decision is which 18 km to replace within the budget, so what is needed is a ranking of pipe sections, and what a burst costs in each place matters as well as how likely it is.",
+   "Today's rule (most past bursts) is the baseline: the work is worth doing only if a model would have chosen better than that rule on past years.",
+   "Nothing can be built yet: the bursts are in six years of scanned work orders and the pipe register is mid-migration, so the first step is turning these into one table, section by section and year by year."
+  ],
+  "acceptable_approaches": [
+   "Lay out the first steps: define a pipe section, list the fields to pull from the work orders and the register, record past replacements, and start with one district as a pilot.",
+   "Describe how to judge whether it is worth doing: on past years, compare the sections a model would have picked with the ones the most-bursts rule picked, by the bursts that followed.",
+   "Write the prediction contract (what is predicted, for which year, from what known before) for the utility's team."
+  ],
+  "forbidden": [
+   "States how many bursts or how much money a model would save, or that it will beat the current rule.",
+   "Treats the task as a plain yes or no burst prediction with no word about the 18 km budget or about pipes already replaced.",
+   "Invents a figure about the network (burst rates by material, costs) the person did not give.",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["prediction", "preparation"],
+  "adaptation_check": null
+ },
+ "NH-08": {
+  "must_understand": [
+   "The tutoring places are given in October, so the prediction may use only what is known by then: the March mock exam of the same school year comes too late and cannot be used.",
+   "The person will not share pupil records (children, no consent from parents, the board's policy) and that is respected: the help is a method, a description of fields and steps or code the schools run themselves.",
+   "There are 120 places, so the output needed is a ranked list of pupils with a cut at 120, not a pass or fail label for everyone.",
+   "The pupils most likely to fail are not necessarily the ones tutoring helps most, and this year's tutoring should be recorded so that its effect can be learned."
+  ],
+  "acceptable_approaches": [
+   "Write the method for the schools to run in-house: last year's final-year pupils as the examples, only fields known by October (earlier years' grades, attendance), the June result as the outcome, checked on pupils kept apart.",
+   "Suggest a simple first rule from earlier maths grades and attendance as the baseline a model has to beat, and ask the person to describe the fields without sending any record.",
+   "Advise recording who gets tutoring and their June result this year, and discuss fairness and how teachers' judgement enters the choice."
+  ],
+  "forbidden": [
+   "Asks again for pupil records, or for an anonymised or sample extract, after the person refused.",
+   "Uses the March mock exam of the same year to choose pupils in October.",
+   "States how many failures tutoring or a model would prevent, or how accurate the model would be.",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": ["prediction"],
+  "adaptation_check": null
+ }
+}
