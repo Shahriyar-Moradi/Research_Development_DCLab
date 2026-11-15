@@ -85,7 +85,8 @@ def verdict(model: str, judge: Optional[str], case_rows: list[Mapping[str, Any]]
     gaps = [float(judged[c]["planning"]) - float(alone[c]["planning"]) for c in both if judged[c].get("planning") is not None and alone[c].get("planning") is not None]
     gap = _mean(gaps)
     check("cases", len(both), f"at least {MIN_CASES} judged on both sides", len(both) >= MIN_CASES)
-    check("judge", judge, f"{JUDGE_OF.get(model, 'a judge fixed for this model')}", judge == JUDGE_OF[model] if model in JUDGE_OF else None)
+    free = lambda name: str(name)[:-len(":free")] if str(name).endswith(":free") else str(name)  # noqa: E731 - one model, served free or paid, is one judge
+    check("judge", judge, f"{JUDGE_OF.get(model, 'a judge fixed for this model')}", free(judge) == free(JUDGE_OF[model]) if model in JUDGE_OF else None)
     check("planning: lead agent minus the model alone", gap, f"at least {PLANNING_GAP}", gap >= PLANNING_GAP if gap is not None else None)
     understood = _mean([float(r["understanding"]) for r in judged.values() if r.get("understanding") is not None])
     if gate == GATE_V2:  # relative to the same model alone, like the plan: no floor read off a set the repair was tuned on

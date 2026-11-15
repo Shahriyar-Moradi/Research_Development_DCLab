@@ -53,11 +53,15 @@ PIN = HERE / "cases_dev.sha256"
 # more written by an independent agent that read neither the lead agent's code or prompt, nor the first set's key, nor any
 # result, so the repair is not judged only on people its author knew.
 SETS = {"dev": ("cases_dev.json", "answer_key_dev.json", "cases_dev.sha256"), "dev2": ("cases_dev2.json", "answer_key_dev2.json", "cases_dev2.sha256"),
-        "dev3": ("cases_dev3.json", "answer_key_dev3.json", "cases_dev3.sha256")}
+        "dev3": ("cases_dev3.json", "answer_key_dev3.json", "cases_dev3.sha256"),
+        # 2026-11-16, the no-data plan: people with no table to share. "nodata": the twelve practice cases of the no-data
+        # evaluation, with keys written by the runner's author. "nodata_held": written in another session, held out.
+        "nodata": ("cases_nodata.json", "answer_key_nodata.json", "cases_nodata.sha256"),
+        "nodata_held": ("cases_nodata_held.json", "answer_key_nodata_held.json", "cases_nodata_held.sha256")}
 # "dev3" (2026-11-16) is held out: eight people by an independent agent, written after the developer had read the first two
 # sets' failures. Nobody who changes the lead agent reads its people, its key or a person's result; only its means are
 # read, and it is played once at the end of a stage (the benchmark shows no table by person for it).
-HELD_OUT = ("dev3",)
+HELD_OUT = ("dev3", "nodata_held")
 SET = "dev"
 
 
@@ -74,11 +78,14 @@ KEEP_ROOT = ROOT / "agent_runs" / "live_tests"
 ARMS = ("model_only", "open", "plain", "case")
 # an arm run only when named: the model alone held to the lead agent's own length (450 words), to see how much of the
 # model alone's score is the room it has to write (2026-11-16: alone it writes 750 to 3,900 words)
-EXTRA_ARMS = ("model_only_short",)
+EXTRA_ARMS = ("model_only_short", "blueprint_rules", "blueprint_pipeline", "blueprint_architect")
+# the no-data designs, each answering a person's words once with the blueprint as the person would read it: the rules
+# alone, today's pipeline of many roles, and the rebuilt one (a free architect pass, code checks, one critic)
+BLUEPRINT_ARMS = ("blueprint_rules", "blueprint_pipeline", "blueprint_architect")
 ALL_ARMS = (*ARMS, *EXTRA_ARMS)
-PLAN_ONLY = ("model_only", "model_only_short")  # never compared on work done
+PLAN_ONLY = ("model_only", "model_only_short", *BLUEPRINT_ARMS)  # never compared on work done
 PURPOSE = {"model_only": "exam_plain", "model_only_short": "exam_plain", "open": "exam_plain", "plain": "exam_plain", "case": "case_agent",
-           "judge": "exam_judge"}
+           "judge": "exam_judge", "blueprint_rules": None, "blueprint_pipeline": "ai_first", "blueprint_architect": "no_data_architect"}
 # The judge: a free model on OpenRouter that is neither the arms' model nor of its family. The owner (2026-11-15): no Claude
 # model in any test, arm or judge, at any provider; this one instead.
 JUDGE_MODEL = "nvidia/nemotron-3.5-super-vl:free"
@@ -88,7 +95,8 @@ PINNED_PATHS = ("dclab_rnd/agents", "dclab_rnd/draft", "dclab_rnd/prompts", "dcl
                 "dclab_rnd/ledger", "dclab_rnd/agent_eval/harness_ablation", "dclab_rnd/agent_eval/conversation_exam", "dclab_rnd/agent_eval/home")
 PROMPTS = ("ablation_model_only", "ablation_model_only_short", "ablation_minimal_agent", "ablation_judge", "exam_plain", "case_agent",
            "case_agent_think_first", "route_check")
-ESTIMATE_EUR = {"model_only": 0.004, "model_only_short": 0.004, "open": 0.01, "plain": 0.01, "case": 0.03, "judge": 0.07}  # a guess until the first run measures it
+ESTIMATE_EUR = {"model_only": 0.004, "model_only_short": 0.004, "open": 0.01, "plain": 0.01, "case": 0.03, "judge": 0.07,
+                "blueprint_rules": 0.0, "blueprint_pipeline": 0.06, "blueprint_architect": 0.02}  # a guess until the first run measures it
 WHY = "written cases answered by a script (never a person's words or choice); the arms' replies are the systems' own"
 FIELDS = ("run", "case", "arm", "repeat", "judged", "understanding", "solution_design", "planning", "evidence_discipline", "adaptation",
           "accepted", "understood_share", "forbidden_done", "safety_failures", "route", "tool", "assistant_turns", "seconds", "spent_eur",
@@ -129,8 +137,8 @@ def check_cases(cases: list[Mapping[str, Any]], key: Mapping[str, Mapping[str, A
     if set(ids) != set(key):
         problems.append("the cases and the key do not name the same ids")
     for c in cases:
-        if set(c) - {"id", "stratum", "upload", "opening"}:
-            problems.append(f"{c.get('id')}: a case holds only id, stratum, upload and opening (the key stays apart)")
+        if set(c) - {"id", "stratum", "upload", "opening", "reply"}:
+            problems.append(f"{c.get('id')}: a case holds only id, stratum, upload, opening and reply (the key stays apart)")
         if not str(c.get("opening") or "").strip():
             problems.append(f"{c.get('id')}: no opening")
         if c.get("upload") not in (None, *tables.TABLES):
@@ -204,6 +212,12 @@ def _pick(choices: list[Mapping[str, Any]], key: Optional[Mapping[str, Any]]) ->
     return next((i for i, c in enumerate(choices) if c.get("kind") == "option" and c.get("track") in good), None)
 
 
+# an assistant message that asks the person for their table again: counted only after the person's second message, when they
+# have already said (twice) that there is none to share
+UPLOAD_ASK = re.compile(r"\b(?:upload|share|attach|send|provide|export)\b[^.?!\n]{0,60}\b(?:table|file|data ?set|dataset|csv|spreadsheet|export|data)\b[^.?!\n]{0,80}\?"
+                        r"|\bplease (?:upload|share|attach|send|provide)\b[^.?!\n]{0,60}\b(?:table|file|data ?set|dataset|csv|spreadsheet|export|data)\b", re.I)
+
+
 def play(case: Mapping[str, Any], arm: Any, max_turns: int = MAX_TURNS, key: Optional[Mapping[str, Any]] = None) -> dict[str, Any]:
     """One conversation with the scripted person: the opening; then, while the arm still asks, a click on an option the
     key accepts, or "go ahead". The key decides the person's click only: the arm is never given a field of it."""
@@ -232,15 +246,19 @@ def play(case: Mapping[str, Any], arm: Any, max_turns: int = MAX_TURNS, key: Opt
             turn = arm.pick(i)
         else:
             unpicked += int(any(c.get("kind") == "option" for c in choices))  # options were shown and none fitted the key
-            transcript.append({"role": "person", "text": GO_AHEAD, "choices": []})
-            turn = arm.send(GO_AHEAD)
+            words = str(case.get("reply") or GO_AHEAD)  # a person with no data to share says so again, in their own fixed words
+            transcript.append({"role": "person", "text": words, "choices": []})
+            turn = arm.send(words)
         seconds.append(round(time.monotonic() - clock, 2))
         said(turn)
         silent += int(not (turn.get("text") or turn.get("choices")))
         turns += 1
+    checked = safety(transcript, arm.sources(), case.get("upload"))
+    if not case.get("upload"):  # a person who shared no table: how often the arm asked for one after they wrote (the no-data plan)
+        checked["upload_demanded"] = sum(bool(UPLOAD_ASK.search(str(t.get("text") or ""))) for t in transcript[2:] if t.get("role") == "assistant")
     return {"id": case["id"], "arm": arm.name, "transcript": transcript, **arm.outcome(), "ended": "asks" if asks(turn) else "answered",
             "assistant_turns": turns, "picked": picked, "options_unpicked": unpicked, "silent": silent, "seconds": seconds,
-            "safety": safety(transcript, arm.sources(), case.get("upload")), "notes": arm.notes()}
+            "safety": checked, "notes": arm.notes()}
 
 
 def score(conv: Mapping[str, Any], run: str = "") -> dict[str, Any]:
@@ -431,6 +449,23 @@ def judge_kept(run_dir: Path, key: Mapping[str, Mapping[str, Any]], judge_for: C
         conversations.append(conv)
         scores.setdefault(arm, []).append(score(conv, run))
     return result_of(conversations, scores, incomplete)
+
+
+class _ModelView:
+    """The run's gateway as a no-data design sees it: every client it asks for, whatever its purpose, is capped by the run,
+    filed under the conversation's key and, when the run names a model for its arms, served by that model."""
+
+    def __init__(self, budget: Any, key: str, model: Optional[str] = None):
+        self.budget, self.key, self.model = budget, key, model
+
+    def client(self, purpose: str, *args: Any, model: Optional[str] = None, **kwargs: Any) -> Any:
+        return self.budget.client(self.key, purpose, self.model or model)
+
+    def spent_eur(self) -> float:
+        return self.budget.spent_eur(self.key)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.budget.gateway, name)
 
 
 def _stopped(error: BaseException) -> Optional[str]:
@@ -724,7 +759,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     from ..conversation_exam import EXAM, Budget, _Capped, practice_effort
     from ..conversation_exam.arms import CaseArm, PlainArm
-    from .arms import ModelOnlyArm, ModelOnlyShortArm, OpenArm
+    from .arms import BlueprintArm, ModelOnlyArm, ModelOnlyShortArm, OpenArm
 
     tier = None if args.no_judge else judge_tier(args.judge_model)
     if tier is None and not args.no_judge:
@@ -742,7 +777,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.arm_model:
         price_snapshot(run_dir, args.arm_model)  # before the gateway reads its prices: the run's cap must be able to count it
     gateway = run_gateway(run_dir)
-    unserved = sorted({PURPOSE[a] for a in arms if not gateway.available(PURPOSE[a])})
+    unserved = sorted({PURPOSE[a] for a in arms if PURPOSE[a] and not gateway.available(PURPOSE[a])})
     if unserved:  # no model serves an arm (no key, or DCLAB_NO_LIVE_MODELS): a run of failures is never stored as a result
         shutil.rmtree(run_dir, ignore_errors=True)
         print(f"refused: no model serves {', '.join(unserved)}", file=sys.stderr)
@@ -763,6 +798,9 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     arm_for = {"model_only": lambda name, folder: ModelOnlyArm(client(f"model_only-{name}", PURPOSE["model_only"])),
                "model_only_short": lambda name, folder: ModelOnlyShortArm(client(f"model_only_short-{name}", PURPOSE["model_only_short"])),
+               "blueprint_rules": lambda name, folder: BlueprintArm("blueprint_rules", None, name),
+               "blueprint_pipeline": lambda name, folder: BlueprintArm("blueprint_pipeline", _ModelView(budget, f"{tag}blueprint_pipeline-{name}", args.arm_model), name),
+               "blueprint_architect": lambda name, folder: BlueprintArm("blueprint_architect", _ModelView(budget, f"{tag}blueprint_architect-{name}", args.arm_model), name),
                "open": lambda name, folder: OpenArm(client(f"open-{name}", PURPOSE["open"])),
                "plain": lambda name, folder: PlainArm(client(f"plain-{name}", PURPOSE["plain"])),
                "case": lambda name, folder: CaseArm(client(f"case-{name}", PURPOSE["case"]), client(f"case-{name}", "case_specialist"), folder,

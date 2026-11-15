@@ -153,3 +153,74 @@ class OpenArm:
 
     def notes(self) -> dict[str, Any]:
         return {"tool_calls": list(self.calls)}
+
+
+def _as_percents(value: Any) -> str:
+    """Every share code computed (a number between 0 and 1), written as the blueprint shows it: 0.057 as 5.7% and 6%."""
+    found: list[str] = []
+
+    def walk(v: Any) -> None:
+        if isinstance(v, Mapping):
+            for x in v.values():
+                walk(x)
+        elif isinstance(v, (list, tuple)):
+            for x in v:
+                walk(x)
+        elif isinstance(v, float) and 0.0 < v < 1.0:
+            found.extend((f"{round(v * 100, 1)}%", f"{round(v * 100)}%"))
+
+    walk(value)
+    return " ".join(found)
+
+
+BLUEPRINT_CAP_EUR = 0.12  # one blueprint's own cap, the no-data evaluation's (the run's cap still holds over all of them)
+
+
+class BlueprintArm:
+    """A no-data design answering a person once (2026-11-16, the no-data plan): the person's words in, the blueprint as
+    the person would read it out (its Markdown). ``blueprint_rules``: no model. ``blueprint_pipeline``: today's design,
+    many model roles behind five gates. ``blueprint_architect``: the rebuilt one (one free pass, code checks, one
+    critic). Compared on understanding, the solution and the plan, never on work done: nothing is built without data.
+
+    What code computed from the person's own numbers (the decision economics) is a source of the reply's numbers, as a
+    tool's result is for the lead agent; a default DCLab chose is not, so it counts as a number nobody gave."""
+
+    def __init__(self, name: str, gateway: Any, person: str):
+        self.name, self.gateway, self.person = name, gateway, person
+        self.computed: list[str] = []
+        self.kept: dict[str, Any] = {}
+
+    def _solve(self, words: str) -> tuple[dict[str, Any], str]:
+        if self.name == "blueprint_architect":
+            from dclab_rnd import nodata  # the rebuilt design
+
+            solution = nodata.solve(words, gateway=self.gateway, draft_id=f"exam:{self.name}-{self.person}", cap_eur=BLUEPRINT_CAP_EUR)
+            return solution, nodata.markdown(solution)
+        from dclab_rnd.draft import no_data
+
+        solution = no_data.solve_without_data(words, gateway=self.gateway, models=self.gateway, draft_id=f"exam:{self.name}-{self.person}",
+                                              cap_eur=BLUEPRINT_CAP_EUR if self.gateway is not None else 0.0)
+        return solution, no_data.to_markdown(solution)
+
+    def open(self, person: Mapping[str, Any]) -> dict[str, Any]:
+        solution, text = self._solve(str(person["opening"]))
+        economics = solution.get("economics") or {}
+        self.computed = [str(s) for s in economics.get("as_said") or []] + [json.dumps(economics, default=str, ensure_ascii=False), _as_percents(economics)]
+        report = solution.get("harness_report") or {}
+        self.kept = {"family": solution.get("family"), "mode": report.get("mode"), "roles_called": list(report.get("roles_called") or []),
+                     "gates_passed": {k: bool((g or {}).get("passed")) for k, g in (report.get("gates") or {}).items()},
+                     "cost_eur": report.get("cost_eur"), "assumed_inputs": list(economics.get("assumed") or []),
+                     "fits": (solution.get("fit") or {}).get("fits")}
+        return {"text": str(text or "").strip(), "choices": []}
+
+    def send(self, words: str) -> dict[str, Any]:
+        raise RuntimeError("a blueprint arm answers once: it is never sent a second message")
+
+    def outcome(self) -> dict[str, Any]:
+        return dict(NO_ROUTE)
+
+    def sources(self) -> list[str]:
+        return list(self.computed)
+
+    def notes(self) -> dict[str, Any]:
+        return dict(self.kept)

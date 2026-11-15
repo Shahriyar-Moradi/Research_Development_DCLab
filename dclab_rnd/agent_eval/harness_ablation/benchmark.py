@@ -20,7 +20,9 @@ from . import first_divergence as F
 PAGE = ROOT / "docs" / "evaluations" / "harness-vs-model" / "benchmark.html"
 EXAM_RESULTS = ROOT / "evidence" / "campaigns" / "conversation_exam_v1" / "results"
 DIMENSIONS = ("understanding", "solution_design", "planning", "evidence_discipline")
-NAMES = {"model_only_short": "Model only, held to 450 words", "model_only": "Model only", "open": "Minimal agent", "plain": "Minimal agent + DCLab's 6 kinds of work", "case": "Current DCLab (lead agent)"}
+NAMES = {"blueprint_rules": "No-data blueprint: rules only", "blueprint_pipeline": "No-data blueprint: today's pipeline of roles",
+         "blueprint_architect": "No-data blueprint: architect, checks, critic",
+         "model_only_short": "Model only, held to 450 words", "model_only": "Model only", "open": "Minimal agent", "plain": "Minimal agent + DCLab's 6 kinds of work", "case": "Current DCLab (lead agent)"}
 WORDS = {"understanding": "Understands the problem", "solution_design": "Designs a solution", "planning": "Makes a plan",
          "evidence_discipline": "Sticks to evidence", "accepted": "Accepted"}
 REASON_WORDS = {
@@ -39,6 +41,11 @@ REASON_WORDS = {
 # A run played before the runner had its --label switch, with the code state it measured (HAB-006 started at 12:14 UTC on
 # 2026-11-15, after the three fixes of that day went in: the same state as the runs labelled so)
 LABEL_OF = {"HAB-006": "after-three-fixes"}
+
+
+def same_judge(model: Any) -> Any:
+    """A judge model's name without its provider variant: the free and the paid serving of one model are one judge."""
+    return str(model)[:-len(":free")] if isinstance(model, str) and model.endswith(":free") else model
 
 
 def think_first_of(doc: Mapping[str, Any]) -> bool:
@@ -127,7 +134,8 @@ def read_run(doc: dict[str, Any]) -> dict[str, Any]:
                      "empty_or_short_answers": sorted(cid for cid, n in chars.items() if n < 1000 and arm != "case"),
                      "by_case": {r["case"]: {**{d: r.get(d) for d in DIMENSIONS}, "accepted": r.get("accepted"), "seconds": r.get("seconds"),
                                              "forbidden_done": r.get("forbidden_done")} for r in rows}}
-    return {"id": doc["id"], "at": doc.get("at"), "set": doc.get("set") or "dev", "think_first": think_first_of(doc), "model": (doc.get("models") or {}).get("arms"), "judge": (doc.get("models") or {}).get("judge"),
+    return {"id": doc["id"], "at": doc.get("at"), "set": doc.get("set") or "dev", "think_first": think_first_of(doc), "model": (doc.get("models") or {}).get("arms"),
+            "judge": same_judge((doc.get("models") or {}).get("judge")), "judge_as_run": (doc.get("models") or {}).get("judge"),
             "label": label_of(doc) if " + " not in str(doc.get("id")) else doc.get("label") or (doc.get("manifest") or {}).get("label") or next(
                 (LABEL_OF[p] for p in str(doc["id"]).split(" + ") if p in LABEL_OF), None),
             "commit": ((doc.get("manifest") or {}).get("code") or {}).get("commit"), "judge_spent_eur": doc.get("spent_eur"),
@@ -283,7 +291,7 @@ def build() -> dict[str, Any]:
             doc = load(path)
             models = doc.get("models") or {}
             label = label_of(doc)  # the state of the code a run measures
-            groups.setdefault((models.get("arms"), models.get("judge"), label, doc.get("set") or "dev", think_first_of(doc)), []).append(doc)
+            groups.setdefault((models.get("arms"), same_judge(models.get("judge")), label, doc.get("set") or "dev", think_first_of(doc)), []).append(doc)
         return [read_run(join(docs)) for docs in groups.values()]
 
     # a run's first judgment, and any other judge's judgment of the same conversations, each as its own row
@@ -515,7 +523,8 @@ th:first-child,td:first-child{text-align:left;white-space:normal;min-width:220px
 .bar{height:14px;border-radius:3px;background:var(--c0);display:inline-block;vertical-align:middle;margin-right:8px}
 svg text{fill:var(--text);font-size:15px}svg .tick{fill:var(--muted);font-size:14px}ul{margin:8px 0 0 20px;padding:0}
 """
-COLORS = {"case": "var(--c0)", "model_only": "var(--c1)", "open": "var(--c2)", "plain": "var(--c3)", "model_only_short": "var(--muted)"}
+COLORS = {"case": "var(--c0)", "model_only": "var(--c1)", "open": "var(--c2)", "plain": "var(--c3)", "model_only_short": "var(--muted)",
+          "blueprint_rules": "var(--muted)", "blueprint_pipeline": "var(--c3)", "blueprint_architect": "var(--c0)"}
 
 
 def _swatch(arm: str) -> str:

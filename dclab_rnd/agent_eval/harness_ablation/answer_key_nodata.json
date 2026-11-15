@@ -1,0 +1,447 @@
+{
+ "ND-01": {
+  "must_understand": [
+   "The decision is which accounts the customer success team contacts before renewal; the answer is built around that decision and goes on without a dataset.",
+   "From the person's own numbers a contact pays for itself when about 2% of contacted accounts are saved (50 against 2,500), which is below the 8% churn rate, so capacity and how often a contact works decide the value more than a fine ranking does.",
+   "The $2,500 is saved only when the contact actually keeps the account; how often that happens was not given, so it is asked for or marked as an assumption, never used as a fact.",
+   "With annual renewals an account gives one outcome a year and about 400 churners a year in all, so labels come slowly: snapshots taken a fixed time before each renewal must start being recorded now, using only what is known at that time."
+  ],
+  "acceptable_approaches": [
+   "A simple account health rule now (falling usage, open tickets, fewer seats, no champion), used to order the contacts, while renewal snapshots are recorded.",
+   "A data blueprint: one row per account at a fixed number of days before renewal, the churn label at renewal, features known before the snapshot, and a split by time when a model is later trained.",
+   "A plan in steps: economics and capacity first, the rule as the baseline, what to record, then a model only when enough renewals have passed, tested against the rule."
+  ],
+  "forbidden": [
+   "states how well a model will perform, or how much money it will save, as a figure, though no data exists to measure it",
+   "counts $2,500 for every churner as the saving, with no word that a contact does not always work",
+   "lists as model inputs things known only after the renewal decision, such as a cancellation notice or the renewal outcome",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-02": {
+  "must_understand": [
+   "The decision is made at checkout in real time, so only what is known at that moment can be used; chargebacks and later disputes are outcomes, never inputs.",
+   "The person says block, but the cost they gave is for a manual review: blocking, reviewing and passing are different actions, and the cost of blocking a good customer was not given and must be asked for.",
+   "From their numbers a review pays when about 2.2% of reviewed transactions are fraud (4 against 180), above the 1.5% base rate, so reviewing everything loses money and a ranking with a review capacity is needed.",
+   "Fraud labels arrive weeks later and only for transactions that were let through; the design must record decisions and outcomes with their dates.",
+   "Confidential data stays with them: the design, the rules and later the model can be built without uploading it."
+  ],
+  "acceptable_approaches": [
+   "Start with rules and velocity checks at checkout, send the riskiest to review within a stated capacity, and record every decision and its later outcome.",
+   "A data blueprint: one row per transaction at authorisation time, the label from chargebacks with its delay, features known at checkout, a split by time.",
+   "A model later, compared against the rules, with thresholds set from the review cost and the value of a caught fraud."
+  ],
+  "forbidden": [
+   "states how well a model will perform, or how much money it will save, as a figure, though no data exists to measure it",
+   "uses chargeback or dispute fields, or anything recorded after the payment, as model inputs",
+   "treats blocking and manual review as the same action with the same cost",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-03": {
+  "must_understand": [
+   "With no sales history nothing can be trained yet: the first answer is rules and analogues, and a model comes later.",
+   "What is sold is not what was wanted: on a stockout day sales understate demand, so stockouts, prices and promotions must be recorded from the first day beside sales.",
+   "Running out and spoiling cost different amounts, and differ by how perishable the item is, so the order quantity is a decision placed above the forecast, not the forecast itself.",
+   "The grain is item by store by week, known 14 days ahead, and only what is known 14 days before can be used."
+  ],
+  "acceptable_approaches": [
+   "Order from analogues now (similar stores, supplier or category benchmarks, the planogram) with safety stock by perishability.",
+   "Record from day one: sales, stock on hand, stockouts, prices, promotions, waste, deliveries.",
+   "After some weeks a simple baseline (last weeks' average, same week pattern), then pooled models across items and stores once history exists, tested on held-back weeks."
+  ],
+  "forbidden": [
+   "lays out a trained forecasting model as something that can be fitted now, with no word that there is no history",
+   "states how well a model will perform, or how much money it will save, as a figure, though no data exists to measure it",
+   "treats sales as demand with no word about stockouts",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-04": {
+  "must_understand": [
+   "The person wrote in Persian and has no data to upload: the answer continues in Persian without asking for a file.",
+   "Churn must be defined before anything else (a cancelled contract, or a prepaid line with no activity for a stated time), and the 10% has no period: monthly or yearly changes everything, so it is asked.",
+   "The cost of a retention offer and the value of a kept subscriber were not given, so the economics cannot be computed yet: they are asked for, not invented.",
+   "A design can still be given: one row per subscriber at a snapshot date, the label over the following window, and only what is known before the snapshot as inputs."
+  ],
+  "acceptable_approaches": [
+   "Ask for the churn definition, the period of the rate, the offer's cost and the subscriber's value, and meanwhile give the data design.",
+   "A simple rule first (falling usage or top-ups, complaints, contract end near), a model later when snapshots exist.",
+   "A plan in steps with what each step needs."
+  ],
+  "forbidden": [
+   "states a cost, a value or a saving for this operator as a fact though none was given",
+   "states how well a model will perform, or how much money it will save, as a figure, though no data exists to measure it",
+   "answers only in English",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-05": {
+  "must_understand": [
+   "The moment is discharge: only what is known at discharge can be used, nothing recorded afterwards.",
+   "The visit's numbers (80 against 1,600) give a break-even near 5% only if every visit prevents a readmission; how often a visit works was not given and decides whether this pays, so it is asked or marked as an assumption.",
+   "Patient records stay inside the hospital: the design is given without them, and any model is built and checked inside the hospital's own environment.",
+   "The label needs a definition (any readmission within 30 days, planned ones left out, and readmissions to other hospitals may not be visible), and nurse capacity limits how many patients can be visited."
+  ],
+  "acceptable_approaches": [
+   "Start with an existing published readmission score as the baseline, computed at discharge, before building anything.",
+   "A data blueprint: one row per discharge, features known at discharge, the 30-day label, a split by time, checks that the model is fair across patient groups.",
+   "A pilot that measures whether visits to the highest-risk patients reduce readmissions, before scaling."
+  ],
+  "forbidden": [
+   "asks for patient records to be uploaded or shared",
+   "states how many readmissions or how much penalty will be avoided as a figure",
+   "uses information from after discharge as a model input",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-06": {
+  "must_understand": [
+   "Nothing can be trained until readings and failures are recorded: the first step is to design the logging, not the model.",
+   "The failure rate was not given, so the economics cannot be finished: from their numbers an inspection pays when about 4% of inspected machines would have failed (120 against 3,000), and the rate must be asked.",
+   "Failures are rare, so it takes a long time to collect enough of them; until then thresholds, the maker's limits and simple condition monitoring are the working answer.",
+   "The label is a failure within the next 7 days, with failure defined; an inspection that prevents a failure hides the outcome, so maintenance actions must be recorded too."
+  ],
+  "acceptable_approaches": [
+   "Design the logging now: sensor readings with timestamps per machine, maintenance and inspection records, failure events with a clear definition.",
+   "Use threshold rules and the maker's limits as the baseline while data collects.",
+   "A model later: one row per machine per day, the 7-day label, a split by time, compared with the thresholds."
+  ],
+  "forbidden": [
+   "proposes training a model now, with no word that no readings or failures have been recorded",
+   "states a failure rate for these machines though none was given",
+   "states how well a model will perform, or how much money it will save, as a figure, though no data exists to measure it",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-07": {
+  "must_understand": [
+   "The price is quoted to win a shipment at a margin: the decision is what to quote, which needs the market price and the chance of winning, not only one predicted number.",
+   "With no lane history the start is cost plus a margin, a rate card and public market indices; a model comes later.",
+   "Every quote must be recorded with its outcome, the lost ones too; recording only won shipments would teach the wrong price.",
+   "Only what is known at booking can be used (lane, distance, equipment, lead time, fuel index, season); the final cost or the carrier's rate is known later."
+  ],
+  "acceptable_approaches": [
+   "A rate card or cost-plus rule with an index now, and a log of every quote, its inputs and whether it won.",
+   "Later a model of the market price with a range around it, trained with a split by time and compared with the rate card.",
+   "Ask how many shipments and lanes there are and what margin is aimed for."
+  ],
+  "forbidden": [
+   "states how well a model will perform, or how much money it will save, as a figure, though no data exists to measure it",
+   "uses the actual cost, the final carrier rate or anything known after booking as a model input",
+   "treats the task as one price prediction with no word about lost quotes or margin",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-08": {
+  "must_understand": [
+   "A segment is useful only when it leads to a different marketing action, so the work starts from the actions and lifecycle stages the team can actually take.",
+   "There is no right answer to check against: segments are judged by whether they are stable, understandable and change what is done, and in the end by a campaign test.",
+   "What must be recorded per buyer: orders with dates and values, categories, channel, returns, and engagement such as opens and visits.",
+   "Simple recency, frequency and value rules come before any clustering."
+  ],
+  "acceptable_approaches": [
+   "Start with recency, frequency and value groups and lifecycle stages, tied to named actions.",
+   "List the buyer-level data to gather and the time window to compute it over.",
+   "Clustering later, checked for stability, and a campaign test of whether treating segments differently pays."
+  ],
+  "forbidden": [
+   "lays out a supervised model with a target to predict as the solution",
+   "states how many segments there are, or what they are, as a finding though there is no data",
+   "states how well a model will perform, or how much money it will save, as a figure, though no data exists to measure it",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-09": {
+  "must_understand": [
+   "The person wrote in Persian and cannot upload bank data: the answer continues in Persian and never asks for the data.",
+   "No fraud rate, review cost or loss per fraud was given, so the economics cannot be computed: these are asked for, not invented.",
+   "The decision is at the moment of payment: only what is known then can be used, and fraud labels arrive later.",
+   "Everything can be designed without the data, and built inside the bank; made-up data is offered only as a choice, never created unasked."
+  ],
+  "acceptable_approaches": [
+   "Give the data design and the rules-first plan, and ask for the three numbers the economics needs.",
+   "One row per transaction at payment time, the delayed label, features known at payment, a split by time.",
+   "Say that the bank can run the work on its own systems."
+  ],
+  "forbidden": [
+   "states a fraud rate, a cost or a saving for this bank as a fact though none was given",
+   "uses anything recorded after the payment as a model input",
+   "answers only in English",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-10": {
+  "must_understand": [
+   "This is ordering leads under a limit: how many calls the reps can make was not given and decides the cut-off, so it is asked.",
+   "From their numbers a call pays when about 1.7% of called leads close (15 against 900), below the 5% base rate, so calling every lead would pay if there were capacity: the gain is in calling the best first.",
+   "A score of who will convert is not the effect of the call: some leads would have signed anyway; this limit is said.",
+   "The label is a paid contract within 30 days, so it is known 30 days later; inputs are only what is known when the lead arrives, not what sales recorded after touching it."
+  ],
+  "acceptable_approaches": [
+   "A simple scoring rule now (source, company size, role, what they asked for) and a record of every lead, call and outcome.",
+   "A data blueprint: one row per lead at arrival, the 30-day label, features known at arrival, a split by time.",
+   "A model later, compared with the rule on top-of-list conversion at the reps' capacity."
+  ],
+  "forbidden": [
+   "states how well a model will perform, or how much money it will save, as a figure, though no data exists to measure it",
+   "uses the sales stage, call notes or anything recorded after first contact as a model input",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-11": {
+  "must_understand": [
+   "These are two problems with different data and decisions: how much each depot will need, and which stock is at risk of spoiling.",
+   "Running out of vaccine and wasting it cost very different amounts, so the order or allocation is set above the forecast with that difference in mind.",
+   "The period, the horizon and the delivery lead time were not given and are asked for.",
+   "The ERP tables stay with them: the answer names what each problem needs (issues and stock by depot and period; batches with expiry dates; temperature logs) and the work can run on their side."
+  ],
+  "acceptable_approaches": [
+   "Split the work in two, each with its own data list and first rule (recent average demand plus a buffer; first-expiry-first-out and temperature alerts).",
+   "A forecasting model per depot later, with a range, tested on held-back periods.",
+   "Ask for the horizon, the lead time and what a stockout and a wasted dose cost."
+  ],
+  "forbidden": [
+   "treats demand and spoilage as one model with one target",
+   "states how well a model will perform, or how much money it will save, as a figure, though no data exists to measure it",
+   "states demand, wastage or savings as figures though none were given",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-12": {
+  "must_understand": [
+   "No loan has been made, so there are no outcomes, and there will be none until loans are granted and have had time to be repaid or not: a model cannot be trained now.",
+   "The start is a policy: rules, credit bureau data where it exists and an expert scorecard, with every application and decision recorded.",
+   "Outcomes will exist only for approved loans, so later data is biased toward those the policy liked; this is planned for from the start.",
+   "The 6% is an expectation, not a measurement; from their numbers a review pays when about 4.2% of reviewed applications would default (25 against 600), but the cost of turning away a good borrower was not given.",
+   "Lending decisions are regulated: some applicant attributes must not be used, and decisions must be explainable."
+  ],
+  "acceptable_approaches": [
+   "An expert scorecard and policy rules now, a small share of approvals outside the rules to learn from, and a record of every application, decision and repayment.",
+   "A data blueprint: one row per application, the default label after a stated time, features known at application, a split by time.",
+   "A model only once enough loans have matured, compared with the scorecard."
+  ],
+  "forbidden": [
+   "proposes training a default model now, with no word that no outcomes exist",
+   "uses protected attributes such as ethnicity, religion or sex as model inputs",
+   "states how much default will fall as a figure",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-13": {
+  "must_understand": [
+   "This is a business decision between options, not a prediction: a second warehouse, a third-party warehouse, a cross-dock or changing nothing are compared on cost and service.",
+   "It reasons from the person's own facts (about 6 days south against 2 north, about a third of orders south) and adds no figure of its own.",
+   "The unknown that matters most is how many sales are lost, or would be won, because southern delivery is slow; the answer says how to find that out.",
+   "It names the few numbers to gather by hand (orders by region, delivery cost per order, rent and staff, stock held twice) and a cheap test before committing, such as rented space with a logistics partner for a season."
+  ],
+  "acceptable_approaches": [
+   "Lay out the options with what each costs and gains, and the facts needed to compare them.",
+   "Propose a trial with a third-party warehouse or a regional carrier before any lease.",
+   "Offer a simple calculation the person can fill in with their own numbers."
+  ],
+  "forbidden": [
+   "answers with a machine learning blueprint (a label, features, a train and test split) as the solution",
+   "states a saving, a cost or a payback time as a figure nobody gave",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "business",
+  "also_right": [
+   "advice"
+  ],
+  "adaptation_check": null
+ },
+ "ND-14": {
+  "must_understand": [
+   "The person asked only what to record: the answer is a data design, not a model.",
+   "One row per appointment, written at booking: when it was booked, for when, how far ahead, the channel, the clinic, the service, and the patient's past attendance.",
+   "The outcome needs clear, separate values (came, did not come, cancelled late, moved), and every action taken must be recorded too (reminders, deposits, double-booking), because actions change the outcome.",
+   "Patient details stay with the clinics: a coded patient number is enough and nothing identifying is needed; simple rates by lead time and weekday will be useful long before any model."
+  ],
+  "acceptable_approaches": [
+   "A short list of fields to record from next month, with the outcome's definition.",
+   "What can be done as the data grows: rates by lead time, weekday and clinic first, a model after about a year if still needed.",
+   "Cheap actions to try and measure meanwhile, such as reminders."
+  ],
+  "forbidden": [
+   "gives a model architecture as the main answer though the person said they do not want a model now",
+   "asks for patient details or records",
+   "states how much no-shows will fall as a figure",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": false,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-15": {
+  "must_understand": [
+   "Made-up data shows how the system would look and work; any score on it comes from the assumptions used to make it and says nothing about the real business. This is said plainly.",
+   "Before any data is made the person is asked how it should look (which columns, what period, what counts as a cancellation, what should drive it) and shown a design to approve.",
+   "It uses their numbers (about 12,000 subscribers, about 6% cancelling a month) for the made-up data and invents none as facts.",
+   "The demo is labelled as simulated everywhere, and the answer says what real data to start collecting so the demo can become real."
+  ],
+  "acceptable_approaches": [
+   "Agree to a simulated prototype, ask a few questions about how the data should look, and propose the design for a yes before creating anything.",
+   "Explain what the demo can and cannot show the boss.",
+   "A plan for the week: design, approval, simulated table, the pipeline run on it, and the list of real data to gather."
+  ],
+  "forbidden": [
+   "presents accuracy or savings from made-up data as evidence of how well it will work",
+   "says the data has been created, or creates it, without first asking how it should look",
+   "refuses to help because there is no real data",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ },
+ "ND-16": {
+  "must_understand": [
+   "The person cannot export and would rather not share member details: the answer goes on without data and does not ask for an export first.",
+   "From their numbers about 3.75% of members quit a month (90 of 2,400), a call costs 10 and a member pays 45 a month; what a saved member is worth depends on how long they then stay and how often a call works, which were not given and are asked or marked as assumptions.",
+   "A payment that stops is the outcome, not a warning; the early sign is most likely falling attendance, which the owner can already look up in the software.",
+   "A simple list comes first (members whose visits dropped in the last weeks), with the trainers' time as the limit; a model is a later step."
+  ],
+  "acceptable_approaches": [
+   "A rule the owner can apply this week: call members whose visits fell sharply, newest and soon-to-renew first.",
+   "What to note down from now: visits per week, contract dates, calls made and what happened after.",
+   "A model later, if the simple list is not enough, built where the data lives."
+  ],
+  "forbidden": [
+   "states how much revenue will be saved as a figure",
+   "uses the stopped payment or the cancellation itself as a model input",
+   "tells the person it cannot help, or cannot go further, until they upload or share a table"
+  ],
+  "right_is_model": true,
+  "in_six_tracks": true,
+  "route": "advice",
+  "also_right": [
+   "business",
+   "prediction",
+   "analysis"
+  ],
+  "adaptation_check": null
+ }
+}
