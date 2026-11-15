@@ -166,6 +166,33 @@ class DeadEndTests(unittest.TestCase):
         self.assertIn("do not ask them to confirm again", A._ask(other, "Does that sound good to you?")["error"])
 
 
+class OneOptionTests(unittest.TestCase):
+    """HAB-024 (2026-11-16): no table, a go-ahead, and only one kind of help passing the checks. The options were refused for
+    want of a second one ("start it instead") and the start was refused as not ready: two refusals each way, on Nemotron 3 Ultra."""
+
+    ROUTES = "I run deliveries for a grocery company: twelve vans and many orders a day, each with an address and a promised time window."
+    BUSINESS = {"title": "A routing brief", "what": "how to plan the vans' routes", "track": "business", "tool": "business_brief", "columns": [], **FULL}
+
+    def test_the_one_option_that_passed_can_be_started_after_a_go_ahead(self):
+        s = said(state(table=False), self.ROUTES, "Everything I know is in what I wrote. Choose what you judge best and go ahead.")
+        self.assertFalse(C.readiness(s.case).ready)
+        self.assertIn("not ready", A._start(copy.deepcopy(s), "business", "business_brief")["error"])  # not by itself: the person chooses first
+        refused = A._propose(s, [self.BUSINESS, {**OPTIONS[1]}])  # the second names a column of a table that was never shared
+        self.assertIn("The one that passed is business/business_brief: start it", refused["error"])
+        self.assertEqual(A._start(s, "business", "business_brief").get("started"), "business/business_brief")
+
+    def test_it_holds_for_that_option_and_that_turn_only(self):
+        s = said(state(table=False), self.ROUTES, "Everything I know is in what I wrote. Choose what you judge best and go ahead.")
+        A._propose(s, [self.BUSINESS, {**OPTIONS[1]}])
+        self.assertIn("error", A._start(copy.deepcopy(s), "advice", "cited_answer") if A.data_work(s) else {"error": "advice is open by its own rule"})
+        said(s, "Tell me more first.")
+        self.assertIsNone(s.only_option)  # a new message: what passed last turn decides nothing now
+        self.assertIn("not ready", A._start(s, "business", "business_brief")["error"])
+        quiet = said(state(table=False), self.ROUTES)
+        A._propose(quiet, [self.BUSINESS, {**OPTIONS[1]}])
+        self.assertIn("not ready", A._start(quiet, "business", "business_brief")["error"])  # no go-ahead: a question is still open to the agent
+
+
 class AlwaysAWayForwardTests(unittest.TestCase):
     """2.3: in every state reached by these words, facts, chips and routes, a move that decides what the person gets is
     allowed. After a go-ahead a question does not count (the person said to act), except the one question about building."""

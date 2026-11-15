@@ -270,6 +270,46 @@ Stages 1 and 2 removed brakes. They did not give the model room to think before 
 case and shown as a card, outside the reply's word limit) and stage 4 (understand and plan first, choose the kind of
 work last) are the ones that address what 11.4 shows. They wait for the owner's own planning plan, to be merged with it.
 
+### 11.7 More tests the same night: two more main models, and a "before" on the new people
+
+**The lead agent before stages 1 and 2, on the eight new people** (Qwen 3.8 flash; the code of commit 5cb25496 played in a
+worktree, runs HAB-031 and HAB-032):
+
+| measure | before stages 1 and 2 | after | difference by case |
+|---|---:|---:|---|
+| Understands the problem | 3.00 | 3.25 | +0.25 [-0.50, 1.00] |
+| Designs a solution | 2.75 | 2.88 | +0.12 [-0.75, 1.00] |
+| Makes a plan | 2.62 | 2.50 | -0.12 [-1.12, 0.75] |
+| Sticks to evidence | 3.75 | 3.75 | 0.00 [-0.38, 0.38] |
+| Accepted | 5 of 8 | 5 of 8 | |
+| Empty answers | 2 | 0 | |
+
+On people the repair was not tuned on, stages 1 and 2 changed no score outside noise. They removed the empty answers.
+The gains of 11.2 are gains on the people that were watched while the fixes were made.
+
+**Four main models after stage 2** (lead agent beside the model alone; means of 8 people; each model judged by a model of
+another family, so compare inside a judge: the two Qwen models were judged by Nemotron 3.5 Super, the two Nemotron models
+by Qwen 3.8 27b):
+
+| main model | people | lead agent: understanding / design / plan / evidence | accepted | model alone: plan | numbers nobody gave, alone | seconds | cost per conversation |
+|---|---|---|---:|---:|---:|---:|---:|
+| Qwen 3.8 flash | first 8 | 4.00 / 3.62 / 3.12 / 4.00 | 7 of 8 | 4.00 | 6 | 154 | EUR 0.010 |
+| Qwen 3.8 flash | 8 new | 3.25 / 2.88 / 2.50 / 3.75 | 5 of 8 | 4.00 | 6 | 167 | EUR 0.010 |
+| Qwen 3.8 27b | first 8 | 2.62 / 2.88 / 2.38 / 3.00 | 5 of 8 | 3.88 | 58 | 80 | EUR 0.018 |
+| Qwen 3.8 27b | 8 new | 2.38 / 2.25 / 2.00 / 2.75 | 2 of 8 | 3.88 | 100 | 103 | EUR 0.019 |
+| Nemotron 3.5 Super | first 8 | 2.38 / 2.25 / 2.00 / 3.00 | 5 of 8 | 3.38 | 1 | 131 | free |
+| Nemotron 3.5 Super | 8 new | 2.00 / 1.75 / 1.88 / 2.62 | 2 of 8 | 2.88 | 3 | 163 | free |
+| Nemotron 3 Ultra | first 8 | 2.38 / 2.25 / 2.25 / 2.88 | 4 of 8 | 3.75 | 61 | 146 | free |
+| Nemotron 3 Ultra | 8 new | 1.75 / 1.75 / 1.88 / 2.38 | 1 of 8 | 3.12 | 75 | 110 | free |
+
+- The product's model, Qwen 3.8 flash, is the best main model here, alone and inside the lead agent, and the cheapest paid one.
+  Qwen 3.8 27b is faster and scores lower inside the lead agent under the same judge.
+- Every model loses 1 to 1.9 points of planning inside the lead agent. The gate fails for all eight rows.
+- The lead agent wrote no number nobody gave with any model; alone, two of the four models (Qwen 3.8 27b and Nemotron 3
+  Ultra) wrote 58 to 100 in eight answers.
+- One more dead end was found by these runs (Nemotron 3 Ultra, the delivery-routes person: one option passed the checks,
+  the options were refused for want of a second, the start was refused as not ready) and closed with a test.
+
 ## 12. Not done
 
 - Stages 3 and 4 of the plan (they wait for the owner's planning plan).

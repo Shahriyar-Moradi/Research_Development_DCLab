@@ -318,6 +318,7 @@ class CaseState:
     route_told: list[str] = field(default_factory=list)  # the plan's step 1: each route doubt (a move and what it pointed to) told once
     route_seen: Optional[tuple[int, Optional[str]]] = None  # the second reading for the words heard so far: read again on new words only
     route_thread: Any = None  # the second reading under way since the turn's start (route_ahead); never kept in a checkpoint
+    only_option: Optional[tuple[str, str]] = None  # this turn: the one option that passed the checks when a propose needed two
     rewriting: bool = False  # the agent is rewriting dropped sentences: no move may run (the review: a question counted twice)
     trace: Any = None  # one tracer for the whole case, so its turns are one conversation in the record
     frame: Any = None  # the shared table itself (never sent to a model; the data tools read it)
@@ -771,8 +772,13 @@ def _propose(state: CaseState, options: list[dict[str, Any]]) -> dict[str, Any]:
     columns = {c["name"] for c in (state.table or {}).get("columns") or []}
     kept, refused = C.check_options(offered, state.case, columns=columns, computed=state.computed)
     if len(kept) < 2:
-        return {"error": "fewer than two options passed the checks. Options must be of different kinds (" + PAIRS + "). When only "
-                         "one kind of help fits, start it (start) instead of proposing.", "refused": refused}
+        # HAB-024 (Nemotron 3 Ultra, the delivery-routes person, 2026-11-16): one option passed, this said "start it instead",
+        # and the start was refused as not ready, twice each way. The one option that passed is remembered for this turn: after
+        # a go-ahead its start is allowed, with what is open stated as assumptions.
+        state.only_option = (kept[0].track, kept[0].tool) if len(kept) == 1 else None
+        only = f" The one that passed is {kept[0].track}/{kept[0].tool}: start it (start) instead of proposing." if kept else \
+            " When only one kind of help fits, start it (start) instead of proposing."
+        return {"error": "fewer than two options passed the checks. Options must be of different kinds (" + PAIRS + ")." + only, "refused": refused}
     doubt = None if (state.case.chosen or state.chip) else route_doubt(state, "propose", {o.track for o in kept})
     if doubt:
         return {"error": doubt}
@@ -842,7 +848,8 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     # prediction first". An order to build a model needs no interview first (request_build already reads it so): it starts the
     # project it names; the build itself still waits for the checks request_build makes.
     ordered = tool in BUILDS and orders_model(state.case.words[-1] if state.case.words else "")
-    if not state.case.chosen and not r.ready and not state.budget_reached and track not in NO_DATA_WORK and not ordered:
+    sole = state.go_ahead and state.only_option == (track, tool)  # the one option that passed the checks, after the person said go ahead
+    if not state.case.chosen and not r.ready and not state.budget_reached and track not in NO_DATA_WORK and not ordered and not sole:
         return {"error": "the person has not chosen and the case is not ready: " + "; ".join(r.reasons)
                          + ". Propose now (two kinds of help, what is open stated as assumptions), or ask the one thing that is missing."}
     doubt = None if state.case.chosen else route_doubt(state, "start", {track})
@@ -1248,6 +1255,7 @@ def heard(state: CaseState, words: str) -> None:
     state.queries = state.query_errors = 0
     state.no_data_built = False
     state.cards = []
+    state.only_option = None
     if state.table and not any(str(c).startswith('{"table": ') for c in state.computed):  # 2026-10-31: code reads the shared
         _read_table(state)  # table (again after a restore), so no model call is spent on it and its counts may be said
     state.turns.append({"role": "user", "content": str(words)})

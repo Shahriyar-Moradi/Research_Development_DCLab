@@ -1,0 +1,1885 @@
+{
+ "id": "HAB-024",
+ "split": "dev",
+ "set": "dev",
+ "at": "2026-11-15T20:44:05+00:00",
+ "arms": [
+  "case"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "judge": "qwen/qwen3.8-27b",
+  "route_check": "nvidia/nemotron-3-ultra-550b-a55b:free"
+ },
+ "spent_eur": 0.023,
+ "cap_eur": 0.3,
+ "judge_only": true,
+ "kept": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-024",
+ "manifest": {
+  "run_id": "HAB-024",
+  "at": "2026-11-15T20:26:45+00:00",
+  "arms": [
+   "case"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.3,
+  "code": {
+   "commit": "7375db14ade235b968e2c1e4a20f87bd5bca4e11",
+   "dirty": [],
+   "diff_sha256": null,
+   "untracked_sha256": null,
+   "untracked_files": 0
+  },
+  "models": {
+   "arms": "nvidia/nemotron-3-ultra-550b-a55b:free",
+   "judge": null,
+   "route_check": "nvidia/nemotron-3-ultra-550b-a55b:free"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "04956cc04a4915d4",
+   "route_check": "61027a2803db8856"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "96fcda10b0e3e919"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "67a47729b96ad6f30fb3eaaabf52e040bbfe86a4424672c85f3e369371eb1275",
+  "set": "dev",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "stage-2"
+ },
+ "capture": {
+  "exchanges": 36,
+  "ok": 36,
+  "whole": 36,
+  "with_thinking": 36,
+  "without_thinking": [],
+  "purposes": [
+   "case_agent",
+   "exam_judge",
+   "route_check"
+  ]
+ },
+ "label": "stage-2",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better; judged after the run, from the kept conversations",
+ "conversations": [
+  {
+   "id": "hab-05",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "You have a clear prioritization problem: 1,200 customers, 50 calls a month, and a table that already tells you who churned next month. The value of a saved customer is their monthly spend, and every call costs the same. The unknown is whether a call actually changes the outcome — but you still need a list for this month.\n\n**What the problem really is**\nYou need to rank customers by *expected value of a call* = (probability they would churn) × (their monthly spend). The table gives you the historical churn label and the spend; the missing piece is a reliable probability for each current customer. Three ways to get there:\n\n1. **Predictive model** — learn churn probability from the history, multiply by spend, re-rank every month.\n2. **Simple rule** — find the segment/plan/tenure/spend combinations with the highest historical churn rates and highest spend, turn that into a fixed priority rule.\n3. **Test while you prioritize** — run your 50 calls as a randomized experiment so you learn the true effect of a call, while still targeting the highest-value risks.\n\n**Assumptions I’m carrying forward**\n- `churned_next_month` is the outcome you want to prevent.\n- `monthly_spend` is the value saved if the customer stays.\n- Call cost is constant across customers.\n- Historical patterns are a reasonable guide to next month’s risk.\n\n**Plan if you choose the predictive model (the most precise route)**\n1. Check for leakage — any column written after the churn decision.\n2. Split the data: train on older months, hold out the most recent month for a realistic test.\n3. Train a model that outputs a churn probability for each customer.\n4. Validate on the holdout: does ranking by probability × spend actually concentrate the churners in the top 50?\n5. If the holdout looks good, deliver the monthly scoring pipeline and the first 50-customer list.\n\n**Plan if you choose the simple rule**\n1. Query churn rate and average spend by segment, plan, tenure band, and ticket count.\n2. Identify the combinations with the highest (churn rate × spend).\n3. Write the rule, apply it to the current roster, hand you the top 50.\n\n**Plan if you choose the test design**\n1. Define the randomization unit (customer) and the treatment (call vs. no call).\n2. Pick a prioritization method for the treatment group (model or rule).\n3. Size the test: how many months to detect a meaningful lift given your base churn rate.\n4. Give you the assignment logic and the first month’s call list.\n\nThe three options are shown below. Pick one, or tell me if you’d rather blend them (e.g., start with the rule while the model trains).",
+     "choices": [
+      {
+       "title": "Churn risk model with value-weighted ranking",
+       "what": "Build a model that predicts each customer's probability of churning next month, then rank customers by expected value (churn probability × monthly spend) so you call the 50 with the most to save. You get: A monthly list of 50 customer IDs to call, plus the model you can re-run as new customers arrive. Trade-off: Requires enough historical churn examples to learn; assumes the pattern holds going forward and that a call can prevent at least some of the predicted churns. Effort: One modeling project with a holdout test; ready to use once built.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      },
+      {
+       "title": "Descriptive churn patterns for a simple priority rule",
+       "what": "You get: A clear, explainable rule you can apply immediately without a model; no code to maintain. Trade-off: Less precise than a per-customer probability; may miss interactions the model would catch. Effort: One analysis session; done in this chat.",
+       "track": "analysis",
+       "tool": "query",
+       "kind": "option"
+      },
+      {
+       "title": "Design a call-effectiveness test while you prioritize",
+       "what": "Structure your 50 monthly calls as a randomized experiment (treatment vs. holdout) so you learn whether calls actually reduce churn, while still targeting the highest-value risks. You get: A test plan you can start next month, plus a prioritization method to use during the test. Trade-off: You give up some short-term savings to gain causal evidence; requires sticking to the random assignment. Effort: One business-design session; done in this chat.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Churn risk model with value-weighted ranking",
+     "pick": "Churn risk model with value-weighted ranking",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "No leakage suspects — all eight columns are safe to use.\n\n**What happens next (the steps, in order)**\n\n1. **Time-aware split** — hold out the most recent month as a realistic test set; train on earlier months only.\n2. **Train a probability model** — learn churn probability from the history, using segment, city, plan, tenure, monthly spend, and support tickets.\n3. **Validate on the holdout** — rank every held-out customer by `probability × monthly_spend`; check how many actual churners land in the top 50.\n4. **Decision point** — if the holdout shows the ranking concentrates churners well, we deliver the monthly scoring pipeline and the first 50-customer call list. If not, we adjust features or try a simpler rule and re-test.\n5. **Ongoing** — each month you get a fresh ranked list of 50, plus the model’s estimated value saved.\n\nThe model is now set up and ready to train. I’ll run the split, training, and holdout validation, then come back with the numbers and the first call list.",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "ml_project",
+   "routed_by": "option",
+   "ended": "answered",
+   "assistant_turns": 2,
+   "picked": 1,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    61.24,
+    87.81
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-05",
+     "version": 10,
+     "words": [
+      "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind.\n\n(I shared a table: customers.csv)",
+      "I pick: Churn risk model with value-weighted ranking"
+     ],
+     "goal": {
+      "value": "Prioritize 50 customers per month for retention calls out of ~1,200",
+      "status": "said",
+      "quote": "We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call.",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Which specific customers to call each month",
+      "status": "said",
+      "quote": "I want to know which 50 to call.",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "Retention team manager and their callers",
+      "status": "said",
+      "quote": "I manage a small retention team at a subscription company.",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "customers.csv with 1,200 rows, 9 columns including churned_next_month as outcome",
+      "status": "said",
+      "quote": "The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month.",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "Churn risk model with value-weighted ranking",
+       "what": "Build a model that predicts each customer's probability of churning next month, then rank customers by expected value (churn probability × monthly spend) so you call the 50 with the most to save.",
+       "gets": "A monthly list of 50 customer IDs to call, plus the model you can re-run as new customers arrive.",
+       "tradeoff": "Requires enough historical churn examples to learn; assumes the pattern holds going forward and that a call can prevent at least some of the predicted churns.",
+       "effort": "One modeling project with a holdout test; ready to use once built.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": [
+        "segment",
+        "city",
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      },
+      {
+       "title": "Descriptive churn patterns for a simple priority rule",
+       "what": "",
+       "gets": "A clear, explainable rule you can apply immediately without a model; no code to maintain.",
+       "tradeoff": "Less precise than a per-customer probability; may miss interactions the model would catch.",
+       "effort": "One analysis session; done in this chat.",
+       "track": "analysis",
+       "tool": "query",
+       "columns": [
+        "segment",
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      },
+      {
+       "title": "Design a call-effectiveness test while you prioritize",
+       "what": "Structure your 50 monthly calls as a randomized experiment (treatment vs. holdout) so you learn whether calls actually reduce churn, while still targeting the highest-value risks.",
+       "gets": "A test plan you can start next month, plus a prioritization method to use during the test.",
+       "tradeoff": "You give up some short-term savings to gain causal evidence; requires sticking to the random assignment.",
+       "effort": "One business-design session; done in this chat.",
+       "track": "business",
+       "tool": "business_brief",
+       "columns": [
+        "segment",
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      }
+     ],
+     "chosen": "Churn risk model with value-weighted ranking",
+     "route": {
+      "track": "prediction",
+      "tool": "ml_project",
+      "reasons": "",
+      "by": "person"
+     },
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind.\n\n(I shared a table: customers.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Prioritize 50 customers per month for retention calls out of ~1,200",
+        "status": "said",
+        "quote": "We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Which specific customers to call each month",
+        "status": "said",
+        "quote": "I want to know which 50 to call.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Retention team manager and their callers",
+        "status": "said",
+        "quote": "I manage a small retention team at a subscription company.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "customers.csv with 1,200 rows, 9 columns including churned_next_month as outcome",
+        "status": "said",
+        "quote": "The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month.",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 7,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "Churn risk model with value-weighted ranking",
+         "what": "Build a model that predicts each customer's probability of churning next month, then rank customers by expected value (churn probability × monthly spend) so you call the 50 with the most to save.",
+         "gets": "A monthly list of 50 customer IDs to call, plus the model you can re-run as new customers arrive.",
+         "tradeoff": "Requires enough historical churn examples to learn; assumes the pattern holds going forward and that a call can prevent at least some of the predicted churns.",
+         "effort": "One modeling project with a holdout test; ready to use once built.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": [
+          "segment",
+          "city",
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        },
+        {
+         "title": "Descriptive churn patterns for a simple priority rule",
+         "what": "",
+         "gets": "A clear, explainable rule you can apply immediately without a model; no code to maintain.",
+         "tradeoff": "Less precise than a per-customer probability; may miss interactions the model would catch.",
+         "effort": "One analysis session; done in this chat.",
+         "track": "analysis",
+         "tool": "query",
+         "columns": [
+          "segment",
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        },
+        {
+         "title": "Design a call-effectiveness test while you prioritize",
+         "what": "Structure your 50 monthly calls as a randomized experiment (treatment vs. holdout) so you learn whether calls actually reduce churn, while still targeting the highest-value risks.",
+         "gets": "A test plan you can start next month, plus a prioritization method to use during the test.",
+         "tradeoff": "You give up some short-term savings to gain causal evidence; requires sticking to the random assignment.",
+         "effort": "One business-design session; done in this chat.",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": [
+          "segment",
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "chosen",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": "Churn risk model with value-weighted ranking"
+      },
+      {
+       "version": 9,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": {
+        "track": "prediction",
+        "tool": "ml_project",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 10,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind.\n\n(I shared a table: customers.csv)"
+       ],
+       "after": [
+        "I pick: Churn risk model with value-weighted ranking"
+       ]
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [
+     {
+      "columns_related": [
+       [
+        "customer_id",
+        "churned_next_month"
+       ],
+       [
+        "signup_date",
+        "churned_next_month"
+       ],
+       [
+        "segment",
+        "churned_next_month"
+       ],
+       [
+        "city",
+        "churned_next_month"
+       ],
+       [
+        "plan",
+        "churned_next_month"
+       ],
+       [
+        "tenure_months",
+        "churned_next_month"
+       ],
+       [
+        "monthly_spend",
+        "churned_next_month"
+       ],
+       [
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      ],
+      "rows": "all"
+     }
+    ],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     false
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0049,
+   "first_divergence": {
+    "id": "hab-05",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-024/case/hab-05-r1",
+    "events": 7,
+    "first": {
+     "reason": "options_trimmed",
+     "at": "2026-11-15T20:27:21.139474+00:00",
+     "seq": 22,
+     "tool": "case_propose",
+     "wanted": {
+      "tracks": [
+       "analysis",
+       "business",
+       "prediction"
+      ]
+     },
+     "wanted_right": true,
+     "safety": false,
+     "before_route": true,
+     "evidence": "{\"shown\": [\"Churn risk model with value-weighted ranking\", \"Descriptive churn patterns for a simple priority rule\", \"Design a call-effectiveness test while you prioritize\"], \"refused\": {\"Descriptive churn patterns for a simple priority rule (kept)\": \"shown without the sentences holding numbers nobod"
+    },
+    "all": [
+     {
+      "reason": "options_trimmed",
+      "at": "2026-11-15T20:27:21.139474+00:00",
+      "seq": 22,
+      "tool": "case_propose",
+      "wanted": {
+       "tracks": [
+        "analysis",
+        "business",
+        "prediction"
+       ]
+      },
+      "wanted_right": true,
+      "safety": false,
+      "before_route": true,
+      "evidence": "{\"shown\": [\"Churn risk model with value-weighted ranking\", \"Descriptive churn patterns for a simple priority rule\", \"Design a call-effectiveness test while you prioritize\"], \"refused\": {\"Descriptive churn patterns for a simple priority rule (kept)\": \"shown without the sentences holding numbers nobod"
+     }
+    ],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 6,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "prediction",
+    "tool": "ml_project",
+    "routed_by": "option",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-06",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "You've seen a 30% jump in complaints since March and your director is pushing for an AI model, but you have no labeled data — just free‑text tickets with dates and agent names. You're the one who decides what the support team tackles next month.\n\nBefore we talk about models or analyses, I need to be sure I understand the decision you're actually trying to make. Is the goal to **find out why complaints spiked so you can fix the root causes**, or is it to **get a predictive tool that flags high‑risk tickets for the team to prioritize**? Those lead to very different first steps.",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "[DCLab drew a dashboard above this message]\n\nHere’s the 3‑layer blueprint DCLab built for your situation (Business → Data Science → ML). Since you have no labeled data yet, the numbers in the **Economics** layer are placeholders — treat them as “fill in when you know” rather than facts. ---\n\n### 1. Business Layer (Economics)\n| Input | Placeholder | What it means for you |\n|-------|-------------|------------------------|\n| Monthly ticket volume | *assumed* | How many tickets you get each month (you’ll know from your weekly reports). |\n| Base rate of “high‑impact” complaints | *assumed* | Share of tickets that actually drive the 30% spike (unknown until you label a sample). |\n| Cost per intervention | *assumed* | Agent hours, parts, goodwill credits to fix one root cause. |\n| Value saved per caught case | *assumed* | Revenue retained, repeat‑purchase lift, brand protection. |\n| Intervention success rate | *assumed* | How often your fix actually stops the complaint type. |\n\n**Decision frame**: Prioritize high‑value regression interventions under capacity/cost constraints. **Outcome horizon**: Next month (you decide the team’s focus for next month). **Primary metric**: RMSE + MAE (calibrated unit‑level error, so you can rank tickets by expected impact). ---\n\n### 2. Data Science Layer (Minimum Viable Data Spec)\n| Needed | Status | How to get it |\n|--------|--------|---------------|\n|\n| **Point‑in‑time features** | Missing | For each ticket at intake: product SKU, customer tier, purchase channel, days since purchase, agent seniority, prior ticket count. No post‑outcome fields (resolution code, refund amount, etc.). |\nMust be known at prediction time. |\n| **Temporal split** | Required | Train on tickets before March, validate on March–April, test on May onward — so the 30% jump is in the holdout. |\n\n---\n\n### 3. ML Layer (Leakage Traps & Pre‑Data Task Plan)\n**Leakage traps to avoid**\n- Any field written *after* the ticket is opened (resolution code, agent notes added later, refund issued, “root cause” field filled at close). - Agent identity if agents specialize in certain complaint types (could leak the label). - Dates after the prediction moment (e.g., “days to resolve”). **Pre‑data tasks (do these before any modeling)**\n1. **Export & sample** – Pull 6 months of tickets (Sept–Feb as baseline, Mar–Aug as spike period).\n\n(That is the short version. Ask me about any part and I will go deeper.)\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": [],
+     "shown": [
+      "no_data_solution"
+     ]
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 2,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    13.01,
+    59.31
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-06",
+     "version": 6,
+     "words": [
+      "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Understand why support complaints increased 30% since March and decide what the support team should work on next month",
+      "status": "assumed",
+      "quote": null,
+      "computed": null,
+      "after_words": 1
+     },
+     "decision": {
+      "value": "Prioritization of support team work for next month",
+      "status": "assumed",
+      "quote": null,
+      "computed": null,
+      "after_words": 1
+     },
+     "user": {
+      "value": "Operations manager who decides support team priorities",
+      "status": "said",
+      "quote": "I decide what the support team works on next month",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "Helpdesk tickets as free text with date and agent name, no labeled reasons, no dataset shared",
+      "status": "said",
+      "quote": "We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [],
+     "chosen": null,
+     "route": null,
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Understand why support complaints increased 30% since March and decide what the support team should work on next month",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 1
+       }
+      },
+      {
+       "version": 3,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Prioritization of support team work for next month",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 1
+       }
+      },
+      {
+       "version": 4,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Operations manager who decides support team priorities",
+        "status": "said",
+        "quote": "I decide what the support team works on next month",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Helpdesk tickets as free text with date and agent name, no labeled reasons, no dataset shared",
+        "status": "said",
+        "quote": "We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      }
+     ]
+    },
+    "ready": false,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     false,
+     false,
+     false
+    ],
+    "forbidden_done": [
+     true,
+     false,
+     false
+    ],
+    "understanding": 1,
+    "solution_design": 1,
+    "planning": 1,
+    "evidence_discipline": 2,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0071,
+   "first_divergence": {
+    "id": "hab-06",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-024/case/hab-06-r1",
+    "events": 2,
+    "first": {
+     "reason": "no_route",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route None/None by None"
+    },
+    "all": [],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 4,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": null,
+    "tool": null,
+    "routed_by": null,
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-07",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "You're the planner who each morning takes ~300 orders with addresses and time windows and decides which van takes which stops in what order. A prediction model would forecast something (e.g., travel time, service time, or risk of a late delivery), but the decision you're making is an assignment and sequencing problem — a vehicle routing problem with time windows.\n\nWhat does your current morning process look like: do you (or your software) already produce a full route plan for each van, and you just want it to cost less, or are you still building the routes by hand?",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The core problem is a vehicle routing problem with time windows (VRPTW): each morning you must assign ~300 orders to 12 vans and sequence stops so every order hits its promised window while minimizing total distance and driver hours. A prediction model alone doesn't make that assignment — it only estimates travel or service times. The optimizer is what turns estimates into routes. **What I'd do first:** export your order log (order ID, address, time window, actual delivery time) and GPS traces (van ID, timestamp, lat/lon) into a clean, time-aligned table. From that, build a VRPTW optimizer you run each morning. Travel-time and service-time predictions (the consultant's suggestion) are valuable inputs to that optimizer, but they come second. **Plan (3 steps):**\n1. **Data export & prep** — pull order log + GPS into one table, derive actual travel times between stops and service times per stop, verify time-window adherence. Needs your yes before any rows are dropped. 2. **VRPTW optimizer design** — formulate the routing model (capacity, time windows, max route duration), choose a solver, build a prototype on a week of history, compare its routes vs. your manual ones on km, hours, and on-time rate. 3. **Daily workflow & prediction layer** — package the optimizer as a morning run (input: today's orders → output: route sheets). Then, if travel-time variance is still high, add the prediction models (travel time, service time) as a second phase to feed the optimizer richer estimates. Two ways to start:\n1. **Route optimization design & implementation** (business_brief) — the full VRPTW solution above. 2. **Travel-time & service-time prediction models** (ml_project) — the ML models the consultant mentioned; they feed a router but don't replace it. Which do you want to begin with? (If you pick #1, step 1 is the data export; if #2, we still need that same export first.)",
+     "choices": [
+      {
+       "title": "Route optimization design & implementation",
+       "what": "Design a vehicle routing solution with time windows (VRPTW) for your 12 vans and 300 orders/day, using your order log and GPS traces. This addresses the actual decision: which van takes which stops in what order to minimize distance/hours while honoring every time window. You get: A repeatable morning workflow: data prep → optimizer → route sheets for drivers. You get lower km and driver hours, on-time delivery rates, and a tool you (the planner) run each day. Trade-off: Requires exporting and cleaning your GPS/order data first. The optimizer is deterministic, not ML — it solves the assignment/sequencing directly. Prediction models (below) can feed it better travel-time estimates later. Effort: Medium: data export/prep (1–2 weeks), optimizer build & test (2–3 weeks), then daily run is minutes.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      },
+      {
+       "title": "Travel-time & service-time prediction models",
+       "what": "Build ML models that predict (a) travel time between any two addresses at a given hour, and (b) service time per stop, using your GPS traces and order log. These are the inputs the consultant had in mind — they feed a router, they don't replace it. You get: Two prediction APIs you can call from any routing engine: expected travel minutes and expected service minutes, with uncertainty bands. Useful if you already have a router and just need better time estimates. Trade-off: Does not solve the assignment/sequencing decision by itself. You still need a VRPTW optimizer (option 1) to turn predictions into routes. Best done after or alongside the optimizer design. Effort: Medium: data export/prep (shared with option 1), model training & validation (2–3 weeks), then batch or API scoring.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The core problem is a vehicle routing problem with time windows (VRPTW): each morning you must assign ~300 orders to 12 vans and sequence stops so every order hits its promised window while minimizing total distance and driver hours. A prediction model alone doesn't make that assignment — it only estimates travel or service times. The optimizer is what turns estimates into routes. **What I'd do first:** export your order log (order ID, address, time window, actual delivery time) and GPS traces (van ID, timestamp, lat/lon) into a clean, time-aligned table. From that, build a VRPTW optimizer you run each morning. Travel-time and service-time predictions (the consultant's suggestion) are valuable inputs to that optimizer, but they come second. **Plan (3 steps):**\n1. **Data export & prep** — pull order log + GPS into one table, derive actual travel times between stops and service times per stop, verify time-window adherence. Needs your yes before any rows are dropped. 2. **VRPTW optimizer design** — formulate the routing model (capacity, time windows, max route duration), choose a solver, build a prototype on a week of history, compare its routes vs. your manual ones on km, hours, and on-time rate. 3. **Daily workflow & prediction layer** — package the optimizer as a morning run (input: today's orders → output: route sheets). Then, if travel-time variance is still high, add the prediction models (travel time, service time) as a second phase to feed the optimizer richer estimates. I judge **Route optimization design & implementation** as the right starting point — it solves the decision you make every morning. The prediction models are a valuable second phase if the optimizer's travel-time assumptions prove too crude. (Route optimization design & implementation; Travel-time & service-time prediction models)",
+     "choices": [
+      {
+       "title": "Route optimization design & implementation",
+       "what": "Design and build a vehicle routing with time windows (VRPTW) optimizer you run each morning: ingest today's 300 orders with addresses and promised windows, assign them to your 12 vans, sequence stops to minimize total km and driver hours while hitting every window. Uses your order log and GPS traces to calibrate travel times, service times, and real-world constraints. You get: A daily routing engine that outputs route sheets for each van; a prototype validated on your history showing km/hours saved vs. your manual plans; a clear morning workflow you own. Trade-off: Requires exporting your order log and GPS traces first; the optimizer is the core solution — prediction models (travel time, service time) come later as enhancements if variance remains high. Effort: Medium: data export → VRPTW formulation → solver prototype → morning workflow.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      },
+      {
+       "title": "Travel-time & service-time prediction models",
+       "what": "Build ML models that predict travel time between any two addresses at a given hour and service time per stop, using your GPS traces and order log. These predictions feed a router but do not themselves assign orders to vans or sequence stops. You get: Two prediction models (travel time, service time) with accuracy metrics; a documented way to plug them into any routing engine you adopt later. Trade-off: Does not solve the assignment/sequencing decision you make each morning; you would still need a VRPTW optimizer to turn predictions into routes. Best as a second phase after the optimizer exists. Effort: Medium: data export → feature engineering → model training → validation.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "**What I understood:** You run daily grocery deliveries in Dubai — 12 vans, ~300 orders, each with an address and a promised time window. You plan the routes every morning. Fuel and driver hours cost too much. You have an order log and GPS traces but haven't exported them yet. The real decision you face each morning is a vehicle routing problem with time windows (VRPTW): assign orders to vans and sequence stops so every order hits its window while minimizing total distance and driver hours. A prediction model (travel time, service time) would only be an input to that optimizer, not the solution itself. **Approach:** Build the VRPTW optimizer first — it's what turns today's orders into route sheets. Travel-time and service-time predictions come later, if the optimizer's static assumptions prove too crude. **Plan (4 steps):**\n1. **Data export & alignment** — You export the order log (order ID, address, promised window, actual delivery time) and GPS traces (van ID, timestamp, lat/lon). We join them into a clean table: each stop gets its actual service time; each leg between consecutive stops gets its actual travel time and whether the window was met. No rows dropped without your yes. 2. **VRPTW formulation & prototype** — Define the model: 12 vehicles, capacity (if orders have volume/weight), time windows per order, max route duration (driver shift), depot location. Choose a solver (e.g., OR-Tools, PyVRP). Build a prototype on 1–2 weeks of history; compare its routes vs. your manual ones on total km, driver hours, and on-time rate. 3. **Morning workflow** — Package the optimizer as a daily run: input = today's orders with addresses and windows → output = route sheets per van (stop sequence, expected arrival windows). You run it each morning, review, and dispatch. 4. **Prediction layer (optional, phase 2)** — If travel-time variance still hurts on-time rate, add ML models to predict travel time (origin, destination, time of day, traffic) and service time (order size, address type). Feed those predictions into the optimizer as dynamic edge weights. **What happens next:** Step 1 needs your data export. When you have the order log and GPS traces as CSVs (or a database dump), share them here and we'll start the alignment and prototype.",
+     "choices": []
+    }
+   ],
+   "route": "business",
+   "tool": "business_brief",
+   "routed_by": "self",
+   "ended": "answered",
+   "assistant_turns": 4,
+   "picked": 0,
+   "options_unpicked": 2,
+   "silent": 0,
+   "seconds": [
+    20.44,
+    183.19,
+    66.03,
+    16.86
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-07",
+     "version": 16,
+     "words": [
+      "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "reduce fuel and driver hours cost for grocery deliveries",
+      "status": "said",
+      "quote": "Fuel and driver hours cost too much",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "how to assign 300 daily orders to 12 vans and sequence stops within promised time windows",
+      "status": "assumed",
+      "quote": null,
+      "computed": null,
+      "after_words": 2
+     },
+     "user": {
+      "value": "route planner who plans routes every morning",
+      "status": "said",
+      "quote": "I am the one who plans the routes every morning",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "order log with addresses and time windows, GPS traces from vans, not yet exported",
+      "status": "said",
+      "quote": "I have the order log and the vans' GPS traces, but I have not exported them yet",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [
+      {
+       "value": "core problem is vehicle routing with time windows (VRPTW), not prediction; prediction models (travel time, service time) would be inputs to an optimizer, not the solution itself",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 2
+      }
+     ],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "Route optimization design & implementation",
+       "what": "Design and build a vehicle routing with time windows (VRPTW) optimizer you run each morning: ingest today's 300 orders with addresses and promised windows, assign them to your 12 vans, sequence stops to minimize total km and driver hours while hitting every window. Uses your order log and GPS traces to calibrate travel times, service times, and real-world constraints.",
+       "gets": "A daily routing engine that outputs route sheets for each van; a prototype validated on your history showing km/hours saved vs. your manual plans; a clear morning workflow you own.",
+       "tradeoff": "Requires exporting your order log and GPS traces first; the optimizer is the core solution — prediction models (travel time, service time) come later as enhancements if variance remains high.",
+       "effort": "Medium: data export → VRPTW formulation → solver prototype → morning workflow.",
+       "track": "business",
+       "tool": "business_brief",
+       "columns": []
+      },
+      {
+       "title": "Travel-time & service-time prediction models",
+       "what": "Build ML models that predict travel time between any two addresses at a given hour and service time per stop, using your GPS traces and order log. These predictions feed a router but do not themselves assign orders to vans or sequence stops.",
+       "gets": "Two prediction models (travel time, service time) with accuracy metrics; a documented way to plug them into any routing engine you adopt later.",
+       "tradeoff": "Does not solve the assignment/sequencing decision you make each morning; you would still need a VRPTW optimizer to turn predictions into routes. Best as a second phase after the optimizer exists.",
+       "effort": "Medium: data export → feature engineering → model training → validation.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": []
+      }
+     ],
+     "chosen": null,
+     "route": {
+      "track": "business",
+      "tool": "business_brief",
+      "reasons": "",
+      "by": "agent"
+     },
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "reduce fuel and driver hours cost for grocery deliveries",
+        "status": "said",
+        "quote": "Fuel and driver hours cost too much",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "how to assign 300 daily orders to 12 vans and sequence stops within promised time windows",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 1
+       }
+      },
+      {
+       "version": 4,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "route planner who plans routes every morning",
+        "status": "said",
+        "quote": "I am the one who plans the routes every morning",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "order log with addresses and time windows, GPS traces from vans, not yet exported",
+        "status": "said",
+        "quote": "I have the order log and the vans' GPS traces, but I have not exported them yet",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 7,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "reduce fuel and driver hours cost for grocery deliveries",
+        "status": "said",
+        "quote": "Fuel and driver hours cost too much",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "reduce fuel and driver hours cost for grocery deliveries",
+        "status": "said",
+        "quote": "Fuel and driver hours cost too much",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 8,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "how to assign 300 daily orders to 12 vans and sequence stops within promised time windows",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 1
+       },
+       "after": {
+        "value": "how to assign 300 daily orders to 12 vans and sequence stops within promised time windows",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 2
+       }
+      },
+      {
+       "version": 9,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "route planner who plans routes every morning",
+        "status": "said",
+        "quote": "I am the one who plans the routes every morning",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "route planner who plans routes every morning",
+        "status": "said",
+        "quote": "I am the one who plans the routes every morning",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 10,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "order log with addresses and time windows, GPS traces from vans, not yet exported",
+        "status": "said",
+        "quote": "I have the order log and the vans' GPS traces, but I have not exported them yet",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "order log with addresses and time windows, GPS traces from vans, not yet exported",
+        "status": "said",
+        "quote": "I have the order log and the vans' GPS traces, but I have not exported them yet",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 11,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "core problem is vehicle routing with time windows (VRPTW), not prediction; prediction models (travel time, service time) would be inputs to an optimizer, not the solution itself",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ]
+      },
+      {
+       "version": 12,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "Route optimization design & implementation",
+         "what": "Design a vehicle routing solution with time windows (VRPTW) for your 12 vans and 300 orders/day, using your order log and GPS traces. This addresses the actual decision: which van takes which stops in what order to minimize distance/hours while honoring every time window.",
+         "gets": "A repeatable morning workflow: data prep → optimizer → route sheets for drivers. You get lower km and driver hours, on-time delivery rates, and a tool you (the planner) run each day.",
+         "tradeoff": "Requires exporting and cleaning your GPS/order data first. The optimizer is deterministic, not ML — it solves the assignment/sequencing directly. Prediction models (below) can feed it better travel-time estimates later.",
+         "effort": "Medium: data export/prep (1–2 weeks), optimizer build & test (2–3 weeks), then daily run is minutes.",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": []
+        },
+        {
+         "title": "Travel-time & service-time prediction models",
+         "what": "Build ML models that predict (a) travel time between any two addresses at a given hour, and (b) service time per stop, using your GPS traces and order log. These are the inputs the consultant had in mind — they feed a router, they don't replace it.",
+         "gets": "Two prediction APIs you can call from any routing engine: expected travel minutes and expected service minutes, with uncertainty bands. Useful if you already have a router and just need better time estimates.",
+         "tradeoff": "Does not solve the assignment/sequencing decision by itself. You still need a VRPTW optimizer (option 1) to turn predictions into routes. Best done after or alongside the optimizer design.",
+         "effort": "Medium: data export/prep (shared with option 1), model training & validation (2–3 weeks), then batch or API scoring.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": []
+        }
+       ]
+      },
+      {
+       "version": 13,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?",
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 14,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [
+        {
+         "title": "Route optimization design & implementation",
+         "what": "Design a vehicle routing solution with time windows (VRPTW) for your 12 vans and 300 orders/day, using your order log and GPS traces. This addresses the actual decision: which van takes which stops in what order to minimize distance/hours while honoring every time window.",
+         "gets": "A repeatable morning workflow: data prep → optimizer → route sheets for drivers. You get lower km and driver hours, on-time delivery rates, and a tool you (the planner) run each day.",
+         "tradeoff": "Requires exporting and cleaning your GPS/order data first. The optimizer is deterministic, not ML — it solves the assignment/sequencing directly. Prediction models (below) can feed it better travel-time estimates later.",
+         "effort": "Medium: data export/prep (1–2 weeks), optimizer build & test (2–3 weeks), then daily run is minutes.",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": []
+        },
+        {
+         "title": "Travel-time & service-time prediction models",
+         "what": "Build ML models that predict (a) travel time between any two addresses at a given hour, and (b) service time per stop, using your GPS traces and order log. These are the inputs the consultant had in mind — they feed a router, they don't replace it.",
+         "gets": "Two prediction APIs you can call from any routing engine: expected travel minutes and expected service minutes, with uncertainty bands. Useful if you already have a router and just need better time estimates.",
+         "tradeoff": "Does not solve the assignment/sequencing decision by itself. You still need a VRPTW optimizer (option 1) to turn predictions into routes. Best done after or alongside the optimizer design.",
+         "effort": "Medium: data export/prep (shared with option 1), model training & validation (2–3 weeks), then batch or API scoring.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": []
+        }
+       ],
+       "after": [
+        {
+         "title": "Route optimization design & implementation",
+         "what": "Design and build a vehicle routing with time windows (VRPTW) optimizer you run each morning: ingest today's 300 orders with addresses and promised windows, assign them to your 12 vans, sequence stops to minimize total km and driver hours while hitting every window. Uses your order log and GPS traces to calibrate travel times, service times, and real-world constraints.",
+         "gets": "A daily routing engine that outputs route sheets for each van; a prototype validated on your history showing km/hours saved vs. your manual plans; a clear morning workflow you own.",
+         "tradeoff": "Requires exporting your order log and GPS traces first; the optimizer is the core solution — prediction models (travel time, service time) come later as enhancements if variance remains high.",
+         "effort": "Medium: data export → VRPTW formulation → solver prototype → morning workflow.",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": []
+        },
+        {
+         "title": "Travel-time & service-time prediction models",
+         "what": "Build ML models that predict travel time between any two addresses at a given hour and service time per stop, using your GPS traces and order log. These predictions feed a router but do not themselves assign orders to vans or sequence stops.",
+         "gets": "Two prediction models (travel time, service time) with accuracy metrics; a documented way to plug them into any routing engine you adopt later.",
+         "tradeoff": "Does not solve the assignment/sequencing decision you make each morning; you would still need a VRPTW optimizer to turn predictions into routes. Best as a second phase after the optimizer exists.",
+         "effort": "Medium: data export → feature engineering → model training → validation.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": []
+        }
+       ]
+      },
+      {
+       "version": 15,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?",
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 16,
+       "field": "route",
+       "op": "set",
+       "by": "agent",
+       "why": "work started",
+       "before": null,
+       "after": {
+        "track": "business",
+        "tool": "business_brief",
+        "reasons": "",
+        "by": "agent"
+       }
+      }
+     ]
+    },
+    "ready": false,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 3,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0034,
+   "first_divergence": {
+    "id": "hab-07",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-024/case/hab-07-r1",
+    "events": 12,
+    "first": {
+     "reason": "options_dropped",
+     "at": "2026-11-15T20:33:04.676695+00:00",
+     "seq": 87,
+     "tool": "case_propose",
+     "wanted": {
+      "tracks": [
+       "business",
+       "prediction"
+      ]
+     },
+     "wanted_right": null,
+     "safety": false,
+     "before_route": true,
+     "evidence": "error: fewer than two options passed the checks. Options must be of different kinds (prediction/ml_project, prediction/segmentation_project, analysis/query, preparation/recipe, reporting/dashboard, business/business_brief, advice/cited_answer). When only one kind of help fits, start it (start) inste"
+    },
+    "all": [
+     {
+      "reason": "options_dropped",
+      "at": "2026-11-15T20:33:04.676695+00:00",
+      "seq": 87,
+      "tool": "case_propose",
+      "wanted": {
+       "tracks": [
+        "business",
+        "prediction"
+       ]
+      },
+      "wanted_right": null,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: fewer than two options passed the checks. Options must be of different kinds (prediction/ml_project, prediction/segmentation_project, analysis/query, preparation/recipe, reporting/dashboard, business/business_brief, advice/cited_answer). When only one kind of help fits, start it (start) inste"
+     },
+     {
+      "reason": "start_refused_not_ready",
+      "at": "2026-11-15T20:33:17.985467+00:00",
+      "seq": 90,
+      "tool": "case_start",
+      "wanted": {
+       "track": "business",
+       "tool": "business_brief"
+      },
+      "wanted_right": null,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: the person has not chosen and the case is not ready: decision is not known yet; the person said their goal and named the help they want (): propose now, stating what is open as assumptions. Propose now (two kinds of help, what is open stated as assumptions), or ask the one thing that is missi"
+     },
+     {
+      "reason": "start_refused_not_ready",
+      "at": "2026-11-15T20:33:56.746030+00:00",
+      "seq": 101,
+      "tool": "case_start",
+      "wanted": {
+       "track": "business",
+       "tool": "business_brief"
+      },
+      "wanted_right": null,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: the person has not chosen and the case is not ready: decision is not known yet; the person said their goal and named the help they want (): propose now, stating what is open as assumptions. Propose now (two kinds of help, what is open stated as assumptions), or ask the one thing that is missi"
+     },
+     {
+      "reason": "options_dropped",
+      "at": "2026-11-15T20:34:05.545566+00:00",
+      "seq": 105,
+      "tool": "case_propose",
+      "wanted": {
+       "tracks": [
+        "business",
+        "prediction"
+       ]
+      },
+      "wanted_right": null,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: fewer than two options passed the checks. Options must be of different kinds (prediction/ml_project, prediction/segmentation_project, analysis/query, preparation/recipe, reporting/dashboard, business/business_brief, advice/cited_answer). When only one kind of help fits, start it (start) inste"
+     }
+    ],
+    "counters": {
+     "blocked_runs": [
+      [
+       "case_propose",
+       "case_start"
+      ],
+      [
+       "case_start",
+       "case_propose"
+      ]
+     ],
+     "fallback_lines": 0,
+     "model_calls": 13,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "business",
+    "tool": "business_brief",
+    "routed_by": "self",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-08",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I understood you need a model that scores every active customer each month on their chance of churning next month, so the retention team can prioritize outreach. The table has 1,200 customers with signup date, segment, city, plan, tenure, monthly spend, recent support tickets, and the label `churned_next_month`. Approach: a supervised classification model (ml_project) predicting `churned_next_month` from the other columns, with a time-aware split so we train on earlier months and test on later ones — this matches how the team will actually score at the start of each month. We’ll also check for leakage (e.g., columns written after the churn decision) and report calibration and lift at the top deciles the team will call. Plan (five steps, in order):\n1. **Leakage audit** – run `check_leakage` on `churned_next_month`; drop or flag any column that looks like it was created after the churn event. 2. **Time-aware split** – hold out the most recent month (or quarter) as the final test set; use earlier data for training and validation. 3. **Model search** – try a few algorithms (tree-based, linear) with cross-validation on the training period; pick by AUC and calibration on the validation period. 5. **Final test & deliverable** – evaluate the chosen model on the held-out test period; deliver the model artifact, a scoring script the team can run at month start, and a one-page brief with calibration curve, lift table, and the chosen threshold. DCLab is checking the remaining build requirements now.\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "ml_project",
+   "routed_by": "self",
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    28.01
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-08",
+     "version": 8,
+     "words": [
+      "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)"
+     ],
+     "goal": {
+      "value": "Build a model that predicts churned_next_month for each customer",
+      "status": "said",
+      "quote": "Please build a model that predicts churned_next_month for each customer",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Retention team will score all active customers at the start of each month and contact the riskiest ones",
+      "status": "said",
+      "quote": "The retention team will score all active customers at the start of each month and contact the riskiest ones",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "Retention team at a subscription company",
+      "status": "said",
+      "quote": "The retention team will score all active customers at the start of each month and contact the riskiest ones",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "customers.csv with 1200 rows, 9 columns including customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month",
+      "status": "said",
+      "quote": "The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [],
+     "assumptions": [],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [],
+     "chosen": null,
+     "route": {
+      "track": "prediction",
+      "tool": "ml_project",
+      "reasons": "",
+      "by": "agent"
+     },
+     "card": null,
+     "findings": [],
+     "build": {
+      "tool": "ml_project",
+      "quote": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)"
+     },
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Build a model that predicts churned_next_month for each customer",
+        "status": "said",
+        "quote": "Please build a model that predicts churned_next_month for each customer",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Retention team will score all active customers at the start of each month and contact the riskiest ones",
+        "status": "said",
+        "quote": "The retention team will score all active customers at the start of each month and contact the riskiest ones",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Retention team at a subscription company",
+        "status": "said",
+        "quote": "The retention team will score all active customers at the start of each month and contact the riskiest ones",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "customers.csv with 1200 rows, 9 columns including customer_id, signup_date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, churned_next_month",
+        "status": "said",
+        "quote": "The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 7,
+       "field": "route",
+       "op": "set",
+       "by": "agent",
+       "why": "work started",
+       "before": null,
+       "after": {
+        "track": "prediction",
+        "tool": "ml_project",
+        "reasons": "",
+        "by": "agent"
+       }
+      },
+      {
+       "version": 8,
+       "field": "build",
+       "op": "set",
+       "by": "person",
+       "why": "the person said yes to the build",
+       "before": null,
+       "after": {
+        "tool": "ml_project",
+        "quote": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)"
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": {
+     "tool": "ml_project",
+     "quote": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead.\n\n(I shared a table: customers.csv)",
+     "outcome": "churned_next_month"
+    },
+    "exposure": [],
+    "spent_eur": 0.0
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     false,
+     false
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 2,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0,
+   "judge_spent_eur": 0.0077,
+   "first_divergence": {
+    "id": "hab-08",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-024/case/hab-08-r1",
+    "events": 4,
+    "first": {
+     "reason": "no_gate",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route prediction/ml_project by self"
+    },
+    "all": [],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 4,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "prediction",
+    "tool": "ml_project",
+    "routed_by": "self",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  }
+ ],
+ "scores": {
+  "case": [
+   {
+    "run": "HAB-024",
+    "case": "hab-05",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.75,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": "prediction",
+    "tool": "ml_project",
+    "assistant_turns": 2,
+    "picked": 1,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 149.05,
+    "spent_eur": 0.0,
+    "first_divergence": "options_trimmed",
+    "wanted_right": true,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-024",
+    "case": "hab-06",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 1,
+    "solution_design": 1,
+    "planning": 1,
+    "evidence_discipline": 2,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.0,
+    "forbidden_done": 1,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 2,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 72.32,
+    "spent_eur": 0.0,
+    "first_divergence": "no_route",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-024",
+    "case": "hab-07",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 3,
+    "evidence_discipline": 3,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": "business",
+    "tool": "business_brief",
+    "assistant_turns": 4,
+    "picked": 0,
+    "options_unpicked": 2,
+    "silent": 0,
+    "seconds": 286.52,
+    "spent_eur": 0.0,
+    "first_divergence": "options_dropped",
+    "wanted_right": null,
+    "blocked_runs": 2,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-024",
+    "case": "hab-08",
+    "arm": "case",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 2,
+    "solution_design": 2,
+    "planning": 2,
+    "evidence_discipline": 2,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.5,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": "prediction",
+    "tool": "ml_project",
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 28.01,
+    "spent_eur": 0.0,
+    "first_divergence": "no_gate",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   }
+  ]
+ },
+ "summary": {
+  "case": {
+   "conversations": 4,
+   "judged": 4,
+   "failed": 0,
+   "understanding": 2.25,
+   "solution_design": 2.0,
+   "planning": 2.0,
+   "evidence_discipline": 2.5,
+   "adaptation": null,
+   "accepted_rate": 0.25,
+   "understood_share": 0.5625,
+   "forbidden_done": 1,
+   "safety_failures": 0,
+   "seconds": 133.975,
+   "spent_eur": 0.0
+  }
+ },
+ "paired": {},
+ "first_divergence_counts": {
+  "options_trimmed": 1,
+  "no_route": 1,
+  "options_dropped": 1,
+  "no_gate": 1
+ },
+ "incomplete": null
+}
