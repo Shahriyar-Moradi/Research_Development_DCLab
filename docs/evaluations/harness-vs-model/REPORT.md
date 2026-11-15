@@ -310,14 +310,77 @@ by Qwen 3.8 27b):
 - One more dead end was found by these runs (Nemotron 3 Ultra, the delivery-routes person: one option passed the checks,
   the options were refused for want of a second, the start was refused as not ready) and closed with a test.
 
-## 12. Not done
+## 12. Stage 4: think first (added 2026-11-16)
 
-- Stages 3 and 4 of the plan (they wait for the owner's planning plan).
+**What changed.** One switch (`DCLAB_CASE_THINK_FIRST`, off by default). With it on, the lead agent's first full message
+says the problem, what needs care, the approach and the plan before it acts, in up to 700 words (450 without it), and a
+request that should not be done as asked is not started as asked. Stage 3 (a saved plan) is not built.
+
+**What was run.** The same 16 known people (the first eight; the eight by an independent author), the switch on, against
+stage 2 (the switch off). Runs HAB-033 to HAB-038. The held-out people (`dev3`) were not played. Also the model alone
+held to 450 words (HAB-039, HAB-040), to see how much of its score is room to write.
+
+### 12.1 The product's model (Qwen 3.8 flash, judge Nemotron 3.5 Super)
+
+| measure | first eight: off → on | independent eight: off → on, difference by person [95%] |
+|---|---|---|
+| Understands the problem | 4.00 → 3.88 | 3.25 → 3.62, +0.38 [0.12, 0.75] |
+| Designs a solution | 3.62 → 3.50 | 2.88 → 3.62, +0.75 [0.25, 1.38] |
+| Makes a plan | 3.12 → 3.00 | 2.50 → 3.38, +0.88 [0.25, 1.62] |
+| Sticks to evidence | 4.00 → 3.75 | 3.75 → 3.88 |
+| Accepted | 7 → 7 of 8 | 5 → 7 of 8 |
+| A thing the key forbids, done | 0 → 0 | 2 → 0 |
+| Numbers nobody gave | 0 → 0 | 0 → 0 |
+| Seconds a conversation | 154 → 217 | 167 → 231 |
+| Euro a conversation | 0.010 → 0.014 | 0.010 → 0.014 |
+| Answers that came back empty or cut | 0 → 1 | 0 → 2 |
+
+On the first eight every difference is inside its interval around zero. On the independent eight the gain is outside it
+for understanding, the solution and the plan. The two failures section 11.4 named are the ones that moved: the dashboard
+on a disputed revenue definition (plan 0 → 3, now accepted) and the deposit rule using nationality (solution 1 → 3, now
+accepted, no longer recommended).
+
+Where it cost: a clear, simple request (`hab-08`) fell from 4 to 2 on the plan, the capacity person (`hab-05`) from 3 to
+2 and is no longer accepted, conversations are about 40% slower (one took 683 seconds), and three answers came back empty
+or cut and were asked again.
+
+### 12.2 A weaker main model (Nemotron 3.5 Super, judge Qwen 3.8 27b)
+
+First eight: 2.38 / 2.25 / 2.00 → 1.62 / 1.50 / 1.50 (understanding / solution / plan), accepted 5 → 4 of 8, with four
+empty first replies; every interval includes zero. Independent eight: 2.00 / 1.75 / 1.88 → 2.38 / 2.00 / 1.88, accepted
+2 → 4 of 8. No gain that can be claimed.
+
+### 12.3 Room to write is part of the gap
+
+| Qwen 3.8 flash alone | understanding | solution | plan | forbidden done |
+|---|---:|---:|---:|---:|
+| free length, first eight / independent eight | 4.00 / 3.88 | 4.00 / 3.88 | 4.00 / 4.00 | 0 / 0 |
+| held to 450 words, first eight / independent eight | 3.25 / 3.12 | 3.62 / 2.62 | 3.62 / 3.38 | 0 / 2 |
+
+Held to the lead agent's own length the model alone loses 0.4 to 0.6 of a point on the plan and about 0.8 on
+understanding, and on the independent people it did two forbidden things. So part of what sections 3 and 11 called the
+harness's cost is length, not thinking. On the independent people the lead agent with the switch on (3.62 / 3.62 / 3.38)
+is at or above the model alone at the same length (3.12 / 2.62 / 3.38); on the first eight it is still 0.6 behind on the
+plan.
+
+### 12.4 The verdict and what is not known
+
+- `hab_gate_v1` is still not passed: the plan is 1.00 and 0.62 behind the model alone at free length (allowed: 0.5), and
+  an empty or cut answer is counted.
+- The held-out people were not played. They are played once at a stage's end, and the practice sets already predict a
+  fail; two things come first: no think-first message for a clear, simple request, and no empty answers.
+- Eight people a set, one run each, one judge. The runs with the switch on were judged by the paid serving of the judge
+  model, because its free serving was limited by the provider that night; it is the same model, and a small difference
+  between the two servings cannot be ruled out.
+- The switch stays off.
+
+## 13. Not done
+
+- Stage 3 of the plan (a saved plan), step 4.3 (a free first pass), and the held-out run of stage 4.
 - Two rows of stage 1's table: a model with no price is still served (its cost is counted when the provider returns
   it), and a streamed reply has no second asking.
 - A leading yes with a condition ("yes, after legal approves") still counts as a yes to building, as an earlier
   decision made it. The reviewer of stage 2 thinks it should not.
-- The build record of stage 2 (`dev_trajectories/records/`) is not written.
 - The four cut Nemotron Ultra conversations were not rerun.
 - No owner labels on the judged conversations.
 - Done since the first version of this report: the work is committed and pushed; the runs up to HAB-012 are archived

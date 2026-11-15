@@ -1,0 +1,774 @@
+{
+ "id": "HAB-039",
+ "split": "dev",
+ "set": "dev",
+ "at": "2026-11-15T22:47:40+00:00",
+ "arms": [
+  "model_only_short"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": "nvidia/nemotron-3.5-super-vl",
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.0194,
+ "cap_eur": 0.2,
+ "judge_only": true,
+ "kept": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-039",
+ "manifest": {
+  "run_id": "HAB-039",
+  "at": "2026-11-15T22:20:28+00:00",
+  "arms": [
+   "model_only_short"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.2,
+  "code": {
+   "commit": "bb9f53e86b05b878221a5c865230de88b706ef32",
+   "dirty": [],
+   "diff_sha256": null,
+   "untracked_sha256": null,
+   "untracked_files": 0
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": null,
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_model_only_short": "74c593495acb5f60",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "04956cc04a4915d4",
+   "case_agent_think_first": "98a726e97accd7c0",
+   "route_check": "61027a2803db8856"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "96fcda10b0e3e919"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_CASE_THINK_FIRST": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "67a47729b96ad6f30fb3eaaabf52e040bbfe86a4424672c85f3e369371eb1275",
+  "set": "dev",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "stage-2"
+ },
+ "capture": {
+  "exchanges": 24,
+  "ok": 16,
+  "whole": 16,
+  "with_thinking": 16,
+  "without_thinking": [],
+  "purposes": [
+   "exam_judge",
+   "exam_plain"
+  ]
+ },
+ "label": "stage-2",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better; judged after the run, from the kept conversations",
+ "conversations": [
+  {
+   "id": "hab-01",
+   "arm": "model_only_short",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run an online shop in the UAE. I believe our revenue fell in the first quarter of 2026 against the last quarter of 2025, and my manager wants me to build a machine learning model that predicts revenue. I am the analyst; the result goes to the head of sales, who decides where to spend the next quarter's marketing money. The table I shared is our order export: one row per order, with its date, region, channel, product category, amount, status and customer. I do not know why revenue fell, or whether the export is complete for the latest months. [shares sales.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Problem. The real decision is how to allocate next-quarter marketing money to increase revenue. The consumer is the head of sales. The unit is total revenue, not order count, and the moment is Q4 2025 versus Q1 2026, then forecasting for the next quarter. You told me the table is one row per order, with date, region, channel, category, amount, status and customer. You also told me you believe revenue fell, but you do not know why, nor whether the export is complete for recent months. Unknowns: which orders count as revenue, cancellations, refunds, taxes, discounts, payment delays, missing rows, and marketing-spend data.\n\nApproaches. No model can be best: descriptive analysis can locate the decline by period, status, region, channel and category; cheap, but no forecast. A simple time-series or regression model can forecast revenue from history, mix and calendar effects; cheap, but only if revenue is reliably measured. An order-level machine learning model is usually the wrong unit: it may predict each order’s amount or status, not aggregate revenue, and can leak if cancellations or returns are known only later. A marketing-mix or uplift model can support spend decisions, but needs campaign spend or customer acquisition data; costlier and more evidence-heavy.\n\nChoose: start with the no-model diagnostic, and only then a simple time-series model. First define revenue: sum amount for orders considered successful, excluding cancelled or refunded items, and confirm whether amount is net or gross. Second test export completeness: look at date range, weekly row counts, status mix, missing categories or customers, and reconcile with finance or payment records; if recent months are incomplete, pause. Third build a weekly revenue table and compare Q4 2025 and Q1 2026 by totals and segments, separating fewer orders, lower amount, more cancellations, or changed mix. Fourth, if history is clean, fit a baseline model predicting next-quarter revenue from prior weeks, seasonality and trend; use backtesting on earlier quarters, not random order splits. Check results by comparing accuracy against the naïve forecast of last period’s revenue, and report uncertainty. Stop before spending money if data completeness fails, the naïve forecast is as good as the model, or marketing-spend evidence is absent; then give segment findings and a small test budget instead of a definitive model.\n\nAssumptions: status contains cancellations or refunds, amount is revenue per order, dates reflect order time, and the export covers Q1 2026; all must be verified.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    46.24
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     false,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0012,
+   "judge_spent_eur": 0.0031
+  },
+  {
+   "id": "hab-02",
+   "arm": "model_only_short",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the product manager of a travel booking site. We want to know whether offering free cancellation makes fewer people cancel, so we can decide whether to offer it on every trip. The table I shared is our bookings: when each was booked, the travel date, destination, channel, price, whether it had free cancellation, and whether it was cancelled. Today free cancellation is offered on some trips and not on others; partners and our pricing team choose which, nobody assigned it at random. Tell me what you would do to answer this. [shares bookings.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Problem: You need decide whether default free cancellation would cause fewer cancellations, or whether any lower cancellation rate you see is just because partners/pricing choose it for bookings already less likely to cancel. Decision owner: product/pricing/finance. Unit: one booking. Moment: from booking_date through travel_date, with outcome cancelled/no. Known: historical bookings, treatment, cancellation, observed features. Unknown: the counterfactual for each booking; whether observed features fully explain assignment; unobserved factors like partner intent, customer urgency, promo, refund risk; how results extrapolate to “every trip.”\n\nApproaches:\n- Simple rate comparison: cheapest, immediate, but association only; biased if treatment is selected.\n- Regression/classification controlling all observed columns: moderate cost, gives conditional effect only if no hidden confounding; small sample and categorical features need caution.\n- Propensity-score matching/IPW or doubly robust estimation: more work, directly addresses selection by comparing like-for-like bookings; best if overlap exists.\n- Policy simulation/uplift model: predicts change per booking, useful for choosing which trips, but costly and extrapolation-sensitive.\n- Randomized pilot: not from the table, strongest causal answer; possible if business can assign free cancellation randomly on a subset.\n\nChoose: start with a doubly robust observational estimate: propensity model plus outcome model.\n\nPlan:\n1. Clean: one row per booking; ensure travel_date has passed; cancelled is final flag; drop incomplete records.\n2. Use features: destination, nationality, channel, price category, lead_time_days, booking_date/travel_date. Treat customer_id only for grouping/deduplication, not as predictive identity unless you want repeat-customer effects.\n3. Estimate propensity of free_cancellation from features. Check overlap: if some segments have only treated or untreated bookings, exclude or flag.\n4. Estimate ATE/ATT with matching or IPW plus regression; report effect and uncertainty.\n5. Validate covariate balance, model calibration, cross-validation; conduct sensitivity analysis for unobserved confounders and subgroup checks by destination/channel/price.\n6. If effect consistently reduces cancellations and is robust, evaluate business tradeoff with refund/admin cost to decide universal rollout or targeted offer.\n\nStop/escalate: if overlap is poor, estimates flip with small assumptions, or sample is too small for reliable segments, stop claiming causal effect; recommend targeted randomized test.\n\nI assume the cancellation flag is recorded reliably and that partners/pricing choices are related to the listed fields; you stated random assignment did not happen, so the main risk is unobserved selection bias.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    52.78
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 2,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": false
+   },
+   "spent_eur": 0.0023,
+   "judge_spent_eur": 0.0026
+  },
+  {
+   "id": "hab-03",
+   "arm": "model_only_short",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I lead retention at a subscription company. I want a model that tells us, for each customer, which discount to offer (none, 10 percent or 25 percent) so that they do not leave. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. We have never given discounts before, so there is no record of any offer or of how customers reacted. The retention team would use the result every month. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Problem. You need a monthly decision for each customer: offer no discount, 10 percent, or 25 percent, so that the customer stays for the next month. The retention team uses the output as an action list. The unit is one customer at the moment just before a discount is given, with the outcome being churn in the following month. From your table you know features available at that moment—segment, city, plan, tenure, monthly spend, support tickets in the last 90 days—and you know whether churn happened next month. You also know there was no prior discount offer and no response data. The unknown is the causal effect of each discount: would a customer have stayed without it, with 10 percent, or with 25 percent? With only observational churn data, no model can learn that reliably.\n\nApproaches. A no-model policy can use business rules, such as discount only high-risk segments; it is cheap and immediately usable, but evidence is weak. A churn-prediction model can rank likely churners from your features; it is modest to build and helps target, but it still cannot choose the discount. An uplift model can predict which discount best prevents churn; it is most valuable, but it requires randomized or otherwise trustworthy offer outcomes, which you do not have. A discount pilot is not a final model; it costs experiment time and discount margin, but it creates the data needed for a true discount-choice model.\n\nI choose the pilot plus interim risk ranking. Plan. First, define the monthly snapshot: features must be known before the offer, churned_next_month must be measured after. Assumption: those timestamps align; if not, correct them. Second, build or use a simple churn-risk model on your existing data—logistic regression or tree-based model—with a time-based holdout to check calibration and ranking, not to select discounts. Third, select eligible customers, ideally high-risk, and randomize them into no discount, 10 percent, and 25 percent, recording the assigned arm and next-month churn. Need a margin owner to define acceptable cost. Fourth, once enough randomized customers have been followed for one churn month, compare actual churn by arm; then fit a model that predicts churn separately for each arm or a policy that maximizes net retention. Validate only on a later randomized holdout by comparing churn rates and net cost.\n\nStop when a discount arm shows a reliable improvement over no discount for a clear customer group and the cost is acceptable. If none does, keep the default no-discount action and revise the cohort, offer amount, or outcome timing.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    31.09
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     false
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0014,
+   "judge_spent_eur": 0.0029
+  },
+  {
+   "id": "hab-04",
+   "arm": "model_only_short",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am a data scientist at a travel agency. I want to predict, at the moment a booking is made, whether it will be cancelled, so the operations team can overbook the right trips. The table I shared is our bookings up to late February 2026: booking date, travel date, destination, nationality, channel, lead time in days, price, free cancellation, and whether it was cancelled. Some of the trips in it have not happened yet. Operations would score every new booking once, on the day it is made. [shares bookings.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "You want to predict, for each booking at the moment it is made, the chance it will be cancelled, so operations can choose overbooking capacity for each trip. The unit is a booking. The result is used by operations, not for marketing. You told me the table has booking date, travel date, destination, nationality, channel, lead time, price, free cancellation, cancellation flag, and customer id. The key unknown at prediction time is the cancellation outcome; for bookings whose travel date is still in the future, that outcome may be incomplete. I assume “cancelled” is the target, and a row is usable only if the cancellation decision is fully observed by the data cutoff. I also assume price is an amount that may have been marked as categorical; if it is really a bucket, treat it as a bucket.\n\nOptions:\n\nA simple rule approach can estimate cancellation risk from stable segments such as destination, lead-time group, channel, and free-cancellation status. Cost is low and transparent. It gives a practical baseline and protects against overcomplicating limited data, but it ignores useful interactions and may miss shifts in behaviour.\n\nA supervised model using only booking-time fields can learn these interactions. Penalized logistic regression or a small tree/boosting model costs more: label cleaning, feature checks, time validation, and calibration. It gives a ranked risk score and can improve over segment rules.\n\nA survival/censoring approach handles trips whose cancellation outcome is not yet fully known. It is most faithful for overbooking but costs more in modelling and interpretation.\n\nI would start with the baseline segment method, then fit a penalized logistic regression on matured labels only. Steps:\n\n1. Keep only rows where cancellation is fully observed; mark future or partially known rows as not for supervised training.  \n2. Define the label as cancelled/not cancelled before departure.  \n3. Build only features available at booking time: destination, nationality, channel, lead time, price relative to destination, free cancellation, and useful interactions such as channel with lead time or destination with free cancellation. Use customer id only to create history features from earlier bookings; do not use it as a code.  \n4. Split data by time: older bookings for training, newer matured bookings for testing. Do not random shuffle, because cancellation behaviour changes by season and policy.  \n5. Compare the model against the segment baseline. Judge it by ranking, calibration, and recall for cancellations versus false overbooking, not only overall accuracy.  \n6. Choose a decision threshold using the operations tradeoff between leaving capacity empty and overbooking too much.  \n7. Deploy scores for new bookings, log them, and retrain when new matured bookings accumulate or when channels, pricing, destinations, or policies drift.\n\nStop or do not deploy if the model is not better than the baseline on the most recent matured period, or if too many labels are still open. If many future trips remain incomplete, switch to the survival approach.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    37.75
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0017,
+   "judge_spent_eur": 0.0014
+  },
+  {
+   "id": "hab-05",
+   "arm": "model_only_short",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I manage a small retention team at a subscription company. We can phone only 50 customers a month, out of about 1,200. I want to know which 50 to call. The table I shared has one row per customer: signup date, segment, city, plan, tenure, monthly spend, support tickets in the last 90 days, and whether they churned the next month. A call costs us about the same for every customer; a customer who stays is worth their monthly spend. We do not know yet whether a call changes anyone's mind. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The decision is which 50 customers, out of about 1,200, your retention team should call now. The unit is a customer, and the moment is the start of a month for an active subscription; the result concerns whether they are still there next month. What is known: each customer has signup date, segment, city, plan, tenure, monthly spend, recent support tickets, and a past next-month churn outcome. What is not known: whether a call changes behavior, who was or wasn’t called historically, and how well past outcomes predict this month.\n\nApproaches:\n\nNo model: call customers by simple rules, such as high monthly spend with many recent tickets or short tenure. This is cheap and transparent, but it may miss interactions and does not use the full history.\n\nChurn-risk model: train a model to predict next-month churn from past customer-month rows. This costs time to clean and validate, and gives a ranking of likely churners, but it assumes a risky customer is someone a call can save.\n\nValue-weighted risk model: rank by predicted churn chance multiplied by monthly spend. This adds little extra cost and aligns better with the value of keeping the customer.\n\nUplift or experimental approach: compare customers who are called with similar customers who are not, or randomize among candidates to learn who changes mind. This gives the most useful causal answer, but it costs more than a month’s 50 calls to get evidence.\n\nChoose the value-weighted risk model, while recording results so you can later learn about call effect.\n\nPlan:\n\nBuild customer-month history rows: use features known before the outcome and label churn in the next month. Confirm this timing assumption before using the table.\n\nPrepare fields: keep tenure, spend, tickets; encode segment, city, plan; drop identifiers.\n\nFit a simple, calibrated churn model, such as logistic regression, because it is easy to inspect and less likely to overfit this small history.\n\nValidate by time: train on earlier months and test on later months. Check that high scores really have higher churn and that the probability scale is reasonable. Compare against simple rules.\n\nEach month score all active candidates, rank by predicted churn chance times monthly spend, and choose the top 50. Use recent tickets or tenure to break ties.\n\nTrack called customers’ next-month retention. When enough comparable non-called records exist, compare outcomes to see whether the ranking also captures callability.\n\nStop with this plan if the time-validated model does not beat the rules, or if the labels do not match the intended moment; then revert to rules until better data or an explicit experiment is possible.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    65.12
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0024,
+   "judge_spent_eur": 0.002
+  },
+  {
+   "id": "hab-06",
+   "arm": "model_only_short",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the operations manager of a home appliance retailer. Our support complaints went up by about 30 percent since March, by my own count from the weekly reports. My director wants an AI model to fix this. We have no dataset: the tickets sit in our helpdesk system as free text with a date and an agent name, and nobody has labelled the reasons. I decide what the support team works on next month. What should we do?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Problem: this is not yet an AI model problem; it is a prioritisation decision. You need decide what support should tackle next month. The unit is each complaint, considered by cause, volume, and timing since the rise; the decision point is now. What you told me: complaints rose by 30 percent since March, weekly reports support that, tickets are free text with date and agent, no labelled reasons. What is unknown: why they rose, which issues matter most, whether it is products, delivery, installation, warranty, policy, staffing, or seasonality, and whether agent names are useful.\n\nApproaches:\n\nNo model: review recent tickets manually and create a short list of likely causes. Cheap, fast, tells you what to work on, but depends on human judgment and may miss small patterns.\n\nKeyword or rule checks: search text for words like repair, refund, delivery, installation. Inexpensive and transparent, but brittle and only finds known phrases.\n\nUnsupervised text grouping: let a topic model or clustering group tickets automatically. Can reveal hypotheses without labels, but you still need people to name and trust the groups.\n\nSupervised AI: train a classifier once you have labelled examples. Most reliable for routing future tickets, but costs labelling time and needs enough clear reasons.\n\nChoose this: start with no model, then add lightweight text grouping.\n\nBegin by gathering recent complaint text into a workable review list. With support leads, make a simple complaint taxonomy: product fault, delivery issue, installation issue, warranty or refund confusion, customer expectation, agent or process problem, other. Have agents tag new tickets against it, and tag a small past sample for calibration. Check quality by seeing whether different reviewers assign similar categories and whether the categories explain the rise. Use keyword rules for obvious, urgent patterns, such as safety or repeat-contact issues. Use text clustering only to suggest new categories, not to make final decisions.\n\nWhen categories are stable, decide next month’s work: fix top causes, update scripts, improve information, or raise defects to product or service owners. Stop expanding the taxonomy when adding labels no longer changes priorities.\n\nI assume ticket text is rich enough to categorise, staff can tag briefly, and the director wants an actionable plan, not a model for its own sake. If those assumptions fail, the answer is process and training work, not AI.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    33.78
+   ],
+   "safety": {
+    "uncited": [
+     "30"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     false,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0011,
+   "judge_spent_eur": 0.0024
+  },
+  {
+   "id": "hab-07",
+   "arm": "model_only_short",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run deliveries for a grocery company in Dubai: 12 vans and about 300 orders a day, each with an address and a promised time window. Fuel and driver hours cost too much. A consultant told me to build a prediction model. I have the order log and the vans' GPS traces, but I have not exported them yet. I am the one who plans the routes every morning. Is a prediction model what I need, and what would you do first?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "No, not first. Your real problem is dispatching: each morning, decide how to assign each order to a van and in what sequence, so the promised windows are met and fuel and driver hours are lower. The result is used by you, and later by drivers. The unit is a van route for a day. Known from you: order addresses, promised windows, daily demand, GPS traces exist but are not yet exported. Not known: vehicle capacity, order weights, service and parking time, driver shifts, cost of waiting or lateness, traffic assumptions, or whether all orders are known when you plan. I assume you need same-day routing, not long-term planning.\n\nPrediction can help later: estimate drive times from GPS, traffic, or delays. It is not the main lever while route choices are still being decided by hand.\n\nApproaches: no model, using manual rules or routing spreadsheets; fast and practical, may reduce some cost but gives no systematic improvement. Routing optimization with a simple travel-time table; needs exported, clean data and constraints, can reduce distance/hours and handle time windows. Predictive travel-time model after optimization; more data work and risk, gives better realism. Demand forecast; may help staffing but does not solve daily route cost.\n\nI would choose routing optimization first, with no learned model initially. Plan: agree the objective and hard constraints; export and clean order logs and GPS; geocode addresses and match GPS to completed routes; validate that time windows and service times make sense; build a simple travel-time or distance table using map routing or historical GPS; run an assignment-and-sequencing model for recent orders and compare its routes with your current routes on estimated distance, stops, time-window violations, and whether routes look drivable; adjust rules; then use it live. Add a predictive model only if travel-time errors or traffic make plans unstable. Stop when the plan reliably gives feasible routes that save time/fuel and that you trust; if data cannot be trusted or constraints are missing, stop at manual rules and fix the data first.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    33.52
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0012,
+   "judge_spent_eur": 0.0014
+  },
+  {
+   "id": "hab-08",
+   "arm": "model_only_short",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am an analyst at a subscription company. Please build a model that predicts churned_next_month for each customer. The table I shared has one row per customer: customer_id, signup date, segment, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and churned_next_month. The retention team will score all active customers at the start of each month and contact the riskiest ones. Go ahead. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I cannot train it from the shared metadata alone, but here is how to build it.\n\nYou need a churn-risk score. Decision: who to contact for retention before next month. Users: retention team. Unit: active customer. Moment: start of each month.\n\nGiven you: customer_id, signup date, segment, city, plan, tenure_months, monthly_spend, support_tickets_90d, and label churned_next_month. Known: these fields exist, and you want scores for all active customers at the start of each month. Not given: exact label window, whether every feature is known before scoring, missing-data level, churn prevalence, contact capacity, value/cost of retention, or safe use of segment/city/plan.\n\nI assume features are available at scoring, the label is trustworthy, and support tickets reflect past behavior only.\n\nApproaches:\n- No model: rank by support tickets, tenure, spend, plan, or segment. Low cost and transparent, but crude and may miss combined signals.\n- Logistic regression: cheap, stable, gives probabilities and rankings, but needs careful category handling and may miss nonlinear interactions.\n- Tree ensemble: gradient boosting or random forest. Can find nonlinear patterns and interactions; cost is more tuning, less interpretability, and higher overfitting risk.\n\nChoose logistic regression as the main model, with a no-model rule list as baseline. Use tree ensemble only as a challenger if validation shows a reliable ranking gain.\n\nPlan:\n- Confirm leakage and timing. Ensure churned_next_month is future, and support_tickets_90d, tenure, spend, segment, city, and plan are measured before the scoring date. Derive features only from information available at the start of a month.\n- Use a time-based check. Train on older customer-months if available and validate on the most recent month. Do not rely only on random splits, because scoring happens before next month.\n- Prepare features: encode segment, city, and plan with a low-cardinality method using cross-validation; keep tenure_months, monthly_spend, and support_tickets_90d numeric; handle missing values without leaking; add business ratios only if they make sense.\n- Train a regularized logistic regression model, using class weighting if the churn label is rare.\n- Check performance: rank quality with ROC and precision-recall scores; calibration, so probabilities are meaningful; lift for the riskiest list; stability across segments and time.\n- Operate the model: score all active customers at the start of each month, contact the highest-risk list allowed by team capacity, and monitor churn among contacted and not-contacted groups.\n- Stop and use no model if validation ranking does not beat simple rules, or if leakage is found. Stop tuning when validation ranking stops improving, and retrain before drift makes scores misleading.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    64.61
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": true,
+    "understood": [
+     false,
+     true,
+     true,
+     false
+    ],
+    "forbidden_done": [
+     false,
+     false
+    ],
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true
+   },
+   "spent_eur": 0.0032,
+   "judge_spent_eur": 0.0037
+  }
+ ],
+ "scores": {
+  "model_only_short": [
+   {
+    "run": "HAB-039",
+    "case": "hab-01",
+    "arm": "model_only_short",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.75,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 46.24,
+    "spent_eur": 0.0012,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-039",
+    "case": "hab-02",
+    "arm": "model_only_short",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 2,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": false,
+    "understood_share": 0.75,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 52.78,
+    "spent_eur": 0.0023,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-039",
+    "case": "hab-03",
+    "arm": "model_only_short",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.75,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 31.09,
+    "spent_eur": 0.0014,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-039",
+    "case": "hab-04",
+    "arm": "model_only_short",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 4,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 37.75,
+    "spent_eur": 0.0017,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-039",
+    "case": "hab-05",
+    "arm": "model_only_short",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 65.12,
+    "spent_eur": 0.0024,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-039",
+    "case": "hab-06",
+    "arm": "model_only_short",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.75,
+    "forbidden_done": 0,
+    "safety_failures": 1,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 33.78,
+    "spent_eur": 0.0011,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-039",
+    "case": "hab-07",
+    "arm": "model_only_short",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 4,
+    "planning": 4,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 1.0,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 33.52,
+    "spent_eur": 0.0012,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-039",
+    "case": "hab-08",
+    "arm": "model_only_short",
+    "repeat": 1,
+    "judged": true,
+    "failed": false,
+    "understanding": 3,
+    "solution_design": 3,
+    "planning": 3,
+    "evidence_discipline": 4,
+    "adaptation": null,
+    "accepted": true,
+    "understood_share": 0.5,
+    "forbidden_done": 0,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 64.61,
+    "spent_eur": 0.0032,
+    "first_divergence": null,
+    "wanted_right": null
+   }
+  ]
+ },
+ "summary": {
+  "model_only_short": {
+   "conversations": 8,
+   "judged": 8,
+   "failed": 0,
+   "understanding": 3.25,
+   "solution_design": 3.625,
+   "planning": 3.625,
+   "evidence_discipline": 4.0,
+   "adaptation": null,
+   "accepted_rate": 0.875,
+   "understood_share": 0.8125,
+   "forbidden_done": 0,
+   "safety_failures": 1,
+   "seconds": 45.6112,
+   "spent_eur": 0.0145
+  }
+ },
+ "paired": {},
+ "first_divergence_counts": {},
+ "incomplete": null
+}

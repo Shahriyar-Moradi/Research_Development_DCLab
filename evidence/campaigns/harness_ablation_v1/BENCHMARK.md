@@ -10,21 +10,25 @@ Every check must hold. "not read" means the run kept nothing to count it from, o
 | run | model | judge | passed | cases | judge | planning: lead agent minus the model alone | understanding | numbers nobody gave | built without yes | blocked runs | fallback lines | empty answers | cut replies |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | HAB-002 | qwen/qwen3.8-flash | qwen/qwen3.8-27b | fail | ok 8 | FAIL qwen/qwen3.8-27b | ok -0.25 | FAIL 2.62 | ok 0 | ok 0 | FAIL 1 | ok 0 | ok 0 | ok 0 |
-| HAB-003 + HAB-004 | anthropic/claude-sonnet-5.5 | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | NOT READ nvidia/nemotron-3.5-super-vl:free | FAIL -2.75 | NOT READ 2.62 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 |
+| HAB-003 + HAB-004 | anthropic/claude-sonnet-5.5 | nvidia/nemotron-3.5-super-vl | fail | ok 8 | NOT READ nvidia/nemotron-3.5-super-vl | FAIL -2.75 | NOT READ 2.62 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 |
 | HAB-006 (after-three-fixes) | nvidia/nemotron-3-ultra-550b-a55b:free | qwen/qwen3.8-27b | fail | ok 8 | NOT READ qwen/qwen3.8-27b | FAIL -2.25 | NOT READ 2.12 | ok 0 | ok 0 | FAIL 2 | ok 0 | ok 0 | ok 0 |
-| HAB-007 + HAB-008 + HAB-009 + HAB-010 (after-three-fixes) | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl:free | FAIL -1.62 | ok 3.38 | ok 0 | ok 0 | FAIL 1 | ok 0 | FAIL 1 | ok 0 |
+| HAB-007 + HAB-008 + HAB-009 + HAB-010 (after-three-fixes) | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl | FAIL -1.62 | ok 3.38 | ok 0 | ok 0 | FAIL 1 | ok 0 | FAIL 1 | ok 0 |
 | HAB-011 + HAB-012 (after-three-fixes) | nvidia/nemotron-3.5-super-vl:free | qwen/qwen3.8-27b | fail | ok 8 | ok qwen/qwen3.8-27b | FAIL -1.62 | ok 2.38 | ok 0 | ok 0 | FAIL 2 | FAIL 1 | FAIL 5 | ok 0 |
-| HAB-014 + HAB-015 + HAB-022 (stage-2) | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl:free | FAIL -0.88 | ok 4.00 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 |
-| HAB-016 + HAB-017 (stage-2) | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl:free | FAIL -1.50 | FAIL 3.25 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 |
+| HAB-014 + HAB-015 + HAB-022 + HAB-039 (stage-2) | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl | FAIL -0.88 | ok 4.00 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 |
+| HAB-016 + HAB-017 + HAB-040 (stage-2) | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl | FAIL -1.50 | FAIL 3.25 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 |
 | HAB-018 + HAB-019 (stage-2) | nvidia/nemotron-3.5-super-vl:free | qwen/qwen3.8-27b | fail | ok 8 | ok qwen/qwen3.8-27b | FAIL -1.38 | ok 2.38 | ok 0 | ok 0 | ok 0 | ok 0 | FAIL 1 | FAIL 1 |
 | HAB-020 + HAB-021 (stage-2) | nvidia/nemotron-3.5-super-vl:free | qwen/qwen3.8-27b | fail | ok 8 | ok qwen/qwen3.8-27b | FAIL -1.00 | FAIL 2.00 | ok 0 | ok 0 | ok 0 | ok 0 | FAIL 3 | FAIL 3 |
 | HAB-023 + HAB-024 (stage-2) | nvidia/nemotron-3-ultra-550b-a55b:free | qwen/qwen3.8-27b | fail | ok 8 | NOT READ qwen/qwen3.8-27b | FAIL -1.50 | NOT READ 2.38 | ok 0 | ok 0 | FAIL 2 | ok 0 | ok 0 | ok 0 |
 | HAB-025 + HAB-026 (stage-2) | nvidia/nemotron-3-ultra-550b-a55b:free | qwen/qwen3.8-27b | fail | ok 8 | NOT READ qwen/qwen3.8-27b | FAIL -1.25 | NOT READ 1.75 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 |
-| HAB-027 + HAB-028 (stage-2) | qwen/qwen3.8-27b | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | NOT READ nvidia/nemotron-3.5-super-vl:free | FAIL -1.50 | NOT READ 2.62 | ok 0 | ok 0 | ok 0 | ok 0 | FAIL 1 | FAIL 1 |
-| HAB-029 + HAB-030 (stage-2) | qwen/qwen3.8-27b | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | NOT READ nvidia/nemotron-3.5-super-vl:free | FAIL -1.88 | NOT READ 2.38 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 |
-| HAB-031 + HAB-032 (after-three-fixes) | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl:free | FAIL -1.38 | FAIL 3.00 | ok 0 | ok 0 | ok 0 | ok 0 | FAIL 2 | ok 0 |
-| HAB-002 | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl:free | FAIL -0.88 | FAIL 2.62 | ok 0 | ok 0 | FAIL 1 | ok 0 | ok 0 | ok 0 |
-| HAB-006 (after-three-fixes) | nvidia/nemotron-3-ultra-550b-a55b:free | nvidia/nemotron-3.5-super-vl:free | fail | ok 8 | NOT READ nvidia/nemotron-3.5-super-vl:free | FAIL -2.38 | NOT READ 2.38 | ok 0 | ok 0 | FAIL 2 | ok 0 | ok 0 | ok 0 |
+| HAB-027 + HAB-028 (stage-2) | qwen/qwen3.8-27b | nvidia/nemotron-3.5-super-vl | fail | ok 8 | NOT READ nvidia/nemotron-3.5-super-vl | FAIL -1.50 | NOT READ 2.62 | ok 0 | ok 0 | ok 0 | ok 0 | FAIL 1 | FAIL 1 |
+| HAB-029 + HAB-030 (stage-2) | qwen/qwen3.8-27b | nvidia/nemotron-3.5-super-vl | fail | ok 8 | NOT READ nvidia/nemotron-3.5-super-vl | FAIL -1.88 | NOT READ 2.38 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 | ok 0 |
+| HAB-031 + HAB-032 (after-three-fixes) | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl | FAIL -1.38 | FAIL 3.00 | ok 0 | ok 0 | ok 0 | ok 0 | FAIL 2 | ok 0 |
+| HAB-033 + HAB-034 (stage-4) · think first | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl | FAIL -1.00 | ok 3.88 | ok 0 | ok 0 | ok 0 | ok 0 | FAIL 1 | FAIL 1 |
+| HAB-035 + HAB-036 (stage-4) · think first | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl | FAIL -0.62 | ok 3.62 | ok 0 | ok 0 | ok 0 | ok 0 | FAIL 2 | FAIL 2 |
+| HAB-037 (stage-4) · think first | nvidia/nemotron-3.5-super-vl:free | qwen/qwen3.8-27b | fail | ok 8 | ok qwen/qwen3.8-27b | FAIL -1.88 | FAIL 1.62 | ok 0 | ok 0 | ok 0 | ok 0 | FAIL 4 | FAIL 4 |
+| HAB-038 (stage-4) · think first | nvidia/nemotron-3.5-super-vl:free | qwen/qwen3.8-27b | fail | ok 8 | ok qwen/qwen3.8-27b | FAIL -1.00 | ok 2.38 | ok 0 | ok 0 | ok 0 | ok 0 | FAIL 3 | FAIL 3 |
+| HAB-002 | qwen/qwen3.8-flash | nvidia/nemotron-3.5-super-vl | fail | ok 8 | ok nvidia/nemotron-3.5-super-vl | FAIL -0.88 | FAIL 2.62 | ok 0 | ok 0 | FAIL 1 | ok 0 | ok 0 | ok 0 |
+| HAB-006 (after-three-fixes) | nvidia/nemotron-3-ultra-550b-a55b:free | nvidia/nemotron-3.5-super-vl | fail | ok 8 | NOT READ nvidia/nemotron-3.5-super-vl | FAIL -2.38 | NOT READ 2.38 | ok 0 | ok 0 | FAIL 2 | ok 0 | ok 0 | ok 0 |
 
 ## All models side by side
 
@@ -35,95 +39,107 @@ One row per model and judge. Compare arms inside a row; rows under different jud
 | model | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | Accepted | Must-not-do done | Numbers nobody gave | Turns | Seconds | € per conversation | Empty or cut answers |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | qwen/qwen3.8-flash · judge qwen/qwen3.8-27b | 2.88 | 2.62 | 2.38 | 3.38 | 5 of 8 | 0 | 1 | 1.0 | 101 | 0.003 | 2 |
-| anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl:free | 3.88 | 4.00 | 4.00 | 4.00 | 8 of 8 | 0 | 3 | 1.0 | 24 | 0.026 | 0 |
+| anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl | 3.88 | 4.00 | 4.00 | 4.00 | 8 of 8 | 0 | 3 | 1.0 | 24 | 0.026 | 0 |
 | nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge qwen/qwen3.8-27b | 3.50 | 3.62 | 3.75 | 3.62 | 8 of 8 | 0 | 61 | 1.0 | 105 | 0.000 | 0 |
 | nvidia/nemotron-3.5-super-vl:free (after-three-fixes) · judge qwen/qwen3.8-27b | 3.00 | 3.38 | 3.38 | 3.88 | 8 of 8 | 0 | 1 | 1.0 | 44 | 0.000 | 0 |
-| qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl:free | 4.00 | 4.00 | 4.00 | 4.00 | 8 of 8 | 0 | 6 | 1.0 | 153 | 0.004 | 0 |
-| qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl:free · people dev2 | 3.88 | 3.88 | 4.00 | 4.00 | 7 of 8 | 0 | 6 | 1.0 | 140 | 0.004 | 0 |
+| qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl | 4.00 | 4.00 | 4.00 | 4.00 | 8 of 8 | 0 | 6 | 1.0 | 153 | 0.004 | 0 |
+| qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl · people dev2 | 3.88 | 3.88 | 4.00 | 4.00 | 7 of 8 | 0 | 6 | 1.0 | 140 | 0.004 | 0 |
 | nvidia/nemotron-3.5-super-vl:free (stage-2) · judge qwen/qwen3.8-27b · people dev2 | 3.12 | 2.62 | 2.88 | 3.62 | 7 of 8 | 2 | 3 | 1.0 | 74 | 0.000 | 0 |
 | nvidia/nemotron-3-ultra-550b-a55b:free (stage-2) · judge qwen/qwen3.8-27b · people dev2 | 2.88 | 2.75 | 3.12 | 3.38 | 5 of 8 | 2 | 75 | 1.0 | 92 | 0.000 | 0 |
-| qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl:free | 3.75 | 3.88 | 3.88 | 4.00 | 7 of 8 | 0 | 58 | 1.0 | 29 | 0.007 | 0 |
-| qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl:free · people dev2 | 3.75 | 3.88 | 3.88 | 4.00 | 7 of 8 | 0 | 100 | 1.0 | 43 | 0.008 | 0 |
-| qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl:free | 3.00 | 2.88 | 2.75 | 3.75 | 6 of 8 | 0 | 1 | 1.0 | 101 | 0.003 | 2 |
-| nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free | 3.25 | 3.88 | 3.75 | 3.88 | 8 of 8 | 0 | 61 | 1.0 | 105 | 0.000 | 0 |
+| qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl | 3.75 | 3.88 | 3.88 | 4.00 | 7 of 8 | 0 | 58 | 1.0 | 29 | 0.007 | 0 |
+| qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl · people dev2 | 3.75 | 3.88 | 3.88 | 4.00 | 7 of 8 | 0 | 100 | 1.0 | 43 | 0.008 | 0 |
+| qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl | 3.00 | 2.88 | 2.75 | 3.75 | 6 of 8 | 0 | 1 | 1.0 | 101 | 0.003 | 2 |
+| nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl | 3.25 | 3.88 | 3.75 | 3.88 | 8 of 8 | 0 | 61 | 1.0 | 105 | 0.000 | 0 |
 
 ### Minimal agent
 
 | model | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | Accepted | Must-not-do done | Numbers nobody gave | Turns | Seconds | € per conversation | Empty or cut answers |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | qwen/qwen3.8-flash · judge qwen/qwen3.8-27b | 2.62 | 2.38 | 2.62 | 3.00 | 6 of 8 | 0 | 4 | 1.8 | 167 | 0.008 | 4 |
-| anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl:free | 3.38 | 3.50 | 3.50 | 3.50 | 7 of 8 | 0 | 76 | 1.5 | 35 | 0.082 | 1 |
+| anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl | 3.38 | 3.50 | 3.50 | 3.50 | 7 of 8 | 0 | 76 | 1.5 | 35 | 0.082 | 1 |
 | nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge qwen/qwen3.8-27b | 1.88 | 1.62 | 1.75 | 2.38 | 3 of 8 | 0 | 386 | 1.6 | 117 | 0.000 | 4 |
 | nvidia/nemotron-3.5-super-vl:free (after-three-fixes) · judge qwen/qwen3.8-27b | 2.88 | 3.00 | 2.88 | 3.25 | 6 of 8 | 0 | 149 | 2.9 | 80 | 0.000 | 0 |
-| qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl:free | 2.50 | 2.38 | 2.50 | 3.00 | 5 of 8 | 0 | 4 | 1.8 | 167 | 0.008 | 4 |
-| nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free | 1.62 | 1.62 | 1.62 | 1.88 | 3 of 8 | 0 | 386 | 1.6 | 117 | 0.000 | 4 |
+| qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl | 2.50 | 2.38 | 2.50 | 3.00 | 5 of 8 | 0 | 4 | 1.8 | 167 | 0.008 | 4 |
+| nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl | 1.62 | 1.62 | 1.62 | 1.88 | 3 of 8 | 0 | 386 | 1.6 | 117 | 0.000 | 4 |
 
 ### Minimal agent + DCLab's 6 kinds of work
 
 | model | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | Accepted | Must-not-do done | Numbers nobody gave | Turns | Seconds | € per conversation | Empty or cut answers |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | qwen/qwen3.8-flash · judge qwen/qwen3.8-27b | 2.75 | 2.50 | 2.12 | 2.62 | 6 of 8 | 0 | 52 | 1.9 | 58 | 0.003 | 2 |
-| anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl:free | 2.88 | 3.38 | 2.25 | 3.88 | 8 of 8 | 0 | 19 | 2.0 | 21 | 0.059 | 0 |
+| anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl | 2.88 | 3.38 | 2.25 | 3.88 | 8 of 8 | 0 | 19 | 2.0 | 21 | 0.059 | 0 |
 | nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge qwen/qwen3.8-27b | 2.00 | 1.75 | 1.75 | 2.62 | 3 of 8 | 0 | 12 | 2.0 | 70 | 0.000 | 1 |
 | nvidia/nemotron-3.5-super-vl:free (after-three-fixes) · judge qwen/qwen3.8-27b | 1.88 | 1.75 | 1.38 | 2.75 | 2 of 8 | 0 | 2 | 2.0 | 30 | 0.000 | 0 |
-| qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl:free | 2.50 | 2.75 | 2.12 | 2.88 | 4 of 8 | 0 | 52 | 1.9 | 58 | 0.003 | 2 |
-| nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free | 2.00 | 2.00 | 1.88 | 3.00 | 2 of 8 | 1 | 12 | 2.0 | 70 | 0.000 | 1 |
+| qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl | 2.50 | 2.75 | 2.12 | 2.88 | 4 of 8 | 0 | 52 | 1.9 | 58 | 0.003 | 2 |
+| nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl | 2.00 | 2.00 | 1.88 | 3.00 | 2 of 8 | 1 | 12 | 2.0 | 70 | 0.000 | 1 |
 
 ### Current DCLab (lead agent)
 
 | model | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | Accepted | Must-not-do done | Numbers nobody gave | Turns | Seconds | € per conversation | Empty or cut answers |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | qwen/qwen3.8-flash · judge qwen/qwen3.8-27b | 2.62 | 2.50 | 2.12 | 3.38 | 5 of 8 | 0 | 0 | 2.5 | 138 | 0.010 | 0 |
-| anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl:free | 2.62 | 3.00 | 1.25 | 3.62 | 4 of 8 | 0 | 0 | 2.5 | 33 | 0.189 | 0 |
+| anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl | 2.62 | 3.00 | 1.25 | 3.62 | 4 of 8 | 0 | 0 | 2.5 | 33 | 0.189 | 0 |
 | nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge qwen/qwen3.8-27b | 2.12 | 2.00 | 1.50 | 2.88 | 1 of 8 | 1 | 0 | 2.8 | 158 | 0.000 | 0 |
-| qwen/qwen3.8-flash (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free | 3.38 | 3.38 | 2.38 | 3.50 | 6 of 8 | 0 | 0 | 2.4 | 195 | 0.012 | 0 |
+| qwen/qwen3.8-flash (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl | 3.38 | 3.38 | 2.38 | 3.50 | 6 of 8 | 0 | 0 | 2.4 | 195 | 0.012 | 0 |
 | nvidia/nemotron-3.5-super-vl:free (after-three-fixes) · judge qwen/qwen3.8-27b | 2.38 | 2.00 | 1.75 | 3.00 | 2 of 8 | 0 | 0 | 2.8 | 115 | 0.000 | 0 |
-| qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl:free | 4.00 | 3.62 | 3.12 | 4.00 | 7 of 8 | 0 | 0 | 2.4 | 154 | 0.010 | 0 |
-| qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl:free · people dev2 | 3.25 | 2.88 | 2.50 | 3.75 | 5 of 8 | 2 | 0 | 2.4 | 167 | 0.010 | 0 |
+| qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl | 4.00 | 3.62 | 3.12 | 4.00 | 7 of 8 | 0 | 0 | 2.4 | 154 | 0.010 | 0 |
+| qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl · people dev2 | 3.25 | 2.88 | 2.50 | 3.75 | 5 of 8 | 2 | 0 | 2.4 | 167 | 0.010 | 0 |
 | nvidia/nemotron-3.5-super-vl:free (stage-2) · judge qwen/qwen3.8-27b | 2.38 | 2.25 | 2.00 | 3.00 | 5 of 8 | 0 | 0 | 2.6 | 131 | 0.000 | 0 |
 | nvidia/nemotron-3.5-super-vl:free (stage-2) · judge qwen/qwen3.8-27b · people dev2 | 2.00 | 1.75 | 1.88 | 2.62 | 2 of 8 | 3 | 0 | 2.1 | 163 | 0.000 | 0 |
 | nvidia/nemotron-3-ultra-550b-a55b:free (stage-2) · judge qwen/qwen3.8-27b | 2.38 | 2.25 | 2.25 | 2.88 | 4 of 8 | 1 | 0 | 2.6 | 146 | 0.000 | 0 |
 | nvidia/nemotron-3-ultra-550b-a55b:free (stage-2) · judge qwen/qwen3.8-27b · people dev2 | 1.75 | 1.75 | 1.88 | 2.38 | 1 of 8 | 3 | 0 | 2.4 | 110 | 0.000 | 0 |
-| qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl:free | 2.62 | 2.88 | 2.38 | 3.00 | 5 of 8 | 0 | 0 | 2.2 | 80 | 0.018 | 0 |
-| qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl:free · people dev2 | 2.38 | 2.25 | 2.00 | 2.75 | 2 of 8 | 2 | 0 | 2.1 | 103 | 0.019 | 0 |
-| qwen/qwen3.8-flash (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free · people dev2 | 3.00 | 2.75 | 2.62 | 3.75 | 5 of 8 | 1 | 0 | 2.1 | 150 | 0.010 | 0 |
-| qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl:free | 2.62 | 3.12 | 1.88 | 3.62 | 4 of 8 | 0 | 0 | 2.5 | 138 | 0.010 | 0 |
-| nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free | 2.38 | 2.38 | 1.38 | 3.12 | 2 of 8 | 1 | 0 | 2.8 | 158 | 0.000 | 0 |
+| qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl | 2.62 | 2.88 | 2.38 | 3.00 | 5 of 8 | 0 | 0 | 2.2 | 80 | 0.018 | 0 |
+| qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl · people dev2 | 2.38 | 2.25 | 2.00 | 2.75 | 2 of 8 | 2 | 0 | 2.1 | 103 | 0.019 | 0 |
+| qwen/qwen3.8-flash (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl · people dev2 | 3.00 | 2.75 | 2.62 | 3.75 | 5 of 8 | 1 | 0 | 2.1 | 150 | 0.010 | 0 |
+| qwen/qwen3.8-flash (stage-4) · judge nvidia/nemotron-3.5-super-vl · think first | 3.88 | 3.50 | 3.00 | 3.75 | 7 of 8 | 0 | 0 | 2.5 | 217 | 0.014 | 0 |
+| qwen/qwen3.8-flash (stage-4) · judge nvidia/nemotron-3.5-super-vl · people dev2 · think first | 3.62 | 3.62 | 3.38 | 3.88 | 7 of 8 | 0 | 0 | 2.4 | 231 | 0.014 | 0 |
+| nvidia/nemotron-3.5-super-vl:free (stage-4) · judge qwen/qwen3.8-27b · think first | 1.62 | 1.50 | 1.50 | 2.12 | 4 of 8 | 0 | 0 | 1.4 | 131 | 0.000 | 0 |
+| nvidia/nemotron-3.5-super-vl:free (stage-4) · judge qwen/qwen3.8-27b · people dev2 · think first | 2.38 | 2.00 | 1.88 | 2.88 | 4 of 8 | 1 | 0 | 2.2 | 130 | 0.000 | 0 |
+| qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl | 2.62 | 3.12 | 1.88 | 3.62 | 4 of 8 | 0 | 0 | 2.5 | 138 | 0.010 | 0 |
+| nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl | 2.38 | 2.38 | 1.38 | 3.12 | 2 of 8 | 1 | 0 | 2.8 | 158 | 0.000 | 0 |
+
+### Model only, held to 450 words
+
+| model | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | Accepted | Must-not-do done | Numbers nobody gave | Turns | Seconds | € per conversation | Empty or cut answers |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl | 3.25 | 3.62 | 3.62 | 4.00 | 7 of 8 | 0 | 1 | 1.0 | 46 | 0.002 | 0 |
+| qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl · people dev2 | 3.12 | 2.62 | 3.38 | 3.88 | 5 of 8 | 2 | 2 | 1.0 | 75 | 0.002 | 0 |
 
 ### What the harness changes inside each model (current DCLab minus the minimal agent, by case, 95% interval)
 
 | model | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | Accepted |
 |---|---|---|---|---|---|
 | qwen/qwen3.8-flash · judge qwen/qwen3.8-27b | 0.00 [-1.12, 1.12] | 0.12 [-0.88, 1.25] | -0.50 [-1.25, 0.38] | 0.38 [-0.50, 1.62] | -0.12 [-0.62, 0.38] |
-| anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl:free | -0.75 [-1.50, 0.38] | -0.50 [-1.62, 0.88] | -2.25 [-3.12, -1.00] | 0.12 [-0.50, 1.00] | -0.38 [-0.75, 0.12] |
+| anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl | -0.75 [-1.50, 0.38] | -0.50 [-1.62, 0.88] | -2.25 [-3.12, -1.00] | 0.12 [-0.50, 1.00] | -0.38 [-0.75, 0.12] |
 | nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge qwen/qwen3.8-27b | 0.25 [-0.88, 1.38] | 0.38 [-0.88, 1.50] | -0.25 [-1.25, 0.75] | 0.50 [-0.25, 1.38] | -0.25 [-0.62, 0.25] |
 | nvidia/nemotron-3.5-super-vl:free (after-three-fixes) · judge qwen/qwen3.8-27b | -0.50 [-1.00, 0.00] | -1.00 [-1.62, -0.38] | -1.12 [-1.88, -0.38] | -0.25 [-0.62, 0.25] | -0.50 [-0.88, -0.12] |
-| qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl:free | 0.12 [-0.88, 1.25] | 0.75 [-0.38, 1.75] | -0.62 [-1.75, 0.38] | 0.62 [-0.25, 1.75] | -0.12 [-0.50, 0.25] |
-| nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free | 0.75 [-0.38, 1.88] | 0.75 [-0.75, 1.88] | -0.25 [-1.38, 0.88] | 1.25 [0.25, 2.12] | -0.12 [-0.50, 0.25] |
+| qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl | 0.12 [-0.88, 1.25] | 0.75 [-0.38, 1.75] | -0.62 [-1.75, 0.38] | 0.62 [-0.25, 1.75] | -0.12 [-0.50, 0.25] |
+| nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl | 0.75 [-0.38, 1.88] | 0.75 [-0.75, 1.88] | -0.25 [-1.38, 0.88] | 1.25 [0.25, 2.12] | -0.12 [-0.50, 0.25] |
 
 ### Where the lead agent's code stepped in, by model (all 8 conversations)
 
-| what | qwen/qwen3.8-flash · judge qwen/qwen3.8-27b | anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl:free | nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge qwen/qwen3.8-27b | qwen/qwen3.8-flash (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free | nvidia/nemotron-3.5-super-vl:free (after-three-fixes) · judge qwen/qwen3.8-27b | qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl:free | qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl:free · people dev2 | nvidia/nemotron-3.5-super-vl:free (stage-2) · judge qwen/qwen3.8-27b | nvidia/nemotron-3.5-super-vl:free (stage-2) · judge qwen/qwen3.8-27b · people dev2 | nvidia/nemotron-3-ultra-550b-a55b:free (stage-2) · judge qwen/qwen3.8-27b | nvidia/nemotron-3-ultra-550b-a55b:free (stage-2) · judge qwen/qwen3.8-27b · people dev2 | qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl:free | qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl:free · people dev2 | qwen/qwen3.8-flash (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free · people dev2 | qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl:free | nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl:free |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Limit on table questions per turn | 10 | 5 | 2 | 0 | 0 | 3 | 1 | 0 | 0 | 1 | 0 | 1 | 0 | 6 | 10 | 2 |
-| The table tool cannot ask the question | 11 | 4 | 0 | 2 | 0 | 2 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 11 | 0 |
-| A build asked for without the person's yes | 3 | 2 | 7 | 6 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 3 | 7 |
-| The model's call was malformed | 4 | 0 | 0 | 6 | 1 | 3 | 6 | 0 | 1 | 0 | 0 | 0 | 2 | 2 | 4 | 0 |
-| Another refusal (a build without a yes, a bad argument) | 2 | 0 | 3 | 1 | 1 | 2 | 1 | 1 | 0 | 1 | 2 | 5 | 0 | 2 | 2 | 3 |
-| An option removed by a check | 3 | 1 | 4 | 1 | 1 | 1 | 1 | 0 | 0 | 2 | 0 | 1 | 1 | 1 | 3 | 4 |
-| An outcome column the person never named | 1 | 2 | 2 | 1 | 1 | 3 | 0 | 4 | 0 | 4 | 0 | 1 | 2 | 0 | 1 | 2 |
-| A second small model overrules the kind of work | 3 | 2 | 0 | 3 | 1 | 1 | 2 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 3 | 0 |
-| The turn's step budget ran out | 3 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 3 | 1 |
-| Work refused: the case is "not ready" | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 0 | 2 | 0 | 0 | 3 | 0 | 1 | 1 |
-| An option kept, one sentence with a number removed | 0 | 0 | 1 | 1 | 0 | 2 | 1 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 1 |
-| A table is needed first | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 1 | 1 | 1 |
-| Advice refused: the words ask for data work | 1 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| A build asked for on a pick (a pick is not a yes) | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 2 | 0 | 0 | 0 | 0 | 0 |
-| Code set the kind of work | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 |
-| A build asked for before a project was started | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
-| Sent to the no-data blueprint | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
-| No new options after work started | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
-| **all** | **43** | **17** | **22** | **23** | **12** | **17** | **14** | **5** | **5** | **12** | **6** | **9** | **12** | **17** | **43** | **22** |
+| what | qwen/qwen3.8-flash · judge qwen/qwen3.8-27b | anthropic/claude-sonnet-5.5 · judge nvidia/nemotron-3.5-super-vl | nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge qwen/qwen3.8-27b | qwen/qwen3.8-flash (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl | nvidia/nemotron-3.5-super-vl:free (after-three-fixes) · judge qwen/qwen3.8-27b | qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl | qwen/qwen3.8-flash (stage-2) · judge nvidia/nemotron-3.5-super-vl · people dev2 | nvidia/nemotron-3.5-super-vl:free (stage-2) · judge qwen/qwen3.8-27b | nvidia/nemotron-3.5-super-vl:free (stage-2) · judge qwen/qwen3.8-27b · people dev2 | nvidia/nemotron-3-ultra-550b-a55b:free (stage-2) · judge qwen/qwen3.8-27b | nvidia/nemotron-3-ultra-550b-a55b:free (stage-2) · judge qwen/qwen3.8-27b · people dev2 | qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl | qwen/qwen3.8-27b (stage-2) · judge nvidia/nemotron-3.5-super-vl · people dev2 | qwen/qwen3.8-flash (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl · people dev2 | qwen/qwen3.8-flash (stage-4) · judge nvidia/nemotron-3.5-super-vl · think first | qwen/qwen3.8-flash (stage-4) · judge nvidia/nemotron-3.5-super-vl · people dev2 · think first | nvidia/nemotron-3.5-super-vl:free (stage-4) · judge qwen/qwen3.8-27b · think first | nvidia/nemotron-3.5-super-vl:free (stage-4) · judge qwen/qwen3.8-27b · people dev2 · think first | qwen/qwen3.8-flash · judge nvidia/nemotron-3.5-super-vl | nvidia/nemotron-3-ultra-550b-a55b:free (after-three-fixes) · judge nvidia/nemotron-3.5-super-vl |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Limit on table questions per turn | 10 | 5 | 2 | 0 | 0 | 3 | 1 | 0 | 0 | 1 | 0 | 1 | 0 | 6 | 0 | 1 | 0 | 0 | 10 | 2 |
+| The model's call was malformed | 4 | 0 | 0 | 6 | 1 | 3 | 6 | 0 | 1 | 0 | 0 | 0 | 2 | 2 | 6 | 5 | 0 | 1 | 4 | 0 |
+| Another refusal (a build without a yes, a bad argument) | 2 | 0 | 3 | 1 | 1 | 2 | 1 | 1 | 0 | 1 | 2 | 5 | 0 | 2 | 5 | 1 | 1 | 0 | 2 | 3 |
+| The table tool cannot ask the question | 11 | 4 | 0 | 2 | 0 | 2 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 11 | 0 |
+| A build asked for without the person's yes | 3 | 2 | 7 | 6 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 1 | 0 | 3 | 7 |
+| An outcome column the person never named | 1 | 2 | 2 | 1 | 1 | 3 | 0 | 4 | 0 | 4 | 0 | 1 | 2 | 0 | 2 | 1 | 1 | 0 | 1 | 2 |
+| An option removed by a check | 3 | 1 | 4 | 1 | 1 | 1 | 1 | 0 | 0 | 2 | 0 | 1 | 1 | 1 | 2 | 1 | 0 | 0 | 3 | 4 |
+| A second small model overrules the kind of work | 3 | 2 | 0 | 3 | 1 | 1 | 2 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 3 | 0 |
+| An option kept, one sentence with a number removed | 0 | 0 | 1 | 1 | 0 | 2 | 1 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 3 | 3 | 0 | 0 | 0 | 1 |
+| Work refused: the case is "not ready" | 1 | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 0 | 2 | 0 | 0 | 3 | 0 | 0 | 1 | 0 | 1 | 1 | 1 |
+| The turn's step budget ran out | 3 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 3 | 1 |
+| A table is needed first | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 1 | 0 | 0 | 0 | 1 | 1 | 1 |
+| A build asked for on a pick (a pick is not a yes) | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 2 | 0 | 0 | 0 | 1 | 1 | 0 | 1 | 0 | 0 |
+| No new options after work started | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 2 | 1 | 0 | 0 | 0 | 0 |
+| Code set the kind of work | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
+| Advice refused: the words ask for data work | 1 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| A build asked for before a project was started | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Sent to the no-data blueprint | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| A change of work refused | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
+| **all** | **43** | **17** | **22** | **23** | **12** | **17** | **14** | **5** | **5** | **12** | **6** | **9** | **12** | **17** | **24** | **17** | **4** | **5** | **43** | **22** |
 
 ## HAB-002: arms on `qwen/qwen3.8-flash`, judged by `qwen/qwen3.8-27b`
 
@@ -159,7 +175,7 @@ Empty or very short answers (scored as given): Model only: hab-04, hab-05; Minim
 | Advice refused: the words ask for data work | 1 |
 | A table is needed first | 1 |
 
-## HAB-003 + HAB-004: arms on `anthropic/claude-sonnet-5.5`, judged by `nvidia/nemotron-3.5-super-vl:free`
+## HAB-003 + HAB-004: arms on `anthropic/claude-sonnet-5.5`, judged by `nvidia/nemotron-3.5-super-vl`
 
 | arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -219,7 +235,7 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 | A table is needed first | 1 |
 | Work refused: the case is "not ready" | 1 |
 
-## HAB-007 + HAB-008 + HAB-009 + HAB-010: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl:free`
+## HAB-007 + HAB-008 + HAB-009 + HAB-010: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl`
 
 | arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -275,12 +291,13 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 | The model's call was malformed | 1 |
 | Work refused: the case is "not ready" | 1 |
 
-## HAB-014 + HAB-015 + HAB-022: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl:free`
+## HAB-014 + HAB-015 + HAB-022 + HAB-039: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl`
 
 | arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Model only | 4.00 | 4.00 | 4.00 | 4.00 | 8 of 8 | 0 | 6 | 1.0 | 153 | 0.03 |
 | Current DCLab (lead agent) | 4.00 | 3.62 | 3.12 | 4.00 | 7 of 8 | 0 | 0 | 2.4 | 154 | 0.08 |
+| Model only, held to 450 words | 3.25 | 3.62 | 3.62 | 4.00 | 7 of 8 | 0 | 1 | 1.0 | 46 | 0.01 |
 
 **The harness inside this model** (current DCLab minus the minimal agent):
 
@@ -301,12 +318,13 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 | An option removed by a check | 1 |
 | A second small model overrules the kind of work | 1 |
 
-## HAB-016 + HAB-017: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl:free`
+## HAB-016 + HAB-017 + HAB-040: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl`
 
 | arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Model only | 3.88 | 3.88 | 4.00 | 4.00 | 7 of 8 | 0 | 6 | 1.0 | 140 | 0.03 |
 | Current DCLab (lead agent) | 3.25 | 2.88 | 2.50 | 3.75 | 5 of 8 | 2 | 0 | 2.4 | 167 | 0.08 |
+| Model only, held to 450 words | 3.12 | 2.62 | 3.38 | 3.88 | 5 of 8 | 2 | 2 | 1.0 | 75 | 0.02 |
 
 **The harness inside this model** (current DCLab minus the minimal agent):
 
@@ -415,7 +433,7 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 | A table is needed first | 1 |
 | Code set the kind of work | 1 |
 
-## HAB-027 + HAB-028: arms on `qwen/qwen3.8-27b`, judged by `nvidia/nemotron-3.5-super-vl:free`
+## HAB-027 + HAB-028: arms on `qwen/qwen3.8-27b`, judged by `nvidia/nemotron-3.5-super-vl`
 
 | arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -438,7 +456,7 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 | An option removed by a check | 1 |
 | Sent to the no-data blueprint | 1 |
 
-## HAB-029 + HAB-030: arms on `qwen/qwen3.8-27b`, judged by `nvidia/nemotron-3.5-super-vl:free`
+## HAB-029 + HAB-030: arms on `qwen/qwen3.8-27b`, judged by `nvidia/nemotron-3.5-super-vl`
 
 | arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -464,7 +482,7 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 | No new options after work started | 1 |
 | An option kept, one sentence with a number removed | 1 |
 
-## HAB-031 + HAB-032: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl:free`
+## HAB-031 + HAB-032: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl`
 
 | arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -491,7 +509,103 @@ Empty or very short answers (scored as given): Minimal agent: hab-02, hab-04, ha
 | A table is needed first | 1 |
 | The turn's step budget ran out | 1 |
 
-## HAB-002: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl:free`
+## HAB-033 + HAB-034: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl`
+
+| arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Current DCLab (lead agent) | 3.88 | 3.50 | 3.00 | 3.75 | 7 of 8 | 0 | 0 | 2.5 | 217 | 0.11 |
+
+**The harness inside this model** (current DCLab minus the minimal agent):
+
+| Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | Accepted |
+|---|---|---|---|---|
+| – | – | – | – | – |
+
+**Where the lead agent's code stepped in** (all 8 conversations):
+
+| what | times |
+|---|---:|
+| The model's call was malformed | 6 |
+| Another refusal (a build without a yes, a bad argument) | 5 |
+| An option kept, one sentence with a number removed | 3 |
+| No new options after work started | 2 |
+| An outcome column the person never named | 2 |
+| An option removed by a check | 2 |
+| The table tool cannot ask the question | 2 |
+| A build asked for on a pick (a pick is not a yes) | 1 |
+| A second small model overrules the kind of work | 1 |
+
+## HAB-035 + HAB-036: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl`
+
+| arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Current DCLab (lead agent) | 3.62 | 3.62 | 3.38 | 3.88 | 7 of 8 | 0 | 0 | 2.4 | 231 | 0.11 |
+
+**The harness inside this model** (current DCLab minus the minimal agent):
+
+| Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | Accepted |
+|---|---|---|---|---|
+| – | – | – | – | – |
+
+**Where the lead agent's code stepped in** (all 8 conversations):
+
+| what | times |
+|---|---:|
+| The model's call was malformed | 5 |
+| An option kept, one sentence with a number removed | 3 |
+| A second small model overrules the kind of work | 2 |
+| Limit on table questions per turn | 1 |
+| An outcome column the person never named | 1 |
+| No new options after work started | 1 |
+| Another refusal (a build without a yes, a bad argument) | 1 |
+| An option removed by a check | 1 |
+| A build asked for on a pick (a pick is not a yes) | 1 |
+| Work refused: the case is "not ready" | 1 |
+
+## HAB-037: arms on `nvidia/nemotron-3.5-super-vl:free`, judged by `qwen/qwen3.8-27b`
+
+| arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Current DCLab (lead agent) | 1.62 | 1.50 | 1.50 | 2.12 | 4 of 8 | 0 | 0 | 1.4 | 131 | 0.00 |
+
+**The harness inside this model** (current DCLab minus the minimal agent):
+
+| Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | Accepted |
+|---|---|---|---|---|
+| – | – | – | – | – |
+
+**Where the lead agent's code stepped in** (all 8 conversations):
+
+| what | times |
+|---|---:|
+| A change of work refused | 1 |
+| An outcome column the person never named | 1 |
+| Another refusal (a build without a yes, a bad argument) | 1 |
+| A build asked for without the person's yes | 1 |
+
+## HAB-038: arms on `nvidia/nemotron-3.5-super-vl:free`, judged by `qwen/qwen3.8-27b`
+
+| arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Current DCLab (lead agent) | 2.38 | 2.00 | 1.88 | 2.88 | 4 of 8 | 1 | 0 | 2.2 | 130 | 0.00 |
+
+**The harness inside this model** (current DCLab minus the minimal agent):
+
+| Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | Accepted |
+|---|---|---|---|---|
+| – | – | – | – | – |
+
+**Where the lead agent's code stepped in** (all 8 conversations):
+
+| what | times |
+|---|---:|
+| A table is needed first | 1 |
+| The model's call was malformed | 1 |
+| Code set the kind of work | 1 |
+| A build asked for on a pick (a pick is not a yes) | 1 |
+| Work refused: the case is "not ready" | 1 |
+
+## HAB-002: arms on `qwen/qwen3.8-flash`, judged by `nvidia/nemotron-3.5-super-vl`
 
 | arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -525,7 +639,7 @@ Empty or very short answers (scored as given): Model only: hab-04, hab-05; Minim
 | Advice refused: the words ask for data work | 1 |
 | A table is needed first | 1 |
 
-## HAB-006: arms on `nvidia/nemotron-3-ultra-550b-a55b:free`, judged by `nvidia/nemotron-3.5-super-vl:free`
+## HAB-006: arms on `nvidia/nemotron-3-ultra-550b-a55b:free`, judged by `nvidia/nemotron-3.5-super-vl`
 
 | arm | Understands the problem | Designs a solution | Makes a plan | Sticks to evidence | accepted | must-not-do done | numbers nobody gave | turns | seconds | € |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -641,13 +755,13 @@ Before: HAB-006. After: HAB-023 + HAB-024. Only the lead agent's conversations w
 | Work refused: the case is "not ready" | 1 | 2 |
 | Limit on table questions per turn | 2 | 1 |
 | An option kept, one sentence with a number removed | 1 | 1 |
-| The turn's step budget ran out | 1 | 0 |
 | The table tool cannot ask the question | 0 | 1 |
+| The turn's step budget ran out | 1 | 0 |
 | A table is needed first | 1 | 0 |
 
-## Current DCLab before and after: stage-2 (`qwen/qwen3.8-flash`, judge `nvidia/nemotron-3.5-super-vl:free`)
+## Current DCLab before and after: stage-2 (`qwen/qwen3.8-flash`, judge `nvidia/nemotron-3.5-super-vl`)
 
-Before: HAB-007 + HAB-008 + HAB-009 + HAB-010. After: HAB-014 + HAB-015 + HAB-022. Only the lead agent's conversations were run again; the other arms do not change with its code.
+Before: HAB-007 + HAB-008 + HAB-009 + HAB-010. After: HAB-014 + HAB-015 + HAB-022 + HAB-039. Only the lead agent's conversations were run again; the other arms do not change with its code.
 
 | measure | before | after | difference by case [95% interval] |
 |---|---:|---:|---|
@@ -664,11 +778,11 @@ Before: HAB-007 + HAB-008 + HAB-009 + HAB-010. After: HAB-014 + HAB-015 + HAB-02
 |---|---:|---:|
 | The model's call was malformed | 6 | 3 |
 | A build asked for without the person's yes | 6 | 0 |
-| An outcome column the person never named | 1 | 3 |
-| A second small model overrules the kind of work | 3 | 1 |
 | The table tool cannot ask the question | 2 | 2 |
-| An option kept, one sentence with a number removed | 1 | 2 |
+| A second small model overrules the kind of work | 3 | 1 |
+| An outcome column the person never named | 1 | 3 |
 | Another refusal (a build without a yes, a bad argument) | 1 | 2 |
+| An option kept, one sentence with a number removed | 1 | 2 |
 | Limit on table questions per turn | 0 | 3 |
 | An option removed by a check | 1 | 1 |
 | The turn's step budget ran out | 1 | 0 |
@@ -701,9 +815,112 @@ Before: HAB-011 + HAB-012. After: HAB-018 + HAB-019. Only the lead agent's conve
 | Work refused: the case is "not ready" | 1 | 0 |
 | The model's call was malformed | 1 | 0 |
 
-## Current DCLab before and after: stage-2 (`qwen/qwen3.8-flash`, judge `nvidia/nemotron-3.5-super-vl:free`)
+## Current DCLab before and after: stage-4 (`qwen/qwen3.8-flash`, judge `nvidia/nemotron-3.5-super-vl`)
 
-Before: HAB-031 + HAB-032. After: HAB-016 + HAB-017. Only the lead agent's conversations were run again; the other arms do not change with its code.
+Before: HAB-014 + HAB-015 + HAB-022 + HAB-039. After: HAB-033 + HAB-034. Only the lead agent's conversations were run again; the other arms do not change with its code.
+
+| measure | before | after | difference by case [95% interval] |
+|---|---:|---:|---|
+| Understands the problem | 4.00 | 3.88 | -0.12 [-0.38, 0.00] |
+| Designs a solution | 3.62 | 3.50 | -0.12 [-0.75, 0.50] |
+| Makes a plan | 3.12 | 3.00 | -0.12 [-0.88, 0.62] |
+| Sticks to evidence | 4.00 | 3.75 | -0.25 [-0.50, 0.00] |
+| Accepted | 7 of 8 | 7 of 8 | 0.00 [-0.38, 0.38] |
+| Turns | 2.4 | 2.5 | |
+| Seconds per conversation | 154 | 217 | |
+| Numbers nobody gave | 0 | 0 | |
+
+| where code stepped in | before | after |
+|---|---:|---:|
+| The model's call was malformed | 3 | 6 |
+| Another refusal (a build without a yes, a bad argument) | 2 | 5 |
+| An option kept, one sentence with a number removed | 2 | 3 |
+| An outcome column the person never named | 3 | 2 |
+| The table tool cannot ask the question | 2 | 2 |
+| An option removed by a check | 1 | 2 |
+| Limit on table questions per turn | 3 | 0 |
+| No new options after work started | 0 | 2 |
+| A second small model overrules the kind of work | 1 | 1 |
+| A build asked for on a pick (a pick is not a yes) | 0 | 1 |
+
+## Current DCLab before and after: stage-4 (`qwen/qwen3.8-flash`, judge `nvidia/nemotron-3.5-super-vl`)
+
+Before: HAB-016 + HAB-017 + HAB-040. After: HAB-035 + HAB-036. Only the lead agent's conversations were run again; the other arms do not change with its code.
+
+| measure | before | after | difference by case [95% interval] |
+|---|---:|---:|---|
+| Understands the problem | 3.25 | 3.62 | 0.38 [0.12, 0.75] |
+| Designs a solution | 2.88 | 3.62 | 0.75 [0.25, 1.38] |
+| Makes a plan | 2.50 | 3.38 | 0.88 [0.25, 1.62] |
+| Sticks to evidence | 3.75 | 3.88 | 0.12 [0.00, 0.38] |
+| Accepted | 5 of 8 | 7 of 8 | 0.25 [0.00, 0.62] |
+| Turns | 2.4 | 2.4 | |
+| Seconds per conversation | 167 | 231 | |
+| Numbers nobody gave | 0 | 0 | |
+
+| where code stepped in | before | after |
+|---|---:|---:|
+| The model's call was malformed | 6 | 5 |
+| An option kept, one sentence with a number removed | 1 | 3 |
+| A second small model overrules the kind of work | 2 | 2 |
+| An option removed by a check | 1 | 1 |
+| A build asked for on a pick (a pick is not a yes) | 1 | 1 |
+| Another refusal (a build without a yes, a bad argument) | 1 | 1 |
+| Work refused: the case is "not ready" | 1 | 1 |
+| Limit on table questions per turn | 1 | 1 |
+| No new options after work started | 0 | 1 |
+| An outcome column the person never named | 0 | 1 |
+
+## Current DCLab before and after: stage-4 (`nvidia/nemotron-3.5-super-vl:free`, judge `qwen/qwen3.8-27b`)
+
+Before: HAB-018 + HAB-019. After: HAB-037. Only the lead agent's conversations were run again; the other arms do not change with its code.
+
+| measure | before | after | difference by case [95% interval] |
+|---|---:|---:|---|
+| Understands the problem | 2.38 | 1.62 | -0.75 [-1.62, 0.12] |
+| Designs a solution | 2.25 | 1.50 | -0.75 [-1.75, 0.12] |
+| Makes a plan | 2.00 | 1.50 | -0.50 [-1.38, 0.38] |
+| Sticks to evidence | 3.00 | 2.12 | -0.88 [-2.25, 0.38] |
+| Accepted | 5 of 8 | 4 of 8 | -0.12 [-0.50, 0.25] |
+| Turns | 2.6 | 1.4 | |
+| Seconds per conversation | 131 | 131 | |
+| Numbers nobody gave | 0 | 0 | |
+
+| where code stepped in | before | after |
+|---|---:|---:|
+| An outcome column the person never named | 4 | 1 |
+| Another refusal (a build without a yes, a bad argument) | 1 | 1 |
+| A change of work refused | 0 | 1 |
+| A build asked for without the person's yes | 0 | 1 |
+
+## Current DCLab before and after: stage-4 (`nvidia/nemotron-3.5-super-vl:free`, judge `qwen/qwen3.8-27b`)
+
+Before: HAB-020 + HAB-021. After: HAB-038. Only the lead agent's conversations were run again; the other arms do not change with its code.
+
+| measure | before | after | difference by case [95% interval] |
+|---|---:|---:|---|
+| Understands the problem | 2.00 | 2.38 | 0.38 [-0.38, 1.00] |
+| Designs a solution | 1.75 | 2.00 | 0.25 [-0.50, 0.88] |
+| Makes a plan | 1.88 | 1.88 | 0.00 [-0.62, 0.50] |
+| Sticks to evidence | 2.62 | 2.88 | 0.25 [-0.75, 1.00] |
+| Accepted | 2 of 8 | 4 of 8 | 0.25 [0.00, 0.62] |
+| Turns | 2.1 | 2.2 | |
+| Seconds per conversation | 163 | 130 | |
+| Numbers nobody gave | 0 | 0 | |
+
+| where code stepped in | before | after |
+|---|---:|---:|
+| A build asked for on a pick (a pick is not a yes) | 1 | 1 |
+| The model's call was malformed | 1 | 1 |
+| Code set the kind of work | 1 | 1 |
+| An option kept, one sentence with a number removed | 1 | 0 |
+| A second small model overrules the kind of work | 1 | 0 |
+| A table is needed first | 0 | 1 |
+| Work refused: the case is "not ready" | 0 | 1 |
+
+## Current DCLab before and after: stage-2 (`qwen/qwen3.8-flash`, judge `nvidia/nemotron-3.5-super-vl`)
+
+Before: HAB-031 + HAB-032. After: HAB-016 + HAB-017 + HAB-040. Only the lead agent's conversations were run again; the other arms do not change with its code.
 
 | measure | before | after | difference by case [95% interval] |
 |---|---:|---:|---|
@@ -720,18 +937,18 @@ Before: HAB-031 + HAB-032. After: HAB-016 + HAB-017. Only the lead agent's conve
 |---|---:|---:|
 | The model's call was malformed | 2 | 6 |
 | Limit on table questions per turn | 6 | 1 |
-| A second small model overrules the kind of work | 1 | 2 |
 | Another refusal (a build without a yes, a bad argument) | 2 | 1 |
+| A second small model overrules the kind of work | 1 | 2 |
 | An option removed by a check | 1 | 1 |
 | An option kept, one sentence with a number removed | 1 | 1 |
 | A build asked for on a pick (a pick is not a yes) | 0 | 1 |
 | A build asked for before a project was started | 1 | 0 |
-| The turn's step budget ran out | 1 | 0 |
 | A build asked for without the person's yes | 1 | 0 |
-| Work refused: the case is "not ready" | 0 | 1 |
+| The turn's step budget ran out | 1 | 0 |
 | A table is needed first | 1 | 0 |
+| Work refused: the case is "not ready" | 0 | 1 |
 
-## Current DCLab before and after: after-three-fixes (`qwen/qwen3.8-flash`, judge `nvidia/nemotron-3.5-super-vl:free`)
+## Current DCLab before and after: after-three-fixes (`qwen/qwen3.8-flash`, judge `nvidia/nemotron-3.5-super-vl`)
 
 Before: HAB-002. After: HAB-007 + HAB-008 + HAB-009 + HAB-010. Only the lead agent's conversations were run again; the other arms do not change with its code.
 
@@ -749,26 +966,26 @@ Before: HAB-002. After: HAB-007 + HAB-008 + HAB-009 + HAB-010. Only the lead age
 | where code stepped in | before | after |
 |---|---:|---:|
 | The table tool cannot ask the question | 11 | 2 |
-| Limit on table questions per turn | 10 | 0 |
 | The model's call was malformed | 4 | 6 |
+| Limit on table questions per turn | 10 | 0 |
 | A build asked for without the person's yes | 3 | 6 |
 | A second small model overrules the kind of work | 3 | 3 |
-| An option removed by a check | 3 | 1 |
 | The turn's step budget ran out | 3 | 1 |
+| An option removed by a check | 3 | 1 |
 | Another refusal (a build without a yes, a bad argument) | 2 | 1 |
-| An outcome column the person never named | 1 | 1 |
 | Work refused: the case is "not ready" | 1 | 1 |
-| An option kept, one sentence with a number removed | 0 | 1 |
+| An outcome column the person never named | 1 | 1 |
 | A table is needed first | 1 | 0 |
+| An option kept, one sentence with a number removed | 0 | 1 |
 | Advice refused: the words ask for data work | 1 | 0 |
 
 ## Two judges on the same conversations (HAB-002)
 
-`qwen/qwen3.8-27b` and `nvidia/nemotron-3.5-super-vl:free` agree on accepted or not for 25 of 32 conversations. Their 0 to 4 scores differ by 0.39 on average; 99% of scores are within one point.
+`qwen/qwen3.8-27b` and `nvidia/nemotron-3.5-super-vl` agree on accepted or not for 25 of 32 conversations. Their 0 to 4 scores differ by 0.39 on average; 99% of scores are within one point.
 
 ## Two judges on the same conversations (HAB-006)
 
-`qwen/qwen3.8-27b` and `nvidia/nemotron-3.5-super-vl:free` agree on accepted or not for 28 of 32 conversations. Their 0 to 4 scores differ by 0.29 on average; 98% of scores are within one point.
+`qwen/qwen3.8-27b` and `nvidia/nemotron-3.5-super-vl` agree on accepted or not for 28 of 32 conversations. Their 0 to 4 scores differ by 0.29 on average; 98% of scores are within one point.
 
 ## Claude beside Qwen
 

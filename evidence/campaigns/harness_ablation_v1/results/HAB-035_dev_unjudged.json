@@ -1,0 +1,3933 @@
+{
+ "id": "HAB-035",
+ "split": "dev",
+ "set": "dev2",
+ "at": "2026-11-15T22:18:49+00:00",
+ "arms": [
+  "case"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": null,
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.0702,
+ "cap_eur": 0.4,
+ "kept": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-035",
+ "manifest": {
+  "run_id": "HAB-035",
+  "at": "2026-11-15T22:18:49+00:00",
+  "arms": [
+   "case"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.4,
+  "code": {
+   "commit": "bb9f53e86b05b878221a5c865230de88b706ef32",
+   "dirty": [],
+   "diff_sha256": null,
+   "untracked_sha256": null,
+   "untracked_files": 0
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": null,
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_model_only_short": "74c593495acb5f60",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "04956cc04a4915d4",
+   "case_agent_think_first": "98a726e97accd7c0",
+   "route_check": "61027a2803db8856"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "96fcda10b0e3e919"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_CASE_THINK_FIRST": "1",
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "804193e703bff35b725834da844eba32d233ef148326dd40750775746c694587",
+  "set": "dev2",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "stage-4"
+ },
+ "capture": {
+  "exchanges": 52,
+  "ok": 52,
+  "whole": 52,
+  "with_thinking": 52,
+  "without_thinking": [],
+  "purposes": [
+   "case_agent",
+   "case_specialist",
+   "route_check"
+  ]
+ },
+ "label": "stage-4",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
+ "code": "one commit",
+ "conversations": [
+  {
+   "id": "hab-11",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the operations lead at a tour company. Each month I tell our local partners how many guides to reserve in each destination for the month after next. If I reserve too few, we hire freelancers at the last minute for about three times the price; if I reserve too many, we pay a small fee for each guide we do not use. My director asked me for a machine learning model that forecasts how many bookings we will receive per destination each month. The table I shared is our booking export up to late February 2026: one row per booking with the booking date, travel date, destination, nationality, channel, lead time in days, price, whether it had free cancellation, and whether it was cancelled. I will use the result myself every month to fix the reservation. [shares bookings.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Now a closer look at the pieces that decide the design.\n\nUnderstood, and I can see the shape of it: you are not really forecasting bookings for their own sake — you are choosing, twice-ahead, how many guide-days to commit to in each destination, under a penalty that is about three times worse on the short side than on the long side. That last fact matters more than the model.\n\n**One thing needs saying before any work.** The target your director wrote — \"how many bookings we will receive per destination each month\" — is the wrong quantity to reserve against, and building it as asked would cost you money twice over. Your export shows why: 22.8% of bookings are cancelled, so a booking forecast is roughly a quarter too high in demand terms (Dubai 25.8%, Paris 19.8%). And 67.5% of bookings are made 60 or more days before travel, median lead 92 days — so at the moment you make the call for month M+2, you have already received about two-thirds of that month's bookings in your own system. A forecast of gross monthly bookings, reserved against, both counts cancellations you will never serve and re-forecasts demand you already know exactly. The right target is **arriving travellers per destination in the travel month**, and the model's job is mostly to predict the *remaining* third plus how cancellations move. I'd build that instead.\n\nOn ~5 destinations × ~13 fully-observed travel months, a \"machine learning model\" must beat a plain scaling rule or it isn't worth the maintenance. I'll test it that way rather than assume it wins.\n\n**The plan I'd run**\n1. Reshape the export into a monthly demand table: per destination per travel month — bookings, arriving travellers, and arriving already in hand at the 60-day cutoff. Check: totals reconcile against the raw rows; TEST rows out.\n2. Set the yardstick: a no-model rule (in-hand ÷ that destination's early-booking share, blended with last year's month shape), scored in money.\n3. Fit the forecast model on destination × month with in-hand as a feature, validated walk-forward on the last 3 travel months only, scored on your cost function (3× shortfall, small fee surplus), not on average error.\n4. Pick the reserve level from the asymmetry — a quantile above the mean, how far above depending on your fee.\n5. Deliver it as a monthly view: in-hand, forecast, recommended guides, and the expected cost of trusting it.\nStop rule: if step 3 does not beat step 2 in money, we ship step 2 and I say so plainly.\n\nThose are the three ways in, and I'd take them in that order rather than in the order written: **the yardstick rule first**. It does the reshaping that option 3 would do anyway, it gives you a reservation number you could act on next month, and it puts a bar on the table that a model has to clear before it is worth maintaining — which matters here, because one summer of history can't prove a seasonal pattern on its own. Then we build the forecast model against that bar, and it ships only if it wins in money.\n\nPick the one you want and I'll start it. If you'd rather I just decide, say so: I'd run the yardstick now and set the model up as the next step, and I'll need two figures from you whenever we get to the model — the fee you pay for a guide you don't use, and how many arriving travellers one guide covers.\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": [
+      {
+       "title": "The yardstick rule first (a week of numbers, no model)",
+       "what": "I rebuild the export into destination-by-travel-month demand (arriving travellers, and how many are already in hand 60 days out), then score the simple rule 'scale up what is already booked' against your real history in money. You get: A reservation number you could use next month, plus the bar the ML model has to clear, and a clear view of each destination's early-booking share and cancellation rate. Trade-off: It is not a model and will not learn new patterns (a channel shift, a price change) the way step 3 would. Effort: Small: one table build and one scored comparison, today.",
+       "track": "analysis",
+       "tool": "query",
+       "kind": "option"
+      },
+      {
+       "title": "Go straight to the forecast model",
+       "what": "I set up a prediction project: target = arriving travellers per destination per travel month, features = destination, month, in-hand count at the cutoff, lead-time mix, channel and nationality mix, price level; walk-forward validation and a quantile output so the reservation sits above the average, as your cost asymmetry wants. You get: What your director asked for, judged on the money you would actually have saved or lost each month, plus a per-destination recommendation. Trade-off: and it needs two numbers from you (the unused-guide fee, and how many travellers one guide covers) before the reserve level means anything. Effort: Medium: build, validate, then a monthly run.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      },
+      {
+       "title": "Clean the export into a forecast-ready table",
+       "what": "I turn the booking rows into a tidy monthly file first: drop the 12 TEST rows, fix price as a number, derive travel month and the 60-day-cutoff in-hand counts, and check every destination's totals reconcile. You get: A single table you keep using, on which both the rule and the model can be run or re-run without re-doing the arithmetic. Trade-off: It produces no forecast itself; you would still need one of the other two after it. Effort: Small: one cleaning recipe, today.",
+       "track": "preparation",
+       "tool": "recipe",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "The yardstick rule first (a week of numbers, no model)",
+     "pick": "The yardstick rule first (a week of numbers, no model)",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "[DCLab drew a chart with its numbers table and a chart with its numbers table above this message]\n\nYou picked the yardstick — that is the right order, and it can hand you an April number today. Let me start it and pull the pieces.\n\n`cancelled` is 0/1 — 1,157 arriving, 343 cancelled. Now the four views the rule needs.\n\nTwo of these numbers don't line up, and that is more important than the yardstick itself — checking before I hand you an April figure.\n\nThe mismatch has an explanation, and it changes the baseline. Re-running the shares on the months the export can actually see completely.\n\nBoth charts are up. Here is what the yardstick says, and a trap in the baseline that I found before trusting it.\n\nThe early months are thin because of the file's start date, not because business was slow. So scaling April 2026 off April 2025's 50 would have told you to reserve about a third too few guides — and that is exactly what the chart comparing \"already booked for April 2026\" with \"April 2025 arrivals\" looks like at first glance: 9 against 10 in Bangkok, 12 against 8 in Dubai, 14 against 13 in London. Ignore the year-ago column.\n\n**April 2026, read at the 60-day position:** 9 booked in Bangkok, 11 in Dubai, 9 in Istanbul, 13 in London, 11 in Paris — 53 in hand. These are arriving bookings, not guide-days.\n\nA revision clause at 30 days would save more on last-minute freelancers than any forecast model will, because the missing third is mostly *not yet in the world* at the moment you decide. That reframes the model's job: predict the late-booking tail, and don't oversell precision.\n\nAnd one number only you have: **how many arriving travellers does one reserved guide cover in a day** — and does a booking typically mean one traveller or a family of four?\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": [],
+     "shown": [
+      "answer",
+      "answer"
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "[DCLab drew a chart with its numbers table and a chart with its numbers table above this message]\n\nGood — then I'll decide the two open numbers myself, state them, and build the yardstick so it is usable the moment you disagree with them.\n\nNow the numbers that make the rule per-destination rather than one global average.\n\nThe per-destination shares differ more than the global average suggested. Getting the error band and the two charts the rule needs.\n\nRecorded. Here is the yardstick, calibrated on the clean window only.\n\nHere is the rule, and it fits on one line per destination. **The yardstick: arriving bookings = what you hold at 60 days ÷ this share**\n\n| Destination | In hand at 60 days (clean window) | At 30 days | April in hand | April estimate | Reserve at the 75th |\n|---|---|---|---|---|---|\n| Bangkok | 62.1% | 78.8% | 9 | 15 | 17 |\n| Dubai | 62.4% | 83.2% | 11 | 18 | 20 |\n| Istanbul | 63.7% | 82.3% | 9 | 14 | 16 |\n| London | 67.8% | 81.8% | 13 | 19 | 22 |\n| Paris | 69.2% | 81.1% | 11 | 16 | 18 |\n\nThat gap is real, it is stable, and it is the difference between buying Paris conservatively and Bangkok conservatively. The second chart is the raw material you'd count by hand each month. **The number that decides everything, and the one I chose for you.** Across eight months the 60-day share swung from 56.8% (May 2025) to 72.2% (September), with December a late-booking outlier at 60.5%. So 82 is not a forecast, it is the middle of a 74–93 band — and where you sit in that band is the actual decision. Your own cost shape answers it: freelancers at 3× versus a small fee per unused guide puts the right target at roughly the 75th percentile, which is why the reserve column sits at ~93 rather than 82. If it turns out you can cancel surplus guides cheaply or late, that column moves down and the whole rule gets tighter. I assumed a booking equals one traveller since the table has no party size; convert at the end by dividing by whatever a guide actually covers, and if parties average more than one, my reserve column is a share too high — worth telling me. **What this buys you immediately.** No model needed for April: count the non-cancelled April bookings you can see, divide by the destination share, commit at the reserve column. That is a defensible number you can give your partners this week, and it beats last-April's 50, which was a censoring artifact and would have cut you a third short. Next in the plan is the model, and its job is now narrow and testable: predict *where in that 74–93 band* April lands, using channel, nationality mix and booking pace. If it can't shrink the band, the yardstick stands and we say so.\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": [],
+     "shown": [
+      "answer",
+      "answer"
+     ]
+    }
+   ],
+   "route": "analysis",
+   "tool": "query",
+   "routed_by": "option",
+   "ended": "answered",
+   "assistant_turns": 3,
+   "picked": 1,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    117.57,
+    418.29,
+    147.4
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-11",
+     "version": 25,
+     "words": [
+      "I am the operations lead at a tour company. Each month I tell our local partners how many guides to reserve in each destination for the month after next. If I reserve too few, we hire freelancers at the last minute for about three times the price; if I reserve too many, we pay a small fee for each guide we do not use. My director asked me for a machine learning model that forecasts how many bookings we will receive per destination each month. The table I shared is our booking export up to late February 2026: one row per booking with the booking date, travel date, destination, nationality, channel, lead time in days, price, whether it had free cancellation, and whether it was cancelled. I will use the result myself every month to fix the reservation.\n\n(I shared a table: bookings.csv)",
+      "I pick: The yardstick rule first (a week of numbers, no model)",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "A model that forecasts demand per destination one month ahead of the booking cutoff, so the operations lead can reserve the right number of guides for the month after next. Director asked for it as 'how many bookings we will receive per destination each month'.",
+      "status": "said",
+      "quote": "a machine learning model that forecasts how many bookings we will receive per destination each month",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Yardstick rule calibrated per destination on the clean window (travel May-Dec 2025, 645 arrivals). Share of the month's arriving bookings already in hand at 60 days out: Bangkok 62.1%, Dubai 62.4%, Istanbul 63.7%, London 67.8%, Paris 69.2% (pooled 65.1%). At 30 days out: Bangkok 78.8%, Dubai 83.2%, Istanbul 82.3%, London 81.8%, Paris 81.1%. Rule: arriving estimate = bookings in hand at 60 days / that destination share.",
+      "status": "assumed",
+      "quote": null,
+      "computed": null,
+      "after_words": 3
+     },
+     "user": {
+      "value": "Deliverable is a reusable monthly rule the operations lead applies by hand in about a minute: a per-destination cutoff share, plus the estimate and the reserve number.",
+      "status": "said",
+      "quote": "I will use the result myself every month to fix the reservation",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "LEFT-CENSORING found: the export's first booking_date is 2025-01-01, but median lead is 92 days, so most bookings for travel in Jan-Apr 2025 were made in 2024 and are NOT in the file. Trustworthy baseline window = travel_date 2025-05-01 onwards. Evidence: bookings made per month are flat (2025-01 122, 2025-02 123, 2025-05 127, 2026-01 113) while arrivals per travel month climb 41 (Mar) / 50 (Apr) / 74 (May) / 107 (Jul); and arrivals May-Dec 2025 total 645 against 832 bookings made May-Dec x 77% = 641. So 'last April' (50) and last April's 60-day share (20/50 = 40%) are artifacts and must not be used as an anchor or a YoY base.",
+      "status": "assumed",
+      "quote": null,
+      "computed": null,
+      "after_words": 2
+     },
+     "cannot_answer": [
+      {
+       "value": "The table cannot give a second year of history (only Jan 2025 to Feb 2026 of bookings), so season-on-season accuracy cannot be validated; and it holds no guide-day price, no per-unused-guide fee, and no travellers-per-booking, all of which the money calculation needs.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "constraints": [
+      {
+       "value": "Costs are asymmetric: under-reserving means freelancers at about three times the price; over-reserving means a small fee per unused guide. So the model must be judged in money, not in average error, and should aim above the mean.",
+       "status": "said",
+       "quote": "we hire freelancers at the last minute for about three times the price",
+       "computed": null,
+       "after_words": null
+      },
+      {
+       "value": "Operational finding worth more than model accuracy: committing at 60 days out leaves about 35% of the month unknown, while at 30 days out only about 19% is unknown. A contract clause allowing a downward/upward revision at 30 days would cut freelancer buys more than any forecast improvement, given the same data.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 2
+      },
+      {
+       "value": "The 60-day share swings month to month from 56.8% (May 2025) to 72.2% (Sep 2025), with December a late-booking outlier at 60.5%, so the rule's output is a range (about 74-93 arriving bookings for April 2026 against a point estimate of 82), not a point. Choosing where in that range to commit is the decision the operations lead pays for, and it is the piece a model should improve on.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 3
+      }
+     ],
+     "assumptions": [
+      {
+       "value": "cancelled = 1 means the booking did not arrive (so arriving demand is about 77% of bookings). The 12 destination='TEST' rows are system/test junk and should be excluded. One booking is not necessarily one traveller: the table has no party size, so bookings must be converted to guides by a rule the operations lead supplies.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      },
+      {
+       "value": "The reservation call for April 2026 is being made now, at the data edge (last booking_date 2026-02-24, i.e. about 35 to 65 days before April travel), and 'month after next' = April 2026. Two small opposite errors accepted in the in-hand count: April bookings made after 24 Feb with 60+ day lead (late-April travel) are missing, and April cancellations not yet realised are still counted as arriving.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 2
+      },
+      {
+       "value": "One booking = one arriving traveller (party size not in the table); the reservation unit is therefore 'arriving bookings' and converts to guide-days by one division once T is known.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 3
+      }
+     ],
+     "unknowns": [
+      {
+       "field": "over-reservation fee per unused guide",
+       "question": "How large is the fee for an unused guide compared with the cost of one guide-day (and therefore with the 3x freelancer premium)? This sets the quantile the reservation should be made at: at a 1:3 fee-to-shortfall ratio the right target is roughly the 75th percentile of arriving demand; if the fee is far smaller, it should be higher.",
+       "blocks": "some",
+       "rank": 1
+      },
+      {
+       "field": "bookings-to-guides conversion",
+       "question": "How do bookings become guides: one guide per how many arriving travellers, and does a booking cover a party? The table has no party size, so the forecast is of arriving travellers and needs this rule to become a guide count.",
+       "blocks": "some",
+       "rank": 2
+      }
+     ],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "The yardstick rule first (a week of numbers, no model)",
+       "what": "I rebuild the export into destination-by-travel-month demand (arriving travellers, and how many are already in hand 60 days out), then score the simple rule 'scale up what is already booked' against your real history in money.",
+       "gets": "A reservation number you could use next month, plus the bar the ML model has to clear, and a clear view of each destination's early-booking share and cancellation rate.",
+       "tradeoff": "It is not a model and will not learn new patterns (a channel shift, a price change) the way step 3 would.",
+       "effort": "Small: one table build and one scored comparison, today.",
+       "track": "analysis",
+       "tool": "query",
+       "columns": [
+        "destination",
+        "travel_date",
+        "booking_date",
+        "lead_time_days",
+        "cancelled"
+       ]
+      },
+      {
+       "title": "Go straight to the forecast model",
+       "what": "I set up a prediction project: target = arriving travellers per destination per travel month, features = destination, month, in-hand count at the cutoff, lead-time mix, channel and nationality mix, price level; walk-forward validation and a quantile output so the reservation sits above the average, as your cost asymmetry wants.",
+       "gets": "What your director asked for, judged on the money you would actually have saved or lost each month, plus a per-destination recommendation.",
+       "tradeoff": "and it needs two numbers from you (the unused-guide fee, and how many travellers one guide covers) before the reserve level means anything.",
+       "effort": "Medium: build, validate, then a monthly run.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": [
+        "destination",
+        "travel_date",
+        "booking_date",
+        "lead_time_days",
+        "cancelled",
+        "free_cancellation",
+        "channel",
+        "nationality",
+        "price"
+       ]
+      },
+      {
+       "title": "Clean the export into a forecast-ready table",
+       "what": "I turn the booking rows into a tidy monthly file first: drop the 12 TEST rows, fix price as a number, derive travel month and the 60-day-cutoff in-hand counts, and check every destination's totals reconcile.",
+       "gets": "A single table you keep using, on which both the rule and the model can be run or re-run without re-doing the arithmetic.",
+       "tradeoff": "It produces no forecast itself; you would still need one of the other two after it.",
+       "effort": "Small: one cleaning recipe, today.",
+       "track": "preparation",
+       "tool": "recipe",
+       "columns": [
+        "booking_id",
+        "booking_date",
+        "travel_date",
+        "destination",
+        "nationality",
+        "channel",
+        "lead_time_days",
+        "price",
+        "free_cancellation",
+        "cancelled",
+        "customer_id"
+       ]
+      }
+     ],
+     "chosen": "The yardstick rule first (a week of numbers, no model)",
+     "route": {
+      "track": "analysis",
+      "tool": "query",
+      "reasons": "",
+      "by": "person"
+     },
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am the operations lead at a tour company. Each month I tell our local partners how many guides to reserve in each destination for the month after next. If I reserve too few, we hire freelancers at the last minute for about three times the price; if I reserve too many, we pay a small fee for each guide we do not use. My director asked me for a machine learning model that forecasts how many bookings we will receive per destination each month. The table I shared is our booking export up to late February 2026: one row per booking with the booking date, travel date, destination, nationality, channel, lead time in days, price, whether it had free cancellation, and whether it was cancelled. I will use the result myself every month to fix the reservation.\n\n(I shared a table: bookings.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "bookings.csv: 1500 rows, 11 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (bookings.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "A model that forecasts demand per destination one month ahead of the booking cutoff, so the operations lead can reserve the right number of guides for the month after next. Director asked for it as 'how many bookings we will receive per destination each month'.",
+        "status": "said",
+        "quote": "a machine learning model that forecasts how many bookings we will receive per destination each month",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Monthly: how many guides to reserve in each destination for the month after next (a ~2-month-ahead commitment to local partners).",
+        "status": "said",
+        "quote": "Each month I tell our local partners how many guides to reserve in each destination for the month after next",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "The operations lead themselves, every month, to set the reservation; the director is the reviewer of the model.",
+        "status": "said",
+        "quote": "I will use the result myself every month to fix the reservation",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "bookings.csv: 1500 rows, 11 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (bookings.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "bookings.csv: 1,500 bookings, booking_date 2025-01-01 to 2026-02-24, travel_date 2025-01-16 to 2026-08-16. 5 real destinations (Paris 317, Bangkok 304, Dubai 302, London 283, Istanbul 282) plus 12 rows labelled TEST. Cancellation rate 22.8% (Paris 19.8% to Dubai 25.8%). 67.5% of bookings are made 60+ days before travel, median lead 92 days. Channels: web 755, app 434, agent 311 with near-identical cancel rates. price has 1,119 distinct values (per-booking money, not a class).",
+        "status": "said",
+        "quote": "one row per booking with the booking date, travel date, destination, nationality, channel, lead time in days, price, whether it had free cancellation, and whether it was cancelled",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 7,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "Costs are asymmetric: under-reserving means freelancers at about three times the price; over-reserving means a small fee per unused guide. So the model must be judged in money, not in average error, and should aim above the mean.",
+         "status": "said",
+         "quote": "we hire freelancers at the last minute for about three times the price",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "cancelled = 1 means the booking did not arrive (so arriving demand is about 77% of bookings). The 12 destination='TEST' rows are system/test junk and should be excluded. One booking is not necessarily one traveller: the table has no party size, so bookings must be converted to guides by a rule the operations lead supplies.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "cannot_answer",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "The table cannot give a second year of history (only Jan 2025 to Feb 2026 of bookings), so season-on-season accuracy cannot be validated; and it holds no guide-day price, no per-unused-guide fee, and no travellers-per-booking, all of which the money calculation needs.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 10,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [],
+       "after": [
+        {
+         "field": "over-reservation fee per unused guide",
+         "question": "How large is the fee for an unused guide compared with the cost of one guide-day (and therefore with the 3x freelancer premium)? This sets the quantile the reservation should be made at: at a 1:3 fee-to-shortfall ratio the right target is roughly the 75th percentile of arriving demand; if the fee is far smaller, it should be higher.",
+         "blocks": "some",
+         "rank": 1
+        }
+       ]
+      },
+      {
+       "version": 11,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [
+        {
+         "field": "over-reservation fee per unused guide",
+         "question": "How large is the fee for an unused guide compared with the cost of one guide-day (and therefore with the 3x freelancer premium)? This sets the quantile the reservation should be made at: at a 1:3 fee-to-shortfall ratio the right target is roughly the 75th percentile of arriving demand; if the fee is far smaller, it should be higher.",
+         "blocks": "some",
+         "rank": 1
+        }
+       ],
+       "after": [
+        {
+         "field": "bookings-to-guides conversion",
+         "question": "How do bookings become guides: one guide per how many arriving travellers, and does a booking cover a party? The table has no party size, so the forecast is of arriving travellers and needs this rule to become a guide count.",
+         "blocks": "some",
+         "rank": 2
+        }
+       ]
+      },
+      {
+       "version": 12,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "The yardstick rule first (a week of numbers, no model)",
+         "what": "I rebuild the export into destination-by-travel-month demand (arriving travellers, and how many are already in hand 60 days out), then score the simple rule 'scale up what is already booked' against your real history in money.",
+         "gets": "A reservation number you could use next month, plus the bar the ML model has to clear, and a clear view of each destination's early-booking share and cancellation rate.",
+         "tradeoff": "It is not a model and will not learn new patterns (a channel shift, a price change) the way step 3 would.",
+         "effort": "Small: one table build and one scored comparison, today.",
+         "track": "analysis",
+         "tool": "query",
+         "columns": [
+          "destination",
+          "travel_date",
+          "booking_date",
+          "lead_time_days",
+          "cancelled"
+         ]
+        },
+        {
+         "title": "Go straight to the forecast model",
+         "what": "I set up a prediction project: target = arriving travellers per destination per travel month, features = destination, month, in-hand count at the cutoff, lead-time mix, channel and nationality mix, price level; walk-forward validation and a quantile output so the reservation sits above the average, as your cost asymmetry wants.",
+         "gets": "What your director asked for, judged on the money you would actually have saved or lost each month, plus a per-destination recommendation.",
+         "tradeoff": "and it needs two numbers from you (the unused-guide fee, and how many travellers one guide covers) before the reserve level means anything.",
+         "effort": "Medium: build, validate, then a monthly run.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": [
+          "destination",
+          "travel_date",
+          "booking_date",
+          "lead_time_days",
+          "cancelled",
+          "free_cancellation",
+          "channel",
+          "nationality",
+          "price"
+         ]
+        },
+        {
+         "title": "Clean the export into a forecast-ready table",
+         "what": "I turn the booking rows into a tidy monthly file first: drop the 12 TEST rows, fix price as a number, derive travel month and the 60-day-cutoff in-hand counts, and check every destination's totals reconcile.",
+         "gets": "A single table you keep using, on which both the rule and the model can be run or re-run without re-doing the arithmetic.",
+         "tradeoff": "It produces no forecast itself; you would still need one of the other two after it.",
+         "effort": "Small: one cleaning recipe, today.",
+         "track": "preparation",
+         "tool": "recipe",
+         "columns": [
+          "booking_id",
+          "booking_date",
+          "travel_date",
+          "destination",
+          "nationality",
+          "channel",
+          "lead_time_days",
+          "price",
+          "free_cancellation",
+          "cancelled",
+          "customer_id"
+         ]
+        }
+       ]
+      },
+      {
+       "version": 13,
+       "field": "chosen",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": "The yardstick rule first (a week of numbers, no model)"
+      },
+      {
+       "version": 14,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": {
+        "track": "analysis",
+        "tool": "query",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 15,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the operations lead at a tour company. Each month I tell our local partners how many guides to reserve in each destination for the month after next. If I reserve too few, we hire freelancers at the last minute for about three times the price; if I reserve too many, we pay a small fee for each guide we do not use. My director asked me for a machine learning model that forecasts how many bookings we will receive per destination each month. The table I shared is our booking export up to late February 2026: one row per booking with the booking date, travel date, destination, nationality, channel, lead time in days, price, whether it had free cancellation, and whether it was cancelled. I will use the result myself every month to fix the reservation.\n\n(I shared a table: bookings.csv)"
+       ],
+       "after": [
+        "I pick: The yardstick rule first (a week of numbers, no model)"
+       ]
+      },
+      {
+       "version": 16,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "bookings.csv: 1,500 bookings, booking_date 2025-01-01 to 2026-02-24, travel_date 2025-01-16 to 2026-08-16. 5 real destinations (Paris 317, Bangkok 304, Dubai 302, London 283, Istanbul 282) plus 12 rows labelled TEST. Cancellation rate 22.8% (Paris 19.8% to Dubai 25.8%). 67.5% of bookings are made 60+ days before travel, median lead 92 days. Channels: web 755, app 434, agent 311 with near-identical cancel rates. price has 1,119 distinct values (per-booking money, not a class).",
+        "status": "said",
+        "quote": "one row per booking with the booking date, travel date, destination, nationality, channel, lead time in days, price, whether it had free cancellation, and whether it was cancelled",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "LEFT-CENSORING found: the export's first booking_date is 2025-01-01, but median lead is 92 days, so most bookings for travel in Jan-Apr 2025 were made in 2024 and are NOT in the file. Trustworthy baseline window = travel_date 2025-05-01 onwards. Evidence: bookings made per month are flat (2025-01 122, 2025-02 123, 2025-05 127, 2026-01 113) while arrivals per travel month climb 41 (Mar) / 50 (Apr) / 74 (May) / 107 (Jul); and arrivals May-Dec 2025 total 645 against 832 bookings made May-Dec x 77% = 641. So 'last April' (50) and last April's 60-day share (20/50 = 40%) are artifacts and must not be used as an anchor or a YoY base.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 2
+       }
+      },
+      {
+       "version": 17,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Monthly: how many guides to reserve in each destination for the month after next (a ~2-month-ahead commitment to local partners).",
+        "status": "said",
+        "quote": "Each month I tell our local partners how many guides to reserve in each destination for the month after next",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "Yardstick calibrated on the clean window (travel May-Dec 2025, 645 arrivals): at the 60-day cutoff 420 of 645 (about 65%) of the month's arriving travellers are already booked and not cancelled; at 30 days, 525 of 645 (about 81%). Monthly 60-day share ranges 57% to 72%, which is the yardstick's own error band. April 2026 in hand at 60+ days = 53 (Bangkok 9, Dubai 11, Istanbul 9, London 13, Paris 11), so April 2026 estimated at roughly 82 arriving bookings, range about 74 to 93.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 2
+       }
+      },
+      {
+       "version": 18,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "cancelled = 1 means the booking did not arrive (so arriving demand is about 77% of bookings). The 12 destination='TEST' rows are system/test junk and should be excluded. One booking is not necessarily one traveller: the table has no party size, so bookings must be converted to guides by a rule the operations lead supplies.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ],
+       "after": [
+        {
+         "value": "The reservation call for April 2026 is being made now, at the data edge (last booking_date 2026-02-24, i.e. about 35 to 65 days before April travel), and 'month after next' = April 2026. Two small opposite errors accepted in the in-hand count: April bookings made after 24 Feb with 60+ day lead (late-April travel) are missing, and April cancellations not yet realised are still counted as arriving.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ]
+      },
+      {
+       "version": 19,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "Costs are asymmetric: under-reserving means freelancers at about three times the price; over-reserving means a small fee per unused guide. So the model must be judged in money, not in average error, and should aim above the mean.",
+         "status": "said",
+         "quote": "we hire freelancers at the last minute for about three times the price",
+         "computed": null,
+         "after_words": null
+        }
+       ],
+       "after": [
+        {
+         "value": "Operational finding worth more than model accuracy: committing at 60 days out leaves about 35% of the month unknown, while at 30 days out only about 19% is unknown. A contract clause allowing a downward/upward revision at 30 days would cut freelancer buys more than any forecast improvement, given the same data.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ]
+      },
+      {
+       "version": 20,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the operations lead at a tour company. Each month I tell our local partners how many guides to reserve in each destination for the month after next. If I reserve too few, we hire freelancers at the last minute for about three times the price; if I reserve too many, we pay a small fee for each guide we do not use. My director asked me for a machine learning model that forecasts how many bookings we will receive per destination each month. The table I shared is our booking export up to late February 2026: one row per booking with the booking date, travel date, destination, nationality, channel, lead time in days, price, whether it had free cancellation, and whether it was cancelled. I will use the result myself every month to fix the reservation.\n\n(I shared a table: bookings.csv)",
+        "I pick: The yardstick rule first (a week of numbers, no model)"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 21,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Yardstick calibrated on the clean window (travel May-Dec 2025, 645 arrivals): at the 60-day cutoff 420 of 645 (about 65%) of the month's arriving travellers are already booked and not cancelled; at 30 days, 525 of 645 (about 81%). Monthly 60-day share ranges 57% to 72%, which is the yardstick's own error band. April 2026 in hand at 60+ days = 53 (Bangkok 9, Dubai 11, Istanbul 9, London 13, Paris 11), so April 2026 estimated at roughly 82 arriving bookings, range about 74 to 93.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 2
+       },
+       "after": {
+        "value": "Operations lead declined to supply the per-unused-guide fee and the travellers-per-guide ratio ('everything I know is in what I wrote'), and told me to choose. So the yardstick is delivered parameterised: guides = ceil(arriving bookings / T) with T stated as a knob, and the reserve level set at the ~75th percentile of arriving demand (the standard answer at a 1:3 fee-to-shortfall ratio), with a note on how to shift it if the fee turns out smaller.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 3
+       }
+      },
+      {
+       "version": 22,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "cancelled = 1 means the booking did not arrive (so arriving demand is about 77% of bookings). The 12 destination='TEST' rows are system/test junk and should be excluded. One booking is not necessarily one traveller: the table has no party size, so bookings must be converted to guides by a rule the operations lead supplies.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        },
+        {
+         "value": "The reservation call for April 2026 is being made now, at the data edge (last booking_date 2026-02-24, i.e. about 35 to 65 days before April travel), and 'month after next' = April 2026. Two small opposite errors accepted in the in-hand count: April bookings made after 24 Feb with 60+ day lead (late-April travel) are missing, and April cancellations not yet realised are still counted as arriving.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ],
+       "after": [
+        {
+         "value": "One booking = one arriving traveller (party size not in the table); the reservation unit is therefore 'arriving bookings' and converts to guide-days by one division once T is known.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 3
+        }
+       ]
+      },
+      {
+       "version": 23,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "The operations lead themselves, every month, to set the reservation; the director is the reviewer of the model.",
+        "status": "said",
+        "quote": "I will use the result myself every month to fix the reservation",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "Deliverable is a reusable monthly rule the operations lead applies by hand in about a minute: a per-destination cutoff share, plus the estimate and the reserve number.",
+        "status": "said",
+        "quote": "I will use the result myself every month to fix the reservation",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 24,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Operations lead declined to supply the per-unused-guide fee and the travellers-per-guide ratio ('everything I know is in what I wrote'), and told me to choose. So the yardstick is delivered parameterised: guides = ceil(arriving bookings / T) with T stated as a knob, and the reserve level set at the ~75th percentile of arriving demand (the standard answer at a 1:3 fee-to-shortfall ratio), with a note on how to shift it if the fee turns out smaller.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 3
+       },
+       "after": {
+        "value": "Yardstick rule calibrated per destination on the clean window (travel May-Dec 2025, 645 arrivals). Share of the month's arriving bookings already in hand at 60 days out: Bangkok 62.1%, Dubai 62.4%, Istanbul 63.7%, London 67.8%, Paris 69.2% (pooled 65.1%). At 30 days out: Bangkok 78.8%, Dubai 83.2%, Istanbul 82.3%, London 81.8%, Paris 81.1%. Rule: arriving estimate = bookings in hand at 60 days / that destination share.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 3
+       }
+      },
+      {
+       "version": 25,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "Costs are asymmetric: under-reserving means freelancers at about three times the price; over-reserving means a small fee per unused guide. So the model must be judged in money, not in average error, and should aim above the mean.",
+         "status": "said",
+         "quote": "we hire freelancers at the last minute for about three times the price",
+         "computed": null,
+         "after_words": null
+        },
+        {
+         "value": "Operational finding worth more than model accuracy: committing at 60 days out leaves about 35% of the month unknown, while at 30 days out only about 19% is unknown. A contract clause allowing a downward/upward revision at 30 days would cut freelancer buys more than any forecast improvement, given the same data.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ],
+       "after": [
+        {
+         "value": "The 60-day share swings month to month from 56.8% (May 2025) to 72.2% (Sep 2025), with December a late-booking outlier at 60.5%, so the rule's output is a range (about 74-93 arriving bookings for April 2026 against a point estimate of 82), not a point. Choosing where in that range to commit is the decision the operations lead pays for, and it is the piece a model should improve on.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 3
+        }
+       ]
+      }
+     ]
+    },
+    "ready": false,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [
+     {
+      "plan_hash": "04e4b2c04f3d8e96",
+      "columns_related": [],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "8970d861a27083e5",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "d7d572cb4d7c301d",
+      "columns_related": [
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "columns_related": [
+       [
+        "booking_id",
+        "cancelled"
+       ],
+       [
+        "booking_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "nationality",
+        "cancelled"
+       ],
+       [
+        "channel",
+        "cancelled"
+       ],
+       [
+        "lead_time_days",
+        "cancelled"
+       ],
+       [
+        "price",
+        "cancelled"
+       ],
+       [
+        "free_cancellation",
+        "cancelled"
+       ],
+       [
+        "customer_id",
+        "cancelled"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "857967207a0334c0",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "free_cancellation"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "destination",
+        "price"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "19c60962d879a869",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "3dc7e5bfd9b6858f",
+      "columns_related": [
+       [
+        "channel",
+        "cancelled"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "53a13a5419ef8abb",
+      "columns_related": [],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "67e6859ba4bbd20f",
+      "columns_related": [],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "f80eaa4415ce0f88",
+      "columns_related": [
+       [
+        "cancelled",
+        "travel_date"
+       ],
+       [
+        "destination",
+        "travel_date"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "80cd6739da930bab",
+      "columns_related": [
+       [
+        "cancelled",
+        "lead_time_days"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "ce95961d7da61e1c",
+      "columns_related": [
+       [
+        "cancelled",
+        "lead_time_days"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "77082f30f1f7458c",
+      "columns_related": [
+       [
+        "cancelled",
+        "lead_time_days"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "961e83ab1496ee5a",
+      "columns_related": [],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "55f25f1c42e3c8fd",
+      "columns_related": [
+       [
+        "booking_date",
+        "lead_time_days"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "af9677bba8999b93",
+      "columns_related": [
+       [
+        "cancelled",
+        "travel_date"
+       ],
+       [
+        "destination",
+        "travel_date"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "bdae96a97d23d4ed",
+      "columns_related": [
+       [
+        "cancelled",
+        "lead_time_days"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "6d946208c86add6e",
+      "columns_related": [
+       [
+        "cancelled",
+        "lead_time_days"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "79cc7cb0270edd56",
+      "columns_related": [
+       [
+        "cancelled",
+        "lead_time_days"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "e8954be21d2d2021",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "3a1cf8d1e365e731",
+      "columns_related": [
+       [
+        "destination",
+        "cancelled"
+       ],
+       [
+        "travel_date",
+        "cancelled"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "d36f9fdb44c6536a",
+      "columns_related": [
+       [
+        "cancelled",
+        "lead_time_days"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "36f1b7ffb8dd3a05",
+      "columns_related": [
+       [
+        "cancelled",
+        "lead_time_days"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     },
+     {
+      "plan_hash": "e686dbad0d0567e2",
+      "columns_related": [
+       [
+        "cancelled",
+        "lead_time_days"
+       ],
+       [
+        "destination",
+        "lead_time_days"
+       ],
+       [
+        "travel_date",
+        "lead_time_days"
+       ]
+      ],
+      "rows": "filter"
+     }
+    ],
+    "spent_eur": 0.0396
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0396,
+   "judge_spent_eur": 0,
+   "first_divergence": {
+    "id": "hab-11",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-035/case/hab-11-r1",
+    "events": 38,
+    "first": {
+     "reason": "options_trimmed",
+     "at": "2026-11-15T22:20:41.724694+00:00",
+     "seq": 49,
+     "tool": "case_propose",
+     "wanted": {
+      "tracks": [
+       "analysis",
+       "prediction",
+       "preparation"
+      ]
+     },
+     "wanted_right": true,
+     "safety": false,
+     "before_route": true,
+     "evidence": "{\"shown\": [\"The yardstick rule first (a week of numbers, no model)\", \"Go straight to the forecast model\", \"Clean the export into a forecast-ready table\"], \"refused\": {\"Go straight to the forecast model (kept)\": \"shown without the sentences holding numbers nobody gave (65): say a number only when the"
+    },
+    "all": [
+     {
+      "reason": "options_trimmed",
+      "at": "2026-11-15T22:20:41.724694+00:00",
+      "seq": 49,
+      "tool": "case_propose",
+      "wanted": {
+       "tracks": [
+        "analysis",
+        "prediction",
+        "preparation"
+       ]
+      },
+      "wanted_right": true,
+      "safety": false,
+      "before_route": true,
+      "evidence": "{\"shown\": [\"The yardstick rule first (a week of numbers, no model)\", \"Go straight to the forecast model\", \"Clean the export into a forecast-ready table\"], \"refused\": {\"Go straight to the forecast model (kept)\": \"shown without the sentences holding numbers nobody gave (65): say a number only when the"
+     },
+     {
+      "reason": "query_cap",
+      "at": "2026-11-15T22:26:46.378293+00:00",
+      "seq": 81,
+      "tool": "case_query",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": false,
+      "evidence": "error: the table has been asked 8 times this turn: write to the person now with what you found"
+     },
+     {
+      "reason": "bad_arguments",
+      "at": "2026-11-15T22:29:45.290508+00:00",
+      "seq": 119,
+      "tool": "case_note",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": false,
+      "evidence": "error: The arguments for case_note were not valid JSON; send a JSON object that fits the schema."
+     },
+     {
+      "reason": "bad_arguments",
+      "at": "2026-11-15T22:29:52.157463+00:00",
+      "seq": 122,
+      "tool": "case_note",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": false,
+      "evidence": "error: Invalid argument for case_note: notes.2.field: 'limits' is not one of ['goal', 'decision', 'user', 'data', 'cannot_answer', 'constraints', 'assumptions']"
+     }
+    ],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 20,
+     "empty_answers": 2,
+     "cut_replies": 2
+    },
+    "route": "analysis",
+    "tool": "query",
+    "routed_by": "option",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-12",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the head of marketing at a subscription company. The board asked for an AI segmentation of our customers, and I would like five or six segments with names we can put on a slide. The table I shared has one row per customer: signup date, the segment we already record, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and whether they churned the next month. Next quarter my team can run at most three email campaigns: one to move people to a higher plan, one to keep people who look likely to leave, and one welcome series for new customers. The same person should not receive two of them. My campaign managers will use the segments to decide who gets which campaign. [shares customers.csv]",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I've read the file. Here's what I take the job to be, and one thing I'd change about how it's usually done.\n\n**The real problem.** The board wants names on a slide, but the person who has to act is a campaign manager who needs a rule: for every one of 1,200 customers, which of three emails they get, and never two. So a segment is only worth its name if it maps to exactly one campaign. Your current recorded segment can't do that: it only splits consumer (961, 18.1% churn) from business (239, 14.6%), and barely separates spend or tenure. What actually separates your customers is plan: basic 603 people at an average spend of 19.22 with 22.4% churn, plus 369 at 48.41 with 11.1%, premium 228 at 89.39 with 14.5%. Overall churn is 17.4%.\n\n**What needs care before any clustering.**\n\nFirst, `churned_next_month` must not be an input to the segmentation. If the retention segment is partly defined by \"did churn\", the segment is built from an answer your customers haven't given yet, and next quarter it targets nobody. It belongs on the other side of the glass: we check afterwards that the risky-looking group really was risky.\n\nSecond, plan and monthly_spend say almost the same thing, and tenure is flat across plans. Clustering on both tends to produce your three plans with prettier names. I'll test for that rather than assume it.\n\nThird, the welcome series has a size problem: only 103 customers are under 6 months old, 39 under 3 months, against 461 at 36 months or more. One of three campaigns for 39–103 people may be a poor trade, and it's your call, not the algorithm's.\n\nFourth, I'm deliberately keeping `city` out of the segment definitions. Churn varies by city (Sharjah 21.2%, Ras Al Khaimah 11.8%), but a targeting rule that treats people differently because of where they live is a complaint and fairness risk you don't need on a board slide.\n\nFifth, 48 customers have no monthly_spend. I'd fill those from their plan's median and flag them, rather than silently dropping them.\n\n**The plan.**\n1. Fix the campaign rules and their priority order (new → welcome; risky → retention; high-value low-tenure-in-plan → upgrade; everyone else → nothing). Checked by: every customer in zero or one campaign, no double-send.\n2. Segment on behaviour only — plan, tenure, spend, ticket load — into 5–6 groups. Checked by: groups differ on more than plan, and each is big enough to be worth an email.\n3. Read churn out per segment. We stop when at least one segment shows churn clearly above 17.4%; if none does, we go to a risk score instead.\n4. Hand your managers a customer-to-campaign file plus six names and one-line definitions.\n\nTwo options in front of you differ on step 3: **behaviour-led segments** keeps the segmentation clean and descriptive and is what the board literally asked for; the **risk-score-led** version trains a churn model with a holdout first, so the retention group is ranked by real predicted risk — a stronger claim, slightly slower, and names that come from a risk-by-value grid rather than discovered clusters. The third option is a quick cross-tab check before either, if you'd rather settle the welcome-series question first. My pick is the first today, with the risk score as the natural follow-up if no segment stands out on churn.",
+     "choices": [
+      {
+       "title": "Behaviour-led segments (6 named groups, churn used only as a check)",
+       "what": "Cluster all 1,200 customers on plan, tenure, monthly spend and support tickets - deliberately NOT on churned_next_month and not on city - into 5-6 groups, then give each group one campaign by a priority rule so no customer lands in two. You get: Six named, slide-ready segments with size, average spend and average tenure, plus a customer-to-campaign file for your managers. Churn is then read out per segment to prove the risky group really is risky. Trade-off: Clusters describe who customers are today; they cannot tell you who will leave next month, so the retention group is defined by warning behaviour (tickets, low spend, short tenure) rather than by a risk score. Effort: One run, results in this chat today.",
+       "track": "prediction",
+       "tool": "segmentation_project",
+       "kind": "option"
+      },
+      {
+       "title": "Risk-score-led segments (predict who leaves, then group)",
+       "what": "Train a churn model on these 1,200 rows with a proper holdout, score every current customer, and build the segments from predicted risk crossed with value and tenure (e.g. high-value wobbly, risky budget, ready to upgrade, brand new, steady). You get: Segments whose retention group is actually ranked by next-month risk, with a reported accuracy/AUC on held-out customers - a stronger claim to put in front of the board than 'AI found groups'. Trade-off: The names come from a grid you set (risk bands x value bands) rather than being discovered in the data, and 48 customers with no monthly spend have to be filled or held out. Effort: Slightly longer: split, train, validate, then segment.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      },
+      {
+       "title": "Sanity-check the current segment before building anything",
+       "what": "A short set of cross-tabs: plan x tenure x ticket load, and what the recorded consumer/business split hides, plus exactly how many customers each of your three campaigns could even reach. You get: Numbers for the slide today and a decision on the welcome-series problem: only 103 customers are under 6 months, 39 under 3 months. Trade-off: No new segments and no names, so it does not answer what the board asked for - it sharpens it first. Effort: A few minutes.",
+       "track": "reporting",
+       "tool": "dashboard",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Behaviour-led segmentation it is, and I've started it: clustering on plan, tenure, monthly spend and support tickets, with churn held back purely as the later check — nothing in the table turned out to be recorded after the churn decision, so that check is clean. Two working assumptions I'd flag on the slide, since they shape the size of your audiences: I'm reading \"new customers\" as under roughly six months of tenure, and I'm filling the 48 blank spend figures from their plan's median rather than dropping those customers, so nobody slips through untargeted. DCLab is checking the remaining build requirements now — I'll bring back the segments with their churn rates once it has run.",
+     "choices": []
+    }
+   ],
+   "route": "prediction",
+   "tool": "segmentation_project",
+   "routed_by": "self",
+   "ended": "answered",
+   "assistant_turns": 2,
+   "picked": 0,
+   "options_unpicked": 1,
+   "silent": 0,
+   "seconds": [
+    93.05,
+    50.02
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-12",
+     "version": 19,
+     "words": [
+      "I am the head of marketing at a subscription company. The board asked for an AI segmentation of our customers, and I would like five or six segments with names we can put on a slide. The table I shared has one row per customer: signup date, the segment we already record, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and whether they churned the next month. Next quarter my team can run at most three email campaigns: one to move people to a higher plan, one to keep people who look likely to leave, and one welcome series for new customers. The same person should not receive two of them. My campaign managers will use the segments to decide who gets which campaign.\n\n(I shared a table: customers.csv)",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Produce 5-6 AI-derived, named customer segments the board can see on a slide, and that campaign managers can use to assign each customer to at most one of three email campaigns.",
+      "status": "said",
+      "quote": "five or six segments with names we can put on a slide",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Deliverable to marketing: six segment names plus a customer-to-campaign file, so each customer lands in one segment and one campaign only.",
+      "status": "said",
+      "quote": "my team can run at most three email campaigns",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "Head of marketing (slide for the board) plus campaign managers (operational targeting).",
+      "status": "said",
+      "quote": "I am the head of marketing at a subscription company",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "customers.csv: 1200 rows, one per customer, 1200 unique customer_id. Recorded segment only splits consumer (961, 18.1% churn) vs business (239, 14.6%) and does not separate spend or tenure. Plan separates both: basic 603 @ avg spend 19.22 / 22.4% churn, plus 369 @ 48.41 / 11.1%, premium 228 @ 89.39 / 14.5%. Overall churn 17.4%. signup_date 2022-01-01 to 2025-10-31; median monthly_spend 31.78; 461 customers at 36+ months tenure; 103 under 6 months, 39 under 3 months; 388 with 2+ tickets in 90 days; 48 rows missing monthly_spend; no missing tenure.",
+      "status": "said",
+      "quote": "The table I shared has one row per customer",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [],
+     "constraints": [
+      {
+       "value": "At most three campaigns next quarter; campaigns mutually exclusive; segment names slide-ready. A segment used to trigger the retention campaign cannot be built on churned_next_month itself, since that value only exists after the customer has left.",
+       "status": "said",
+       "quote": "Next quarter my team can run at most three email campaigns",
+       "computed": null,
+       "after_words": null
+      },
+      {
+       "value": "5-6 segments, each named and one line long for a slide; every customer lands in exactly one segment so a campaign manager never has to decide twice.",
+       "status": "said",
+       "quote": "five or six segments with names we can put on a slide",
+       "computed": null,
+       "after_words": null
+      }
+     ],
+     "assumptions": [
+      {
+       "value": "churned_next_month = 1 means the customer left in the month after the snapshot (latest signup 2025-10-31), so the file is a point-in-time extract.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      },
+      {
+       "value": "'New customers' for the welcome series means low tenure (under ~6 months) - at most 103 of 1200 people, so that campaign has a small audience unless the definition is wider.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      },
+      {
+       "value": "City is not a defining feature of any segment: churn varies by city (Sharjah 21.2%, Ras Al Khaimah 11.8%) but treating customers differently by where they live is a fairness and complaint risk the segmentation should not create.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      },
+      {
+       "value": "Campaign audience rules, mutually exclusive by priority: welcome series = lowest tenure (under ~6 months), then retention = segment whose churn rate sits clearly above the 17.4% base, then upgrade = segments with room to move to a higher plan (mostly basic/plus with the spend headroom), everyone else no email.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 2
+      },
+      {
+       "value": "The 48 customers missing monthly_spend are filled with the median spend of their own plan and flagged, not dropped, so no customer is left untargetable.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 2
+      }
+     ],
+     "unknowns": [],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "Behaviour-led segments (6 named groups, churn used only as a check)",
+       "what": "Cluster all 1,200 customers on plan, tenure, monthly spend and support tickets - deliberately NOT on churned_next_month and not on city - into 5-6 groups, then give each group one campaign by a priority rule so no customer lands in two.",
+       "gets": "Six named, slide-ready segments with size, average spend and average tenure, plus a customer-to-campaign file for your managers. Churn is then read out per segment to prove the risky group really is risky.",
+       "tradeoff": "Clusters describe who customers are today; they cannot tell you who will leave next month, so the retention group is defined by warning behaviour (tickets, low spend, short tenure) rather than by a risk score.",
+       "effort": "One run, results in this chat today.",
+       "track": "prediction",
+       "tool": "segmentation_project",
+       "columns": [
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d"
+       ]
+      },
+      {
+       "title": "Risk-score-led segments (predict who leaves, then group)",
+       "what": "Train a churn model on these 1,200 rows with a proper holdout, score every current customer, and build the segments from predicted risk crossed with value and tenure (e.g. high-value wobbly, risky budget, ready to upgrade, brand new, steady).",
+       "gets": "Segments whose retention group is actually ranked by next-month risk, with a reported accuracy/AUC on held-out customers - a stronger claim to put in front of the board than 'AI found groups'.",
+       "tradeoff": "The names come from a grid you set (risk bands x value bands) rather than being discovered in the data, and 48 customers with no monthly spend have to be filled or held out.",
+       "effort": "Slightly longer: split, train, validate, then segment.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": [
+        "plan",
+        "tenure_months",
+        "monthly_spend",
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      },
+      {
+       "title": "Sanity-check the current segment before building anything",
+       "what": "A short set of cross-tabs: plan x tenure x ticket load, and what the recorded consumer/business split hides, plus exactly how many customers each of your three campaigns could even reach.",
+       "gets": "Numbers for the slide today and a decision on the welcome-series problem: only 103 customers are under 6 months, 39 under 3 months.",
+       "tradeoff": "No new segments and no names, so it does not answer what the board asked for - it sharpens it first.",
+       "effort": "A few minutes.",
+       "track": "reporting",
+       "tool": "dashboard",
+       "columns": []
+      }
+     ],
+     "chosen": null,
+     "route": {
+      "track": "prediction",
+      "tool": "segmentation_project",
+      "reasons": "",
+      "by": "agent"
+     },
+     "card": null,
+     "findings": [],
+     "build": {
+      "tool": "segmentation_project",
+      "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     },
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am the head of marketing at a subscription company. The board asked for an AI segmentation of our customers, and I would like five or six segments with names we can put on a slide. The table I shared has one row per customer: signup date, the segment we already record, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and whether they churned the next month. Next quarter my team can run at most three email campaigns: one to move people to a higher plan, one to keep people who look likely to leave, and one welcome series for new customers. The same person should not receive two of them. My campaign managers will use the segments to decide who gets which campaign.\n\n(I shared a table: customers.csv)"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "data",
+       "op": "set",
+       "by": "code",
+       "why": "the table was read",
+       "before": null,
+       "after": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Produce 5-6 AI-derived, named customer segments the board can see on a slide, and that campaign managers can use to assign each customer to at most one of three email campaigns.",
+        "status": "said",
+        "quote": "five or six segments with names we can put on a slide",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Which customers get the upgrade campaign, which get the retention campaign, which get the welcome series - with no customer in two campaigns.",
+        "status": "said",
+        "quote": "My campaign managers will use the segments to decide who gets which campaign",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Head of marketing (slide for the board) plus campaign managers (operational targeting).",
+        "status": "said",
+        "quote": "I am the head of marketing at a subscription company",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "customers.csv: 1200 rows, 9 columns",
+        "status": "computed",
+        "quote": null,
+        "computed": "the upload's profile (customers.csv)",
+        "after_words": null
+       },
+       "after": {
+        "value": "customers.csv: 1200 rows, one per customer, 1200 unique customer_id. Recorded segment only splits consumer (961, 18.1% churn) vs business (239, 14.6%) and does not separate spend or tenure. Plan separates both: basic 603 @ avg spend 19.22 / 22.4% churn, plus 369 @ 48.41 / 11.1%, premium 228 @ 89.39 / 14.5%. Overall churn 17.4%. signup_date 2022-01-01 to 2025-10-31; median monthly_spend 31.78; 461 customers at 36+ months tenure; 103 under 6 months, 39 under 3 months; 388 with 2+ tickets in 90 days; 48 rows missing monthly_spend; no missing tenure.",
+        "status": "said",
+        "quote": "The table I shared has one row per customer",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 7,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "At most three campaigns next quarter; campaigns mutually exclusive; segment names slide-ready. A segment used to trigger the retention campaign cannot be built on churned_next_month itself, since that value only exists after the customer has left.",
+         "status": "said",
+         "quote": "Next quarter my team can run at most three email campaigns",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "churned_next_month = 1 means the customer left in the month after the snapshot (latest signup 2025-10-31), so the file is a point-in-time extract.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "churned_next_month = 1 means the customer left in the month after the snapshot (latest signup 2025-10-31), so the file is a point-in-time extract.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ],
+       "after": [
+        {
+         "value": "'New customers' for the welcome series means low tenure (under ~6 months) - at most 103 of 1200 people, so that campaign has a small audience unless the definition is wider.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 10,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "churned_next_month = 1 means the customer left in the month after the snapshot (latest signup 2025-10-31), so the file is a point-in-time extract.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        },
+        {
+         "value": "'New customers' for the welcome series means low tenure (under ~6 months) - at most 103 of 1200 people, so that campaign has a small audience unless the definition is wider.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ],
+       "after": [
+        {
+         "value": "City is not a defining feature of any segment: churn varies by city (Sharjah 21.2%, Ras Al Khaimah 11.8%) but treating customers differently by where they live is a fairness and complaint risk the segmentation should not create.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 11,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "Behaviour-led segments (6 named groups, churn used only as a check)",
+         "what": "Cluster all 1,200 customers on plan, tenure, monthly spend and support tickets - deliberately NOT on churned_next_month and not on city - into 5-6 groups, then give each group one campaign by a priority rule so no customer lands in two.",
+         "gets": "Six named, slide-ready segments with size, average spend and average tenure, plus a customer-to-campaign file for your managers. Churn is then read out per segment to prove the risky group really is risky.",
+         "tradeoff": "Clusters describe who customers are today; they cannot tell you who will leave next month, so the retention group is defined by warning behaviour (tickets, low spend, short tenure) rather than by a risk score.",
+         "effort": "One run, results in this chat today.",
+         "track": "prediction",
+         "tool": "segmentation_project",
+         "columns": [
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d"
+         ]
+        },
+        {
+         "title": "Risk-score-led segments (predict who leaves, then group)",
+         "what": "Train a churn model on these 1,200 rows with a proper holdout, score every current customer, and build the segments from predicted risk crossed with value and tenure (e.g. high-value wobbly, risky budget, ready to upgrade, brand new, steady).",
+         "gets": "Segments whose retention group is actually ranked by next-month risk, with a reported accuracy/AUC on held-out customers - a stronger claim to put in front of the board than 'AI found groups'.",
+         "tradeoff": "The names come from a grid you set (risk bands x value bands) rather than being discovered in the data, and 48 customers with no monthly spend have to be filled or held out.",
+         "effort": "Slightly longer: split, train, validate, then segment.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": [
+          "plan",
+          "tenure_months",
+          "monthly_spend",
+          "support_tickets_90d",
+          "churned_next_month"
+         ]
+        },
+        {
+         "title": "Sanity-check the current segment before building anything",
+         "what": "A short set of cross-tabs: plan x tenure x ticket load, and what the recorded consumer/business split hides, plus exactly how many customers each of your three campaigns could even reach.",
+         "gets": "Numbers for the slide today and a decision on the welcome-series problem: only 103 customers are under 6 months, 39 under 3 months.",
+         "tradeoff": "No new segments and no names, so it does not answer what the board asked for - it sharpens it first.",
+         "effort": "A few minutes.",
+         "track": "reporting",
+         "tool": "dashboard",
+         "columns": []
+        }
+       ]
+      },
+      {
+       "version": 12,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the head of marketing at a subscription company. The board asked for an AI segmentation of our customers, and I would like five or six segments with names we can put on a slide. The table I shared has one row per customer: signup date, the segment we already record, city, plan, tenure in months, monthly spend, support tickets in the last 90 days, and whether they churned the next month. Next quarter my team can run at most three email campaigns: one to move people to a higher plan, one to keep people who look likely to leave, and one welcome series for new customers. The same person should not receive two of them. My campaign managers will use the segments to decide who gets which campaign.\n\n(I shared a table: customers.csv)"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 13,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "churned_next_month = 1 means the customer left in the month after the snapshot (latest signup 2025-10-31), so the file is a point-in-time extract.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        },
+        {
+         "value": "'New customers' for the welcome series means low tenure (under ~6 months) - at most 103 of 1200 people, so that campaign has a small audience unless the definition is wider.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        },
+        {
+         "value": "City is not a defining feature of any segment: churn varies by city (Sharjah 21.2%, Ras Al Khaimah 11.8%) but treating customers differently by where they live is a fairness and complaint risk the segmentation should not create.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ],
+       "after": [
+        {
+         "value": "Campaign audience rules, mutually exclusive by priority: welcome series = lowest tenure (under ~6 months), then retention = segment whose churn rate sits clearly above the 17.4% base, then upgrade = segments with room to move to a higher plan (mostly basic/plus with the spend headroom), everyone else no email.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ]
+      },
+      {
+       "version": 14,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "churned_next_month = 1 means the customer left in the month after the snapshot (latest signup 2025-10-31), so the file is a point-in-time extract.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        },
+        {
+         "value": "'New customers' for the welcome series means low tenure (under ~6 months) - at most 103 of 1200 people, so that campaign has a small audience unless the definition is wider.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        },
+        {
+         "value": "City is not a defining feature of any segment: churn varies by city (Sharjah 21.2%, Ras Al Khaimah 11.8%) but treating customers differently by where they live is a fairness and complaint risk the segmentation should not create.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        },
+        {
+         "value": "Campaign audience rules, mutually exclusive by priority: welcome series = lowest tenure (under ~6 months), then retention = segment whose churn rate sits clearly above the 17.4% base, then upgrade = segments with room to move to a higher plan (mostly basic/plus with the spend headroom), everyone else no email.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ],
+       "after": [
+        {
+         "value": "The 48 customers missing monthly_spend are filled with the median spend of their own plan and flagged, not dropped, so no customer is left untargetable.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ]
+      },
+      {
+       "version": 15,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "At most three campaigns next quarter; campaigns mutually exclusive; segment names slide-ready. A segment used to trigger the retention campaign cannot be built on churned_next_month itself, since that value only exists after the customer has left.",
+         "status": "said",
+         "quote": "Next quarter my team can run at most three email campaigns",
+         "computed": null,
+         "after_words": null
+        }
+       ],
+       "after": [
+        {
+         "value": "5-6 segments, each named and one line long for a slide; every customer lands in exactly one segment so a campaign manager never has to decide twice.",
+         "status": "said",
+         "quote": "five or six segments with names we can put on a slide",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 16,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Which customers get the upgrade campaign, which get the retention campaign, which get the welcome series - with no customer in two campaigns.",
+        "status": "said",
+        "quote": "My campaign managers will use the segments to decide who gets which campaign",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "Route picked on their delegation: behaviour-led segmentation of customers (5-6 named groups) clustering on plan, tenure, monthly spend and support tickets, then validated against churn afterwards rather than built on it.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 2
+       }
+      },
+      {
+       "version": 17,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Route picked on their delegation: behaviour-led segmentation of customers (5-6 named groups) clustering on plan, tenure, monthly spend and support tickets, then validated against churn afterwards rather than built on it.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 2
+       },
+       "after": {
+        "value": "Deliverable to marketing: six segment names plus a customer-to-campaign file, so each customer lands in one segment and one campaign only.",
+        "status": "said",
+        "quote": "my team can run at most three email campaigns",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 18,
+       "field": "route",
+       "op": "set",
+       "by": "agent",
+       "why": "work started",
+       "before": null,
+       "after": {
+        "track": "prediction",
+        "tool": "segmentation_project",
+        "reasons": "",
+        "by": "agent"
+       }
+      },
+      {
+       "version": 19,
+       "field": "build",
+       "op": "set",
+       "by": "person",
+       "why": "the person said yes to the build",
+       "before": null,
+       "after": {
+        "tool": "segmentation_project",
+        "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": {
+     "tool": "segmentation_project",
+     "quote": "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+    },
+    "exposure": [
+     {
+      "plan_hash": "13082766fd4d950f",
+      "columns_related": [
+       [
+        "plan",
+        "churned_next_month"
+       ],
+       [
+        "plan",
+        "monthly_spend"
+       ],
+       [
+        "plan",
+        "support_tickets_90d"
+       ],
+       [
+        "plan",
+        "tenure_months"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "a0a30bbeea8e71a5",
+      "columns_related": [
+       [
+        "segment",
+        "churned_next_month"
+       ],
+       [
+        "segment",
+        "monthly_spend"
+       ],
+       [
+        "segment",
+        "tenure_months"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "57dfe53f499c9ca9",
+      "columns_related": [],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "77cc3c4e856767de",
+      "columns_related": [
+       [
+        "city",
+        "churned_next_month"
+       ],
+       [
+        "city",
+        "monthly_spend"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "columns_related": [
+       [
+        "customer_id",
+        "churned_next_month"
+       ],
+       [
+        "signup_date",
+        "churned_next_month"
+       ],
+       [
+        "segment",
+        "churned_next_month"
+       ],
+       [
+        "city",
+        "churned_next_month"
+       ],
+       [
+        "plan",
+        "churned_next_month"
+       ],
+       [
+        "tenure_months",
+        "churned_next_month"
+       ],
+       [
+        "monthly_spend",
+        "churned_next_month"
+       ],
+       [
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      ],
+      "rows": "all"
+     },
+     {
+      "plan_hash": "1452ce3d39583c36",
+      "columns_related": [],
+      "rows": "all"
+     },
+     {
+      "columns_related": [
+       [
+        "customer_id",
+        "churned_next_month"
+       ],
+       [
+        "signup_date",
+        "churned_next_month"
+       ],
+       [
+        "segment",
+        "churned_next_month"
+       ],
+       [
+        "city",
+        "churned_next_month"
+       ],
+       [
+        "plan",
+        "churned_next_month"
+       ],
+       [
+        "tenure_months",
+        "churned_next_month"
+       ],
+       [
+        "monthly_spend",
+        "churned_next_month"
+       ],
+       [
+        "support_tickets_90d",
+        "churned_next_month"
+       ]
+      ],
+      "rows": "all"
+     }
+    ],
+    "spent_eur": 0.0095
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0095,
+   "judge_spent_eur": 0,
+   "first_divergence": {
+    "id": "hab-12",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-035/case/hab-12-r1",
+    "events": 18,
+    "first": {
+     "reason": "bad_arguments",
+     "at": "2026-11-15T22:31:08.004035+00:00",
+     "seq": 166,
+     "tool": "case_note",
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": true,
+     "evidence": "error: Invalid argument for case_note: notes: [{'field': 'goal', 'value': 'Produce 5-6 AI-derived, named customer segments the board can see on a slide, and that campaign managers can use to assign each customer to at most one of three email camp"
+    },
+    "all": [
+     {
+      "reason": "bad_arguments",
+      "at": "2026-11-15T22:31:08.004035+00:00",
+      "seq": 166,
+      "tool": "case_note",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: Invalid argument for case_note: notes: [{'field': 'goal', 'value': 'Produce 5-6 AI-derived, named customer segments the board can see on a slide, and that campaign managers can use to assign each customer to at most one of three email camp"
+     },
+     {
+      "reason": "outcome_not_named",
+      "at": "2026-11-15T22:32:31.265148+00:00",
+      "seq": 206,
+      "tool": "case_request_build",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": true,
+      "before_route": false,
+      "evidence": "error: the person has not named churned_next_month: ask which column is the outcome, or leave outcome out"
+     }
+    ],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 12,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "prediction",
+    "tool": "segmentation_project",
+    "routed_by": "self",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-13",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am a data scientist at a company that sells accounting software to small firms. Two years ago we built a model that scores every new lead on how likely it is to become a customer, and the sales team calls the highest scores first. Since the autumn the sales team says the top leads are much worse than they used to be, and my manager wants me to retrain with a larger model and more features. Some context on the data: since the summer, part of our leads comes from a partner marketplace; we moved to a new CRM in August, and two form fields the model uses are no longer collected; and finance now counts a lead as converted when a free trial starts, where before it was the first payment. I have the old training set and every lead since, not yet exported. What would you do?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Here's what I read in your context, because the four things you listed *are* the diagnosis.\n\n**The problem.** Your model's job is to rank leads by how likely they are to become customers, and sales works the top of that list. Since autumn the top looks worse. Retraining with a bigger model can't fix any of your four changes — three of them break the measurement itself, and the fourth breaks the training data:\n\n1. **The target moved.** \"Converted\" used to be first payment, now it's trial start. Trials are far more frequent than payments, so on the new definition the model probably looks *better*, not worse — and any conversion rate you plot across autumn is two different numbers joined by a line. Training on a merged history teaches a blend of two definitions.\n2. **The population moved.** Marketplace leads arrive with different intent than your own inbound. The score's cut no longer means the same thing across sources.\n3. **Two features stopped existing.** This is the quiet one: whatever the serving pipeline puts in those blanks now — null, a fixed default, a stale carried-over value — the score's *range* collapses. A feature that is constant can't separate anyone, and your top decile becomes whoever the remaining features rank by accident.\n4. **The loop.** Sales call the top scores first, so low-score leads are barely worked and their conversions are invisible. Retraining on that data mostly teaches the model to agree with itself. And \"the top leads feel worse\" may partly be an attention effect: same leads, more of them, same reps.\n\n**What needs care before any work.** Don't retrain yet. If you do, you bake in the definition change and the selection bias, and hand your manager a larger model that beats the old one only on a metric nobody agrees on. Also don't compare months on the label as finance records it today — rebuild both label versions from raw event dates first.\n\n**My approach:** measure, attribute, then retrain on a corrected spine — and break the loop while you're at it.\n\n**The plan**\n1. **One row per lead**, everything since the old training set: score *as issued at the time* (not recomputed), source, CRM event dates, trial start, first payment, whether and when sales contacted it. Checked by month counts and by no leads lost in the migration.\n2. **Confirm the complaint is real**, on a consistent label: top-decile conversion rate by month under both definitions, plus calibration (predicted vs realised). This gives you a break date.\n3. **Attribute it**: hold each suspect fixed — marketplace vs direct leads *within the same score band*; missing rate of the two dead fields over time; score distribution shift; contacted vs not. The break date lining up with August, the summer, or neither is the answer.\n4. **Retrain** with the dead fields dropped and a source flag, validated on a post-August period, judged on lift@decile and calibration, not AUC.\n5. **Randomise a slice** of top-scored leads for a few weeks so your future labels aren't shaped by the current model.\n\nStop rule: if step 2 shows no measurable drop on a consistent label, we don't retrain at all — we re-run it on revenue.\n\nPick one of the three above to start. If you have the export, the diagnosis is the one I'd take; the first needs no data from you. The thing that would change my plan most: when sales say the top leads are worse, do they mean fewer *paying* customers, or fewer trials that start?",
+     "choices": [
+      {
+       "title": "A written read of the four failure modes, and how to test each",
+       "what": "DCLab writes up the four candidate causes behind a degrading lead score - shifted label definition, shifted lead population, features that stopped existing at serving time, and the self-confirming loop from sales working only top scores - with the specific test for each and what result would rule it in or out. You get: A short written plan you can put in front of your manager this week, including what not to promise them. Trade-off: It says nothing about YOUR leads yet - it only sharpens what to measure first. Effort: Today, no export needed.",
+       "track": "advice",
+       "tool": "cited_answer",
+       "kind": "option"
+      },
+      {
+       "title": "Diagnose on the data: is the drop real, and where does it start?",
+       "what": "You export one row per lead (score as issued at the time, source, CRM dates, trial start, first payment, whether sales contacted it) and DCLab rebuilds that table with both label versions side by side, then computes conversion and calibration by month on BOTH definitions, split by lead source, to locate the break date. You get: A measured answer for your manager: whether the drop is real, when it broke, and which change it lines up with. Trade-off: Nothing is fixed this week; the fix depends on what it shows. Effort: About half a day once the export lands, plus your time pulling it.",
+       "track": "analysis",
+       "tool": "query",
+       "kind": "option"
+      },
+      {
+       "title": "Retrain now, but on a corrected target",
+       "what": "Drop the two fields serving can no longer supply, add a lead-source flag, train on one consistent label definition, and validate on a held-out post-August period ranked by lift in the top decile rather than AUC. You get: A model that can actually be served from the new CRM within days, instead of a bigger one that cannot be run. Trade-off: You change the target before knowing which change caused the drop, so it may need retraining again within a month. Effort: Two to three days.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "A written read of the four failure modes, and how to test each",
+     "pick": "A written read of the four failure modes, and how to test each",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "Starting the write-up now. Five modes, not four — the fifth is cheap to test and it's the one that can save you a retrain. Each has a mechanism, a signature that only it produces, and the test on the export you already have.\n\n---\n\n## 1. The target was redefined (converted = trial start, was = first payment)\n\n**Mechanism.** Trials are several times more frequent than payments. Under the new label the model almost certainly looks *better*; the top decile's conversion rate jumps for reasons that have nothing to do with quality. A history that mixes the two definitions teaches an ill-defined target — `p(outcome)` where outcome means one thing before the change and another after.\n\n**The trap inside the trap — label maturity.** Payment lands weeks after the trial. If finance switched to trial-start, then your autumn months' *payment* labels are right-censored: those leads simply haven't had time to pay yet. A top-decile drop that appears exactly in recent months is the classic signature of immature labels, and no amount of model work fixes it.\n\n**Test.** Rebuild both labels from raw event dates (trial_start, first_payment) on the whole history. Then plot the two labels separately, by month.\n\n**Ruled out if:** the drop persists at a fixed, fully-elapsed horizon on the payment label.\n\n## 2. The population moved (partner marketplace since summer)\n\n**Mechanism.** Two distinct effects. Intent shift: marketplace leads trial easily and pay badly (price-shopping, self-serve), so the top decile fills with leads that look excellent on a trial label and worthless on revenue. Support shift: those leads sit in feature regions the old training set barely covered, so their scores are extrapolations — often clustered just below the old prior's ceiling. Even if marketplace leads convert *fine*, adding a high-volume group with a different rate moves the blended top-decile number while the model's ranking *within* each source is still perfect.\n\n**Test.** Per month: share of the top decile that is marketplace; top-decile conversion by source and blended. A gap within band means the score is not comparable across sources and needs a source term plus per-source calibration. Compare within-source lift too: if the model ranks marketplace leads well among marketplace leads, you have a routing problem, not a model problem.\n\n**Signature:** the break date tracks the marketplace ramp, and the drop vanishes when marketplace leads are excluded.\n\n## 3. The feature pipeline broke (two fields stopped, new CRM)\n\n**Mechanism, and this is the one that flattens a top decile.** If serving fills the missing fields with a constant, a mean, or a mode, those features carry no information *and* they push every post-August score toward the training mean. The score's variance collapses. Your top decile is then a tie — resolved by float noise or CRM insertion order — so it stops being the best leads and becomes an arbitrary grab from the upper-middle. Sales experiences precisely \"the top leads are much worse than they used to be.\"\n\n**Second mechanism:** the migration can also change surviving features' encodings — `1-10` vs `Small`, country codes, date formats, a rebuilt categorical vocabulary. Unseen levels silently become the unknown bucket.\n\n**Test.** Per feature, per month: missing rate, unique count, mean/sd, top-category share; look for a step at the cutover. Then per month: the score's own sd, min, max, decile boundaries, and how many distinct scores sit in the top decile — variance compression is visible in one query. Then the controlled experiment: recompute scores for **pre-August** leads with those two fields replaced by the constant serving uses now. If the known-good months degrade to the autumn's observed quality, the outage explains it entirely, and no new features are needed.\n\n**Ruled out if:** score sd and top-decile composition are unchanged after August.\n\n## 4. The loop (sales only work the top of the list)\n\n**Mechanism.** Conversion is partly *caused by* contact.\n\n(That is the short version. Ask me about any part and I will go deeper.)\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": []
+    }
+   ],
+   "route": "advice",
+   "tool": "cited_answer",
+   "routed_by": "option",
+   "ended": "answered",
+   "assistant_turns": 2,
+   "picked": 1,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    101.98,
+    60.31
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-13",
+     "version": 17,
+     "words": [
+      "I am a data scientist at a company that sells accounting software to small firms. Two years ago we built a model that scores every new lead on how likely it is to become a customer, and the sales team calls the highest scores first. Since the autumn the sales team says the top leads are much worse than they used to be, and my manager wants me to retrain with a larger model and more features. Some context on the data: since the summer, part of our leads comes from a partner marketplace; we moved to a new CRM in August, and two form fields the model uses are no longer collected; and finance now counts a lead as converted when a free trial starts, where before it was the first payment. I have the old training set and every lead since, not yet exported. What would you do?",
+      "I pick: A written read of the four failure modes, and how to test each"
+     ],
+     "goal": {
+      "value": "Find out why the lead score's top decile degraded since the autumn, and decide whether retraining with a larger model and more features is the right fix",
+      "status": "said",
+      "quote": "the top leads are much worse than they used to be",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Whether to retrain now and on what label and feature set, or first measure and attribute the degradation; the manager is pushing for a retrain",
+      "status": "said",
+      "quote": "my manager wants me to retrain with a larger model and more features",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "The data scientist maintains the model; the sales team acts on it by calling highest scores first; the manager approves the retrain",
+      "status": "said",
+      "quote": "the sales team calls the highest scores first",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "Old training set plus every lead since, not yet exported. Four known changes: partner-marketplace leads since summer; new CRM since August; two form fields the model uses no longer collected; converted = free trial start now vs first payment before",
+      "status": "said",
+      "quote": "I have the old training set and every lead since, not yet exported",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [
+      {
+       "value": "Without the export: whether the degradation is real on a consistent label, when it starts, which of the four changes explains it, and how much is a feedback loop from sales only working top-scored leads",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      }
+     ],
+     "constraints": [
+      {
+       "value": "The two dropped form fields do not exist for post-August leads, so a model relying on them cannot be served from the new CRM without backfill or a pipeline change",
+       "status": "said",
+       "quote": "two form fields the model uses are no longer collected",
+       "computed": null,
+       "after_words": null
+      }
+     ],
+     "assumptions": [
+      {
+       "value": "The target definition changed mid-history, so a single merged label over 2024-2025 blends two different outcomes and any raw conversion-rate comparison across autumn is invalid",
+       "status": "said",
+       "quote": "finance now counts a lead as converted when a free trial starts, where before it was the first payment",
+       "computed": null,
+       "after_words": null
+      }
+     ],
+     "unknowns": [
+      {
+       "field": "Which conversion definition \"worse\" is measured on",
+       "question": "Is the sales team's complaint measured on paying customers/revenue or on trials started, and which one is the model's real KPI? This decides which label we retrain on.",
+       "blocks": "some",
+       "rank": 1
+      },
+      {
+       "field": "Whether a consistent label can be rebuilt backwards",
+       "question": "Does the new CRM (or the old one) still hold first-payment dates for pre-change leads, and trial-start dates too? If both exist for both periods we can compute the two labels on the whole history.",
+       "blocks": "some",
+       "rank": 2
+      },
+      {
+       "field": "What serving does with the two missing fields",
+       "question": "What does the scoring pipeline feed those two features now - null, a fixed default, or a stale carried-over value? A constant collapses the score range and can flatten the top decile on its own.",
+       "blocks": "some",
+       "rank": 3
+      },
+      {
+       "field": "Whether contact and score history are recorded per lead",
+       "question": "Do we have, per lead, the score as it was issued at the time plus whether and when sales actually contacted it? Without those we cannot measure selection bias or degradation by month.",
+       "blocks": "some",
+       "rank": 4
+      },
+      {
+       "field": "Randomised routing of top leads",
+       "question": "Could sales route a small random slice of top-scored leads differently, or leave them unworked, for a few weeks, so future labels are not shaped by the model's own ranking?",
+       "blocks": "none",
+       "rank": 5
+      }
+     ],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "A written read of the four failure modes, and how to test each",
+       "what": "DCLab writes up the four candidate causes behind a degrading lead score - shifted label definition, shifted lead population, features that stopped existing at serving time, and the self-confirming loop from sales working only top scores - with the specific test for each and what result would rule it in or out.",
+       "gets": "A short written plan you can put in front of your manager this week, including what not to promise them.",
+       "tradeoff": "It says nothing about YOUR leads yet - it only sharpens what to measure first.",
+       "effort": "Today, no export needed.",
+       "track": "advice",
+       "tool": "cited_answer",
+       "columns": []
+      },
+      {
+       "title": "Diagnose on the data: is the drop real, and where does it start?",
+       "what": "You export one row per lead (score as issued at the time, source, CRM dates, trial start, first payment, whether sales contacted it) and DCLab rebuilds that table with both label versions side by side, then computes conversion and calibration by month on BOTH definitions, split by lead source, to locate the break date.",
+       "gets": "A measured answer for your manager: whether the drop is real, when it broke, and which change it lines up with.",
+       "tradeoff": "Nothing is fixed this week; the fix depends on what it shows.",
+       "effort": "About half a day once the export lands, plus your time pulling it.",
+       "track": "analysis",
+       "tool": "query",
+       "columns": []
+      },
+      {
+       "title": "Retrain now, but on a corrected target",
+       "what": "Drop the two fields serving can no longer supply, add a lead-source flag, train on one consistent label definition, and validate on a held-out post-August period ranked by lift in the top decile rather than AUC.",
+       "gets": "A model that can actually be served from the new CRM within days, instead of a bigger one that cannot be run.",
+       "tradeoff": "You change the target before knowing which change caused the drop, so it may need retraining again within a month.",
+       "effort": "Two to three days.",
+       "track": "prediction",
+       "tool": "ml_project",
+       "columns": []
+      }
+     ],
+     "chosen": "A written read of the four failure modes, and how to test each",
+     "route": {
+      "track": "advice",
+      "tool": "cited_answer",
+      "reasons": "",
+      "by": "person"
+     },
+     "card": null,
+     "findings": [],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am a data scientist at a company that sells accounting software to small firms. Two years ago we built a model that scores every new lead on how likely it is to become a customer, and the sales team calls the highest scores first. Since the autumn the sales team says the top leads are much worse than they used to be, and my manager wants me to retrain with a larger model and more features. Some context on the data: since the summer, part of our leads comes from a partner marketplace; we moved to a new CRM in August, and two form fields the model uses are no longer collected; and finance now counts a lead as converted when a free trial starts, where before it was the first payment. I have the old training set and every lead since, not yet exported. What would you do?"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Find out why the lead score's top decile degraded since the autumn, and decide whether retraining with a larger model and more features is the right fix",
+        "status": "said",
+        "quote": "the top leads are much worse than they used to be",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Whether to retrain now and on what label and feature set, or first measure and attribute the degradation; the manager is pushing for a retrain",
+        "status": "said",
+        "quote": "my manager wants me to retrain with a larger model and more features",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "The data scientist maintains the model; the sales team acts on it by calling highest scores first; the manager approves the retrain",
+        "status": "said",
+        "quote": "the sales team calls the highest scores first",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Old training set plus every lead since, not yet exported. Four known changes: partner-marketplace leads since summer; new CRM since August; two form fields the model uses no longer collected; converted = free trial start now vs first payment before",
+        "status": "said",
+        "quote": "I have the old training set and every lead since, not yet exported",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "The two dropped form fields do not exist for post-August leads, so a model relying on them cannot be served from the new CRM without backfill or a pipeline change",
+         "status": "said",
+         "quote": "two form fields the model uses are no longer collected",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 7,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "The target definition changed mid-history, so a single merged label over 2024-2025 blends two different outcomes and any raw conversion-rate comparison across autumn is invalid",
+         "status": "said",
+         "quote": "finance now counts a lead as converted when a free trial starts, where before it was the first payment",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "cannot_answer",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "Without the export: whether the degradation is real on a consistent label, when it starts, which of the four changes explains it, and how much is a feedback loop from sales only working top-scored leads",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [],
+       "after": [
+        {
+         "field": "Which conversion definition \"worse\" is measured on",
+         "question": "Is the sales team's complaint measured on paying customers/revenue or on trials started, and which one is the model's real KPI? This decides which label we retrain on.",
+         "blocks": "some",
+         "rank": 1
+        }
+       ]
+      },
+      {
+       "version": 10,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [
+        {
+         "field": "Which conversion definition \"worse\" is measured on",
+         "question": "Is the sales team's complaint measured on paying customers/revenue or on trials started, and which one is the model's real KPI? This decides which label we retrain on.",
+         "blocks": "some",
+         "rank": 1
+        }
+       ],
+       "after": [
+        {
+         "field": "Whether a consistent label can be rebuilt backwards",
+         "question": "Does the new CRM (or the old one) still hold first-payment dates for pre-change leads, and trial-start dates too? If both exist for both periods we can compute the two labels on the whole history.",
+         "blocks": "some",
+         "rank": 2
+        }
+       ]
+      },
+      {
+       "version": 11,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [
+        {
+         "field": "Which conversion definition \"worse\" is measured on",
+         "question": "Is the sales team's complaint measured on paying customers/revenue or on trials started, and which one is the model's real KPI? This decides which label we retrain on.",
+         "blocks": "some",
+         "rank": 1
+        },
+        {
+         "field": "Whether a consistent label can be rebuilt backwards",
+         "question": "Does the new CRM (or the old one) still hold first-payment dates for pre-change leads, and trial-start dates too? If both exist for both periods we can compute the two labels on the whole history.",
+         "blocks": "some",
+         "rank": 2
+        }
+       ],
+       "after": [
+        {
+         "field": "What serving does with the two missing fields",
+         "question": "What does the scoring pipeline feed those two features now - null, a fixed default, or a stale carried-over value? A constant collapses the score range and can flatten the top decile on its own.",
+         "blocks": "some",
+         "rank": 3
+        }
+       ]
+      },
+      {
+       "version": 12,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [
+        {
+         "field": "Which conversion definition \"worse\" is measured on",
+         "question": "Is the sales team's complaint measured on paying customers/revenue or on trials started, and which one is the model's real KPI? This decides which label we retrain on.",
+         "blocks": "some",
+         "rank": 1
+        },
+        {
+         "field": "Whether a consistent label can be rebuilt backwards",
+         "question": "Does the new CRM (or the old one) still hold first-payment dates for pre-change leads, and trial-start dates too? If both exist for both periods we can compute the two labels on the whole history.",
+         "blocks": "some",
+         "rank": 2
+        },
+        {
+         "field": "What serving does with the two missing fields",
+         "question": "What does the scoring pipeline feed those two features now - null, a fixed default, or a stale carried-over value? A constant collapses the score range and can flatten the top decile on its own.",
+         "blocks": "some",
+         "rank": 3
+        }
+       ],
+       "after": [
+        {
+         "field": "Whether contact and score history are recorded per lead",
+         "question": "Do we have, per lead, the score as it was issued at the time plus whether and when sales actually contacted it? Without those we cannot measure selection bias or degradation by month.",
+         "blocks": "some",
+         "rank": 4
+        }
+       ]
+      },
+      {
+       "version": 13,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [
+        {
+         "field": "Which conversion definition \"worse\" is measured on",
+         "question": "Is the sales team's complaint measured on paying customers/revenue or on trials started, and which one is the model's real KPI? This decides which label we retrain on.",
+         "blocks": "some",
+         "rank": 1
+        },
+        {
+         "field": "Whether a consistent label can be rebuilt backwards",
+         "question": "Does the new CRM (or the old one) still hold first-payment dates for pre-change leads, and trial-start dates too? If both exist for both periods we can compute the two labels on the whole history.",
+         "blocks": "some",
+         "rank": 2
+        },
+        {
+         "field": "What serving does with the two missing fields",
+         "question": "What does the scoring pipeline feed those two features now - null, a fixed default, or a stale carried-over value? A constant collapses the score range and can flatten the top decile on its own.",
+         "blocks": "some",
+         "rank": 3
+        },
+        {
+         "field": "Whether contact and score history are recorded per lead",
+         "question": "Do we have, per lead, the score as it was issued at the time plus whether and when sales actually contacted it? Without those we cannot measure selection bias or degradation by month.",
+         "blocks": "some",
+         "rank": 4
+        }
+       ],
+       "after": [
+        {
+         "field": "Randomised routing of top leads",
+         "question": "Could sales route a small random slice of top-scored leads differently, or leave them unworked, for a few weeks, so future labels are not shaped by the model's own ranking?",
+         "blocks": "none",
+         "rank": 5
+        }
+       ]
+      },
+      {
+       "version": 14,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "A written read of the four failure modes, and how to test each",
+         "what": "DCLab writes up the four candidate causes behind a degrading lead score - shifted label definition, shifted lead population, features that stopped existing at serving time, and the self-confirming loop from sales working only top scores - with the specific test for each and what result would rule it in or out.",
+         "gets": "A short written plan you can put in front of your manager this week, including what not to promise them.",
+         "tradeoff": "It says nothing about YOUR leads yet - it only sharpens what to measure first.",
+         "effort": "Today, no export needed.",
+         "track": "advice",
+         "tool": "cited_answer",
+         "columns": []
+        },
+        {
+         "title": "Diagnose on the data: is the drop real, and where does it start?",
+         "what": "You export one row per lead (score as issued at the time, source, CRM dates, trial start, first payment, whether sales contacted it) and DCLab rebuilds that table with both label versions side by side, then computes conversion and calibration by month on BOTH definitions, split by lead source, to locate the break date.",
+         "gets": "A measured answer for your manager: whether the drop is real, when it broke, and which change it lines up with.",
+         "tradeoff": "Nothing is fixed this week; the fix depends on what it shows.",
+         "effort": "About half a day once the export lands, plus your time pulling it.",
+         "track": "analysis",
+         "tool": "query",
+         "columns": []
+        },
+        {
+         "title": "Retrain now, but on a corrected target",
+         "what": "Drop the two fields serving can no longer supply, add a lead-source flag, train on one consistent label definition, and validate on a held-out post-August period ranked by lift in the top decile rather than AUC.",
+         "gets": "A model that can actually be served from the new CRM within days, instead of a bigger one that cannot be run.",
+         "tradeoff": "You change the target before knowing which change caused the drop, so it may need retraining again within a month.",
+         "effort": "Two to three days.",
+         "track": "prediction",
+         "tool": "ml_project",
+         "columns": []
+        }
+       ]
+      },
+      {
+       "version": 15,
+       "field": "chosen",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": "A written read of the four failure modes, and how to test each"
+      },
+      {
+       "version": 16,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": {
+        "track": "advice",
+        "tool": "cited_answer",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 17,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am a data scientist at a company that sells accounting software to small firms. Two years ago we built a model that scores every new lead on how likely it is to become a customer, and the sales team calls the highest scores first. Since the autumn the sales team says the top leads are much worse than they used to be, and my manager wants me to retrain with a larger model and more features. Some context on the data: since the summer, part of our leads comes from a partner marketplace; we moved to a new CRM in August, and two form fields the model uses are no longer collected; and finance now counts a lead as converted when a free trial starts, where before it was the first payment. I have the old training set and every lead since, not yet exported. What would you do?"
+       ],
+       "after": [
+        "I pick: A written read of the four failure modes, and how to test each"
+       ]
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [],
+    "build": null,
+    "exposure": [],
+    "spent_eur": 0.0083
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0083,
+   "judge_spent_eur": 0,
+   "first_divergence": {
+    "id": "hab-13",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-035/case/hab-13-r1",
+    "events": 13,
+    "first": {
+     "reason": "bad_arguments",
+     "at": "2026-11-15T22:33:43.282224+00:00",
+     "seq": 240,
+     "tool": "case_add_unknown",
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": true,
+     "evidence": "error: The arguments for case_add_unknown were not valid JSON; send a JSON object that fits the schema."
+    },
+    "all": [
+     {
+      "reason": "bad_arguments",
+      "at": "2026-11-15T22:33:43.282224+00:00",
+      "seq": 240,
+      "tool": "case_add_unknown",
+      "wanted": null,
+      "wanted_right": null,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: The arguments for case_add_unknown were not valid JSON; send a JSON object that fits the schema."
+     },
+     {
+      "reason": "route_overruled",
+      "at": "2026-11-15T22:33:59.093784+00:00",
+      "seq": 256,
+      "tool": "case_propose",
+      "wanted": {
+       "tracks": [
+        "analysis",
+        "prediction",
+        "preparation"
+       ]
+      },
+      "wanted_right": true,
+      "safety": false,
+      "before_route": true,
+      "evidence": "error: the person's need may call for advice (a second reading of their words), which none of your options offers (analysis, prediction, preparation). Their latest words: \"I am a data scientist at a company that sells accounting software to small firms. Two years ago we built a model that scores eve"
+     }
+    ],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 6,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "advice",
+    "tool": "cited_answer",
+    "routed_by": "option",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  },
+  {
+   "id": "hab-14",
+   "arm": "case",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I am the credit risk manager at a consumer lender that finances phone and appliance purchases in shops. Today a rulebook written by our underwriters approves about 40 percent of applications. Management wants to grow, so they asked me for a machine learning model that predicts default for every applicant, to replace the rulebook and approve more people safely. We have about 60,000 past loans with the application form, the bureau score and whether the loan defaulted within 12 months, and I can export them next week. For the applications we rejected we kept the form and the bureau score, nothing more. The model would decide each new application automatically at the shop counter. How should I go about it?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I recorded the brief in the case file, then laid out what I think really needs to happen. Here it is.\n\nHere's what I hear: the real ask isn't a default model, it's permission to approve more people without losses growing faster than the revenue — and management has framed it as \"replace the rulebook.\" You're the one accountable for the loss rate, and the model's verdict would land at the shop counter with no human between it and the customer.\n\n**One thing has to be said before any model is built, because it shapes everything after.** Your 60,000 loans are only the ones the rulebook accepted. Everyone in that data is, by construction, someone your underwriters already judged acceptable. For the people it declined you have the form and the bureau score but no outcome, because they were never funded. So the data can tell you who is risky *inside* the approved region and almost nothing about the region you want to expand into — which is precisely where the growth is. A model trained on funded loans and pointed at all applicants will look accurate on backtests and be systematically wrong on the marginal customer, and the error stays invisible: the loans it misprices most are the ones you've never seen perform.\n\n**So I would not run this as \"model replaces rulebook.\"** I'd run it as a portfolio policy: a model ranks risk, and you choose where to auto-approve, where to route to a human, and where to decline — set by profit under a loss budget, with the rulebook's logic kept as features and as decline reasons, and with the dark region made *measurable* rather than guessed.\n\nMy plan:\n1. **Fix the label and the book** — default definition, only loans with a full 12 months on book, default rate by vintage and by score band. Checked against your actual loss figures; stop if the base rate is too thin to model.\n2. **Model the approved region**, with the rulebook's own pass/fail as a benchmark and its key criteria as features, so gains are attributable and declines are explainable.\n3. **Buy information about the dark region** — a challenge set: approve a small random slice of applications the rulebook declines, capped exposure, for a few months. That's the only honest way to learn the margin. Interim reject-inference on the historic declines, labelled as an assumption.\n4. **Set the cutoff by economics**, not accuracy: expected contribution and expected loss per decision, three bands (auto-approve / human review / auto-decline).\n5. **Shadow mode before automation** — score live applications without acting on them for a few months, reason codes and fairness testing by segment in place, then automate the top band only, keeping the rulebook as champion to beat.\n\nStep 3 is only possible if next week's export is built right, so that's the lever today.\n\nPick whichever fits this week. If you're not sure, I'd take the first: it settles what management is actually being asked to accept, and the export then gets written to serve that rather than to \"train a model.\"\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": [
+      {
+       "title": "Design the decision, not just the model",
+       "what": "A written brief for management: the label definition, the approved-region problem stated plainly, a three-band policy (auto-approve / human review / decline) with the cutoff set by contribution profit under a loss budget, shadow-mode rollout, and the governance a counter decision needs (decline reasons, fairness testing, vintage monitoring). You get: Something you can take to management this week that answers 'can we approve more safely' without pretending the data covers the margin. Trade-off: No numbers from your own loans yet; it is the frame the model slots into. Effort: Today, no export needed.",
+       "track": "business",
+       "tool": "business_brief",
+       "kind": "option"
+      },
+      {
+       "title": "Write the export spec so the file can answer this",
+       "what": "The exact column list and layout for next week's pull: application date, decision, decline reason code, bureau score, form fields as submitted, funded amount, term, product and shop/channel, outcome plus months-on-book as a stated as-of date, and declined applications stored in the same shape. You get: One export that supports a clean 12-month label window, shadow scoring, and a challenge set later — instead of a second pull in three weeks. Trade-off: Takes a day or two of your data team's time before any modelling starts. Effort: A day or two with your data team.",
+       "track": "preparation",
+       "tool": "recipe",
+       "kind": "option"
+      },
+      {
+       "title": "Decide the method for the dark region",
+       "what": "A comparison of reject-inference techniques and their failure modes against a randomised challenge set: how much exposure each costs, how many declined applications you would need to see perform before the margin is measurable. You get: A defensible technique choice you can explain to a regulator or a sceptical underwriter. Trade-off: Methodology and judgement, not numbers out of your book. Effort: Quick, this session.",
+       "track": "advice",
+       "tool": "cited_answer",
+       "kind": "option"
+      }
+     ]
+    },
+    {
+     "role": "person",
+     "text": "Design the decision, not just the model",
+     "pick": "Design the decision, not just the model",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "I picked the decision design and sent a domain expert a pointed question first, so the brief isn't generic.\n\nHere is the decision design. Take it to management as the thing being approved — the model is a component of it, not the deliverable.\n\n## 1. The decision, stated properly\n\nNot \"approve or decline.\" Three things happen at once, and the design must separate them:\n\n- **Who** gets credit (the risk ranking)\n- **On what terms** (line, term, deposit, product)\n- **Under what budget** (how much loss the portfolio may carry while growing)\n\nThe rulebook collapses all three into one binary at full amount. That is why it sits at ~40% and why a like-for-like model will just rescale it — the risk the domain expert named plainly: a new model that only finds new names for the same 40%, dressed as innovation. Judge this project by *approved applicants whose expected default stays inside a break-even loss budget*, never by approval rate or accuracy.\n\n## 2. The control: a signed loss budget, not a target approval rate\n\nManagement should sign two numbers, and only two:\n\n- **Expected loss ceiling per vintage** — e.g. 12-month net loss on originations, in currency, agreed up front.\n- **A growth cap on the unproven part** — how many incremental approvals you'll accept whose risk has no history behind it.\n\nThe approval rate is then an **output**, not a target. This matters for you personally: if the approval rate is the KPI, someone will hit it and the loss will arrive twelve months later, after the bonus conversation. If the loss budget is the KPI, the approval rate can only rise where the economics permit it.\n\n## 3. The three decision bands\n\nAuto-approve / refer / auto-decline, entered by predicted risk, with:\n\n- **Auto-approve band:** above the line, no human. Reason codes logged for every decline.\n- **Refer band:** a thin slice of genuinely marginal cases to your underwriters. At a shop counter this may be operationally impossible — which is itself a finding, and pushes risk into the auto-decline side.\n- **Auto-decline:** plus **re-present rules**. What happens when a customer is declined and comes back next week, or at a different shop? Without a rule, you learn nothing from repeat attempts and the shop has an incentive to shop your counter.\n\n## 4. The cutoff comes from economics, not from the ROC curve\n\nA loan is worth approving when its expected contribution is positive. Roughly:\n\n> approve if expected loss (default probability × loss given default) is below **margin + merchant commission − funding cost − servicing cost − required profit**\n\nThat gives a **break-even default probability**, and it is the only defensible reason to approve someone the rulebook declined. Note it's a *marginal* test, not an average one: the incremental approvals are worse than your book average by construction, so average profitability will mislead you. I can't compute it — those are your numbers, and they're the first thing missing from your export.\n\n## 5. The levers management hasn't thought about\n\nIn POS finance, \"approve more safely\" rarely comes from passing more people at full line. It comes from **structuring**: a declined-at-full-line applicant may be sound at a smaller line, shorter term, with a deposit, or on the appliance rather than the phone. That converts declines into approvals at a risk you chose. It also, usually, lifts approval rate more than the model does.\n\n## 6. Govern the swaps, don't backtest them\n\nThe interesting population is the **approve-swaps**: people the model passes and the rulebook declined. There is **no data on them and never can be** — you cannot backtest the exact group the project exists for. So:\n\n1. **Shadow mode** first: score live traffic, decide nothing, for a few months.\n2. **Controlled approve-swap pilot**: a small, random, capped share of rulebook-declines approved deliberately, with an amount cap. This is the cheapest information you will ever buy, and it is the only honest answer to \"can we approve more safely.\"\n3. Compare **rulebook survivors / model survivors / crossed approvals** as separate cohorts, always by vintage, never by point-in-time defaults.\n\n## 7.\n\n(That is the short version. Ask me about any part and I will go deeper.)",
+     "choices": []
+    },
+    {
+     "role": "person",
+     "text": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The brief is written and saved as your business brief. Every figure I couldn't source from you or your data is a **named blank in angle brackets** — illustrative structure, never your numbers. # From rulebook to model-driven approvals — a decision design\n\n## 1. What is actually being approved\nA **change of decision policy**, not an IT project. The rulebook is today the whole credit policy: one binary, at full requested amount. A default model is a component that only produces value once the policy around it is written. Ask management to approve sections 2 and 6, and treat the model as delivery. ## 2. The two numbers management signs — and the one they must not sign\n**Sign:** (a) a **12-month net loss ceiling per vintage** `<currency or % of originations>`, and (b) a **cap on incremental approvals with no history behind them** `<count or % of volume>`. **Do not sign:** an approval-rate target. If \"more than 40%\" becomes the KPI, someone will hit it and the loss arrives twelve months later, after the bonus conversation. Approval rate is an **output** of the loss ceiling, never an input. **Success measure:** incremental approvals whose realised loss sits inside the ceiling at the 12-month mark. Not accuracy, not AUC, not approval count. ## 3. Three bands, plus the structuring lever\nEntered by predicted risk, not by score cut-offs chosen for their roundness:\n- **Auto-approve** — no human, reason codes logged, line as requested. - **Refer** — expect this band to be thin or useless at a counter where the customer is standing there. If it is unusable, say so now: it means the model's borderline cases auto-decline, and the approval gain comes entirely from the auto-approve band. - **Auto-decline** — plus **re-present rules**: what happens when the same customer returns next week, or at another shop. No rule means shops learn to shop your counter, and you read the result as improving risk. The lever most POS lenders forget: a decline *at full line* is not a decline. Smaller line, shorter term, deposit, or appliance instead of phone converts declines into approvals **at a risk you chose**. This usually lifts approvals more than the model does. If your product cannot be restructured, the design above loses its safest growth route — I've logged that as an open assumption. ## 4. The break-even rule (the only defensible reason to approve someone the rulebook declined)\n> approve if **PD × LGD** is below **gross margin `<interest + merchant commission %>` − cost of funds `<%>` − servicing and collection cost `<per loan>` − required profit margin `<%>`**\n\ndivided by average exposure at default `<line, term>`. That yields a **break-even default probability** — a marginal number, not an average one. Your incremental approvals are worse than the book average *by construction*, so book-average profitability will mislead you in exactly the direction management wants to go. ## 5. What the 60,000 loans can and cannot tell you\nThey can rank risk **inside the region your underwriters already accepted**. The approve-swaps — the population the whole project exists to understand — are **unbacktestable**. Anyone who shows you a validation curve covering them is extrapolating, and the errors concentrate precisely where the new money is. So the dark region is not modelled; it is **measured forward** (section 6), with reject-inference used only to place bounds, clearly labelled as an assumption. ## 6. Governance: shadow → capped pilot → automate one band\n1. **Shadow (about `<3–6>` months):** score live applications, decide nothing. Report the cross-tab: rulebook-approve/model-decline and rulebook-decline/model-approve as separate cohorts. 2. **Capped approve-swap pilot:** a small random share of rulebook-declines approved deliberately, at a **reduced line**, under the cap from section 2. This is the cheapest information you will ever buy. 3. **Automate the top band only**, rulebook kept running in parallel as champion. **Rollback triggers** agreed before launch: loss on the swap cohort above `<threshold>`, or any band's loss drift over `<n>` consecutive vintages. 4. **Every decline carries an understandable reason code**, drawn from the rulebook's own criteria so they are already defensible.\n\n(That is the short version. Ask me about any part and I will go deeper.)\n\n(I left out the parts whose numbers I cannot source from you or your data. Ask me about any part in words and I will go through it.)",
+     "choices": []
+    }
+   ],
+   "route": "business",
+   "tool": "business_brief",
+   "routed_by": "option",
+   "ended": "answered",
+   "assistant_turns": 3,
+   "picked": 1,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    69.25,
+    109.78,
+    62.5
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0
+   },
+   "notes": {
+    "case_file": {
+     "schema_version": "dclab_core.case_file.v2",
+     "case_id": "exam-hab-14",
+     "version": 27,
+     "words": [
+      "I am the credit risk manager at a consumer lender that finances phone and appliance purchases in shops. Today a rulebook written by our underwriters approves about 40 percent of applications. Management wants to grow, so they asked me for a machine learning model that predicts default for every applicant, to replace the rulebook and approve more people safely. We have about 60,000 past loans with the application form, the bureau score and whether the loan defaulted within 12 months, and I can export them next week. For the applications we rejected we kept the form and the bureau score, nothing more. The model would decide each new application automatically at the shop counter. How should I go about it?",
+      "I pick: Design the decision, not just the model",
+      "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+     ],
+     "goal": {
+      "value": "Approve more applicants than the rulebook's ~40% pass rate without losses growing faster than revenue; management framed it as a per-applicant default model replacing the rulebook.",
+      "status": "said",
+      "quote": "Management wants to grow, so they asked me for a machine learning model that predicts default for every applicant, to replace the rulebook and approve more people safely",
+      "computed": null,
+      "after_words": null
+     },
+     "decision": {
+      "value": "Go ahead with the chosen option: write the full brief about how applications should be decided at the shop counter, not only about the default model, and choose what I judge best where inputs are missing.",
+      "status": "said",
+      "quote": "Choose what you judge best and go ahead",
+      "computed": null,
+      "after_words": null
+     },
+     "user": {
+      "value": "The credit risk manager will take this brief to management as the artefact to approve, and the underwriters who wrote the rulebook must stay in it as benchmark and source of decline reasons.",
+      "status": "said",
+      "quote": "I am the credit risk manager at a consumer lender",
+      "computed": null,
+      "after_words": null
+     },
+     "data": {
+      "value": "Person states all they know is already shared: no default rate, margin, cost of funds, servicing cost, recovery rate, volume or loss budget available yet. Economics inputs stay open until the finance team supplies them.",
+      "status": "said",
+      "quote": "Everything I know is in what I wrote",
+      "computed": null,
+      "after_words": null
+     },
+     "cannot_answer": [
+      {
+       "value": "The data cannot say how the rulebook's declined applicants would have performed: they were never funded, so no outcome exists for them. The decision population is wider than the learnable population.",
+       "status": "said",
+       "quote": "For the applications we rejected we kept the form and the bureau score, nothing more",
+       "computed": null,
+       "after_words": null
+      },
+      {
+       "value": "The swap set (approves the rulebook declined, declines the rulebook approved) has no historical performance: its risk can only be measured forward via shadow scoring and a controlled pilot, never backtested.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 2
+      },
+      {
+       "value": "The break-even default probability and therefore any approve cutoff cannot be computed from anything currently held; the brief specifies the formula and names the missing inputs instead of guessing them.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 3
+      }
+     ],
+     "constraints": [
+      {
+       "value": "Automated consumer-credit decisions at point of sale need explainable decline reasons and fairness/disparate-impact testing; approvals can only rise inside a loss budget; assume regulated market.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      },
+      {
+       "value": "Automated declines must carry understandable adverse-action reason codes; disparate-impact testing needed with no human in between; customer waits at the counter so decision time and re-present rules are part of the design.",
+       "status": "said",
+       "quote": "The model would decide each new application automatically at the shop counter",
+       "computed": null,
+       "after_words": null
+      },
+      {
+       "value": "The export must be one row per APPLICATION (declines included), not one row per funded loan, or the dark region cannot be studied at all. Bureau score and form fields must be the values captured at decision time, and post-decision items (rescoring, collection activity) must go in a separate file so they cannot leak into features and so protected-characteristic proxies can be tested without used as inputs.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 3
+      }
+     ],
+     "assumptions": [
+      {
+       "value": "Label = first serious delinquency (90+ days) or charge-off within 12 months on book; loans originated under 12 months before the export date are immature and must be excluded from the label window.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      },
+      {
+       "value": "Bureau score and every form field are captured at application time, so nothing post-decision leaks in; to be verified on the actual export.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 1
+      },
+      {
+       "value": "Growth is constrained by a loss budget that management signs, not by model accuracy; approval rate rises only if expected loss on incremental approvals stays inside it.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 2
+      },
+      {
+       "value": "The POS product may be able to vary line size, term or deposit rather than only approve/decline at full amount; unconfirmed, and it changes the design materially.",
+       "status": "assumed",
+       "quote": null,
+       "computed": null,
+       "after_words": 2
+      }
+     ],
+     "unknowns": [
+      {
+       "field": "economics_inputs",
+       "question": "Numbers needed to derive a break-even default probability and set any cutoff: 12-month default rate on the current approved book, average loan size, gross margin per loan (interest plus merchant commission), cost of funds, servicing and collection cost per loan, recovery rate on default, monthly application volume, and the loss budget ceiling management will accept.",
+       "blocks": "some",
+       "rank": 1
+      }
+     ],
+     "asked": 0,
+     "declined": 0,
+     "options": [
+      {
+       "title": "Design the decision, not just the model",
+       "what": "A written brief for management: the label definition, the approved-region problem stated plainly, a three-band policy (auto-approve / human review / decline) with the cutoff set by contribution profit under a loss budget, shadow-mode rollout, and the governance a counter decision needs (decline reasons, fairness testing, vintage monitoring).",
+       "gets": "Something you can take to management this week that answers 'can we approve more safely' without pretending the data covers the margin.",
+       "tradeoff": "No numbers from your own loans yet; it is the frame the model slots into.",
+       "effort": "Today, no export needed.",
+       "track": "business",
+       "tool": "business_brief",
+       "columns": []
+      },
+      {
+       "title": "Write the export spec so the file can answer this",
+       "what": "The exact column list and layout for next week's pull: application date, decision, decline reason code, bureau score, form fields as submitted, funded amount, term, product and shop/channel, outcome plus months-on-book as a stated as-of date, and declined applications stored in the same shape.",
+       "gets": "One export that supports a clean 12-month label window, shadow scoring, and a challenge set later — instead of a second pull in three weeks.",
+       "tradeoff": "Takes a day or two of your data team's time before any modelling starts.",
+       "effort": "A day or two with your data team.",
+       "track": "preparation",
+       "tool": "recipe",
+       "columns": []
+      },
+      {
+       "title": "Decide the method for the dark region",
+       "what": "A comparison of reject-inference techniques and their failure modes against a randomised challenge set: how much exposure each costs, how many declined applications you would need to see perform before the margin is measurable.",
+       "gets": "A defensible technique choice you can explain to a regulator or a sceptical underwriter.",
+       "tradeoff": "Methodology and judgement, not numbers out of your book.",
+       "effort": "Quick, this session.",
+       "track": "advice",
+       "tool": "cited_answer",
+       "columns": []
+      }
+     ],
+     "chosen": "Design the decision, not just the model",
+     "route": {
+      "track": "business",
+      "tool": "business_brief",
+      "reasons": "",
+      "by": "person"
+     },
+     "card": null,
+     "findings": [
+      {
+       "by": "domain_expert",
+       "kind": "fact",
+       "text": "About 60,000 funded loans with a 12-month default flag support training only on applicants who passed the rulebook, while declined applications have no outcome.",
+       "field": "data"
+      },
+      {
+       "by": "domain_expert",
+       "kind": "risk",
+       "text": "A new model may simply rescale the rulebook's about 40 percent pass rate rather than find genuinely safe customers. Success should be measured by approved applicants whose expected default probability stays inside a break-even loss budget, not by higher approval volume or model accuracy alone.",
+       "field": "goal"
+      },
+      {
+       "by": "domain_expert",
+       "kind": "question",
+       "text": "Can the credit risk manager supply the loss budget, expected revenue contribution, cost of funds, servicing cost, recovery severity, line size, term, deposit, and product mix needed to derive a break-even default probability and cutoff?",
+       "field": "decision"
+      },
+      {
+       "by": "domain_expert",
+       "kind": "risk",
+       "text": "Retail POS credit can create apparent growth from dealer-driven baskets, product categories, thin-file customers, seasonal phone launches, or repeat re-presents after a decline. Those effects can concentrate approvals in high-risk pockets without improving true portfolio risk.",
+       "field": "goal"
+      },
+      {
+       "by": "domain_expert",
+       "kind": "question",
+       "text": "How will automated declines provide adverse-action reason codes that a customer can understand, and how will the team test disparate impact when no human is between the model and the shop counter?",
+       "field": "constraints"
+      },
+      {
+       "by": "domain_expert",
+       "kind": "assumption",
+       "text": "The swap should be governed first by shadow scoring and a controlled approve-swap pilot, separating rulebook survivors, model survivors, and crossed approvals, before replacing the rulebook at the counter.",
+       "field": "decision"
+      }
+     ],
+     "build": null,
+     "changes": [
+      {
+       "version": 1,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [],
+       "after": [
+        "I am the credit risk manager at a consumer lender that finances phone and appliance purchases in shops. Today a rulebook written by our underwriters approves about 40 percent of applications. Management wants to grow, so they asked me for a machine learning model that predicts default for every applicant, to replace the rulebook and approve more people safely. We have about 60,000 past loans with the application form, the bureau score and whether the loan defaulted within 12 months, and I can export them next week. For the applications we rejected we kept the form and the bureau score, nothing more. The model would decide each new application automatically at the shop counter. How should I go about it?"
+       ]
+      },
+      {
+       "version": 2,
+       "field": "goal",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Approve more applicants than the rulebook's ~40% pass rate without losses growing faster than revenue; management framed it as a per-applicant default model replacing the rulebook.",
+        "status": "said",
+        "quote": "Management wants to grow, so they asked me for a machine learning model that predicts default for every applicant, to replace the rulebook and approve more people safely",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 3,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "The result decides approve/decline for each new application automatically at the shop counter, replacing underwriter judgement.",
+        "status": "said",
+        "quote": "The model would decide each new application automatically at the shop counter",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 4,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "Credit risk manager at a consumer lender financing phone and appliance purchases in shops; also management (growth) and underwriters (authors of current rulebook).",
+        "status": "said",
+        "quote": "I am the credit risk manager at a consumer lender that finances phone and appliance purchases in shops",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 5,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": null,
+       "after": {
+        "value": "~60,000 funded loans with application form, bureau score, and whether the loan defaulted within 12 months; exportable next week. No table shared yet.",
+        "status": "said",
+        "quote": "We have about 60,000 past loans with the application form, the bureau score and whether the loan defaulted within 12 months",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 6,
+       "field": "cannot_answer",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "The data cannot say how the rulebook's declined applicants would have performed: they were never funded, so no outcome exists for them. The decision population is wider than the learnable population.",
+         "status": "said",
+         "quote": "For the applications we rejected we kept the form and the bureau score, nothing more",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 7,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "Automated consumer-credit decisions at point of sale need explainable decline reasons and fairness/disparate-impact testing; approvals can only rise inside a loss budget; assume regulated market.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 8,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [],
+       "after": [
+        {
+         "value": "Label = first serious delinquency (90+ days) or charge-off within 12 months on book; loans originated under 12 months before the export date are immature and must be excluded from the label window.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 9,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "Label = first serious delinquency (90+ days) or charge-off within 12 months on book; loans originated under 12 months before the export date are immature and must be excluded from the label window.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ],
+       "after": [
+        {
+         "value": "Bureau score and every form field are captured at application time, so nothing post-decision leaks in; to be verified on the actual export.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ]
+      },
+      {
+       "version": 10,
+       "field": "options",
+       "op": "set",
+       "by": "agent",
+       "why": "proposed",
+       "before": [],
+       "after": [
+        {
+         "title": "Design the decision, not just the model",
+         "what": "A written brief for management: the label definition, the approved-region problem stated plainly, a three-band policy (auto-approve / human review / decline) with the cutoff set by contribution profit under a loss budget, shadow-mode rollout, and the governance a counter decision needs (decline reasons, fairness testing, vintage monitoring).",
+         "gets": "Something you can take to management this week that answers 'can we approve more safely' without pretending the data covers the margin.",
+         "tradeoff": "No numbers from your own loans yet; it is the frame the model slots into.",
+         "effort": "Today, no export needed.",
+         "track": "business",
+         "tool": "business_brief",
+         "columns": []
+        },
+        {
+         "title": "Write the export spec so the file can answer this",
+         "what": "The exact column list and layout for next week's pull: application date, decision, decline reason code, bureau score, form fields as submitted, funded amount, term, product and shop/channel, outcome plus months-on-book as a stated as-of date, and declined applications stored in the same shape.",
+         "gets": "One export that supports a clean 12-month label window, shadow scoring, and a challenge set later — instead of a second pull in three weeks.",
+         "tradeoff": "Takes a day or two of your data team's time before any modelling starts.",
+         "effort": "A day or two with your data team.",
+         "track": "preparation",
+         "tool": "recipe",
+         "columns": []
+        },
+        {
+         "title": "Decide the method for the dark region",
+         "what": "A comparison of reject-inference techniques and their failure modes against a randomised challenge set: how much exposure each costs, how many declined applications you would need to see perform before the margin is measurable.",
+         "gets": "A defensible technique choice you can explain to a regulator or a sceptical underwriter.",
+         "tradeoff": "Methodology and judgement, not numbers out of your book.",
+         "effort": "Quick, this session.",
+         "track": "advice",
+         "tool": "cited_answer",
+         "columns": []
+        }
+       ]
+      },
+      {
+       "version": 11,
+       "field": "chosen",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": "Design the decision, not just the model"
+      },
+      {
+       "version": 12,
+       "field": "route",
+       "op": "set",
+       "by": "person",
+       "why": "picked an option",
+       "before": null,
+       "after": {
+        "track": "business",
+        "tool": "business_brief",
+        "reasons": "",
+        "by": "person"
+       }
+      },
+      {
+       "version": 13,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the credit risk manager at a consumer lender that finances phone and appliance purchases in shops. Today a rulebook written by our underwriters approves about 40 percent of applications. Management wants to grow, so they asked me for a machine learning model that predicts default for every applicant, to replace the rulebook and approve more people safely. We have about 60,000 past loans with the application form, the bureau score and whether the loan defaulted within 12 months, and I can export them next week. For the applications we rejected we kept the form and the bureau score, nothing more. The model would decide each new application automatically at the shop counter. How should I go about it?"
+       ],
+       "after": [
+        "I pick: Design the decision, not just the model"
+       ]
+      },
+      {
+       "version": 14,
+       "field": "findings",
+       "op": "add",
+       "by": "specialist:domain_expert",
+       "why": "Consumer lender financing phone and appliance purchases at the shop counter (POS installment credit). Rulebook approves ~40% of applications; management wants a per-applicant default model to replace ",
+       "before": [],
+       "after": [
+        {
+         "by": "domain_expert",
+         "kind": "fact",
+         "text": "About 60,000 funded loans with a 12-month default flag support training only on applicants who passed the rulebook, while declined applications have no outcome.",
+         "field": "data"
+        },
+        {
+         "by": "domain_expert",
+         "kind": "risk",
+         "text": "A new model may simply rescale the rulebook's about 40 percent pass rate rather than find genuinely safe customers. Success should be measured by approved applicants whose expected default probability stays inside a break-even loss budget, not by higher approval volume or model accuracy alone.",
+         "field": "goal"
+        },
+        {
+         "by": "domain_expert",
+         "kind": "question",
+         "text": "Can the credit risk manager supply the loss budget, expected revenue contribution, cost of funds, servicing cost, recovery severity, line size, term, deposit, and product mix needed to derive a break-even default probability and cutoff?",
+         "field": "decision"
+        },
+        {
+         "by": "domain_expert",
+         "kind": "risk",
+         "text": "Retail POS credit can create apparent growth from dealer-driven baskets, product categories, thin-file customers, seasonal phone launches, or repeat re-presents after a decline. Those effects can concentrate approvals in high-risk pockets without improving true portfolio risk.",
+         "field": "goal"
+        },
+        {
+         "by": "domain_expert",
+         "kind": "question",
+         "text": "How will automated declines provide adverse-action reason codes that a customer can understand, and how will the team test disparate impact when no human is between the model and the shop counter?",
+         "field": "constraints"
+        },
+        {
+         "by": "domain_expert",
+         "kind": "assumption",
+         "text": "The swap should be governed first by shadow scoring and a controlled approve-swap pilot, separating rulebook survivors, model survivors, and crossed approvals, before replacing the rulebook at the counter.",
+         "field": "decision"
+        }
+       ]
+      },
+      {
+       "version": 15,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "The result decides approve/decline for each new application automatically at the shop counter, replacing underwriter judgement.",
+        "status": "said",
+        "quote": "The model would decide each new application automatically at the shop counter",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "Chosen work: design the approve/decline decision itself (policy, loss budget, governance), not just train a default model. Delivered as a business brief.",
+        "status": "said",
+        "quote": "I pick: Design the decision, not just the model",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 16,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "Label = first serious delinquency (90+ days) or charge-off within 12 months on book; loans originated under 12 months before the export date are immature and must be excluded from the label window.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        },
+        {
+         "value": "Bureau score and every form field are captured at application time, so nothing post-decision leaks in; to be verified on the actual export.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ],
+       "after": [
+        {
+         "value": "Growth is constrained by a loss budget that management signs, not by model accuracy; approval rate rises only if expected loss on incremental approvals stays inside it.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ]
+      },
+      {
+       "version": 17,
+       "field": "assumptions",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "Label = first serious delinquency (90+ days) or charge-off within 12 months on book; loans originated under 12 months before the export date are immature and must be excluded from the label window.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        },
+        {
+         "value": "Bureau score and every form field are captured at application time, so nothing post-decision leaks in; to be verified on the actual export.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        },
+        {
+         "value": "Growth is constrained by a loss budget that management signs, not by model accuracy; approval rate rises only if expected loss on incremental approvals stays inside it.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ],
+       "after": [
+        {
+         "value": "The POS product may be able to vary line size, term or deposit rather than only approve/decline at full amount; unconfirmed, and it changes the design materially.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ]
+      },
+      {
+       "version": 18,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "Automated consumer-credit decisions at point of sale need explainable decline reasons and fairness/disparate-impact testing; approvals can only rise inside a loss budget; assume regulated market.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        }
+       ],
+       "after": [
+        {
+         "value": "Automated declines must carry understandable adverse-action reason codes; disparate-impact testing needed with no human in between; customer waits at the counter so decision time and re-present rules are part of the design.",
+         "status": "said",
+         "quote": "The model would decide each new application automatically at the shop counter",
+         "computed": null,
+         "after_words": null
+        }
+       ]
+      },
+      {
+       "version": 19,
+       "field": "cannot_answer",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "The data cannot say how the rulebook's declined applicants would have performed: they were never funded, so no outcome exists for them. The decision population is wider than the learnable population.",
+         "status": "said",
+         "quote": "For the applications we rejected we kept the form and the bureau score, nothing more",
+         "computed": null,
+         "after_words": null
+        }
+       ],
+       "after": [
+        {
+         "value": "The swap set (approves the rulebook declined, declines the rulebook approved) has no historical performance: its risk can only be measured forward via shadow scoring and a controlled pilot, never backtested.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ]
+      },
+      {
+       "version": 20,
+       "field": "unknowns",
+       "op": "add",
+       "by": "agent",
+       "why": "open",
+       "before": [],
+       "after": [
+        {
+         "field": "economics_inputs",
+         "question": "Numbers needed to derive a break-even default probability and set any cutoff: 12-month default rate on the current approved book, average loan size, gross margin per loan (interest plus merchant commission), cost of funds, servicing and collection cost per loan, recovery rate on default, monthly application volume, and the loss budget ceiling management will accept.",
+         "blocks": "some",
+         "rank": 1
+        }
+       ]
+      },
+      {
+       "version": 21,
+       "field": "words",
+       "op": "add",
+       "by": "person",
+       "why": "the person wrote",
+       "before": [
+        "I am the credit risk manager at a consumer lender that finances phone and appliance purchases in shops. Today a rulebook written by our underwriters approves about 40 percent of applications. Management wants to grow, so they asked me for a machine learning model that predicts default for every applicant, to replace the rulebook and approve more people safely. We have about 60,000 past loans with the application form, the bureau score and whether the loan defaulted within 12 months, and I can export them next week. For the applications we rejected we kept the form and the bureau score, nothing more. The model would decide each new application automatically at the shop counter. How should I go about it?",
+        "I pick: Design the decision, not just the model"
+       ],
+       "after": [
+        "Everything I know is in what I wrote. Choose what you judge best and go ahead."
+       ]
+      },
+      {
+       "version": 22,
+       "field": "data",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "~60,000 funded loans with application form, bureau score, and whether the loan defaulted within 12 months; exportable next week. No table shared yet.",
+        "status": "said",
+        "quote": "We have about 60,000 past loans with the application form, the bureau score and whether the loan defaulted within 12 months",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "Person states all they know is already shared: no default rate, margin, cost of funds, servicing cost, recovery rate, volume or loss budget available yet. Economics inputs stay open until the finance team supplies them.",
+        "status": "said",
+        "quote": "Everything I know is in what I wrote",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 23,
+       "field": "cannot_answer",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "The data cannot say how the rulebook's declined applicants would have performed: they were never funded, so no outcome exists for them. The decision population is wider than the learnable population.",
+         "status": "said",
+         "quote": "For the applications we rejected we kept the form and the bureau score, nothing more",
+         "computed": null,
+         "after_words": null
+        },
+        {
+         "value": "The swap set (approves the rulebook declined, declines the rulebook approved) has no historical performance: its risk can only be measured forward via shadow scoring and a controlled pilot, never backtested.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 2
+        }
+       ],
+       "after": [
+        {
+         "value": "The break-even default probability and therefore any approve cutoff cannot be computed from anything currently held; the brief specifies the formula and names the missing inputs instead of guessing them.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 3
+        }
+       ]
+      },
+      {
+       "version": 24,
+       "field": "constraints",
+       "op": "add",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": [
+        {
+         "value": "Automated consumer-credit decisions at point of sale need explainable decline reasons and fairness/disparate-impact testing; approvals can only rise inside a loss budget; assume regulated market.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 1
+        },
+        {
+         "value": "Automated declines must carry understandable adverse-action reason codes; disparate-impact testing needed with no human in between; customer waits at the counter so decision time and re-present rules are part of the design.",
+         "status": "said",
+         "quote": "The model would decide each new application automatically at the shop counter",
+         "computed": null,
+         "after_words": null
+        }
+       ],
+       "after": [
+        {
+         "value": "The export must be one row per APPLICATION (declines included), not one row per funded loan, or the dark region cannot be studied at all. Bureau score and form fields must be the values captured at decision time, and post-decision items (rescoring, collection activity) must go in a separate file so they cannot leak into features and so protected-characteristic proxies can be tested without used as inputs.",
+         "status": "assumed",
+         "quote": null,
+         "computed": null,
+         "after_words": 3
+        }
+       ]
+      },
+      {
+       "version": 25,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Credit risk manager at a consumer lender financing phone and appliance purchases in shops; also management (growth) and underwriters (authors of current rulebook).",
+        "status": "said",
+        "quote": "I am the credit risk manager at a consumer lender that finances phone and appliance purchases in shops",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "Credit risk manager will take the brief to management as the artefact to approve; underwriters are the owners of the incumbent rulebook and must appear in it as benchmark and as source of reason codes, not as the thing being removed.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 3
+       }
+      },
+      {
+       "version": 26,
+       "field": "decision",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Chosen work: design the approve/decline decision itself (policy, loss budget, governance), not just train a default model. Delivered as a business brief.",
+        "status": "said",
+        "quote": "I pick: Design the decision, not just the model",
+        "computed": null,
+        "after_words": null
+       },
+       "after": {
+        "value": "Go ahead with the chosen option: write the full brief about how applications should be decided at the shop counter, not only about the default model, and choose what I judge best where inputs are missing.",
+        "status": "said",
+        "quote": "Choose what you judge best and go ahead",
+        "computed": null,
+        "after_words": null
+       }
+      },
+      {
+       "version": 27,
+       "field": "user",
+       "op": "set",
+       "by": "agent",
+       "why": "noted by the lead agent",
+       "before": {
+        "value": "Credit risk manager will take the brief to management as the artefact to approve; underwriters are the owners of the incumbent rulebook and must appear in it as benchmark and as source of reason codes, not as the thing being removed.",
+        "status": "assumed",
+        "quote": null,
+        "computed": null,
+        "after_words": 3
+       },
+       "after": {
+        "value": "The credit risk manager will take this brief to management as the artefact to approve, and the underwriters who wrote the rulebook must stay in it as benchmark and source of decline reasons.",
+        "status": "said",
+        "quote": "I am the credit risk manager at a consumer lender",
+        "computed": null,
+        "after_words": null
+       }
+      }
+     ]
+    },
+    "ready": true,
+    "asked": 0,
+    "declined": 0,
+    "consulted": [
+     "domain_expert"
+    ],
+    "build": null,
+    "exposure": [],
+    "spent_eur": 0.0128
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0128,
+   "judge_spent_eur": 0,
+   "first_divergence": {
+    "id": "hab-14",
+    "folder": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-035/case/hab-14-r1",
+    "events": 10,
+    "first": {
+     "reason": "no_gate",
+     "at": null,
+     "seq": null,
+     "tool": null,
+     "wanted": null,
+     "wanted_right": null,
+     "safety": false,
+     "before_route": null,
+     "evidence": "ended answered, route business/business_brief by option"
+    },
+    "all": [],
+    "counters": {
+     "blocked_runs": [],
+     "fallback_lines": 0,
+     "model_calls": 10,
+     "empty_answers": 0,
+     "cut_replies": 0
+    },
+    "route": "business",
+    "tool": "business_brief",
+    "routed_by": "option",
+    "not_detectable": [
+     "result_truncated",
+     "reply_rewritten",
+     "context_missing"
+    ]
+   }
+  }
+ ],
+ "scores": {
+  "case": [
+   {
+    "run": "HAB-035",
+    "case": "hab-11",
+    "arm": "case",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": "analysis",
+    "tool": "query",
+    "assistant_turns": 3,
+    "picked": 1,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 683.26,
+    "spent_eur": 0.0396,
+    "first_divergence": "options_trimmed",
+    "wanted_right": true,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 2,
+    "cut_replies": 2,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-035",
+    "case": "hab-12",
+    "arm": "case",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": "prediction",
+    "tool": "segmentation_project",
+    "assistant_turns": 2,
+    "picked": 0,
+    "options_unpicked": 1,
+    "silent": 0,
+    "seconds": 143.07,
+    "spent_eur": 0.0095,
+    "first_divergence": "bad_arguments",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-035",
+    "case": "hab-13",
+    "arm": "case",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": "advice",
+    "tool": "cited_answer",
+    "assistant_turns": 2,
+    "picked": 1,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 162.29,
+    "spent_eur": 0.0083,
+    "first_divergence": "bad_arguments",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   },
+   {
+    "run": "HAB-035",
+    "case": "hab-14",
+    "arm": "case",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": "business",
+    "tool": "business_brief",
+    "assistant_turns": 3,
+    "picked": 1,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 241.53,
+    "spent_eur": 0.0128,
+    "first_divergence": "no_gate",
+    "wanted_right": null,
+    "blocked_runs": 0,
+    "fallback_lines": 0,
+    "empty_answers": 0,
+    "cut_replies": 0,
+    "built_without_yes": 0,
+    "numbers_nobody_gave": 0
+   }
+  ]
+ },
+ "summary": {
+  "case": {
+   "conversations": 4,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": 307.5375,
+   "spent_eur": 0.0702
+  }
+ },
+ "paired": null,
+ "first_divergence_counts": {
+  "options_trimmed": 1,
+  "bad_arguments": 2,
+  "no_gate": 1
+ },
+ "incomplete": null
+}
