@@ -347,6 +347,17 @@ class SolveTests(unittest.TestCase):
         self.assertNotIn("## Plan", shown)
         self.assertIn("## Plan", nodata.markdown({**out, "words": GYM}))  # an English speaker's answer keeps its headings
 
+    def test_the_cards_plan_is_one_list_though_its_steps_were_set_apart_by_blank_lines(self):
+        """The browser walk of 2026-11-16: every step of the plan showed as "1." on the Home page."""
+        spaced = GOOD.replace("Finished when: a list exists.\n2. Call.", "Finished when: a list exists.\n\n2. Call.").replace(
+            "Finished when: every call is noted.\n3. Review.", "Finished when: every call is noted.\n\n3. Review.")
+        with live():
+            out = nodata.solve(GYM, gateway=Gateway(no_data_architect=Client(spaced)))
+        plan = next(p for p in nodata.card(out)["parts"] if p["key"] == "Plan")["text"]
+        self.assertEqual([line[:2] for line in plan.split("\n")], ["1.", "2.", "3."])
+        self.assertEqual(render.tight("A paragraph.\n\nAnother one.\n\n- one\n\n- two\n\nAfter the list."),
+                         "A paragraph.\n\nAnother one.\n\n- one\n- two\n\nAfter the list.")  # only the blank lines inside a list go
+
     def test_a_business_question_gets_a_business_answer_with_no_model(self):
         answer = re.sub(r"## (?:Data to record|Model)\n.*?\n\n(?=## )", "", GOOD.replace("Need: full", "Need: business"), flags=re.S)
         with live():

@@ -90,6 +90,24 @@ def markdown(solution: Mapping[str, Any]) -> str:
     return "\n\n".join(p for p in (title, body, notes) if p)
 
 
+_ITEM = re.compile(r"^\s*(?:\d+[.)]|[-*+])\s+\S")
+
+
+def tight(text: str) -> str:
+    """A list whose items are set apart by blank lines, as one list. The Home page starts a new list after a blank line,
+    so a plan written with a blank line between its steps showed every step as "1." (the browser walk of 2026-11-16)."""
+    lines = str(text or "").split("\n")
+    out: list[str] = []
+    for i, line in enumerate(lines):
+        if not line.strip():
+            before = next((x for x in reversed(out) if x.strip()), "")
+            after = next((x for x in lines[i + 1:] if x.strip()), "")
+            if _ITEM.match(before) and _ITEM.match(after):
+                continue  # a blank line between two items of a list
+        out.append(line)
+    return "\n".join(out)
+
+
 def card(solution: Mapping[str, Any]) -> dict[str, Any]:
     """The Home card: only the parts that were written, each under the heading the person reads; the table of columns
     apart from its part's words, so the page can draw it as a table."""
@@ -100,7 +118,7 @@ def card(solution: Mapping[str, Any]) -> dict[str, Any]:
         if not parts.get(h):
             continue
         text = "\n".join(line for line in parts[h].split("\n") if not line.strip().startswith("|")).strip() if h == "Data to record" else parts[h]
-        shown.append({"key": h, "title": _say(h, fa), "text": text})
+        shown.append({"key": h, "title": _say(h, fa), "text": tight(text)})
     return {"need": solution.get("need"), "mode": solution.get("mode"), "title": _say(TITLES.get(solution.get("need") or "", TITLES["full"]), fa),
             "parts": shown, "columns": list(solution.get("columns") or []), "plan": list(solution.get("plan") or []), "kind": solution.get("kind"),
             "notes": note_sections(solution), "questions": list(solution.get("questions") or []), "rtl": fa,
