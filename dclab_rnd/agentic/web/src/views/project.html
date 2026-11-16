@@ -475,7 +475,7 @@ DC.view('project', {
           const qs = (cp.clarifying_questions || []).map(q => `<li><b>${esc(q.field)}</b>: ${esc(q.question)}</li>`).join('');
           const fol = cp.followed, followedBlock = fol ? (fol.checked
             ? ((fol.not_followed || []).length
-              ? `<div class="callout warn small stack tight" id="path-not-followed"><b>The built model does not follow its plan</b><ul>${fol.not_followed.map(n => `<li>${esc(n.trap)}${n.column ? ' (<code>' + esc(n.column) + '</code>)' : ''}: ${esc(n.how || '')}</li>`).join('')}</ul></div>`
+              ? `<div class="callout warn small stack tight" id="path-not-followed"><b>The solution does not follow its plan</b> <span class="xs muted">(what the plan caught is not enforced; nothing is changed for you)</span><ul>${fol.not_followed.map(n => `<li>${esc(n.trap)}${n.column ? ' (<code>' + esc(n.column) + '</code>)' : ''}: ${esc(n.how || '')}</li>`).join('')}</ul></div>`
               : `<p class="small" id="path-followed"><span class="tag ok">Plan followed</span> ${esc(String(fol.followed))} of ${esc(String(fol.checked))} of the plan's catches are followed: in the solution, and in the final model once it is built.</p>`)
             : '') : '';
           const clarifyUI = cp.stored === false ? (qs ? `<div class="stack tight small"><p class="strong">Still open:</p><ul>${qs}</ul></div>` : '') : qs ? (cp.owner_confirmed
