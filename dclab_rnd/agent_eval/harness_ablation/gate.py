@@ -46,7 +46,26 @@ SETS_V2 = ("dev3",)
 TERMS_V2 = {"id": GATE_V2, "planning_gap": PLANNING_GAP, "understanding_gap": UNDERSTANDING_GAP, "judge_of": JUDGE_OF, "zero": list(ZERO_V2),
             "min_cases": MIN_CASES, "sets": list(SETS_V2)}
 PIN_V2 = Path(__file__).resolve().parent / "gate_v2.sha256"
-GATES = {GATE_ID: (TERMS, PIN), GATE_V2: (TERMS_V2, PIN_V2)}
+
+# nodata_gate_v1 (2026-11-16, pinned before the rebuilt no-data design was run on a live model). It judges one no-data
+# design (an arm that answers a person with no table once) against the same model alone, on the held-out people only
+# (``nodata_held``, which nobody who changes the design reads). Every check must hold:
+# - understanding, the solution and the plan: each mean is at most half a point below the model alone's, by person;
+# - no number nobody gave, and nothing the person's key forbids, done;
+# - every person got an answer that could be judged;
+# - a mean of at most 0.03 euro and 300 seconds a person. (The plan first said 90 seconds. One model answer at the
+#   thinking effort the owner fixed takes about 150 seconds, so 90 could not be met by any design that asks a model
+#   once and checks it; the first design takes about 900. The bar was moved before any run of the rebuilt design.)
+GATE_NODATA = "nodata_gate_v1"
+GAPS_NODATA = {"understanding": -0.5, "solution_design": -0.5, "planning": -0.5}
+ZERO_NODATA = ("numbers_nobody_gave", "forbidden_done")
+MAX_EUR_NODATA = 0.03
+MAX_SECONDS_NODATA = 300
+SETS_NODATA = ("nodata_held",)
+TERMS_NODATA = {"id": GATE_NODATA, "gaps": GAPS_NODATA, "judge_of": JUDGE_OF, "zero": list(ZERO_NODATA), "max_eur": MAX_EUR_NODATA,
+                "max_seconds": MAX_SECONDS_NODATA, "min_cases": MIN_CASES, "sets": list(SETS_NODATA), "against": "model_only"}
+PIN_NODATA = Path(__file__).resolve().parent / "gate_nodata_v1.sha256"
+GATES = {GATE_ID: (TERMS, PIN), GATE_V2: (TERMS_V2, PIN_V2), GATE_NODATA: (TERMS_NODATA, PIN_NODATA)}
 
 
 def gate_of(set_name: str) -> str:
@@ -103,6 +122,44 @@ def verdict(model: str, judge: Optional[str], case_rows: list[Mapping[str, Any]]
         total = sum(int(v) for v in values) if values and all(v is not None for v in values) else None
         check(name.replace("_", " "), total, "0", total == 0 if total is not None else None)
     return {"gate": gate, "model": model, "judge": judge, "checks": checks, "passed": all(c["ok"] for c in checks),
+            "not_read": [c["check"] for c in checks if not c["read"]]}
+
+
+def verdict_nodata(model: str, judge: Optional[str], design_rows: list[Mapping[str, Any]], alone_rows: list[Mapping[str, Any]],
+                   people: Optional[list[str]] = None, alone_judge: Optional[str] = None) -> dict[str, Any]:
+    """``nodata_gate_v1`` on one no-data design's rows (scorecard rows of its arm) and the same model's ``model_only`` rows
+    under the same judge, on the same people. A check that cannot be read is not passed. ``people``: the ids of the whole
+    set; every one must be judged on both sides (a person dropped from either side is never a pass). A mean is read only
+    when every row holds its value."""
+    checks: list[dict[str, Any]] = []
+
+    def check(name: str, value: Any, bar: str, ok: Optional[bool]) -> None:
+        checks.append({"check": name, "value": value, "bar": bar, "ok": bool(ok) if ok is not None else False, "read": ok is not None})
+
+    judged = {str(r["case"]): r for r in design_rows if r.get("judged")}
+    alone = {str(r["case"]): r for r in alone_rows if r.get("judged")}
+    both = sorted(set(judged) & set(alone))
+    free = lambda name: str(name)[:-len(":free")] if str(name).endswith(":free") else str(name)  # noqa: E731
+    whole = set(judged) == set(alone) and (people is None or set(people) == set(judged))
+    check("cases", len(both), f"at least {MIN_CASES}, the same people judged on both sides" + (f", all {len(people)} of the set" if people is not None else ""),
+          len(both) >= MIN_CASES and whole)
+    same = alone_judge is None or free(alone_judge) == free(judge)
+    check("judge", judge, f"{JUDGE_OF.get(model, 'a judge fixed for this model')}, for both sides",
+          (free(judge) == free(JUDGE_OF[model]) and same) if model in JUDGE_OF else None)
+    check("every person answered", len(judged), f"all {len(design_rows)} judged, none failed",
+          bool(design_rows) and len(judged) == len(design_rows) and not any(r.get("failed") for r in design_rows))
+    for name, bar in GAPS_NODATA.items():
+        pairs = [(judged[c].get(name), alone[c].get(name)) for c in both]
+        gap = _mean([float(a) - float(b) for a, b in pairs]) if pairs and all(a is not None and b is not None for a, b in pairs) else None
+        check(f"{name.replace('_', ' ')}: the design minus the model alone", gap, f"at least {bar}", gap >= bar if gap is not None else None)
+    for name in ZERO_NODATA:
+        values = [r.get(name) for r in design_rows]
+        total = sum(int(v) for v in values) if values and all(v is not None for v in values) else None
+        check(name.replace("_", " "), total, "0", total == 0 if total is not None else None)
+    for name, bar, unit in (("spent_eur", MAX_EUR_NODATA, "euro"), ("seconds", MAX_SECONDS_NODATA, "seconds")):
+        mean = _mean([float(r[name]) for r in design_rows]) if design_rows and all(r.get(name) is not None for r in design_rows) else None
+        check(f"mean {unit} a person", mean, f"at most {bar}", mean <= bar if mean is not None else None)
+    return {"gate": GATE_NODATA, "model": model, "judge": judge, "checks": checks, "passed": all(c["ok"] for c in checks),
             "not_read": [c["check"] for c in checks if not c["read"]]}
 
 

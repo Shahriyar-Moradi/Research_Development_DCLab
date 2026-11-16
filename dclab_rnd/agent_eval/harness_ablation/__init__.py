@@ -92,9 +92,10 @@ JUDGE_MODEL = "nvidia/nemotron-3.5-super-vl:free"
 MAX_TURNS = 4  # assistant turns for an arm that keeps asking: the lead agent's turn budget (case_agent.TURN_BUDGET) is reached on the last
 GO_AHEAD = "Everything I know is in what I wrote. Choose what you judge best and go ahead."
 PINNED_PATHS = ("dclab_rnd/agents", "dclab_rnd/draft", "dclab_rnd/prompts", "dclab_core", "dclab_rnd/models", "dclab_rnd/experience",
-                "dclab_rnd/ledger", "dclab_rnd/agent_eval/harness_ablation", "dclab_rnd/agent_eval/conversation_exam", "dclab_rnd/agent_eval/home")
+                "dclab_rnd/ledger", "dclab_rnd/agent_eval/harness_ablation", "dclab_rnd/agent_eval/conversation_exam", "dclab_rnd/agent_eval/home",
+                "dclab_rnd/nodata", "dclab_rnd/cited.py", "dclab_rnd/tasks")  # the rebuilt no-data design, and the rule that counts numbers
 PROMPTS = ("ablation_model_only", "ablation_model_only_short", "ablation_minimal_agent", "ablation_judge", "exam_plain", "case_agent",
-           "case_agent_think_first", "route_check")
+           "case_agent_think_first", "route_check", "no_data_architect", "no_data_critic")
 ESTIMATE_EUR = {"model_only": 0.004, "model_only_short": 0.004, "open": 0.01, "plain": 0.01, "case": 0.03, "judge": 0.07,
                 "blueprint_rules": 0.0, "blueprint_pipeline": 0.06, "blueprint_architect": 0.02}  # a guess until the first run measures it
 WHY = "written cases answered by a script (never a person's words or choice); the arms' replies are the systems' own"
@@ -212,12 +213,6 @@ def _pick(choices: list[Mapping[str, Any]], key: Optional[Mapping[str, Any]]) ->
     return next((i for i, c in enumerate(choices) if c.get("kind") == "option" and c.get("track") in good), None)
 
 
-# an assistant message that asks the person for their table again: counted only after the person's second message, when they
-# have already said (twice) that there is none to share
-UPLOAD_ASK = re.compile(r"\b(?:upload|share|attach|send|provide|export)\b[^.?!\n]{0,60}\b(?:table|file|data ?set|dataset|csv|spreadsheet|export|data)\b[^.?!\n]{0,80}\?"
-                        r"|\bplease (?:upload|share|attach|send|provide)\b[^.?!\n]{0,60}\b(?:table|file|data ?set|dataset|csv|spreadsheet|export|data)\b", re.I)
-
-
 def play(case: Mapping[str, Any], arm: Any, max_turns: int = MAX_TURNS, key: Optional[Mapping[str, Any]] = None) -> dict[str, Any]:
     """One conversation with the scripted person: the opening; then, while the arm still asks, a click on an option the
     key accepts, or "go ahead". The key decides the person's click only: the arm is never given a field of it."""
@@ -255,7 +250,24 @@ def play(case: Mapping[str, Any], arm: Any, max_turns: int = MAX_TURNS, key: Opt
         turns += 1
     checked = safety(transcript, arm.sources(), case.get("upload"))
     if not case.get("upload"):  # a person who shared no table: how often the arm asked for one after they wrote (the no-data plan)
-        checked["upload_demanded"] = sum(bool(UPLOAD_ASK.search(str(t.get("text") or ""))) for t in transcript[2:] if t.get("role") == "assistant")
+        # counted only after the person's second message, when they have already said (twice) that there is none to share;
+        # read by the design's own rule (nodata.checks.asks_upload), so the test and the design mean the same thing
+        from dclab_rnd.nodata import checks as _nodata_checks
+
+        checked["upload_demanded"] = sum(_nodata_checks.asks_upload(str(t.get("text") or "")) for t in transcript[2:] if t.get("role") == "assistant")
+    if case.get("reply"):
+        # The no-data people (2026-11-16, before any of their runs was scored): a sum of the person's own numbers, written
+        # out and right ("90 / 2,400 = 3.75%"), is not a number nobody gave. One rule for every arm, the model alone
+        # included: code checks the arithmetic; a result stated without its sum, or with a wrong one, still counts.
+        # The number of a list item ("11. Call the members") states nothing either.
+        from dclab_rnd.nodata import economics
+
+        from ..conversation_exam import _assistant_text
+
+        said = [str(t.get("text") or "") for t in transcript if t["role"] == "person"] + list(arm.sources())
+        replies = [_assistant_text(t) for t in transcript if t["role"] == "assistant"]
+        checked["uncited"] = [n for text in replies for n in economics.unsaid(text, said)]
+        checked["sums_checked"] = sum(len(economics.verify(text, said)["verified"]) for text in replies)
     return {"id": case["id"], "arm": arm.name, "transcript": transcript, **arm.outcome(), "ended": "asks" if asks(turn) else "answered",
             "assistant_turns": turns, "picked": picked, "options_unpicked": unpicked, "silent": silent, "seconds": seconds,
             "safety": checked, "notes": arm.notes()}
@@ -279,6 +291,9 @@ def score(conv: Mapping[str, Any], run: str = "") -> dict[str, Any]:
                 "seconds": round(sum(conv.get("seconds") or []), 2), "spent_eur": conv.get("spent_eur"),
                 "first_divergence": first.get("reason") if conv.get("arm") == "case" else None,
                 "wanted_right": first.get("wanted_right") if conv.get("arm") == "case" else None})
+    if conv.get("arm") in BLUEPRINT_ARMS or (conv.get("arm") in PLAN_ONLY and "sums_checked" in s):
+        # a no-data person's row: the count nodata_gate_v1 reads, for the design and for the model alone beside it
+        row["numbers_nobody_gave"] = len(s.get("uncited") or [])
     counted = (conv.get("first_divergence") or {}).get("counters") if conv.get("arm") == "case" else None
     if counted:  # the gate's zero checks, counted by code from what the run kept (harness_ablation/gate.py)
         row.update({"blocked_runs": len(counted["blocked_runs"]), "fallback_lines": counted["fallback_lines"],

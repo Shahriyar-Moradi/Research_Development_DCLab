@@ -1,0 +1,704 @@
+{
+ "id": "HAB-041",
+ "split": "dev",
+ "set": "nodata",
+ "at": "2026-11-15T23:02:03+00:00",
+ "arms": [
+  "blueprint_rules",
+  "blueprint_pipeline",
+  "model_only"
+ ],
+ "repeats": 1,
+ "models": {
+  "arms": "qwen/qwen3.8-flash",
+  "judge": null,
+  "route_check": "qwen/qwen3.8-flash"
+ },
+ "spent_eur": 0.1064,
+ "cap_eur": 0.3,
+ "kept": "agent_runs/live_tests/2026-11-15-harness-ablation-HAB-041",
+ "manifest": {
+  "run_id": "HAB-041",
+  "at": "2026-11-15T23:02:03+00:00",
+  "arms": [
+   "blueprint_rules",
+   "blueprint_pipeline",
+   "model_only"
+  ],
+  "repeats": 1,
+  "cap_eur": 0.3,
+  "code": {
+   "commit": "712ba7dcde93cd15ec8e4aeda63625783c219433",
+   "dirty": [],
+   "diff_sha256": null,
+   "untracked_sha256": null,
+   "untracked_files": 0
+  },
+  "models": {
+   "arms": "qwen/qwen3.8-flash",
+   "judge": null,
+   "route_check": "qwen/qwen3.8-flash"
+  },
+  "prompt_sha256": {
+   "ablation_model_only": "d76ca4c71ca2349a",
+   "ablation_model_only_short": "74c593495acb5f60",
+   "ablation_minimal_agent": "9bacaefe1c839f92",
+   "ablation_judge": "6ae9b4e558cb8e12",
+   "exam_plain": "6b4a893172133d54",
+   "case_agent": "04956cc04a4915d4",
+   "case_agent_think_first": "98a726e97accd7c0",
+   "route_check": "61027a2803db8856"
+  },
+  "tool_schema_sha256": {
+   "open": "772a142db9c94f65",
+   "plain": "607296ffbd9ccef9",
+   "case": "96fcda10b0e3e919"
+  },
+  "flags": {
+   "DCLAB_CASE_AGENT": null,
+   "DCLAB_CASE_THINK_FIRST": null,
+   "DCLAB_ROUTE_MODEL": null,
+   "DCLAB_THINKING_EFFORT": "high",
+   "DCLAB_LLM_PROVIDER": "openrouter"
+  },
+  "cases_sha256": "aaecac397040a787606f6f789c1c5eb548c0386d58a45cce68109a2fa82f8e4c",
+  "set": "nodata",
+  "max_turns": 4,
+  "go_ahead": "Everything I know is in what I wrote. Choose what you judge best and go ahead.",
+  "label": "nodata-baseline"
+ },
+ "capture": {
+  "exchanges": 41,
+  "ok": 41,
+  "whole": 41,
+  "with_thinking": 41,
+  "without_thinking": [],
+  "purposes": [
+   "ai_first",
+   "brief_checker",
+   "case_specialist",
+   "debate_judge",
+   "decomposer",
+   "exam_plain",
+   "feature_engineer",
+   "map_reviewer",
+   "problem_analyst",
+   "solution_challenger",
+   "solution_planner",
+   "synthetic_schema",
+   "understanding_critic"
+  ]
+ },
+ "label": "nodata-baseline",
+ "note": "a pilot of eight cases: traces and reason codes, no claim that one arm is better",
+ "code": "one commit",
+ "conversations": [
+  {
+   "id": "ND-01",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (churn)\n\n**Problem:** We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `churn` decisioning for `account` at `End of active billing/usage cycle before the retention outreach window opens`, optimizing `pr_auc (Precision-Recall AUC) + Top-K Net Retention Gain` to guide `Prioritize high-value churn interventions under capacity/cost constraints`.\n- **Goal** (`DCLab default`): We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, an — *DCLab default (nobody said it): Synthesized from your problem statement.*\n- **Decision Action** (`DCLab default`): Prioritize high-value churn interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for churn decisions.*\n- **Decision Unit** (`Stated by you`): account — *Quoted verbatim from your description: \"per retained account\"*\n- **Prediction Moment** (`DCLab default`): End of active billing/usage cycle before the retention outreach window opens — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`DCLab default`): `churned_within_30d` observed over Next 30 days (or next billing cycle) — *DCLab default (nobody said it): Defines when ground-truth labels mature without censor leakage.*\n- **Primary Metric** (`DCLab default`): pr_auc (Precision-Recall AUC) + Top-K Net Retention Gain — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `survival`: Time-to-event (hazard) modeling is stronger if exact tenure censorship and variable horizons matter, whereas a fixed 30-day binary window is simpler for monthly retention campaigns.\n  - `uplift`: Uplift (persuadability) modeling directly targets customers whose churn probability drops when given an offer, once randomized treatment/control retention logs are collected.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value churn interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 1 of 5 inputs below are DCLab's placeholders (share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 5000 (stated by you) · **Base rate:** 8.0% (stated by you)\n- **Cost per action:** 50.0 (stated by you) · **Value per caught case:** 2500.0 (stated by you) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 5.7% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 750 | 78750.0 | 37500.0 | 41250.0 |\n| Target ML (2.5x lift) | 20.0% | 750 | 131250.0 | 37500.0 | 93750.0 |\n| Strong ML (3.5x lift) | 28.0% | 750 | 183750.0 | 37500.0 | 146250.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `customer_id`\n- **Prediction Cutoff Time:** `snapshot_date (e.g. monthly billing cutoff / T-30d)`\n- **Label Horizon:** next 30 days after snapshot_date (exclude immature accounts)\n- **Target:** `churned_within_30d`\n- **Tier-1 Day-1 Features:** plan_tier, monthly_fee, tenure_months, active_days_last_30d, usage_trend_30d_vs_90d, support_tickets_30d, payment_failures_90d, contract_days_remaining\n- **Tier-2 High-Leverage Features:** nps_last_response, seat_utilization_pct\n- **Forbidden Post-Decision Columns:** retention_offer_accepted_after_snapshot, final_invoice_date, cancellation_reason, account_closed_flag\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `customer_id_count (count)`, `customer_id_day_count (count)`, `monthly_fee_entity_mean (mean)`, `monthly_fee_entity_deviation (deviation)`, `customer_id_time_since_prev (since_previous)`, `monthly_fee_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (DATASET-telco_churn): Compute every feature strictly using events <= snapshot_date (e.g. monthly billing cutoff / T-30d).\n- **Ban post-decision columns** (KND-001): Drop/audit post-cutoff fields before training: cancellation_reason, final_invoice_date, retention_offer_accepted_after_snapshot, account_closed_flag.\n- **Lock label maturity window** (PIT-004): Only assign negative labels after next 30 days after snapshot_date (exclude immature accounts) has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 5.7% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout). · Metric `pr_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    0.47
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "30",
+     "30",
+     "30",
+     "30",
+     "30"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0
+   },
+   "notes": {
+    "family": "churn",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "share of actions that work"
+    ],
+    "fits": true
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-01",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (churn)\n\n**Problem:** We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account.\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `4/5` · not passed: workflow\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Predict enterprise SaaS churn before renewal to decide CSM intervention.\n- **Goal** (`AI inferred`): Reduce B2B SaaS subscription churn before annual renewal — *proposed by the advisor from \"reduce B2B SaaS subscription churn before annual renewal\"*\n- **Decision Action** (`AI inferred`): CSM intervention — *proposed by the advisor from \"a $50 CSM intervention cost\"*\n- **Decision Unit** (`Stated by you`): account — *Quoted verbatim from your description: \"per retained account\"*\n- **Prediction Moment** (`AI inferred`): Before annual renewal — *proposed by the advisor from \"churn before annual renewal\"*\n- **Outcome And Horizon** (`AI inferred`): Until annual renewal — *proposed by the advisor from \"before annual renewal\"*\n- **Primary Metric** (`AI inferred`): Annual churn rate — *proposed by the advisor from \"8% annual churn rate\"*\n- **Alternative Problem Framings Considered:**\n  - `rare_event`: 8% churn not extreme enough without intervention data\n  - `uplift`: No randomized intervention labels yet\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — CSM intervention\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 1 of 5 inputs below are DCLab's placeholders (share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 5000 (stated by you) · **Base rate:** 8.0% (stated by you)\n- **Cost per action:** 50.0 (stated by you) · **Value per caught case:** 2500.0 (stated by you) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 5.7% (an illustration: computed from assumed inputs)\n- **Domain Expert (fact):** The model must decide before annual renewal, so it should score accounts using the churned_within_30d target from customer snapshots, not a full-year churn label.\n- **Domain Expert (fact):** With $50 intervention cost and $2,500 value per retained account, the baseline is to allocate CSM effort only where predicted retained value covers cost.\n- **Domain Expert (assumption):** Highest-leverage levers are early warnings that a renewal is at risk, such as usage decline, support tickets, payment failures, seat utilization, and contract value.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 750 | 78750.0 | 37500.0 | 41250.0 |\n| Target ML (2.5x lift) | 20.0% | 750 | 131250.0 | 37500.0 | 93750.0 |\n| Strong ML (3.5x lift) | 28.0% | 750 | 183750.0 | 37500.0 | 146250.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `customer_id`\n- **Prediction Cutoff Time:** `snapshot_date (e.g. monthly billing cutoff / T-30d)`\n- **Label Horizon:** next 30 days after snapshot_date (exclude immature accounts)\n- **Target:** `churned_within_30d`\n- **Tier-1 Day-1 Features:** plan_tier, support_tickets_30d, tenure_months, account_id, customer_segment, customer_industry, annual_contract_value, licenses_purchased\n- **Tier-2 High-Leverage Features:** nps_last_response, seat_utilization_pct\n- **Forbidden Post-Decision Columns:** retention_offer_accepted_after_snapshot, final_invoice_date, cancellation_reason, account_closed_flag\n- **Validation Split:** Out-of-time snapshot split PLUS entity-group isolation (no entity appears in both train and holdout).\n- **Metrics:** pr_auc, roc_auc, precision_at_top_k, brier_score\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `customer_id_count (count)`, `customer_id_day_count (count)`, `support_tickets_30d_entity_mean (mean)`, `support_tickets_30d_entity_deviation (deviation)`, `customer_id_time_since_prev (since_previous)`, `support_tickets_30d_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (DATASET-telco_churn): Compute every feature strictly using events <= snapshot_date (e.g. monthly billing cutoff / T-30d).\n- **Ban post-decision columns** (KND-001): Drop/audit post-cutoff fields before training: cancellation_reason, final_invoice_date, retention_offer_accepted_after_snapshot, account_closed_flag.\n- **Lock label maturity window** (PIT-004): Only assign negative labels after next 30 days after snapshot_date (exclude immature accounts) has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `cancellation_reason` (exclude):** Post-outcome\n- **Leak Suspect `account_closed_flag` (exclude):** Outcome proxy\n- **Leakage Auditor (fact):** The target churned_within_30d, and the blueprint's forbidden leakage traps retention_offer_accepted_after_snapshot, final_invoice_date, cancellation_reason, and account_closed_flag, are post-decision or outcome fields.\n- **Leakage Auditor (risk):** support_tickets_30d, active_users_90d, active_days_last_30d, usage_trend_30d_vs_90d, and payment_failures_90d can leak if their measurement windows include the renewal decision moment.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** L2-regularized Logistic Regression with missing-value indicators & target/frequency encoding inside CV folds.\n- **Stage 2 Primary:** LightGBM / CatBoost with class weighting (or focal objective), early stopping on validation PR-AUC.\n- **Stage 3 Decision Layer:** Isotonic / Platt probability calibration -> act when P(y=1) >= break-even 5.7% capped at top 15% capacity.\n- **What Evidence Would Change Algorithm Choice:** Use uplift if CSM logs are randomized\n- **Planner-Challenger-Judge Debate Verdict:** Split `group, group_column customer_id` · Metric `roc_auc` · Families `dummy, logistic_regression, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, check_join_key, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1255.29
+   ],
+   "safety": {
+    "uncited": [
+     "30",
+     "30",
+     "30",
+     "30"
+    ],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0
+   },
+   "notes": {
+    "family": "churn",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": false,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.050872,
+    "assumed_inputs": [
+     "share of actions that work"
+    ],
+    "fits": true
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0509,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-01",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "We want to reduce B2B SaaS subscription churn before annual renewal, but we do not have a clean dataset yet. We have 5,000 enterprise accounts, an 8% annual churn rate, a $50 CSM intervention cost, and $2,500 saved per retained account.",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "What the problem is  \nThe decision is whether a customer success team should take preventive action on selected enterprise accounts before their annual renewal, in order to keep them from churning. The result would be used by CSMs and renewal owners to decide which accounts to work on, and by leadership to judge whether intervention is worth doing. The unit is an enterprise account during a renewal cycle, and the moment is before the renewal outcome is locked in.\n\nWhat is known  \nYou gave 5,000 enterprise accounts, an 8% annual churn rate, a $50 intervention cost, and $2,500 saved per retained account. That tells you the business scale and the basic cost-to-value relationship. It does not tell you which accounts are actually at risk, when risk should be acted on, whether a CSM touch prevents churn, or how much intervention capacity exists.\n\nWhat is not known  \nThere is no clean dataset yet, so it is unclear whether you have reliable account identifiers, renewal dates, contract details, usage signals, support issues, executive sponsorship, renewal intent, prior outreach, or historical intervention outcomes. It is also unclear whether churn can be defined consistently as cancellation, non-renewal, downgraded renewal, or delayed renewal. CSM capacity and response rates are unknown too.\n\nApproaches that could solve it  \nA no-model operational approach could work: rank accounts using known business rules such as renewal date, weak executive sponsorship, declining product usage, support friction, contract complications, and strategic account importance. This is fast, cheap, transparent, and usable immediately, but it is limited to existing knowledge and cannot prove which accounts actually need intervention.\n\nA simple statistical risk model could predict churn likelihood by renewal time using account, usage, contract, and support features. This gives better ranking and can uncover non-obvious risk patterns, but it needs clean labels, stable features, and careful validation. It predicts churn, not whether a CSM touch changes the outcome.\n\nAn intervention-focused approach would model or test which accounts respond to CSM effort rather than just which are risky. This may include experiments, matched controls, or uplift-style models. This is the most useful for business value, but it costs time and requires logging what was done, when, and whether the account renewed.\n\nChosen plan  \nStart with a data-first, no-model risk list, then build a model only after the data and intervention tracking are reliable. That path is appropriate because you do not have a clean dataset yet, but you still have an actionable renewal window.\n\nBegin by defining the label and the timing window. Decide what counts as churn for this program, for example no renewal or cancellation by the renewal decision point. Choose a fixed lead time before renewal when a CSM can realistically act. This timing must be decided with the business, not inferred from data alone.\n\nDefine the unit as account-renewal episode. One account may have multiple renewal cycles over time, so the future dataset should not treat each account as only one row unless you are explicitly modeling lifetime risk.\n\nInventory the data sources needed for that unit: billing, CRM, product usage, support tickets, account management notes, executive sponsorship, contract terms, renewal status, and CSM activity logs. Without these, any model will be guessing.\n\nCreate the minimum clean table first: account identifier, renewal date, churn outcome, intervention date if any, intervention owner, intervention type, and whether the intervention happened before the risk could be acted on. This table is more important than adding many advanced features too soon.\n\nBuild the initial no-model list using clear, explainable signals. Put highest priority on accounts that are both high risk and valuable, and on accounts where renewal is imminent enough for a CSM to act. If CSM capacity is unknown, start with a short reviewable list and adjust it as workload becomes visible.\n\nInstrument every intervention. Record whether a CSM touched the account, what action was taken, when it happened, and what the renewal outcome was. If safe, hold back some comparable accounts for comparison. This is how you later learn whether the intervention actually saves accounts or whether you were just spending time on accounts that were likely to renew anyway.\n\nCheck the result by looking at untouched historical renewals and asking whether the high-risk list ranked churners better than low-risk accounts. Then check current operations by comparing intervened accounts with similar non-intervened accounts, if available. The goal is not perfect prediction; the goal is better prioritization and measurable retained value versus intervention cost.\n\nWhen the data is clean enough and the label is stable, move to a simple risk model. Use it to rank accounts within the pre-renewal window and evaluate it against the no-model list on held-out renewal cycles. If the model adds little, keep the operational rules. If it adds clear lift, integrate it into CSM workflow.\n\nOnly later consider an intervention-effect model. That requires repeated, logged CSM actions and ideally randomized or well-matched comparisons. It is the right tool if the main question becomes “who can be saved by doing something,” not just “who is likely to churn.”\n\nWhen to stop  \nStop building if you cannot reliably record renewal outcomes or intervention exposure, because then any model is unverifiable. Stop expanding complexity if the simple list already identifies the same accounts you can realistically serve. Stop a specific intervention type if controls or comparisons show it does not improve renewal. Stop optimizing for prediction if the business cannot act on the results in time before renewal.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "answered",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    63.23
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0022,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-13",
+   "arm": "blueprint_rules",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (regression)\n\n**Problem:** I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?\n**Data mode:** No-Data Solution Design\n**Harness mode:** `deterministic_floor` · Gates passed: `5/5`\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Solve `regression` decisioning for `record` at `At the operational quote/intake timestamp when entity attributes are locked`, optimizing `rmse + mae` to guide `Prioritize high-value regression interventions under capacity/cost constraints`.\n- **Goal** (`DCLab default`): I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I — *DCLab default (nobody said it): Synthesized from your problem statement.*\n- **Decision Action** (`DCLab default`): Prioritize high-value regression interventions under capacity/cost constraints — *DCLab default (nobody said it): Standard operational action for regression decisions.*\n- **Decision Unit** (`DCLab default`): record — *DCLab default (nobody said it): One prediction per `record_id` grain.*\n- **Prediction Moment** (`DCLab default`): At the operational quote/intake timestamp when entity attributes are locked — *DCLab default (nobody said it): Sets the strict point-in-time feature boundary to prevent look-ahead leakage.*\n- **Outcome And Horizon** (`Stated by you`): next year — *Quoted verbatim from your description: \"next year\"*\n- **Primary Metric** (`DCLab default`): rmse + mae — *DCLab default (nobody said it): Matches class balance, asymmetric error costs, and operational ranking needs.*\n- **Alternative Problem Framings Considered:**\n  - `classification`: Discretizing a continuous outcome into buckets loses magnitude sensitivity unless the business action only triggers above a single hard SLA threshold.\n  - `ranking`: If only relative priority order matters rather than calibrated unit values, pairwise ranking is less sensitive to extreme tail outliers.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Prioritize high-value regression interventions under capacity/cost constraints\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `record_id`\n- **Prediction Cutoff Time:** `decision_timestamp`\n- **Label Horizon:** at decision time / fixed outcome window\n- **Target:** `target_value`\n- **Tier-1 Day-1 Features:** segment, baseline_size_metric, historical_avg_value_asof, channel, region, season_index\n- **Tier-2 High-Leverage Features:** rolling_peer_benchmark_asof, recency_days, frequency_90d\n- **Forbidden Post-Decision Columns:** actual_discount_granted_post_hoc, settlement_fee_after_outcome, post_event_adjustment\n- **Validation Split:** Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks.\n- **Metrics:** mae, rmse, r2\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `record_id_count (count)`, `record_id_day_count (count)`, `baseline_size_metric_entity_mean (mean)`, `baseline_size_metric_entity_deviation (deviation)`, `record_id_time_since_prev (since_previous)`, `baseline_size_metric_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (PIK-003): Compute every feature strictly using events <= decision_timestamp.\n- **Ban post-decision columns** (EXP-014): Drop/audit post-cutoff fields before training: settlement_fee_after_outcome, actual_discount_granted_post_hoc, post_event_adjustment.\n- **Lock label maturity window** (DCLAB-R04): Only assign negative labels after at decision time / fixed outcome window has elapsed, or censoring bias inflates false negatives.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Median/Segment baseline -> Ridge / Huber Regression.\n- **Stage 2 Primary:** Gradient Boosted Trees (LightGBM / CatBoost) with Huber or Tweedie loss for skewed targets.\n- **Stage 3 Decision Layer:** Residual quantile bands + segment error audit before automated downstream pricing/SLA action.\n- **What Evidence Would Change Algorithm Choice:** If the real data holds few positive outcomes or many missing values, prefer regularized logistic/linear models over deep trees.\n- **DCLab's rules' plan (no model debate ran):** Split: Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks. · Metric `mae` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    2.52
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0
+   },
+   "notes": {
+    "family": "regression",
+    "mode": "deterministic_floor",
+    "roles_called": [],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": true,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.0,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-13",
+   "arm": "blueprint_pipeline",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "# DCLab No-Data Solution Blueprint (regression)\n\n**Problem:** I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?\n**Data mode:** No-Data Solution Design\n**Harness mode:** `ai_harnessed` · Gates passed: `4/5` · not passed: workflow\n\n## 0. Deep Problem & Domain Understanding (Epistemic Provenance)\n- **Restatement:** Decide whether opening a second warehouse in the south next year improves expected service and net contribution enough to justify its costs.\n- **Goal** (`AI inferred`): Determine whether to open a second warehouse in the south next year. — *proposed by the advisor from \"whether we should open a second warehouse in the south next year\"*\n- **Decision Action** (`AI inferred`): Open the second warehouse only if modeled expected incremental value is positive and robust to uncertainty. — *AI domain inference: The core need is to forecast future demand, delivery lead time, and cost/service effects, then convert those forecasts into a decision; no observed second-warehouse outcome labels currently exist.*\n- **Decision Unit** (`AI inferred`): One modeled order/shipment record at a decision timestamp, or a segment aggregation for forecasting. — *AI domain inference: The core need is to forecast future demand, delivery lead time, and cost/service effects, then convert those forecasts into a decision; no observed second-warehouse outcome labels currently exist.*\n- **Prediction Moment** (`AI inferred`): Decision time today, using history only up to that timestamp; next year's demand, costs, and actual delivery outcomes are unknown. — *AI domain inference: The core need is to forecast future demand, delivery lead time, and cost/service effects, then convert those forecasts into a decision; no observed second-warehouse outcome labels currently exist.*\n- **Outcome And Horizon** (`Stated by you`): next year — *Quoted verbatim from your description: \"next year\"*\n- **Primary Metric** (`AI inferred`): Forecast MAE or WMAPE for demand and delivery lead time, plus expected incremental net contribution and downside scenari — *AI domain inference: The core need is to forecast future demand, delivery lead time, and cost/service effects, then convert those forecasts into a decision; no observed second-warehouse outcome labels currently exist.*\n- **Alternative Problem Framings Considered:**\n  - `regression`: A single regression on an existing profit target would not represent the counterfactual effect of adding a warehouse.\n  - `uplift`: Uplift would be better if historical experiments or natural warehouse assignments existed, but none are available.\n  - `classification`: The label open vs not is a decision, not an observed outcome with historical training labels.\n\n## 1. Business Solution & Decision Economics\n- **Decision owner & action:** Operations / Analytics Lead — Open the second warehouse only if modeled expected incremental value is positive and robust to uncertainty.\n- **Day-0 non-ML baseline:** Scorecard heuristic using top 3 domain risk rules + randomized control holdout to measure baseline lift before ML.\n- **Read this first:** 5 of 5 inputs below are DCLab's placeholders (monthly volume, base rate, cost per action, value per caught case, share of actions that work), not facts about your business. Every figure computed from them is an illustration until you give your own numbers.\n- **Monthly volume:** 10000 (assumed by DCLab) · **Base rate:** 8.0% (assumed by DCLab)\n- **Cost per action:** 15.0 (assumed by DCLab) · **Value per caught case:** 180.0 (assumed by DCLab) · **Share of actions that work:** 35% (assumed by DCLab)\n- **Break-even precision:** 23.8% (an illustration: computed from assumed inputs)\n- **Domain Expert (assumption):** For a furniture retailer, the expansion decision is most likely won or lost on southern delivery lead time, inventory service level, and landed cost per delivered order, not on the second warehouse itself.\n- **Domain Expert (fact):** The case gives a clear asymmetry: southern deliveries take about 6 days and northern deliveries take about 2 days, while about a third of orders go south.\n- **Domain Expert (assumption):** Because no system export exists, the analysis should anchor only on decision-time fields such as decision_timestamp, snapshot_date, region, channel, season_index, total_orders, south_order_share, and north_order_share.\n\n### ROI Scenarios (an illustration: computed from assumed inputs; the lifts are DCLab's assumptions)\n| Scenario | Precision | Flagged/mo | Gross Value | Cost | Net/mo |\n|---|---:|---:|---:|---:|---:|\n| Conservative (1.5x lift) | 12.0% | 1500 | 11340.0 | 22500.0 | -11160.0 |\n| Target ML (2.5x lift) | 20.0% | 1500 | 18900.0 | 22500.0 | -3600.0 |\n| Strong ML (3.5x lift) | 28.0% | 1500 | 26460.0 | 22500.0 | 3960.0 |\n\n## 2. Data Science Solution & Minimum Viable Data Spec\n- **Unit / Entity:** `record_id`\n- **Prediction Cutoff Time:** `decision_timestamp`\n- **Label Horizon:** at decision time / fixed outcome window\n- **Target:** `target_value`\n- **Tier-1 Day-1 Features:** region, segment, baseline_size_metric, historical_avg_value_asof, season_index, snapshot_date, total_orders, south_order_share\n- **Tier-2 High-Leverage Features:** rolling_peer_benchmark_asof, recency_days, frequency_90d\n- **Forbidden Post-Decision Columns:** actual_discount_granted_post_hoc, settlement_fee_after_outcome, post_event_adjustment\n- **Validation Split:** Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks.\n- **Metrics:** mae, rmse, r2\n- **Verified Fold-Safe Feature Programs (`dclab_core.features`):** `record_id_count (count)`, `record_id_day_count (count)`, `baseline_size_metric_entity_mean (mean)`, `baseline_size_metric_entity_deviation (deviation)`, `record_id_time_since_prev (since_previous)`, `baseline_size_metric_rolling3_mean (rolling_mean)`\n\n### Pre-Data Leakage Traps\n- **Strict as-of point-in-time join** (PIK-003): Compute every feature strictly using events <= decision_timestamp.\n- **Ban post-decision columns** (EXP-014): Drop/audit post-cutoff fields before training: settlement_fee_after_outcome, actual_discount_granted_post_hoc, post_event_adjustment.\n- **Lock label maturity window** (DCLAB-R04): Only assign negative labels after at decision time / fixed outcome window has elapsed, or censoring bias inflates false negatives.\n- **Leak Suspect `settlement_fee_after_outcome` (exclude):** May be determined after delivery or order outcome and could encode post-event information.\n- **Leak Suspect `actual_discount_granted_post_hoc` (exclude):** May be set after the outcome and is not known at prediction time.\n- **Leak Suspect `post_event_adjustment` (exclude):** Can contain later corrections that leak the answer.\n- **Leakage Auditor (risk):** target_value can leak the answer if it is populated from next year's demand, costs, actual delivery times, or the owner's final decision rather than a pre-decision placeholder.\n\n## 3. ML Solution, Multi-Model Debate & Pre-Data Task Plan\n- **Stage 1 Baseline:** Median/Segment baseline -> Ridge / Huber Regression.\n- **Stage 2 Primary:** Gradient Boosted Trees (LightGBM / CatBoost) with Huber or Tweedie loss for skewed targets.\n- **Stage 3 Decision Layer:** Residual quantile bands + segment error audit before automated downstream pricing/SLA action.\n- **What Evidence Would Change Algorithm Choice:** Historical order-level data with delivery times, costs, and cancellations; natural experiments, a pilot, or any prior south-warehouse assignment would move the design toward uplift or causal evaluation.\n- **DCLab's rules' plan (no model debate ran):** Split: Time-ordered split (or entity-grouped CV if no timestamp exists) with outlier-robust residual checks. · Metric `mae` · Families `dummy, ridge, random_forest, gradient_boosting`\n- **TP-08 Selected Pre-Data Tasks:** time_split_check, grouped_split, threshold_for_cost, baseline\n\n## 4. Next Options (When Ready)\n- Tell me missing economics or operational constraints to tighten these numbers.\n- If you want a **synthetic prototype**, answer the simulation questions so I can show the schema design for your approval first.\n- When real data is ready, upload/connect it — `Build project` remains unchanged whenever you attach data.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    1154.23
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0
+   },
+   "notes": {
+    "family": "regression",
+    "mode": "ai_harnessed",
+    "roles_called": [
+     "problem_analyst",
+     "brief_checker",
+     "ai_first",
+     "synthetic_schema",
+     "understanding_critic",
+     "feature_engineer",
+     "case_specialist:domain_expert",
+     "case_specialist:leakage_auditor",
+     "decomposer",
+     "map_reviewer",
+     "solution_router",
+     "solution_planner",
+     "solution_challenger",
+     "debate_judge"
+    ],
+    "gates_passed": {
+     "gate_1_epistemic_provenance": true,
+     "gate_2_number_grounding": true,
+     "gate_3_virtual_schema_and_features": true,
+     "gate_4_workflow_and_debate": false,
+     "gate_5_budget": true
+    },
+    "cost_eur": 0.049859,
+    "assumed_inputs": [
+     "monthly volume",
+     "base rate",
+     "cost per action",
+     "value per caught case",
+     "share of actions that work"
+    ],
+    "fits": true
+   },
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0499,
+   "judge_spent_eur": 0
+  },
+  {
+   "id": "ND-13",
+   "arm": "model_only",
+   "transcript": [
+    {
+     "role": "person",
+     "text": "I run operations for a furniture retailer with one warehouse. The owner wants to know whether we should open a second warehouse in the south next year. Nothing is in a system I could export for you: I have what I know from the job. Deliveries to the south take about 6 days, to the north 2. Around a third of our orders go south. How should we think about this?",
+     "choices": []
+    },
+    {
+     "role": "assistant",
+     "text": "The problem is not really “predict deliveries.” It is “decide whether adding a southern stock location creates enough value to pay for itself.” The owner needs the yes/no recommendation. You need it to decide the warehouse setup for the coming year. The unit of analysis is the order, grouped by region. The moment that matters is the commitment for the next year: where inventory will be placed before orders arrive.\n\nWhat you have told me: deliveries to the south take about 6 days; deliveries to the north take about 2 days; around a third of orders go south; you currently operate from one warehouse.\n\nWhat is not known and what matters: whether customers value shorter south delivery enough to win or save sales; whether the 6-day south wait causes complaints, lost sales, or extra cost; what the warehouse will cost in rent, labor, stock, transfers, and complexity; how inventory carrying cost changes when stock is duplicated; whether adding southern inventory worsens north service; whether outside providers, cross-docking, or partial southern stocking could give the benefit without a full warehouse; and whether south orders differ by item size, season, value, or service promise.\n\nA useful framing is this: a new southern site is worth it if the value gained on southern orders — better service, less lost sales, lower delivery cost, happier customers, more sales — is greater than the added cost of having a second stock location, including duplicated inventory and the risk of lower north performance. Because only about a third of orders go south, the benefit per southern order must be strong enough to support the extra cost.\n\nApproaches you could take:\n\n- No model at all: decide by judgment. This is quick and cheap. It can be right if the service pain or cost burden is obvious. It gives no protection from being wrong about the trade-off.\n\n- Manual descriptive review: go through invoices, carrier records, complaints, stockout notes, or paper logs to see the share of south orders, lead time variability, and visible service problems. This costs some time but helps locate the real pain. It does not yet say whether a warehouse is economically justified.\n\n- Simple scenario spreadsheet: build a small cost-and-service trade-off comparing the current setup, a southern warehouse, and any interim alternatives. This is the most useful approach right now. It needs estimated ranges, not perfect data. It gives a clear view of what would have to be true for the decision to change.\n\n- Inventory or fulfillment simulation/optimization: model stock placement, lead times, demand, and service levels. This is powerful but expensive. It requires detailed order, inventory, cost, and timing data. It is premature given what you have now.\n\nI would choose the simple scenario spreadsheet, plus a small reversible pilot if needed. Do not start with machine learning. There is not enough data, and the core issue is economic trade-off, not prediction.\n\nPlan:\n\nBegin by writing the decision clearly: “Should we open a southern warehouse for the next year, or can we achieve the needed service benefit another way?” Define the owner’s goal as protecting or improving value: revenue, margin, customer satisfaction, and operational control.\n\nThen list the options. Compare the current warehouse arrangement. Compare a new southern warehouse. Compare interim choices such as using an external southern provider, sending stock to a local point only for best-moving items, negotiating faster south delivery, or accepting the current south lead time. Each option should be described by lead time, cost, service effect, risk, and flexibility.\n\nGather the minimum facts you can get by hand. Do not demand perfect data. Use:\n\n- approximate order volume by region and by item type, even in broad bands;\n- current delivery cost patterns, especially anything specific to the south;\n- whether south orders have different value, size, season, or service expectations;\n- evidence of lost sales, complaints, or reorders caused by the south lead time;\n- what a southern warehouse would cost in rent, fit-out, labor, stock, transfers, returns, and management attention;\n- how inventory carrying cost changes if stock is duplicated;\n- the risk that keeping less inventory in the main warehouse slows north orders;\n- whether an outside provider could give part of the benefit without a full warehouse.\n\nBuild a simple spreadsheet. For each option, estimate the value gained and the cost added. You do not need a prediction model. You need a range: what happens if the service benefit is weak, and what happens if it is strong; what happens if costs are high, and what happens if they are low. This gives a “bad case / good case” view.\n\nThe key calculation is conceptually: value gained from faster or better southern fulfillment must exceed the added cost and risk of duplicating stock and operating another location. If the decision flips depending on which assumption you make, write down the assumption that controls the result. That tells you what to investigate next.\n\nThen choose a check. If the spreadsheet says “yes, even in the bad case,” it may be enough to proceed, subject to finance and capacity review. If it says “no, even in the good case,” reject it for now. If it says “maybe,” do not open a permanent warehouse yet. Run a small, reversible test instead: use a southern third-party storage or fulfillment point, pre-position only key items, or use cross-docking for a short period. Measure south delivery times, complaints, stockout issues, extra costs, and any change in sales or service quality.\n\nThe result is checked in layers. First, sanity-check the assumption that a southern site actually shortens south lead time. Second, check whether it harms north lead time or increases stockout risk. Third, compare the pilot or assumed service improvement with the extra cost and operational burden. Fourth, ask whether the decision survives when you make the cost estimate less favorable and the service benefit estimate less favorable. If it does, the case is stronger. If it does not, you need better information before committing capital.\n\nStop and decide when the answer is stable across plausible assumptions. If one unknown controls everything, stop only when that unknown has been measured or tested. If the owner is willing to accept the risk anyway, that becomes the business decision, not the data decision.\n\nThe short version: think of this as a service-versus-cost trade-off. A southern warehouse is justified only if the benefit it brings to the portion of orders going south is enough to cover the added warehouse and inventory cost, without hurting the north. With only the facts you gave, the answer cannot be known yet. Use a simple scenario spreadsheet, then a small pilot if the spreadsheet leaves the result unresolved.",
+     "choices": []
+    }
+   ],
+   "route": null,
+   "tool": null,
+   "routed_by": null,
+   "ended": "asks",
+   "assistant_turns": 1,
+   "picked": 0,
+   "options_unpicked": 0,
+   "silent": 0,
+   "seconds": [
+    113.9
+   ],
+   "safety": {
+    "uncited": [],
+    "rows_exposed": 0,
+    "built_without_yes": 0,
+    "guard_ignored": 0,
+    "upload_demanded": 0
+   },
+   "notes": {},
+   "repeat": 1,
+   "judged": {
+    "valid": false,
+    "pending": true,
+    "problems": [
+     "not judged yet: the judge runs later on the kept conversation"
+    ]
+   },
+   "spent_eur": 0.0034,
+   "judge_spent_eur": 0
+  }
+ ],
+ "scores": {
+  "blueprint_rules": [
+   {
+    "run": "HAB-041",
+    "case": "ND-01",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 6,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 0.47,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-041",
+    "case": "ND-13",
+    "arm": "blueprint_rules",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 2.52,
+    "spent_eur": 0,
+    "first_divergence": null,
+    "wanted_right": null
+   }
+  ],
+  "blueprint_pipeline": [
+   {
+    "run": "HAB-041",
+    "case": "ND-01",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 4,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1255.29,
+    "spent_eur": 0.0509,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-041",
+    "case": "ND-13",
+    "arm": "blueprint_pipeline",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 1154.23,
+    "spent_eur": 0.0499,
+    "first_divergence": null,
+    "wanted_right": null
+   }
+  ],
+  "model_only": [
+   {
+    "run": "HAB-041",
+    "case": "ND-01",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 63.23,
+    "spent_eur": 0.0022,
+    "first_divergence": null,
+    "wanted_right": null
+   },
+   {
+    "run": "HAB-041",
+    "case": "ND-13",
+    "arm": "model_only",
+    "repeat": 1,
+    "judged": false,
+    "failed": false,
+    "understanding": null,
+    "solution_design": null,
+    "planning": null,
+    "evidence_discipline": null,
+    "adaptation": null,
+    "accepted": null,
+    "understood_share": null,
+    "forbidden_done": null,
+    "safety_failures": 0,
+    "route": null,
+    "tool": null,
+    "assistant_turns": 1,
+    "picked": 0,
+    "options_unpicked": 0,
+    "silent": 0,
+    "seconds": 113.9,
+    "spent_eur": 0.0034,
+    "first_divergence": null,
+    "wanted_right": null
+   }
+  ]
+ },
+ "summary": {
+  "blueprint_rules": {
+   "conversations": 2,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 6,
+   "seconds": 1.495,
+   "spent_eur": 0.0
+  },
+  "blueprint_pipeline": {
+   "conversations": 2,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 4,
+   "seconds": 1204.76,
+   "spent_eur": 0.1008
+  },
+  "model_only": {
+   "conversations": 2,
+   "judged": 0,
+   "failed": 0,
+   "understanding": null,
+   "solution_design": null,
+   "planning": null,
+   "evidence_discipline": null,
+   "adaptation": null,
+   "accepted_rate": null,
+   "understood_share": null,
+   "forbidden_done": 0,
+   "safety_failures": 0,
+   "seconds": 88.565,
+   "spent_eur": 0.0056
+  }
+ },
+ "paired": null,
+ "first_divergence_counts": {},
+ "incomplete": null
+}

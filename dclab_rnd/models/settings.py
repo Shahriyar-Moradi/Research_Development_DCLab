@@ -157,6 +157,11 @@ PURPOSES: dict[str, Purpose] = {
     "route_check": Purpose("standard", 60, "2026-11-01: the lead agent's second reading of the route (Haiku on Anthropic; the cheap tier's model on OpenRouter): the person's "
                                           "own messages and the shared table's column names; never the assistant's messages, a row or a "
                                           "cell value", cell_values=0, keeps_text=True),
+    "no_data_architect": Purpose("standard", 300, "2026-11-16, solving without data: the words of a person who has no table to share, and the "
+                                                  "sums code checked from the numbers in those words; there is no table, so never a column, "
+                                                  "a row or a cell value", cell_values=0, keeps_text=True),
+    "no_data_critic": Purpose("standard", 180, "2026-11-16, solving without data: the same person's words and the solution the architect "
+                                               "wrote from them; never a table, a row or a cell value", cell_values=0, keeps_text=True),
     "exam_plain": Purpose("standard", 180, "37.0: the conversation exam's Claude-alone arm: a written person's words (simulated, never a "
                                            "real person's) and, when they share an invented exam table, its column names, kinds and what "
                                            "DCLab noticed about each, its row count, and the same computed aggregates as the lead agent (at most 20 "

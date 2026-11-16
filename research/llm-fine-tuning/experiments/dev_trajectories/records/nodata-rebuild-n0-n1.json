@@ -1,0 +1,257 @@
+{
+ "package": "nodata-rebuild-n0-n1",
+ "title": "Solving without data, rebuilt: a fair test first, then one free pass checked by code",
+ "date": "2026-11-16",
+ "request": "The owner asked for DCLab to help a person who has no data or will not upload it: understand that from natural conversation, keep helping, and give a business, a data-science and a machine-learning solution, with a plan. Made-up data only after asking the person how it should look and getting their yes. Build project unchanged. Rebuild from the owner's specification, test the rebuild against the existing design on the same people, keep the winner.",
+ "spec": "A test set of written people with no table, a scripted person who says no when asked for a file, the existing designs and the rebuild as arms that answer once, a gate fixed before any live run of the rebuild. The rebuild: one model pass writes the solution under fixed headings with a required plan; code checks it and owns every number; one repair request at most; one second reader whose findings are shown and never applied; nothing in the package creates data.",
+ "plan": [
+  "write the no-data people and their answer keys, and let the scripted person refuse a request for a file",
+  "add the existing designs as arms and run a small live pilot of them",
+  "fix the gate for this plan before the rebuild is run on a live model",
+  "build the package: stance, architect, checks, numbers, second reader, questions before made-up data, rendering",
+  "register the two model roles with their data limits and a test that their thinking is stored",
+  "review, fix every finding with a test, then measure all designs on the same people"
+ ],
+ "decisions": [
+  {
+   "decision": "Measure the existing design before rebuilding it",
+   "why": "its own test checked keywords and the problem family, had no judge, and never compared it with one model given room"
+  },
+  {
+   "decision": "The kind of problem is named last, and only when a model is part of the answer",
+   "why": "the existing rules gave a classifier blueprint to a person asking whether to open a second warehouse"
+  },
+  {
+   "decision": "A number is the person's own or a sum of their numbers that code checked",
+   "why": "a free answer invents rates and savings; a model must still be able to divide two of the person's numbers"
+  },
+  {
+   "decision": "The architect writes prose under fixed headings and a table, not a typed object",
+   "why": "one model given room planned better than the same model held to a structure, and a table of columns is easy for code to read"
+  },
+  {
+   "decision": "One repair request at most, and the rewrite is kept only when it fails no more checks",
+   "why": "a design of many calls took about twenty minutes a person; a worse rewrite must not replace a better draft"
+  },
+  {
+   "decision": "The time bar of the gate is three hundred seconds, not the ninety of the plan",
+   "why": "one model answer at the thinking effort the owner fixed takes about one hundred and fifty seconds; the bar was moved before any run of the rebuild"
+  },
+  {
+   "decision": "A right, written-out sum of the person's numbers is not an invented number for any arm of the test",
+   "why": "the held-out people invite multiplying their numbers; one rule for the rebuild and for the model alone"
+  },
+  {
+   "decision": "A table row that states a number nobody gave loses the number, not the row",
+   "why": "removing the row removed the outcome column and every check then passed"
+  }
+ ],
+ "change": "A new package for solving without data (stance, architect, checks, numbers, second reader, questions before made-up data, rendering), two prompts, two model roles, Persian number marks read as numbers in the shared number check, and on the test side a set of sixteen people with no table, a scripted refusal, three arms for the no-data designs, a count of requests for a file, and a gate for this plan.",
+ "findings": [
+  {
+   "id": "ND-F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A sum made only of small numbers turned an invented figure into a checked one.",
+   "scenario": "The answer wrote nine divided by ten equals ninety percent; no operand was the person's, yet the sum was accepted and its result became a source.",
+   "cause": "whole numbers up to ten were accepted as operands without a source",
+   "fix": "Every operand must be the person's number or an earlier checked result.",
+   "test": "test_a_small_number_or_a_near_miss_never_makes_an_invented_figure_a_checked_one",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A wrong result within one part in a hundred was accepted as right.",
+   "scenario": "A product of two of the person's numbers was written nine hundred too high and still counted as checked.",
+   "cause": "the tolerance was the larger of the rounding step and one percent of the value",
+   "fix": "A result is right only to the rounding its own digits allow.",
+   "test": "test_a_small_number_or_a_near_miss_never_makes_an_invented_figure_a_checked_one",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Removing a table row that stated a time window removed the outcome column, and every check then passed.",
+   "scenario": "The outcome row said the member quit within a number of days nobody gave; the row was removed whole; the table had no outcome and the result reported all checks passed.",
+   "cause": "a table row with an unsourced number was dropped, and no check required an outcome row",
+   "fix": "Only the number leaves a table row, a marker stands in its place, and a solution with a model must have an outcome row and an input row.",
+   "test": "test_a_table_row_keeps_its_place_and_loses_only_the_number",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Steps eleven and up of a numbered plan were deleted.",
+   "scenario": "A plan of twelve steps: the markers of the last two were read as numbers nobody gave and the steps were removed.",
+   "cause": "a list marker was read as a stated number",
+   "fix": "The number of a list item is not read as a statement.",
+   "test": "test_the_number_of_a_list_item_states_nothing",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A right sum written in Persian digits was reported as wrong.",
+   "scenario": "The same division written with Persian digits and the Persian percent sign was called wrong, though the prompt tells the model to write in the person's language.",
+   "cause": "the reader of sums did not translate Persian number marks",
+   "fix": "Persian number marks and the Persian word for percent are read as marks before a sum is read.",
+   "test": "test_a_right_sum_is_read_in_the_forms_people_write",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A model request that failed threw away the person's answer.",
+   "scenario": "The repair request timed out; the error left the function and the finished draft was lost.",
+   "cause": "no request was guarded",
+   "fix": "A failed first request is answered by the rules; a failed repair keeps the draft; a test arm may ask to see the first failure.",
+   "test": "test_a_request_that_fails_never_loses_the_person_their_answer",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A worse rewrite replaced a better draft.",
+   "scenario": "The draft failed one check; the rewrite was a single apologetic sentence and became the answer.",
+   "cause": "the rewrite was always kept",
+   "fix": "The rewrite is kept only when it fails no more checks than the draft.",
+   "test": "test_a_worse_rewrite_never_replaces_a_better_draft",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The design certified its own numbers to the test, and showed removed numbers to the person again.",
+   "scenario": "The notes quoted the removed sentence word for word, and the notes were handed to the test as a source of numbers.",
+   "cause": "the notes were among the sources and quoted what was removed",
+   "fix": "Only code's sums and the checked sums are sources; the notes say that something was taken out and never quote it.",
+   "test": "test_a_sound_answer_is_one_pass_and_one_second_reading",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A result stayed after the sum that sourced it was removed.",
+   "scenario": "A list line held a right product and an invented share; the line went, and the bare product in another sentence stayed.",
+   "cause": "checked sums were collected once, before anything was removed",
+   "fix": "Removal is repeated until nothing more goes.",
+   "test": "test_a_result_is_sourced_only_while_its_sum_is_still_there",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The gate could not be read on real rows and passed on partial ones.",
+   "scenario": "A design's row held no count of invented numbers; a mean skipped empty values; people missing from the model alone's side were dropped silently.",
+   "cause": "the count was written for one arm only and the means skipped missing values",
+   "fix": "Every no-data row carries the count; a mean needs every value; both sides must hold the same people, all of the set, under one judge.",
+   "test": "test_every_check_must_hold",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Sound answers failed on common Markdown, and an unclear table cell took the lenient reading.",
+   "scenario": "A bold need line or a numbered heading cost a repair request; an input marked before or after passed.",
+   "cause": "the readers of the need, headings, steps and cells were too literal",
+   "fix": "The readers accept the common forms; an unclear cell takes the strict reading and fails the table check.",
+   "test": "test_a_sound_answer_in_common_markdown_passes",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The patterns for a request to upload and for made data missed real cases and hit honest ones.",
+   "scenario": "An order to upload a file was missed; a question about which system could export a table was counted as a request.",
+   "cause": "one pattern for every sentence, with no reading of who is asked",
+   "fix": "A request is read sentence by sentence as asking to be sent the person's data; a sentence saying it is not needed is never one. The test's counter uses the same reading.",
+   "test": "test_a_request_for_the_persons_data_is_read_and_an_honest_sentence_is_not",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F13",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A person who has data was read as having none, and plain refusals were missed.",
+   "scenario": "A sentence saying there is no problem sharing the data was read as no data; a sentence saying nothing was collected was missed.",
+   "cause": "bare words such as private and no were matched without their context",
+   "fix": "The patterns exclude the common false readings and gain the missed forms, in English and Persian.",
+   "test": "test_a_person_with_a_table_or_with_nothing_said_is_not_read_as_having_none",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F14",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A run of the rebuilt arm was not tied to its code.",
+   "scenario": "The run's manifest pinned neither the new package, nor the shared number rule, nor the two prompts.",
+   "cause": "the pinned paths and prompts were not extended",
+   "fix": "The package, the number rule and the two prompts are pinned by the run.",
+   "test": "test_a_design_row_carries_the_count_the_gate_reads",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F15",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The second reader's findings were all dropped when one line said nothing serious, or when they were numbered.",
+   "scenario": "Three numbered findings came back and none was shown.",
+   "cause": "one phrase anywhere emptied the list, and only dashes were read as findings",
+   "fix": "Each line is read on its own, bulleted or numbered.",
+   "test": "test_the_second_reader_may_number_its_findings_and_one_line_never_drops_the_others",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "ND-F16",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A Persian speaker's own number was read as two small numbers.",
+   "scenario": "Twenty thousand written with the Persian thousands mark was read as twenty and zero, so a reply repeating it counted as invented.",
+   "cause": "the shared number check did not know the Persian marks",
+   "fix": "The Persian thousands mark, decimal mark and percent sign are read as marks.",
+   "test": "test_persian_number_marks_are_numbers",
+   "verdict": "confirmed"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "A live pilot of the existing designs on two people",
+   "gate": "none: a pilot to measure cost and time before the full run, judged later",
+   "fixed_before_run": true,
+   "result": "the existing design made about twenty model requests and took about twenty minutes a person; the model alone made one request and took one to two minutes; both existing designs called the warehouse decision a regression problem",
+   "verdict": "not scored",
+   "cost_eur": 0.11,
+   "next": "all four designs on the sixteen people, judged by a model of another family",
+   "limits": [
+    "two people, not judged",
+    "one model"
+   ]
+  }
+ ],
+ "outcome": "The package, its tests and the test side are in place and reviewed; sixteen findings of the review are fixed, each with a test. The rebuild has not been run on a live model and nothing in the product calls it yet.",
+ "lessons": [
+  "A rule that lets small numbers pass unchecked is a rule that lets any share pass.",
+  "Removing a whole row of a table can remove the fault a check was about to find.",
+  "A design must never hand its own notes to the test as a source.",
+  "Fix the gate's reading on real rows, not on rows built by hand in a test."
+ ],
+ "risks": [
+  "A free pass invents numbers; the number check is the guard.",
+  "The rebuild may not beat the existing design or the model alone; the test decides.",
+  "The judge is a model and the set is small.",
+  "Persian answers are checked by patterns and one held-out person."
+ ],
+ "commits": []
+}

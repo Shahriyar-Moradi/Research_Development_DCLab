@@ -194,7 +194,8 @@ class BlueprintArm:
         if self.name == "blueprint_architect":
             from dclab_rnd import nodata  # the rebuilt design
 
-            solution = nodata.solve(words, gateway=self.gateway, draft_id=f"exam:{self.name}-{self.person}", cap_eur=BLUEPRINT_CAP_EUR)
+            solution = nodata.solve(words, gateway=self.gateway, draft_id=f"exam:{self.name}-{self.person}", cap_eur=BLUEPRINT_CAP_EUR,
+                                    on_error="raise")  # a request that fails (the run's cap, the provider) is never scored as an answer
             return solution, nodata.markdown(solution)
         from dclab_rnd.draft import no_data
 
@@ -210,7 +211,12 @@ class BlueprintArm:
         self.kept = {"family": solution.get("family"), "mode": report.get("mode"), "roles_called": list(report.get("roles_called") or []),
                      "gates_passed": {k: bool((g or {}).get("passed")) for k, g in (report.get("gates") or {}).items()},
                      "cost_eur": report.get("cost_eur"), "assumed_inputs": list(economics.get("assumed") or []),
-                     "fits": (solution.get("fit") or {}).get("fits")}
+                     "fits": (solution.get("fit") or {}).get("fits"),
+                     # the rebuilt design's own record: what it read the person to need, and what code did to its answer
+                     **({"need": solution.get("need"), "repaired": solution.get("repaired"), "removed": len(solution.get("removed") or []),
+                         "kind": solution.get("kind"), "findings": len(solution.get("critic") or []), "errors": solution.get("errors") or [],
+                         "first_failed": solution.get("first_failed") or [],
+                         "still_failed": [c["check"] for c in solution.get("checks") or [] if not c.get("ok")]} if solution.get("version") else {})}
         return {"text": str(text or "").strip(), "choices": []}
 
     def send(self, words: str) -> dict[str, Any]:

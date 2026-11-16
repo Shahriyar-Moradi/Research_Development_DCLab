@@ -83,6 +83,38 @@ class ScriptedNoTests(unittest.TestCase):
         self.assertNotIn("upload_demanded", out["safety"])
 
 
+class Sayer(Asker):
+    """An arm that answers once with the given words."""
+
+    def __init__(self, words):
+        super().__init__()
+        self.words = words
+
+    def open(self, person):
+        return {"text": self.words, "choices": []}
+
+
+class CheckedSumsTests(unittest.TestCase):
+    GYM = "About 2,400 members, maybe 90 quit a month. A call costs 10 euros and a member pays 45 a month."
+
+    def uncited(self, reply, **case):
+        return H.play({"id": "p", "opening": self.GYM, "upload": None, "reply": "I have no data.", **case}, Sayer(reply))["safety"]
+
+    def test_a_right_sum_of_the_persons_own_numbers_is_not_a_number_nobody_gave_for_any_arm(self):
+        out = self.uncited("So 90 / 2,400 = 3.75% quit a month, and a call is 10 / 45 = 22.2% of a month's fee.")
+        self.assertEqual((out["uncited"], out["sums_checked"]), ([], 2))
+
+    def test_a_wrong_sum_a_bare_result_and_an_operand_nobody_gave_still_count(self):
+        self.assertEqual(self.uncited("So 90 / 2,400 = 5% quit a month.")["uncited"], ["5%"])
+        self.assertEqual(self.uncited("About 3.75% quit a month.")["uncited"], ["3.75%"])
+        self.assertEqual(self.uncited("A year is worth 45 × 12 = 540.")["uncited"], ["12", "540"])
+
+    def test_the_rule_is_for_the_no_data_people_only_so_older_sets_count_as_before(self):
+        out = H.play({"id": "p", "opening": self.GYM, "upload": None}, Sayer("So 90 / 2,400 = 3.75% quit a month."))["safety"]
+        self.assertEqual(out["uncited"], ["3.75%"])
+        self.assertNotIn("sums_checked", out)
+
+
 class BlueprintArmTests(unittest.TestCase):
     def setUp(self):
         patch = mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"})
@@ -125,6 +157,48 @@ class OneJudgeTests(unittest.TestCase):
         self.assertTrue(next(c for c in paid["checks"] if c["check"] == "judge")["ok"])
         other = G.verdict(model, "qwen/qwen3.8-27b", rows, rows)
         self.assertFalse(next(c for c in other["checks"] if c["check"] == "judge")["ok"])
+
+
+class NoDataGateTests(unittest.TestCase):
+    def rows(self, **change):
+        return [{"case": f"c{i}", "judged": True, "failed": False, "understanding": 4, "solution_design": 4, "planning": 4, "numbers_nobody_gave": 0,
+                 "forbidden_done": 0, "spent_eur": 0.02, "seconds": 200.0, **change} for i in range(8)]
+
+    def test_the_gate_is_pinned_and_judged_on_the_held_out_people_only(self):
+        self.assertIsNone(G.pinned(G.GATE_NODATA))
+        self.assertEqual(G.TERMS_NODATA["sets"], ["nodata_held"])
+        self.assertEqual(G.TERMS_NODATA["against"], "model_only")
+
+    def test_every_check_must_hold(self):
+        model, judge = "qwen/qwen3.8-flash", "nvidia/nemotron-3.5-super-vl"
+        self.assertTrue(G.verdict_nodata(model, judge, self.rows(), self.rows())["passed"])
+        self.assertTrue(G.verdict_nodata(model, judge, self.rows(planning=3.5), self.rows())["passed"])  # half a point behind is allowed
+        for change in ({"planning": 3}, {"understanding": 3}, {"solution_design": 3}, {"numbers_nobody_gave": 1}, {"forbidden_done": 1},
+                       {"spent_eur": 0.05}, {"seconds": 900.0}, {"failed": True}):
+            self.assertFalse(G.verdict_nodata(model, judge, self.rows(**change), self.rows())["passed"], change)
+        self.assertFalse(G.verdict_nodata(model, judge, self.rows()[:4], self.rows())["passed"])  # too few people
+        ids = [f"c{i}" for i in range(8)]
+        self.assertTrue(G.verdict_nodata(model, judge, self.rows(), self.rows(), people=ids, alone_judge=judge + ":free")["passed"])
+        self.assertFalse(G.verdict_nodata(model, judge, self.rows(), self.rows(), people=[*ids, "c8"])["passed"])  # a person of the set is missing
+        self.assertFalse(G.verdict_nodata(model, judge, self.rows(), self.rows(), people=ids, alone_judge="qwen/qwen3.8-27b")["passed"])  # two judges
+        sixteen = self.rows() + [{**r, "case": f"d{i}"} for i, r in enumerate(self.rows())]
+        self.assertFalse(G.verdict_nodata(model, judge, sixteen, self.rows())["passed"])  # people dropped from the model alone's side
+        for name in ("planning", "spent_eur", "seconds"):  # a mean is read only when every row holds its value
+            holed = self.rows()
+            holed[0][name] = None
+            self.assertFalse(G.verdict_nodata(model, judge, holed, self.rows())["passed"], name)
+
+        unread = G.verdict_nodata(model, judge, self.rows(numbers_nobody_gave=None), self.rows())
+        self.assertFalse(unread["passed"])
+        self.assertIn("numbers nobody gave", unread["not_read"])
+
+    def test_a_design_row_carries_the_count_the_gate_reads(self):
+        conv = H.play({"id": "p", "opening": CHURN, "upload": None, "reply": "no"}, arms.BlueprintArm("blueprint_rules", None, "p"))
+        row = H.score({**conv, "repeat": 1})
+        self.assertEqual(row["numbers_nobody_gave"], len(conv["safety"]["uncited"]))
+        self.assertIn("dclab_rnd/nodata", H.PINNED_PATHS)
+        self.assertIn("dclab_rnd/cited.py", H.PINNED_PATHS)
+        self.assertTrue({"no_data_architect", "no_data_critic"} <= set(H.PROMPTS))
 
 
 if __name__ == "__main__":

@@ -692,6 +692,22 @@ class DataLimitTests(unittest.TestCase):
                                                  "assistant_message": {"role": "assistant", "content": "prediction"}}]}).client("route_check"), s)
         self.assertEqual(self.assertWithinLimit("route_check"), set())
 
+    def test_the_no_data_architect_and_its_second_reader_see_the_persons_words_only(self):
+        """2026-11-16: a person with no table to share. Even when a draft holds a table elsewhere, these two are sent the
+        person's words and the sums code checked from them: nothing of a table can reach them, for ``solve`` takes none."""
+        from dclab_rnd import nodata
+
+        answer = ("Need: business\n\n## The problem\nA decision.\n\n## What needs care\nCare.\n\n## Business solution\nA rule.\n\n"
+                  "## Plan\n1. One.\n2. Two.\n3. Three.\n\n## What only real data can settle\nMuch.\n")
+        said = lambda text: {"content": text, "tool_calls": [], "usage": {"input_tokens": 0, "output_tokens": 0},  # noqa: E731
+                             "assistant_message": {"role": "assistant", "content": text}}
+        with mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "0"}):
+            out = nodata.solve("We have no data yet. Should we call customers who may leave?",
+                               gateway=gateway({"no_data_architect": [said(answer)], "no_data_critic": [said("No serious weakness found.")]}))
+        self.assertEqual((out["mode"], out["calls"]), ("architect", ["architect", "critic"]))
+        self.assertEqual(self.assertWithinLimit("no_data_architect"), set())
+        self.assertEqual(self.assertWithinLimit("no_data_critic"), set())
+
     def test_task_decomposer_sees_metadata_never_rows_or_preview_values(self):
         from dclab_core.contracts import SolutionPlan
         from dclab_core.solution_workflow import SolutionWorkflow
@@ -737,7 +753,8 @@ class DataLimitTests(unittest.TestCase):
                   "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
                   "decision_answer", "decision_labeler", "routing_labeler", "home_understand", "decomposer", "map_reviewer", "data_need", "solution_router", "ai_first", "solver_answer",
                   "understanding_critic", "solution_challenger", "debate_judge", "metric_question", "workspace_chat", "store_curator", "reasoning_teacher", "notebook_cell",
-                  "home_orchestrator", "reflector", "memory_embedding", "case_agent", "case_specialist", "route_check", "task_decomposer", "task_planner"}
+                  "home_orchestrator", "reflector", "memory_embedding", "case_agent", "case_specialist", "route_check", "task_decomposer", "task_planner",
+                  "no_data_architect", "no_data_critic"}
         no_user_data = {"campaign", "campaign_review", "embedding",  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
                         "journey_writer", "journey_checker",  # S8 B1 (below)
                         "exam_plain", "exam_person", "exam_judge"}  # 37.0: written, simulated people and invented exam tables' column views (tests/test_conversation_exam.py); S8 B1: invented replica tables' column names and written people, never a workspace's data (tests/test_people_writer.py)

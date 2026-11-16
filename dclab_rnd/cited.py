@@ -61,9 +61,20 @@ REASONS = ("no citation", "cites a source that was not given", "a number is not 
            "claims production readiness, a guarantee or a cause", "over the word limit")
 
 
+# Persian and Arabic number marks (2026-11-16): "۲۰٬۰۰۰" is 20,000 and "۱۰٪" is 10%. NFKC folds none of the three, so a
+# Persian speaker's own number was read as two small ones and a reply that repeated it counted as a number nobody gave.
+NUMBER_MARKS = str.maketrans({"\u066c": ",", "\u066b": ".", "\u066a": "%"})
+PERCENT_WORD = re.compile(r"(?<=\d)\s?درصد")  # "۱۰ درصد" is 10%
+
+
+def marks(text: str) -> str:
+    """Persian and Arabic number marks, and the Persian word for percent after a number, as the marks numbers are read by."""
+    return PERCENT_WORD.sub("%", str(text).translate(NUMBER_MARKS))
+
+
 def normalise(text: str) -> str:
     """One kind of dash and of space, compatibility forms folded: so "production‑ready" and "production  ready" match."""
-    return re.sub(r"\s+", " ", DASHES.sub("-", unicodedata.normalize("NFKC", text)))
+    return re.sub(r"\s+", " ", DASHES.sub("-", unicodedata.normalize("NFKC", marks(text))))
 
 
 def _digits(text: str) -> str:
@@ -195,7 +206,7 @@ def unsaid(text: str, sources: Iterable[str]) -> list[str]:
     (counts of options, steps, questions) are no claim; a share or a decimal always is; an identifier is a record."""
     allowed = set().union(*(numbers(s, source=True) for s in sources)) if sources else set()
     out = []
-    for token in _DIGITS.findall(_CODE_SHAPE.sub(" ", str(text or ""))):
+    for token in _DIGITS.findall(_CODE_SHAPE.sub(" ", marks(str(text or "")))):
         bare = token.replace(",", "")
         if bare.isdigit() and int(bare) <= 10:
             continue
