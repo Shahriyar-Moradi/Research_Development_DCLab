@@ -997,7 +997,18 @@ class NumberCutTests(unittest.TestCase):
 class LongAnswerCostTests(unittest.TestCase):
     """2026-11-01 (CEX-026 r-13): a data scientist asked for a full script; the number check withheld every sentence holding a
     setting nobody gave and each withheld answer was written again at full length (five of fourteen calls, EUR 0.73, no code).
-    The check is unchanged; a message is capped at SHOWN_WORDS and a long reply that loses sentences is not written again."""
+    The check is unchanged; a message is capped at SHOWN_WORDS and a long reply that loses sentences is not written again.
+
+    These are the first prompt's limits (``DCLAB_CASE_THINK_FIRST=0``); think first, the default since 2026-11-16, has its
+    own (a longer message with the plan kept whole), tested in ``test_think_first.py``."""
+
+    def setUp(self):
+        import os
+        from unittest import mock
+
+        first = mock.patch.dict(os.environ, {"DCLAB_CASE_THINK_FIRST": "0"})
+        first.start()
+        self.addCleanup(first.stop)
 
     LONG = " ".join(f"Step {w} explains one idea about resampling in plain words without any figure." for w in
                     ("one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen",

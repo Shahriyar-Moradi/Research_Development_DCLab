@@ -203,9 +203,16 @@ def manifest(run: str, arms: list[str], repeats: int, cap_eur: Optional[float], 
             "code": code_state(), "models": dict(models),
             "prompt_sha256": {name: prints.get(f"prompt:{name}") for name in PROMPTS},
             "tool_schema_sha256": {"open": schema_hash(READ_TOOLS), "plain": schema_hash(PLAIN_TOOLS), "case": prints.get("tools:case")},
-            "flags": {name: os.environ.get(name) for name in ("DCLAB_CASE_AGENT", "DCLAB_CASE_THINK_FIRST", "DCLAB_ROUTE_MODEL", "DCLAB_THINKING_EFFORT",
-                                                              "DCLAB_LLM_PROVIDER")},
+            "flags": {**{name: os.environ.get(name) for name in ("DCLAB_CASE_AGENT", "DCLAB_ROUTE_MODEL", "DCLAB_THINKING_EFFORT", "DCLAB_LLM_PROVIDER")},
+                      # the switch as the run really had it (2026-11-16: it is on unless set to 0, so the raw setting no longer says)
+                      "DCLAB_CASE_THINK_FIRST": "1" if _think_first_now() else "0"},
             "cases_sha256": fingerprint(), "set": SET, "max_turns": MAX_TURNS, "go_ahead": GO_AHEAD}
+
+
+def _think_first_now() -> bool:
+    from dclab_rnd.agents import case_agent
+
+    return case_agent.think_first()
 
 
 def _pick(choices: list[Mapping[str, Any]], key: Optional[Mapping[str, Any]]) -> Optional[int]:

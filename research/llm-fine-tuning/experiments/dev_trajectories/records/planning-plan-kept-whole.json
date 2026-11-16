@@ -27,6 +27,10 @@
   {
    "decision": "Everything is behind the think-first switch",
    "why": "the switch is off until its gate passes on the held-out people"
+  },
+  {
+   "decision": "Think first is the lead agent's default (DCLAB_CASE_THINK_FIRST unset is on; 0 puts the first prompt back)",
+   "why": "the owner's decision of 2026-11-16 after the held-out result; the gate was not passed (one forbidden thing done) and is never to be described as passed; the gain did not carry to Nemotron 3.5 Super (HAB-062)"
   }
  ],
  "change": "A reader of the plan block in a message, the word limit applied around it, the plan kept in the state and its checkpoint and shown back as a note, a larger reply limit for the first full message, and the think-first prompt's points on options and the plan.",
@@ -85,6 +89,16 @@
    "fix": "A step loses the aside in brackets that states the number, not the step; steps are numbered again after the check; the prompt says a step states no such number.",
    "test": "test_a_step_the_number_check_takes_out_leaves_no_gap_and_an_aside_goes_before_a_step_does",
    "verdict": "confirmed"
+  },
+  {
+   "id": "PKW-DEFAULT-1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Three tests of the first prompt's length limits failed once think first became the default.",
+   "scenario": "LongAnswerCostTests checks a 450-word cap and a 120-word rewrite; under think first the limits are the longer ones with the plan kept whole.",
+   "cause": "the test runner blanks the switch, and blank now means on",
+   "fix": "the class pins DCLAB_CASE_THINK_FIRST=0: it tests the first prompt, which stays supported; think first's own limits are tested in test_think_first.py",
+   "test": "tests/test_case_agent.py LongAnswerCostTests (3 tests); 343 lead-agent tests pass under the new default"
   }
  ],
  "measurements": [
@@ -102,7 +116,7 @@
    ]
   }
  ],
- "outcome": "The plan is kept whole, shown back on later turns, written as a list and numbered without gaps. On the sixteen known people the lead agent's plan came within 0.12 of the same model alone. The switch stays off until the held-out people are played.",
+ "outcome": "The plan is kept whole, shown back on later turns, written as a list and numbered without gaps. On the sixteen known people the lead agent's plan came within 0.12 of the same model alone. On the eight held-out people, played once (HAB-060 and HAB-061, Qwen 3.8 flash), the lead agent scored 3.88, 3.75 and 3.62 (understanding, solution, plan) and seven of eight accepted, against 2.75, 2.38 and 2.38 and three of eight with the switch off, and 3.62, 3.62 and 3.88 and six of eight for the same model alone. The gate hab_gate_v2 was not passed: one check of eleven failed (one forbidden thing done, the bar being none). The owner made think first the default on 2026-11-16, knowing this.",
  "lessons": [
   "A limit that cuts from the end cuts whatever was put last, and the plan was put last.",
   "Read the conversations behind a lower score before changing a prompt."

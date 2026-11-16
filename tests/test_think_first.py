@@ -26,7 +26,7 @@ from dclab_rnd.agent_eval.harness_ablation import arms, gate as G  # noqa: E402
 from dclab_rnd.agents import case_agent as A  # noqa: E402
 
 ON = {A.THINK_FIRST: "1"}
-OFF = {A.THINK_FIRST: ""}
+OFF = {A.THINK_FIRST: "0"}  # the first prompt: since 2026-11-16 the switch is on unless it is set to 0
 VIEW = [{"name": "customer_id", "kind": "text", "noticed": ["identifier"]}, {"name": "plan", "kind": "category", "noticed": []},
         {"name": "churned_next_month", "kind": "numeric", "noticed": ["outcome-like name"]}]
 BRIEF = ("I lead retention at a subscription company and I want to know which customers will leave next month, so my team can "
@@ -57,9 +57,17 @@ def words(n):
 
 
 class SwitchTests(unittest.TestCase):
-    def test_off_by_default_and_the_old_prompt_is_sent(self):
+    def test_on_by_default_and_zero_puts_the_first_prompt_back(self):
+        """The owner's decision of 2026-11-16, made with hab_gate_v2 failed on one check of eleven."""
         with mock.patch.dict(os.environ, {}, clear=False):
-            os.environ.pop(A.THINK_FIRST, None)
+            for value in (None, "", "1"):
+                os.environ.pop(A.THINK_FIRST, None)
+                if value is not None:
+                    os.environ[A.THINK_FIRST] = value
+                self.assertTrue(A.think_first(), value)
+            self.assertEqual(A.prompt_name(), "case_agent_think_first")
+            self.assertIn("one forbidden thing was done", " ".join(A.think_first.__doc__.split()))  # recorded with the check that failed
+            os.environ[A.THINK_FIRST] = "0"
             self.assertFalse(A.think_first())
             self.assertEqual(A.prompt_name(), "case_agent")
             client = Script(("A short answer for you.", []))
@@ -73,7 +81,7 @@ class SwitchTests(unittest.TestCase):
             client = Script(("A short answer for you.", []))
             A.turn(state(), client, BRIEF)
             self.assertEqual(client.seen[0][0]["content"], prompts.text("case_agent_think_first"))
-        for value in ("0", "", "off", "no"):
+        for value in ("0", "off", "no", "false"):
             with mock.patch.dict(os.environ, {A.THINK_FIRST: value}):
                 self.assertFalse(A.think_first(), value)
 
@@ -123,8 +131,8 @@ class ReplyTests(unittest.TestCase):
             out = A.turn(state(), Script((plan, [])), BRIEF)
             self.assertEqual(A.word_count(out["text"]), A.word_count(plan))
             self.assertNotIn(A.CUT_NOTE, out["text"])
-        os.environ.pop(A.THINK_FIRST, None)
-        out = A.turn(state(), Script((plan, [])), BRIEF)
+        with mock.patch.dict(os.environ, OFF):
+            out = A.turn(state(), Script((plan, [])), BRIEF)
         self.assertLessEqual(A.word_count(out["text"].replace(A.CUT_NOTE, "")), A.SHOWN_WORDS)
         self.assertIn(A.CUT_NOTE, out["text"])
 
@@ -138,7 +146,7 @@ class ReplyTests(unittest.TestCase):
         for env in ({}, ON):
             with mock.patch.dict(os.environ, env):
                 if not env:
-                    os.environ.pop(A.THINK_FIRST, None)
+                    os.environ[A.THINK_FIRST] = "0"
                 out = A.turn(state(), Script((text, []), ("I would rank customers by risk. Then we check the ranking on later months.", [])), BRIEF)
                 self.assertNotIn("37%", out["text"], env)
                 self.assertIn("rank customers by risk", out["text"], env)
@@ -152,9 +160,9 @@ class ReplyTests(unittest.TestCase):
             self.assertEqual(client.seen[1][-1]["content"], A.REWRITE_LONG)
             self.assertIn("about the same length", A.REWRITE_LONG)
             self.assertNotIn("%", out["text"])
-        os.environ.pop(A.THINK_FIRST, None)
         client = Script((made_up + " " + SENTENCE, []), (words(100), []))
-        A.turn(state(), client, BRIEF)
+        with mock.patch.dict(os.environ, OFF):
+            A.turn(state(), client, BRIEF)
         self.assertEqual(client.seen[1][-1]["content"], A.REWRITE_SHORT)  # as before the switch
 
 
@@ -327,7 +335,7 @@ class ReviewFixTests(unittest.TestCase):
         client = Script(("A short answer for you.", []))
         with mock.patch.dict(os.environ, env):
             if not env:
-                os.environ.pop(A.THINK_FIRST, None)
+                os.environ[A.THINK_FIRST] = "0"
             A.turn(state(), client, words)
         return json.dumps(client.seen[0])
 
@@ -349,7 +357,7 @@ class ReviewFixTests(unittest.TestCase):
             A.heard(s, "show me options")
             with mock.patch.dict(os.environ, env):
                 if not env:
-                    os.environ.pop(A.THINK_FIRST, None)
+                    os.environ[A.THINK_FIRST] = "0"
                 return A._propose(s, self.OPTIONS)["next"]
 
         self.assertIn("it stands", proposed(ON))

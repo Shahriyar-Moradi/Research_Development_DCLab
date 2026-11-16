@@ -35,7 +35,15 @@ THINK_FIRST_PROMPT = "case_agent_think_first"
 
 
 def think_first() -> bool:
-    return os.environ.get(THINK_FIRST, "").strip().lower() in ("1", "on", "true", "yes")
+    """Whether the lead agent thinks first: its first full message says the problem, what needs care, the ways to solve it
+    and the plan, and the plan is kept whole and shown back to it. On unless ``DCLAB_CASE_THINK_FIRST`` is 0.
+
+    The owner's decision of 2026-11-16, made with the gate not passed. On the eight held-out people (HAB-060, HAB-061; the
+    product's model) the lead agent went from 2.75 / 2.38 / 2.38 (understanding / solution / plan), accepted for 3 of 8,
+    to 3.88 / 3.75 / 3.62, accepted for 7 of 8, against the same model alone at 3.62 / 3.62 / 3.88 and 6 of 8. It failed
+    ``hab_gate_v2`` on one check of eleven: one forbidden thing was done where the gate allows none (the model alone did
+    two). With a weaker main model (Nemotron 3.5 Super, HAB-062) the gain did not carry. 0 puts the first prompt back."""
+    return os.environ.get(THINK_FIRST, "").strip().lower() not in ("0", "off", "false", "no")
 
 
 def prompt_name() -> str:
