@@ -131,6 +131,14 @@ def _seal(body):
     return TaskExecutionPlan.read(body)
 
 
+def _share(graph, state, remaining):
+    """A stage's seconds: an even share of what is left among the tasks still to run, never under two minutes while
+    that much is left. Before, every stage had 120 seconds whatever the budget: a model comparison on a real table
+    takes longer, and one overrun refused every later task (H1, 2026-11-16)."""
+    left = sum(1 for n in graph.nodes if n.kind != "group" and n.id not in (state.get("tasks") or {}))
+    return min(remaining.max_seconds, max(120, remaining.max_seconds // max(1, left)))
+
+
 def _baseline(graph, node, state, mapping, remaining, revision, status="ready", reason=None):
     op = next((op for op in mapping["operations"] if op["task_id"] == node.id), None)
     refs = list(dict.fromkeys([*node.needs, *(op["argument_refs"].values() if op else ()), "planner_policy"]))
@@ -141,7 +149,7 @@ def _baseline(graph, node, state, mapping, remaining, revision, status="ready", 
                                  "value_type": state["artifacts"][a]["value_type"]} for a in refs if a in state["artifacts"]],
             "acceptance_checks": [c.model_dump(mode="json") for c in node.acceptance_checks],
             "budget": {"max_tool_calls": 1 if status == "ready" else 0,
-                       "max_seconds": min(remaining.max_seconds, 120) if status == "ready" else 0,
+                       "max_seconds": _share(graph, state, remaining) if status == "ready" else 0,
                        "max_cost_eur": remaining.max_cost_eur if status == "ready" else 0.0},
             "policy": {"on_failure": "escalate", "on_unknown": "block", "max_retries": 0, "compensation": "escalate"},
             "provenance": {"method": "deterministic", "reference_id": "task_execution_planner", "producer_version": VERSION},

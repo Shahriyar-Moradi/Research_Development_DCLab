@@ -296,7 +296,11 @@ def walk_project(home: Path, projects: Any, project_id: str, resume: Any = None)
                 from ..tasks.dispatch import TaskDispatcher
 
                 probe = TaskDispatcher(projects, saver, enabled=True, admit_proposals=False)
-                if probe.state(project_id) is None:  # no task work was ever begun on this project
+                begun = probe.state(project_id)
+                # no task work was ever begun on this project; or its only task state is one the plan's enforcement marked
+                # for redrawing before any stage ran (H2: the person agreed to a split by time or by group, which the task
+                # path cannot run: the stages run it directly, with the stricter solution)
+                if begun is None or (begun.get("rebase") and not begun.get("attempts")):
                     reason, walked = probe.preflight(project_id), project_id in _stage_path(Path(home))
                     # the review of stage 2: after the fallback's first stages ran, the next walk (the person's approval of
                     # the holdout) was refused as "existing work needs explicit adoption". A project that walked its stages

@@ -172,6 +172,76 @@ class TaskDispatchTests(unittest.TestCase):
         for key in ("stages", "solution", "data", "holdout_uses", "approvals"):
             self.assertEqual(before[key], after[key])
         self.assertTrue(any(entry["status"] != "allowed" for entry in self.store.transitions(self.pid)))
+        # H1 (2026-11-16): the refusal changed nothing, so the task is asked again once the refusal is cleared. Before:
+        # "unknown effect requires owner reconciliation", for good.
+        attempt = d.state(self.pid)["attempts"][0]
+        self.assertEqual((attempt["status"], attempt["invalidated_by"]), ("no_effect", "nothing_kept"))
+        self.assertEqual(self.dispatcher().dispatch(self.pid, "data")["status"], "completed")
+
+    def failing(self, d, stage="data", error="ValueError: a column is all empty"):
+        """The dispatcher's call replaced by a stage that fails as the engine's does: marked failed, no record kept."""
+        def fail(pid, attempt, action, arguments):
+            project = self.store.get(pid)
+            project["stages"][stage] = {"status": "failed", "error": error, "run": "run_failed_" + attempt["id"]}
+            self.store.save(project)
+            attempt["failure_category"] = "domain_failure"
+            attempt["boundary"] = {"seen": True, "phase": "handler", "handler_entered": True}
+            return {"error": "tool_exception"}
+        return patch.object(d, "_invoke", side_effect=fail)
+
+    def test_a_stage_that_failed_and_kept_nothing_may_run_again(self):
+        d = self.dispatcher()
+        with self.failing(d):
+            out = d.dispatch(self.pid, "data")
+        self.assertEqual((out["status"], out["reason"]), ("blocked", "stage_failed"), out)
+        self.assertIn("all empty", out["says"])  # the person is told why, in the stage's own words
+        attempt = d.state(self.pid)["attempts"][0]
+        self.assertEqual((attempt["status"], attempt["invalidated_by"], attempt["owner_state"]["record"]), ("no_effect", "nothing_kept", None))
+        self.assertEqual(self.dispatcher().dispatch(self.pid, "data")["status"], "completed")  # before: blocked for good
+        self.assertEqual(self.dispatcher().dispatch(self.pid, "leakage")["status"], "completed")  # and later tasks go on
+
+    def test_the_same_stage_failing_twice_on_the_same_inputs_is_not_run_a_third_time(self):
+        for _ in range(2):
+            d = self.dispatcher()
+            with self.failing(d):
+                self.assertEqual(d.dispatch(self.pid, "data")["reason"], "stage_failed")
+        self.assertEqual(self.dispatcher().dispatch(self.pid, "data")["reason"], "stage_failed_twice_on_the_same_inputs")
+
+    def test_a_failure_that_kept_something_is_never_excused(self):
+        d = self.dispatcher()
+
+        def half(pid, attempt, action, arguments):
+            self.store.write_stage(pid, "data", {"stage": "data", "status": "partial"})  # a record was left behind
+            attempt["boundary"] = {"seen": True, "phase": "handler", "handler_entered": True}
+            return {"error": "tool_exception"}
+
+        with patch.object(d, "_invoke", side_effect=half):
+            out = d.dispatch(self.pid, "data")
+        self.assertEqual(out["status"], "blocked")
+        self.assertEqual(d.state(self.pid)["attempts"][0]["status"], "unknown")
+        self.assertEqual(self.dispatcher().dispatch(self.pid, "data")["reason"], "unknown_effect_requires_owner_reconciliation")
+
+    def test_an_error_that_does_not_say_how_the_call_ended_is_never_excused(self):
+        d = self.dispatcher()
+        with patch.object(d, "_invoke", return_value={"error": "unknown_transport_state"}):  # nothing visible yet: the stage may still finish
+            self.assertEqual(d.dispatch(self.pid, "data")["status"], "blocked")
+        self.assertEqual(d.state(self.pid)["attempts"][0]["status"], "unknown")
+        self.assertEqual(self.dispatcher().dispatch(self.pid, "data")["reason"], "unknown_effect_requires_owner_reconciliation")
+
+    def test_one_slow_stage_is_not_an_overrun_while_the_whole_budget_holds(self):
+        from types import SimpleNamespace as N
+
+        from dclab_rnd.tasks import planner
+        graph_ = N(nodes=[N(kind="group", id="root"), *(N(kind="action", id=i) for i in ("data", "leakage", "features", "models", "final", "report"))])
+        self.assertEqual(planner._share(graph_, {"tasks": {}}, N(max_seconds=3600)), 600)  # an even share, not 120 seconds whatever the budget
+        self.assertEqual(planner._share(graph_, {"tasks": {"data": {}, "leakage": {}}}, N(max_seconds=90)), 90)  # never more than is left
+        self.assertEqual(planner._share(graph_, {"tasks": {}}, N(max_seconds=300)), 120)
+        d = self.dispatcher()
+        self.assertEqual(d.dispatch(self.pid, "data")["status"], "completed")
+        state = d.state(self.pid)
+        self.assertFalse(state.get("budget_overrun"))
+        self.assertGreaterEqual(state["attempts"][0]["plan"]["budget"]["max_seconds"], 120)
+        self.assertIn("first, so nothing chosen later", state["attempts"][0]["why"])  # an execution's record says why it ran now
 
     def test_two_workers_cannot_repeat_the_same_effect(self):
         results = []

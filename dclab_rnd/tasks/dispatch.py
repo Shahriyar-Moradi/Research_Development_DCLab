@@ -8,6 +8,7 @@ import copy
 import hashlib
 import math
 from pathlib import Path
+import re
 import secrets
 import time
 
@@ -463,10 +464,12 @@ class TaskDispatcher:
 
     def prepare_catalog_plan(self, project_id, *, tables_override=None, known_facts_override=None, gateway=None, cap_eur=0.25):
         """P2–P6: run router -> ProblemDecomposition -> grounded catalog calls ONCE and persist in checkpoint state."""
-        from dclab_core.task_catalog import ProblemDecomposition, SubproblemSpec
+        from dclab_core.task_catalog import solution_path
         from dclab_rnd.tasks.catalog import (
             deterministic_catalog_plan,
+            kind_of,
             needs_model_planning,
+            rules_decomposition,
             plan_with_model,
             project_catalog_inputs,
         )
@@ -476,7 +479,10 @@ class TaskDispatcher:
         with self.projects.turn(project_id, require_process=True):
             project = self.projects.get(project_id)
             caps = capability_snapshot(self.registry, allowed_tools=self.allowed)
-            state = self.state(project_id)
+            try:
+                state = self._rebased(project_id, self.state(project_id), project, caps)
+            except Blocked as error:
+                return {"status": "blocked", "reason": str(error)}
             if state is None:
                 if any(meta.get("status") != "pending" for meta in project["stages"].values()):
                     return {"status": "blocked", "reason": "existing_work_needs_explicit_adoption"}
@@ -513,22 +519,13 @@ class TaskDispatcher:
                 )
             else:
                 det = deterministic_catalog_plan(brief, tables, facts)
-                target = str(facts.get("target") or "target")
-                kind = "regression" if "price" in target or "revenue" in target or "duration" in target else "classification"
                 plan = {
                     **det,
                     "routed_to": "deterministic" if not needs_model_planning(brief, router_tables, facts) else "deterministic_catalog",
-                    "subproblems": [kind],
+                    "subproblems": [kind_of(facts)],
                     "caught_traps": [],
-                    "decomposition": ProblemDecomposition(
-                        decision=brief[:200] or project_id,
-                        target=target,
-                        unit=str(facts.get("unit") or "row"),
-                        horizon_days=int(facts.get("horizon_days") or 0),
-                        success_metric="rmse" if kind == "regression" else "roc_auc",
-                        subproblems=(SubproblemSpec(id="main", kind=kind, objective=brief[:200] or project_id, target=target),),
-                        source="deterministic",
-                    ).model_dump(mode="json"),
+                    "decomposition": rules_decomposition(brief or project_id, facts).model_dump(mode="json"),
+                    "path": solution_path(rules_decomposition(brief or project_id, facts), det["calls"]),
                     "citations": [],
                     "revisions": 1,
                     "extra_prompts": 0,
@@ -548,6 +545,238 @@ class TaskDispatcher:
                 "blocking_asks": self._blocking_asks(stored, project),
             }
 
+    @staticmethod
+    def _time_candidates(frames, columns):
+        """The table's columns that hold a time, read by code from the rows the plan step already loaded (never a model)."""
+        import pandas as pd
+
+        found = []
+        for frame in (frames or {}).values():
+            for column in getattr(frame, "columns", []):
+                if str(column) not in columns or str(column) in found:
+                    continue
+                values = frame[column].dropna()
+                if values.empty:
+                    continue
+                if pd.api.types.is_datetime64_any_dtype(values):
+                    found.append(str(column))
+                elif values.dtype == object:
+                    parsed = pd.to_datetime(values.astype(str).head(200), errors="coerce", format="mixed")
+                    if parsed.notna().mean() >= 0.9 and not pd.to_numeric(values.head(200), errors="coerce").notna().all():
+                        found.append(str(column))
+        return found
+
+    def enforce_plan(self, project_id, reply=None):
+        """Stage H2 (2026-11-16): the plan drives the engine. What the plan caught and code can enforce (a column known
+        only after the outcome, rows of one entity on both sides of the split, a split that should be by time) becomes a
+        change to the project's solution, through the move a person uses (``set_solution``), before any stage has run.
+
+        Every change makes the evaluation stricter, so code applies it on the plan's word and records it; what code
+        cannot tell is returned as questions for the person, and ``reply`` (their answer) settles them: a yes keeps a
+        column out, a column named in the answer becomes the time or the group column, anything else leaves the
+        solution as it was, recorded as the person's choice. After work has begun nothing is changed: the catches that
+        are not enforced are reported. Before: the plan was saved and shown, and the engine never read it (PE-001)."""
+        from dclab_rnd.agents.case_agent import says_yes
+        from dclab_rnd.intern.tools import Toolbox
+        from dclab_rnd.studio.store import now
+        from dclab_rnd.tasks import enforced
+        from dclab_rnd.tasks.catalog import project_catalog_inputs
+
+        if not self.enabled:
+            return {"status": "disabled", "reason": "task_execution_disabled"}
+        with self.projects.turn(project_id, require_process=True):
+            state = self.state(project_id)
+            if state is None or not isinstance(state.get("catalog_plan"), dict):
+                return {"status": "no_plan"}
+            plan = state["catalog_plan"]
+            project = self.projects.get(project_id)
+            solution = dict(project.get("solution") or {})
+            _, tables, _, _, frames = project_catalog_inputs(self.projects, project)
+            columns = [str(c.get("name") if isinstance(c, dict) else c) for c in (project.get("data") or {}).get("columns") or []]
+            columns = columns or [c for cols in tables.values() for c in cols]
+            wanted = enforced.changes(plan.get("caught_traps") or [], plan.get("calls") or [], solution, columns, self._time_candidates(frames, columns))
+            record = plan.setdefault("enforcement", {"applied": [], "waived": [], "asked": [], "too_late": []})
+            settled = {(w["kind"], w["value"]) for w in record["waived"]}
+            wanted = [c for c in wanted if (c["kind"], c["value"]) not in settled]
+            started = bool(state["attempts"]) or any(meta.get("status") != "pending" for meta in project["stages"].values())
+            asked_before = {(a["kind"], a["value"]) for a in record.get("asked") or [] if a.get("needs_person")}
+            apply = [c for c in wanted if c["action"] == "apply" and (c["kind"], c["value"]) not in asked_before]
+            # a question already put to the person keeps its words: the walk runs this again when it resumes, and a
+            # question whose words changed would be a new pause, never the one the person answered
+            said = {(a["kind"], a["value"]): a.get("question") for a in record.get("asked") or [] if a.get("question")}
+            asks = [c for c in wanted if c["action"] == "ask"] + [{**c, "action": "ask", "needs_person": True, "why": said.get((c["kind"], c["value"]), c["why"])}
+                                                               for c in wanted if c["action"] == "apply" and (c["kind"], c["value"]) in asked_before]
+            words = "" if reply is None or isinstance(reply, bool) else str(reply)
+            # the team's walk hands a button's yes or no on as the words "True" and "False" (found by the walk's own test:
+            # a yes was never read as one, and every answer was stored as the person's no)
+            plain = words.strip().lower()
+            agreed = reply is True or plain in ("true", "yes", "y") or bool(words and plain not in ("false", "no", "n") and says_yes(words))
+            # only a plain no leaves the solution as it is: a question back, or words about something else, settles nothing
+            refuses = reply is False or plain in ("false", "no", "n") or bool(
+                words and not agreed and re.match(r"\s*(?:no|nope|don'?t|do not|leave it|keep it)\b", words, re.I))
+            if started:
+                # Work has begun: nothing is changed behind the person's back. Each catch the solution does not enforce is
+                # put to them once: keep the solution as it is (their decision, recorded: the final stage may then run),
+                # or change it themselves, which runs the stages again.
+                left = [*apply, *asks]
+                if not left:
+                    return {"status": "nothing", "applied": [], "asks": []}
+                if reply is None:
+                    record["asked"] = [{"trap": c["trap"], "kind": c["kind"], "field": c["field"], "value": c["value"],
+                                        "question": f"After work began, the plan caught something the solution does not enforce: {c['why']}. "
+                                                    "Changing it now runs the stages again. Change it?"} for c in left]
+                    self._save(project_id, state, "plan_enforcement_asked_late")
+                    return {"status": "asked", "applied": [], "asks": record["asked"]}
+                if agreed:
+                    record["too_late"] = [{"trap": c["trap"], "kind": c["kind"], "value": c["value"]} for c in left]
+                    self._save(project_id, state, "plan_enforcement_too_late")
+                    return {"status": "stop", "applied": [], "asks": [],
+                            "says": "The plan caught something after work began: " + "; ".join(c["why"] for c in left)[:400]
+                                    + ". Change the solution (its forbidden columns, its group or its time column) and run the stages again."}
+                if not refuses:  # neither a yes nor a no: the question stays open, and the final stage keeps waiting
+                    return {"status": "asked", "applied": [], "asks": record.get("asked") or []}
+                record["waived"].extend({"kind": c["kind"], "value": c["value"], "trap": c["trap"], "answer": words[:300] or "no", "at": now()} for c in left)
+                record["asked"] = []
+                self._save(project_id, state, "plan_enforcement_waived")
+                return {"status": "waived", "applied": [], "asks": []}
+            if reply is not None and asks:  # the person's answer settles the questions, one way or the other
+                # a column is named when its whole name stands in the answer: `id` is not named by "paid_at"
+                named = [c for c in columns if c and re.search(r"(?<![A-Za-z0-9_])" + re.escape(c) + r"(?![A-Za-z0-9_])", words)]
+                still = []
+                for ask in asks:
+                    if ask["value"] and agreed and (ask["field"] == "forbidden" or ask.get("needs_person")):
+                        apply.append({**ask, "action": "apply", "by_person": True, "why": f"the person agreed: {ask['field']} `{ask['value']}`"})
+                    elif ask["field"] in ("time_column", "group_column") and len(named) == 1:
+                        apply.append({**ask, "action": "apply", "by_person": True, "value": named[0], "why": f"the person named `{named[0]}`"})
+                    elif refuses:
+                        record["waived"].append({"kind": ask["kind"], "value": ask["value"], "trap": ask["trap"], "answer": words[:300] or str(reply), "at": now()})
+                    else:
+                        still.append(ask)  # not answered: asked again, never taken as the person's choice
+                asks = still
+            applied = []
+            # One change at a time, the person's first: a change the solution's own rules refuse never sinks the others.
+            # A refused change is never recorded as the person's choice: it stays unenforced (the final stage waits) and
+            # is put to the person again with the reason (the review, 2026-11-16: one refused change marked a real leak
+            # as waived, and the final stage was free to read the holdout with the leak still a feature).
+            for c in sorted(apply, key=lambda c: not c.get("by_person")):
+                actor = "human" if c.get("by_person") else "agent"
+                refused = self._change_solution(project_id, [c], actor)
+                if refused is None:
+                    applied.append({"trap": c["trap"], "kind": c["kind"], "field": c["field"], "value": c["value"], "why": c["why"], "by": actor, "at": now()})
+                elif actor == "agent":
+                    # the validated move refused the agent (a signed solution): the person is asked, never worked around
+                    asks.append({**c, "action": "ask", "needs_person": True,
+                                 "why": f"The plan asks for a stricter check ({c['why']}), and DCLab may not change this solution by itself: {refused[:160]} Change it?"})
+                else:
+                    record.setdefault("refused", []).append({"kind": c["kind"], "value": c["value"], "trap": c["trap"], "why": refused[:200], "at": now()})
+                    asks.append({**c, "action": "ask", "needs_person": True,
+                                 "why": f"The solution's own rules refuse this change ({c['field']}: {c['value']}): {refused[:160]} "
+                                        "Change the solution yourself, or answer no to keep it as it is."})
+            needs_signoff = False
+            if applied:
+                record["applied"].extend(applied)
+                # nothing has run: the task state is drawn again from the changed solution, and keeps its plan. A solution
+                # a person changed must be signed by them again before it can be a task's source: until then the state
+                # is marked, and drawn again at the next look (``_rebased``). No approval is ever written here.
+                caps = capability_snapshot(self.registry, allowed_tools=self.allowed)
+                try:
+                    fresh = self._initial(self.projects.get(project_id), caps)
+                    fresh["catalog_plan"] = plan
+                    state = fresh
+                except Blocked:
+                    state["rebase"] = True
+                    needs_signoff = True
+            record["asked"] = [{"trap": a["trap"], "kind": a["kind"], "field": a["field"], "value": a["value"], "question": a["why"],
+                                **({"needs_person": True} if a.get("needs_person") else {})} for a in asks]
+            state["catalog_plan"] = plan
+            self._save(project_id, state, "plan_enforced" if applied else "plan_enforcement_checked")
+            if applied:
+                from dclab_rnd import experience
+
+                experience.record("agent.step", "system", {"agent": "task.plan_enforced", "n": len(record["applied"]), "state": state["graph"]["fingerprint"],
+                                                           "reply": None, "tool": "set_solution", "verdict": ", ".join(f"{a['field']}={a['value']}" for a in applied)[:300],
+                                                           "seconds": 0}, project=project_id)
+            return {"status": "enforced" if applied else "asked" if asks else "nothing", "applied": applied, "asks": record["asked"],
+                    **({"needs_signoff": True} if needs_signoff else {})}
+
+    def _rebased(self, project_id, state, project, caps):
+        """A state marked by ``enforce_plan`` (the solution was changed before any stage ran) drawn again from the project
+        as it is now, keeping its plan. Until the person has signed the changed solution it cannot be drawn: said so."""
+        if not state or not state.get("rebase"):
+            return state
+        if state["attempts"] or any(meta.get("status") != "pending" for meta in project["stages"].values()):
+            raise Blocked("source_or_capability_changed")
+        try:
+            fresh = self._initial(project, caps)
+        except Blocked as error:
+            from dclab_rnd.studio.graph import solution_signed
+
+            # Not signed: the person signs the changed solution. Signed and still refused: the changed solution is one
+            # the task path cannot run (a split by time or by group: the adapter maps only the plain split); the reason
+            # is said as it is, and the team hands the project to the stage path (``orchestra.service``). Before, both
+            # were "sign it again", for ever (the review, 2026-11-16).
+            raise Blocked("solution_changed_sign_it_again" if not solution_signed(project) else str(error)) from None
+        fresh["catalog_plan"] = state.get("catalog_plan")
+        self._save(project_id, fresh, "rebased_after_plan_enforcement")
+        return fresh
+
+    def _change_solution(self, project_id, changes, actor):
+        """The solution with these stricter changes, saved through the validated move (the graph's check, its log, the
+        project's memory, the audit trail). None when saved; else why the move was refused."""
+        from dclab_rnd import audit as trail
+        from dclab_rnd.studio import graph as studio_graph
+        from dclab_rnd.studio import memory as studio_memory
+        from dclab_rnd.studio import solution as studio_solution
+
+        project = self.projects.get(project_id)
+        fields = dict(project.get("solution") or {})
+        forbidden = list(fields.get("forbidden") or [])
+        for change in changes:
+            if change["field"] == "forbidden":
+                forbidden.append({"column": change["value"], "reason": str(change["why"])[:300]})
+            else:
+                fields[change["field"]] = change["value"]
+        fields["forbidden"] = forbidden
+        try:
+            solution = studio_solution.Solution(**{k: v for k, v in fields.items() if v not in (None, "", [])})
+            label_target = (project.get("labels") or {}).get("target")
+            solution.check_columns(list(project["data"]["columns"]) + ([label_target] if label_target else []))
+        except Exception as error:  # noqa: BLE001 - a change the solution's own rules refuse is said, never forced
+            return str(error)[:200]
+        verdict = studio_graph.check(project, "set_solution", actor, target=solution.target)
+        studio_graph.log(self.projects, project_id, verdict, project)
+        if not verdict.allowed:
+            return str(verdict.message)
+        before = project.get("solution")
+        project["solution"] = solution.model_dump()
+        studio_memory.solution_saved(project, before, project["solution"], actor)
+        self.projects.save(project)
+        trail.solution(self.projects, project, project["solution"], actor)
+        try:  # the per-column decision beside the proposal, as every other saved solution records it
+            from dclab_rnd.ledger import capture
+
+            capture.solution_saved(project.get("proposal"), (project.get("data") or {}).get("profile"), project["solution"],
+                                   "human" if actor == "human" else "rule", project=project_id)
+        except Exception:  # noqa: BLE001 - capture is best effort: it never undoes a saved, validated change
+            pass
+        return None
+
+    def plan_unenforced(self, project_id):
+        """What the plan caught that the solution still does not enforce and the person did not waive (for the final gate)."""
+        from dclab_rnd.tasks import enforced
+        from dclab_rnd.tasks.catalog import project_catalog_inputs
+
+        state = self.state(project_id)
+        plan = (state or {}).get("catalog_plan")
+        if not isinstance(plan, dict):
+            return []
+        project = self.projects.get(project_id)
+        _, tables, _, _, frames = project_catalog_inputs(self.projects, project)
+        columns = [str(c.get("name") if isinstance(c, dict) else c) for c in (project.get("data") or {}).get("columns") or []] or [c for cols in tables.values() for c in cols]
+        waived = {(w["kind"], w["value"]) for w in (plan.get("enforcement") or {}).get("waived") or []}
+        wanted = enforced.changes(plan.get("caught_traps") or [], plan.get("calls") or [], project.get("solution") or {}, columns, self._time_candidates(frames, columns))
+        return [c for c in wanted if c["action"] != "none" and (c["kind"], c["value"]) not in waived]
+
     def confirm_catalog_owner(self, project_id, response=None):
         """Record the owner's clarification reply for pending catalog ask_owner questions."""
         if not self.enabled:
@@ -562,7 +791,7 @@ class TaskDispatcher:
             self._save(project_id, state, "catalog_owner_confirmed")
             return {"status": "confirmed"}
 
-    def adapt_on_stage_evidence(self, project_id, stage, *, tables_override=None, known_facts_override=None, gateway=None, cap_eur=0.10):
+    def adapt_on_stage_evidence(self, project_id, stage, *, tables_override=None, known_facts_override=None, gateway=None, cap_eur=0.25):
         """P4 bounded re-plan when data/leakage stage evidence uncovers new unresolved traps or followups."""
         from dclab_core.task_catalog import CatalogTaskCall
         from dclab_rnd.tasks.catalog import execute_catalog_task, project_catalog_inputs, replan_from_evidence
@@ -1016,6 +1245,35 @@ class TaskDispatcher:
                                        "inputs": {a: observed["artifacts"][a]["fingerprint"] for a in node.needs}}
         self._save(project["id"], state, "owner_approval_observed", "holdout")
 
+    def _owner_mark(self, pid, task):
+        """What the owner holds for a task: read before a call, so a failed call can be shown to have kept nothing."""
+        project = self.projects.get(pid)
+        record = self.projects.read_stage(pid, task) if task != "report" else None
+        meta = project["stages"].get(task) or {}
+        return {"record": metadata_fingerprint(record) if record else None, "holdout_uses": project.get("holdout_uses") or 0,
+                "receipt": (self.projects.data_dir(pid) / "holdout_receipt.json").exists(),
+                "stage": meta.get("status"), "run": meta.get("run")}
+
+    def _kept_nothing(self, pid, task, before, boundary=None):
+        """H1 (2026-11-16): proof that a refused or failed call is over and left nothing behind. Two things must hold.
+        The call ended: the guard refused it before its handler was entered, or the engine itself recorded this run as
+        failed (a new failure, with its own run). And the owner's records are the ones from before: the stage's record,
+        the holdout neither read nor promised. An error that says nothing of how the call ended (a transport that
+        dropped: the stage may still finish) is never excused: it stays unknown, to be reconciled. Before, an ordinary
+        stage error or a refusal that changed nothing blocked the project for good. A report is never excused this way."""
+        if task == "report":
+            return None
+        after = self._owner_mark(pid, task)
+        refused = dict(boundary or {}) == {"seen": True, "phase": "guard", "handler_entered": False} and after["stage"] == before["stage"]
+        failed = after["stage"] == "failed" and (before["stage"] != "failed" or after["run"] != before["run"])
+        same = (after["record"] == before["record"] and after["holdout_uses"] == before["holdout_uses"] and after["receipt"] == before["receipt"])
+        return after if same and (refused or failed) else None
+
+    def _over(self, state):
+        """The whole budget's seconds are used up. One slow stage is not an overrun: before, a stage over its own
+        120-second share refused every later task."""
+        return state["seconds"] > min(state["budget"]["max_seconds"], self.budget.max_seconds)
+
     def _finish(self, pid, state, attempt, reconciled=False):
         from dclab_rnd import ledger
         from dclab_rnd.studio.store import now
@@ -1026,7 +1284,9 @@ class TaskDispatcher:
             duration = evidence.get("seconds", reserved)
             charged = max(reserved, duration)
             state["seconds"] += charged - attempt["budget"].get("charged_seconds", reserved)
-            state["budget_overrun"] = state.get("budget_overrun", False) or duration > reserved
+            state["budget_overrun"] = state.get("budget_overrun", False) or self._over(state)
+            if duration > reserved:
+                attempt["budget"]["over_reservation"] = True
             attempt["budget"].update(seconds=duration, recovered_charge_seconds=charged, charged_seconds=charged)
         book = ledger.current_ledger()
         ids, capture = [], "not_available"
@@ -1084,7 +1344,7 @@ class TaskDispatcher:
                 from dclab_rnd.studio import data
                 data.data_path(self.projects, project)
                 caps = capability_snapshot(self.registry, allowed_tools=self.allowed)
-                state = self.state(project_id)
+                state = self._rebased(project_id, self.state(project_id), project, caps)
                 if state is None:
                     self._initial(project, caps)
                 else:
@@ -1109,7 +1369,7 @@ class TaskDispatcher:
             try:
                 project = self.projects.get(project_id)
                 caps = capability_snapshot(self.registry, allowed_tools=self.allowed)
-                state = self.state(project_id)
+                state = self._rebased(project_id, self.state(project_id), project, caps)
                 if state is None:
                     state = self._initial(project, caps)
                     self._save(project_id, state, "initialized")
@@ -1139,8 +1399,16 @@ class TaskDispatcher:
                     plan = TaskExecutionPlan.read(state["retry_authorization"]["plan"])
                 if any(a["status"] not in (*TERMINAL, "no_effect") and not a.get("invalidated_by") for a in state["attempts"]):
                     raise Blocked("unresolved_previous_attempt")
+                if sum(a["task"] == task_id and a.get("reason") == "stage_failed" and a.get("source_identity") == state.get("source_identity")
+                       for a in state["attempts"]) >= 2:
+                    # the same stage failed twice on the same solution and data: a third identical run cannot help
+                    raise Blocked("stage_failed_twice_on_the_same_inputs")
                 if task_id in ("final", "report"):
                     self._gate(project, state, graph, mapping)
+                if task_id == "final" and self.plan_unenforced(project_id):
+                    # H2: the holdout is not read while the plan caught something the solution does not enforce and the
+                    # person has not decided (PE-001: a caught leak was the top feature of a final model)
+                    raise Blocked("plan_not_enforced")
                 observed = self._observed(project, state, graph, mapping)
                 if task_id in ('features', 'models', 'final'):
                     from dclab_rnd.tasks.verifier import science_readiness
@@ -1172,6 +1440,9 @@ class TaskDispatcher:
                            "inputs": {i.id: i.fingerprint for i in plan.expected_inputs}, "decision_ids": [],
                            "prior_permissions": [_permission(e) for e in project.get("approvals", []) if e.get("gate") == "holdout"],
                            "acceptance_verification": "not_measured", "budget": {"tool_calls": 1, "seconds": None, "cost_eur": 0.0}}
+                from dclab_core.task_catalog import BUILD_STEPS
+                # the reason this task runs now, kept with the attempt: the record of an execution says why, not only what
+                attempt["why"] = next((why for name, _, why in BUILD_STEPS if name == task_id), None)
                 if plan_report is not None:
                     attempt["planning"] = {"status": plan_report.get("status"),
                                            "model_calls": plan_report.get("model_calls", 0),
@@ -1180,17 +1451,23 @@ class TaskDispatcher:
                 state["tool_calls"] += 1  # charged durably before effect; an ambiguous attempt cannot reclaim its allowance
                 state["seconds"] += plan.budget.max_seconds
                 attempt["budget"]["reserved_seconds"] = plan.budget.max_seconds
+                mark = self._owner_mark(project_id, task_id)
                 self._save(project_id, state, "started", task_id)
                 began = time.monotonic()
                 reply = self._invoke(project_id, attempt, plan.actions[0], args)
                 elapsed = time.monotonic() - began
                 attempt["budget"].update(seconds=elapsed, charged_seconds=elapsed)
                 state["seconds"] += elapsed - plan.budget.max_seconds
-                state["budget_overrun"] = elapsed > plan.budget.max_seconds
+                state["budget_overrun"] = state.get("budget_overrun", False) or self._over(state)
+                if elapsed > plan.budget.max_seconds:
+                    attempt["budget"]["over_reservation"] = True
                 if isinstance(reply, dict) and (reply.get("blocked") or reply.get("status") in ("blocked", "needs_approval")
                         or (reply.get('error') and attempt.get('boundary', {}).get('phase') == 'guard'
                             and attempt.get('boundary', {}).get('handler_entered') is False)):
                     attempt.update(status="blocked", reason="guard_refused", failure_category='missing_approval' if reply.get('status') == 'needs_approval' else 'policy_refusal')
+                    kept = self._kept_nothing(project_id, task_id, mark, attempt.get("boundary"))
+                    if kept is not None:  # refused and nothing changed: the task may be asked again once the refusal is cleared
+                        attempt.update(status="no_effect", invalidated_by="nothing_kept", owner_state=kept)
                     self._save(project_id, state, "guard_refused", task_id)
                     return {"status": "blocked", "reason": "guard_refused", "attempt_id": attempt["id"]}
                 boundary = attempt.get("boundary", {})
@@ -1200,6 +1477,15 @@ class TaskDispatcher:
                                    failure_category=attempt.get("failure_category", "invalid_arguments"))
                     self._save(project_id, state, "no_effect", task_id)
                     return {"status": "blocked", "reason": "registry_validation_failed", "attempt_id": attempt["id"]}
+                if isinstance(reply, dict) and reply.get("error"):
+                    kept = self._kept_nothing(project_id, task_id, mark)
+                    if kept is not None:  # the stage failed and kept nothing: its failure is the record; it may run again
+                        attempt.update(status="no_effect", reason="stage_failed", invalidated_by="nothing_kept", owner_state=kept,
+                                       source_identity=state.get("source_identity"),
+                                       failure_category=attempt.get("failure_category", "domain_failure"))
+                        self._save(project_id, state, "stage_failed", task_id)
+                        return {"status": "blocked", "reason": "stage_failed", "attempt_id": attempt["id"],
+                                "says": str((self.projects.get(project_id)["stages"].get(task_id) or {}).get("error") or "")[:300] or None}
                 result = self._finish(project_id, state, attempt)
                 jobs.progress(task=task_id, attempt=attempt["id"], status=result["status"])
                 jobs.checkpoint()

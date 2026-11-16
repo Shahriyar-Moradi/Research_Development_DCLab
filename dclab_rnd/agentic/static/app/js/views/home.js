@@ -707,7 +707,7 @@ DC.view('home', {
           const qs = cp.clarifying_questions || [];
           const qForm = (!cp.owner_confirmed && qs.length)
             ? `<div class="small"><b>Clarify:</b> ${esc(qs[0].question || qs[0].field || 'Confirm detail')}</div><label class="field-label" for="hp-clarify-in">Clarify plan detail</label><div class="home-planner-clarify"><input id="hp-clarify-in" type="text" placeholder="Type answer to confirm…"><button type="button" class="btn primary sm" id="hp-clarify-go">Confirm</button></div>`
-            : cp.owner_confirmed ? `<div class="xs muted">Confirmed by owner${cp.owner_note ? ': ' + esc(cp.owner_note) : '.'}</div>` : '';
+            : (cp.owner_confirmed && cp.stored !== false) ? `<div class="xs muted">Confirmed by owner${cp.owner_note ? ': ' + esc(cp.owner_note) : '.'}</div>` : '';
           return `<div class="home-planner-card"><div class="spread"><b>Problem Breakdown &amp; Checks</b><span class="pill outline">${esc(cp.routed_to || cp.mode || 'planned')}</span></div>`
             + `<div class="home-planner-grid">${cp.decision ? `<span><b>Decision:</b> ${esc(cp.decision)}</span>` : ''}${cp.target ? `<span><b>Target:</b> ${esc(cp.target)}</span>` : ''}${cp.unit ? `<span><b>Unit:</b> ${esc(cp.unit)}</span>` : ''}<span><b>Horizon:</b> ${cp.horizon_days != null ? esc(String(cp.horizon_days) + 'd') : 'Unspecified'}</span></div>`
             + ((cp.selected_tasks || []).length ? `<div class="row">${cp.selected_tasks.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>` : '')

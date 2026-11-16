@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import re
 import time
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Optional
 
@@ -16,12 +16,30 @@ from dclab_core.task_catalog import (
     OpenUnknown,
     ProblemDecomposition,
     SubproblemSpec,
+    solution_path,
     validate_catalog_plan,
     validate_decomposition,
 )
 from dclab_rnd.tools import POST_OUTCOME_NAME, search_evidence
 
-VERSION = "tp08.catalog.v1"
+VERSION = "tp08.catalog.v2"
+PLAN_TOKENS = 16000  # thinking and the answer share this room: at 8,000 a first live plan spent all 10,048 tokens thinking and
+# answered nothing (2026-11-16, Qwen 3.8 flash); thinking is the gateway's, never capped here (H3)
+
+SMALL_TOKENS = 3800  # the room before H3: used only when a run's cap cannot reserve the full room
+
+
+def _ask(client: Any, messages: list[dict[str, Any]]) -> dict[str, Any]:
+    """One planning request with room: before, each asked for at most 1,000 tokens of thinking and one attempt, so a
+    hard problem got the same thought as an easy one and an answer eaten by thinking was not asked again."""
+    try:
+        return client.complete(messages, None, max_tokens=PLAN_TOKENS)
+    except Exception as error:  # noqa: BLE001 - only the cap's refusal is handled here
+        if "BudgetExceeded" not in f"{type(error).__name__}: {error}":
+            raise
+        # the run's cap cannot cover the full room (the gateway reserves a request's worst cost before sending it): the
+        # plan is asked with the room the cap can cover, never silently handed to the rules
+        return client.complete(messages, None, max_tokens=SMALL_TOKENS)
 
 _SNAPSHOT_OR_OUTCOME_WORDS = re.compile(
     r"(last_order_date|lifetime_orders|payout_issued|closure_reason|final_balance|investigation_outcome|"
@@ -212,6 +230,36 @@ def execute_catalog_task(
     return {"task_type": tt, "findings": findings, "traps": traps, "followup": followup}
 
 
+def kind_of(facts: Mapping[str, Any]) -> str:
+    """The problem's kind from the project's own solution (its task), never from a word in the target's name: a class
+    column named `price_band` was read as a number to predict (H1, 2026-11-16)."""
+    task = str(facts.get("task") or "").strip().lower()
+    if task:
+        return "regression" if task == "regression" else "classification"
+    # no solution yet (a brief with no project): the name is the only hint there is, and it is only a hint
+    target = str(facts.get("target") or "")
+    return "regression" if any(w in target for w in ("price", "revenue", "duration")) else "classification"
+
+
+def metric_of(facts: Mapping[str, Any]) -> str:
+    return str(facts.get("metric") or ("rmse" if kind_of(facts) == "regression" else "roc_auc"))
+
+
+def rules_decomposition(brief: str, facts: Mapping[str, Any], *, extra: Sequence[SubproblemSpec] = ()) -> ProblemDecomposition:
+    """The rules' breakdown of a problem. What is not known stays unknown and is asked: no outcome named "target", no
+    horizon of 0 days. The goal is kept as the person wrote it, up to the contract's own length."""
+    target = str(facts["target"]) if facts.get("target") not in (None, "") else None
+    text = brief.strip() if len(brief.strip()) >= 3 else "The project's goal"
+    unknowns = () if target else (OpenUnknown(field="target", question="Which column or event is the outcome to predict?",
+                                               blocking=True, resolution_task="define_target"),)
+    horizon = facts.get("horizon_days")
+    return ProblemDecomposition(
+        decision=text, target=target, unit=str(facts["unit"]) if facts.get("unit") else ("row" if target else None),
+        horizon_days=int(horizon) if horizon is not None else None, success_metric=metric_of(facts),
+        subproblems=(SubproblemSpec(id="main", kind=kind_of(facts), objective=text, target=target), *extra),
+        unknowns=unknowns, source="deterministic")
+
+
 def deterministic_catalog_plan(
     brief: str,
     tables: Mapping[str, list[str]],
@@ -241,7 +289,7 @@ def deterministic_catalog_plan(
         calls.append(CatalogTaskCall(task_type="threshold_for_cost", params={"cost_ratio": facts.get("cost_ratio"), "capacity_limit": facts.get("daily_review_cap")}, reason="Cost or capacity constraint"))
     if not facts.get("target"):
         calls.append(CatalogTaskCall(task_type="define_target", params={}, reason="Target missing"))
-    calls.append(CatalogTaskCall(task_type="baseline", params={"metric": "roc_auc"}, reason="Baseline model"))
+    calls.append(CatalogTaskCall(task_type="baseline", params={"metric": metric_of(facts)}, reason="Baseline model"))
     valid_calls, _ = validate_catalog_plan(calls, tables)
     return {
         "selected_tasks": [c.task_type for c in valid_calls],
@@ -299,20 +347,11 @@ def _deterministic_fallback_payload(
         if valid_u and not u_issues:
             calls = [valid_u[0], *calls]
     evidence_rows = [execute_catalog_task(c, tables=tables, known_facts=facts, frames=frames) for c in calls]
-    target = facts.get("target")
-    kind = "regression" if isinstance(target, str) and any(w in target for w in ("price", "revenue", "duration")) else "classification"
-    subs = [SubproblemSpec(id="main", kind=kind, objective=brief[:200], target=str(target) if target is not None else None)]
+    extra = ()
     if facts.get("treatment"):
-        subs.append(SubproblemSpec(id="uplift", kind="uplift", objective=f"Estimate incremental effect of {facts['treatment']}", target=str(target) if target is not None else None))
-    det_decomp = decomp or ProblemDecomposition(
-        decision=brief[:200],
-        target=str(target) if target is not None else None,
-        unit=str(facts.get("unit") or "row"),
-        horizon_days=int(facts["horizon_days"]) if facts.get("horizon_days") is not None else None,
-        success_metric="rmse" if kind == "regression" else "roc_auc",
-        subproblems=tuple(subs),
-        source="deterministic",
-    )
+        extra = (SubproblemSpec(id="uplift", kind="uplift", objective=f"Estimate incremental effect of {facts['treatment']}",
+                                target=str(facts["target"]) if facts.get("target") else None),)
+    det_decomp = decomp or rules_decomposition(brief, facts, extra=extra)
     caught_traps = _collect_traps([], det_decomp, evidence_rows)
     out: dict[str, Any] = {
         **det,
@@ -327,6 +366,7 @@ def _deterministic_fallback_payload(
         "extra_prompts": extra_prompts,
         "cost_usd": round(cost_usd, 6),
         "seconds": round(time.monotonic() - t0, 4),
+        "path": solution_path(det_decomp, calls, evidence_rows),
     }
     if refusals:
         out["refusals"] = refusals
@@ -351,27 +391,19 @@ def plan_with_model(
     facts = dict(known_facts or {})
     if not needs_model_planning(brief, tables, facts):
         det = deterministic_catalog_plan(brief, tables, facts)
-        target = str(facts.get("target") or "target")
-        kind = "regression" if "price" in target or "revenue" in target or "duration" in target else "classification"
+        decomposition = rules_decomposition(brief, facts)
         det_out: dict[str, Any] = {
             **det,
             "routed_to": "deterministic",
-            "subproblems": [kind],
+            "subproblems": [kind_of(facts)],
             "caught_traps": [],
-            "decomposition": ProblemDecomposition(
-                decision=brief[:200],
-                target=target,
-                unit=str(facts.get("unit") or "row"),
-                horizon_days=int(facts.get("horizon_days") or 0),
-                success_metric="rmse" if kind == "regression" else "roc_auc",
-                subproblems=(SubproblemSpec(id="main", kind=kind, objective=brief[:200], target=target),),
-                source="deterministic",
-            ).model_dump(mode="json"),
+            "decomposition": decomposition.model_dump(mode="json"),
             "citations": [],
             "revisions": 1,
             "extra_prompts": 0,
             "cost_usd": 0.0,
             "seconds": round(time.monotonic() - t0, 4),
+            "path": solution_path(decomposition, det["calls"]),
         }
         if facts.get("virtual_schema"):
             det_out["schema_source"] = "virtual_blueprint"
@@ -410,7 +442,7 @@ def plan_with_model(
     before_req = experience.last_model_request()
     reply: dict[str, Any] = {}
     try:
-        reply = client.complete(messages, None, max_tokens=3800, single_attempt=True, timeout_seconds=90.0, require_price=False, max_total_tokens=20000, extra_body={"reasoning": {"max_tokens": 1000}})
+        reply = _ask(client, messages)
         calls_made += 1
         raw_text = str(reply.get("content") or "").strip()
         try:
@@ -418,9 +450,9 @@ def plan_with_model(
         except Exception:
             raw_doc = {}
         if (not raw_text or not raw_doc) and calls_made < max_revisions:
-            suffix = "\nYour previous JSON had a syntax error. Fix JSON syntax and respond immediately with raw valid JSON only (3-6 calls)." if raw_text else "\nRespond immediately with compact JSON only (3-6 calls, short reasons)."
+            suffix = "\nYour previous JSON had a syntax error. Fix the syntax and reply with the JSON object only." if raw_text else "\nReply with the JSON object only."
             retry_msg = [messages[0], {"role": "user", "content": messages[1]["content"] + suffix}]
-            reply = client.complete(retry_msg, None, max_tokens=3800, single_attempt=True, timeout_seconds=90.0, require_price=False, max_total_tokens=20000, extra_body={"reasoning": {"max_tokens": 600}})
+            reply = _ask(client, retry_msg)
             calls_made += 1
             raw_text = str(reply.get("content") or "").strip()
             raw_doc = _extract_json(raw_text or "{}")
@@ -431,7 +463,7 @@ def plan_with_model(
             extra_prompts=calls_made, cost_usd=total_cost, refusals=["invalid_model_reply"],
         )
 
-    decomp, decomp_issues = validate_decomposition(raw_doc.get("decomposition") or {}, tables)
+    decomp, decomp_issues = validate_decomposition(raw_doc.get("decomposition") or {}, tables, keep_valid=True)
     valid_calls, plan_issues = validate_catalog_plan(raw_doc.get("calls") or [], tables)
     revisions = 1
 
@@ -442,22 +474,24 @@ def plan_with_model(
             {"role": "user", "content": json.dumps({"validation_errors": decomp_issues + plan_issues, "instruction": "Fix only the schema/column issues above while keeping valid fields and strictly obeying catalog_specs."}, ensure_ascii=False)},
         ]
         try:
-            rep = client.complete(repair_msg, None, max_tokens=3600, single_attempt=True, timeout_seconds=90.0, require_price=False, max_total_tokens=20000, extra_body={"reasoning": {"max_tokens": 800}})
+            rep = _ask(client, repair_msg)
             calls_made += 1
             revisions += 1
             raw_doc = _extract_json(rep.get("content") or "{}")
-            decomp, decomp_issues = validate_decomposition(raw_doc.get("decomposition") or {}, tables)
+            decomp, decomp_issues = validate_decomposition(raw_doc.get("decomposition") or {}, tables, keep_valid=True)
             valid_calls, plan_issues = validate_catalog_plan(raw_doc.get("calls") or [], tables)
             reply = rep
         except Exception:
             pass
 
-    if decomp_issues or not valid_calls or (plan_issues and not valid_calls):
+    # What is wrong is refused alone, with its reason (a step on a column the tables do not have, a malformed risk); the
+    # rest of the model's plan is kept. The rules take over only when no breakdown or no step survives.
+    if decomp is None or not valid_calls:
         total_cost = round(max(0.0, float(getattr(client, "spent_eur", 0.0) or 0.0) - before_spent), 6)
         return _deterministic_fallback_payload(
             brief, tables, facts, route="fallback_refused", t0=t0, frames=frames,
             extra_prompts=calls_made, cost_usd=total_cost, revisions=revisions,
-            refusals=decomp_issues + plan_issues, decomp=decomp if not decomp_issues else None,
+            refusals=decomp_issues + plan_issues, decomp=decomp,
         )
 
     # Execute read/understand catalog tasks locally ($0, pre-holdout) and trigger bounded P4 re-plan if evidence uncovers new followups.
@@ -496,7 +530,10 @@ def plan_with_model(
         "model_request": last_req,
         "seconds": round(time.monotonic() - t0, 4),
         "mode": "adaptive_model",
+        "path": solution_path(decomp, valid_calls, evidence_rows),
     }
+    if decomp_issues or plan_issues:
+        model_out["refusals"] = decomp_issues + plan_issues
     if facts.get("virtual_schema"):
         model_out["schema_source"] = "virtual_blueprint"
     return model_out
@@ -553,16 +590,7 @@ def _run_evidence_and_replan(
         ]
         try:
             before_req = experience.last_model_request()
-            reply2 = client.complete(
-                rev_msg,
-                None,
-                max_tokens=3000,
-                single_attempt=True,
-                timeout_seconds=45.0,
-                require_price=False,
-                max_total_tokens=16000,
-                extra_body={"reasoning": {"max_tokens": 800}},
-            )
+            reply2 = _ask(client, rev_msg)
             calls_made += 1
             revisions += 1
             after_req = experience.last_model_request()
@@ -599,7 +627,7 @@ def replan_from_evidence(
     gateway: Any = None,
     sources: Mapping[str, dict[str, Any]] | None = None,
     max_revisions: int = 2,
-    cap_eur: float = 0.10,
+    cap_eur: float = 0.25,
     frames: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bounded P4 evidence re-planning when data/leakage stage findings surface new traps or followups."""
@@ -657,16 +685,7 @@ def replan_from_evidence(
     model_traps = list(current_plan.get("caught_traps") or ())
 
     try:
-        reply = client.complete(
-            messages,
-            None,
-            max_tokens=3000,
-            single_attempt=True,
-            timeout_seconds=45.0,
-            require_price=False,
-            max_total_tokens=16000,
-            extra_body={"reasoning": {"max_tokens": 800}},
-        )
+        reply = _ask(client, messages)
         doc2 = _extract_json(reply.get("content") or "{}")
         rev_calls, rev_issues = validate_catalog_plan(doc2.get("calls") or [], tables)
         if not rev_issues and rev_calls:
@@ -703,6 +722,7 @@ def replan_from_evidence(
         "cost_usd": round(float(current_plan.get("cost_usd") or 0.0) + total_cost, 6),
         "model_request": after_req if after_req != before_req else current_plan.get("model_request"),
         "seconds": round(float(current_plan.get("seconds") or 0.0) + (time.monotonic() - t0), 4),
+        "path": solution_path(decomp, valid_calls, evidence_rows) if decomp else current_plan.get("path"),
     }
     return {"revised": revised, "plan": updated, "cost_usd": total_cost, "model_request": updated.get("model_request")}
 

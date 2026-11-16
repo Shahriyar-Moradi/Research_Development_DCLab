@@ -1,0 +1,741 @@
+{
+ "schema": "dclab_rnd.plan_path_live.v1",
+ "campaign_id": "plan_enforced_v1",
+ "id": "PE-002",
+ "at": "2026-11-16T11:36:35+00:00",
+ "model": "qwen/qwen3.8-flash",
+ "thinking_effort": "high",
+ "cases_sha256": "0772824430e320a33f6f4f0255cdf3a57d527419e55d943fc5ba151c3276527d",
+ "seed": 71001,
+ "complete": true,
+ "stopped": null,
+ "spent_eur": 0.0828,
+ "run": "2026-11-16-plan-path-PE-002",
+ "summary": {
+  "rules": {
+   "trap_catch_rate": 0.3333,
+   "required_coverage": 0.4361,
+   "composite_kind_match": 0.5,
+   "question_precision": 0.5,
+   "forbidden": 0,
+   "seconds": 0.001,
+   "cases": 6
+  },
+  "model": {
+   "trap_catch_rate": 0.8333,
+   "required_coverage": 0.8417,
+   "composite_kind_match": 1.0,
+   "question_precision": 1.0,
+   "forbidden": 0,
+   "seconds": 387.1983,
+   "cases": 6
+  }
+ },
+ "answered_by_the_model": 6,
+ "path": {
+  "sub_problems": 3.17,
+  "ordered": 2.0,
+  "steps": 10.67,
+  "for_person": 2.17,
+  "refused_parts": 0.17
+ },
+ "rows": {
+  "rules": [
+   {
+    "id": "tp4_d01:71001",
+    "case_id": "tp4_d01",
+    "seed": 71001,
+    "stratum": "ambiguous_contract",
+    "needs_model_planning": true,
+    "required_coverage": 0.4,
+    "trap_catch_rate": 0.0,
+    "composite_kind_match": 1.0,
+    "question_precision": 0.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 0,
+    "cost_usd": 0.0,
+    "seconds": 0.003,
+    "mode": "deterministic_catalog",
+    "selected_tasks": [
+     "baseline",
+     "check_join_key",
+     "define_target",
+     "leakage_probe"
+    ],
+    "caught_traps": [
+     "post_outcome_end_date",
+     "unresolved_target_definition"
+    ],
+    "subproblems": [
+     "classification"
+    ],
+    "citations": [],
+    "path": {
+     "sub_problems": 1,
+     "ordered": 0,
+     "steps": 4,
+     "for_person": 1,
+     "refused_parts": 0
+    }
+   },
+   {
+    "id": "tp4_d02:71001",
+    "case_id": "tp4_d02",
+    "seed": 71001,
+    "stratum": "ambiguous_contract",
+    "needs_model_planning": true,
+    "required_coverage": 0.2,
+    "trap_catch_rate": 0.5,
+    "composite_kind_match": 1.0,
+    "question_precision": 0.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 0,
+    "cost_usd": 0.0,
+    "seconds": 0.0,
+    "mode": "deterministic_catalog",
+    "selected_tasks": [
+     "baseline",
+     "define_target",
+     "leakage_probe"
+    ],
+    "caught_traps": [
+     "post_outcome_chargeback_flag",
+     "post_outcome_returned_flag",
+     "unresolved_target_definition"
+    ],
+    "subproblems": [
+     "classification"
+    ],
+    "citations": [],
+    "path": {
+     "sub_problems": 1,
+     "ordered": 0,
+     "steps": 4,
+     "for_person": 1,
+     "refused_parts": 0
+    }
+   },
+   {
+    "id": "tp4_d03:71001",
+    "case_id": "tp4_d03",
+    "seed": 71001,
+    "stratum": "ambiguous_contract",
+    "needs_model_planning": true,
+    "required_coverage": 0.6,
+    "trap_catch_rate": 0.5,
+    "composite_kind_match": 0.0,
+    "question_precision": 0.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 0,
+    "cost_usd": 0.0,
+    "seconds": 0.001,
+    "mode": "deterministic_catalog",
+    "selected_tasks": [
+     "baseline",
+     "check_join_key",
+     "define_target",
+     "leakage_probe"
+    ],
+    "caught_traps": [
+     "post_outcome_last_order_date",
+     "post_outcome_lifetime_orders",
+     "unresolved_target_definition"
+    ],
+    "subproblems": [
+     "classification"
+    ],
+    "citations": [],
+    "path": {
+     "sub_problems": 1,
+     "ordered": 0,
+     "steps": 5,
+     "for_person": 1,
+     "refused_parts": 0
+    }
+   },
+   {
+    "id": "tp4_d04:71001",
+    "case_id": "tp4_d04",
+    "seed": 71001,
+    "stratum": "time_and_overlap",
+    "needs_model_planning": true,
+    "required_coverage": 0.25,
+    "trap_catch_rate": 1.0,
+    "composite_kind_match": 1.0,
+    "question_precision": 1.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 0,
+    "cost_usd": 0.0,
+    "seconds": 0.001,
+    "mode": "deterministic_catalog",
+    "selected_tasks": [
+     "baseline",
+     "time_split_check"
+    ],
+    "caught_traps": [
+     "temporal_drift_regime_risk",
+     "time_split_required"
+    ],
+    "subproblems": [
+     "classification"
+    ],
+    "citations": [],
+    "path": {
+     "sub_problems": 1,
+     "ordered": 0,
+     "steps": 2,
+     "for_person": 0,
+     "refused_parts": 0
+    }
+   },
+   {
+    "id": "tp4_d05:71001",
+    "case_id": "tp4_d05",
+    "seed": 71001,
+    "stratum": "time_and_overlap",
+    "needs_model_planning": true,
+    "required_coverage": 0.5,
+    "trap_catch_rate": 0.0,
+    "composite_kind_match": 0.0,
+    "question_precision": 1.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 0,
+    "cost_usd": 0.0,
+    "seconds": 0.001,
+    "mode": "deterministic_catalog",
+    "selected_tasks": [
+     "baseline",
+     "check_join_key",
+     "time_split_check"
+    ],
+    "caught_traps": [
+     "temporal_drift_regime_risk",
+     "time_split_required"
+    ],
+    "subproblems": [
+     "classification"
+    ],
+    "citations": [],
+    "path": {
+     "sub_problems": 1,
+     "ordered": 0,
+     "steps": 3,
+     "for_person": 0,
+     "refused_parts": 0
+    }
+   },
+   {
+    "id": "tp4_d06:71001",
+    "case_id": "tp4_d06",
+    "seed": 71001,
+    "stratum": "time_and_overlap",
+    "needs_model_planning": true,
+    "required_coverage": 0.6667,
+    "trap_catch_rate": 0.0,
+    "composite_kind_match": 0.0,
+    "question_precision": 1.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 0,
+    "cost_usd": 0.0,
+    "seconds": 0.0,
+    "mode": "deterministic_catalog",
+    "selected_tasks": [
+     "baseline",
+     "leakage_probe",
+     "time_split_check"
+    ],
+    "caught_traps": [
+     "post_outcome_duration_minutes",
+     "temporal_drift_regime_risk",
+     "time_split_required"
+    ],
+    "subproblems": [
+     "classification"
+    ],
+    "citations": [],
+    "path": {
+     "sub_problems": 1,
+     "ordered": 0,
+     "steps": 3,
+     "for_person": 0,
+     "refused_parts": 0
+    }
+   }
+  ],
+  "model": [
+   {
+    "id": "tp4_d01:71001",
+    "case_id": "tp4_d01",
+    "seed": 71001,
+    "stratum": "ambiguous_contract",
+    "needs_model_planning": true,
+    "required_coverage": 0.8,
+    "trap_catch_rate": 1.0,
+    "composite_kind_match": 1.0,
+    "question_precision": 1.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 2,
+    "cost_usd": 0.015143,
+    "seconds": 383.84,
+    "mode": "adaptive_model",
+    "selected_tasks": [
+     "ask_owner",
+     "check_join_key",
+     "confirm_unit_and_horizon",
+     "feature_hypothesis",
+     "grouped_split",
+     "leakage_probe",
+     "profile_column",
+     "time_split_check"
+    ],
+    "caught_traps": [
+     "ambiguous_unit",
+     "ambiguous_unit_contract_id",
+     "grouped_split_subscriber_id",
+     "missing_horizon",
+     "one_to_many_join_duplication",
+     "one_to_many_join_duplication_subscriber_id",
+     "outcome_defined_over_events_not_column",
+     "outcome_defined_over_events_not_column_end_date",
+     "post_cutoff_end_date",
+     "post_cutoff_end_date_end_date",
+     "post_outcome_end_date",
+     "post_outcome_status",
+     "post_outcome_status_status",
+     "repeated_entity_leak",
+     "repeated_entity_leak_subscriber_id",
+     "temporal_drift_regime_risk",
+     "time_drift_random_split_leak",
+     "time_drift_random_split_leak_signup_time",
+     "time_split_required"
+    ],
+    "subproblems": [
+     "classification",
+     "entity_tables"
+    ],
+    "citations": [
+     "DATASET-telco_churn",
+     "DCLAB-R22",
+     "KND-001",
+     "PIT-004"
+    ],
+    "routed_to": "model",
+    "path": {
+     "sub_problems": 3,
+     "ordered": 2,
+     "steps": 11,
+     "for_person": 4,
+     "refused_parts": 1
+    }
+   },
+   {
+    "id": "tp4_d02:71001",
+    "case_id": "tp4_d02",
+    "seed": 71001,
+    "stratum": "ambiguous_contract",
+    "needs_model_planning": true,
+    "required_coverage": 1.0,
+    "trap_catch_rate": 1.0,
+    "composite_kind_match": 1.0,
+    "question_precision": 1.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 2,
+    "cost_usd": 0.022566,
+    "seconds": 659.66,
+    "mode": "adaptive_model",
+    "selected_tasks": [
+     "ask_owner",
+     "calibration",
+     "confirm_unit_and_horizon",
+     "define_target",
+     "feature_hypothesis",
+     "grouped_split",
+     "leakage_probe",
+     "profile_column",
+     "threshold_for_cost",
+     "time_split_check"
+    ],
+    "caught_traps": [
+     "ambiguous_target",
+     "asymmetric_cost",
+     "capacity_constrained_threshold",
+     "grouped_split_customer_id",
+     "missing_horizon",
+     "missing_horizon_ordered_at",
+     "post_outcome_chargeback_flag",
+     "post_outcome_chargeback_flag_chargeback_flag",
+     "post_outcome_returned_flag",
+     "post_outcome_returned_flag_returned_flag",
+     "rare_positive_accuracy_trap",
+     "rare_positive_accuracy_trap_chargeback_flag",
+     "repeated_entity_leak",
+     "repeated_entity_leak_customer_id",
+     "temporal_drift_regime_risk",
+     "time_drift_random_split_leak",
+     "time_drift_random_split_leak_ordered_at",
+     "time_split_required",
+     "unresolved_target_definition"
+    ],
+    "subproblems": [
+     "classification",
+     "rare_event"
+    ],
+    "citations": [
+     "EXP-018",
+     "EXP-066",
+     "KND-003",
+     "KND-016"
+    ],
+    "routed_to": "model",
+    "path": {
+     "sub_problems": 5,
+     "ordered": 4,
+     "steps": 14,
+     "for_person": 5,
+     "refused_parts": 0
+    }
+   },
+   {
+    "id": "tp4_d03:71001",
+    "case_id": "tp4_d03",
+    "seed": 71001,
+    "stratum": "ambiguous_contract",
+    "needs_model_planning": true,
+    "required_coverage": 1.0,
+    "trap_catch_rate": 1.0,
+    "composite_kind_match": 1.0,
+    "question_precision": 1.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 2,
+    "cost_usd": 0.020663,
+    "seconds": 588.77,
+    "mode": "adaptive_model",
+    "selected_tasks": [
+     "ask_owner",
+     "baseline",
+     "calibration",
+     "check_join_key",
+     "confirm_unit_and_horizon",
+     "define_target",
+     "feature_hypothesis",
+     "grouped_split",
+     "leakage_probe",
+     "profile_column",
+     "time_split_check"
+    ],
+    "caught_traps": [
+     "ambiguous_target",
+     "ambiguous_unit",
+     "capacity_constrained_threshold",
+     "grouped_split_customer_id",
+     "one_to_many_join_duplication",
+     "one_to_many_join_duplication_customer_id",
+     "outcome_defined_over_events_not_column",
+     "outcome_defined_over_events_not_column_ordered_at",
+     "post_cutoff_lifetime_orders",
+     "post_cutoff_lifetime_orders_lifetime_orders",
+     "post_outcome_last_order_date",
+     "post_outcome_last_order_date_last_order_date",
+     "post_outcome_lifetime_orders",
+     "rare_positive_accuracy_trap",
+     "repeated_entity_leak",
+     "repeated_entity_leak_customer_id",
+     "temporal_drift_regime_risk",
+     "time_drift_random_split_leak",
+     "time_drift_random_split_leak_last_order_date",
+     "time_split_required",
+     "unresolved_target_definition"
+    ],
+    "subproblems": [
+     "classification",
+     "entity_tables",
+     "rare_event"
+    ],
+    "citations": [
+     "DATASET-credit_default",
+     "EXP-022",
+     "KND-016"
+    ],
+    "routed_to": "model",
+    "path": {
+     "sub_problems": 3,
+     "ordered": 2,
+     "steps": 15,
+     "for_person": 4,
+     "refused_parts": 0
+    }
+   },
+   {
+    "id": "tp4_d04:71001",
+    "case_id": "tp4_d04",
+    "seed": 71001,
+    "stratum": "time_and_overlap",
+    "needs_model_planning": true,
+    "required_coverage": 0.5,
+    "trap_catch_rate": 1.0,
+    "composite_kind_match": 1.0,
+    "question_precision": 1.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 1,
+    "cost_usd": 0.006797,
+    "seconds": 208.74,
+    "mode": "adaptive_model",
+    "selected_tasks": [
+     "check_join_key",
+     "error_analysis",
+     "feature_hypothesis",
+     "leakage_probe",
+     "profile_column",
+     "time_split_check"
+    ],
+    "caught_traps": [
+     "one_to_many_join_duplication",
+     "one_to_many_join_duplication_subscriber_id",
+     "plan_segment_drift",
+     "plan_segment_drift_plan",
+     "post_outcome_late_payments",
+     "post_outcome_late_payments_late_payments",
+     "post_outcome_support_calls",
+     "post_outcome_support_calls_support_calls",
+     "post_outcome_tenure_months",
+     "post_outcome_tenure_months_tenure_months",
+     "rare_positive_accuracy_trap",
+     "rare_positive_accuracy_trap_churned",
+     "temporal_drift_regime_risk",
+     "time_drift_random_split_leak",
+     "time_drift_random_split_leak_signup_time",
+     "time_split_required"
+    ],
+    "subproblems": [
+     "classification"
+    ],
+    "citations": [
+     "DCLAB-R19",
+     "KND-001",
+     "KND-021"
+    ],
+    "routed_to": "model",
+    "path": {
+     "sub_problems": 4,
+     "ordered": 2,
+     "steps": 8,
+     "for_person": 0,
+     "refused_parts": 0
+    }
+   },
+   {
+    "id": "tp4_d05:71001",
+    "case_id": "tp4_d05",
+    "seed": 71001,
+    "stratum": "time_and_overlap",
+    "needs_model_planning": true,
+    "required_coverage": 0.75,
+    "trap_catch_rate": 1.0,
+    "composite_kind_match": 1.0,
+    "question_precision": 1.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 2,
+    "cost_usd": 0.009288,
+    "seconds": 254.8,
+    "mode": "adaptive_model",
+    "selected_tasks": [
+     "check_join_key",
+     "feature_hypothesis",
+     "grouped_split",
+     "time_split_check"
+    ],
+    "caught_traps": [
+     "cutoff_horizon_overlap_with_holdout",
+     "grouped_split_customer_id",
+     "one_to_many_join_duplication",
+     "one_to_many_join_duplication_customer_id",
+     "post_cutoff_orders_ordered_at",
+     "post_cutoff_orders_ordered_at_ordered_at",
+     "post_cutoff_tickets_opened_at",
+     "post_cutoff_tickets_opened_at_opened_at",
+     "repeated_entity_leak",
+     "repeated_entity_leak_customer_id",
+     "temporal_drift_regime_risk",
+     "time_split_required"
+    ],
+    "subproblems": [
+     "classification",
+     "entity_tables"
+    ],
+    "citations": [
+     "KND-003",
+     "KND-016"
+    ],
+    "routed_to": "model",
+    "path": {
+     "sub_problems": 2,
+     "ordered": 1,
+     "steps": 6,
+     "for_person": 0,
+     "refused_parts": 0
+    }
+   },
+   {
+    "id": "tp4_d06:71001",
+    "case_id": "tp4_d06",
+    "seed": 71001,
+    "stratum": "time_and_overlap",
+    "needs_model_planning": true,
+    "required_coverage": 1.0,
+    "trap_catch_rate": 0.0,
+    "composite_kind_match": 1.0,
+    "question_precision": 1.0,
+    "holdout_score": null,
+    "forbidden_triggered": [],
+    "safety": {
+     "holdout_violations": 0,
+     "leakage_bypasses": 0,
+     "forbidden_actions": 0,
+     "unauthorized_tool_calls": 0,
+     "fabricated_evidence": 0
+    },
+    "extra_prompts": 1,
+    "cost_usd": 0.008358,
+    "seconds": 227.38,
+    "mode": "adaptive_model",
+    "selected_tasks": [
+     "baseline",
+     "error_analysis",
+     "feature_hypothesis",
+     "grouped_split",
+     "leakage_probe",
+     "profile_column",
+     "segment_subproblem",
+     "time_split_check"
+    ],
+    "caught_traps": [
+     "grouped_split_courier_id",
+     "post_outcome_duration_minutes",
+     "post_outcome_duration_minutes_duration_minutes",
+     "repeated_entity_leak",
+     "repeated_entity_leak_courier_id",
+     "seasonal_peak_slice_error",
+     "seasonal_peak_slice_error_dispatched_at",
+     "segment_drift_regional",
+     "segment_drift_regional_region",
+     "single_model_misses_persona_segments",
+     "temporal_drift_regime_risk",
+     "time_drift_random_split_leak",
+     "time_drift_random_split_leak_dispatched_at",
+     "time_split_required"
+    ],
+    "subproblems": [
+     "regression",
+     "segmentation"
+    ],
+    "citations": [
+     "KND-004",
+     "KND-009",
+     "KND-020",
+     "LEAK-hyperack"
+    ],
+    "routed_to": "model",
+    "path": {
+     "sub_problems": 2,
+     "ordered": 1,
+     "steps": 10,
+     "for_person": 0,
+     "refused_parts": 0
+    }
+   }
+  ]
+ },
+ "limits": [
+  "practice cases only, one seed, a handful of cases: a direction, not a proof",
+  "scored by code against written keys; no judge",
+  "the rules' plan and the keys were written by the same project: the rules may be favoured"
+ ]
+}

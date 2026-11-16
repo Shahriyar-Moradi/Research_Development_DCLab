@@ -55,6 +55,142 @@ def readonly_checkpoint(home, projects):
         yield saver
 
 
+def _catalog_view(cp, statuses):
+    """A plan as the page draws it: the breakdown, the questions still open, and the path with each step's state."""
+    decomp = cp.get('decomposition') if isinstance(cp.get('decomposition'), dict) else {}
+    questions = []
+    for call in (cp.get('calls') or ()):
+        if isinstance(call, dict) and call.get('task_type') == 'ask_owner':
+            params = call.get('params') if isinstance(call.get('params'), dict) else {}
+            q = str(params.get('question') or '').strip()[:240]
+            if q:
+                questions.append({'field': str(params.get('field') or 'other')[:40], 'question': q})
+    for u in (decomp.get('unknowns') or ()):
+        if isinstance(u, dict) and u.get('blocking', True):
+            q = str(u.get('question') or '').strip()[:240]
+            if q and not any(item['question'] == q for item in questions):
+                questions.append({'field': str(u.get('field') or 'other')[:40], 'question': q})
+    return {
+        'routed_to': cp.get('routed_to'),
+        'mode': cp.get('mode'),
+        'decision': str(decomp.get('decision') or '') or None,  # whole: a stored plan's decision, as the planner wrote it (H3)
+        'path': _path(cp, statuses),
+        'followed': cp.get('followed') if isinstance(cp.get('followed'), dict) else None,
+        'stored': cp.get('stored', True),
+        # the model's thinking about this plan is the API thinking summary of this request, kept whole by the gateway
+        'thinking_request': str(cp.get('model_request'))[:80] if cp.get('model_request') else None,
+        'target': str(decomp.get('target') or '')[:80] or None,
+        'unit': str(decomp.get('unit') or '')[:80] or None,
+        'horizon_days': _number(decomp.get('horizon_days'), None),
+        'selected_tasks': [str(t)[:64] for t in (cp.get('selected_tasks') or ())][:24],
+        'subproblems': [str(s)[:64] for s in (cp.get('subproblems') or ())][:12],
+        'caught_traps': [str(t)[:80] for t in (cp.get('caught_traps') or ())][:24],
+        'revisions': _number(cp.get('revisions'), 1),
+        'calls_count': len(cp.get('calls') or ()),
+        'asked_owner': bool(cp.get('asked_owner')),
+        'clarifying_questions': questions[:5],
+        'owner_confirmed': bool(cp.get('owner_confirmed')),
+        'owner_note': str(cp.get('owner_note') or '')[:240] or None,
+    }
+
+
+_SHOWN: dict = {}  # a shown-only plan per project state (names and counts, never a row)
+
+
+def _rules_plan(projects, project, statuses):
+    """A project with no stored plan (built from Home, or never walked by the team) still shows its path: the rules'
+    plan, made for display from the names of its columns, and whether the built model followed it (``enforced.obeyed``:
+    a column the plan caught must be kept out of the final model, a split the plan asked for must be the split used).
+    Nothing is stored, nothing is changed, no model is asked."""
+    from dclab_core.task_catalog import CatalogTaskCall, solution_path
+    from dclab_core.task_fingerprints import metadata_fingerprint
+    from dclab_rnd.tasks import enforced
+    from dclab_rnd.tasks.catalog import _collect_traps, deterministic_catalog_plan, execute_catalog_task, project_catalog_inputs, rules_decomposition
+
+    # the table is read once for a project as it stands (its data, its solution, its stages), not on every look at the page
+    key = (project.get('id'), metadata_fingerprint({'data': (project.get('data') or {}).get('sha256'), 'solution': project.get('solution'),
+                                                    'stages': {k: (v or {}).get('run') for k, v in (project.get('stages') or {}).items()}}))
+    if key in _SHOWN:
+        return _catalog_view(_SHOWN[key], statuses)
+    brief, tables, facts, _, frames = project_catalog_inputs(projects, project)
+    det = deterministic_catalog_plan(brief, tables, facts)
+    calls = [CatalogTaskCall.model_validate(c) for c in det['calls']]
+    rows = [execute_catalog_task(c, tables=tables, known_facts=facts, frames=frames) for c in calls]
+    # this view never returns the project's goal text (TP-07: free text stays out of a progress response): the shown plan
+    # names its one sub-problem by the outcome's column
+    decomp = rules_decomposition(f"Predict {facts['target']}" if facts.get('target') else "The project's goal", facts)
+    traps = _collect_traps([], decomp, rows)
+    stages = {}
+    for name in ('data', 'leakage', 'features', 'models', 'final'):
+        record = projects.read_stage(project['id'], name)
+        if record:
+            stages[name] = record
+    columns = [c for cols in tables.values() for c in cols]
+    records = enforced.obeyed(traps, project.get('solution') or {}, stages, columns)
+    summary = enforced.summary(records)
+    plan = {'routed_to': 'rules', 'mode': 'shown, not stored', 'stored': False, 'decomposition': decomp.model_dump(mode='json'),
+            'calls': det['calls'], 'selected_tasks': det['selected_tasks'], 'subproblems': [decomp.subproblems[0].kind],
+            'caught_traps': traps, 'revisions': 1, 'owner_confirmed': True, 'path': solution_path(decomp, calls, rows),
+            'followed': {'caught': summary['caught'], 'checked': summary['read'], 'followed': summary['enforced'],
+                         'not_followed': [{'trap': r['trap'], 'column': r['column'], 'how': r['how']} for r in records
+                                          if r.get('enforceable') and r.get('enforced') is False]}}
+    if len(_SHOWN) >= 64:
+        _SHOWN.clear()
+    _SHOWN[key] = plan
+    return _catalog_view(plan, statuses)
+
+
+def _path(cp, statuses):
+    """The path from the problem to its solution as the page draws it (H3): each sub-problem, its steps with what each
+    found and what the engine did about it (``enforce_plan``), then the build's stages with their state. Names and
+    reasons only: a step's raw findings, which may count rows, stay in the record."""
+    path = cp.get('path') if isinstance(cp.get('path'), dict) else None
+    if not path or not isinstance(path.get('legs'), list):
+        return None
+    record = cp.get('enforcement') if isinstance(cp.get('enforcement'), dict) else {}
+
+    def did(step):
+        on = str(step.get('on') or '')
+        for name, say in (('applied', lambda e: f"enforced: {e.get('field')} = {e.get('value')}" + (' (your decision)' if e.get('by') == 'human' else '')),
+                          ('asked', lambda e: 'waiting for your answer'), ('waived', lambda e: 'left as it is (your decision)'),
+                          ('too_late', lambda e: 'caught after work began')):
+            for entry in record.get(name) or ():
+                value = str(entry.get('value') or '')
+                if value and (on == value or on.endswith('.' + value)):
+                    return say(entry)
+        return None
+
+    confirmed = bool(cp.get('owner_confirmed'))
+    legs = []
+    for leg in path['legs'][:16]:
+        if not isinstance(leg, dict):
+            continue
+        steps = []
+        for st in leg.get('steps') or ():
+            if not isinstance(st, dict):
+                continue
+            done = did(st)
+            person = bool(st.get('for_person'))
+            # a check ran when the plan was made; a question waits for the person; a catch may wait for their decision
+            state = 'waiting for you' if (person and not confirmed) or done == 'waiting for your answer' else 'done'
+            steps.append({'n': st.get('n'), 'task': str(st.get('task') or '')[:64], 'on': st.get('on'), 'why': str(st.get('why') or ''),
+                          'for_person': person, 'question': st.get('question'), 'found': [str(t)[:120] for t in st.get('found') or ()][:12],
+                          'did': done, 'state': state})
+        legs.append({'id': str(leg.get('id') or '')[:61], 'kind': leg.get('kind'), 'objective': str(leg.get('objective') or ''),
+                     'why': str(leg.get('why') or ''), 'after': [str(a)[:61] for a in leg.get('after') or ()], 'steps': steps})
+    build = [{'n': b.get('n'), 'task': b.get('task'), 'what': b.get('what'), 'why': b.get('why'), 'for_person': bool(b.get('for_person')),
+              'status': statuses.get(b.get('task'), 'pending')} for b in path.get('build') or () if isinstance(b, dict)]
+    # the next step and its reason: the first question still open, else the first stage of the build not yet done
+    waiting = next((st for leg in legs for st in leg['steps'] if st['state'] != 'done'), None)
+    if waiting is not None:
+        nxt = {'n': waiting['n'], 'what': waiting.get('question') or waiting['task'], 'who': 'you',
+               'why': waiting['why'] or 'the plan cannot go on until this is settled'}
+    else:
+        stage = next((b for b in build if b['status'] not in ('completed', 'approved', 'reconciled', 'already_completed')), None)
+        nxt = {'n': stage['n'], 'what': stage['what'], 'who': 'you' if stage['for_person'] else 'DCLab', 'why': stage.get('why') or ''} if stage else None
+    return {'goal': path.get('goal'), 'legs': legs, 'build': build, 'next': nxt}
+
+
 def _number(value, default=0):
     import math
     return value if type(value) in (int, float) and math.isfinite(value) and value >= 0 else default
@@ -138,6 +274,13 @@ def task_plan_view(projects, home, project_id, *, enabled=False, execution_enabl
            'release': ('Opt-in task execution is enabled in Admin → Teams (task_planning_v3 tp06.gate.v2 PASS).' if exec_on
                        else 'Task execution passed task_planning_v3 (tp06.gate.v2 PASS); off by default until enabled by the owner in Admin → Teams.')}
     def finish(status):
+        if enabled and 'catalog_plan' not in out:
+            try:  # every project shows its path, with or without a task state (H3/H5)
+                stage_status = {name: 'completed' if (meta or {}).get('status') in ('completed', 'approved') else (meta or {}).get('status') or 'pending'
+                                for name, meta in (project.get('stages') or {}).items()}
+                out['catalog_plan'] = _rules_plan(projects, project, {**stage_status, **{n['id']: n['status'] for n in out['nodes']}})
+            except Exception:
+                pass  # the path is an addition to the view: its failure never hides the plan's own state
         return {**out, 'status': status, 'message': MESSAGES[status]}
     if not enabled:
         return finish('disabled')
@@ -280,37 +423,7 @@ def task_plan_view(projects, home, project_id, *, enabled=False, execution_enabl
                                              'to_revision': _number(plan.get('revision'), None), 'changed_fields': changed,
                                              'preserved_tasks': [n['id'] for n in out['nodes'] if n['status'] == 'completed' and n['kind'] == 'action' and n['id'] != task_id]})
             if state and isinstance(state.get('catalog_plan'), dict):
-                cp = state['catalog_plan']
-                decomp = cp.get('decomposition') if isinstance(cp.get('decomposition'), dict) else {}
-                questions = []
-                for call in (cp.get('calls') or ()):
-                    if isinstance(call, dict) and call.get('task_type') == 'ask_owner':
-                        params = call.get('params') if isinstance(call.get('params'), dict) else {}
-                        q = str(params.get('question') or '').strip()[:240]
-                        if q:
-                            questions.append({'field': str(params.get('field') or 'other')[:40], 'question': q})
-                for u in (decomp.get('unknowns') or ()):
-                    if isinstance(u, dict) and u.get('blocking', True):
-                        q = str(u.get('question') or '').strip()[:240]
-                        if q and not any(item['question'] == q for item in questions):
-                            questions.append({'field': str(u.get('field') or 'other')[:40], 'question': q})
-                out['catalog_plan'] = {
-                    'routed_to': cp.get('routed_to'),
-                    'mode': cp.get('mode'),
-                    'decision': str(decomp.get('decision') or '')[:200] or None,
-                    'target': str(decomp.get('target') or '')[:80] or None,
-                    'unit': str(decomp.get('unit') or '')[:80] or None,
-                    'horizon_days': _number(decomp.get('horizon_days'), None),
-                    'selected_tasks': [str(t)[:64] for t in (cp.get('selected_tasks') or ())][:24],
-                    'subproblems': [str(s)[:64] for s in (cp.get('subproblems') or ())][:12],
-                    'caught_traps': [str(t)[:80] for t in (cp.get('caught_traps') or ())][:24],
-                    'revisions': _number(cp.get('revisions'), 1),
-                    'calls_count': len(cp.get('calls') or ()),
-                    'asked_owner': bool(cp.get('asked_owner')),
-                    'clarifying_questions': questions[:5],
-                    'owner_confirmed': bool(cp.get('owner_confirmed')),
-                    'owner_note': str(cp.get('owner_note') or '')[:240] or None,
-                }
+                out['catalog_plan'] = _catalog_view(state['catalog_plan'], {n['id']: n['status'] for n in out['nodes']})
             if any(n['status'] == 'stale' for n in out['nodes']):
                 status = 'stale'
             return finish(status)

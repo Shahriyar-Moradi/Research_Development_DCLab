@@ -182,6 +182,14 @@ class TaskCatalogRuntimeTests(unittest.TestCase):
                 team = SolutionTeam(store, saver, home=home, task_execution=True, admit_proposals=True, gateway=gw)
                 res = team.run(pid)
                 self.assertEqual(res.get("status"), "paused")
+                self.assertEqual((res.get("asks") or {}).get("field"), "plan_enforce")  # H2: the plan caught the leak; only a person may change a signed solution
+                res = team.run(pid, resume=True)
+                # the person's yes is theirs: the column is kept out, and the changed solution is signed again before any stage runs
+                self.assertIn("Sign the solution again", str(res.get("says")))
+                self.assertIn("closure_recorded_after_review", [f["column"] for f in store.get(pid)["solution"]["forbidden"]])
+                self.assertIsNone(store.read_stage(pid, "data"))
+                graph.approve_gate(store, pid, "solution", by="tester", reason="Signed again after the plan's change")
+                res = team.run(pid)
                 seen_gates = []
                 while res.get("status") == "paused" and len(seen_gates) < 4:
                     gate = (res.get("asks") or {}).get("gate")

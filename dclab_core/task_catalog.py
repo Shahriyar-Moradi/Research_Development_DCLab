@@ -209,6 +209,7 @@ class CatalogTaskCall(Contract):
     params: dict[str, Any] = Field(default_factory=dict)
     reason: str = Field(default="", max_length=400)
     citations: tuple[str, ...] = Field(default=(), max_length=16)
+    subproblem: Optional[str] = Field(default=None, max_length=61)  # the sub-problem this step serves: its place on the path
 
     @model_validator(mode="before")
     @classmethod
@@ -362,6 +363,7 @@ def validate_catalog_plan(
         if spec is None:
             issues.append(f"call[{idx}]: unknown task_type {call.task_type!r}")
             continue
+        before = len(issues)
         if call.task_type in ("holdout", "final"):
             holdout_seen = True
         elif require_before_holdout and holdout_seen and spec.before_holdout:
@@ -369,7 +371,11 @@ def validate_catalog_plan(
 
         extra = sorted(set(call.params) - set(spec.allowed_params))
         if extra:
-            issues.append(f"call[{idx}] ({call.task_type}): disallowed params {extra}")
+            # a key the catalog does not know is dropped and named; the step itself is kept (before, a question for the
+            # person with one stray key was refused whole, and the question was lost)
+            issues.append(f"call[{idx}] ({call.task_type}): disallowed params {extra}, dropped")
+            call = call.model_copy(update={"params": {k: v for k, v in call.params.items() if k not in extra}})
+            before += 1
         missing = [p for p in spec.required_params if not call.params.get(p)]
         if missing:
             issues.append(f"call[{idx}] ({call.task_type}): missing required params {missing}")
@@ -390,15 +396,24 @@ def validate_catalog_plan(
             if kind and kind not in FAMILIES:
                 issues.append(f"call[{idx}] (segment_subproblem): invalid family kind {kind!r}")
 
-        parsed.append(call)
+        if len(issues) == before:
+            # a call with an issue (a column or a table the project does not have, a key the catalog does not know) is
+            # refused alone, with its reason; it is never run as if it were valid, and the rest of the plan is kept
+            parsed.append(call)
     return parsed, issues
 
 
 def validate_decomposition(
     decomp: ProblemDecomposition | Mapping[str, Any],
     tables: Mapping[str, Iterable[str]],
+    *,
+    keep_valid: bool = False,
 ) -> tuple[Optional[ProblemDecomposition], list[str]]:
-    """Validate a ProblemDecomposition against project table metadata and DCLab families."""
+    """Validate a ProblemDecomposition against project table metadata and DCLab families.
+
+    With ``keep_valid`` the breakdown comes back without the parts that failed (a risk on a column the tables do not
+    have, a blocking unknown no question can settle), each named in the issues: one wrong part never throws the whole
+    breakdown away."""
     try:
         if isinstance(decomp, ProblemDecomposition):
             parsed = decomp
@@ -408,24 +423,132 @@ def validate_decomposition(
                 raw["schema_version"] = "dclab_core.problem_decomposition.v1"
             parsed = ProblemDecomposition.read(raw)
     except Exception as exc:
-        return None, [f"invalid decomposition shape: {exc}"]
+        if not keep_valid or not isinstance(decomp, Mapping):
+            return None, [f"invalid decomposition shape: {exc}"]
+        # one malformed risk, unknown or sub-problem is dropped with its reason; the rest of the breakdown is read again
+        raw, dropped = dict(raw), []
+        for name, model in (("risks", IdentifiedRisk), ("unknowns", OpenUnknown), ("subproblems", SubproblemSpec)):
+            kept = []
+            items = raw.get(name)
+            if not isinstance(items, (list, tuple)):  # a number or a word where a list belongs: the part is dropped whole
+                if items not in (None, "", ()):
+                    dropped.append(f"{name}: not a list, dropped")
+                items = ()
+            seen_ids: set[str] = set()
+            for idx, item in enumerate(items):
+                if name == "subproblems" and isinstance(item, Mapping):
+                    if item.get("id") in seen_ids:  # two sub-problems under one id: the first is kept
+                        dropped.append(f"subproblems[{idx}]: id {item.get('id')!r} is used twice, dropped")
+                        continue
+                    seen_ids.add(item.get("id"))
+                try:
+                    model.model_validate(item)
+                    kept.append(item)
+                except Exception:
+                    dropped.append(f"{name}[{idx}]: malformed, dropped")
+            raw[name] = kept
+        try:
+            parsed = ProblemDecomposition.read(raw)
+        except Exception as again:
+            return None, [f"invalid decomposition shape: {again}"]
+        _, rest = validate_decomposition(parsed, tables, keep_valid=True)
+        parsed, _ = validate_decomposition(parsed, tables, keep_valid=True)
+        return parsed, [*dropped, *rest]
 
     issues: list[str] = []
-    all_cols = _all_columns(tables)
-    # Only enforce column membership when target matches a concrete column vs conceptual composite goal like inactive_30d.
-    if parsed.target and parsed.target in all_cols:
-        pass
+    risks, unknowns = [], []
+    # A target may be a composite goal (inactive_30d) and need not be a column; risks and unknowns are checked.
     for idx, risk in enumerate(parsed.risks):
-        if risk.table and risk.table not in tables:
-            issues.append(f"risk[{idx}]: unknown table {risk.table!r}")
+        found = [f"risk[{idx}]: unknown table {risk.table!r}"] if risk.table and risk.table not in tables else []
         if risk.column:
-            issues.extend(_check_column_ref(risk.table, risk.column, tables, f"risk[{idx}]"))
+            found.extend(_check_column_ref(risk.table, risk.column, tables, f"risk[{idx}]"))
+        issues.extend(found)
+        if not found:
+            risks.append(risk)
 
     for idx, unk in enumerate(parsed.unknowns):
         if unk.blocking and unk.resolution_task not in ("ask_owner", "define_target", "confirm_unit_and_horizon", "profile_column", "check_join_key"):
             issues.append(f"unknown[{idx}]: blocking unknown must resolve via question or understanding task, got {unk.resolution_task!r}")
+        else:
+            unknowns.append(unk)
 
+    known = {s.id for s in parsed.subproblems}
+    if len(known) != len(parsed.subproblems):
+        issues.append("two sub-problems share one id: the first is kept")
+        if keep_valid:
+            parsed = parsed.model_copy(update={"subproblems": tuple({s.id: s for s in reversed(parsed.subproblems)}.values())[::-1]})
+    for sub in parsed.subproblems:
+        for dep in sub.dependency_ids:
+            if dep not in known or dep == sub.id:
+                issues.append(f"subproblem {sub.id!r}: depends on {dep!r}, which is not another sub-problem")
+    if keep_valid and issues:
+        subs = tuple(s.model_copy(update={"dependency_ids": tuple(d for d in s.dependency_ids if d in known and d != s.id)}) for s in parsed.subproblems)
+        parsed = parsed.model_copy(update={"risks": tuple(risks), "unknowns": tuple(unknowns), "subproblems": subs})
     return parsed, issues
+
+
+PERSON_STEPS = ("ask_owner", "define_target", "confirm_unit_and_horizon")  # steps only the person can finish
+# each stage of the build with the reason it stands where it does: the reason a person reads before the stage runs
+BUILD_STEPS = (("data", "Prepare the data and fix the split", "first, so nothing chosen later can have seen the rows kept for the final check"),
+               ("features", "Choose the features, inside the training folds", "after the split and the leak checks, so a column the plan keeps out cannot come back in"),
+               ("models", "Compare models on validation", "after the features are fixed, so models are compared on the same honest ground"),
+               ("holdout", "Your approval to read the holdout", "the holdout can be read once: a person decides the work is ready for it"),
+               ("final", "Read the holdout once", "last, after your approval and only when every catch of the plan is enforced or decided by you"),
+               ("report", "Write the report", "after the final number exists, so every figure in it is traced to its record"))
+
+
+def _order_reason(sub: SubproblemSpec, by_id: Mapping[str, SubproblemSpec]) -> str:
+    """Why a sub-problem stands where it does, written by code from its dependencies (never asked of a model)."""
+    first = [by_id[d].objective for d in sub.dependency_ids if d in by_id and d != sub.id]
+    return ("Comes after: " + "; ".join(first) + ". That must be settled first.") if first else "Nothing has to be settled before it."
+
+
+def solution_path(decomposition: ProblemDecomposition | Mapping[str, Any] | None,
+                  calls: Iterable[CatalogTaskCall | Mapping[str, Any]],
+                  evidence: Iterable[Mapping[str, Any]] = ()) -> dict[str, Any]:
+    """The path from a problem to its solution, as one numbered list the engine and the person both follow.
+
+    The problem is the breakdown's decision; each sub-problem is a leg, in the order its dependencies allow; a leg's
+    steps are the checks the plan chose for it, in the plan's order, each with what it found; the build's stages close
+    the path. Every part carries its reason. A step's reason is the plan's own purpose for it; the reason of a
+    sub-problem's place and of each build stage is written by code, from the dependencies and the build's fixed order.
+    No model is asked to write its reasoning: the model's thinking is the API thinking summary of the planning request,
+    kept by the gateway. A step with no sub-problem named belongs to the first leg. Names and reasons only, never a
+    table's value."""
+    if decomposition is not None and not isinstance(decomposition, ProblemDecomposition):
+        try:
+            decomposition = ProblemDecomposition.model_validate(dict(decomposition))
+        except Exception:
+            decomposition = None
+    subs = list({s.id: s for s in reversed(decomposition.subproblems)}.values())[::-1] if decomposition else []  # one per id: the first
+    order, placed = [], set()
+    while len(order) < len(subs):  # dependencies first; a cycle or an unknown name falls back to the written order
+        ready = [s for s in subs if s.id not in placed and all(d in placed or d not in {x.id for x in subs} for d in s.dependency_ids)]
+        nxt = ready[0] if ready else next(s for s in subs if s.id not in placed)
+        order.append(nxt)
+        placed.add(nxt.id)
+    legs = [{"id": s.id, "kind": s.kind, "objective": s.objective, "target": s.target, "after": [d for d in s.dependency_ids if d in placed],
+             "why": _order_reason(s, {x.id: x for x in subs}), "steps": []} for s in order] or [{"id": "main", "kind": None, "objective": decomposition.decision if decomposition else "", "target": None,
+                                              "after": [], "why": "", "steps": []}]
+    by_id = {leg["id"]: leg for leg in legs}
+    rows = list(evidence)
+    for index, raw in enumerate(calls):
+        call = raw if isinstance(raw, CatalogTaskCall) else CatalogTaskCall.model_validate(raw)
+        row = rows[index] if index < len(rows) and isinstance(rows[index], Mapping) and rows[index].get("task_type") == call.task_type else {}
+        where = ".".join(str(call.params[k]) for k in ("table", "column") if call.params.get(k)) or next(
+            (str(call.params[k]) for k in ("entity", "key", "field", "kind", "metric") if call.params.get(k)), None)
+        by_id.get(call.subproblem or "", legs[0])["steps"].append({
+            "task": call.task_type, "on": where, "why": call.reason, "for_person": call.task_type in PERSON_STEPS,
+            "question": str(call.params.get("question") or "") or None if call.task_type == "ask_owner" else None,
+            "found": [str(t) for t in row.get("traps") or ()], "findings": [str(f) for f in row.get("findings") or ()]})
+    n = 0
+    for leg in legs:
+        for step in leg["steps"]:
+            n += 1
+            step["n"] = n
+    return {"version": "solution_path.v1", "goal": decomposition.decision if decomposition else None, "legs": legs,
+            "build": [{"n": n + i + 1, "task": task, "what": what, "why": why, "for_person": task == "holdout"}
+                      for i, (task, what, why) in enumerate(BUILD_STEPS)]}
 
 
 __all__ = [
@@ -438,6 +561,7 @@ __all__ = [
     "ProblemDecomposition",
     "SubproblemSpec",
     "TASK_TYPES",
+    "solution_path",
     "validate_catalog_plan",
     "validate_decomposition",
 ]

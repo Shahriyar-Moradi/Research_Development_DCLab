@@ -220,6 +220,8 @@ class SolutionTeam:
                     return {"next": "stop", "says": "Task execution stopped: " + problem}
             cat = tasks.prepare_catalog_plan(project["id"])
             extra_board = None
+            # The basic question first (what the outcome, the unit or the moment is), then what the plan caught: a stricter
+            # check asked about a solution whose outcome is still open would be asked about the wrong thing.
             if cat.get("blocking_asks") and not (cat.get("catalog_plan") or {}).get("owner_confirmed"):
                 asks = cat["blocking_asks"][:3]
                 question = "; ".join(a["question"] for a in asks if a.get("question")) or "Clarify target, prediction unit, or horizon before running stages."
@@ -231,8 +233,27 @@ class SolutionTeam:
                     _PAUSES.reset(token)
                 tasks.confirm_catalog_owner(project["id"], reply)
                 extra_board = self._advance(state, "situate", "catalog_clarified", board)
-            else:
-                extra_board = None
+                state = {**state, "board": extra_board}  # a second pause of this node builds on this one's board
+            enforcement = tasks.enforce_plan(project["id"])  # H2: what the plan caught changes the solution before any stage runs
+            if enforcement.get("asks"):
+                question = " ".join(a["question"] for a in enforcement["asks"][:3] if a.get("question"))
+                token = _PAUSES.set([])
+                try:
+                    answer = self.asker.ask("plan_enforce", question)
+                    board = self._close_pauses(state, "situate")
+                finally:
+                    _PAUSES.reset(token)
+                enforcement = tasks.enforce_plan(project["id"], reply=answer)
+                extra_board = self._advance(state, "situate", "plan_enforce_answered", board)
+                state = {**state, "board": extra_board}
+                if enforcement.get("status") == "stop":  # the person chose to change the solution after work began: theirs to do
+                    return {"next": "stop", "says": str(enforcement.get("says") or "")[:600], "board": extra_board}
+            if enforcement.get("applied"):
+                project = self.projects.get(project["id"])  # the solution changed: the walk goes on from the project as it is now
+                if enforcement.get("needs_signoff"):  # a changed solution is signed again by a person before any stage runs
+                    done_now = "; ".join(f"{a['field']}: {a['value']}" for a in enforcement["applied"])[:300]
+                    return {"next": "stop", "says": f"The solution was changed as the plan asked ({done_now}). Sign the solution again, then run the "
+                                                    "team: no stage has run yet.", **({"board": extra_board} if extra_board is not None else {})}
 
         if nxt is None:
             if not state.get("reported"):

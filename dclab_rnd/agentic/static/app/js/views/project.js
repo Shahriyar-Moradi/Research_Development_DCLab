@@ -354,9 +354,22 @@ DC.view('project', {
           const tasks = (cp.selected_tasks || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ');
           const traps = (cp.caught_traps || []).map(t => `<span class="tag warn">${esc(t)}</span>`).join(' ');
           const qs = (cp.clarifying_questions || []).map(q => `<li><b>${esc(q.field)}</b>: ${esc(q.question)}</li>`).join('');
-          const clarifyUI = qs ? (cp.owner_confirmed
+          const fol = cp.followed, followedBlock = fol ? (fol.checked
+            ? ((fol.not_followed || []).length
+              ? `<div class="callout warn small stack tight" id="path-not-followed"><b>The built model does not follow its plan</b><ul>${fol.not_followed.map(n => `<li>${esc(n.trap)}${n.column ? ' (<code>' + esc(n.column) + '</code>)' : ''}: ${esc(n.how || '')}</li>`).join('')}</ul></div>`
+              : `<p class="small" id="path-followed"><span class="tag ok">Plan followed</span> ${esc(String(fol.followed))} of ${esc(String(fol.checked))} of the plan's catches are followed: in the solution, and in the final model once it is built.</p>`)
+            : '') : '';
+          const clarifyUI = cp.stored === false ? (qs ? `<div class="stack tight small"><p class="strong">Still open:</p><ul>${qs}</ul></div>` : '') : qs ? (cp.owner_confirmed
             ? `<p class="small"><span class="tag ok">Owner clarified</span> ${esc(cp.owner_note || 'Confirmed')}</p>`
             : `<div class="stack tight small"><p class="strong">Clarification needed before full execution:</p><ul>${qs}</ul><div class="bar"><input type="text" id="catalog-clarify-answer" placeholder="Type your answer (target, horizon, unit…)" data-style="flex:1;min-width:180px"><button type="button" class="btn sm primary" id="catalog-clarify-submit">Send answer</button></div></div>`) : '';
+          const path = cp.path, stepLine = st => `<li value="${esc(String(st.n))}"><b>${esc(st.for_person ? 'You: ' : '')}${esc(st.task)}</b>${st.on ? ' on <code>' + esc(st.on) + '</code>' : ''}`
+            + `${st.question ? ': ' + esc(st.question) : st.why ? ': ' + esc(st.why) : ''}`
+            + `${(st.found || []).map(t => ` <span class="tag warn">${esc(t)}</span>`).join('')}${st.did ? ` <span class="tag ok">${esc(st.did)}</span>` : ''}</li>`;
+          const pathBlock = path ? `<div class="stack tight small" id="solution-path"><p class="strong">The path: from the problem to its solution</p>`
+            + (path.next ? `<p class="callout info small" id="path-next"><b>Next (step ${esc(String(path.next.n))}, ${esc(path.next.who)}):</b> ${esc(path.next.what || '')}${path.next.why ? '. <b>Why:</b> ' + esc(path.next.why) : ''}</p>` : '')
+            + path.legs.map(leg => `<div><p><b>Sub-problem:</b> ${esc(leg.objective)}${leg.kind ? ` <span class="tag">${esc(leg.kind)}</span>` : ''}${(leg.after || []).length ? ` <span class="xs muted">after ${esc(leg.after.join(', '))}</span>` : ''}${leg.why ? `<br><span class="xs muted">Why: ${esc(leg.why)}</span>` : ''}</p>`
+              + ((leg.steps || []).length ? `<ol>${leg.steps.map(stepLine).join('')}</ol>` : '<p class="xs muted">No extra check needed before the build.</p>') + `</div>`).join('')
+            + `<div><p><b>Build:</b></p><ol>${(path.build || []).map(st => `<li value="${esc(String(st.n))}">${esc(st.for_person ? 'You: ' : '')}${esc(st.what)} <span class="tag ${st.status === 'completed' ? 'ok' : st.status === 'blocked' ? 'warn' : ''}">${esc(st.status)}</span>${st.why ? `<br><span class="xs muted">Why: ${esc(st.why)}</span>` : ''}</li>`).join('')}</ol></div></div>` : '';
           return `<div class="panel tight stack" id="catalog-plan-box" data-style="margin-block:.6rem;padding:.7rem;border:1px solid var(--line);border-radius:var(--r)">`
             + `<div class="task-plan-meta"><strong>Problem Breakdown &amp; Checks</strong> <span class="tag">${esc(cp.routed_to || cp.mode || 'planned')}</span> <span>Catalog revisions: ${esc(String(cp.revisions || 1))}</span><span>Tasks: ${esc(String(cp.calls_count || 0))}</span></div>`
             + (cp.decision ? `<p class="small">${esc(cp.decision)}</p>` : '')
@@ -364,7 +377,7 @@ DC.view('project', {
             + (subs ? `<div class="small">Subproblems: ${subs}</div>` : '')
             + (tasks ? `<div class="small">Catalog checks: ${tasks}</div>` : '')
             + (traps ? `<div class="small">Caught traps: ${traps}</div>` : '<p class="xs muted">No extra traps flagged in pre-holdout plan.</p>')
-            + clarifyUI + `</div>`;
+            + pathBlock + followedBlock + clarifyUI + `</div>`;
         })() : '';
         const teamDone = Boolean(team && team.walk && team.walk.status === 'done');
         const wait = team && team.waiting;

@@ -4,6 +4,20 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.161.0 (2026-11-16)
+
+- `task_catalog.solution_path` (new): the path from a problem to its solution as one numbered list: the breakdown's
+  sub-problems in the order their dependencies allow, each with the checks the plan chose for it and what each found,
+  then the build's stages. A step names its sub-problem in the new optional `CatalogTaskCall.subproblem`; a step with
+  none belongs to the first sub-problem. Names and reasons only. Every part carries its reason: a step's is the
+  plan's own purpose for it; a sub-problem's place and each build stage's (`BUILD_STEPS`) are written by code, from
+  the dependencies and the build's fixed order. No model is asked to write its reasoning.
+- `validate_catalog_plan` returns only the calls that passed: a call with an issue (a column or a table the project does
+  not have, a key the catalog does not know) was returned as valid beside its issue, and ran. It is now refused alone.
+- `validate_decomposition(..., keep_valid=True)` (new option) returns the breakdown without the parts that failed (a
+  malformed risk, a risk on a column the tables do not have, a dependency on a sub-problem that does not exist), each
+  named in the issues. The default is unchanged. A sub-problem's dependencies are now checked.
+
 ## 0.160.0 (2026-11-15)
 
 - `case.quote_problem` (new) says why a quote is not accepted: `short`, `not_found` or `unrelated`; `quote_ok` is its

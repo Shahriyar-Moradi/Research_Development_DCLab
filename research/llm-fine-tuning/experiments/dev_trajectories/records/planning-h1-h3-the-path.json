@@ -1,0 +1,206 @@
+{
+ "package": "planning-h1-h3-the-path",
+ "title": "Hierarchical Planning H1 to H3: the model breaks the problem down with room, the plan is one path, the engine follows it",
+ "date": "2026-11-16",
+ "request": "The owner, in three messages: the goal of the planning is a path of the workflow of the problem and of the solution, and execution that follows this path; the AI gets more room to break a problem into small problems and a big solution into runnable steps and tasks, in the right order; no new ideas, complete the planning. Then: add reasoning to the planning, a reason for the next step, the next task and the execution.",
+ "spec": "Stages H1 (defects), H2 (the plan drives the engine) and H3 (room for the model) of the approved plan. Code owns numbers, splits, the holdout and what is built; nothing runs without the person's yes; thinking is never lowered; no prompt asks a model to write its reasoning.",
+ "plan": [
+  "H2: what the plan catches and code can enforce becomes a change to the solution through the validated move, before any stage runs; what code cannot tell is a question; the final stage waits while a catch is neither enforced nor decided by the person",
+  "H1: a refused or failed step that provably kept nothing may be tried again; a stage gets an even share of the time budget; an invalid step is refused alone; the problem kind comes from the project's own task; a missing outcome is asked",
+  "H3: the planner asks with room (no cap on thinking, room for the answer, the gateway's own retries), keeps the valid parts of a model's plan, and every plan carries its path: sub-problems in the order their dependencies allow, each with its steps, then the build's stages",
+  "the path is shown whole on the project page, each step with what it found and what the engine did about it, every part with its reason, and the next step with why; a project with no stored plan shows the rules' path and whether the built model followed it",
+  "measure on live models: the rules' plan against the model's plan, scored by code against written keys"
+ ],
+ "decisions": [
+  {
+   "decision": "The room goes to the breakdown (the catalog planner), not to the regrouping of the seven build stages nor to a multi-step task plan",
+   "why": "the breakdown is where the model understands the problem; the regrouping measured no gain and admits no model text by design; one atomic call per stage is a safety property of the dispatcher"
+  },
+  {
+   "decision": "A step's reason is the plan's own purpose for it; the reason of a sub-problem's place and of each build stage is written by code; the model's thinking stays the API thinking summary of the planning request",
+   "why": "the owner asked for reasons on each step, and the owner's standing rule (enforced by tests/test_prompt_audit.py, whose list may only shrink) forbids a reason field asked of a model: a first version with a reason field in the prompt failed that test and was taken out"
+  },
+  {
+   "decision": "A failed call is excused only when the call provably ended and the owner's records are unchanged",
+   "why": "an error that says nothing of how the call ended may still complete late: excusing it would let a stage run twice"
+  },
+  {
+   "decision": "Home's Build project is not changed",
+   "why": "the owner's rule; so a project built from Home gets its path for display only, with a check of whether the built model followed it"
+  },
+  {
+   "decision": "The plan view never returns the project's goal text for a plan it only shows",
+   "why": "the view's own contract (two existing tests): free text stays out of a progress response"
+  },
+  {
+   "decision": "The planning switches stay as committed (task execution on, model plans on)",
+   "why": "the live comparison favours the model's plan with room; the gate hp_gate_v1 has not been run and is not claimed"
+  }
+ ],
+ "change": "dclab_core/task_catalog.py (solution_path, keep_valid, a step's sub-problem, an invalid call refused alone); dclab_rnd/tasks (catalog, dispatch, planner, enforced, view); orchestra/solution.py; the planner prompt; the project page; a live runner.",
+ "findings": [
+  {
+   "id": "PATH-F1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "My first fix for 'a failed step blocks the project for good' excused any error after which nothing was visible.",
+   "scenario": "A stage call returns an error that says nothing of how it ended (a dropped transport); the stage completes a moment later. The attempt had been marked 'no effect', so the late completion was no longer reconciled and the task could run a second time.",
+   "cause": "the proof looked only at the owner's records at one instant, not at whether the call had ended",
+   "fix": "excused only when the guard refused before the handler was entered, or the engine itself recorded a new failed run; anything else stays unknown, to be reconciled",
+   "test": "tests/test_task_recovery.py test_late_owner_completion_is_reconciled_before_any_new_plan (existing, caught it); tests/test_task_dispatch.py test_an_error_that_does_not_say_how_the_call_ended_is_never_excused"
+  },
+  {
+   "id": "PATH-F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "With 8,000 tokens of room a live planning request answered nothing.",
+   "scenario": "Qwen 3.8 flash spent all 10,048 output tokens thinking (131 seconds) and the reply was empty.",
+   "cause": "thinking and the answer share one token limit",
+   "fix": "16,000 tokens; when a run's cap cannot reserve that much, the request is made once more with the old room instead of handing the plan to the rules",
+   "test": "tests/test_solution_path.py RoomTests; tests/test_task_planning_v4_eval.py (its small cap now gets a plan from the model again)"
+  },
+  {
+   "id": "PATH-F3",
+   "source": "test",
+   "severity": "privacy",
+   "defect": "The path shown for a project with no stored plan returned the project's goal text in the task-plan response.",
+   "scenario": "A project whose goal holds free text: the view's contract says a progress response never returns it.",
+   "cause": "the shown plan used the goal as its decision and its sub-problem's objective",
+   "fix": "the shown plan names its sub-problem by the outcome's column",
+   "test": "tests/test_task_plan_view.py (two existing tests caught it)"
+  },
+  {
+   "id": "PATH-F4",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The reason field I added to the planner's JSON broke the owner's rule that no prompt asks a model for its reasoning.",
+   "scenario": "The owner asked for a reason on every step; I added a reason to each sub-problem in the prompt's JSON.",
+   "cause": "a step's reason and the model's reasoning were treated as the same thing",
+   "fix": "the field is gone; a sub-problem's place is explained by code from its dependencies, a build stage by its fixed reason, a step by the plan's own purpose; the plan points at the request whose thinking summary the gateway kept",
+   "test": "tests/test_prompt_audit.py (existing, caught it); tests/test_solution_path.py test_every_part_of_the_path_carries_its_reason_and_the_next_step_says_why"
+  },
+  {
+   "id": "PATH-F5",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The team's walk asked the plan's stricter-check question before the basic question about the outcome.",
+   "scenario": "A project whose outcome is still open: the person was asked to keep a column out before being asked what is predicted.",
+   "cause": "the enforcement pause was placed before the clarification pause",
+   "fix": "the clarification comes first; the two pauses share one board",
+   "test": "tests/test_task_catalog_runtime.py test_blocking_ask_owner_pauses_and_resumes_cleanly"
+  },
+  {
+   "id": "PATH-F6",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A step on a column the tables do not have was returned as valid beside its issue, and ran; a model plan with one such step was thrown away whole.",
+   "scenario": "A model's plan names a column it invented in one of twelve steps.",
+   "cause": "the check appended every call it parsed, and the caller swapped the whole plan for the rules' on any issue",
+   "fix": "a call with an issue is refused alone and named; the rules take over only when no breakdown or no step survives",
+   "test": "tests/test_solution_path.py BreakdownTests, RoomTests"
+  },
+  {
+   "id": "PATH-F7",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The problem kind was read from a word in the outcome's name, and a missing outcome was written as the word 'target' with a horizon of 0 days.",
+   "scenario": "A class column named price_band was planned as a number to predict.",
+   "cause": "three copies of one guess",
+   "fix": "one rules function: the kind from the project's own task (the name is a hint only when no task is known); what is unknown stays unknown and is asked",
+   "test": "tests/test_solution_path.py test_the_rules_never_guess_the_kind_from_a_name_nor_invent_an_outcome"
+  },
+  {
+   "id": "PATH-R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "After the plan made a split by time or by group, the project could never run: every later walk said 'sign it again'.",
+   "scenario": "The plan catches a time trap, the person says yes, the solution gets its time column, the person signs again; the task path cannot run a split by time and the redraw turned every refusal into 'sign it again'.",
+   "cause": "the redraw hid the adapter's own reason, and the team's fall-back to the stage path looked only at projects with no task state at all",
+   "fix": "the redraw says 'sign it again' only for an unsigned solution; a signed solution the task path cannot run is handed to the stage path, which runs the stricter split",
+   "test": "tests/test_plan_enforced.py test_a_signed_solution_is_never_changed_by_the_agent_and_the_persons_yes_makes_the_change_theirs (signs again, reads the real reason and the marked state)"
+  },
+  {
+   "id": "PATH-R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "One change the solution's own rules refused marked every catch of the batch as waived by the person, and the final stage was free to read the holdout with a caught leak still a feature.",
+   "scenario": "The plan asks for a time column and to keep the same column out, beside a real leak; the solution refuses a time column that is also forbidden; all three were stored as 'could not be changed' under the person's waivers.",
+   "cause": "changes were applied as one group, and a refusal was stored where the person's no is stored",
+   "fix": "one change at a time; a refused change is kept as unenforced and put to the person again with the reason; a column the split is made on is never also asked to be kept out",
+   "test": "tests/test_plan_enforced.py test_a_change_the_solution_refuses_never_sinks_the_others_nor_counts_as_the_persons_choice, test_a_column_the_split_is_made_on_is_never_also_kept_out"
+  },
+  {
+   "id": "PATH-R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A model plan with two sub-problems under one id, or a number where a list belongs, crashed planning after the model was paid.",
+   "scenario": "The model names two sub-problems sub_1; the path's ordering raised StopIteration outside any handler.",
+   "cause": "ids were not checked for repeats and the ordering assumed them unique",
+   "fix": "a repeat is reported and the first kept; a part that is not a list is dropped and named; the path orders one sub-problem per id",
+   "test": "tests/test_solution_path.py test_a_repeated_id_or_a_number_where_a_list_belongs_never_crashes_the_plan"
+  },
+  {
+   "id": "PATH-R4",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "In the team's real walk the person's yes was never applied: it arrived as the word 'True', was not read as a yes, and was stored as the person's no.",
+   "scenario": "The walk pauses on the plan's question; the person presses yes; the walk goes on with the leak still in. The walk's own test passed only because any answer counted as a waiver.",
+   "cause": "the yes reader was written for chat messages, and the question's words changed when the walk resumed, so the answer met a different pause",
+   "fix": "the walk's True and False are read as yes and no; a question already asked keeps its words; an answer that is neither settles nothing",
+   "test": "tests/test_task_catalog_runtime.py test_solution_team_records_catalog_plan_ledger_and_view (the whole walk: asked, yes, column kept out, signed again, stages, holdout); tests/test_plan_enforced.py test_a_reply_that_is_neither_yes_nor_no_settles_nothing"
+  },
+  {
+   "id": "PATH-R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Five smaller ones: a column named by a substring of another; a clean project with an outcome named like a trap shown as not following its plan; a question for the person lost over one stray key; the table read on every look at the page; a changed solution not captured in the ledger.",
+   "scenario": "For example the answer 'paid_at' named the column 'id' too.",
+   "cause": "each its own small slip",
+   "fix": "whole-name match; the outcome is never a catch about itself; a stray key is dropped and the step kept; the shown plan is kept per project state; the change is captured as every saved solution is",
+   "test": "tests/test_plan_enforced.py test_the_outcome_is_never_a_catch_about_itself; tests/test_solution_path.py test_a_question_for_the_person_with_one_stray_key_is_kept"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The rules' plan against the model's plan with room, Qwen 3.8 flash (PE-002)",
+   "gate": "none: a practice comparison, scored by code against the cases' written keys",
+   "fixed_before_run": false,
+   "result": "six practice problems with planted traps: traps caught 0.33 by the rules and 0.83 by the model; needed checks chosen 0.44 and 0.84; right kinds of sub-problem 0.50 and 1.00; asked the person only when needed 0.50 and 1.00; no forbidden action; 3.2 sub-problems and 10.7 steps a plan; 387 seconds a plan. Read: the model's plan is better on every measure and far slower",
+   "verdict": "not scored",
+   "cost_eur": 0.083,
+   "next": "the same on a second model; the plan made as a background job",
+   "limits": [
+    "six practice cases, one seed",
+    "the rules and the keys come from the same project",
+    "no judge and no held-out set: a direction, not a proof"
+   ]
+  },
+  {
+   "name": "The rules' plan against the model's plan with room, Nemotron 3.5 Super (PE-003)",
+   "gate": "none: a practice comparison, scored by code against the cases' written keys",
+   "fixed_before_run": false,
+   "result": "the same six practice problems: traps caught 0.33 by the rules and 0.75 by the model; needed checks chosen 0.44 and 0.88; right kinds of sub-problem 0.67 and 1.00; asked the person only when needed 0.50 and 1.00; no forbidden action; 2.0 sub-problems and 9.8 steps a plan; 155 seconds a plan. Read: the gain carries to a second model family",
+   "verdict": "not scored",
+   "cost_eur": 0.0,
+   "next": "a held-out set of trap tables and the gate hp_gate_v1, before anything is claimed",
+   "limits": [
+    "six practice cases, one seed",
+    "the rules' kind score differs between the two runs (0.50 and 0.67) because the name hint for a problem with no task was put back between them",
+    "a free endpoint: speed may not hold"
+   ]
+  }
+ ],
+ "outcome": "A plan is now a path: the model breaks the problem into sub-problems with room, each gets its steps in order, the build's stages close it, the engine obeys what the plan caught, and the page shows the path with its reasons and the next step. Not done: Home's build still does not make or follow a plan; adopting work begun outside the task path; the plan as a background job; the lead agent's plan with step states.",
+ "lessons": [
+  "Older tests of a careful design are the best reviewer of a shortcut: four of the seven findings came from tests that already existed.",
+  "A reason on a step and a model's reasoning are different things; the owner's rule is about the second.",
+  "Room has a price in time: a plan with full thinking took six minutes.",
+  "A test that passes for the wrong reason hides a broken path: the walk's test went green because every answer was a waiver."
+ ],
+ "risks": [
+  "Six minutes a plan inside a web request: the page hangs until the plan runs as a job.",
+  "The gate hp_gate_v1 has not been run on this work.",
+  "A project built from Home is checked against its path only after the fact."
+ ],
+ "commits": []
+}
