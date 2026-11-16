@@ -9647,6 +9647,442 @@
    "incomplete": null
   },
   {
+   "id": "HAB-056 + HAB-057",
+   "at": "2026-11-16T09:08:08+00:00",
+   "set": "dev",
+   "think_first": true,
+   "model": "qwen/qwen3.8-flash",
+   "judge": "nvidia/nemotron-3.5-super-vl",
+   "judge_as_run": "nvidia/nemotron-3.5-super-vl",
+   "label": "stage-4c",
+   "commit": "56e55ce185d8453015964e71ad81b4e15fffdc74",
+   "judge_spent_eur": 0.0223,
+   "arms": {
+    "case": {
+     "cases": 8,
+     "answered": 8,
+     "judged": 8,
+     "understanding": 3.75,
+     "solution_design": 3.88,
+     "planning": 3.62,
+     "evidence_discipline": 4.0,
+     "accepted": 8,
+     "forbidden_done": 0,
+     "numbers_nobody_gave": 1,
+     "seconds": 182.43,
+     "assistant_turns": 2.25,
+     "spent_eur": 0.1013,
+     "empty_or_short_answers": [],
+     "by_case": {
+      "hab-01": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 420.59,
+       "forbidden_done": 0
+      },
+      "hab-02": {
+       "understanding": 3,
+       "solution_design": 3,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 218.76,
+       "forbidden_done": 0
+      },
+      "hab-03": {
+       "understanding": 3,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 113.65,
+       "forbidden_done": 0
+      },
+      "hab-04": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 2,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 272.76,
+       "forbidden_done": 0
+      },
+      "hab-05": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 3,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 142.48,
+       "forbidden_done": 0
+      },
+      "hab-06": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 87.47,
+       "forbidden_done": 0
+      },
+      "hab-07": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 101.65,
+       "forbidden_done": 0
+      },
+      "hab-08": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 102.11,
+       "forbidden_done": 0
+      }
+     }
+    }
+   },
+   "paired": {},
+   "interventions": {
+    "other_refusal": 7,
+    "query_cap": 7,
+    "bad_arguments": 5,
+    "route_overruled": 2,
+    "query_cannot_express": 2,
+    "outcome_not_named": 2,
+    "options_dropped": 1,
+    "budget_exhausted": 1,
+    "options_trimmed": 1,
+    "needs_table": 1
+   },
+   "interventions_by_case": {
+    "hab-01": {
+     "route_overruled": 1,
+     "options_dropped": 1,
+     "bad_arguments": 1
+    },
+    "hab-02": {
+     "other_refusal": 3,
+     "query_cannot_express": 2,
+     "query_cap": 1,
+     "route_overruled": 1
+    },
+    "hab-03": {
+     "outcome_not_named": 1
+    },
+    "hab-04": {
+     "other_refusal": 4,
+     "query_cap": 6,
+     "bad_arguments": 2,
+     "budget_exhausted": 1
+    },
+    "hab-05": {
+     "options_trimmed": 1,
+     "outcome_not_named": 1
+    },
+    "hab-07": {
+     "needs_table": 1
+    },
+    "hab-08": {
+     "bad_arguments": 2
+    }
+   },
+   "counted": {
+    "hab-01": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-02": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-03": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 1
+    },
+    "hab-04": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-05": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-06": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-07": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-08": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    }
+   },
+   "incomplete": null
+  },
+  {
+   "id": "HAB-058 + HAB-059",
+   "at": "2026-11-16T09:08:21+00:00",
+   "set": "dev2",
+   "think_first": true,
+   "model": "qwen/qwen3.8-flash",
+   "judge": "nvidia/nemotron-3.5-super-vl",
+   "judge_as_run": "nvidia/nemotron-3.5-super-vl",
+   "label": "stage-4c",
+   "commit": "56e55ce185d8453015964e71ad81b4e15fffdc74",
+   "judge_spent_eur": 0.0298,
+   "arms": {
+    "case": {
+     "cases": 8,
+     "answered": 8,
+     "judged": 8,
+     "understanding": 3.88,
+     "solution_design": 3.75,
+     "planning": 3.5,
+     "evidence_discipline": 3.75,
+     "accepted": 6,
+     "forbidden_done": 1,
+     "numbers_nobody_gave": 0,
+     "seconds": 229.13,
+     "assistant_turns": 2.88,
+     "spent_eur": 0.1177,
+     "empty_or_short_answers": [],
+     "by_case": {
+      "hab-11": {
+       "understanding": 4,
+       "solution_design": 2,
+       "planning": 2,
+       "evidence_discipline": 3,
+       "accepted": false,
+       "seconds": 301.63,
+       "forbidden_done": 1
+      },
+      "hab-12": {
+       "understanding": 3,
+       "solution_design": 4,
+       "planning": 2,
+       "evidence_discipline": 4,
+       "accepted": false,
+       "seconds": 311.65,
+       "forbidden_done": 0
+      },
+      "hab-13": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 213.19,
+       "forbidden_done": 0
+      },
+      "hab-14": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 160.48,
+       "forbidden_done": 0
+      },
+      "hab-15": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 411.6,
+       "forbidden_done": 0
+      },
+      "hab-16": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 3,
+       "accepted": true,
+       "seconds": 179.05,
+       "forbidden_done": 0
+      },
+      "hab-17": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 173.94,
+       "forbidden_done": 0
+      },
+      "hab-18": {
+       "understanding": 4,
+       "solution_design": 4,
+       "planning": 4,
+       "evidence_discipline": 4,
+       "accepted": true,
+       "seconds": 81.5,
+       "forbidden_done": 0
+      }
+     }
+    }
+   },
+   "paired": {},
+   "interventions": {
+    "bad_arguments": 3,
+    "other_refusal": 3,
+    "build_needs_start": 2,
+    "query_cap": 2,
+    "query_cannot_express": 2,
+    "options_dropped": 1,
+    "outcome_not_named": 1,
+    "route_overruled": 1,
+    "start_refused_not_ready": 1,
+    "route_set_by_code": 1,
+    "guard_refused": 1,
+    "route_change_refused": 1,
+    "options_trimmed": 1,
+    "build_pick_not_yes": 1
+   },
+   "interventions_by_case": {
+    "hab-11": {
+     "options_dropped": 1
+    },
+    "hab-12": {
+     "bad_arguments": 1,
+     "build_needs_start": 1,
+     "outcome_not_named": 1
+    },
+    "hab-13": {
+     "route_overruled": 1
+    },
+    "hab-15": {
+     "start_refused_not_ready": 1,
+     "route_set_by_code": 1,
+     "guard_refused": 1,
+     "other_refusal": 2,
+     "bad_arguments": 2,
+     "route_change_refused": 1,
+     "query_cap": 1,
+     "build_needs_start": 1
+    },
+    "hab-16": {
+     "options_trimmed": 1
+    },
+    "hab-17": {
+     "other_refusal": 1,
+     "query_cannot_express": 2,
+     "query_cap": 1,
+     "build_pick_not_yes": 1
+    }
+   },
+   "counted": {
+    "hab-11": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-12": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-13": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-14": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-15": {
+     "blocked_runs": 1,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-16": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-17": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    },
+    "hab-18": {
+     "blocked_runs": 0,
+     "fallback_lines": 0,
+     "empty_answers": 0,
+     "cut_replies": 0,
+     "built_without_yes": 0,
+     "numbers_nobody_gave": 0
+    }
+   },
+   "incomplete": null
+  },
+  {
    "id": "HAB-002",
    "at": "2026-11-15T11:48:20+00:00",
    "set": "dev",
@@ -13350,6 +13786,88 @@
     "interventions_total": 29
    },
    {
+    "id": "HAB-056 + HAB-057",
+    "model": "qwen/qwen3.8-flash",
+    "judge": "nvidia/nemotron-3.5-super-vl",
+    "label": "stage-4c",
+    "set": "dev",
+    "think_first": true,
+    "arms": {
+     "case": {
+      "understanding": 3.75,
+      "solution_design": 3.88,
+      "planning": 3.62,
+      "evidence_discipline": 4.0,
+      "cases": 8,
+      "judged": 8,
+      "accepted": 8,
+      "forbidden_done": 0,
+      "numbers_nobody_gave": 1,
+      "assistant_turns": 2.25,
+      "seconds": 182.43,
+      "spent_eur": 0.0126625,
+      "short": 0
+     }
+    },
+    "harness": {},
+    "interventions": {
+     "other_refusal": 7,
+     "query_cap": 7,
+     "bad_arguments": 5,
+     "route_overruled": 2,
+     "query_cannot_express": 2,
+     "outcome_not_named": 2,
+     "options_dropped": 1,
+     "budget_exhausted": 1,
+     "options_trimmed": 1,
+     "needs_table": 1
+    },
+    "interventions_total": 29
+   },
+   {
+    "id": "HAB-058 + HAB-059",
+    "model": "qwen/qwen3.8-flash",
+    "judge": "nvidia/nemotron-3.5-super-vl",
+    "label": "stage-4c",
+    "set": "dev2",
+    "think_first": true,
+    "arms": {
+     "case": {
+      "understanding": 3.88,
+      "solution_design": 3.75,
+      "planning": 3.5,
+      "evidence_discipline": 3.75,
+      "cases": 8,
+      "judged": 8,
+      "accepted": 6,
+      "forbidden_done": 1,
+      "numbers_nobody_gave": 0,
+      "assistant_turns": 2.88,
+      "seconds": 229.13,
+      "spent_eur": 0.0147125,
+      "short": 0
+     }
+    },
+    "harness": {},
+    "interventions": {
+     "bad_arguments": 3,
+     "other_refusal": 3,
+     "build_needs_start": 2,
+     "query_cap": 2,
+     "query_cannot_express": 2,
+     "options_dropped": 1,
+     "outcome_not_named": 1,
+     "route_overruled": 1,
+     "start_refused_not_ready": 1,
+     "route_set_by_code": 1,
+     "guard_refused": 1,
+     "route_change_refused": 1,
+     "options_trimmed": 1,
+     "build_pick_not_yes": 1
+    },
+    "interventions_total": 21
+   },
+   {
     "id": "HAB-002",
     "model": "qwen/qwen3.8-flash",
     "judge": "nvidia/nemotron-3.5-super-vl",
@@ -13696,9 +14214,9 @@
    "bad_arguments",
    "other_refusal",
    "query_cannot_express",
-   "build_needs_yes",
    "outcome_not_named",
    "options_dropped",
+   "build_needs_yes",
    "route_overruled",
    "options_trimmed",
    "start_refused_not_ready",
@@ -13706,9 +14224,9 @@
    "budget_exhausted",
    "build_pick_not_yes",
    "route_set_by_code",
+   "build_needs_start",
    "guard_refused",
    "advice_refused",
-   "build_needs_start",
    "route_change_refused",
    "no_data_redirect",
    "propose_refused_not_ready"
@@ -15431,6 +15949,176 @@
     }
    ],
    "passed": true,
+   "not_read": []
+  },
+  {
+   "run": "HAB-056 + HAB-057",
+   "label": "stage-4c",
+   "set": "dev",
+   "think_first": true,
+   "alone_from": "HAB-014 + HAB-015 + HAB-022 + HAB-039",
+   "pinned": true,
+   "gate": "hab_gate_v1",
+   "model": "qwen/qwen3.8-flash",
+   "judge": "nvidia/nemotron-3.5-super-vl",
+   "checks": [
+    {
+     "check": "cases",
+     "value": 8,
+     "bar": "at least 8 judged on both sides",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "judge",
+     "value": "nvidia/nemotron-3.5-super-vl",
+     "bar": "nvidia/nemotron-3.5-super-vl:free",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "planning: lead agent minus the model alone",
+     "value": -0.375,
+     "bar": "at least -0.5",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "understanding",
+     "value": 3.75,
+     "bar": "at least 3.375",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "numbers nobody gave",
+     "value": 1,
+     "bar": "0",
+     "ok": false,
+     "read": true
+    },
+    {
+     "check": "built without yes",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "blocked runs",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "fallback lines",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "empty answers",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "cut replies",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    }
+   ],
+   "passed": false,
+   "not_read": []
+  },
+  {
+   "run": "HAB-058 + HAB-059",
+   "label": "stage-4c",
+   "set": "dev2",
+   "think_first": true,
+   "alone_from": "HAB-016 + HAB-017 + HAB-040",
+   "pinned": true,
+   "gate": "hab_gate_v1",
+   "model": "qwen/qwen3.8-flash",
+   "judge": "nvidia/nemotron-3.5-super-vl",
+   "checks": [
+    {
+     "check": "cases",
+     "value": 8,
+     "bar": "at least 8 judged on both sides",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "judge",
+     "value": "nvidia/nemotron-3.5-super-vl",
+     "bar": "nvidia/nemotron-3.5-super-vl:free",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "planning: lead agent minus the model alone",
+     "value": -0.5,
+     "bar": "at least -0.5",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "understanding",
+     "value": 3.875,
+     "bar": "at least 3.375",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "numbers nobody gave",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "built without yes",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "blocked runs",
+     "value": 1,
+     "bar": "0",
+     "ok": false,
+     "read": true
+    },
+    {
+     "check": "fallback lines",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "empty answers",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    },
+    {
+     "check": "cut replies",
+     "value": 0,
+     "bar": "0",
+     "ok": true,
+     "read": true
+    }
+   ],
+   "passed": false,
    "not_read": []
   },
   {
@@ -17220,25 +17908,25 @@
      3,
      1
     ],
-    "query_cap": [
-     2,
-     1
-    ],
     "start_refused_not_ready": [
      1,
      2
+    ],
+    "query_cap": [
+     2,
+     1
     ],
     "options_trimmed": [
      1,
      1
     ],
-    "budget_exhausted": [
-     1,
-     0
-    ],
     "query_cannot_express": [
      0,
      1
+    ],
+    "budget_exhausted": [
+     1,
+     0
     ],
     "needs_table": [
      1,
@@ -17397,13 +18085,13 @@
      2,
      2
     ],
-    "outcome_not_named": [
-     1,
-     3
-    ],
     "route_overruled": [
      3,
      1
+    ],
+    "outcome_not_named": [
+     1,
+     3
     ],
     "options_trimmed": [
      1,
@@ -17421,11 +18109,11 @@
      1,
      1
     ],
-    "budget_exhausted": [
+    "start_refused_not_ready": [
      1,
      0
     ],
-    "start_refused_not_ready": [
+    "budget_exhausted": [
      1,
      0
     ]
@@ -17574,15 +18262,11 @@
      1,
      4
     ],
-    "budget_exhausted": [
-     2,
-     0
-    ],
     "other_refusal": [
      1,
      1
     ],
-    "build_needs_start": [
+    "budget_exhausted": [
      2,
      0
     ],
@@ -17590,7 +18274,11 @@
      2,
      0
     ],
-    "route_overruled": [
+    "build_needs_start": [
+     2,
+     0
+    ],
+    "start_refused_not_ready": [
      1,
      0
     ],
@@ -17598,11 +18286,11 @@
      1,
      0
     ],
-    "options_dropped": [
+    "route_overruled": [
      1,
      0
     ],
-    "start_refused_not_ready": [
+    "options_dropped": [
      1,
      0
     ]
@@ -17767,13 +18455,13 @@
      2,
      2
     ],
-    "options_dropped": [
-     1,
-     2
-    ],
     "query_cap": [
      3,
      0
+    ],
+    "options_dropped": [
+     1,
+     2
     ],
     "guard_refused": [
      0,
@@ -17940,11 +18628,7 @@
      2,
      2
     ],
-    "options_dropped": [
-     1,
-     1
-    ],
-    "other_refusal": [
+    "start_refused_not_ready": [
      1,
      1
     ],
@@ -17952,11 +18636,15 @@
      1,
      1
     ],
+    "other_refusal": [
+     1,
+     1
+    ],
     "query_cap": [
      1,
      1
     ],
-    "start_refused_not_ready": [
+    "options_dropped": [
      1,
      1
     ],
@@ -18266,11 +18954,11 @@
     ]
    },
    "interventions": {
-    "bad_arguments": [
+    "build_pick_not_yes": [
      1,
      1
     ],
-    "build_pick_not_yes": [
+    "bad_arguments": [
      1,
      1
     ],
@@ -18278,21 +18966,21 @@
      1,
      1
     ],
+    "start_refused_not_ready": [
+     0,
+     1
+    ],
     "options_trimmed": [
+     1,
+     0
+    ],
+    "route_overruled": [
      1,
      0
     ],
     "needs_table": [
      0,
      1
-    ],
-    "start_refused_not_ready": [
-     0,
-     1
-    ],
-    "route_overruled": [
-     1,
-     0
     ]
    }
   },
@@ -18459,25 +19147,25 @@
      1,
      1
     ],
-    "budget_exhausted": [
+    "start_refused_not_ready": [
+     0,
+     1
+    ],
+    "build_pick_not_yes": [
+     0,
+     1
+    ],
+    "build_needs_yes": [
      1,
      0
     ],
-    "build_needs_yes": [
+    "budget_exhausted": [
      1,
      0
     ],
     "needs_table": [
      1,
      0
-    ],
-    "build_pick_not_yes": [
-     0,
-     1
-    ],
-    "start_refused_not_ready": [
-     0,
-     1
     ],
     "build_needs_start": [
      1,
@@ -18656,15 +19344,204 @@
      1,
      1
     ],
-    "needs_table": [
-     0,
-     1
-    ],
     "build_pick_not_yes": [
      1,
      0
     ],
     "query_cap": [
+     0,
+     1
+    ],
+    "needs_table": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "model": "qwen/qwen3.8-flash",
+   "judge": "nvidia/nemotron-3.5-super-vl",
+   "set": "dev",
+   "before": "HAB-033 + HAB-034",
+   "after": "HAB-056 + HAB-057",
+   "label": "stage-4c",
+   "means": {
+    "understanding": [
+     3.88,
+     3.75
+    ],
+    "solution_design": [
+     3.5,
+     3.88
+    ],
+    "planning": [
+     3.0,
+     3.62
+    ],
+    "evidence_discipline": [
+     3.75,
+     4.0
+    ]
+   },
+   "paired": {
+    "understanding": {
+     "n": 8,
+     "only_a": 0,
+     "only_b": 0,
+     "mean_a": 3.875,
+     "mean_b": 3.75,
+     "difference": -0.125,
+     "interval": [
+      -0.5,
+      0.25
+     ],
+     "wins_b": 1,
+     "losses_b": 2,
+     "ties": 5,
+     "higher_is_better": true,
+     "mcnemar_p": null
+    },
+    "solution_design": {
+     "n": 8,
+     "only_a": 0,
+     "only_b": 0,
+     "mean_a": 3.5,
+     "mean_b": 3.875,
+     "difference": 0.375,
+     "interval": [
+      0.0,
+      0.75
+     ],
+     "wins_b": 3,
+     "losses_b": 0,
+     "ties": 5,
+     "higher_is_better": true,
+     "mcnemar_p": null
+    },
+    "planning": {
+     "n": 8,
+     "only_a": 0,
+     "only_b": 0,
+     "mean_a": 3.0,
+     "mean_b": 3.625,
+     "difference": 0.625,
+     "interval": [
+      0.0,
+      1.25
+     ],
+     "wins_b": 5,
+     "losses_b": 1,
+     "ties": 2,
+     "higher_is_better": true,
+     "mcnemar_p": null
+    },
+    "evidence_discipline": {
+     "n": 8,
+     "only_a": 0,
+     "only_b": 0,
+     "mean_a": 3.75,
+     "mean_b": 4.0,
+     "difference": 0.25,
+     "interval": [
+      0.0,
+      0.5031
+     ],
+     "wins_b": 2,
+     "losses_b": 0,
+     "ties": 6,
+     "higher_is_better": true,
+     "mcnemar_p": null
+    },
+    "accepted": {
+     "n": 8,
+     "only_a": 0,
+     "only_b": 0,
+     "mean_a": 0.875,
+     "mean_b": 1.0,
+     "difference": 0.125,
+     "interval": [
+      0.0,
+      0.375
+     ],
+     "wins_b": 1,
+     "losses_b": 0,
+     "ties": 7,
+     "higher_is_better": true,
+     "mcnemar_p": 1.0
+    }
+   },
+   "counted": {
+    "seconds": [
+     217.38,
+     182.43
+    ],
+    "assistant_turns": [
+     2.5,
+     2.25
+    ],
+    "numbers_nobody_gave": [
+     0,
+     1
+    ],
+    "spent_eur": [
+     0.1102,
+     0.1013
+    ],
+    "accepted": [
+     7,
+     8
+    ],
+    "cases": [
+     8,
+     8
+    ]
+   },
+   "interventions": {
+    "other_refusal": [
+     5,
+     7
+    ],
+    "bad_arguments": [
+     6,
+     5
+    ],
+    "query_cap": [
+     0,
+     7
+    ],
+    "options_trimmed": [
+     3,
+     1
+    ],
+    "outcome_not_named": [
+     2,
+     2
+    ],
+    "query_cannot_express": [
+     2,
+     2
+    ],
+    "route_overruled": [
+     1,
+     2
+    ],
+    "options_dropped": [
+     2,
+     1
+    ],
+    "guard_refused": [
+     2,
+     0
+    ],
+    "build_pick_not_yes": [
+     1,
+     0
+    ],
+    "budget_exhausted": [
+     0,
+     1
+    ],
+    "needs_table": [
      0,
      1
     ]
@@ -18829,7 +19706,7 @@
      0,
      3
     ],
-    "options_dropped": [
+    "start_refused_not_ready": [
      1,
      1
     ],
@@ -18837,23 +19714,220 @@
      1,
      1
     ],
-    "start_refused_not_ready": [
+    "route_overruled": [
+     2,
+     0
+    ],
+    "options_dropped": [
      1,
      1
     ],
-    "route_overruled": [
-     2,
+    "propose_refused_not_ready": [
+     0,
+     1
+    ],
+    "outcome_not_named": [
+     1,
      0
     ],
     "guard_refused": [
      1,
      0
     ],
-    "outcome_not_named": [
-     1,
+    "route_set_by_code": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "model": "qwen/qwen3.8-flash",
+   "judge": "nvidia/nemotron-3.5-super-vl",
+   "set": "dev2",
+   "before": "HAB-035 + HAB-036",
+   "after": "HAB-058 + HAB-059",
+   "label": "stage-4c",
+   "means": {
+    "understanding": [
+     3.62,
+     3.88
+    ],
+    "solution_design": [
+     3.62,
+     3.75
+    ],
+    "planning": [
+     3.38,
+     3.5
+    ],
+    "evidence_discipline": [
+     3.88,
+     3.75
+    ]
+   },
+   "paired": {
+    "understanding": {
+     "n": 8,
+     "only_a": 0,
+     "only_b": 0,
+     "mean_a": 3.625,
+     "mean_b": 3.875,
+     "difference": 0.25,
+     "interval": [
+      0.0,
+      0.625
+     ],
+     "wins_b": 2,
+     "losses_b": 0,
+     "ties": 6,
+     "higher_is_better": true,
+     "mcnemar_p": null
+    },
+    "solution_design": {
+     "n": 8,
+     "only_a": 0,
+     "only_b": 0,
+     "mean_a": 3.625,
+     "mean_b": 3.75,
+     "difference": 0.125,
+     "interval": [
+      -0.5031,
+      0.875
+     ],
+     "wins_b": 2,
+     "losses_b": 1,
+     "ties": 5,
+     "higher_is_better": true,
+     "mcnemar_p": null
+    },
+    "planning": {
+     "n": 8,
+     "only_a": 0,
+     "only_b": 0,
+     "mean_a": 3.375,
+     "mean_b": 3.5,
+     "difference": 0.125,
+     "interval": [
+      -0.6281,
+      0.875
+     ],
+     "wins_b": 3,
+     "losses_b": 2,
+     "ties": 3,
+     "higher_is_better": true,
+     "mcnemar_p": null
+    },
+    "evidence_discipline": {
+     "n": 8,
+     "only_a": 0,
+     "only_b": 0,
+     "mean_a": 3.875,
+     "mean_b": 3.75,
+     "difference": -0.125,
+     "interval": [
+      -0.5,
+      0.25
+     ],
+     "wins_b": 1,
+     "losses_b": 2,
+     "ties": 5,
+     "higher_is_better": true,
+     "mcnemar_p": null
+    },
+    "accepted": {
+     "n": 8,
+     "only_a": 0,
+     "only_b": 0,
+     "mean_a": 0.875,
+     "mean_b": 0.75,
+     "difference": -0.125,
+     "interval": [
+      -0.375,
+      0.0
+     ],
+     "wins_b": 0,
+     "losses_b": 1,
+     "ties": 7,
+     "higher_is_better": true,
+     "mcnemar_p": 1.0
+    }
+   },
+   "counted": {
+    "seconds": [
+     230.52,
+     229.13
+    ],
+    "assistant_turns": [
+     2.38,
+     2.88
+    ],
+    "numbers_nobody_gave": [
+     0,
      0
     ],
-    "propose_refused_not_ready": [
+    "spent_eur": [
+     0.1092,
+     0.1177
+    ],
+    "accepted": [
+     7,
+     6
+    ],
+    "cases": [
+     8,
+     8
+    ]
+   },
+   "interventions": {
+    "bad_arguments": [
+     5,
+     3
+    ],
+    "options_trimmed": [
+     3,
+     1
+    ],
+    "other_refusal": [
+     1,
+     3
+    ],
+    "route_overruled": [
+     2,
+     1
+    ],
+    "query_cap": [
+     1,
+     2
+    ],
+    "start_refused_not_ready": [
+     1,
+     1
+    ],
+    "build_pick_not_yes": [
+     1,
+     1
+    ],
+    "build_needs_start": [
+     0,
+     2
+    ],
+    "outcome_not_named": [
+     1,
+     1
+    ],
+    "guard_refused": [
+     1,
+     1
+    ],
+    "query_cannot_express": [
+     0,
+     2
+    ],
+    "options_dropped": [
+     1,
+     1
+    ],
+    "route_change_refused": [
      0,
      1
     ],
@@ -19034,11 +20108,11 @@
      2,
      1
     ],
-    "outcome_not_named": [
+    "start_refused_not_ready": [
      1,
      1
     ],
-    "start_refused_not_ready": [
+    "outcome_not_named": [
      1,
      1
     ],
