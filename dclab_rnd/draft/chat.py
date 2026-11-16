@@ -2127,6 +2127,8 @@ class HomeAgent:
                     "it runs each stage, checks it, and reports the holdout number with its interval.")
         else:
             text = done.get("note") or "The project is built."
+        if done.get("plan_note"):  # H5: what the plan did to the solution before the first stage, said where the build is said
+            text += "\n\n" + str(done["plan_note"])
         text += ("\n\nThe plan:\n" + "\n".join(steps)) if steps else ""
         self.say(draft_id, text, kind="build", project_id=done.get("project_id"), session_id=done.get("session_id"))
 

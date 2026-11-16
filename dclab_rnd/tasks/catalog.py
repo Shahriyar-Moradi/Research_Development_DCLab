@@ -299,6 +299,20 @@ def deterministic_catalog_plan(
     }
 
 
+def rules_plan(brief: str, tables: Mapping[str, list[str]], known_facts: Mapping[str, Any] | None = None, *,
+               frames: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """The rules' whole plan for a problem, with no model: its checks, what each found on the training rows, the
+    breakdown and the path. What Home's build applies before the first stage, and what a project's page shows."""
+    facts = dict(known_facts or {})
+    det = deterministic_catalog_plan(brief, tables, facts)
+    calls = [CatalogTaskCall.model_validate(c) for c in det["calls"]]
+    rows = [execute_catalog_task(c, tables=tables, known_facts=facts, frames=frames) for c in calls]
+    decomposition = rules_decomposition(brief, facts)
+    return {**det, "routed_to": "rules", "subproblems": [kind_of(facts)], "caught_traps": _collect_traps([], decomposition, rows),
+            "decomposition": decomposition.model_dump(mode="json"), "citations": [], "revisions": 1, "extra_prompts": 0, "cost_usd": 0.0,
+            "path": solution_path(decomposition, calls, rows)}
+
+
 def _extract_json(text: str) -> dict[str, Any]:
     raw = text.strip()
     if raw.startswith("```"):

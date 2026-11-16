@@ -86,11 +86,43 @@ def _synthetic_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[st
 
 # ---------------------------------------------------------------------- intern turns: the first run, or a follow-up message
 
+def _plan_first(s: Any, session_id: str) -> None:
+    """H5 (the owner, 2026-11-16): before the stages of a project run as a job, its plan is made and what it catches is
+    applied (``tasks.path``). Here, in the job, the model may plan with room (minutes: never in a web request), when the
+    workspace's switch allows model plans and the project is not private. Nothing is changed once a stage has run, and
+    a plan that cannot be made never stops the stages."""
+    try:
+        from ..tasks import path as task_path
+
+        project_id = (s.intern_sessions.get(session_id) or {}).get("project_id")
+        if not project_id:
+            return
+        project = s.projects.get(project_id)
+        if task_path.began(project) or not project.get("solution"):
+            return
+        use_model = False
+        try:
+            from ..extensions import optional
+
+            team_settings = optional("orchestra.settings")
+            use_model = bool(team_settings is not None and team_settings.settings(s.store.home).get("admit_proposals")
+                             and not (project.get("settings") or {}).get("private") and s.gateway.available("task_decomposer"))
+        except Exception:  # noqa: BLE001 - no switch to read: the rules plan
+            use_model = False
+        if use_model:  # with no model the rules' plan was made at the build, in the request
+            task_path.plan_project(s.projects, project_id, gateway=s.gateway, use_model=True)
+    except Exception:  # noqa: BLE001
+        pass
+    checkpoint()  # a person's Stop between the plan and the first stage is obeyed
+
+
 def _intern_run(s: Any, payload: dict[str, Any]) -> None:
     agent = s.intern()
     if payload.get("action") == "message":
         agent.message(payload["session_id"], payload.get("text") or "", again=True)
     else:
+        if payload.get("plan_first"):  # Home's build only: a session a person starts on their own project is never planned for them
+            _plan_first(s, payload["session_id"])
         agent.run(payload["session_id"])
 
 

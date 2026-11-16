@@ -1215,6 +1215,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                 drafts.update(draft_id, lambda d: d.update(column_check_pending={"item": waiting[0], "moment": moment, "target": target}))
                 raise HTTPException(409, checks.question(waiting[0], moment), headers={"X-DCLab-Rule": "column check"})
             decided = {i["column"]: checks.decide(i, answers[i["column"]]) for i in items}
+            # H5: a column the person just said is known at the prediction moment is theirs to keep: the plan never keeps it out
+            drafts.update(draft_id, lambda d: d.update(person_kept=sorted(c for c, (keep, _why) in decided.items() if keep)))
             note += "".join(" " + why for _, why in decided.values())
             kinded = proposal.get("kind_proposed") is not None  # S9 (the review): the kind the card understood, with its fields and metric
             body = {"target": proposal.get("target") if kinded else target, "task": task, "prediction_moment": moment,
@@ -1243,6 +1245,19 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                 raise HTTPException(409, str(blockers[0]), headers={"X-DCLab-Rule": blockers[0].rule})
         built_id = get(draft_id).get("project_id")
         project = projects.get(built_id) if built_id else await build(draft_id)
+        plan_note = None
+        if project.get("solution"):
+            # H5 (the owner, 2026-11-16: "Yes, do it"): the plan is made and what it catches is applied before the first
+            # stage runs. Here the rules' plan (instant, no model); the model's plan, which takes minutes, is made in the
+            # stages' job. Build project itself is unchanged: this runs after it, on the project it made.
+            try:
+                from ..tasks import path as task_path
+
+                kept = list(get(draft_id).get("person_kept") or [])
+                plan_note = task_path.says(await asyncio.to_thread(lambda: task_path.plan_project(projects, project["id"], person_kept=kept)))
+                project = projects.get(project["id"])
+            except Exception:  # noqa: BLE001 - a plan that cannot be made never stops a build
+                plan_note = None
         draft = get(draft_id)
         plan = [f"{n.get('label')}: {str(n.get('detail') or '').strip()}"[:220].rstrip(": ")
                 for n in (draft.get("workflow") or {}).get("nodes") or [] if n.get("label")]
@@ -1257,14 +1272,17 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                     "(its target, prediction moment and forbidden columns); plan, run and check each stage, then report.")
             try:
                 session = await asyncio.to_thread(svc.intern().start, task[:4000], budget, project["id"], by="system")
-                await asyncio.to_thread(svc.start_intern_job, session["id"], {"action": "run"}, False)
+                # plan_first: this build's own job may make the model's plan before its first stage (jobs/handlers.py)
+                await asyncio.to_thread(svc.start_intern_job, session["id"], {"action": "run", "plan_first": True}, False)
                 session_id = session["id"]
             except HTTPException as exc:  # a job limit reached: the project stands, and the person is told how to go on
                 reason = exc.detail.get("message") if isinstance(exc.detail, dict) else str(exc.detail)
                 return {"project_id": project["id"], "name": project.get("name"), "started": False, "session_id": None, "plan": plan[:10],
+                        "plan_note": plan_note,
                         "note": f"The project is built, but the agent could not start: {reason} Open the project to start its stages."}
         return {"project_id": project["id"], "name": project.get("name"), "started": session_id is not None, "session_id": session_id,
-                "plan": plan[:10], "note": None if session_id else "The project is built; start its stages from the project page."}
+                "plan": plan[:10], "plan_note": plan_note,
+                "note": None if session_id else "The project is built; start its stages from the project page."}
 
     @router.post("/api/drafts/{draft_id}/build/run", status_code=201, response_model=Doc)
     async def build_and_run(draft_id: str, payload: AnyObject | None = Body(None)):

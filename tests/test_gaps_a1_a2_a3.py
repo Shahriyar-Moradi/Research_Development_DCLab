@@ -33,22 +33,30 @@ class TestGapA1ClearRequestTrap(unittest.TestCase):
         self.assertTrue(r.may_propose)
 
     def test_clear_note_injected_on_turn_1_when_clear_on_arrival(self):
-        table = {"table": "telco.csv", "rows": 1000, "columns": [{"name": "customer_id"}, {"name": "churn"}]}
-        case = C.new("c5", [])
-        state = CA.CaseState(case=case, table=table)
-        client = MagicMock()
-        client.complete.return_value = {
-            "content": "Here are options",
-            "tool_calls": [],
-            "usage": {"input_tokens": 10, "output_tokens": 10},
-            "assistant_message": {"role": "assistant", "content": "Here are options"}
-        }
-        CA.turn(state, client, "Predict churn on my customers before renewal")
-        self.assertTrue(state.clear_on_arrival)
-        built_messages = client.complete.call_args[0][0]
-        sys_or_user = " ".join(str(m.get("content", "")) for m in built_messages)
-        self.assertIn("crystal-clear on arrival", sys_or_user)
-        self.assertIn("Do NOT ask clarifying questions", sys_or_user)
+        import os
+        from unittest import mock
+
+        # think first is the lead agent's default since 2026-11-16 (the owner's decision); 0 puts the first prompt back.
+        # Either way a request that is clear on arrival is told so, and told not to ask clarifying questions.
+        for switch, said in (("0", ("crystal-clear on arrival", "Do NOT ask clarifying questions")),
+                             ("1", ("clear on arrival", "Do not ask clarifying"))):
+            with self.subTest(think_first=switch), mock.patch.dict(os.environ, {"DCLAB_CASE_THINK_FIRST": switch}):
+                table = {"table": "telco.csv", "rows": 1000, "columns": [{"name": "customer_id"}, {"name": "churn"}]}
+                case = C.new("c5", [])
+                state = CA.CaseState(case=case, table=table)
+                client = MagicMock()
+                client.complete.return_value = {
+                    "content": "Here are options",
+                    "tool_calls": [],
+                    "usage": {"input_tokens": 10, "output_tokens": 10},
+                    "assistant_message": {"role": "assistant", "content": "Here are options"}
+                }
+                CA.turn(state, client, "Predict churn on my customers before renewal")
+                self.assertTrue(state.clear_on_arrival)
+                built_messages = client.complete.call_args[0][0]
+                sys_or_user = " ".join(str(m.get("content", "")) for m in built_messages)
+                for words in said:
+                    self.assertIn(words, sys_or_user)
 
     def test_propose_allowed_on_turn_1_when_clear_on_arrival(self):
         table = {"table": "t", "rows": 100, "columns": [{"name": "x"}, {"name": "churn"}]}

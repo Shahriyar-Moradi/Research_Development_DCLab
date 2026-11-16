@@ -92,6 +92,48 @@ def _atomic_specs(g):
     return result
 
 
+def change_solution(projects, project_id, changes, actor):
+    """The solution with these stricter changes, saved through the validated move (the graph's check, its log, the
+    project's memory, the audit trail). None when saved; else why the move was refused."""
+    from dclab_rnd import audit as trail
+    from dclab_rnd.studio import graph as studio_graph
+    from dclab_rnd.studio import memory as studio_memory
+    from dclab_rnd.studio import solution as studio_solution
+
+    project = projects.get(project_id)
+    fields = dict(project.get("solution") or {})
+    forbidden = list(fields.get("forbidden") or [])
+    for change in changes:
+        if change["field"] == "forbidden":
+            forbidden.append({"column": change["value"], "reason": str(change["why"])[:300]})
+        else:
+            fields[change["field"]] = change["value"]
+    fields["forbidden"] = forbidden
+    try:
+        solution = studio_solution.Solution(**{k: v for k, v in fields.items() if v not in (None, "", [])})
+        label_target = (project.get("labels") or {}).get("target")
+        solution.check_columns(list(project["data"]["columns"]) + ([label_target] if label_target else []))
+    except Exception as error:  # noqa: BLE001 - a change the solution's own rules refuse is said, never forced
+        return str(error)[:200]
+    verdict = studio_graph.check(project, "set_solution", actor, target=solution.target)
+    studio_graph.log(projects, project_id, verdict, project)
+    if not verdict.allowed:
+        return str(verdict.message)
+    before = project.get("solution")
+    project["solution"] = solution.model_dump()
+    studio_memory.solution_saved(project, before, project["solution"], actor)
+    projects.save(project)
+    trail.solution(projects, project, project["solution"], actor)
+    try:  # the per-column decision beside the proposal, as every other saved solution records it
+        from dclab_rnd.ledger import capture
+
+        capture.solution_saved(project.get("proposal"), (project.get("data") or {}).get("profile"), project["solution"],
+                               "human" if actor == "human" else "rule", project=project_id)
+    except Exception:  # noqa: BLE001 - capture is best effort: it never undoes a saved, validated change
+        pass
+    return None
+
+
 class TaskDispatcher:
     def __init__(self, projects, checkpointer, *, enabled=False, registry=None, allowed_tools=None, budget=None, admit_proposals=False,
                  gateway=None, planning_budget=None):
@@ -721,45 +763,7 @@ class TaskDispatcher:
         return fresh
 
     def _change_solution(self, project_id, changes, actor):
-        """The solution with these stricter changes, saved through the validated move (the graph's check, its log, the
-        project's memory, the audit trail). None when saved; else why the move was refused."""
-        from dclab_rnd import audit as trail
-        from dclab_rnd.studio import graph as studio_graph
-        from dclab_rnd.studio import memory as studio_memory
-        from dclab_rnd.studio import solution as studio_solution
-
-        project = self.projects.get(project_id)
-        fields = dict(project.get("solution") or {})
-        forbidden = list(fields.get("forbidden") or [])
-        for change in changes:
-            if change["field"] == "forbidden":
-                forbidden.append({"column": change["value"], "reason": str(change["why"])[:300]})
-            else:
-                fields[change["field"]] = change["value"]
-        fields["forbidden"] = forbidden
-        try:
-            solution = studio_solution.Solution(**{k: v for k, v in fields.items() if v not in (None, "", [])})
-            label_target = (project.get("labels") or {}).get("target")
-            solution.check_columns(list(project["data"]["columns"]) + ([label_target] if label_target else []))
-        except Exception as error:  # noqa: BLE001 - a change the solution's own rules refuse is said, never forced
-            return str(error)[:200]
-        verdict = studio_graph.check(project, "set_solution", actor, target=solution.target)
-        studio_graph.log(self.projects, project_id, verdict, project)
-        if not verdict.allowed:
-            return str(verdict.message)
-        before = project.get("solution")
-        project["solution"] = solution.model_dump()
-        studio_memory.solution_saved(project, before, project["solution"], actor)
-        self.projects.save(project)
-        trail.solution(self.projects, project, project["solution"], actor)
-        try:  # the per-column decision beside the proposal, as every other saved solution records it
-            from dclab_rnd.ledger import capture
-
-            capture.solution_saved(project.get("proposal"), (project.get("data") or {}).get("profile"), project["solution"],
-                                   "human" if actor == "human" else "rule", project=project_id)
-        except Exception:  # noqa: BLE001 - capture is best effort: it never undoes a saved, validated change
-            pass
-        return None
+        return change_solution(self.projects, project_id, changes, actor)
 
     def plan_unenforced(self, project_id):
         """What the plan caught that the solution still does not enforce and the person did not waive (for the final gate)."""

@@ -70,6 +70,10 @@ def _catalog_view(cp, statuses):
             q = str(u.get('question') or '').strip()[:240]
             if q and not any(item['question'] == q for item in questions):
                 questions.append({'field': str(u.get('field') or 'other')[:40], 'question': q})
+    for a in ((cp.get('enforcement') or {}).get('asked') or ()) if isinstance(cp.get('enforcement'), dict) else ():
+        q = str((a or {}).get('question') or '').strip()[:400]  # what the plan caught and code could not decide
+        if q and not any(item['question'] == q for item in questions):
+            questions.append({'field': str(a.get('field') or 'other')[:40], 'question': q})
     return {
         'routed_to': cp.get('routed_to'),
         'mode': cp.get('mode'),
@@ -98,42 +102,51 @@ _SHOWN: dict = {}  # a shown-only plan per project state (names and counts, neve
 
 
 def _rules_plan(projects, project, statuses):
-    """A project with no stored plan (built from Home, or never walked by the team) still shows its path: the rules'
-    plan, made for display from the names of its columns, and whether the built model followed it (``enforced.obeyed``:
-    a column the plan caught must be kept out of the final model, a split the plan asked for must be the split used).
-    Nothing is stored, nothing is changed, no model is asked."""
-    from dclab_core.task_catalog import CatalogTaskCall, solution_path
+    """A project with no task state still shows its path. When its plan was made before its stages (Home's build,
+    ``tasks.path``) that stored plan is shown, with what was done about each catch. Otherwise the rules' plan is made
+    for display from the names of its columns. Either way the page says whether what was built follows the plan
+    (``enforced.obeyed``: a column the plan caught must be kept out of the final model, a split the plan asked for
+    must be the split used). Nothing is stored here, nothing is changed, no model is asked."""
     from dclab_core.task_fingerprints import metadata_fingerprint
     from dclab_rnd.tasks import enforced
-    from dclab_rnd.tasks.catalog import _collect_traps, deterministic_catalog_plan, execute_catalog_task, project_catalog_inputs, rules_decomposition
+    from dclab_rnd.tasks import path as task_path
+    from dclab_rnd.tasks.catalog import project_catalog_inputs, rules_plan
 
-    # the table is read once for a project as it stands (its data, its solution, its stages), not on every look at the page
+    kept = task_path.stored(project)
+    # the table is read once for a project as it stands (its data, its solution, its stages, its plan), not on every look
     key = (project.get('id'), metadata_fingerprint({'data': (project.get('data') or {}).get('sha256'), 'solution': project.get('solution'),
-                                                    'stages': {k: (v or {}).get('run') for k, v in (project.get('stages') or {}).items()}}))
+                                                    'stages': {k: (v or {}).get('run') for k, v in (project.get('stages') or {}).items()},
+                                                    'plan': (kept or {}).get('made_at'), 'asked': len(((kept or {}).get('enforcement') or {}).get('asked') or [])}))
     if key in _SHOWN:
         return _catalog_view(_SHOWN[key], statuses)
     brief, tables, facts, _, frames = project_catalog_inputs(projects, project)
-    det = deterministic_catalog_plan(brief, tables, facts)
-    calls = [CatalogTaskCall.model_validate(c) for c in det['calls']]
-    rows = [execute_catalog_task(c, tables=tables, known_facts=facts, frames=frames) for c in calls]
-    # this view never returns the project's goal text (TP-07: free text stays out of a progress response): the shown plan
-    # names its one sub-problem by the outcome's column
-    decomp = rules_decomposition(f"Predict {facts['target']}" if facts.get('target') else "The project's goal", facts)
-    traps = _collect_traps([], decomp, rows)
+    if kept is not None:
+        # kept on the project, with what was done about each catch; its open questions are settled by changing the
+        # solution on the project's page (no team walk holds this plan), so the page lists them without an answer box
+        plan = {**kept, 'owner_confirmed': True, 'stored': False, 'mode': 'made before the stages'}
+        solution = project.get('solution') or {}
+        out_now = enforced.forbidden_columns(solution)
+        record = dict(kept.get('enforcement') or {})
+        # a question the person has since settled on the solution's page is no longer open
+        record['asked'] = [a for a in record.get('asked') or [] if not (
+            (a.get('field') == 'forbidden' and a.get('value') in out_now) or (a.get('field') in ('time_column', 'group_column') and solution.get(a.get('field'))))]
+        plan['enforcement'] = record
+    else:
+        # this view never returns the project's goal text for a plan it only shows (TP-07: free text stays out of a
+        # progress response): the shown plan names its one sub-problem by the outcome's column
+        plan = {**rules_plan(f"Predict {facts['target']}" if facts.get('target') else "The project's goal", tables, facts, frames=frames),
+                'mode': 'shown, not stored', 'stored': False, 'owner_confirmed': True}
     stages = {}
     for name in ('data', 'leakage', 'features', 'models', 'final'):
         record = projects.read_stage(project['id'], name)
         if record:
             stages[name] = record
     columns = [c for cols in tables.values() for c in cols]
-    records = enforced.obeyed(traps, project.get('solution') or {}, stages, columns)
+    records = enforced.obeyed(plan.get('caught_traps') or [], project.get('solution') or {}, stages, columns)
     summary = enforced.summary(records)
-    plan = {'routed_to': 'rules', 'mode': 'shown, not stored', 'stored': False, 'decomposition': decomp.model_dump(mode='json'),
-            'calls': det['calls'], 'selected_tasks': det['selected_tasks'], 'subproblems': [decomp.subproblems[0].kind],
-            'caught_traps': traps, 'revisions': 1, 'owner_confirmed': True, 'path': solution_path(decomp, calls, rows),
-            'followed': {'caught': summary['caught'], 'checked': summary['read'], 'followed': summary['enforced'],
-                         'not_followed': [{'trap': r['trap'], 'column': r['column'], 'how': r['how']} for r in records
-                                          if r.get('enforceable') and r.get('enforced') is False]}}
+    plan['followed'] = {'caught': summary['caught'], 'checked': summary['read'], 'followed': summary['enforced'],
+                        'not_followed': [{'trap': r['trap'], 'column': r['column'], 'how': r['how']} for r in records
+                                         if r.get('enforceable') and r.get('enforced') is False]}
     if len(_SHOWN) >= 64:
         _SHOWN.clear()
     _SHOWN[key] = plan

@@ -1,0 +1,72 @@
+{
+ "package": "planning-h5-home-plan-first",
+ "title": "Hierarchical Planning H5: Home's build makes the plan and applies it before the first stage",
+ "date": "2026-11-16",
+ "request": "The owner's yes to: let Home's build make and follow the plan before its stages run. Until now a project built from Home ran its five stages with no plan; the path was drawn afterwards, for display, with a warning when the model had not followed it.",
+ "spec": "Build project itself stays as it is (its route, button, handler and function are pinned by a test). Code owns the split and what is kept out; nothing a person decided is overridden; nothing is changed once a stage has run; a model's plan is made in a job, never in a web request.",
+ "plan": [
+  "one entry, tasks/path.py plan_project: the plan, its catches as stricter solution changes through the validated move, the plan kept on the project with what was done",
+  "Home's build it: the rules' plan right after the project is made (instant, no model), said in the build's message",
+  "the build's own stages job: the model's plan with room, before the first stage, when the workspace allows model plans and the project is not private",
+  "the project page shows the kept plan, its open questions and whether what was built follows it"
+ ],
+ "decisions": [
+  {"decision": "Nobody is in the room when this runs, so only what code itself confirms is applied; the rest is a question", "why": "the review: a model's word alone had set the split on a column that is not a time, and a catch about a related table's column had kept out a different column of the main table"},
+  {"decision": "A solution the person wrote or signed is never changed, and a column the person said is known beforehand stays in, in the model's later plan too", "why": "the review: only a signature counted as the person's word, so an answer given seconds earlier was overridden"},
+  {"decision": "Only the build's own job plans first", "why": "the review: the hook ran on every intern session, also one a person starts on a project they configured by hand; the owner approved it for Home's build"},
+  {"decision": "The model is asked outside the project's lock, and its plan is dropped if the solution changed meanwhile", "why": "its answer takes minutes; every write to the project would have waited, and the person's edit would have been overwritten"},
+  {"decision": "A project of several parts, a solution map or a kind with no outcome column is left alone", "why": "the rules' plan and its checks are about one table and one outcome"}
+ ],
+ "change": "New dclab_rnd/tasks/path.py; quick_build in draft/api.py (after the pinned build), the build message in draft/chat.py, jobs/handlers.py (_plan_first, plan_first in the job's payload), tasks/view.py (the kept plan, settled questions), tasks/dispatch.py (change_solution as a function), tasks/catalog.py (rules_plan), the project page's text, CLAUDE.md.",
+ "findings": [
+  {"id": "H5-R1", "source": "reviewer", "severity": "leakage",
+   "defect": "A catch about a related table's column was applied to a different column of the main table.",
+   "scenario": "The main table has status and amount; a related table has closed_status and final_amount. The rules caught the related table's two columns, and the main table's status and amount were kept out: neither had been caught.",
+   "cause": "a trap is read by the column its name ends with, which was fine for reading whether a plan was obeyed and wrong for driving a change",
+   "fix": "a column is kept out only when a check of the plan is on that very column of the main table and code found it; a catch with no such check is neither a change nor a question",
+   "test": "tests/test_path_plan.py test_a_catch_about_a_related_tables_column_is_never_moved_onto_the_main_table"},
+  {"id": "H5-R2", "source": "reviewer", "severity": "leakage",
+   "defect": "A model's plan set the split on any column it named.",
+   "scenario": "The model's plan checks a time split on tenure: the time column became tenure, so the holdout was the longest-tenure customers; a group on a column of three values made whole groups the holdout.",
+   "cause": "a named column was only checked to exist",
+   "fix": "a split by time only on a column code reads as a time, a group only on a column code reads as an entity (many distinct values that repeat); otherwise the person is asked",
+   "test": "tests/test_path_plan.py test_a_models_word_alone_sets_no_split_and_keeps_no_column_out"},
+  {"id": "H5-R3", "source": "reviewer", "severity": "behaviour",
+   "defect": "The plan overrode what the person had just decided, and ran on every intern session.",
+   "scenario": "The person answers that a column is known at the prediction moment, so it stays a feature; seconds later the plan kept it out by its name. A person starts an intern session on a project they wrote by hand: the plan changed their solution and said nothing.",
+   "cause": "only a signature counted as the person's word, and the hook was in the handler of every intern run",
+   "fix": "a solution saved by a person is only ever asked about; the person's kept columns are passed to the plan and recorded as their decision; the hook runs only when the build's own job says so",
+   "test": "tests/test_path_plan.py test_a_solution_the_person_wrote_is_never_changed, test_a_column_the_person_said_is_known_stays_in_now_and_in_the_models_later_plan, test_only_the_builds_own_job_plans_first"},
+  {"id": "H5-R4", "source": "reviewer", "severity": "behaviour",
+   "defect": "The project's lock was held while the model thought, for minutes.",
+   "scenario": "The person saves the solution while the model plans: the save waits, or is overwritten by the plan's changes.",
+   "cause": "the model request was inside the project's turn",
+   "fix": "the project is read under the lock, the model asked outside it, and the plan applied under the lock only if the solution and the stages are as they were",
+   "test": "tests/test_path_plan.py test_a_solution_changed_while_the_model_thought_is_left_as_the_person_made_it"},
+  {"id": "H5-S1", "source": "self", "severity": "behaviour",
+   "defect": "After the first review fix a question about the wrong column still reached the person.",
+   "scenario": "When the plan had kept out as many columns as it may, the next catch became a question before the check that it was about this column at all.",
+   "cause": "the question path ran before the confirmation",
+   "fix": "the confirmation comes first, for a change and for a question alike",
+   "test": "tests/test_path_plan.py test_a_catch_about_a_related_tables_column_is_never_moved_onto_the_main_table"},
+  {"id": "H5-R5", "source": "reviewer", "severity": "gap",
+   "defect": "A question the person had settled on the solution's page stayed open on the plan.",
+   "scenario": "The plan asks about a column; the person keeps it out by hand; the page still said the question waited for them.",
+   "cause": "the kept questions were never read again against the solution",
+   "fix": "the page drops a question the solution now answers",
+   "test": "tests/test_path_plan.py test_a_question_the_person_settled_on_the_solution_is_no_longer_open"}
+ ],
+ "measurements": [],
+ "outcome": "A project built from Home's build it gets its plan before its first stage: what code confirms is applied and said in the build's message, the rest is a question on the project's page. Not measured live on Home yet. A project built with the wizard and started by hand still gets no plan, by design: its solution is the person's.",
+ "lessons": [
+  "A helper that was safe for reading (which column does this trap name) is not safe for writing: driving a change needs an exact match.",
+  "When no person is in the loop, a model's word must be confirmed by code before it changes anything.",
+  "An approval for one flow is not an approval for every flow that shares its handler."
+ ],
+ "risks": [
+  "The model's plan adds minutes before the first stage of a Home build when model plans are switched on.",
+  "A column is kept out only when its name is one the product's own leakage audit keeps out; an honest column with such a name stays out until the person puts it back, after which it is never touched again.",
+  "No live run of Home's build with the plan yet; the gate hp_gate_v1 is still not run."
+ ],
+ "commits": []
+}
