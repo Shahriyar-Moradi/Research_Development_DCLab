@@ -157,7 +157,7 @@ class RulesFirstHomeTests(unittest.TestCase):
         self.assertEqual(saved["assets"], [])  # nothing made up: no table exists after the answer
         message = next(m for m in saved["messages"] if m.get("kind") == "no_data_solution")
         self.assertEqual(message["actions"], ["ask_simulate", "copy_spec"])
-        self.assertEqual([n["title"] for n in message["solution"]["card"]["notes"]][-1], "A second reader's findings")
+        self.assertNotIn("A second reader's findings", [n["title"] for n in message["solution"]["card"]["notes"]])  # off by default: it did not earn its time
         self.assertTrue(message["solution"]["simulation"]["questions"])  # made-up data begins with questions, never with a table
 
     def test_with_no_model_a_prediction_gets_the_first_designs_rules_and_a_decision_gets_a_plain_note(self):

@@ -703,7 +703,7 @@ class DataLimitTests(unittest.TestCase):
                              "assistant_message": {"role": "assistant", "content": text}}
         with mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "0"}):
             out = nodata.solve("We have no data yet. Should we call customers who may leave?",
-                               gateway=gateway({"no_data_architect": [said(answer)], "no_data_critic": [said("No serious weakness found.")]}))
+                               gateway=gateway({"no_data_architect": [said(answer)], "no_data_critic": [said("No serious weakness found.")]}), second_reader=True)
         self.assertEqual((out["mode"], out["calls"]), ("architect", ["architect", "critic"]))
         self.assertEqual(self.assertWithinLimit("no_data_architect"), set())
         self.assertEqual(self.assertWithinLimit("no_data_critic"), set())

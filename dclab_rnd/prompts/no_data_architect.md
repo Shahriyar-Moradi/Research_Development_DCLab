@@ -41,7 +41,9 @@ closing note) is the outcome in another form: its role is `label` or `not used`.
 one row is, the moment of the decision, and how the label is defined and how long it takes to be known.
 
 ## Model
-Only when the need is `full` or `simulate`. A simple baseline first, then the model, how it is tested (how the data is
+Only when the need is `full` or `simulate`. Solve the problem they brought: a request for groups is answered with
+grouping, a price or a quantity with an estimate of it; do not turn it into a prediction of some other outcome. A
+simple baseline first, then the model, how it is tested (how the data is
 split, and the measure), and how its score becomes the decision. Name the kind of problem in the last line of this
 section, as `Kind: ...`.
 

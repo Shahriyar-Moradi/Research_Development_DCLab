@@ -271,7 +271,7 @@ class SolveTests(unittest.TestCase):
     def test_a_sound_answer_is_one_pass_and_one_second_reading(self):
         writer, reader = Client(GOOD), Client("- It never asks how often a call works.\n- It assumes 50% of calls work.")
         with live():
-            out = nodata.solve(GYM, gateway=Gateway(no_data_architect=writer, no_data_critic=reader), draft_id="d1")
+            out = nodata.solve(GYM, gateway=Gateway(no_data_architect=writer, no_data_critic=reader), draft_id="d1", second_reader=True)
         self.assertEqual((out["mode"], out["need"], out["calls"], out["repaired"]), ("architect", "full", ["architect", "critic"], False))
         self.assertEqual(out["critic"], ["It never asks how often a call works."])  # a finding with a number nobody gave is dropped
         self.assertEqual(out["sums"]["verified"], ["90 / 2,400 = 3.75%"])
@@ -285,6 +285,12 @@ class SolveTests(unittest.TestCase):
         self.assertIn("Checks DCLab will run when real data arrives", shown)
         self.assertEqual(economics.unsaid(shown, [GYM, *out["economics"]["as_said"]]), [])  # every number shown is the person's or code's
         self.assertEqual(out["economics"]["as_said"], ["90 / 2,400 = 3.75%"])  # code's sums and the checked ones only: never the design's own notes
+
+    def test_the_second_reader_is_off_unless_asked_for(self):
+        reader = Client("- A finding.")
+        with live():
+            out = nodata.solve(GYM, gateway=Gateway(no_data_architect=Client(GOOD), no_data_critic=reader))
+        self.assertEqual((out["calls"], out["critic"], len(reader.seen)), (["architect"], [], 0))
 
     def test_a_failed_check_is_sent_back_once_and_never_twice(self):
         bad = GOOD.replace("| after | not used |", "| after | input |")
@@ -326,7 +332,7 @@ class SolveTests(unittest.TestCase):
     def test_the_second_reader_may_number_its_findings_and_one_line_never_drops_the_others(self):
         reader = Client("1. It never asks how often a call works.\n2. No serious weakness found in the table.\n- The plan has no owner.")
         with live():
-            out = nodata.solve(GYM, gateway=Gateway(no_data_architect=Client(GOOD), no_data_critic=reader))
+            out = nodata.solve(GYM, gateway=Gateway(no_data_architect=Client(GOOD), no_data_critic=reader), second_reader=True)
         self.assertEqual(out["critic"], ["It never asks how often a call works.", "The plan has no owner."])
 
     def test_a_persian_speaker_reads_persian_headings_and_the_checks_still_read_the_answer(self):
@@ -352,7 +358,7 @@ class SolveTests(unittest.TestCase):
     def test_a_model_that_does_not_answer_or_a_reader_that_fails_never_loses_the_person_their_answer(self):
         with live():
             silent = nodata.solve(SAAS, gateway=Gateway(no_data_architect=Client("")))
-            broken = nodata.solve(GYM, gateway=Gateway(no_data_architect=Client(GOOD), no_data_critic=Client(RuntimeError("down"))))
+            broken = nodata.solve(GYM, gateway=Gateway(no_data_architect=Client(GOOD), no_data_critic=Client(RuntimeError("down"))), second_reader=True)
         self.assertEqual((silent["mode"], silent["why"]), ("rules", "The model did not answer."))
         self.assertEqual((broken["mode"], broken["critic"]), ("architect", []))
 
@@ -360,7 +366,7 @@ class SolveTests(unittest.TestCase):
         bad = GOOD.replace("| after | not used |", "| after | input |")
         writer, reader = Client(bad, GOOD, cost=0.2), Client("- A finding.")
         with live():
-            out = nodata.solve(GYM, gateway=Gateway(no_data_architect=writer, no_data_critic=reader), cap_eur=0.1)
+            out = nodata.solve(GYM, gateway=Gateway(no_data_architect=writer, no_data_critic=reader), cap_eur=0.1, second_reader=True)
         self.assertEqual((out["calls"], len(reader.seen)), (["architect"], 0))
 
     def test_nothing_in_the_package_creates_data(self):
@@ -407,7 +413,7 @@ class ThinkingKeptTests(unittest.TestCase):
         with mock.patch.object(gw, "_transport", lambda tier, purpose: by_purpose[names[id(purpose)]]), \
                 mock.patch.dict(os.environ, {**CLEAN, "DCLAB_AGENT_HOME": str(home)}), \
                 mock.patch.object(experience, "current_log", lambda: None):
-            out = nodata.solve(GYM, gateway=gw.Gateway(transport=gw._transport))
+            out = nodata.solve(GYM, gateway=gw.Gateway(transport=gw._transport), second_reader=True)
         self.assertEqual(out["calls"], ["architect", "critic"])
         docs = [json.loads(line) for p in sorted(home.rglob("model_exchanges/**/*.jsonl")) for line in p.read_text(encoding="utf-8").splitlines()]
         kept = {d["purpose"]: d for d in docs}

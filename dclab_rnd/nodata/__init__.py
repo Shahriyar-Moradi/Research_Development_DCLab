@@ -74,11 +74,14 @@ def _planned(words: str, table: list[dict[str, str]]) -> dict[str, Any]:
 
 
 def solve(words: str, *, gateway: Any = None, draft_id: Optional[str] = None, project_id: Optional[str] = None, cap_eur: float = CAP_EUR,
-          second_reader: bool = True, on_error: str = "rules") -> dict[str, Any]:
+          second_reader: bool = False, on_error: str = "rules") -> dict[str, Any]:
     """The solution for a person with no table to share. ``gateway`` is the caller's (never the process's own): without
     one, or with live models blocked, the rules answer. A model request that fails never loses the person their answer:
     the rules answer in its place, or the draft stands when the failure came later (``on_error="raise"`` lets a test
-    arm see the failure of the first request, so a run's cap is never scored as the design's answer)."""
+    arm see the failure of the first request, so a run's cap is never scored as the design's answer).
+
+    ``second_reader`` is off by default (2026-11-16, HAB-047 to HAB-050): on the sixteen practice people the answers without
+    it scored the same or better (understanding 3.81 against 3.56, accepted 15 against 13 of 16) and took two minutes less."""
     words = str(words or "").strip()
     clock = time.monotonic()
     client = _client(gateway, architect.PURPOSE, draft_id, project_id)
