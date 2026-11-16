@@ -460,6 +460,26 @@
         "8821"
       ],
       "port": 8821
+    },
+    {
+      "name": "nodata-walk",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DCLAB_AGENT_HOME=agent_runs/live_tests/2026-11-16-nodata-browser-walk",
+        "DCLAB_DATABASE_URL=",
+        "DCLAB_AUTH=",
+        "DCLAB_WORKSPACE_MONTHLY_EUR=1",
+        "DCLAB_DECISION_SHADOW=0",
+        "DCLAB_STUDENTS_LOOP=0",
+        "DCLAB_STORE_LOOP=0",
+        ".venv/bin/python",
+        "-m",
+        "uvicorn",
+        "dclab_rnd.agentic.server:app",
+        "--port",
+        "8801"
+      ],
+      "port": 8801
     }
   ]
 }

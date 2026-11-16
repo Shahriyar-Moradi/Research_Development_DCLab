@@ -1,6 +1,6 @@
-"""The rebuilt no-data design as the product uses it (stage N2 of the no-data plan), behind a switch that is off.
+"""The rebuilt no-data design as the product uses it (stage N2 of the no-data plan): Home's default since 2026-11-16.
 
-``DCLAB_NO_DATA_V2=1`` makes Home's three entries (the lead agent's tool, the rules-first Home, the API route) answer a
+Unless ``DCLAB_NO_DATA_V2=0``, Home's three entries (the lead agent's tool, the rules-first Home, the API route) answer a
 person with no table through ``dclab_rnd.nodata.solve``. ``for_product`` gives the solution the fields those entries and
 the Home card already read (a family, a summary line, the Markdown, the questions before made-up data), so nothing else
 changes shape. With no model, a prediction is answered by the first design's rules, as before; a need that is not a
@@ -20,7 +20,14 @@ NO_MODEL_NOTE = ("I can design this with you without your data, but no model is 
 
 
 def enabled() -> bool:
-    return os.environ.get(SWITCH, "").strip().lower() in ("1", "true", "yes", "on")
+    """On unless ``DCLAB_NO_DATA_V2`` is set to 0 (the owner's decision of 2026-11-16).
+
+    The decision was made with the gate not passed: on the eight held-out people (HAB-051) the design matched the same
+    model alone on understanding (3.88) and the solution (4.00), was 0.38 behind on the plan (half a point allowed),
+    stated no number nobody gave and did nothing forbidden, and failed ``nodata_gate_v1`` on one check: 374 seconds a
+    person where the gate allows 300. It replaces a design that took about 21 minutes a person and scored 1.88 on the
+    plan on the practice people. 0 puts the first design back."""
+    return os.environ.get(SWITCH, "").strip().lower() not in ("0", "false", "no", "off")
 
 
 def is_note(solution: Mapping[str, Any]) -> bool:

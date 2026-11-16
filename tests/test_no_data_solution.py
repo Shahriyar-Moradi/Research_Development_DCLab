@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+os.environ["DCLAB_NO_DATA_V2"] = "0"  # this file tests the first no-data design; the rebuilt one is Home's default since 2026-11-16
+
 from dclab_core import case as C
 from dclab_rnd.agents import case_agent as A
 from dclab_rnd.draft import case_home, chat as draft_chat, no_data, store as draft_store

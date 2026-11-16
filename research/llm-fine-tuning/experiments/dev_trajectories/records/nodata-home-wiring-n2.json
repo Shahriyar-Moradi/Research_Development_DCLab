@@ -31,6 +31,10 @@
   {
    "decision": "The tool's description depends on the switch",
    "why": "the old words tell the model to call it only for a prediction"
+  },
+  {
+   "decision": "The owner turned the rebuilt design on by default with its gate not passed",
+   "why": "the gate failed on time alone, every check of quality held on the held-out people, and the design it replaces takes about twenty minutes a person and scored far lower"
   }
  ],
  "change": "A product adapter for the rebuilt no-data design, a second path in the lead agent's no-data tool and two of its gates, in the rules-first Home's two no-data methods and in the route, a new card and a questions-first message on the Home page, the switch documented and blanked in tests.",
@@ -116,13 +120,28 @@
     "sixteen people, each once, one judge",
     "practice people, some read by the builder"
    ]
+  },
+  {
+   "name": "The gate of the rebuilt no-data design on the eight held-out people",
+   "gate": "nodata_gate_v1, pinned before the rebuilt design was run on a live model: every check must hold",
+   "fixed_before_run": true,
+   "result": "understanding and the solution level with the same model alone, the plan 0.38 behind where half a point is allowed, no number nobody gave, nothing forbidden done, accepted for all eight; the time check failed, 374 seconds a person where 300 are allowed",
+   "verdict": "fail",
+   "cost_eur": 0.15,
+   "next": "cut the second writing of a draft that only failed the number check; a new held-out set for a new gate",
+   "limits": [
+    "eight people, each once, one judge, means only",
+    "the machine was overloaded by a test gate during the run",
+    "the held-out people are spent for this gate"
+   ]
   }
  ],
- "outcome": "The rebuilt design answers through Home's three entries when the switch is on; Build project is byte-identical to the commit before this work; six findings of the review are fixed, five with a test. The switch is off.",
+ "outcome": "The rebuilt design answers through Home's three entries and is the default since the owner's decision of 2026-11-16; setting the switch to 0 puts the first design back. Its gate failed on time alone and is recorded as failed. Build project is byte-identical to the commit before this work.",
  "lessons": [
   "A fallback that returns the shape of a solution will be shown as a solution.",
   "Reusing an older offer can bring back the very click a rule forbids.",
-  "A stance read from everything a person ever said must yield to what they say now."
+  "A stance read from everything a person ever said must yield to what they say now.",
+  "A gate that fails on one check is failed: the default is then the owner's decision, recorded with the check that failed."
  ],
  "risks": [
   "With no model a decision still gets no real answer.",

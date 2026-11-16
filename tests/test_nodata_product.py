@@ -77,7 +77,7 @@ class Gateway:
 
 
 def env(on: bool, live: bool = True):
-    return mock.patch.dict(os.environ, {product.SWITCH: "1" if on else "", "DCLAB_NO_LIVE_MODELS": "0" if live else "1"})
+    return mock.patch.dict(os.environ, {product.SWITCH: "1" if on else "0", "DCLAB_NO_LIVE_MODELS": "0" if live else "1"})
 
 
 def state(words: str, gateway=None) -> A.CaseState:
@@ -93,13 +93,21 @@ def tool_says() -> str:
 
 
 class SwitchTests(unittest.TestCase):
-    def test_the_switch_is_off_by_default_and_the_first_design_answers(self):
+    def test_the_rebuilt_design_is_the_default_and_zero_puts_the_first_design_back(self):
+        """The owner's decision of 2026-11-16, made with nodata_gate_v1 failed on time alone."""
         with mock.patch.dict(os.environ, {"DCLAB_NO_LIVE_MODELS": "1"}):
-            os.environ.pop(product.SWITCH, None)
-            self.assertFalse(product.enabled())
-            out = A._design_solution_without_data(state(CHURN))
+            for value in (None, "", "1"):
+                os.environ.pop(product.SWITCH, None)
+                if value is not None:
+                    os.environ[product.SWITCH] = value
+                self.assertTrue(product.enabled(), value)
+            for value in ("0", "off", "false", "no"):
+                os.environ[product.SWITCH] = value
+                self.assertFalse(product.enabled(), value)
+            out = A._design_solution_without_data(state(CHURN))  # switched off: the first design answers, as before
         self.assertTrue(out["blueprint_ready"])
         self.assertIn(product.SWITCH, (ROOT / ".env.example").read_text(encoding="utf-8"))
+        self.assertIn("374 seconds", product.enabled.__doc__)  # the decision is recorded with the check that failed
 
     def test_the_tool_says_what_it_does_under_each_design(self):
         with env(False):
