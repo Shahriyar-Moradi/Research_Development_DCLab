@@ -1,0 +1,80 @@
+{
+ "package": "planning-plan-kept-whole",
+ "title": "The lead agent's plan is kept whole and shown back to it",
+ "date": "2026-11-16",
+ "request": "The owner's goal for the Hierarchical Planning work is a better plan for the person: understand the problem, break it down, plan, carry it out in order. The think-first measurement had shown a gain on people the builder had not tuned on and a loss on two people.",
+ "spec": "Behind the think-first switch only: the plan's numbered steps and its closing lines are never cut by the word limit; the plan is kept in the case's state and shown back to the model on later turns; the prompt asks for the ways to solve the problem weighed against each other, as many steps as the work needs, and a line on when to stop and one on what to do if a step fails.",
+ "plan": [
+  "read the two conversations where the switch made the plan worse",
+  "take the plan out of the message before the word limit is applied to the rest",
+  "keep the plan in the state and its checkpoint, and show it back on the next turn",
+  "more room for the first full message's reply, so it does not come back empty",
+  "measure on the known people against the same model alone, then the held-out people once"
+ ],
+ "decisions": [
+  {
+   "decision": "The plan is read from the message by code, not written through a tool",
+   "why": "the model's tool calls came back malformed several times in eight conversations; numbered lines are easy to read"
+  },
+  {
+   "decision": "The plan lives in the agent's state first, not in the core case file",
+   "why": "a frozen contract should change only after a measurement shows the plan helps"
+  },
+  {
+   "decision": "A clear, simple request gets short first parts and the plan in full",
+   "why": "on a clear request the part on what needs care grew and squeezed the plan"
+  },
+  {
+   "decision": "Everything is behind the think-first switch",
+   "why": "the switch is off until its gate passes on the held-out people"
+  }
+ ],
+ "change": "A reader of the plan block in a message, the word limit applied around it, the plan kept in the state and its checkpoint and shown back as a note, a larger reply limit for the first full message, and the think-first prompt's points on options and the plan.",
+ "findings": [
+  {
+   "id": "PK-F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "With the think-first switch on, the word limit cut the plan first.",
+   "scenario": "The plan is the last part of the first full message; for a clear request the part on what needs care took most of the room and the plan that reached the person was shorter than without the switch.",
+   "cause": "the message is cut from its end and the plan is at its end",
+   "fix": "The plan is taken out before the limit is applied and is put back whole.",
+   "test": "test_a_long_first_message_loses_words_around_the_plan_never_the_plan",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "PK-F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Three of sixteen first replies came back empty or cut with the switch on.",
+   "scenario": "A first full message with its plan, written after the model's own thinking, passed the reply limit of a step.",
+   "cause": "the reply limit of a step was set for short replies",
+   "fix": "With the switch on a step's reply limit is twice as large.",
+   "test": "test_the_first_full_message_has_room_for_its_plan",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "PK-F3",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Nothing made the agent follow the plan it had written.",
+   "scenario": "On the next turn the model saw the case file and the conversation, and wrote a new plan or none.",
+   "cause": "the plan existed only as prose in an earlier message",
+   "fix": "The plan is shown back on later turns with the instruction to keep to it and to say which step it is on.",
+   "test": "test_the_plan_is_shown_back_to_the_model_on_the_next_turn_and_survives_a_checkpoint",
+   "verdict": "confirmed"
+  }
+ ],
+ "measurements": [],
+ "outcome": "The change is in place behind the switch and its tests pass; it has not been measured on a live model yet.",
+ "lessons": [
+  "A limit that cuts from the end cuts whatever was put last, and the plan was put last.",
+  "Read the conversations behind a lower score before changing a prompt."
+ ],
+ "risks": [
+  "A reply with two numbered lists may have the wrong one taken as the plan.",
+  "A plan shown back every turn may make the agent hold to a plan that new facts made wrong; the note allows a change with its reason.",
+  "Longer first messages take longer."
+ ],
+ "commits": []
+}

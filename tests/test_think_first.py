@@ -26,6 +26,7 @@ from dclab_rnd.agent_eval.harness_ablation import arms, gate as G  # noqa: E402
 from dclab_rnd.agents import case_agent as A  # noqa: E402
 
 ON = {A.THINK_FIRST: "1"}
+OFF = {A.THINK_FIRST: ""}
 VIEW = [{"name": "customer_id", "kind": "text", "noticed": ["identifier"]}, {"name": "plan", "kind": "category", "noticed": []},
         {"name": "churned_next_month", "kind": "numeric", "noticed": ["outcome-like name"]}]
 BRIEF = ("I lead retention at a subscription company and I want to know which customers will leave next month, so my team can "
@@ -78,7 +79,8 @@ class SwitchTests(unittest.TestCase):
 
     def test_the_first_turn_note_asks_for_the_message_then_the_first_step_in_the_same_turn(self):
         note = A.CLEAR_THINK_FIRST
-        self.assertIn("what needs care before any work", note)
+        self.assertIn("what needs care only when something does", note)
+        self.assertIn("give the plan in full", note)  # 2026-11-16: a clear request gets short first parts and a whole plan
         self.assertIn("in this same turn", note)  # think first is not ask first: the person does not wait a turn
         self.assertIn("Do not ask clarifying questions", note)
         self.assertNotIn("immediately propose", note)
@@ -91,7 +93,7 @@ class PromptTests(unittest.TestCase):
     def test_the_plan_comes_before_the_kinds_of_work(self):
         plan, kinds = self.text.index("Your first full message"), self.text.index("How DCLab runs a step of your plan")
         self.assertLess(plan, kinds)
-        self.assertLess(self.text.index("What needs care before any work"), self.text.index("The approach you would take"))
+        self.assertLess(self.text.index("What needs care before any work"), self.text.index("The ways it could be solved"))
         self.assertLess(kinds, self.text.index("- prediction: a model predicting"))  # the list sits under "how a step is run"
         self.assertIn("Choose this last, from the step", self.text)
 
@@ -154,6 +156,75 @@ class ReplyTests(unittest.TestCase):
         client = Script((made_up + " " + SENTENCE, []), (words(100), []))
         A.turn(state(), client, BRIEF)
         self.assertEqual(client.seen[1][-1]["content"], A.REWRITE_SHORT)  # as before the switch
+
+
+PLAN = ("**The plan**\n1. Split the customers by signup date. Needs: the table. Checked by: the two parts do not overlap.\n"
+        "2. Train a simple model and a baseline. Needs: the split. Checked by: the baseline is beaten on the held-back part.\n"
+        "3. Rank by risk times spend. Needs: the scores. Checked by: the top of the list holds more of the leavers.\n"
+        "Stop when the held-back part shows no gain over the baseline.\nIf a step fails, keep the baseline list and say why.")
+
+
+class PlanKeptTests(unittest.TestCase):
+    """2026-11-16: with the switch on, the plan is the last part of the first full message, so the word limit cut the plan
+    first (two of sixteen plans scored lower than with the switch off). The plan is kept whole, and kept for later turns."""
+
+    def test_the_plan_is_read_as_its_steps_with_their_heading_and_closing_lines(self):
+        before, plan, after = A.plan_block("The problem is a ranking. 1. This is one thing.\n\n" + PLAN + "\n\nI have started the first step.")
+        self.assertEqual((before, plan, after), ("The problem is a ranking. 1. This is one thing.", PLAN, "I have started the first step."))
+        self.assertEqual(A.plan_block("One point. 1. Two things in a sentence.")[1], "")  # numbers inside a sentence are no plan
+        self.assertEqual(A.plan_block("Options:\n1. A\n2. B\n\nfour\nlines\nof\ntext\nhere\n\n" + PLAN)[1], PLAN)  # the last list is the plan
+
+    def test_a_long_first_message_loses_words_around_the_plan_never_the_plan(self):
+        long_message = words(900) + "\n\n" + PLAN
+        with mock.patch.dict(os.environ, ON):
+            s = state()
+            out = A.turn(s, Script((long_message, [])), BRIEF)
+        self.assertIn(PLAN, out["text"])  # whole, though the words before it were cut at the limit
+        self.assertLess(len(out["text"].split()), A.SHOWN_WORDS_PLAN + A.PLAN_WORDS)
+        self.assertEqual(s.plan, PLAN)
+        with mock.patch.dict(os.environ, OFF):
+            off = A.turn(state(), Script((long_message, [])), BRIEF)
+        self.assertNotIn("If a step fails", off["text"])  # with the switch off nothing changes: the limit cuts the end
+
+    def test_the_plan_is_shown_back_to_the_model_on_the_next_turn_and_survives_a_checkpoint(self):
+        from dclab_rnd.agents import case_session
+
+        with mock.patch.dict(os.environ, ON):
+            s = state()
+            A.turn(s, Script(("The problem is a ranking.\n\n" + PLAN, [])), BRIEF)
+            again = Script(("I am on step two.", []))
+            A.turn(s, again, "Go ahead.")
+            self.assertIn("Your plan for this person", json.dumps(again.seen[0]))
+            self.assertIn("Rank by risk times spend", json.dumps(again.seen[0]))
+            kept = case_session.snapshot(s)
+            fresh = state()
+            case_session.restore(fresh, kept)
+            self.assertEqual(fresh.plan, PLAN)
+        with mock.patch.dict(os.environ, OFF):
+            quiet = Script(("Fine.", []))
+            s.plan = PLAN
+            A.turn(s, quiet, "And then?")
+            self.assertNotIn("Your plan for this person", json.dumps(quiet.seen[0]))  # only with the switch on
+
+    def test_the_first_full_message_has_room_for_its_plan(self):
+        seen = {}
+
+        class Room(Script):
+            def complete(self, messages, tools=None, *args, **kwargs):
+                seen.setdefault("max_tokens", kwargs.get("max_tokens"))
+                return super().complete(messages, tools, *args, **kwargs)
+
+        with mock.patch.dict(os.environ, ON):
+            A.turn(state(), Room(("A short answer for you.", [])), BRIEF)
+        self.assertEqual(seen["max_tokens"], A.THINK_FIRST_TOKENS)
+        self.assertGreater(A.THINK_FIRST_TOKENS, A.POLICY.max_tokens)
+
+    def test_the_prompt_asks_for_options_weighed_and_a_plan_with_its_stop_and_its_failure(self):
+        text = prompts.text("case_agent_think_first")
+        for words_ in ("The ways it could be solved", "the one you choose", "as many as the work needs", "how its result is checked",
+                       '"Stop when"', '"If a step fails"'):
+            self.assertIn(words_, text)
+        self.assertNotIn("three to five numbered steps", text)
 
 
 class MeasurementTests(unittest.TestCase):

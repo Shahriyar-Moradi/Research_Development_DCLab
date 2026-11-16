@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Mapping, Optional
 
 from dclab_core import case as C
@@ -342,6 +342,7 @@ class CaseState:
     models: Any = None  # gateway for multi-model no-data understanding & harness
     draft_id: Optional[str] = None  # draft id for gateway telemetry
     no_data_solution: Optional[dict[str, Any]] = None  # latest no-data blueprint for virtual-schema specialist consults
+    plan: str = ""  # 2026-11-16: the plan the agent wrote for this person (its numbered steps and closing lines), kept across turns
     no_data_built: bool = False  # the blueprint was built in this turn (once a turn: one pass is a dozen model calls)
     consulted: list[str] = field(default_factory=list)  # 37.7: the specialists already sent on this case
     spent_eur: float = 0.0  # 37.8: what this case's model work has cost so far
@@ -1309,9 +1310,11 @@ SHOWN_WORDS = 450  # 2026-11-15: a person who gave a full brief gets the problem
 REWRITE_WORDS = 150
 SHOWN_WORDS_PLAN = 700  # with the think-first switch on: the problem, what needs care, the approach and the plan, until the plan has its own card (stage 3)
 CLEAR_THINK_FIRST = ("The person's request is clear on arrival (the goal, the subject and the data are known). Do not ask clarifying "
-                     "questions on this turn. Write your first full message (the problem as it really is, what needs care before any "
-                     "work, your approach, the plan), then do the plan's first step in this same turn: start it, or propose it when the "
-                     "person should choose. If the request should not be done as asked, say why and propose the sound way instead.")
+                     "questions on this turn. Write your first full message, then do the plan's first step in this same turn: start "
+                     "it, or propose it when the person should choose. For a clear request keep the first parts short (the problem in "
+                     "two or three sentences; what needs care only when something does) and give the plan in full: it is what they "
+                     "will act on. If the request should not be done as asked, say why and propose the sound way instead.")
+THINK_FIRST_TOKENS = 6000  # a first full message with its plan, after the model's own thinking: at 3,000 three of sixteen came back empty or cut
 REWRITE_LONG = ("[DCLab's code] Part of your message was not shown to the person, because its numbers come from nobody: the person did "
                 "not give them and no tool computed them. Write the whole message again at about the same length, keeping its parts "
                 "and its plan: no digits at all unless they are copied exactly from a tool's result or the person's words. Reply with "
@@ -1323,6 +1326,51 @@ WITHHELD_NOTE = ("(I left out the parts whose numbers I cannot source from you o
 
 def word_count(text: str) -> int:
     return len(str(text or "").split())
+
+
+# The plan is kept whole (2026-11-16). With the think-first switch on the plan is the last part of the first full message,
+# so the word limit cut the plan first: two of sixteen plans scored lower than without the switch, one squeezed by a long
+# "what needs care", one cut. The numbered steps and their closing lines (when to stop, what to do if a step fails) are
+# taken out before the limit is applied to the rest, kept in the case's state, and shown back to the model on later turns.
+PLAN_STEP = re.compile(r"^\s*(?:\*\*)?\d+[.)](?:\*\*)?\s+\S")
+PLAN_TAIL = re.compile(r"^\s*(?:[-*]\s*)?(?:\*\*)?(?:stop\b|when to stop|i(?:'ll| will| would) stop|we stop|if (?:a|any|one|this|that) step fails|if a step|if it fails)", re.I)
+PLAN_HEAD = re.compile(r"\bplan\b|\bsteps\b", re.I)
+PLAN_WORDS = 450  # a plan longer than this is prose with numbers in it: it is shortened like the rest
+PLAN_NOTE = ("Your plan for this person, as you wrote it (it is on their screen):\n{plan}\nKeep to it. Say which step you are on and do "
+             "that step. Change the plan only when something new makes it wrong, and then say what changed and why. Do not write "
+             "the whole plan again.")
+
+
+def plan_block(text: str) -> tuple[str, str, str]:
+    """A message as what comes before its plan, the plan, and what comes after. The plan is the last run of at least two
+    numbered steps (a step may run over a few lines), with a short heading line that names it and the lines that say when
+    to stop and what to do if a step fails. No such run: the whole message, and no plan."""
+    lines = str(text or "").split("\n")
+    numbered = [i for i, line in enumerate(lines) if PLAN_STEP.match(line)]
+    if len(numbered) < 2:
+        return str(text or ""), "", ""
+    start = end = numbered[-1]
+    for i in reversed(numbered[:-1]):
+        if start - i > 4:  # more than three lines between two numbers: another list, further up
+            break
+        start = i
+    if sum(1 for i in numbered if start <= i <= end) < 2:
+        return str(text or ""), "", ""
+    stop = end + 1
+    while stop < len(lines) and stop - end <= 8:
+        line = lines[stop]
+        if not line.strip() or line.startswith((" ", "\t")) or PLAN_TAIL.match(line):
+            stop += 1
+            continue
+        break
+    while stop > end + 1 and not lines[stop - 1].strip():
+        stop -= 1
+    head = start - 1
+    while head >= 0 and not lines[head].strip():
+        head -= 1
+    if head >= 0 and len(lines[head].split()) <= 12 and PLAN_HEAD.search(lines[head]) and not PLAN_STEP.match(lines[head]):
+        start = head
+    return "\n".join(lines[:start]).rstrip(), "\n".join(lines[start:stop]).strip(), "\n".join(lines[stop:]).strip()
 
 
 def shortened(text: str, limit: int = SHOWN_WORDS) -> tuple[str, bool]:
@@ -1418,18 +1466,20 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
                    "Do NOT ask clarifying questions or reflective questions on Turn 1; propose actionable options (propose) "
                    "or start the requested work (start/query/answer) in this turn, and write in your message what you understood of "
                    "the problem, your approach and the plan's steps.")) if (state.clear_on_arrival and person_turns == 1) else None
-    built = ctx.build(state.case, state.turns, state.table, notes=[n for n in (chip_note(state), clear_note) if n])
+    plan_note = PLAN_NOTE.format(plan=state.plan) if think_first() and state.plan and person_turns > 1 else None
+    built = ctx.build(state.case, state.turns, state.table, notes=[n for n in (chip_note(state), clear_note, plan_note) if n])
     messages = ctx.messages(prompts.text(prompt_name()), built)
     start = len(messages)
     before = _spent(client) + _spent(state.specialist_client) + _spent(state.route_client)  # the review: the route check counts too
     client = _Cells(client, state)  # 37.6: a request holds cell values only when a query's answer is in it
     route_ahead(state)
-    result = run_policy(POLICY, client, registry, messages, context=state, trace=state.trace)
+    policy = replace(POLICY, max_tokens=THINK_FIRST_TOKENS) if think_first() else POLICY
+    result = run_policy(policy, client, registry, messages, context=state, trace=state.trace)
     if not result.steps and not state.said and not any(str(m.get("content") or "").strip() for m in result.messages[start:] if m.get("role") == "assistant"):
         # Stage 2 (HAB-011): the first reply came back with no word and no call, the one rewrite could not run a tool, and a
         # full brief was answered "could you tell me a little more". The turn is run once more instead, with its tools.
         del result.messages[start:]
-        result = run_policy(POLICY, client, registry, result.messages, context=state, trace=state.trace)
+        result = run_policy(policy, client, registry, result.messages, context=state, trace=state.trace)
     texts = spoken(result.messages[start:])
     if not texts and not state.said:  # CEX-011 d-04: every reply spent on queries, no word for the person: asked once, no move allowed
         again_from = len(result.messages)
@@ -1461,6 +1511,19 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
         for part in parts:
             part = str(part or "").replace(CUT_NOTE, "").replace(WITHHELD_NOTE, "").strip()
             if not part:
+                continue
+            before, plan, after = plan_block(part) if think_first() else (part, "", "")
+            if plan and word_count(plan) <= PLAN_WORDS:  # the plan stays whole: the limit is for the words around it
+                kept = []
+                for piece in (before, after):
+                    if piece.strip():
+                        short, c = shortened(piece, max(left, 40))
+                        was, left = was or c, left - word_count(short)
+                        kept.append(short)
+                    else:
+                        kept.append("")
+                state.plan = plan
+                out.append("\n\n".join(p for p in (kept[0], plan, kept[1]) if p.strip()))
                 continue
             short, c = shortened(part, max(left, 40))
             was, left = was or c, left - word_count(short)

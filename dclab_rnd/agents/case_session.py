@@ -42,6 +42,7 @@ def snapshot(state: Any) -> dict[str, Any]:
             "group_names": sorted(getattr(state, "group_names", set()) or set()), "exposure": list(getattr(state, "exposure", []) or []),
             "route_told": list(getattr(state, "route_told", []) or []), "chip": getattr(state, "chip", None), "chip_intent": getattr(state, "chip_intent", None),
             "chip_checked": bool(getattr(state, "chip_checked", False)), "clear_on_arrival": bool(getattr(state, "clear_on_arrival", False)),
+            "plan": str(getattr(state, "plan", "") or ""),
             "trace_n": getattr(getattr(state, "trace", None), "n", 0), "trace_reply": getattr(getattr(state, "trace", None), "last_reply", -1)}
 
 
@@ -84,6 +85,7 @@ def restore(state: Any, doc: dict[str, Any]) -> None:
     state.route_told = list(doc.get("route_told") or [])
     state.chip, state.chip_checked, state.chip_intent = doc.get("chip"), bool(doc.get("chip_checked")), doc.get("chip_intent")  # 2026-11-04: the person's chip on Home  # the plan's step 1: a route doubt is told once a case, across turns
     state.clear_on_arrival = bool(doc.get("clear_on_arrival", False))
+    state.plan = str(doc.get("plan") or "")  # 2026-11-16: the plan the agent wrote, shown back to it on later turns
     if doc.get("run_id"):
         trace = tracer("case", run_id=doc["run_id"])
         trace.n = int(doc.get("trace_n") or 0)
