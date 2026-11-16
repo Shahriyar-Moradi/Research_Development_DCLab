@@ -28,14 +28,14 @@
  },
  "costs": {
   "by_model_type": {
-   "m4_workflow_llm": 288.900409
+   "m4_workflow_llm": 288.90082
   },
   "by_purpose": {
    "ai_first": 18.410303,
    "brief_checker": 0.039497,
    "campaign": 1.860314,
    "campaign_review": 15.58282,
-   "case_agent": 72.535731,
+   "case_agent": 72.536142,
    "case_specialist": 0.036285,
    "conversation_reader": 18.399315,
    "critic": 0.133333,
@@ -82,7 +82,7 @@
    "understanding_critic": 8.507436,
    "workspace_chat": 0.02462
   },
-  "total_eur": 381.998553
+  "total_eur": 381.998964
  },
  "coverage": {
   "gaps": [
@@ -1485,10 +1485,10 @@
  },
  "kinds": {
   "actions": {
-   "bytes": 35426205,
-   "entries": 2864,
-   "last": "2026-11-14T18:44:51+00:00",
-   "sources": 2159,
+   "bytes": 35948622,
+   "entries": 3065,
+   "last": "2026-11-15T22:06:31+00:00",
+   "sources": 2349,
    "what": "agent steps and tool calls",
    "workspaces": [
     "dev",
@@ -1565,6 +1565,12 @@
     "e2e__2026-11-13__062249_product_e2e",
     "e2e__2026-11-13__104248_product_e2e",
     "e2e__2026-11-14__012436_browser_e2e",
+    "e2e__2026-11-15__113724_product_e2e",
+    "e2e__2026-11-15__114823_product_e2e",
+    "e2e__2026-11-15__162214_product_e2e",
+    "e2e__2026-11-15__202618_product_e2e",
+    "e2e__2026-11-15__231048_product_e2e",
+    "e2e__2026-11-16__005942_product_e2e",
     "journey_plays__homework_v1__jh-anomaly-000__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-001__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-002__s0__workspace",
@@ -3337,6 +3343,167 @@
     "live_tests__2026-11-13-home-eval__dev-002117__model__d-v1",
     "live_tests__2026-11-13-home-eval__dev-015059__model__d-v1",
     "live_tests__2026-11-13-home-eval__dev-024611__model__d-v1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-007__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-007__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-008__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-008__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-009__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-009__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-010__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-010__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-18-r1",
+    "live_tests__2026-11-15-home-eval__dev-082409__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-111352__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-130300__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-174147__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-181443__model__d-v1",
     "live_tests__adaptive_studio_live_20261113_r2",
     "live_tests__adaptive_studio_live_20261113_r3",
     "live_tests__adaptive_studio_live_20261113_r4",
@@ -3437,20 +3604,20 @@
    ]
   },
   "agents": {
-   "bytes": 1963079951,
-   "entries": 3146,
-   "last": "2026-11-14T08:34:55+00:00",
-   "sources": 2672,
+   "bytes": 2039896655,
+   "entries": 3214,
+   "last": "2026-11-16T00:30:50+00:00",
+   "sources": 2735,
    "what": "other agents' sessions: Claude Code (the main checkout and its worktrees), testers'",
    "workspaces": [
     "rnd"
    ]
   },
   "audit": {
-   "bytes": 2877547,
-   "entries": 459,
-   "last": "2026-11-14T16:50:09+00:00",
-   "sources": 173,
+   "bytes": 2997679,
+   "entries": 469,
+   "last": "2026-11-15T21:47:29+00:00",
+   "sources": 179,
    "what": "the audit trail",
    "workspaces": [
     "dev",
@@ -3516,6 +3683,12 @@
     "e2e__2026-11-13__052732_product_e2e",
     "e2e__2026-11-13__062249_product_e2e",
     "e2e__2026-11-13__104248_product_e2e",
+    "e2e__2026-11-15__113724_product_e2e",
+    "e2e__2026-11-15__114823_product_e2e",
+    "e2e__2026-11-15__162214_product_e2e",
+    "e2e__2026-11-15__202618_product_e2e",
+    "e2e__2026-11-15__231048_product_e2e",
+    "e2e__2026-11-16__005942_product_e2e",
     "live_tests__2026-10-16_phase3__workspace",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-100832-215130__ai_first",
     "live_tests__2026-10-16_phase3__workspace__twin__runs__20261016-100832-215130__workflow",
@@ -3627,10 +3800,10 @@
    ]
   },
   "conversations": {
-   "bytes": 425200414,
-   "entries": 8927,
-   "last": "2026-11-14T17:51:02+00:00",
-   "sources": 8750,
+   "bytes": 428914253,
+   "entries": 9016,
+   "last": "2026-11-15T21:53:48+00:00",
+   "sources": 8838,
    "what": "Home, the intern, the workspace chat, the twin, MCP",
    "workspaces": [
     "dev",
@@ -3705,6 +3878,12 @@
     "e2e__2026-11-13__062249_product_e2e",
     "e2e__2026-11-13__104248_product_e2e",
     "e2e__2026-11-14__012436_browser_e2e",
+    "e2e__2026-11-15__113724_product_e2e",
+    "e2e__2026-11-15__114823_product_e2e",
+    "e2e__2026-11-15__162214_product_e2e",
+    "e2e__2026-11-15__202618_product_e2e",
+    "e2e__2026-11-15__231048_product_e2e",
+    "e2e__2026-11-16__005942_product_e2e",
     "journey_plays__homework_v1__jh-anomaly-000__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-001__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-002__s0__workspace",
@@ -6487,6 +6666,11 @@
     "live_tests__2026-11-13-home-eval__dev-002117__model__d-v1",
     "live_tests__2026-11-13-home-eval__dev-015059__model__d-v1",
     "live_tests__2026-11-13-home-eval__dev-024611__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-082409__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-111352__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-130300__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-174147__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-181443__model__d-v1",
     "real_problems__2026-10-18_fraud__workspace",
     "real_problems__2026-10-18_hyperack__workspace",
     "real_problems__2026-10-18_telco__workspace",
@@ -6562,20 +6746,20 @@
    ]
   },
   "curation": {
-   "bytes": 1349843270,
-   "entries": 99,
-   "last": "2026-11-14T17:58:25+00:00",
-   "sources": 99,
+   "bytes": 1369433848,
+   "entries": 100,
+   "last": "2026-11-16T01:43:44+00:00",
+   "sources": 100,
    "what": "every curator's choice: where each record went, its quality, why, and its failed answers",
    "workspaces": [
     "rnd"
    ]
   },
   "decisions": {
-   "bytes": 432108774,
-   "entries": 9643,
-   "last": "2026-11-14T17:44:41+00:00",
-   "sources": 9464,
+   "bytes": 438716393,
+   "entries": 9830,
+   "last": "2026-11-15T21:42:59+00:00",
+   "sources": 9650,
    "what": "the decision ledger: records, labels and outcomes",
    "workspaces": [
     "dev",
@@ -6651,6 +6835,12 @@
     "e2e__2026-11-13__062249_product_e2e",
     "e2e__2026-11-13__104248_product_e2e",
     "e2e__2026-11-14__012436_browser_e2e",
+    "e2e__2026-11-15__113724_product_e2e",
+    "e2e__2026-11-15__114823_product_e2e",
+    "e2e__2026-11-15__162214_product_e2e",
+    "e2e__2026-11-15__202618_product_e2e",
+    "e2e__2026-11-15__231048_product_e2e",
+    "e2e__2026-11-16__005942_product_e2e",
     "fraud_decision_v1__seed0",
     "fraud_decision_v1__seed1",
     "fraud_decision_v1__seed2",
@@ -8619,6 +8809,168 @@
     "live_tests__2026-11-13-home-eval__dev-002117__model__d-v1",
     "live_tests__2026-11-13-home-eval__dev-015059__model__d-v1",
     "live_tests__2026-11-13-home-eval__dev-024611__model__d-v1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-007__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-007__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-008__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-008__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-009__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-009__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-010__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-010__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-18-r1",
+    "live_tests__2026-11-15-home-eval__dev-082409__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-111352__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-130300__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-174147__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-181443__model__d-v1",
     "live_tests__adaptive_studio_live_20261113_r2",
     "live_tests__adaptive_studio_live_20261113_r3",
     "live_tests__adaptive_studio_live_20261113_r4",
@@ -10815,10 +11167,10 @@
    ]
   },
   "deletions": {
-   "bytes": 69793,
-   "entries": 282,
-   "last": "2026-11-14T18:56:26+00:00",
-   "sources": 276,
+   "bytes": 70277,
+   "entries": 284,
+   "last": "2026-11-14T19:54:51+00:00",
+   "sources": 278,
    "what": "each deletion in the product, recorded beside what it removed",
    "workspaces": [
     "dev",
@@ -10830,20 +11182,20 @@
    ]
   },
   "fixes": {
-   "bytes": 155138742,
-   "entries": 1718,
-   "last": "2026-11-13T08:09:15+00:00",
-   "sources": 1665,
+   "bytes": 174739505,
+   "entries": 1863,
+   "last": "2026-11-16T00:43:45+00:00",
+   "sources": 1810,
    "what": "a failing test, the passing run after it, and the commits between",
    "workspaces": [
     "rnd"
    ]
   },
   "model_requests": {
-   "bytes": 371921336,
-   "entries": 416,
-   "last": "2026-11-14T17:49:58+00:00",
-   "sources": 150,
+   "bytes": 372151465,
+   "entries": 421,
+   "last": "2026-11-15T22:08:04+00:00",
+   "sources": 153,
    "what": "every model request with its shadows and checks",
    "workspaces": [
     "dev",
@@ -10901,6 +11253,8 @@
     "live_tests__2026-11-02-telco-replay__run1",
     "live_tests__2026-11-02-telco-replay__run2",
     "live_tests__2026-11-11_model_paths__170040",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-07-r1",
     "live_tests__adaptive_studio_live_20261113_r2",
     "live_tests__adaptive_studio_live_20261113_r3",
     "live_tests__adaptive_studio_live_20261113_r4",
@@ -10951,10 +11305,10 @@
    ]
   },
   "other": {
-   "bytes": 581631470,
-   "entries": 16354,
-   "last": "2026-11-14T17:08:53+00:00",
-   "sources": 14805,
+   "bytes": 588537839,
+   "entries": 17079,
+   "last": "2026-11-15T22:04:31+00:00",
+   "sources": 15521,
    "what": "anything else a workspace holds (logs, results, designs, transcripts, settings), so nothing is left out",
    "workspaces": [
     "dev",
@@ -11019,6 +11373,12 @@
     "e2e__2026-11-13__052732_product_e2e",
     "e2e__2026-11-13__062249_product_e2e",
     "e2e__2026-11-13__104248_product_e2e",
+    "e2e__2026-11-15__113724_product_e2e",
+    "e2e__2026-11-15__114823_product_e2e",
+    "e2e__2026-11-15__162214_product_e2e",
+    "e2e__2026-11-15__202618_product_e2e",
+    "e2e__2026-11-15__231048_product_e2e",
+    "e2e__2026-11-16__005942_product_e2e",
     "fraud_decision_v1__seed0",
     "fraud_decision_v1__seed1",
     "fraud_decision_v1__seed2",
@@ -13741,6 +14101,275 @@
     "live_tests__2026-11-11_team_arms__team__jd-06__workspace",
     "live_tests__2026-11-11_team_arms__team__jd-07__workspace",
     "live_tests__2026-11-11_team_arms__team__jd-08__workspace",
+    "live_tests__2026-11-15-harness-ablation-hab-001__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__open__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__open__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__open__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__plain__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__plain__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__plain__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__open__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__plain__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-007__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-007__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-008__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-008__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-009__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-009__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-010__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-010__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__open__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__open__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__open__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__open__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__plain__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__plain__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__plain__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__plain__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__open__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__open__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__open__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__open__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__plain__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__plain__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__plain__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__plain__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-18-r1",
     "live_tests__adaptive_studio_live_20261113_r2",
     "live_tests__adaptive_studio_live_20261113_r3",
     "live_tests__adaptive_studio_live_20261113_r4",
@@ -14190,10 +14819,10 @@
    ]
   },
   "sessions": {
-   "bytes": 458824554,
-   "entries": 5260,
-   "last": "2026-11-14T18:56:11+00:00",
-   "sources": 4556,
+   "bytes": 490134361,
+   "entries": 5758,
+   "last": "2026-11-15T21:41:09+00:00",
+   "sources": 5041,
    "what": "the experience log's events",
    "workspaces": [
     "dev",
@@ -14273,6 +14902,12 @@
     "e2e__2026-11-13__062249_product_e2e",
     "e2e__2026-11-13__104248_product_e2e",
     "e2e__2026-11-14__012436_browser_e2e",
+    "e2e__2026-11-15__113724_product_e2e",
+    "e2e__2026-11-15__114823_product_e2e",
+    "e2e__2026-11-15__162214_product_e2e",
+    "e2e__2026-11-15__202618_product_e2e",
+    "e2e__2026-11-15__231048_product_e2e",
+    "e2e__2026-11-16__005942_product_e2e",
     "fraud_decision_v1__seed0",
     "fraud_decision_v1__seed1",
     "fraud_decision_v1__seed2",
@@ -16113,6 +16748,281 @@
     "live_tests__2026-11-13-home-eval__dev-002117__model__d-v1",
     "live_tests__2026-11-13-home-eval__dev-015059__model__d-v1",
     "live_tests__2026-11-13-home-eval__dev-024611__model__d-v1",
+    "live_tests__2026-11-15-harness-ablation-hab-001__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__open__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-002__plain__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__open__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__open__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__open__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__plain__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__plain__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-003__plain__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__open__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-004__plain__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__open__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__open__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-005__plain__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__open__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-006__plain__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-007__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-007__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-008__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-008__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-009__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-009__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-010__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-010__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__open__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__open__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__open__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__open__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__plain__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__plain__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__plain__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-011__plain__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__open__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__open__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__open__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__open__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__plain__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__plain__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__plain__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-012__plain__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-013__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-014__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-015__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-016__model_only__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-017__model_only__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-018__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-019__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-020__model_only__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-021__model_only__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-022__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-023__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-024__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-025__model_only__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-026__model_only__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__case__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-01-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-02-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-03-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-027__model_only__hab-04-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__case__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__model_only__hab-05-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__model_only__hab-06-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__model_only__hab-07-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-028__model_only__hab-08-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-029__model_only__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__case__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-030__model_only__hab-18-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-11-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-12-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-13-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-031__case__hab-14-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-15-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-16-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-17-r1",
+    "live_tests__2026-11-15-harness-ablation-hab-032__case__hab-18-r1",
+    "live_tests__2026-11-15-home-eval__dev-082409__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-111352__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-130300__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-174147__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-181443__model__d-v1",
     "live_tests__adaptive_studio_live_20261113_r2",
     "live_tests__adaptive_studio_live_20261113_r3",
     "live_tests__adaptive_studio_live_20261113_r4",
@@ -16535,10 +17445,10 @@
    ]
   },
   "students": {
-   "bytes": 65578876,
-   "entries": 511,
-   "last": "2026-11-13T23:21:09+00:00",
-   "sources": 353,
+   "bytes": 67221874,
+   "entries": 532,
+   "last": "2026-11-16T04:32:00+00:00",
+   "sources": 371,
    "what": "every student version, whole: the fitted model, its training snapshot, card, measurements, shadow answers",
    "workspaces": [
     "dev",
@@ -16582,6 +17492,12 @@
     "e2e__2026-11-13__052732_product_e2e",
     "e2e__2026-11-13__062249_product_e2e",
     "e2e__2026-11-13__104248_product_e2e",
+    "e2e__2026-11-15__113724_product_e2e",
+    "e2e__2026-11-15__114823_product_e2e",
+    "e2e__2026-11-15__162214_product_e2e",
+    "e2e__2026-11-15__202618_product_e2e",
+    "e2e__2026-11-15__231048_product_e2e",
+    "e2e__2026-11-16__005942_product_e2e",
     "live_tests__2026-10-19_model_paths__104822",
     "live_tests__2026-10-25_model_paths__031227",
     "live_tests__2026-10-26-dclab-code-home-draft__ws",
@@ -16591,10 +17507,10 @@
    ]
   },
   "tasks": {
-   "bytes": 10322258,
-   "entries": 643,
-   "last": "2026-11-14T18:56:20+00:00",
-   "sources": 155,
+   "bytes": 10700835,
+   "entries": 660,
+   "last": "2026-11-15T22:08:55+00:00",
+   "sources": 167,
    "what": "every job's state changes; the development sessions' task lists",
    "workspaces": [
     "dev",
@@ -16657,6 +17573,12 @@
     "e2e__2026-11-13__052732_product_e2e",
     "e2e__2026-11-13__062249_product_e2e",
     "e2e__2026-11-13__104248_product_e2e",
+    "e2e__2026-11-15__113724_product_e2e",
+    "e2e__2026-11-15__114823_product_e2e",
+    "e2e__2026-11-15__162214_product_e2e",
+    "e2e__2026-11-15__202618_product_e2e",
+    "e2e__2026-11-15__231048_product_e2e",
+    "e2e__2026-11-16__005942_product_e2e",
     "live_tests__2026-10-16_phase3__workspace",
     "live_tests__2026-10-19_model_paths__104822",
     "live_tests__2026-10-20_home_orchestrator__run-163041__workspace",
@@ -16698,10 +17620,10 @@
    ]
   },
   "tests": {
-   "bytes": 395070347,
-   "entries": 14886,
-   "last": "2026-11-13T21:19:48+00:00",
-   "sources": 14591,
+   "bytes": 513210893,
+   "entries": 15307,
+   "last": "2026-11-16T00:44:10+00:00",
+   "sources": 15009,
    "what": "test runs and gates",
    "workspaces": [
     "dev",
@@ -16711,10 +17633,10 @@
    ]
   },
   "workflows": {
-   "bytes": 482257084,
-   "entries": 17752,
-   "last": "2026-11-14T04:24:08+00:00",
-   "sources": 17560,
+   "bytes": 492920066,
+   "entries": 18003,
+   "last": "2026-11-16T00:43:13+00:00",
+   "sources": 17811,
    "what": "each walk from a draft to a report; team and orchestra boards, walks and interrupts",
    "workspaces": [
     "dev",
@@ -16791,6 +17713,14 @@
     "e2e__2026-11-13__052732_product_e2e",
     "e2e__2026-11-13__062249_product_e2e",
     "e2e__2026-11-13__104248_product_e2e",
+    "e2e__2026-11-14__012436_browser_e2e",
+    "e2e__2026-11-15__113724_product_e2e",
+    "e2e__2026-11-15__114823_product_e2e",
+    "e2e__2026-11-15__162214_product_e2e",
+    "e2e__2026-11-15__202618_product_e2e",
+    "e2e__2026-11-15__231048_product_e2e",
+    "e2e__2026-11-16__005942_product_e2e",
+    "e2e__2026-11-16__022513_product_e2e",
     "journey_plays__homework_v1__jh-anomaly-000__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-001__s0__workspace",
     "journey_plays__homework_v1__jh-anomaly-002__s0__workspace",
@@ -19577,6 +20507,11 @@
     "live_tests__2026-11-13-home-eval__dev-002117__model__d-v1",
     "live_tests__2026-11-13-home-eval__dev-015059__model__d-v1",
     "live_tests__2026-11-13-home-eval__dev-024611__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-082409__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-111352__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-130300__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-174147__model__d-v1",
+    "live_tests__2026-11-15-home-eval__dev-181443__model__d-v1",
     "live_tests__adaptive_studio_live_20261113_r2",
     "live_tests__adaptive_studio_live_20261113_r3",
     "live_tests__adaptive_studio_live_20261113_r4",
@@ -19664,29 +20599,29 @@
    "sets": [
     {
      "counts": {
-      "dev": 269,
+      "dev": 276,
       "sealed": 7,
-      "sealed_pending": 361,
-      "train": 892
+      "sealed_pending": 376,
+      "train": 906
      },
      "name": "column.category_code/pairs",
      "path": "sets/m1_students/column.category_code/pairs/v1",
      "reasoning": {
-      "no_model": 1529
+      "no_model": 1565
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 856,
+      "dev": 873,
       "sealed": 7,
-      "sealed_pending": 1049,
-      "train": 2585
+      "sealed_pending": 1078,
+      "train": 2611
      },
      "name": "column.category_code",
      "path": "sets/m1_students/column.category_code/v1",
      "reasoning": {
-      "no_model": 4497
+      "no_model": 4569
      },
      "version": "v1"
     },
@@ -19724,61 +20659,61 @@
     },
     {
      "counts": {
-      "dev": 2346,
+      "dev": 2373,
       "sealed": 34,
-      "sealed_pending": 2840,
-      "train": 8038
+      "sealed_pending": 2900,
+      "train": 8092
      },
      "name": "column.is_identifier/pairs",
      "path": "sets/m1_students/column.is_identifier/pairs/v1",
      "reasoning": {
       "lost": 1503,
-      "no_model": 11164,
-      "none": 591
+      "no_model": 11245,
+      "none": 651
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 10761,
+      "dev": 10828,
       "sealed": 34,
-      "sealed_pending": 11544,
-      "train": 34176
+      "sealed_pending": 11658,
+      "train": 34277
      },
      "name": "column.is_identifier",
      "path": "sets/m1_students/column.is_identifier/v1",
      "reasoning": {
       "lost": 2661,
-      "no_model": 53131,
-      "none": 723
+      "no_model": 53293,
+      "none": 843
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1560,
+      "dev": 1587,
       "sealed": 34,
-      "sealed_pending": 1872,
-      "train": 9968
+      "sealed_pending": 1932,
+      "train": 10022
      },
      "name": "column.semantic_role/pairs",
      "path": "sets/m1_students/column.semantic_role/pairs/v1",
      "reasoning": {
-      "no_model": 13434
+      "no_model": 13575
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 4350,
+      "dev": 4417,
       "sealed": 34,
-      "sealed_pending": 4920,
-      "train": 17595
+      "sealed_pending": 5034,
+      "train": 17696
      },
      "name": "column.semantic_role",
      "path": "sets/m1_students/column.semantic_role/v1",
      "reasoning": {
-      "no_model": 26899
+      "no_model": 27181
      },
      "version": "v1"
     },
@@ -19798,32 +20733,32 @@
     },
     {
      "counts": {
-      "dev": 58,
+      "dev": 59,
       "sealed": 1,
       "sealed_pending": 47,
-      "train": 181
+      "train": 183
      },
      "name": "column.time/pairs",
      "path": "sets/m1_students/column.time/pairs/v1",
      "reasoning": {
       "lost": 43,
-      "no_model": 241,
+      "no_model": 244,
       "none": 3
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 343,
+      "dev": 344,
       "sealed": 1,
-      "sealed_pending": 352,
-      "train": 1102
+      "sealed_pending": 354,
+      "train": 1105
      },
      "name": "column.time",
      "path": "sets/m1_students/column.time/v1",
      "reasoning": {
       "lost": 63,
-      "no_model": 1732,
+      "no_model": 1738,
       "none": 3
      },
      "version": "v1"
@@ -19844,85 +20779,85 @@
     },
     {
      "counts": {
-      "dev": 139,
+      "dev": 169,
       "sealed": 1,
-      "sealed_pending": 122,
-      "train": 363
+      "sealed_pending": 143,
+      "train": 444
      },
      "name": "data.cases_table/pairs",
      "path": "sets/m1_students/data.cases_table/pairs/v1",
      "reasoning": {
-      "no_model": 625
+      "no_model": 757
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 306,
+      "dev": 339,
       "sealed": 2,
-      "sealed_pending": 282,
-      "train": 781
+      "sealed_pending": 310,
+      "train": 872
      },
      "name": "data.cases_table",
      "path": "sets/m1_students/data.cases_table/v1",
      "reasoning": {
-      "no_model": 1371
+      "no_model": 1523
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 494,
+      "dev": 563,
       "sealed": 7,
-      "sealed_pending": 514,
-      "train": 1327
+      "sealed_pending": 582,
+      "train": 1482
      },
      "name": "data.cleaning_keep",
      "path": "sets/m1_students/data.cleaning_keep/v1",
      "reasoning": {
-      "no_model": 2342
+      "no_model": 2634
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1509,
+      "dev": 1794,
       "sealed": 5,
-      "sealed_pending": 1452,
-      "train": 4015
+      "sealed_pending": 1686,
+      "train": 4808
      },
      "name": "data.cleaning_step/pairs",
      "path": "sets/m1_students/data.cleaning_step/pairs/v1",
      "reasoning": {
-      "no_model": 6981
+      "no_model": 8293
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 3309,
+      "dev": 3656,
       "sealed": 8,
-      "sealed_pending": 3370,
-      "train": 8454
+      "sealed_pending": 3695,
+      "train": 9378
      },
      "name": "data.cleaning_step",
      "path": "sets/m1_students/data.cleaning_step/v1",
      "reasoning": {
-      "no_model": 15141
+      "no_model": 16737
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 120,
+      "dev": 124,
       "sealed": 1,
-      "sealed_pending": 127,
-      "train": 338
+      "sealed_pending": 134,
+      "train": 345
      },
      "name": "data.fit_verdict",
      "path": "sets/m1_students/data.fit_verdict/v1",
      "reasoning": {
-      "no_model": 586
+      "no_model": 604
      },
      "version": "v1"
     },
@@ -19942,44 +20877,44 @@
     },
     {
      "counts": {
-      "dev": 534,
+      "dev": 538,
       "sealed": 2,
-      "sealed_pending": 574,
-      "train": 1621
+      "sealed_pending": 581,
+      "train": 1628
      },
      "name": "data.sampling",
      "path": "sets/m1_students/data.sampling/v1",
      "reasoning": {
-      "no_model": 2731
+      "no_model": 2749
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 310,
+      "dev": 343,
       "sealed": 1,
-      "sealed_pending": 295,
-      "train": 798
+      "sealed_pending": 323,
+      "train": 889
      },
      "name": "data.structure_format",
      "path": "sets/m1_students/data.structure_format/v1",
      "reasoning": {
-      "no_model": 1404
+      "no_model": 1556
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 17,
+      "dev": 18,
       "sealed": 1,
-      "sealed_pending": 13,
-      "train": 43
+      "sealed_pending": 15,
+      "train": 46
      },
      "name": "data.synthetic_shape",
      "path": "sets/m1_students/data.synthetic_shape/v1",
      "reasoning": {
       "lost": 13,
-      "no_model": 58,
+      "no_model": 64,
       "none": 3
      },
      "version": "v1"
@@ -20000,15 +20935,15 @@
     },
     {
      "counts": {
-      "dev": 17,
+      "dev": 19,
       "sealed": 6,
-      "sealed_pending": 13,
-      "train": 36
+      "sealed_pending": 14,
+      "train": 38
      },
      "name": "evidence.records",
      "path": "sets/m1_students/evidence.records/v1",
      "reasoning": {
-      "no_model": 72
+      "no_model": 77
      },
      "version": "v1"
     },
@@ -20044,48 +20979,48 @@
     },
     {
      "counts": {
-      "dev": 2588,
+      "dev": 2615,
       "sealed": 37,
-      "sealed_pending": 3086,
-      "train": 8781
+      "sealed_pending": 3146,
+      "train": 8835
      },
      "name": "feature.leakage_suspect/pairs",
      "path": "sets/m1_students/feature.leakage_suspect/pairs/v1",
      "reasoning": {
       "lost": 1503,
-      "no_model": 12398,
-      "none": 591
+      "no_model": 12479,
+      "none": 651
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 11398,
+      "dev": 11465,
       "sealed": 37,
-      "sealed_pending": 12164,
-      "train": 36028
+      "sealed_pending": 12278,
+      "train": 36129
      },
      "name": "feature.leakage_suspect",
      "path": "sets/m1_students/feature.leakage_suspect/v1",
      "reasoning": {
       "lost": 2661,
-      "no_model": 56243,
-      "none": 723
+      "no_model": 56405,
+      "none": 843
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 533,
+      "dev": 537,
       "sealed": 3,
-      "sealed_pending": 570,
-      "train": 1616
+      "sealed_pending": 577,
+      "train": 1623
      },
      "name": "features.recipe",
      "path": "sets/m1_students/features.recipe/v1",
      "reasoning": {
       "lost": 4,
-      "no_model": 2718
+      "no_model": 2736
      },
      "version": "v1"
     },
@@ -20176,59 +21111,59 @@
     },
     {
      "counts": {
-      "dev": 106,
+      "dev": 107,
       "sealed": 86,
-      "sealed_pending": 15,
-      "train": 284
+      "sealed_pending": 18,
+      "train": 286
      },
      "name": "map.size",
      "path": "sets/m1_students/map.size/v1",
      "reasoning": {
-      "no_model": 476,
+      "no_model": 482,
       "none": 15
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 534,
+      "dev": 538,
       "sealed": 2,
-      "sealed_pending": 574,
-      "train": 1621
+      "sealed_pending": 581,
+      "train": 1628
      },
      "name": "metric.primary",
      "path": "sets/m1_students/metric.primary/v1",
      "reasoning": {
-      "no_model": 2731
+      "no_model": 2749
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 533,
+      "dev": 537,
       "sealed": 2,
-      "sealed_pending": 570,
-      "train": 1610
+      "sealed_pending": 577,
+      "train": 1617
      },
      "name": "model.family",
      "path": "sets/m1_students/model.family/v1",
      "reasoning": {
       "lost": 4,
-      "no_model": 2711
+      "no_model": 2729
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 233,
+      "dev": 237,
       "sealed": 53,
-      "sealed_pending": 204,
-      "train": 711
+      "sealed_pending": 211,
+      "train": 718
      },
      "name": "model.first",
      "path": "sets/m1_students/model.first/v1",
      "reasoning": {
-      "no_model": 1201
+      "no_model": 1219
      },
      "version": "v1"
     },
@@ -20262,155 +21197,155 @@
     },
     {
      "counts": {
-      "dev": 746,
+      "dev": 750,
       "sealed": 1,
-      "sealed_pending": 787,
-      "train": 2319
+      "sealed_pending": 794,
+      "train": 2326
      },
      "name": "modifier.groups",
      "path": "sets/m1_students/modifier.groups/v1",
      "reasoning": {
       "lost": 136,
-      "no_model": 3682,
-      "none": 35
+      "no_model": 3694,
+      "none": 41
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 690,
+      "dev": 694,
       "sealed": 1,
-      "sealed_pending": 736,
-      "train": 2151
+      "sealed_pending": 743,
+      "train": 2158
      },
      "name": "modifier.noisy_labels",
      "path": "sets/m1_students/modifier.noisy_labels/v1",
      "reasoning": {
       "lost": 136,
-      "no_model": 3407,
-      "none": 35
+      "no_model": 3419,
+      "none": 41
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 746,
+      "dev": 750,
       "sealed": 1,
-      "sealed_pending": 787,
-      "train": 2319
+      "sealed_pending": 794,
+      "train": 2326
      },
      "name": "modifier.rare_positives",
      "path": "sets/m1_students/modifier.rare_positives/v1",
      "reasoning": {
       "lost": 136,
-      "no_model": 3682,
-      "none": 35
+      "no_model": 3694,
+      "none": 41
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 690,
+      "dev": 694,
       "sealed": 1,
-      "sealed_pending": 736,
-      "train": 2151
+      "sealed_pending": 743,
+      "train": 2158
      },
      "name": "modifier.review_capacity",
      "path": "sets/m1_students/modifier.review_capacity/v1",
      "reasoning": {
       "lost": 136,
-      "no_model": 3407,
-      "none": 35
+      "no_model": 3419,
+      "none": 41
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 746,
+      "dev": 750,
       "sealed": 1,
-      "sealed_pending": 787,
-      "train": 2319
+      "sealed_pending": 794,
+      "train": 2326
      },
      "name": "modifier.time_order",
      "path": "sets/m1_students/modifier.time_order/v1",
      "reasoning": {
       "lost": 136,
-      "no_model": 3682,
-      "none": 35
+      "no_model": 3694,
+      "none": 41
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 31,
+      "dev": 33,
       "sealed": 1,
-      "sealed_pending": 40,
-      "train": 102
+      "sealed_pending": 43,
+      "train": 106
      },
      "name": "problem.family/pairs",
      "path": "sets/m1_students/problem.family/pairs/v1",
      "reasoning": {
-      "no_model": 159,
+      "no_model": 168,
       "none": 15
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 127,
+      "dev": 131,
       "sealed": 1,
-      "sealed_pending": 131,
-      "train": 353
+      "sealed_pending": 138,
+      "train": 360
      },
      "name": "problem.family",
      "path": "sets/m1_students/problem.family/v1",
      "reasoning": {
-      "no_model": 597,
+      "no_model": 615,
       "none": 15
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 236,
+      "dev": 241,
       "sealed": 2,
-      "sealed_pending": 236,
-      "train": 645
+      "sealed_pending": 245,
+      "train": 661
      },
      "name": "problem.pack",
      "path": "sets/m1_students/problem.pack/v1",
      "reasoning": {
       "lost": 2,
-      "no_model": 1116,
+      "no_model": 1146,
       "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 37,
+      "dev": 39,
       "sealed": 1,
-      "sealed_pending": 41,
-      "train": 106
+      "sealed_pending": 44,
+      "train": 113
      },
      "name": "problem.ready/pairs",
      "path": "sets/m1_students/problem.ready/pairs/v1",
      "reasoning": {
-      "no_model": 185
+      "no_model": 197
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 139,
+      "dev": 143,
       "sealed": 1,
-      "sealed_pending": 134,
-      "train": 366
+      "sealed_pending": 142,
+      "train": 378
      },
      "name": "problem.ready",
      "path": "sets/m1_students/problem.ready/v1",
      "reasoning": {
-      "no_model": 640
+      "no_model": 664
      },
      "version": "v1"
     },
@@ -20461,48 +21396,48 @@
     },
     {
      "counts": {
-      "dev": 197,
+      "dev": 204,
       "sealed": 6,
-      "sealed_pending": 158,
-      "train": 504
+      "sealed_pending": 168,
+      "train": 522
      },
      "name": "request.exit",
      "path": "sets/m1_students/request.exit/v1",
      "reasoning": {
-      "no_model": 865
+      "no_model": 900
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 139,
+      "dev": 144,
       "sealed": 21,
-      "sealed_pending": 83,
-      "train": 328
+      "sealed_pending": 87,
+      "train": 339
      },
      "name": "request.intent/pairs",
      "path": "sets/m1_students/request.intent/pairs/v1",
      "reasoning": {
       "lost": 6,
-      "no_model": 151,
-      "none": 143,
+      "no_model": 166,
+      "none": 148,
       "recorded": 271
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 169,
+      "dev": 176,
       "sealed": 9,
-      "sealed_pending": 120,
-      "train": 422
+      "sealed_pending": 130,
+      "train": 440
      },
      "name": "request.intent",
      "path": "sets/m1_students/request.intent/v1",
      "reasoning": {
       "lost": 21,
-      "no_model": 285,
-      "none": 143,
+      "no_model": 315,
+      "none": 148,
       "recorded": 271
      },
      "version": "v1"
@@ -20524,29 +21459,29 @@
     },
     {
      "counts": {
-      "dev": 110,
+      "dev": 117,
       "sealed": 1,
-      "sealed_pending": 111,
-      "train": 312
+      "sealed_pending": 121,
+      "train": 330
      },
      "name": "request.suggestion",
      "path": "sets/m1_students/request.suggestion/v1",
      "reasoning": {
-      "no_model": 534
+      "no_model": 569
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 106,
+      "dev": 113,
       "sealed": 1,
-      "sealed_pending": 110,
-      "train": 307
+      "sealed_pending": 120,
+      "train": 325
      },
      "name": "request.tool",
      "path": "sets/m1_students/request.tool/v1",
      "reasoning": {
-      "no_model": 524
+      "no_model": 559
      },
      "version": "v1"
     },
@@ -20581,29 +21516,147 @@
     },
     {
      "counts": {
-      "dev": 8,
+      "dev": 9,
       "sealed": 4,
-      "sealed_pending": 6,
+      "sealed_pending": 8,
       "train": 31
      },
      "name": "solution.route/pairs",
      "path": "sets/m1_students/solution.route/pairs/v1",
      "reasoning": {
-      "no_model": 49
+      "no_model": 52
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 106,
+      "dev": 107,
       "sealed": 90,
-      "sealed_pending": 17,
-      "train": 261
+      "sealed_pending": 20,
+      "train": 263
      },
      "name": "solution.route",
      "path": "sets/m1_students/solution.route/v1",
      "reasoning": {
-      "no_model": 474
+      "no_model": 480
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 538,
+      "sealed": 2,
+      "sealed_pending": 581,
+      "train": 1628
+     },
+     "name": "split.folds",
+     "path": "sets/m1_students/split.folds/v1",
+     "reasoning": {
+      "no_model": 2749
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 165,
+      "sealed": 1,
+      "sealed_pending": 205,
+      "train": 516
+     },
+     "name": "split.strategy/pairs",
+     "path": "sets/m1_students/split.strategy/pairs/v1",
+     "reasoning": {
+      "no_model": 887
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 395,
+      "sealed": 2,
+      "sealed_pending": 452,
+      "train": 1192
+     },
+     "name": "split.strategy",
+     "path": "sets/m1_students/split.strategy/v1",
+     "reasoning": {
+      "no_model": 2041
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 812,
+      "sealed": 2,
+      "sealed_pending": 857,
+      "train": 2487
+     },
+     "name": "target.column",
+     "path": "sets/m1_students/target.column/v1",
+     "reasoning": {
+      "lost": 153,
+      "no_model": 3961,
+      "none": 44
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 307,
+      "sealed": 1,
+      "sealed_pending": 355,
+      "train": 1017
+     },
+     "name": "task.framing/pairs",
+     "path": "sets/m1_students/task.framing/pairs/v1",
+     "reasoning": {
+      "lost": 78,
+      "no_model": 1568,
+      "none": 34
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 815,
+      "sealed": 2,
+      "sealed_pending": 859,
+      "train": 2494
+     },
+     "name": "task.framing",
+     "path": "sets/m1_students/task.framing/v1",
+     "reasoning": {
+      "lost": 153,
+      "no_model": 3973,
+      "none": 44
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 130,
+      "sealed": 5,
+      "sealed_pending": 111,
+      "train": 338
+     },
+     "name": "team.next_node",
+     "path": "sets/m1_students/team.next_node/v1",
+     "reasoning": {
+      "no_model": 584
+     },
+     "version": "v1"
+    },
+    {
+     "counts": {
+      "dev": 645,
+      "sealed": 1,
+      "sealed_pending": 295,
+      "train": 1241
+     },
+     "name": "threshold.operating_point",
+     "path": "sets/m1_students/threshold.operating_point/v1",
+     "reasoning": {
+      "no_model": 2182
      },
      "version": "v1"
     },
@@ -20611,189 +21664,71 @@
      "counts": {
       "dev": 534,
       "sealed": 2,
-      "sealed_pending": 574,
-      "train": 1621
-     },
-     "name": "split.folds",
-     "path": "sets/m1_students/split.folds/v1",
-     "reasoning": {
-      "no_model": 2731
-     },
-     "version": "v1"
-    },
-    {
-     "counts": {
-      "dev": 163,
-      "sealed": 1,
-      "sealed_pending": 202,
-      "train": 512
-     },
-     "name": "split.strategy/pairs",
-     "path": "sets/m1_students/split.strategy/pairs/v1",
-     "reasoning": {
-      "no_model": 878
-     },
-     "version": "v1"
-    },
-    {
-     "counts": {
-      "dev": 391,
-      "sealed": 2,
-      "sealed_pending": 445,
-      "train": 1185
-     },
-     "name": "split.strategy",
-     "path": "sets/m1_students/split.strategy/v1",
-     "reasoning": {
-      "no_model": 2023
-     },
-     "version": "v1"
-    },
-    {
-     "counts": {
-      "dev": 808,
-      "sealed": 2,
-      "sealed_pending": 850,
-      "train": 2480
-     },
-     "name": "target.column",
-     "path": "sets/m1_students/target.column/v1",
-     "reasoning": {
-      "lost": 153,
-      "no_model": 3949,
-      "none": 38
-     },
-     "version": "v1"
-    },
-    {
-     "counts": {
-      "dev": 305,
-      "sealed": 1,
-      "sealed_pending": 352,
-      "train": 1013
-     },
-     "name": "task.framing/pairs",
-     "path": "sets/m1_students/task.framing/pairs/v1",
-     "reasoning": {
-      "lost": 78,
-      "no_model": 1562,
-      "none": 31
-     },
-     "version": "v1"
-    },
-    {
-     "counts": {
-      "dev": 811,
-      "sealed": 2,
-      "sealed_pending": 852,
-      "train": 2487
-     },
-     "name": "task.framing",
-     "path": "sets/m1_students/task.framing/v1",
-     "reasoning": {
-      "lost": 153,
-      "no_model": 3961,
-      "none": 38
-     },
-     "version": "v1"
-    },
-    {
-     "counts": {
-      "dev": 125,
-      "sealed": 5,
-      "sealed_pending": 96,
-      "train": 328
-     },
-     "name": "team.next_node",
-     "path": "sets/m1_students/team.next_node/v1",
-     "reasoning": {
-      "no_model": 554
-     },
-     "version": "v1"
-    },
-    {
-     "counts": {
-      "dev": 642,
-      "sealed": 1,
-      "sealed_pending": 290,
-      "train": 1237
-     },
-     "name": "threshold.operating_point",
-     "path": "sets/m1_students/threshold.operating_point/v1",
-     "reasoning": {
-      "no_model": 2170
-     },
-     "version": "v1"
-    },
-    {
-     "counts": {
-      "dev": 530,
-      "sealed": 2,
-      "sealed_pending": 566,
-      "train": 1605
+      "sealed_pending": 573,
+      "train": 1612
      },
      "name": "tuning.accept",
      "path": "sets/m1_students/tuning.accept/v1",
      "reasoning": {
-      "no_model": 2703
+      "no_model": 2721
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 488,
+      "dev": 492,
       "sealed": 1,
-      "sealed_pending": 527,
-      "train": 1481
+      "sealed_pending": 534,
+      "train": 1488
      },
      "name": "workflow.g4",
      "path": "sets/m1_students/workflow.g4/v1",
      "reasoning": {
-      "no_model": 2497
+      "no_model": 2515
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 3016,
+      "dev": 3047,
       "sealed": 21,
-      "sealed_pending": 3264,
-      "train": 9082
+      "sealed_pending": 3318,
+      "train": 9135
      },
      "name": "workflow.move",
      "path": "sets/m1_students/workflow.move/v1",
      "reasoning": {
       "lost": 1269,
-      "no_model": 13705,
-      "none": 409
+      "no_model": 13795,
+      "none": 457
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 213,
+      "dev": 249,
       "sealed": 1,
-      "sealed_pending": 245,
-      "train": 681
+      "sealed_pending": 278,
+      "train": 786
      },
      "name": "workflow.next_question/pairs",
      "path": "sets/m1_students/workflow.next_question/pairs/v1",
      "reasoning": {
-      "no_model": 1140
+      "no_model": 1314
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1239,
+      "dev": 1286,
       "sealed": 2,
-      "sealed_pending": 1194,
-      "train": 3177
+      "sealed_pending": 1249,
+      "train": 3311
      },
      "name": "workflow.next_question",
      "path": "sets/m1_students/workflow.next_question/v1",
      "reasoning": {
-      "no_model": 5612
+      "no_model": 5848
      },
      "version": "v1"
     },
@@ -20830,16 +21765,16 @@
     },
     {
      "counts": {
-      "dev": 269,
+      "dev": 302,
       "sealed": 3,
-      "sealed_pending": 265,
-      "train": 750
+      "sealed_pending": 294,
+      "train": 846
      },
      "name": "workflow.template",
      "path": "sets/m1_students/workflow.template/v1",
      "reasoning": {
       "lost": 22,
-      "no_model": 1243,
+      "no_model": 1401,
       "none": 22
      },
      "version": "v1"
@@ -20882,29 +21817,29 @@
     },
     {
      "counts": {
-      "dev": 125,
+      "dev": 130,
       "sealed": 5,
-      "sealed_pending": 96,
-      "train": 328
+      "sealed_pending": 111,
+      "train": 338
      },
      "name": "internal/team.next_node",
      "path": "sets/m2_workflow_decisions/internal/team.next_node/v1",
      "reasoning": {
-      "no_model": 554
+      "no_model": 584
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 488,
+      "dev": 492,
       "sealed": 1,
-      "sealed_pending": 527,
-      "train": 1481
+      "sealed_pending": 534,
+      "train": 1488
      },
      "name": "internal/workflow.g4",
      "path": "sets/m2_workflow_decisions/internal/workflow.g4/v1",
      "reasoning": {
-      "no_model": 2497
+      "no_model": 2515
      },
      "version": "v1"
     },
@@ -20940,61 +21875,61 @@
     },
     {
      "counts": {
-      "dev": 106,
+      "dev": 107,
       "sealed": 86,
-      "sealed_pending": 15,
-      "train": 284
+      "sealed_pending": 18,
+      "train": 286
      },
      "name": "rnd/map.size",
      "path": "sets/m2_workflow_decisions/rnd/map.size/v1",
      "reasoning": {
-      "no_model": 476,
+      "no_model": 482,
       "none": 15
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 127,
+      "dev": 131,
       "sealed": 1,
-      "sealed_pending": 131,
-      "train": 353
+      "sealed_pending": 138,
+      "train": 360
      },
      "name": "rnd/problem.family",
      "path": "sets/m2_workflow_decisions/rnd/problem.family/v1",
      "reasoning": {
-      "no_model": 597,
+      "no_model": 615,
       "none": 15
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 236,
+      "dev": 241,
       "sealed": 2,
-      "sealed_pending": 236,
-      "train": 645
+      "sealed_pending": 245,
+      "train": 661
      },
      "name": "rnd/problem.pack",
      "path": "sets/m2_workflow_decisions/rnd/problem.pack/v1",
      "reasoning": {
       "lost": 2,
-      "no_model": 1116,
+      "no_model": 1146,
       "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 139,
+      "dev": 143,
       "sealed": 1,
-      "sealed_pending": 134,
-      "train": 366
+      "sealed_pending": 142,
+      "train": 378
      },
      "name": "rnd/problem.ready",
      "path": "sets/m2_workflow_decisions/rnd/problem.ready/v1",
      "reasoning": {
-      "no_model": 640
+      "no_model": 664
      },
      "version": "v1"
     },
@@ -21030,31 +21965,31 @@
     },
     {
      "counts": {
-      "dev": 197,
+      "dev": 204,
       "sealed": 6,
-      "sealed_pending": 158,
-      "train": 504
+      "sealed_pending": 168,
+      "train": 522
      },
      "name": "rnd/request.exit",
      "path": "sets/m2_workflow_decisions/rnd/request.exit/v1",
      "reasoning": {
-      "no_model": 865
+      "no_model": 900
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 169,
+      "dev": 176,
       "sealed": 9,
-      "sealed_pending": 120,
-      "train": 422
+      "sealed_pending": 130,
+      "train": 440
      },
      "name": "rnd/request.intent",
      "path": "sets/m2_workflow_decisions/rnd/request.intent/v1",
      "reasoning": {
       "lost": 21,
-      "no_model": 285,
-      "none": 143,
+      "no_model": 315,
+      "none": 148,
       "recorded": 271
      },
      "version": "v1"
@@ -21076,29 +22011,29 @@
     },
     {
      "counts": {
-      "dev": 110,
+      "dev": 117,
       "sealed": 1,
-      "sealed_pending": 111,
-      "train": 312
+      "sealed_pending": 121,
+      "train": 330
      },
      "name": "rnd/request.suggestion",
      "path": "sets/m2_workflow_decisions/rnd/request.suggestion/v1",
      "reasoning": {
-      "no_model": 534
+      "no_model": 569
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 106,
+      "dev": 113,
       "sealed": 1,
-      "sealed_pending": 110,
-      "train": 307
+      "sealed_pending": 120,
+      "train": 325
      },
      "name": "rnd/request.tool",
      "path": "sets/m2_workflow_decisions/rnd/request.tool/v1",
      "reasoning": {
-      "no_model": 524
+      "no_model": 559
      },
      "version": "v1"
     },
@@ -21133,45 +22068,45 @@
     },
     {
      "counts": {
-      "dev": 106,
+      "dev": 107,
       "sealed": 90,
-      "sealed_pending": 17,
-      "train": 261
+      "sealed_pending": 20,
+      "train": 263
      },
      "name": "rnd/solution.route",
      "path": "sets/m2_workflow_decisions/rnd/solution.route/v1",
      "reasoning": {
-      "no_model": 474
+      "no_model": 480
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 3016,
+      "dev": 3047,
       "sealed": 21,
-      "sealed_pending": 3264,
-      "train": 9082
+      "sealed_pending": 3318,
+      "train": 9135
      },
      "name": "rnd/workflow.move",
      "path": "sets/m2_workflow_decisions/rnd/workflow.move/v1",
      "reasoning": {
       "lost": 1269,
-      "no_model": 13705,
-      "none": 409
+      "no_model": 13795,
+      "none": 457
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1239,
+      "dev": 1286,
       "sealed": 2,
-      "sealed_pending": 1194,
-      "train": 3177
+      "sealed_pending": 1249,
+      "train": 3311
      },
      "name": "rnd/workflow.next_question",
      "path": "sets/m2_workflow_decisions/rnd/workflow.next_question/v1",
      "reasoning": {
-      "no_model": 5612
+      "no_model": 5848
      },
      "version": "v1"
     },
@@ -21208,16 +22143,16 @@
     },
     {
      "counts": {
-      "dev": 269,
+      "dev": 302,
       "sealed": 3,
-      "sealed_pending": 265,
-      "train": 750
+      "sealed_pending": 294,
+      "train": 846
      },
      "name": "rnd/workflow.template",
      "path": "sets/m2_workflow_decisions/rnd/workflow.template/v1",
      "reasoning": {
       "lost": 22,
-      "no_model": 1243,
+      "no_model": 1401,
       "none": 22
      },
      "version": "v1"
@@ -21274,125 +22209,125 @@
     },
     {
      "counts": {
-      "dev": 8152,
+      "dev": 8212,
       "sealed": 17,
-      "sealed_pending": 8747,
-      "train": 25873
+      "sealed_pending": 8847,
+      "train": 25953
      },
      "name": "binary_classification/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/binary_classification/feature.leakage_suspect/v1",
      "reasoning": {
       "lost": 2337,
-      "no_model": 39757,
-      "none": 695
+      "no_model": 39877,
+      "none": 815
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 187,
+      "dev": 190,
       "sealed": 41,
-      "sealed_pending": 161,
-      "train": 537
+      "sealed_pending": 166,
+      "train": 541
      },
      "name": "binary_classification/model.first",
      "path": "sets/m3_ml_decisions/binary_classification/model.first/v1",
      "reasoning": {
-      "no_model": 926
+      "no_model": 938
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 474,
+      "dev": 477,
       "sealed": 1,
-      "sealed_pending": 503,
-      "train": 1425
+      "sealed_pending": 508,
+      "train": 1429
      },
      "name": "binary_classification/modifier.groups",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.groups/v1",
      "reasoning": {
       "lost": 113,
-      "no_model": 2256,
-      "none": 34
+      "no_model": 2262,
+      "none": 40
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 451,
+      "dev": 454,
       "sealed": 1,
-      "sealed_pending": 481,
-      "train": 1354
+      "sealed_pending": 486,
+      "train": 1358
      },
      "name": "binary_classification/modifier.noisy_labels",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.noisy_labels/v1",
      "reasoning": {
       "lost": 113,
-      "no_model": 2140,
-      "none": 34
+      "no_model": 2146,
+      "none": 40
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 474,
+      "dev": 477,
       "sealed": 1,
-      "sealed_pending": 503,
-      "train": 1425
+      "sealed_pending": 508,
+      "train": 1429
      },
      "name": "binary_classification/modifier.rare_positives",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.rare_positives/v1",
      "reasoning": {
       "lost": 113,
-      "no_model": 2256,
-      "none": 34
+      "no_model": 2262,
+      "none": 40
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 451,
+      "dev": 454,
       "sealed": 1,
-      "sealed_pending": 481,
-      "train": 1354
+      "sealed_pending": 486,
+      "train": 1358
      },
      "name": "binary_classification/modifier.review_capacity",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.review_capacity/v1",
      "reasoning": {
       "lost": 113,
-      "no_model": 2140,
-      "none": 34
+      "no_model": 2146,
+      "none": 40
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 474,
+      "dev": 477,
       "sealed": 1,
-      "sealed_pending": 503,
-      "train": 1425
+      "sealed_pending": 508,
+      "train": 1429
      },
      "name": "binary_classification/modifier.time_order",
      "path": "sets/m3_ml_decisions/binary_classification/modifier.time_order/v1",
      "reasoning": {
       "lost": 113,
-      "no_model": 2256,
-      "none": 34
+      "no_model": 2262,
+      "none": 40
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 507,
+      "dev": 522,
       "sealed": 162,
-      "sealed_pending": 551,
-      "train": 1523
+      "sealed_pending": 576,
+      "train": 1543
      },
      "name": "experiments/binary",
      "path": "sets/m3_ml_decisions/experiments/binary/v1",
      "reasoning": {
-      "no_field": 2581
+      "no_field": 2641
      },
      "version": "v1"
     },
@@ -21426,15 +22361,15 @@
     },
     {
      "counts": {
-      "dev": 145,
+      "dev": 150,
       "sealed": 85,
-      "sealed_pending": 200,
-      "train": 635
+      "sealed_pending": 210,
+      "train": 650
      },
      "name": "experiments/regression",
      "path": "sets/m3_ml_decisions/experiments/regression/v1",
      "reasoning": {
-      "no_field": 980
+      "no_field": 1010
      },
      "version": "v1"
     },
@@ -21482,15 +22417,15 @@
     },
     {
      "counts": {
-      "dev": 856,
+      "dev": 873,
       "sealed": 7,
-      "sealed_pending": 1049,
-      "train": 2585
+      "sealed_pending": 1078,
+      "train": 2611
      },
      "name": "general/column.category_code",
      "path": "sets/m3_ml_decisions/general/column.category_code/v1",
      "reasoning": {
-      "no_model": 4497
+      "no_model": 4569
      },
      "version": "v1"
     },
@@ -21512,31 +22447,31 @@
     },
     {
      "counts": {
-      "dev": 10761,
+      "dev": 10828,
       "sealed": 34,
-      "sealed_pending": 11544,
-      "train": 34176
+      "sealed_pending": 11658,
+      "train": 34277
      },
      "name": "general/column.is_identifier",
      "path": "sets/m3_ml_decisions/general/column.is_identifier/v1",
      "reasoning": {
       "lost": 2661,
-      "no_model": 53131,
-      "none": 723
+      "no_model": 53293,
+      "none": 843
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 4350,
+      "dev": 4417,
       "sealed": 34,
-      "sealed_pending": 4920,
-      "train": 17595
+      "sealed_pending": 5034,
+      "train": 17696
      },
      "name": "general/column.semantic_role",
      "path": "sets/m3_ml_decisions/general/column.semantic_role/v1",
      "reasoning": {
-      "no_model": 26899
+      "no_model": 27181
      },
      "version": "v1"
     },
@@ -21556,131 +22491,131 @@
     },
     {
      "counts": {
-      "dev": 343,
+      "dev": 344,
       "sealed": 1,
-      "sealed_pending": 352,
-      "train": 1102
+      "sealed_pending": 354,
+      "train": 1105
      },
      "name": "general/column.time",
      "path": "sets/m3_ml_decisions/general/column.time/v1",
      "reasoning": {
       "lost": 63,
-      "no_model": 1732,
+      "no_model": 1738,
       "none": 3
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 306,
+      "dev": 339,
       "sealed": 2,
-      "sealed_pending": 282,
-      "train": 781
+      "sealed_pending": 310,
+      "train": 872
      },
      "name": "general/data.cases_table",
      "path": "sets/m3_ml_decisions/general/data.cases_table/v1",
      "reasoning": {
-      "no_model": 1371
+      "no_model": 1523
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 494,
+      "dev": 563,
       "sealed": 7,
-      "sealed_pending": 514,
-      "train": 1327
+      "sealed_pending": 582,
+      "train": 1482
      },
      "name": "general/data.cleaning_keep",
      "path": "sets/m3_ml_decisions/general/data.cleaning_keep/v1",
      "reasoning": {
-      "no_model": 2342
+      "no_model": 2634
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 3309,
+      "dev": 3656,
       "sealed": 8,
-      "sealed_pending": 3370,
-      "train": 8454
+      "sealed_pending": 3695,
+      "train": 9378
      },
      "name": "general/data.cleaning_step",
      "path": "sets/m3_ml_decisions/general/data.cleaning_step/v1",
      "reasoning": {
-      "no_model": 15141
+      "no_model": 16737
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 120,
+      "dev": 124,
       "sealed": 1,
-      "sealed_pending": 127,
-      "train": 338
+      "sealed_pending": 134,
+      "train": 345
      },
      "name": "general/data.fit_verdict",
      "path": "sets/m3_ml_decisions/general/data.fit_verdict/v1",
      "reasoning": {
-      "no_model": 586
+      "no_model": 604
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 508,
+      "dev": 512,
       "sealed": 2,
-      "sealed_pending": 534,
-      "train": 1536
+      "sealed_pending": 541,
+      "train": 1543
      },
      "name": "general/data.sampling",
      "path": "sets/m3_ml_decisions/general/data.sampling/v1",
      "reasoning": {
-      "no_model": 2580
+      "no_model": 2598
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 310,
+      "dev": 343,
       "sealed": 1,
-      "sealed_pending": 295,
-      "train": 798
+      "sealed_pending": 323,
+      "train": 889
      },
      "name": "general/data.structure_format",
      "path": "sets/m3_ml_decisions/general/data.structure_format/v1",
      "reasoning": {
-      "no_model": 1404
+      "no_model": 1556
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 17,
+      "dev": 18,
       "sealed": 1,
-      "sealed_pending": 13,
-      "train": 43
+      "sealed_pending": 15,
+      "train": 46
      },
      "name": "general/data.synthetic_shape",
      "path": "sets/m3_ml_decisions/general/data.synthetic_shape/v1",
      "reasoning": {
       "lost": 13,
-      "no_model": 58,
+      "no_model": 64,
       "none": 3
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 17,
+      "dev": 19,
       "sealed": 6,
-      "sealed_pending": 13,
-      "train": 36
+      "sealed_pending": 14,
+      "train": 38
      },
      "name": "general/evidence.records",
      "path": "sets/m3_ml_decisions/general/evidence.records/v1",
      "reasoning": {
-      "no_model": 72
+      "no_model": 77
      },
      "version": "v1"
     },
@@ -21700,16 +22635,16 @@
     },
     {
      "counts": {
-      "dev": 507,
+      "dev": 511,
       "sealed": 3,
-      "sealed_pending": 530,
-      "train": 1532
+      "sealed_pending": 537,
+      "train": 1539
      },
      "name": "general/features.recipe",
      "path": "sets/m3_ml_decisions/general/features.recipe/v1",
      "reasoning": {
       "lost": 4,
-      "no_model": 2568
+      "no_model": 2586
      },
      "version": "v1"
     },
@@ -21786,30 +22721,30 @@
     },
     {
      "counts": {
-      "dev": 508,
+      "dev": 512,
       "sealed": 2,
-      "sealed_pending": 534,
-      "train": 1536
+      "sealed_pending": 541,
+      "train": 1543
      },
      "name": "general/metric.primary",
      "path": "sets/m3_ml_decisions/general/metric.primary/v1",
      "reasoning": {
-      "no_model": 2580
+      "no_model": 2598
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 507,
+      "dev": 511,
       "sealed": 2,
-      "sealed_pending": 530,
-      "train": 1526
+      "sealed_pending": 537,
+      "train": 1533
      },
      "name": "general/model.family",
      "path": "sets/m3_ml_decisions/general/model.family/v1",
      "reasoning": {
       "lost": 4,
-      "no_model": 2561
+      "no_model": 2579
      },
      "version": "v1"
     },
@@ -21858,75 +22793,75 @@
     },
     {
      "counts": {
-      "dev": 508,
+      "dev": 512,
       "sealed": 2,
-      "sealed_pending": 534,
-      "train": 1536
+      "sealed_pending": 541,
+      "train": 1543
      },
      "name": "general/split.folds",
      "path": "sets/m3_ml_decisions/general/split.folds/v1",
      "reasoning": {
-      "no_model": 2580
+      "no_model": 2598
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 365,
+      "dev": 369,
       "sealed": 2,
-      "sealed_pending": 405,
-      "train": 1100
+      "sealed_pending": 412,
+      "train": 1107
      },
      "name": "general/split.strategy",
      "path": "sets/m3_ml_decisions/general/split.strategy/v1",
      "reasoning": {
-      "no_model": 1872
+      "no_model": 1890
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 808,
+      "dev": 812,
       "sealed": 2,
-      "sealed_pending": 850,
-      "train": 2480
+      "sealed_pending": 857,
+      "train": 2487
      },
      "name": "general/target.column",
      "path": "sets/m3_ml_decisions/general/target.column/v1",
      "reasoning": {
       "lost": 153,
-      "no_model": 3949,
-      "none": 38
+      "no_model": 3961,
+      "none": 44
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 811,
+      "dev": 815,
       "sealed": 2,
-      "sealed_pending": 852,
-      "train": 2487
+      "sealed_pending": 859,
+      "train": 2494
      },
      "name": "general/task.framing",
      "path": "sets/m3_ml_decisions/general/task.framing/v1",
      "reasoning": {
       "lost": 153,
-      "no_model": 3961,
-      "none": 38
+      "no_model": 3973,
+      "none": 44
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 274,
+      "dev": 277,
       "sealed": 1,
-      "sealed_pending": 290,
-      "train": 797
+      "sealed_pending": 295,
+      "train": 801
      },
      "name": "general/threshold.operating_point",
      "path": "sets/m3_ml_decisions/general/threshold.operating_point/v1",
      "reasoning": {
-      "no_model": 1362
+      "no_model": 1374
      },
      "version": "v1"
     },
@@ -22002,15 +22937,15 @@
     },
     {
      "counts": {
-      "dev": 95,
+      "dev": 98,
       "sealed": 2,
-      "sealed_pending": 103,
-      "train": 277
+      "sealed_pending": 108,
+      "train": 281
      },
      "name": "logistic_regression/tuning.accept",
      "path": "sets/m3_ml_decisions/logistic_regression/tuning.accept/v1",
      "reasoning": {
-      "no_model": 477
+      "no_model": 489
      },
      "version": "v1"
     },
@@ -22316,31 +23251,31 @@
     },
     {
      "counts": {
-      "dev": 1728,
+      "dev": 1735,
       "sealed": 17,
-      "sealed_pending": 1665,
-      "train": 5385
+      "sealed_pending": 1679,
+      "train": 5406
      },
      "name": "regression/feature.leakage_suspect",
      "path": "sets/m3_ml_decisions/regression/feature.leakage_suspect/v1",
      "reasoning": {
       "lost": 284,
-      "no_model": 8483,
+      "no_model": 8525,
       "none": 28
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 30,
+      "dev": 31,
       "sealed": 20,
-      "sealed_pending": 13,
-      "train": 107
+      "sealed_pending": 15,
+      "train": 110
      },
      "name": "regression/model.first",
      "path": "sets/m3_ml_decisions/regression/model.first/v1",
      "reasoning": {
-      "no_model": 170
+      "no_model": 176
      },
      "version": "v1"
     },
@@ -22360,95 +23295,95 @@
     },
     {
      "counts": {
-      "dev": 224,
+      "dev": 225,
       "sealed": 119,
-      "sealed_pending": 99,
-      "train": 738
+      "sealed_pending": 101,
+      "train": 741
      },
      "name": "regression/modifier.groups",
      "path": "sets/m3_ml_decisions/regression/modifier.groups/v1",
      "reasoning": {
       "lost": 20,
-      "no_model": 1159,
+      "no_model": 1165,
       "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 199,
+      "dev": 200,
       "sealed": 97,
-      "sealed_pending": 99,
-      "train": 666
+      "sealed_pending": 101,
+      "train": 669
      },
      "name": "regression/modifier.noisy_labels",
      "path": "sets/m3_ml_decisions/regression/modifier.noisy_labels/v1",
      "reasoning": {
       "lost": 20,
-      "no_model": 1040,
+      "no_model": 1046,
       "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 224,
+      "dev": 225,
       "sealed": 119,
-      "sealed_pending": 99,
-      "train": 738
+      "sealed_pending": 101,
+      "train": 741
      },
      "name": "regression/modifier.rare_positives",
      "path": "sets/m3_ml_decisions/regression/modifier.rare_positives/v1",
      "reasoning": {
       "lost": 20,
-      "no_model": 1159,
+      "no_model": 1165,
       "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 199,
+      "dev": 200,
       "sealed": 97,
-      "sealed_pending": 99,
-      "train": 666
+      "sealed_pending": 101,
+      "train": 669
      },
      "name": "regression/modifier.review_capacity",
      "path": "sets/m3_ml_decisions/regression/modifier.review_capacity/v1",
      "reasoning": {
       "lost": 20,
-      "no_model": 1040,
+      "no_model": 1046,
       "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 224,
+      "dev": 225,
       "sealed": 119,
-      "sealed_pending": 99,
-      "train": 738
+      "sealed_pending": 101,
+      "train": 741
      },
      "name": "regression/modifier.time_order",
      "path": "sets/m3_ml_decisions/regression/modifier.time_order/v1",
      "reasoning": {
       "lost": 20,
-      "no_model": 1159,
+      "no_model": 1165,
       "none": 1
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 8,
+      "dev": 9,
       "sealed": 1,
-      "sealed_pending": 10,
-      "train": 40
+      "sealed_pending": 12,
+      "train": 43
      },
      "name": "ridge/tuning.accept",
      "path": "sets/m3_ml_decisions/ridge/tuning.accept/v1",
      "reasoning": {
-      "no_model": 59
+      "no_model": 65
      },
      "version": "v1"
     },
@@ -22491,15 +23426,15 @@
    "sets": [
     {
      "counts": {
-      "dev": 80,
+      "dev": 83,
       "sealed": 17,
-      "sealed_pending": 39,
-      "train": 151
+      "sealed_pending": 41,
+      "train": 157
      },
      "name": "case_files",
      "path": "sets/m4_workflow_llm/case_files/v1",
      "reasoning": {
-      "none": 287
+      "none": 298
      },
      "version": "v1"
     },
@@ -22553,14 +23488,14 @@
      "counts": {
       "dev": 5,
       "sealed": 1,
-      "sealed_pending": 15,
+      "sealed_pending": 16,
       "train": 12
      },
      "name": "home_advice",
      "path": "sets/m4_workflow_llm/home_advice/v1",
      "reasoning": {
       "from_record": 16,
-      "none": 61
+      "none": 63
      },
      "version": "v1"
     },
@@ -22641,14 +23576,14 @@
       "dev": 148,
       "sealed": 2,
       "sealed_pending": 97,
-      "train": 444
+      "train": 446
      },
      "name": "plan",
      "path": "sets/m4_workflow_llm/plan/v2",
      "reasoning": {
       "lost": 35,
       "none": 178,
-      "recorded": 635
+      "recorded": 637
      },
      "version": "v2"
     },
@@ -22672,13 +23607,13 @@
       "dev": 1159,
       "sealed": 1070,
       "sealed_pending": 0,
-      "train": 2953
+      "train": 2961
      },
      "name": "reasoning/final_turn_openrouter_qwen",
      "path": "sets/m4_workflow_llm/reasoning/final_turn_openrouter_qwen/v1",
      "reasoning": {
-      "none": 1810,
-      "recorded": 5182
+      "none": 1817,
+      "recorded": 5190
      },
      "version": "v1"
     },
@@ -22702,12 +23637,12 @@
       "dev": 1085,
       "sealed": 1006,
       "sealed_pending": 0,
-      "train": 2669
+      "train": 2673
      },
      "name": "reasoning/openrouter_qwen",
      "path": "sets/m4_workflow_llm/reasoning/openrouter_qwen/v1",
      "reasoning": {
-      "recorded": 4760
+      "recorded": 4764
      },
      "version": "v1"
     },
@@ -22785,18 +23720,18 @@
     },
     {
      "counts": {
-      "dev": 1333,
+      "dev": 1338,
       "sealed": 177,
-      "sealed_pending": 845,
-      "train": 2903
+      "sealed_pending": 854,
+      "train": 2925
      },
      "name": "understand_problem",
      "path": "sets/m4_workflow_llm/understand_problem/v2",
      "reasoning": {
-      "from_record": 8987,
+      "from_record": 9119,
       "lost": 3785,
-      "none": 7163,
-      "recorded": 2385,
+      "none": 7206,
+      "recorded": 2391,
       "replayed": 1
      },
      "version": "v2"
@@ -22841,13 +23776,13 @@
       "dev": 28,
       "sealed": 306,
       "sealed_pending": 62,
-      "train": 270
+      "train": 286
      },
      "name": "trajectories/development",
      "path": "sets/m5_solver_llm/trajectories/development/v2",
      "reasoning": {
-      "none": 41442,
-      "recorded": 2337
+      "none": 42214,
+      "recorded": 2347
      },
      "version": "v2"
     },
@@ -23007,60 +23942,60 @@
     },
     {
      "counts": {
-      "dev": 276,
+      "dev": 280,
       "sealed": 146,
-      "sealed_pending": 195,
-      "train": 888
+      "sealed_pending": 202,
+      "train": 895
      },
      "name": "graph",
      "path": "sets/m6_stepwise_decisions/graph/v1",
      "reasoning": {
-      "from_record": 6727,
-      "none": 1505
+      "from_record": 6847,
+      "none": 1523
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 113,
+      "dev": 122,
       "sealed": 1,
-      "sealed_pending": 119,
-      "train": 351
+      "sealed_pending": 129,
+      "train": 376
      },
      "name": "job",
      "path": "sets/m6_stepwise_decisions/job/v1",
      "reasoning": {
-      "no_model": 2339
+      "no_model": 2532
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 223,
+      "dev": 227,
       "sealed": 145,
-      "sealed_pending": 114,
-      "train": 668
+      "sealed_pending": 121,
+      "train": 675
      },
      "name": "stages",
      "path": "sets/m6_stepwise_decisions/stages/v1",
      "reasoning": {
-      "from_record": 3391,
-      "no_model": 2296
+      "from_record": 3445,
+      "no_model": 2332
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 29,
+      "dev": 32,
       "sealed": 10,
-      "sealed_pending": 14,
-      "train": 72
+      "sealed_pending": 16,
+      "train": 73
      },
      "name": "team/orchestra",
      "path": "sets/m6_stepwise_decisions/team/orchestra/v1",
      "reasoning": {
-      "from_record": 867,
-      "missing": 125
+      "from_record": 885,
+      "missing": 131
      },
      "version": "v1"
     },
@@ -23081,15 +24016,15 @@
     },
     {
      "counts": {
-      "dev": 601,
+      "dev": 609,
       "sealed": 175,
-      "sealed_pending": 458,
-      "train": 1835
+      "sealed_pending": 469,
+      "train": 1862
      },
      "name": "walk",
      "path": "sets/m6_stepwise_decisions/walk/v1",
      "reasoning": {
-      "no_model": 191299
+      "no_model": 195336
      },
      "version": "v1"
     }
@@ -23103,29 +24038,29 @@
    "sets": [
     {
      "counts": {
-      "dev": 73,
+      "dev": 94,
       "sealed": 15,
-      "sealed_pending": 124,
-      "train": 251
+      "sealed_pending": 145,
+      "train": 299
      },
      "name": "code",
      "path": "sets/m7_judges/code/v1",
      "reasoning": {
-      "no_field": 463
+      "no_field": 553
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1678,
+      "dev": 1709,
       "sealed": 914,
-      "sealed_pending": 752,
-      "train": 5101
+      "sealed_pending": 776,
+      "train": 5184
      },
      "name": "correction",
      "path": "sets/m7_judges/correction/v1",
      "reasoning": {
-      "no_field": 8445
+      "no_field": 8583
      },
      "version": "v1"
     },
@@ -23188,15 +24123,15 @@
     },
     {
      "counts": {
-      "dev": 484,
+      "dev": 488,
       "sealed": 1,
-      "sealed_pending": 522,
-      "train": 1468
+      "sealed_pending": 529,
+      "train": 1475
      },
      "name": "result",
      "path": "sets/m7_judges/result/v1",
      "reasoning": {
-      "no_field": 2474
+      "no_field": 2492
      },
      "version": "v1"
     },
@@ -23205,12 +24140,12 @@
       "dev": 131,
       "sealed": 119,
       "sealed_pending": 13,
-      "train": 2576
+      "train": 2628
      },
      "name": "review_findings",
      "path": "sets/m7_judges/review_findings/v1",
      "reasoning": {
-      "no_field": 2839
+      "no_field": 2891
      },
      "version": "v1"
     }
@@ -23228,13 +24163,13 @@
      "counts": {
       "dev": 157,
       "sealed": 227,
-      "sealed_pending": 134,
-      "train": 603
+      "sealed_pending": 152,
+      "train": 615
      },
      "name": "problem.pack",
      "path": "sets/m7_routing/problem.pack/v1",
      "reasoning": {
-      "no_field": 1121
+      "no_field": 1151
      },
      "version": "v1"
     },
@@ -23242,13 +24177,13 @@
      "counts": {
       "dev": 82,
       "sealed": 19,
-      "sealed_pending": 175,
-      "train": 588
+      "sealed_pending": 193,
+      "train": 605
      },
      "name": "request.exit",
      "path": "sets/m7_routing/request.exit/v1",
      "reasoning": {
-      "no_field": 864
+      "no_field": 899
      },
      "version": "v1"
     },
@@ -23256,13 +24191,13 @@
      "counts": {
       "dev": 416,
       "sealed": 198,
-      "sealed_pending": 578,
-      "train": 1463
+      "sealed_pending": 596,
+      "train": 1480
      },
      "name": "request.intent",
      "path": "sets/m7_routing/request.intent/v1",
      "reasoning": {
-      "no_field": 2655
+      "no_field": 2690
      },
      "version": "v1"
     },
@@ -23284,13 +24219,13 @@
      "counts": {
       "dev": 35,
       "sealed": 23,
-      "sealed_pending": 117,
-      "train": 359
+      "sealed_pending": 135,
+      "train": 376
      },
      "name": "request.suggestion",
      "path": "sets/m7_routing/request.suggestion/v1",
      "reasoning": {
-      "no_field": 534
+      "no_field": 569
      },
      "version": "v1"
     },
@@ -23298,13 +24233,13 @@
      "counts": {
       "dev": 34,
       "sealed": 19,
-      "sealed_pending": 117,
-      "train": 354
+      "sealed_pending": 135,
+      "train": 371
      },
      "name": "request.tool",
      "path": "sets/m7_routing/request.tool/v1",
      "reasoning": {
-      "no_field": 524
+      "no_field": 559
      },
      "version": "v1"
     },
@@ -23324,15 +24259,15 @@
     },
     {
      "counts": {
-      "dev": 883,
+      "dev": 911,
       "sealed": 1292,
-      "sealed_pending": 547,
-      "train": 2888
+      "sealed_pending": 654,
+      "train": 2989
      },
      "name": "workflow.next_question",
      "path": "sets/m7_routing/workflow.next_question/v1",
      "reasoning": {
-      "no_field": 5610
+      "no_field": 5846
      },
      "version": "v1"
     }
@@ -23346,29 +24281,29 @@
    "sets": [
     {
      "counts": {
-      "dev": 16,
+      "dev": 17,
       "sealed": 2,
-      "sealed_pending": 17,
-      "train": 56
+      "sealed_pending": 18,
+      "train": 59
      },
      "name": "evidence",
      "path": "sets/m8_retrieval/evidence/v1",
      "reasoning": {
-      "no_field": 91
+      "no_field": 96
      },
      "version": "v1"
     },
     {
      "counts": {
-      "dev": 1,
-      "sealed": 0,
+      "dev": 5,
+      "sealed": 1,
       "sealed_pending": 0,
-      "train": 4
+      "train": 17
      },
      "name": "examples",
      "path": "sets/m8_retrieval/examples/v1",
      "reasoning": {
-      "no_field": 5
+      "no_field": 23
      },
      "version": "v1"
     }
@@ -23381,8 +24316,8 @@
  },
  "quarantine": {
   ".DS_Store": 0,
-  "a_duplicate_of_a_record_already_placed": 89,
-  "broken": 51,
+  "a_duplicate_of_a_record_already_placed": 90,
+  "broken": 52,
   "the_record_s_consent_improve_does_not_allow_training": 1,
   "the_record_s_consent_operate_does_not_allow_training": 1
  },
