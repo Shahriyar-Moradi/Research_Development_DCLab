@@ -394,15 +394,17 @@ def record_changes(state: CaseState) -> None:
 def _read_table(state: CaseState) -> dict[str, Any]:
     if not state.table:
         return {"error": "No table has been shared. Ask the person about their data, or work without one."}
-    if state.case.data is None:  # what code read becomes the case's data fact (by code, computed)
-        state.case = C.apply(state.case, "data", C.CaseFact(value=f"{state.table['table']}: {state.table['rows']} rows, "
-                                                                 f"{len(state.table['columns'])} columns", status="computed",
+    fact_val = f"{state.table['table']}: {state.table['rows']} rows, {len(state.table['columns'])} columns"
+    if state.case.data is None or state.case.data.status != "computed" or state.case.data.value != fact_val:  # what code read becomes the case's data fact (by code, computed)
+        state.case = C.apply(state.case, "data", C.CaseFact(value=fact_val, status="computed",
                                                          computed=f"the upload's profile ({state.table['table']})"),
                              by="code", why="the table was read")
     out = {"table": state.table["table"], "rows": state.table["rows"], "columns": state.table["columns"]}
     import json
 
-    state.computed.append(json.dumps(out))  # what code read: its numbers may be said
+    dumped = json.dumps(out)
+    if dumped not in state.computed:
+        state.computed.append(dumped)  # what code read: its numbers may be said
     return out
 
 
@@ -1490,8 +1492,9 @@ def heard(state: CaseState, words: str) -> None:
     state.no_data_built = False
     state.cards = []
     state.only_option = None
-    if state.table and not any(str(c).startswith('{"table": ') for c in state.computed):  # 2026-10-31: code reads the shared
-        _read_table(state)  # table (again after a restore), so no model call is spent on it and its counts may be said
+    if state.table and (state.case.data is None or state.case.data.status != "computed"
+                        or not any(str(c).startswith(f'{{"table": "{state.table["table"]}"') for c in state.computed)):  # 2026-10-31: code reads the shared
+        _read_table(state)  # table (again after a restore, or when a table arrives after an earlier assumption), so no model call is spent on it and its counts may be said
     state.turns.append({"role": "user", "content": str(words)})
     state.said, state.shown, state.asking = [], [], False
     person_turns = sum(1 for t in state.turns if t.get("role") == "user")

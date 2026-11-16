@@ -50,6 +50,11 @@ def columns_view(draft: dict[str, Any]) -> list[dict[str, Any]]:
                                             ("time_like", "date or time")) if p.get(key)]
         if c.get("kind") == "numeric" and 1 < int(c.get("unique") or 0) <= 10 and not p.get("target_name_like"):
             noticed.append("small code or flag")
+        miss = float(c.get("missing_rate") or 0.0)
+        if miss >= 0.5:
+            noticed.append("mostly missing")
+        elif miss > 0.0:
+            noticed.append("has missing values")
         out.append({"name": name, "kind": c.get("kind"), "noticed": sorted(set(noticed))})
     return out
 

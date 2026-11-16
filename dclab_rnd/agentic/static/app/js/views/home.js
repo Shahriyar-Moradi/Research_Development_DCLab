@@ -136,7 +136,7 @@ DC.view('home', {
     async function loadWorkspace() {
       let ws;
       try { ws = await DC.client.workspace(); } catch (e) { return; }
-      const st = ws.stats, stats = $$('.stats .stat', el);
+      const st = ws.stats, stats = $$('[data-f="home.kpis"] .stat', el);
       // the project the person is on (the green button): Home shows that project, not the workspace's sum
       const hereId = ws.projects.length ? await DC.currentProject.id() : null;
       const here = ws.projects.find(p => p.id === hereId) || null;
@@ -277,7 +277,14 @@ DC.view('home', {
         toast('This chat\'s project is built, so new data starts a new chat with the same problem. To change the project\'s data, use its Solution & data page.', { ms: 6000 });
         S.draft = null; remember(null);
       }
-      const problem = $('#home-task', el).value.trim();
+      let problem = $('#home-task', el).value.trim();
+      if (problem.length < 8 && opts.data) {
+        problem = opts.fileName
+          ? (problem ? `${problem} — understand and analyze ${opts.fileName}` : `Help me understand and analyze ${opts.fileName}`)
+          : (problem ? `${problem} — understand and analyze my data` : 'Help me understand and analyze my data');
+        $('#home-task', el).value = problem;
+        syncTaskUI();
+      }
       if (problem.length < 8) { toast('Describe the problem in one sentence first.', { ok: false }); $('#home-task', el).focus(); throw new Error('no problem'); }
       let fullProblem = problem;
       if (S.density === 'pro') {
@@ -305,8 +312,19 @@ DC.view('home', {
       })();
       return S.drafting;
     }
+    function hydrateDraftAssets(draft) {
+      if (!draft) return;
+      (draft.assets || []).forEach(a => {
+        if (a && a.id) S.assets[a.id] = { ...(S.assets[a.id] || {}), ...a, cols: a.columns != null ? a.columns : a.cols };
+      });
+      if (draft.analysis) {
+        const aid = draft.active_asset || ((draft.assets || [])[0] && draft.assets[0].id);
+        if (aid) S.analysis[aid] = draft.analysis;
+      }
+    }
     function openDraft(draft) {
       S.draft = draft; S.analysis = {}; S.assets = {}; S.inspectCards = [];
+      hydrateDraftAssets(draft);
       S.sessionId = null; S.nodeText = ''; SESS.s = null; SESS.p = null; clearTimeout(SESS.timer);
       S.planner = null; S.plannerPinned = null;
       INSPECT.steps = null; INSPECT.evalDoc = null; INSPECT.projId = draft.project_id || null;
@@ -1175,13 +1193,24 @@ DC.view('home', {
     function onEvent(kind, data) {
       if (kind === 'chat') {
         renderMessage(data);
-        if (S.draft && (data.by === 'case_agent' || data.kind === 'case_options')) DC.client.readDraft(S.draft.id).then(d => { S.draft = d; drawCase(d); }).catch(() => {});
+        if (S.draft && (data.by === 'case_agent' || data.kind === 'case_options' || data.kind === 'analysis')) DC.client.readDraft(S.draft.id).then(d => { S.draft = d; hydrateDraftAssets(d); updateDataPill(); drawCase(d); }).catch(() => {});
         renderInspectorCounts();
         if (S.inspectOpen && (S.inspectTab === 'evidence' || S.inspectTab === 'eval' || S.inspectTab === 'logs')) renderInspector();
       }
       else if (kind === 'token') renderToken(data);
       else if (kind === 'pipeline') { renderPipeline(data); renderInspectorCounts(); if (S.inspectOpen && S.inspectTab === 'logs') renderInspector(); }
-      else if (kind === 'analysis') { S.analysis[data.asset] = data.analysis; renderInspectorCounts(); if (S.inspectOpen && S.inspectTab === 'data') renderInspector(); }
+      else if (kind === 'analysis') {
+        S.analysis[data.asset] = data.analysis;
+        if (S.assets[data.asset] && data.analysis && data.analysis.summary) {
+          S.assets[data.asset].rows = data.analysis.summary.rows;
+          S.assets[data.asset].cols = data.analysis.summary.columns;
+          S.assets[data.asset].columns = data.analysis.summary.columns;
+          S.assets[data.asset].status = 'ready';
+        }
+        updateDataPill();
+        renderInspectorCounts();
+        if (S.inspectOpen && S.inspectTab === 'data') renderInspector();
+      }
       else if (kind === 'workflow') drawWorkflow(data.workflow, data.rejected);
       else if (kind === 'status') { onStatus(data); loadInspectData(false); }
       else if (kind === 'plan') { if (S.draft) { S.draft.plan = data.plan; S.draft.understanding = data.understanding; } drawUnderstanding(S.draft); }
@@ -1476,7 +1505,7 @@ DC.view('home', {
         if (m.session_id && S.sessionId !== m.session_id) { S.sessionId = m.session_id; pollSession(); }  // the side panel follows that job
         body = `<p data-style="white-space:pre-line">${esc(m.text)}</p><div class="row">${m.session_id ? `<button type="button" class="btn primary sm" data-follow="${esc(m.session_id)}" data-project="${esc(m.project_id || '')}">Follow the agent</button>` : ''}${m.project_id ? `<button type="button" class="btn sm" data-open-project="${esc(m.project_id)}">Open the project</button><button type="button" class="btn sm" data-open-project="${esc(m.project_id)}">Task Plan</button>` : ''}</div>`;
       } else if (m.kind === 'analysis') {
-        body = `<p>${esc(m.text)}</p>${analysisCard(S.analysis[m.asset], m.asset)}`;
+        body = `<p>${esc(m.text)}</p>${analysisCard(S.analysis[m.asset] || (S.draft && S.draft.analysis), m.asset)}`;
       } else if (m.kind === 'prepared' && m.prepared && S.draft) {  // H9: the prepared table, a new file beside the original
         const fmt = m.prepared.format === 'xlsx' ? 'excel' : (m.prepared.format || 'csv');
         const link = f => `<a class="btn sm${f === fmt ? ' primary' : ''}" href="${esc(DC.client.href.preparedTable(S.draft.id, { query: { format: f } }))}" download>${esc({ csv: 'CSV', excel: 'Excel', parquet: 'Parquet' }[f])}</a>`;
@@ -2002,7 +2031,7 @@ DC.view('home', {
           },
         },
         onAction(actId) {
-          if (actId === 'attach_data') { const b = $('#home-upload', el); if (b) b.click(); }
+          if (actId === 'attach_data') { openBring('upload'); const f = $('#home-file', el); if (f) f.click(); }
           else if (actId === 'open_planner') { setPlannerOpen(true); loadHomePlanner(); }
           else if (actId === 'inspect_data') { openInspector('data'); }
           else if (actId && actId.startsWith('inspect_work:')) { openInspector(actId.split(':')[1]); }
@@ -2370,18 +2399,30 @@ DC.view('home', {
     });
     async function uploadFile(file) {
       if (!file) return;
-      try { await ensureDraft({ data: true }); } catch (e) { return; }
+      try { await ensureDraft({ data: true, fileName: file.name }); } catch (e) { return; }
       const t0 = Date.now();
       DC.ui.note('ui.upload_started', { view: 'home', file_kind: (file.name.split('.').pop() || 'file').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || 'file', bytes: file.size });
       try {
         toast(`Uploading ${file.name}…`);
-        await DC.client.upload(S.draft.id, { query: { filename: file.name }, body: file, headers: { 'Content-Type': 'application/octet-stream' } });
+        const asset = await DC.client.upload(S.draft.id, { query: { filename: file.name }, body: file, headers: { 'Content-Type': 'application/octet-stream' } });
+        if (asset && asset.id) { S.assets[asset.id] = asset; updateDataPill(); }
         DC.ui.note('ui.upload_finished', { view: 'home', status: 'ok', seconds: (Date.now() - t0) / 1000 });
+        $('#home-bring', el).hidden = true;
+        $('#home-connect', el).setAttribute('aria-expanded', 'false');
         $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (err) { DC.ui.note('ui.upload_finished', { view: 'home', status: 'failed', seconds: (Date.now() - t0) / 1000 }); toast(err.message, { ok: false }); }
     }
-    $('#home-file', el).addEventListener('change', e => uploadFile(e.target.files[0]));
+    $('#home-file', el).addEventListener('change', e => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      uploadFile(file);
+    });
     const drop = $('#home-drop', el);
+    drop.addEventListener('click', e => {
+      if (e.target.closest('label, input, button, a')) return;
+      const f = $('#home-file', el);
+      if (f) f.click();
+    });
     drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
     drop.addEventListener('dragleave', () => drop.classList.remove('over'));
     drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); uploadFile(e.dataTransfer.files[0]); });

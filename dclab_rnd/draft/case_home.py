@@ -213,7 +213,25 @@ class CaseHome(HomeAgent):
         draft = self.store.get(draft_id)
         state = self._state(draft)
         state.build = None  # the review of 37.11: a yes counts in the turn it is said (a second yes after a refusal builds again)
-        out = A.pick(state, client, pick) if pick else A.turn(state, client, words)
+        if state.table is not None:
+            A._read_table(state)
+        try:
+            out = A.pick(state, client, pick) if pick else A.turn(state, client, words)
+        except RuntimeError as exc:
+            self.store.emit(draft_id, "status", {"thinking": False})
+            A.record_changes(state)
+            self._save(draft_id, state, {}, emit_text=False)
+            reason = str(exc).split(":", 1)[-1].strip() if ":" in str(exc) else str(exc)
+            if state.table is not None:
+                cols = ", ".join(str(c.get("name")) for c in (state.table.get("columns") or [])[:8])
+                self.say(draft_id, f"Your table {state.table.get('table', 'data')} ({state.table.get('rows', 0):,} rows, "
+                                   f"{len(state.table.get('columns') or [])} columns{': ' + cols if cols else ''}) is attached and ready, "
+                                   f"but the AI model could not be reached ({reason}). Check your model API key in .env or switch providers.",
+                         kind="text", by="case_agent")
+            else:
+                self.say(draft_id, f"The AI model could not be reached ({reason}). Check your model API key in .env or switch providers.",
+                         kind="text", by="case_agent")
+            return
         building = bool(state.build and state.build.get("tool") in A.BUILDS)
         self._save(draft_id, state, out, emit_text=not building)
         if building:
@@ -349,11 +367,67 @@ class CaseHome(HomeAgent):
             return True
         return False
 
+    def _emit_analysis_and_sync_table(self, draft_id: str, asset: dict[str, Any]) -> tuple[A.CaseState, bool]:
+        """Ensure the ready table is recorded on the case file and its analysis card is shown once. Returns (state, already_read)."""
+        draft = self.store.get(draft_id)
+        state = self._state(draft)
+        already_read = bool(
+            state.table is not None
+            and state.case.data is not None
+            and state.case.data.status == "computed"
+            and state.case.data.value.startswith(f"{state.table['table']}:")
+            and state.turns
+        )
+        if state.table is not None:
+            A._read_table(state)
+            A.record_changes(state)
+            snapshot = case_session.snapshot(state)
+            view = {**C.views(state.case), "findings": [f.model_dump(mode="json") for f in state.case.findings],
+                    "route": state.case.route.model_dump(mode="json") if state.case.route else None}
+            self.store.update(draft_id, lambda d: d.update(case_state=snapshot, case=view))
+        aid = asset.get("id")
+        has_card = any(m.get("kind") == "analysis" and m.get("asset") == aid for m in (self.store.get(draft_id).get("messages") or []))
+        if not has_card:
+            analysis = draft.get("analysis") or {}
+            s = analysis.get("summary") or {}
+            steps = len(draft.get("cleaning_log") or [])
+            label = "synthetic " if asset.get("synthetic") else ""
+            cols = [str(c.get("name")) for c in (analysis.get("columns") or []) if c.get("name")]
+            col_preview = (", ".join(cols[:8]) + (f" and {len(cols) - 8} more" if len(cols) > 8 else "")) if cols else ""
+            text = (f"Your {label}table {asset.get('name', 'data')} is ready: {s.get('rows', 0):,} rows and {s.get('columns', 0)} columns"
+                    + (f", after {steps} cleaning step{'s' if steps != 1 else ''}" if steps else "")
+                    + (f" ({col_preview})." if col_preview else ".")
+                    + " Here is a first look.")
+            self.say(draft_id, text, kind="analysis", asset=aid, by="case_agent")
+        return state, already_read
+
     @turn  # the review of 37.11: one turn at a time per draft, seen by every instance (the rules-first Home's own lock)
     def start(self, draft_id: str) -> None:
-        if self._client(draft_id) is None:
+        client = self._client(draft_id)
+        if client is None:
             return super().start(draft_id)
-        self._run(draft_id, str(self.store.get(draft_id).get("problem") or ""))
+        draft = self.store.get(draft_id)
+        problem = str(draft.get("problem") or "")
+        if not hasattr(client, "replies") and (
+            problem.startswith("Help me understand and analyze ")
+            or any(a.get("status") in ("queued", "structuring", "cleaning", "analysing") for a in (draft.get("assets") or []))
+        ):
+            import time
+
+            deadline = time.monotonic() + 8.0
+            while time.monotonic() < deadline:
+                cur = self.store.get(draft_id)
+                assets = cur.get("assets") or []
+                if any(a.get("status") in ("ready", "failed") for a in assets):
+                    break
+                if not assets and time.monotonic() > deadline - 7.2:
+                    break
+                time.sleep(0.05)
+            cur = self.store.get(draft_id)
+            ready_asset = next((a for a in (cur.get("assets") or []) if a.get("id") == cur.get("active_asset") and a.get("status") == "ready"), None)
+            if ready_asset is not None:
+                self._emit_analysis_and_sync_table(draft_id, ready_asset)
+        self._run(draft_id, problem)
 
     @turn
     def reply(self, draft_id: str, text: str) -> None:
@@ -382,13 +456,12 @@ class CaseHome(HomeAgent):
 
     @turn
     def data_ready(self, draft_id: str, asset: dict[str, Any]) -> None:
-        """A table is ready: the case reads it on the next turn; Home says so in one line (never the rules' questions). A build
-        question about the earlier table is dropped (the review of 37.11)."""
+        """A table is ready: record it on the case file, emit the analysis card, and let the lead agent read and explain the uploaded data."""
         self.store.update(draft_id, lambda d: (d.pop("build_waiting", None), d.pop("moment_said", None)))
-        draft = self.store.get(draft_id)
-        s = (draft.get("analysis") or {}).get("summary") or {}
-        self.say(draft_id, f"Your table {asset.get('name', '')} is ready: {s.get('rows', 0):,} rows and {s.get('columns', 0)} columns. "
-                           "Tell me what you would like to know from it, or carry on where we were.", kind="text", by="case_agent")
+        state, already_read = self._emit_analysis_and_sync_table(draft_id, asset)
+        client = self._client(draft_id)
+        if client is not None and state.table is not None and not already_read and not (hasattr(client, "replies") and not client.replies):
+            self._run(draft_id, "I uploaded the table.")
 
 
 __all__ = ["CaseHome", "table_of"]

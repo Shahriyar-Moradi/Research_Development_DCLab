@@ -771,6 +771,30 @@ class BuildFlowTests(CardsTests):
             home2.reply(self.draft["id"], "yes at the moment")
         self.assertEqual(self.store.get(self.draft["id"]).get("moment_said"), "at checkout")
 
+    def test_uploading_a_table_after_an_assumed_data_fact_updates_case_data_emits_analysis_and_runs_ai_understanding(self):
+        from dclab_rnd.draft import pipeline
+
+        d = self.store.create("help me understand the data")
+        script = Script(
+            ("Share the table and I will read it.", [("note", {"field": "data", "value": "No table shared yet", "status": "assumed"})]),
+            ("Your table telco.csv has 100 rows and 4 columns: customerID, Contract, Churn, and tenure.", []),
+        )
+        home = CaseHome(self.store, Models(script), on_request=lambda *a: None)
+        home.start(d["id"])
+        self.assertEqual(self.store.get(d["id"])["case"]["facts"]["data"]["status"], "assumed")
+        path = Path(self.store.data_dir(d["id"]))
+        path.mkdir(parents=True, exist_ok=True)
+        telco_frame().to_csv(path / "telco.csv", index=False)
+        asset = pipeline.new_asset(self.store, d["id"], "upload", "telco.csv", "telco.csv")
+        pipeline.run(self.store, d["id"], asset["id"], home, None)
+        after = self.store.get(d["id"])
+        self.assertEqual(after["case"]["facts"]["data"]["status"], "computed")
+        self.assertIn("telco.csv: 100 rows, 4 columns", after["case"]["facts"]["data"]["value"])
+        kinds = [m.get("kind") for m in after["messages"] if m.get("role") == "agent"]
+        self.assertIn("analysis", kinds)
+        texts = " ".join(m.get("text") or "" for m in after["messages"] if m.get("role") == "agent")
+        self.assertIn("100 rows and 4 columns", texts)
+
 
 if __name__ == "__main__":
     unittest.main()
