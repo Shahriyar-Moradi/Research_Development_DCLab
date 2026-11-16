@@ -29,6 +29,9 @@ Who the trainers call first. 90 / 2,400 = 3.75% of members quit a month.
 ## What needs care
 A payment that stops is the outcome, not a warning.
 
+## Options
+Call everyone, call nobody, or call the members whose visits fell. The last costs the least trainer time for the most members kept.
+
 ## Business solution
 Call the members whose visits fell.
 
@@ -325,6 +328,18 @@ class SolveTests(unittest.TestCase):
         with live():
             out = nodata.solve(GYM, gateway=Gateway(no_data_architect=Client(GOOD), no_data_critic=reader))
         self.assertEqual(out["critic"], ["It never asks how often a call works.", "The plan has no owner."])
+
+    def test_a_persian_speaker_reads_persian_headings_and_the_checks_still_read_the_answer(self):
+        words = "هنوز دیتا ندارم و می‌خواهم بدون آپلود فایل، ریزش مشتریان را پیش‌بینی کنم. ۲٬۴۰۰ مشترک داریم و ۹۰ نفر در ماه می‌روند."
+        answer = GOOD.replace("Who the trainers call first. 90 / 2,400 = 3.75% of members quit a month.", "چه کسی اول تماس بگیرد. ۹۰ / ۲٬۴۰۰ = ۳٫۷۵٪ در ماه می‌روند.")
+        with live():
+            out = nodata.solve(words, gateway=Gateway(no_data_architect=Client(answer)), second_reader=False)
+        self.assertTrue(all(c["ok"] for c in out["checks"]), [c for c in out["checks"] if not c["ok"]])
+        shown = nodata.markdown(out)
+        self.assertIn("## برنامه", shown)
+        self.assertIn("| ستون | چیست | کی معلوم است | نقش |", shown)
+        self.assertNotIn("## Plan", shown)
+        self.assertIn("## Plan", nodata.markdown({**out, "words": GYM}))  # an English speaker's answer keeps its headings
 
     def test_a_business_question_gets_a_business_answer_with_no_model(self):
         answer = re.sub(r"## (?:Data to record|Model)\n.*?\n\n(?=## )", "", GOOD.replace("Need: full", "Need: business"), flags=re.S)

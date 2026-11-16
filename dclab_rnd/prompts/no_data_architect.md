@@ -19,9 +19,13 @@ The decision behind it, who makes it and when, the unit it concerns, what the pe
 ## What needs care
 The few things that would make a quick answer wrong for this person.
 
+## Options
+The ways this could be solved, each tied to this person's situation, with what it costs and what it gives. One of them
+may be no model at all, or a change in how the business works. Say which one you choose and why the others lose.
+
 ## Business solution
-What to do, starting with what can be done now without any model: the action, a simple rule to begin with, and what it
-costs and gains in the person's own numbers.
+What to do under the option you chose, starting with what can be done now without any model: the action, a simple rule
+to begin with, and what it costs and gains in the person's own numbers.
 
 ## Data to record
 Only when the need is `data_design`, `full` or `simulate`. A table with exactly these columns:
@@ -32,8 +36,9 @@ Only when the need is `data_design`, `full` or `simulate`. A table with exactly 
 - role: `key`, `time`, `input`, `label` or `not used`.
 
 One row for each column they should record. An input is never known after the decision. The outcome is a label, never an
-input. Under the table, one line each: what one row is, the moment of the decision, and how the label is defined and how
-long it takes to be known.
+input; and a column that exists only because the outcome happened (a payment that stopped, a cancellation, a refund, a
+closing note) is the outcome in another form: its role is `label` or `not used`. Under the table, one line each: what
+one row is, the moment of the decision, and how the label is defined and how long it takes to be known.
 
 ## Model
 Only when the need is `full` or `simulate`. A simple baseline first, then the model, how it is tested (how the data is
@@ -41,8 +46,8 @@ split, and the measure), and how its score becomes the decision. Name the kind o
 section, as `Kind: ...`.
 
 ## Plan
-Numbered steps, in order. Each step says what is done, what it needs, and how to tell it is finished. Begin with what
-can be done this week without data.
+Numbered steps, in order. Each step says what is done, what it needs, and how its result is checked. Begin with what
+can be done this week without data. After the steps, say when to stop, and what to do if a step fails.
 
 ## What only real data can settle
 What cannot be known until real data exists.

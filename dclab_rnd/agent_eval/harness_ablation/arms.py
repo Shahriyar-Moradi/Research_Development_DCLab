@@ -191,11 +191,11 @@ class BlueprintArm:
         self.kept: dict[str, Any] = {}
 
     def _solve(self, words: str) -> tuple[dict[str, Any], str]:
-        if self.name == "blueprint_architect":
-            from dclab_rnd import nodata  # the rebuilt design
+        if self.name in ("blueprint_architect", "blueprint_solo"):
+            from dclab_rnd import nodata  # the rebuilt design; "solo" is the same without its second reader
 
             solution = nodata.solve(words, gateway=self.gateway, draft_id=f"exam:{self.name}-{self.person}", cap_eur=BLUEPRINT_CAP_EUR,
-                                    on_error="raise")  # a request that fails (the run's cap, the provider) is never scored as an answer
+                                    second_reader=self.name == "blueprint_architect", on_error="raise")  # a request that fails (the run's cap, the provider) is never scored as an answer
             return solution, nodata.markdown(solution)
         from dclab_rnd.draft import no_data
 

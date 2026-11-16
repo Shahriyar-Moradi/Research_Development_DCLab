@@ -21,7 +21,7 @@ PAGE = ROOT / "docs" / "evaluations" / "harness-vs-model" / "benchmark.html"
 EXAM_RESULTS = ROOT / "evidence" / "campaigns" / "conversation_exam_v1" / "results"
 DIMENSIONS = ("understanding", "solution_design", "planning", "evidence_discipline")
 NAMES = {"blueprint_rules": "No-data blueprint: rules only", "blueprint_pipeline": "No-data blueprint: today's pipeline of roles",
-         "blueprint_architect": "No-data blueprint: architect, checks, critic",
+         "blueprint_architect": "No-data blueprint: architect, checks, critic", "blueprint_solo": "No-data blueprint: architect and checks, no second reader",
          "model_only_short": "Model only, held to 450 words", "model_only": "Model only", "open": "Minimal agent", "plain": "Minimal agent + DCLab's 6 kinds of work", "case": "Current DCLab (lead agent)"}
 WORDS = {"understanding": "Understands the problem", "solution_design": "Designs a solution", "planning": "Makes a plan",
          "evidence_discipline": "Sticks to evidence", "accepted": "Accepted"}
@@ -524,7 +524,7 @@ th:first-child,td:first-child{text-align:left;white-space:normal;min-width:220px
 svg text{fill:var(--text);font-size:15px}svg .tick{fill:var(--muted);font-size:14px}ul{margin:8px 0 0 20px;padding:0}
 """
 COLORS = {"case": "var(--c0)", "model_only": "var(--c1)", "open": "var(--c2)", "plain": "var(--c3)", "model_only_short": "var(--muted)",
-          "blueprint_rules": "var(--muted)", "blueprint_pipeline": "var(--c3)", "blueprint_architect": "var(--c0)"}
+          "blueprint_rules": "var(--muted)", "blueprint_pipeline": "var(--c3)", "blueprint_architect": "var(--c0)", "blueprint_solo": "var(--c2)"}
 
 
 def _swatch(arm: str) -> str:

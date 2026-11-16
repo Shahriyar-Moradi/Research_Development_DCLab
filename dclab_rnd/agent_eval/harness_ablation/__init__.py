@@ -78,14 +78,16 @@ KEEP_ROOT = ROOT / "agent_runs" / "live_tests"
 ARMS = ("model_only", "open", "plain", "case")
 # an arm run only when named: the model alone held to the lead agent's own length (450 words), to see how much of the
 # model alone's score is the room it has to write (2026-11-16: alone it writes 750 to 3,900 words)
-EXTRA_ARMS = ("model_only_short", "blueprint_rules", "blueprint_pipeline", "blueprint_architect")
+EXTRA_ARMS = ("model_only_short", "blueprint_rules", "blueprint_pipeline", "blueprint_architect", "blueprint_solo")
 # the no-data designs, each answering a person's words once with the blueprint as the person would read it: the rules
 # alone, today's pipeline of many roles, and the rebuilt one (a free architect pass, code checks, one critic)
-BLUEPRINT_ARMS = ("blueprint_rules", "blueprint_pipeline", "blueprint_architect")
+# "blueprint_solo" (2026-11-16): the rebuilt design without its second reader, to see whether the reader is worth its time
+BLUEPRINT_ARMS = ("blueprint_rules", "blueprint_pipeline", "blueprint_architect", "blueprint_solo")
 ALL_ARMS = (*ARMS, *EXTRA_ARMS)
 PLAN_ONLY = ("model_only", "model_only_short", *BLUEPRINT_ARMS)  # never compared on work done
 PURPOSE = {"model_only": "exam_plain", "model_only_short": "exam_plain", "open": "exam_plain", "plain": "exam_plain", "case": "case_agent",
-           "judge": "exam_judge", "blueprint_rules": None, "blueprint_pipeline": "ai_first", "blueprint_architect": "no_data_architect"}
+           "judge": "exam_judge", "blueprint_rules": None, "blueprint_pipeline": "ai_first", "blueprint_architect": "no_data_architect",
+           "blueprint_solo": "no_data_architect"}
 # The judge: a free model on OpenRouter that is neither the arms' model nor of its family. The owner (2026-11-15): no Claude
 # model in any test, arm or judge, at any provider; this one instead.
 JUDGE_MODEL = "nvidia/nemotron-3.5-super-vl:free"
@@ -97,7 +99,7 @@ PINNED_PATHS = ("dclab_rnd/agents", "dclab_rnd/draft", "dclab_rnd/prompts", "dcl
 PROMPTS = ("ablation_model_only", "ablation_model_only_short", "ablation_minimal_agent", "ablation_judge", "exam_plain", "case_agent",
            "case_agent_think_first", "route_check", "no_data_architect", "no_data_critic")
 ESTIMATE_EUR = {"model_only": 0.004, "model_only_short": 0.004, "open": 0.01, "plain": 0.01, "case": 0.03, "judge": 0.07,
-                "blueprint_rules": 0.0, "blueprint_pipeline": 0.06, "blueprint_architect": 0.02}  # a guess until the first run measures it
+                "blueprint_rules": 0.0, "blueprint_pipeline": 0.06, "blueprint_architect": 0.02, "blueprint_solo": 0.01}  # a guess until the first run measures it
 WHY = "written cases answered by a script (never a person's words or choice); the arms' replies are the systems' own"
 FIELDS = ("run", "case", "arm", "repeat", "judged", "understanding", "solution_design", "planning", "evidence_discipline", "adaptation",
           "accepted", "understood_share", "forbidden_done", "safety_failures", "route", "tool", "assistant_turns", "seconds", "spent_eur",
@@ -816,6 +818,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                "blueprint_rules": lambda name, folder: BlueprintArm("blueprint_rules", None, name),
                "blueprint_pipeline": lambda name, folder: BlueprintArm("blueprint_pipeline", _ModelView(budget, f"{tag}blueprint_pipeline-{name}", args.arm_model), name),
                "blueprint_architect": lambda name, folder: BlueprintArm("blueprint_architect", _ModelView(budget, f"{tag}blueprint_architect-{name}", args.arm_model), name),
+               "blueprint_solo": lambda name, folder: BlueprintArm("blueprint_solo", _ModelView(budget, f"{tag}blueprint_solo-{name}", args.arm_model), name),
                "open": lambda name, folder: OpenArm(client(f"open-{name}", PURPOSE["open"])),
                "plain": lambda name, folder: PlainArm(client(f"plain-{name}", PURPOSE["plain"])),
                "case": lambda name, folder: CaseArm(client(f"case-{name}", PURPOSE["case"]), client(f"case-{name}", "case_specialist"), folder,

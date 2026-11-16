@@ -697,7 +697,7 @@ class DataLimitTests(unittest.TestCase):
         person's words and the sums code checked from them: nothing of a table can reach them, for ``solve`` takes none."""
         from dclab_rnd import nodata
 
-        answer = ("Need: business\n\n## The problem\nA decision.\n\n## What needs care\nCare.\n\n## Business solution\nA rule.\n\n"
+        answer = ("Need: business\n\n## The problem\nA decision.\n\n## What needs care\nCare.\n\n## Options\nCall or not.\n\n## Business solution\nA rule.\n\n"
                   "## Plan\n1. One.\n2. Two.\n3. Three.\n\n## What only real data can settle\nMuch.\n")
         said = lambda text: {"content": text, "tool_calls": [], "usage": {"input_tokens": 0, "output_tokens": 0},  # noqa: E731
                              "assistant_message": {"role": "assistant", "content": text}}

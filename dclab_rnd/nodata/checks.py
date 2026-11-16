@@ -14,9 +14,11 @@ from typing import Any, Iterable, Mapping, Optional
 from . import economics
 
 NEEDS = ("business", "data_design", "full", "simulate")
-HEADINGS = ("The problem", "What needs care", "Business solution", "Data to record", "Model", "Plan", "What only real data can settle",
+HEADINGS = ("The problem", "What needs care", "Options", "Business solution", "Data to record", "Model", "Plan", "What only real data can settle",
             "Questions for you")
-ALWAYS = ("The problem", "What needs care", "Business solution", "Plan", "What only real data can settle")
+# "Options" (2026-11-16, after the first measurement): the answers had no place to weigh alternatives, which the model alone
+# does unasked and an expert expects
+ALWAYS = ("The problem", "What needs care", "Options", "Business solution", "Plan", "What only real data can settle")
 WITH_DATA = ("data_design", "full", "simulate")
 WITH_MODEL = ("full", "simulate")
 MIN_COLUMNS = 4
