@@ -74,7 +74,11 @@ def obeyed(traps: Iterable[str], solution: Mapping[str, Any], stages: Mapping[st
             record.update(enforceable=True, enforced=bool(grouped) if split or solution.get("group_column") else False,
                           how=f"split: {split or 'not run'}; group column: {solution.get('group_column')}")
         elif kind == "time_split":
-            record.update(enforceable=True, enforced=("random" not in split and any(w in split for w in ("time", "latest", "chronolog"))) if split else None,
+            # by time: the split says so, or it is ordered by the solution's own time column ("last 120 of 600 rows by
+            # `signup_date`": a real Home build's split, read as not by time until 2026-11-16)
+            by_time = any(w in split for w in ("time", "latest", "chronolog")) or bool(
+                solution.get("time_column") and str(solution["time_column"]).lower() in split.lower())
+            record.update(enforceable=True, enforced=("random" not in split and by_time) if split else None,
                           how=f"split: {split or 'not run'}")
         out.append(record)
     return out

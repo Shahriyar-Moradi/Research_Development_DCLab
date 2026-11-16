@@ -284,6 +284,34 @@ class ShownTests(Case):
         self.assertEqual(shown["followed"]["not_followed"], [])
 
 
+    def test_after_the_stages_ran_the_page_says_what_ran_what_is_followed_and_what_is_still_a_question(self):
+        """A real Home build (2026-11-16, no model): five finished stages were drawn as "blocked", a split by the time column
+        was read as not by time, an open question was shown as a broken plan, and the next step named a tool."""
+        pid = home_project(self.store)
+        project = self.store.get(pid)
+        frame = pd.read_csv(data.data_path(self.store, project))
+        frame["lifetime_orders"] = 3
+        frame.to_csv(self.store.data_dir(pid) / "customers.csv", index=False)
+        data.attach_data(self.store, pid, "customers.csv")
+        project = self.store.get(pid)
+        project["solution"] = {"target": "churn", "task": "binary", "positive_label": "yes", "prediction_moment": "At the monthly review, before outreach.",
+                               "forbidden": [], "identifiers": ["customer_id"], "metric": "roc_auc", "labels": "complete", "time_column": "signup_date"}
+        self.store.save(project)
+        P.plan_project(self.store, pid)
+        before = view.task_plan_view(self.store, self.home, pid, enabled=True)["catalog_plan"]
+        self.assertIn("Is `lifetime_orders` known at the prediction moment?", before["path"]["next"]["what"])  # the question, not "leakage_probe"
+        project = self.store.get(pid)
+        for name in project["stages"]:
+            project["stages"][name] = {"status": "completed", "run": f"run_{name}"}
+        self.store.save(project)
+        self.store.write_stage(pid, "data", {"stage": "data", "status": "completed", "evidence": {"holdout_split": "last 32 of 160 rows by `signup_date`"}})
+        shown = view.task_plan_view(self.store, self.home, pid, enabled=True)["catalog_plan"]
+        self.assertEqual({b["status"] for b in shown["path"]["build"]}, {"completed"})
+        self.assertEqual(shown["followed"]["not_followed"], [])  # the split is by time, and the open question is not a broken plan
+        self.assertEqual(shown["followed"]["open"], 1)
+        self.assertEqual(shown["path"]["next"]["who"], "you")  # what is left is the person's question
+
+
 class JobTests(Case):
     def services(self, pid, admit=True):
         return SimpleNamespace(projects=self.store, store=SimpleNamespace(home=self.home), gateway=Gateway(Planner(None)),

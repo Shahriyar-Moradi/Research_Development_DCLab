@@ -170,7 +170,21 @@ class Intern:
         grouped = None
         try:
             if session["mode"] == "llm":
-                self._llm_loop(session, started)
+                try:
+                    self._llm_loop(session, started)
+                except Exception as exc:  # noqa: BLE001
+                    # Found on a real Home build (2026-11-16): the provider refused the key, the session failed at its first
+                    # request and no stage ran, though the person had been told "Building now". A model that cannot be
+                    # reached at all, before anything was done, is the same as no model: the fixed plan runs and says why.
+                    reason = str(exc)
+                    if not (reason.startswith("ModelPaused") or "provider refused the key" in reason) or session["used"]["steps"] or session["steps"]:
+                        raise
+                    with self._plan_run():
+                        self._standard_plan(session, started)
+                    said = "the model could not be reached (" + reason.replace("ModelPaused: ", "")[:120] + "), so the fixed order runs"
+                    session["plan"] = str(session.get("plan") or "").replace("no model configured, so the fixed order runs", said)
+                    session["model_unreachable"] = reason[:200]
+                    self.sessions.save(session)
             else:
                 with self._plan_run():  # 21.1: a run like the loop's
                     self._standard_plan(session, started)

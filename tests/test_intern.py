@@ -135,6 +135,37 @@ class LlmLoopTests(unittest.TestCase):
         self.assertIn("budget", session["final"])
 
 
+    def test_a_model_that_cannot_be_reached_at_all_gives_way_to_the_fixed_plan(self):
+        """Found on a real Home build (2026-11-16): the provider refused the key, the session failed at its first request
+        and no stage ran, after the person had been told "Building now"."""
+        class Refused(ScriptedModel):
+            def complete(self, messages, tools=None, max_tokens=None, **options):
+                raise RuntimeError("ModelPaused: the provider refused the key")
+
+        projects, sessions = make(tempfile.mkdtemp())
+        intern = Intern(sessions, Toolbox(projects), Refused([]))
+        with fast_profile():
+            session = intern.run(intern.start("Build a leakage-safe heart disease model and report the honest score.", {"max_steps": 12, "max_minutes": 5})["id"])
+        self.assertEqual(session["status"], "completed", session.get("error"))
+        self.assertIn("the model could not be reached (the provider refused the key)", session["plan"])
+        self.assertTrue(all(v["status"] == "completed" for v in projects.get(session["project_id"])["stages"].values()))
+
+    def test_a_model_that_fails_after_it_began_is_still_a_failure(self):
+        class Breaks(ScriptedModel):
+            def complete(self, messages, tools=None, max_tokens=None, **options):
+                if self.calls_made:
+                    raise RuntimeError("ModelPaused: the provider refused the key")
+                self.calls_made = 1
+                return super().complete(messages, tools)
+
+            calls_made = 0
+
+        projects, sessions = make(tempfile.mkdtemp())
+        intern = Intern(sessions, Toolbox(projects), Breaks([("list_samples", {}), ("finish", {"report": "done"})]))
+        session = intern.run(intern.start("Look around first", {"max_steps": 10, "max_minutes": 5})["id"])
+        self.assertEqual(session["status"], "failed")  # work was begun under the model's own plan: nothing is silently taken over
+        self.assertIn("refused the key", session["error"])
+
     def test_a_refused_plan_or_report_does_not_break_the_session(self):
         projects, sessions = make(tempfile.mkdtemp())
         script = [("write_plan", {}), ("finish", {}), ("finish", {"report": "Nothing to build yet."})]

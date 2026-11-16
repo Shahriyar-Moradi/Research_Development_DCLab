@@ -144,9 +144,15 @@ def _rules_plan(projects, project, statuses):
     columns = [c for cols in tables.values() for c in cols]
     records = enforced.obeyed(plan.get('caught_traps') or [], project.get('solution') or {}, stages, columns)
     summary = enforced.summary(records)
+    # a catch that is still a question for the person, or that they decided to leave, is not a broken plan
+    record = plan.get('enforcement') if isinstance(plan.get('enforcement'), dict) else {}
+    # (a catch code confirmed, waiting only because the solution is the person's to change, is not followed until they act)
+    undecided = {str(a.get('value')) for a in record.get('asked') or () if not a.get('needs_person')}
+    theirs = {str(w.get('value')) for w in record.get('waived') or ()}
+    broken = [r for r in records if r.get('enforceable') and r.get('enforced') is False and str(r.get('column')) not in undecided | theirs]
     plan['followed'] = {'caught': summary['caught'], 'checked': summary['read'], 'followed': summary['enforced'],
-                        'not_followed': [{'trap': r['trap'], 'column': r['column'], 'how': r['how']} for r in records
-                                         if r.get('enforceable') and r.get('enforced') is False]}
+                        'open': sum(1 for r in records if r.get('enforceable') and str(r.get('column')) in undecided),
+                        'not_followed': [{'trap': r['trap'], 'column': r['column'], 'how': r['how']} for r in broken]}
     if len(_SHOWN) >= 64:
         _SHOWN.clear()
     _SHOWN[key] = plan
@@ -196,7 +202,10 @@ def _path(cp, statuses):
     # the next step and its reason: the first question still open, else the first stage of the build not yet done
     waiting = next((st for leg in legs for st in leg['steps'] if st['state'] != 'done'), None)
     if waiting is not None:
-        nxt = {'n': waiting['n'], 'what': waiting.get('question') or waiting['task'], 'who': 'you',
+        on = str(waiting.get('on') or '')
+        asked = next((str(a.get('question')) for a in record.get('asked') or () if a.get('question') and a.get('value')
+                      and (on == str(a['value']) or on.endswith('.' + str(a['value'])))), None)  # the question itself, never a tool's name
+        nxt = {'n': waiting['n'], 'what': waiting.get('question') or asked or waiting['task'], 'who': 'you',
                'why': waiting['why'] or 'the plan cannot go on until this is settled'}
     else:
         stage = next((b for b in build if b['status'] not in ('completed', 'approved', 'reconciled', 'already_completed')), None)
@@ -291,7 +300,11 @@ def task_plan_view(projects, home, project_id, *, enabled=False, execution_enabl
             try:  # every project shows its path, with or without a task state (H3/H5)
                 stage_status = {name: 'completed' if (meta or {}).get('status') in ('completed', 'approved') else (meta or {}).get('status') or 'pending'
                                 for name, meta in (project.get('stages') or {}).items()}
-                out['catalog_plan'] = _rules_plan(projects, project, {**stage_status, **{n['id']: n['status'] for n in out['nodes']}})
+                if stage_status.get('final') == 'completed':  # the holdout was approved and read, and the run reported
+                    stage_status.update(holdout='completed', report='completed')
+                # no task state holds this plan, so the project's own stages say what ran (found on a real Home build:
+                # five finished stages were drawn as "blocked", the preview graph's word for "not run by the task path")
+                out['catalog_plan'] = _rules_plan(projects, project, {**{n['id']: n['status'] for n in out['nodes']}, **stage_status})
             except Exception:
                 pass  # the path is an addition to the view: its failure never hides the plan's own state
         return {**out, 'status': status, 'message': MESSAGES[status]}

@@ -56,6 +56,11 @@ class ObeyedTests(unittest.TestCase):
         self.assertTrue(self.one("time_split_required", split="time (declared time column): the latest 36 rows")["enforced"])
         self.assertIsNone(E.obeyed(["time_split_required"], {}, {}, COLUMNS)[0]["enforced"])  # the data stage has not run: not read, never a pass
 
+    def test_a_split_ordered_by_the_solutions_time_column_is_a_split_by_time(self):
+        said = {"data": {"evidence": {"holdout_split": "last 120 of 600 rows by `signup_date`"}}}
+        self.assertTrue(E.obeyed(["time_split_required"], {"time_column": "signup_date"}, said, ["signup_date"])[0]["enforced"])
+        self.assertFalse(E.obeyed(["time_split_required"], {}, said, ["signup_date"])[0]["enforced"])  # no time column named: not known to be by time
+
     def test_a_trap_code_cannot_enforce_is_never_counted_as_enforced(self):
         record = self.one("asymmetric_cost")
         self.assertEqual((record["enforceable"], record["enforced"]), (False, None))

@@ -357,7 +357,7 @@ DC.view('project', {
           const fol = cp.followed, followedBlock = fol ? (fol.checked
             ? ((fol.not_followed || []).length
               ? `<div class="callout warn small stack tight" id="path-not-followed"><b>The solution does not follow its plan</b> <span class="xs muted">(what the plan caught is not enforced; nothing is changed for you)</span><ul>${fol.not_followed.map(n => `<li>${esc(n.trap)}${n.column ? ' (<code>' + esc(n.column) + '</code>)' : ''}: ${esc(n.how || '')}</li>`).join('')}</ul></div>`
-              : `<p class="small" id="path-followed"><span class="tag ok">Plan followed</span> ${esc(String(fol.followed))} of ${esc(String(fol.checked))} of the plan's catches are followed: in the solution, and in the final model once it is built.</p>`)
+              : `<p class="small" id="path-followed"><span class="tag ok">Plan followed</span> ${esc(String(fol.followed))} of ${esc(String(fol.checked))} of the plan's catches are followed: in the solution, and in the final model once it is built.${fol.open ? ' ' + esc(String(fol.open)) + ' wait for your answer.' : ''}</p>`)
             : '') : '';
           const clarifyUI = cp.stored === false ? (qs ? `<div class="stack tight small" id="path-open"><p class="strong">Still open (settle them by changing the solution on this page):</p><ul>${qs}</ul></div>` : '') : qs ? (cp.owner_confirmed
             ? `<p class="small"><span class="tag ok">Owner clarified</span> ${esc(cp.owner_note || 'Confirmed')}</p>`
