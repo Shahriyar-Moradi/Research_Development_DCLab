@@ -1,0 +1,236 @@
+{
+ "schema": "dclab_rnd.plan_enforced.v1",
+ "campaign_id": "plan_enforced_v1",
+ "id": "PE-001",
+ "at": "2026-11-16T06:28:40+00:00",
+ "gate": "hp_gate_v1",
+ "gate_pinned": true,
+ "source": {
+  "kind": "kept live run",
+  "run": "adaptive_studio_live_20261113_r4",
+  "live_model_calls": 0
+ },
+ "note": "baseline before the Hierarchical Planning repair: a live run kept on 2026-11-13, read again by code",
+ "totals": {
+  "projects": 5,
+  "reported_passed": 5,
+  "traps_caught": 33,
+  "enforceable": 8,
+  "enforced": 0
+ },
+ "check_obeyed": {
+  "check": "obeyed",
+  "projects": 5,
+  "traps_read": 8,
+  "enforced": 0,
+  "stopped_with_question": 0,
+  "rate": 0.0,
+  "bar": "1.0 on at least 8 projects",
+  "read": true,
+  "ok": false
+ },
+ "projects": [
+  {
+   "scenario": "studio_multitable_post_outcome",
+   "passed_as_reported": true,
+   "routed_to": "model",
+   "holdout_score": 0.8984126984126984,
+   "holdout_split": "stratified random 36 of 180 rows",
+   "forbidden": [],
+   "final_features": [
+    "closure_recorded_after_review",
+    "monthly_charge",
+    "tenure"
+   ],
+   "summary": {
+    "caught": 12,
+    "enforceable": 4,
+    "read": 4,
+    "enforced": 0,
+    "broken": [
+     "grouped_split_customer_id",
+     "post_outcome_closure_recorded_after_review",
+     "repeated_entity_leak_customer_id",
+     "time_split_required"
+    ],
+    "rate": 0.0
+   },
+   "traps": [
+    {
+     "trap": "grouped_split_customer_id",
+     "kind": "group",
+     "column": "customer_id",
+     "enforceable": true,
+     "enforced": false,
+     "how": "split: stratified random 36 of 180 rows; group column: None"
+    },
+    {
+     "trap": "post_outcome_closure_recorded_after_review",
+     "kind": "forbid",
+     "column": "closure_recorded_after_review",
+     "enforceable": true,
+     "enforced": false,
+     "how": "not in forbidden; a feature of the final model"
+    },
+    {
+     "trap": "repeated_entity_leak_customer_id",
+     "kind": "group",
+     "column": "customer_id",
+     "enforceable": true,
+     "enforced": false,
+     "how": "split: stratified random 36 of 180 rows; group column: None"
+    },
+    {
+     "trap": "time_split_required",
+     "kind": "time_split",
+     "column": null,
+     "enforceable": true,
+     "enforced": false,
+     "how": "split: stratified random 36 of 180 rows"
+    }
+   ],
+   "paused_with_question": false,
+   "stopped_with_question": false
+  },
+  {
+   "scenario": "studio_timedrift_fraud_capacity",
+   "passed_as_reported": true,
+   "routed_to": "model",
+   "holdout_score": 0.6820987654320988,
+   "holdout_split": "stratified random 36 of 180 rows",
+   "forbidden": [],
+   "final_features": [
+    "amount",
+    "prior_claims"
+   ],
+   "summary": {
+    "caught": 9,
+    "enforceable": 2,
+    "read": 2,
+    "enforced": 0,
+    "broken": [
+     "time_drift_random_split_leak",
+     "time_split_required"
+    ],
+    "rate": 0.0
+   },
+   "traps": [
+    {
+     "trap": "time_drift_random_split_leak",
+     "kind": "time_split",
+     "column": null,
+     "enforceable": true,
+     "enforced": false,
+     "how": "split: stratified random 36 of 180 rows"
+    },
+    {
+     "trap": "time_split_required",
+     "kind": "time_split",
+     "column": null,
+     "enforceable": true,
+     "enforced": false,
+     "how": "split: stratified random 36 of 180 rows"
+    }
+   ],
+   "paused_with_question": false,
+   "stopped_with_question": false
+  },
+  {
+   "scenario": "studio_composite_uplift",
+   "passed_as_reported": true,
+   "routed_to": "model",
+   "holdout_score": 0.6502057613168724,
+   "holdout_split": "stratified random 36 of 180 rows",
+   "forbidden": [],
+   "final_features": [
+    "spend",
+    "tenure",
+    "tenure*spend",
+    "voucher_offer"
+   ],
+   "summary": {
+    "caught": 5,
+    "enforceable": 0,
+    "read": 0,
+    "enforced": 0,
+    "broken": [],
+    "rate": null
+   },
+   "traps": [],
+   "paused_with_question": false,
+   "stopped_with_question": false
+  },
+  {
+   "scenario": "studio_ambiguous_ask_owner",
+   "passed_as_reported": true,
+   "routed_to": "model",
+   "holdout_score": 0.7093749999999999,
+   "holdout_split": "stratified random 36 of 180 rows",
+   "forbidden": [],
+   "final_features": [
+    "tickets_open",
+    "usage_score"
+   ],
+   "summary": {
+    "caught": 7,
+    "enforceable": 2,
+    "read": 2,
+    "enforced": 0,
+    "broken": [
+     "time_drift_random_split_leak",
+     "time_split_required"
+    ],
+    "rate": 0.0
+   },
+   "traps": [
+    {
+     "trap": "time_drift_random_split_leak",
+     "kind": "time_split",
+     "column": null,
+     "enforceable": true,
+     "enforced": false,
+     "how": "split: stratified random 36 of 180 rows"
+    },
+    {
+     "trap": "time_split_required",
+     "kind": "time_split",
+     "column": null,
+     "enforceable": true,
+     "enforced": false,
+     "how": "split: stratified random 36 of 180 rows"
+    }
+   ],
+   "paused_with_question": true,
+   "stopped_with_question": false
+  },
+  {
+   "scenario": "studio_clean_deterministic_fastpath",
+   "passed_as_reported": true,
+   "routed_to": "deterministic",
+   "holdout_score": 0.6666666666666667,
+   "holdout_split": "stratified random 36 of 180 rows",
+   "forbidden": [],
+   "final_features": [
+    "monthly_charge",
+    "tenure",
+    "tenure*monthly_charge"
+   ],
+   "summary": {
+    "caught": 0,
+    "enforceable": 0,
+    "read": 0,
+    "enforced": 0,
+    "broken": [],
+    "rate": null
+   },
+   "traps": [],
+   "paused_with_question": false,
+   "stopped_with_question": false
+  }
+ ],
+ "limits": [
+  "five invented tables of 180 rows from one run and one model",
+  "a trap is read from its name and the column it ends with",
+  "the other checks of the gate are not read here"
+ ]
+}

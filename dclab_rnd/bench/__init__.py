@@ -52,7 +52,7 @@ LAYER_OF: dict[str, str] = {
                                    "time_decision_v3", "time_decision_v4", "time_decision_v5", "daily_centre_v1", "daily_ties_v1",
                                    "certification_v1", "foundation_v1", "cascade_v1")},
     **{c: "system_tasks" for c in ("real_problems_v1", "twin_v1", "system_tasks_v1", "task_planning_v1",
-                                    "task_planning_v2", "task_planning_v3", "task_planning_v4")},
+                                    "task_planning_v2", "task_planning_v3", "task_planning_v4", "plan_enforced_v1")},
 }
 
 # the free suites a run may execute, by layer: scripted, no live model, never a sealed or test split

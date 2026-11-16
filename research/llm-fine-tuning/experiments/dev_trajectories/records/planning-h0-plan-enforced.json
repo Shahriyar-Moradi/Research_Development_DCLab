@@ -1,0 +1,87 @@
+{
+ "package": "planning-h0-plan-enforced",
+ "title": "Hierarchical Planning, stage H0: does the engine obey the plan? The check, the gate and the baseline",
+ "date": "2026-11-16",
+ "request": "The owner asked for the Hierarchical Planning work to be reviewed, implemented correctly, improved and tested on several models, and agreed that more structure is a risk: at least review and improve the planning. The approved plan starts by measuring, with a gate fixed before any change.",
+ "spec": "A check by code, with no model, that says for a built project whether each trap its plan caught was enforced; a gate for the whole repair, pinned before the first fix; a baseline read from a live run kept before the repair.",
+ "plan": [
+  "three audits: the document pack as a checklist, the planning code against it, the execution code against it",
+  "a pure function that reads the caught traps against the solution, the final features and the split",
+  "the gate of the repair, every check named, pinned by its hash",
+  "the baseline stored as the campaign's first result"
+ ],
+ "decisions": [
+  {
+   "decision": "A trap code cannot enforce is never counted as enforced",
+   "why": "a cost asymmetry or a missing horizon is a thing to say to the person, and counting it would make any report look obeyed"
+  },
+  {
+   "decision": "A column absent from the final model by luck is not enforced",
+   "why": "nothing forbids it, so the next run may use it"
+  },
+  {
+   "decision": "A build that paused with a question and then went on is not a build that stopped",
+   "why": "in the kept run a project asked, built anyway and used a random split where its plan asked for a split by time"
+  },
+  {
+   "decision": "The baseline is read from a kept run, at no cost",
+   "why": "the run was made before this work, so nobody could tune it"
+  },
+  {
+   "decision": "The larger team design of the document pack is not built",
+   "why": "measurements of the same week show that added roles and calls lowered the score and the time"
+  }
+ ],
+ "change": "A module that reads whether a built project obeyed its plan, a campaign with its gate and its first result, and the mapping of the campaign into the bench layers.",
+ "findings": [
+  {
+   "id": "H0-F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "No trap a plan caught was enforced in the built project, in a run where every scenario was reported as passed.",
+   "scenario": "A plan caught a column recorded after the outcome; the project's forbidden list was empty and the column was the top feature of the final model. Three plans asked for a split by time and the data stage used a stratified random split.",
+   "cause": "the plan is saved and shown, and the engine never reads it",
+   "fix": "Stage H2 of the plan: a caught trap becomes a change to the project's solution through the validated move, or stops the build with a question.",
+   "test": "test_the_kept_run_caught_the_leak_and_used_it",
+   "open": "the fix is stage H2; this package only measures",
+   "verdict": "open"
+  },
+  {
+   "id": "H0-F2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The first form of the check counted a project that paused with a question as having obeyed its plan.",
+   "scenario": "A scenario asked the person a question, went on, built and used a random split; its two traps were left out of the count.",
+   "cause": "a pause was read as a stop",
+   "fix": "A stop is a pause with no final stage.",
+   "test": "test_the_stored_baseline_fails_the_check_it_was_stored_for",
+   "verdict": "confirmed"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The baseline: traps caught against traps enforced, on a kept live run",
+   "gate": "hp_gate_v1, check one: every enforceable trap a plan caught is enforced, or the build stopped with a question",
+   "fixed_before_run": true,
+   "result": "five projects, all reported as passed; thirty-three traps caught, eight that code can enforce, none enforced",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "next": "stage H1 (the defects that block a project) and stage H2 (the plan drives the engine)",
+   "limits": [
+    "five invented tables from one run and one model",
+    "a trap is read from its name and the column it ends with",
+    "the gate's other checks are not read here"
+   ]
+  }
+ ],
+ "outcome": "The check, the pinned gate and the baseline exist; the baseline fails the gate's first check, as the audit predicted. No behaviour of the product changed.",
+ "lessons": [
+  "A scenario that passes because it finished says nothing about whether the plan was followed.",
+  "Measure what the built thing did, not what the plan said."
+ ],
+ "risks": [
+  "Reading a trap from its name will miss traps named differently.",
+  "A check that only counts can be passed by catching fewer traps: the gate's second check, nothing lost, guards that."
+ ],
+ "commits": []
+}
