@@ -1851,6 +1851,9 @@ DC.view('home', {
       } else if (m.kind === 'synthetic_way') {
         const offer = esc(JSON.stringify(m.offer || {}));
         body = `<p>${esc(m.text)}</p><div class="row"><button type="button" class="btn primary sm" data-syn-ai='${offer}'>1 · Build it with AI</button><button type="button" class="btn sm" data-syn-describe="1">2 · I'll describe it, then approve</button></div>`;
+      } else if (m.kind === 'synthetic_questions') {
+        // The rebuilt no-data design's only way to made-up data: answer how it should look, see the design, approve it. No one-click build here.
+        body = `<p>${esc(m.text)}</p><div class="row"><button type="button" class="btn primary sm" data-syn-describe="1">Describe it, then approve its design</button></div>`;
       } else if (m.kind === 'synthetic_spec' && m.proposal) {
         const pr = m.proposal, cols = (pr.columns || []).map(c => `<tr><td>${esc(c.name)}</td><td class="mono">${esc(c.type)}${c.categories ? ': ' + esc(c.categories.join(', ')) : ''}</td><td class="num">${c.missing ? Math.round(c.missing * 100) + '% missing' : ''}</td></tr>`).join('');
         const t = pr.target ? `<p class="small"><b>Outcome:</b> ${esc(pr.target.name)} (${esc(pr.target.type)}${pr.target.positive_rate != null ? ', about ' + Math.round(pr.target.positive_rate * 100) + '% positive' : ''}${(pr.target.classes || []).length ? ': ' + esc(pr.target.classes.join(', ')) : ''})</p>` : '<p class="small muted">No outcome column in this design.</p>';
@@ -1883,6 +1886,20 @@ DC.view('home', {
         body = `<div class="inset stack tight" data-board="${esc(m.id)}">${boardHtml(m.tasks)}</div>`;
       } else if (m.kind === 'notebook_cell' && m.cell) {
         body = notebookCellCard(m.cell, m.project);
+      } else if (m.kind === 'no_data_solution' && m.solution && m.solution.version === 'nodata_v2') {
+        // The rebuilt no-data design (behind DCLAB_NO_DATA_V2): only the parts that were written, the columns as a table,
+        // then what code checked and the second reader's findings. Made-up data: the questions first. Build project: untouched.
+        const sol = m.solution, card = sol.card || {}, heads = card.column_titles || ['column', 'what it is', 'known when', 'role'];
+        if (S.draft && (!S.draft.no_data_solution || S.draft.id)) { S.draft.no_data_solution = sol; renderHomePlanner(); }
+        const cols = (card.columns || []).map(c => `<tr><td><code>${esc(c.column)}</code></td><td>${esc(c.what)}</td><td>${esc(c.known)}</td><td>${esc(c.role)}</td></tr>`).join('');
+        const table = cols ? `<div class="table-wrap"><table class="data compact"><thead><tr>${heads.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${cols}</tbody></table></div>` : '';
+        const parts = (card.parts || []).map(p => `<div class="nodata-section"><div class="eyebrow">${esc(p.title)}</div>${p.key === 'Data to record' ? table : ''}${p.text ? mdLite(p.text) : ''}</div>`).join('');
+        const notes = (card.notes || []).map(n => `<div class="nodata-section"><div class="eyebrow">${esc(n.title)}</div>${mdLite((n.items || []).map(i => '- ' + i).join('\n'))}</div>`).join('');
+        const sim = (sol.simulation && (sol.simulation.questions || []).length) ? '<button type="button" class="btn primary sm" data-nodata-sim="1">Ask &amp; shape synthetic data</button>' : '';
+        body = `${m.text ? mdLite(m.text) : ''}<div class="inset stack tight nodata-card"${card.rtl ? ' dir="rtl"' : ''}><div class="row"><b>${esc(card.title || 'A solution designed without data')}</b>`
+          + `<span class="pill outline">${esc(sol.mode === 'architect' ? 'written by a model, checked by code' : 'rules only')}</span></div>`
+          + (parts || mdLite(sol.markdown || '')) + notes
+          + `<div class="row">${sim}<button type="button" class="btn sm" data-nodata-copy="1">Copy spec (.md)</button></div></div>`;
       } else if (m.kind === 'no_data_solution' && m.solution) {
         const sol = m.solution, und = sol.understanding || {}, ufields = und.fields || {}, hrep = sol.harness_report || {}, biz = sol.business || {}, econ = sol.economics || {}, ds = sol.data_science || {}, ml = sol.ml || {}, arch = ml.architecture || {}, cp = ml.catalog_plan || {}, deb = ml.debate || {};
         if (S.draft && (!S.draft.no_data_solution || (m.solution && S.draft.id))) { S.draft.no_data_solution = sol; renderHomePlanner(); }

@@ -373,6 +373,18 @@ class HomeAgent:
             actions=["simulate_ai", "simulate_describe"],
         )
 
+    def ask_synthetic_first(self, draft_id: str, sol: dict[str, Any]) -> dict[str, Any] | None:
+        """The rebuilt no-data design's only way to made-up data: the questions on how it should look, then a design the
+        person approves. Never the one-click way from here, and nothing at all when no solution gave questions to ask."""
+        questions = list((sol.get("simulation") or {}).get("questions") or [])
+        draft = self.store.get(draft_id)
+        last = (draft.get("messages") or [None])[-1]
+        if not questions or (last and last.get("kind") in ("synthetic_way", "synthetic_questions")):
+            return None
+        return self.say(draft_id, "Before any made-up data, tell me how it should look: " + " ".join(f"({i}) {q}" for i, q in enumerate(questions[:3], 1))
+                        + " I will then show you its design, and nothing is created until you approve it. It will be labelled synthetic everywhere.",
+                        kind="synthetic_questions", actions=["simulate_describe"])
+
     def provide_no_data_solution(
         self,
         draft_id: str,
@@ -397,16 +409,25 @@ class HomeAgent:
         stance = no_data.detect_no_data_stance(all_user, draft)
         target_hint = (draft.get("understanding") or {}).get("target")
         gw = getattr(self, "models", None) or getattr(self, "gateway", None)
-        sol = no_data.solve_without_data(
-            all_user or str(draft.get("problem") or ""),
-            understanding=draft.get("understanding"),
-            economics_overrides=economics_overrides,
-            withholding_privacy=bool(stance.get("withholding_privacy")),
-            gateway=gw,
-            models=gw,
-            draft_id=draft_id,
-            target_hint=str(target_hint) if target_hint else None,
-        )
+        from ..nodata import product as nodata_v2
+
+        if nodata_v2.enabled():  # the rebuilt design (2026-11-16): the person's words in, the solution that fits their need out
+            sol = nodata_v2.solve_for_product(all_user or str(draft.get("problem") or ""), gateway=gw, draft_id=draft_id)
+            if nodata_v2.is_note(sol):  # no model, and nothing to predict: a plain note, as before; never saved or drawn as a solution
+                if not any(m.get("kind") == "no_data_note" for m in (draft.get("messages") or [])[-4:]):
+                    self.say(draft_id, nodata_v2.NO_MODEL_NOTE, kind="no_data_note")
+                return sol
+        else:
+            sol = no_data.solve_without_data(
+                all_user or str(draft.get("problem") or ""),
+                understanding=draft.get("understanding"),
+                economics_overrides=economics_overrides,
+                withholding_privacy=bool(stance.get("withholding_privacy")),
+                gateway=gw,
+                models=gw,
+                draft_id=draft_id,
+                target_hint=str(target_hint) if target_hint else None,
+            )
 
         def save_sol(d: dict[str, Any]) -> None:
             d["no_data_solution"] = sol
@@ -449,13 +470,18 @@ class HomeAgent:
         stance = no_data.detect_no_data_stance(words, draft)
         if not stance["matched"]:
             return False
-        if not no_data.blueprint_fit(words)["fits"]:
+        from ..nodata import product as nodata_v2
+
+        if not nodata_v2.enabled() and not no_data.blueprint_fit(words)["fits"]:  # the rebuilt design answers a need that is not a prediction too
             if not any(m.get("kind") == "no_data_note" for m in (draft.get("messages") or [])[-4:]):
                 self.say(draft_id, no_data.NOT_A_BLUEPRINT, kind="no_data_note")
             return True
         sol = self.provide_no_data_solution(draft_id, note=note, refresh=refresh)
         if no_data.detect_no_data_stance(note or str(draft.get("problem") or ""), draft).get("wants_simulation"):
-            self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
+            if nodata_v2.enabled():
+                self.ask_synthetic_first(draft_id, sol)
+            else:
+                self.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
         return True
 
     def ask(self, draft_id: str, field: str, question: str, options: list[str] | None = None, why: str = "",

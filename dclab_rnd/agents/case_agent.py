@@ -836,6 +836,8 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     if state.chip and not state.case.chosen:
         if track in CHIP_NEEDS_TABLE and track == state.chip and state.table is None:
             from ..draft import no_data
+            if _no_data_v2() and _no_table_said(state):
+                return {"error": NO_TABLE_DONE if state.no_data_built else NO_TABLE_GO}
             if no_data.detect_no_data_stance(" ".join(state.case.words)).get("matched") and no_data.blueprint_fit(" ".join(state.case.words))["fits"]:
                 return {"error": "the person has no data yet or prefers not to upload it: call design_solution_without_data to give the full 3-layer Business, Data Science, and ML blueprint instead of demanding an upload."}
             return {"error": f"they want {C.CHIPS.get(state.chip, state.chip)} ({state.chip}): ask them to share the table it runs on, then start it"}
@@ -858,6 +860,8 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
                          "answers a question with no work on data. Propose or start the work their need calls for."}
     if track in CHIP_NEEDS_TABLE and state.table is None:
         from ..draft import no_data
+        if _no_data_v2() and _no_table_said(state):
+            return {"error": NO_TABLE_DONE if state.no_data_built else NO_TABLE_GO}
         if track == "prediction" and no_data.detect_no_data_stance(" ".join(state.case.words)).get("matched") and no_data.blueprint_fit(" ".join(state.case.words))["fits"]:
             return {"error": "the person has no data yet or prefers not to upload it: call design_solution_without_data first to give their full 3-layer Business, Data Science, and ML blueprint."}
         return {"error": f"they want {track}: ask them to share or upload the table it runs on, then start it"}
@@ -881,6 +885,92 @@ def _start(state: CaseState, track: str, tool: str, quote: Optional[str] = None)
     return {"started": f"{track}/{tool}", "next": WRITTEN_NEXT.format(what="what happens next") if think_first() else STARTED_NEXT}
 
 
+NO_TABLE_GO = ("the person has no data to share (their own words say so): do not ask for a table. Call design_solution_without_data now; it "
+               "writes what they need without data.")
+
+
+NO_TABLE_DONE = ("the person has no data to share, and the solution without data was already handled in this turn: do not ask for a "
+                 "table and do not start this work; write to the person now")
+
+
+def _no_data_v2() -> bool:
+    from ..nodata import product
+
+    return product.enabled()
+
+
+def _no_table_said(state: "CaseState") -> bool:
+    """The person's own words say they have no table to share (none yet, private, not ready), read by the rebuilt design's
+    patterns in English and Persian, or by the first design's."""
+    from ..draft import no_data
+    from ..nodata import stance
+
+    words = " ".join(state.case.words)
+    latest = str(state.case.words[-1]) if state.case.words else ""
+    if state.table is not None or stance.has_now(latest):  # they have it now, or are about to share it: asking for it is right again
+        return False
+    said = stance.NOT_A_STANCE.sub(" ", words)  # "without data leakage" and "no data scientist" say nothing about having a table
+    return bool(stance.read(said)["no_table"] or no_data.detect_no_data_stance(said).get("matched"))
+
+
+NO_SOLUTION_NEXT = ("No solution could be written by the tool this time. Answer the person yourself, now, in your own words: what the "
+                    "decision is, the options and what each costs and gives, and a short plan they can start without data. State no "
+                    "number they did not give. Do not ask for a file, and do not call this tool again in this turn.")
+
+
+NO_DATA_TOOL_V2 = (
+    "When no table is shared and the person has no data yet, or cannot or will not share it: write the solution they need without "
+    "it, in this same turn. It reads their own words and writes what fits: a business answer when they face a decision, what to "
+    "record when they ask that, a full solution with a model when they want one, or the questions to ask before any made-up data. "
+    "Never ask for an upload again, and never say you cannot go on without data. No data is created: made-up data needs the "
+    "person's answers on how it should look and their yes to a design first.")
+
+
+def _design_v2(state: CaseState, nodata_v2: Any) -> dict[str, Any]:
+    """The rebuilt no-data design for the lead agent: the person's own words in, the solution as a card out. Every
+    number in it is theirs or a sum code checked; those sums become sources of this turn's reply."""
+    words = " ".join(state.case.words).strip()
+    if not words:
+        return {"error": "the person has not described their problem yet: ask what they need, in one question"}
+    left = float(state.cap_eur or 0.5) - float(state.spent_eur or 0.0)
+    if left <= 0:
+        return {"error": "this case has used its model budget: tell the person what you have, with no new solution"}
+    try:
+        sol = nodata_v2.solve_for_product(words, gateway=state.models, draft_id=state.draft_id, cap_eur=min(0.12, left))
+    except Exception:  # noqa: BLE001 - the person is still answered: the lead model writes it itself
+        state.no_data_built = True
+        return {"solution_ready": False, "next": NO_SOLUTION_NEXT}
+    state.no_data_built = True
+    state.spent_eur += float(sol.get("cost_eur") or (sol.get("harness_report") or {}).get("cost_eur") or 0.0)
+    if nodata_v2.is_note(sol):  # no model wrote one and the rules see nothing to predict: no card, never an empty "solution"
+        return {"solution_ready": False, "next": NO_SOLUTION_NEXT}
+    state.no_data_solution = sol
+    for item in sol.get("as_said") or []:
+        if item not in state.computed:
+            state.computed.append(item)
+    state.cards.append({"kind": "no_data_solution", "solution": sol})
+    if state.case.data is None:
+        try:
+            state.case = C.apply(state.case, "data", C.CaseFact(value="No table is shared; a solution was designed without data.", status="assumed"),
+                                 by="agent", why="solution designed without data")
+        except (C.CaseRefused, ValueError):
+            pass
+    card = sol.get("card") or {}
+    if sol.get("version") != "nodata_v2":  # the first design's rules answered (no model wrote one): its card, its placeholders said
+        return {"solution_ready": True, "written_by": "rules", "family": sol.get("family"),
+                "assumed_inputs": list((sol.get("economics") or {}).get("assumed") or []),
+                "next": ("A blueprint written by DCLab's rules is now shown to the person as a card (no model was available to write "
+                         "one for them). Write a short reply (under 120 words). State a number only if the person said it: the inputs "
+                         "listed in assumed_inputs are DCLab's placeholders, so say they are placeholders and ask for the real ones. "
+                         "Do not ask for a file.")}
+    return {"solution_ready": True, "need": sol.get("need"), "parts": [p["title"] for p in card.get("parts") or []],
+            "questions_for_the_person": list(card.get("questions") or [])[:3], "written_by": sol.get("mode"),
+            "next": ("The solution is now shown to the person as a card: do not repeat it. Write a short reply (under 120 words): "
+                     "say in one or two sentences what the card holds and what to do first, then ask at most one of the questions "
+                     "above. State no number the person did not give. Do not ask for a file. If they want made-up data, ask how "
+                     "it should look before anything is designed.")}
+
+
 def _design_solution_without_data(
     state: CaseState,
     problem: Optional[str] = None,
@@ -898,6 +988,10 @@ def _design_solution_without_data(
         return {"error": "a table is shared: work on it (read it, query it, propose or start). This tool is for a person with no data."}
     if state.no_data_built:
         return {"error": "the blueprint was already built in this turn: write to the person now"}
+    from ..nodata import product as nodata_v2
+
+    if nodata_v2.enabled():  # the rebuilt design (2026-11-16), behind DCLAB_NO_DATA_V2: any need, not only a prediction
+        return _design_v2(state, nodata_v2)
     # the person's own words decide: the problem, whether it is a prediction at all, and every number (the model's wording
     # of the problem is never a source of numbers: the review of 22ad1bf8)
     problem_text = " ".join(state.case.words).strip()
@@ -1062,6 +1156,7 @@ def register(registry: Registry) -> None:
                   "To change work already started, quote the person's latest words asking for the change.",
          {"track": {"type": "string", "enum": list(C.TRACKS)}, "tool": {"type": "string", "enum": list(C.TOOLS)}, "quote": S}, ["track", "tool"], _start, "write"),
         ("design_solution_without_data",
+         NO_DATA_TOOL_V2 if _no_data_v2() else
          "Only when no table is shared, the person has no data yet (or will not upload it), AND they want a prediction, a forecast, a score or groups: "
          "build a 3-layer Business + Data Science + ML blueprint (economics, Minimum Viable Data Spec, leakage traps, and pre-data task plan). "
          "Not for a why-question, a test's design, a route plan, a report or an explanation: answer those as what they are. "

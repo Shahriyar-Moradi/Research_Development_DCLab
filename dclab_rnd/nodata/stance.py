@@ -33,11 +33,23 @@ WHY = {
         r"|\bdo not know how to (?:get|export|pull)\b|آماده نیست", re.I),
 }
 ORDER = ("private", "none", "not_ready")
+# "no data" that says nothing about having a table: "without data leakage", "no data scientist"
+NOT_A_STANCE = re.compile(r"\b(?:no|without(?: any)?) data (?:leak\w*|scientists?|science|teams?|engineers?|analysts?|issues?|problems?|quality|people)\b", re.I)
+# the person has the table now, or is about to share it: a request to share it is welcome again
+HAS_NOW = re.compile(
+    r"\b(?:I|we)(?:'ve| have)? (?:now )?(?:have|got) (?:the|an?|our|my)\s+(?:\w+\s+){0,2}?(?:export|table|file|csv|dataset|spreadsheet)\b[^.]{0,30}\b(?:now|ready)\b"
+    r"|\bready to (?:upload|share|send)\b|\b(?:will|shall I|shall we|can|about to|going to|am going to) (?:upload|share|send|attach)\b"
+    r"|\bhere is (?:the|my|our)\b[^.]{0,20}\b(?:table|file|export|data)\b", re.I)
+
+
+def has_now(words: str) -> bool:
+    """The person's words say they have the table now, or are about to share it."""
+    return bool(HAS_NOW.search(str(words or "")))
 
 
 def read(words: str, has_table: bool = False) -> dict[str, Any]:
     """``{"no_table", "why", "quote"}``. With a shared table: never a no-table stance, whatever the words say."""
-    text = str(words or "")
+    text = NOT_A_STANCE.sub(" ", str(words or ""))
     if has_table:
         return {"no_table": False, "why": None, "quote": None}
     for why in ORDER:

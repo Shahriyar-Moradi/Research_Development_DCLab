@@ -265,17 +265,28 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         except ValueError as error:
             raise HTTPException(422, str(error)) from None
         draft = drafts.get(draft_id)
-        if HomeAgent.track(draft) not in ("prediction", "undecided"):  # a kind of help not chosen yet is no refusal: the fit check below reads the words
+        from ..nodata import product as _nodata_v2
+
+        v2 = _nodata_v2.enabled()  # the rebuilt design answers any need without data, so neither refusal below applies to it
+        if v2 and any(a.get("status") == "ready" for a in draft.get("assets") or []):  # a table is shared: work on it (as the lead agent's tool says)
+            raise HTTPException(409, "This draft has a table: a solution without data is for a person with none to share")
+        if not v2 and HomeAgent.track(draft) not in ("prediction", "undecided"):  # a kind of help not chosen yet is no refusal: the fit check below reads the words
             raise HTTPException(409, f"This draft is not a prediction ({HomeAgent.track(draft)}): a model blueprint does not answer it")
         said = " ".join([str(draft.get("problem") or ""), note] + [str(m.get("text") or "") for m in draft.get("messages") or [] if m.get("role") == "user"])
-        fit = _no_data.blueprint_fit(said)
+        fit = {"fits": True, "why": ""} if v2 else _no_data.blueprint_fit(said)
 
         def _run() -> dict[str, Any]:
             ha = HomeAgent(drafts, None)
+            if v2:
+                ha.models = models  # the rebuilt design is written by a model: the gateway, read by provide_no_data_solution; the first design's route stays on its rules
             if not fit["fits"]:  # nothing to predict was named: no model plan is drawn; the person is told what is needed
                 ha.say(draft_id, _no_data.NOT_A_BLUEPRINT, kind="no_data_note")
                 return {"solution": None, "fit": fit, "draft": drafts.get(draft_id)}
             sol = ha.provide_no_data_solution(draft_id, note=note, refresh=refresh, economics_overrides=econ)
+            if v2:  # made-up data begins with the questions, never with a one-click table; typed economics are not used: its numbers are the person's own words
+                if ask_sim:
+                    ha.ask_synthetic_first(draft_id, sol)
+                return {"solution": None if _nodata_v2.is_note(sol) else sol, "fit": fit, "draft": drafts.get(draft_id), "economics_used": False}
             if ask_sim:
                 ha.offer_synthetic(draft_id, sol["simulation"]["seed_description"])
             return {"solution": sol, "fit": fit, "draft": drafts.get(draft_id)}

@@ -1,0 +1,133 @@
+{
+ "package": "nodata-home-wiring-n2",
+ "title": "Solving without data in Home: the rebuilt design behind a switch, Build project untouched",
+ "date": "2026-11-16",
+ "request": "After the rebuilt no-data design beat the existing one on the practice people, the owner's plan wires the winner into Home behind a switch. The owner's fixed rules: Build project stays exactly as it is, and made-up data is only created after asking the person how it should look and getting their yes.",
+ "spec": "A switch that is off by default. With it on, the lead agent's tool, the rules-first Home and the route behind the Solve without data button answer a person with no table through the rebuilt design; a need that is not a prediction is answered and not refused; a person who said they have no table is not asked for a file again; nothing creates data; with the switch off nothing changes.",
+ "plan": [
+  "an adapter that gives the rebuilt solution the fields Home's entries and card already read",
+  "the three entries take the rebuilt path under the switch",
+  "a card on the Home page that draws only the parts that were written",
+  "a test that Build project's route, button and code are those of the commit before this work",
+  "review, then a test for every finding"
+ ],
+ "decisions": [
+  {
+   "decision": "One switch for all three entries, off by default",
+   "why": "the held-out people have not been played; the gate, not the builder, turns it on"
+  },
+  {
+   "decision": "With no model, a prediction is answered by the first design's rules and any other need gets a plain note",
+   "why": "rules cannot write a business answer, and a model blueprint for a decision is the fault being fixed"
+  },
+  {
+   "decision": "From the rebuilt design the only way to made-up data is the questions and then an approved design",
+   "why": "the older offer carries a one-click build, and the owner's rule is to ask first"
+  },
+  {
+   "decision": "Build project is pinned by fingerprints of its route, button, handler and function",
+   "why": "a test on history would fail in a shallow checkout; a fingerprint fails on any edit"
+  },
+  {
+   "decision": "The tool's description depends on the switch",
+   "why": "the old words tell the model to call it only for a prediction"
+  }
+ ],
+ "change": "A product adapter for the rebuilt no-data design, a second path in the lead agent's no-data tool and two of its gates, in the rules-first Home's two no-data methods and in the route, a new card and a questions-first message on the Home page, the switch documented and blanked in tests.",
+ "findings": [
+  {
+   "id": "N2-F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With the switch on, a person who asked for simulated data was offered the one-click build with no question asked.",
+   "scenario": "A draft with no table whose words name nothing to predict and ask for simulated data: the old offer with its build-with-AI button followed the answer, and no question on how the data should look had been asked.",
+   "cause": "the rebuilt path reused the older offer",
+   "fix": "Under the switch only the questions are said, with the describe-then-approve action; nothing is offered when there are no questions.",
+   "test": "test_made_up_data_begins_with_questions_never_with_the_one_click_way",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "N2-F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A model that failed on a need that is not a prediction left an empty solution and a refusal to try anything else.",
+   "scenario": "The architect returned nothing for a why-question: the tool said a solution was ready, the card held one sentence, and the start of any work was refused again.",
+   "cause": "the plain note was returned in the shape of a solution",
+   "fix": "No card is shown; the tool tells the lead model to answer in its own words, and the gate tells it to write rather than to call the tool again.",
+   "test": "test_a_model_that_fails_on_a_decision_leaves_no_empty_solution_and_no_dead_end",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "N2-F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The plain note was saved as the draft's solution and closed Home's question about data.",
+   "scenario": "Rules-first Home with no model and words that name nothing to predict: the note was stored as the solution and the data plan was marked as settled.",
+   "cause": "the save ran for every return of the rebuilt path",
+   "fix": "The note is said as a note and the method returns before anything is saved.",
+   "test": "test_the_plain_note_is_a_note_and_is_never_saved_or_drawn_as_a_solution",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "N2-F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The new gate forbade asking for a file from people who have one.",
+   "scenario": "A person wrote that they want a model without data leakage and will upload the table in a minute: the gate read no data and sent them to the solution without data.",
+   "cause": "the stance patterns matched the words anywhere, in everything the person had said",
+   "fix": "Words such as without data leakage and no data scientist are not a stance, and a latest message saying the table is here now or about to be shared lifts the gate.",
+   "test": "test_a_person_who_has_the_table_or_only_used_the_words_is_still_asked_for_it",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "N2-F5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A paid request that came back empty was not counted in the case's budget.",
+   "scenario": "The architect returned nothing for a prediction: the rules answered and the cost of the failed request was dropped.",
+   "cause": "the fallback's solution did not carry the cost",
+   "fix": "The cost is carried on the fallback, and the tool's reply says the card's assumed inputs are placeholders.",
+   "test": "test_a_paid_request_that_came_back_empty_is_still_counted",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "N2-F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The route solved without data for a draft that has a table, and ignored typed economics silently.",
+   "scenario": "The route was called for a draft with a ready table while the switch was on.",
+   "cause": "the two old refusals were skipped and nothing replaced them",
+   "fix": "A draft with a ready table is refused with a reason, and the response says typed economics were not used.",
+   "test": "",
+   "open": "the route itself has no test with the switch on",
+   "verdict": "confirmed"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "The four no-data designs on the sixteen practice people",
+   "gate": "none on practice people: the gate is read on the held-out people only",
+   "fixed_before_run": true,
+   "result": "the rebuilt design scored above the existing design on understanding, the solution and the plan, each interval above zero, and slightly below the model alone on the solution and the plan; it stated no number nobody gave; two forbidden things were done",
+   "verdict": "not scored",
+   "cost_eur": 1.2,
+   "next": "the improved prompt with and without the second reader, then the held-out people once",
+   "limits": [
+    "sixteen people, each once, one judge",
+    "practice people, some read by the builder"
+   ]
+  }
+ ],
+ "outcome": "The rebuilt design answers through Home's three entries when the switch is on; Build project is byte-identical to the commit before this work; six findings of the review are fixed, five with a test. The switch is off.",
+ "lessons": [
+  "A fallback that returns the shape of a solution will be shown as a solution.",
+  "Reusing an older offer can bring back the very click a rule forbids.",
+  "A stance read from everything a person ever said must yield to what they say now."
+ ],
+ "risks": [
+  "With no model a decision still gets no real answer.",
+  "The page's new card was not driven in a browser in this package.",
+  "The switch is one process-wide setting: the tool's description is fixed when the registry is built."
+ ],
+ "commits": []
+}
