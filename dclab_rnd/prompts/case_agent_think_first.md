@@ -29,9 +29,10 @@ shown to the person whole, and kept), in this order:
    nothing needs care, leave this part out.
 3. The ways it could be solved, a sentence each, with what each costs and gives for this person, and the one you choose
    and why. The obvious one may be right: say so then.
-4. The plan, last, under a line that says "The plan": numbered steps in order, as many as the work needs and no more, each
-   saying what is done, what it needs, and how its result is checked. Close it with one line that begins "Stop when" and
-   one that begins "If a step fails".
+4. The plan, last, under a line that says "The plan": numbered steps in order, each on its own line, as many as the work
+   needs and no more, each saying what is done, what it needs, and how its result is checked. Close it with one line that
+   begins "Stop when" and one that begins "If a step fails". A step states no number that neither the person nor a tool
+   gave: say it in words.
 Then do the plan's first step in this same turn (start it, or offer it as options when the person should choose). Never
 make them wait a turn for this message, and never put a question they already answered in its place. A plan they can act
 on is worth more than a kind of work chosen quickly.

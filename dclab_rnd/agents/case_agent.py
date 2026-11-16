@@ -1249,6 +1249,15 @@ def checked(text: str, state: CaseState, dropped: Optional[list[str]] = None) ->
             if not s:
                 continue
             unsaid = cited.unsaid(s, sources)
+            if unsaid and think_first() and PLAN_STEP.match(line):
+                # a step of the plan loses the aside that states the number, not the step: a plan with a step missing is
+                # a broken plan (HAB-055: a plan reached the person as steps 2, 3 and 4)
+                lighter = re.sub(r"\s*\([^()]*\)", lambda m: "" if cited.unsaid(m.group(0), sources) else m.group(0), s)
+                if lighter.strip() and not cited.unsaid(lighter, sources):
+                    if dropped is not None:
+                        dropped.append(f"an aside in a step of the plan (numbers nobody gave: {', '.join(unsaid)})")
+                    kept.append(lighter)
+                    continue
             if unsaid:
                 if dropped is not None:
                     dropped.append(f"{s} (numbers nobody gave: {', '.join(unsaid)})")
@@ -1339,6 +1348,52 @@ PLAN_WORDS = 450  # a plan longer than this is prose with numbers in it: it is s
 PLAN_NOTE = ("Your plan for this person, as you wrote it (it is on their screen):\n{plan}\nKeep to it. Say which step you are on and do "
              "that step. Change the plan only when something new makes it wrong, and then say what changed and why. Do not write "
              "the whole plan again.")
+
+
+INLINE_STEP = re.compile(r"(?:(?<=\s)|^)(?:\*\*)?(\d+)[.)](?:\*\*)?\s+(?=\S)")
+PLAN_CLOSE = re.compile(r"\s+(?=(?:Stop when|If a step fails)\b)")
+
+
+def plan_lines(text: str) -> str:
+    """A plan written as one paragraph ("1. ... 2. ... 3. ... Stop when ...") as a list, a step to a line (HAB-052 to
+    HAB-055: four of sixteen plans were written so, and were neither kept whole nor easy to read). A line is split only
+    when it holds at least three step numbers that rise from one or two, so a sentence with a number in it stays whole."""
+    out: list[str] = []
+    for line in str(text or "").split("\n"):
+        run: list[tuple[int, int]] = []
+        for m in INLINE_STEP.finditer(line):
+            n = int(m.group(1))
+            if (not run and n <= 2) or (run and run[-1][1] < n <= run[-1][1] + 2):
+                run.append((m.start(), n))
+        if len(run) < 3 or (run[0][0] == 0 and len(run) == 1):
+            out.append(line)
+            continue
+        head = line[:run[0][0]].rstrip()
+        if head:
+            out.append(head)
+        for i, (pos, _) in enumerate(run):
+            step = line[pos:(run[i + 1][0] if i + 1 < len(run) else len(line))].strip()
+            if i + 1 == len(run):  # the closing lines after the last step get lines of their own
+                step, *closing = PLAN_CLOSE.split(step)
+                out.append(step.strip())
+                out.extend(c.strip() for c in closing if c.strip())
+            else:
+                out.append(step)
+    return "\n".join(out)
+
+
+def renumbered(text: str) -> str:
+    """The plan's steps numbered in order again: a step the number check took out leaves no gap ("1, 2, 3, 5")."""
+    before, plan, after = plan_block(text)
+    if not plan:
+        return str(text or "")
+    n, lines = 0, []
+    for line in plan.split("\n"):
+        if PLAN_STEP.match(line):
+            n += 1
+            line = re.sub(r"^(\s*(?:\*\*)?)\d+", lambda m: f"{m.group(1)}{n}", line, count=1)
+        lines.append(line)
+    return "\n\n".join(p for p in (before, "\n".join(lines), after) if p.strip())
 
 
 def plan_block(text: str) -> tuple[str, str, str]:
@@ -1512,6 +1567,8 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
             part = str(part or "").replace(CUT_NOTE, "").replace(WITHHELD_NOTE, "").strip()
             if not part:
                 continue
+            if think_first():
+                part = plan_lines(part)  # a plan written as one paragraph becomes a list, so it can be kept whole and read
             before, plan, after = plan_block(part) if think_first() else (part, "", "")
             if plan and word_count(plan) <= PLAN_WORDS:  # the plan stays whole: the limit is for the words around it
                 kept = []
@@ -1570,6 +1627,11 @@ def turn(state: CaseState, client: Any, words: str, registry: Optional[Registry]
     if not any(words_out):  # never a silent turn (the review): code's own line, and the question if one was asked
         words_out, notes = [FALLBACK_NUMBERS if dropped else FALLBACK] + ([q for q in (checked(q, state) for q in state.said) if q] or []), []
     text = "\n\n".join([w for w in words_out if w] + notes)
+    if think_first():  # the plan as the person sees it, after the number check: numbered without a gap, and kept for later turns
+        text = renumbered(text)
+        shown_plan = plan_block(text)[1]
+        if shown_plan:
+            state.plan = shown_plan
     thread, state.route_thread = state.route_thread, None
     if thread is not None:  # a second reading nobody waited for: given a moment so its cost is this turn's, never waited on for long
         thread.join(timeout=ROUTE_WAIT)

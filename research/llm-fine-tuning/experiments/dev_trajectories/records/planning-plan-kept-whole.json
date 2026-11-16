@@ -63,10 +63,46 @@
    "fix": "The plan is shown back on later turns with the instruction to keep to it and to say which step it is on.",
    "test": "test_the_plan_is_shown_back_to_the_model_on_the_next_turn_and_survives_a_checkpoint",
    "verdict": "confirmed"
+  },
+  {
+   "id": "PK-F4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A plan written as one paragraph was neither kept whole nor read as a plan.",
+   "scenario": "Four of sixteen first messages wrote the plan as a run of numbered sentences in one paragraph; the reader of the plan looks for numbered lines and found none.",
+   "cause": "the plan was read line by line and the prompt did not ask for a step to a line",
+   "fix": "A paragraph that holds at least three rising step numbers is turned into a list, and the prompt asks for each step on its own line.",
+   "test": "test_a_plan_written_as_one_paragraph_becomes_a_list",
+   "verdict": "confirmed"
+  },
+  {
+   "id": "PK-F5",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The number check removed a whole step of a plan, and the person saw the steps with a gap in their numbers.",
+   "scenario": "A step stated a number that neither the person nor a tool gave; the step was dropped and the plan reached the person as steps two, three and four.",
+   "cause": "the check drops the sentence, and a step is often one sentence",
+   "fix": "A step loses the aside in brackets that states the number, not the step; steps are numbered again after the check; the prompt says a step states no such number.",
+   "test": "test_a_step_the_number_check_takes_out_leaves_no_gap_and_an_aside_goes_before_a_step_does",
+   "verdict": "confirmed"
   }
  ],
- "measurements": [],
- "outcome": "The change is in place behind the switch and its tests pass; it has not been measured on a live model yet.",
+ "measurements": [
+  {
+   "name": "The plan kept whole, on the sixteen known people",
+   "gate": "none on the known people: hab_gate_v2 is read on the held-out people only",
+   "fixed_before_run": true,
+   "result": "the plan is 0.12 behind the same model alone on both sets of eight, where it was 0.88 and 1.50 behind before; no empty or cut answer, no number nobody gave; accepted on fourteen of sixteen",
+   "verdict": "not scored",
+   "cost_eur": 0.25,
+   "next": "the same people once more with the second fix, then the held-out people once",
+   "limits": [
+    "known people, each once, one judge",
+    "the first eight were used to tune earlier fixes"
+   ]
+  }
+ ],
+ "outcome": "The plan is kept whole, shown back on later turns, written as a list and numbered without gaps. On the sixteen known people the lead agent's plan came within 0.12 of the same model alone. The switch stays off until the held-out people are played.",
  "lessons": [
   "A limit that cuts from the end cuts whatever was put last, and the plan was put last.",
   "Read the conversations behind a lower score before changing a prompt."

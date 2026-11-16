@@ -174,6 +174,29 @@ class PlanKeptTests(unittest.TestCase):
         self.assertEqual(A.plan_block("One point. 1. Two things in a sentence.")[1], "")  # numbers inside a sentence are no plan
         self.assertEqual(A.plan_block("Options:\n1. A\n2. B\n\nfour\nlines\nof\ntext\nhere\n\n" + PLAN)[1], PLAN)  # the last list is the plan
 
+    def test_a_plan_written_as_one_paragraph_becomes_a_list(self):
+        inline = ("**The plan** 1. Split the customers by signup date. 2. Train a simple model and a baseline. 3. Rank by risk times spend. "
+                  "Stop when the held-back part shows no gain. If a step fails, keep the baseline list.")
+        listed = A.plan_lines(inline)
+        self.assertEqual(listed.split("\n"), ["**The plan**", "1. Split the customers by signup date.", "2. Train a simple model and a baseline.",
+                                               "3. Rank by risk times spend.", "Stop when the held-back part shows no gain.",
+                                               "If a step fails, keep the baseline list."])
+        self.assertEqual(A.plan_block(listed)[1], listed)
+        for whole in ("We lost 1. That is one thing, and 2. is another.", "1. A single step on its line.", "Compare version 1. with version 2. only."):
+            self.assertEqual(A.plan_lines(whole), whole)  # a sentence with numbers in it is not a plan
+
+    def test_a_step_the_number_check_takes_out_leaves_no_gap_and_an_aside_goes_before_a_step_does(self):
+        text = ("The problem is a ranking.\n\n**The plan**\n1. Split the customers by signup date.\n2. Keep the top 37% for the calls.\n"
+                "3. Train a simple model (about 500 trees) and a baseline.\n4. Rank by risk times spend.\nStop when nothing improves.\n"
+                "If a step fails, keep the baseline list.")
+        with mock.patch.dict(os.environ, ON):
+            s = state()
+            out = A.turn(s, Script((text, [])), BRIEF)
+        self.assertNotIn("37%", out["text"])
+        self.assertNotIn("500 trees", out["text"])
+        self.assertIn("1. Split the customers by signup date.\n2. Train a simple model and a baseline.\n3. Rank by risk times spend.", out["text"])
+        self.assertEqual(s.plan.count("\n"), 5)  # the plan kept for later turns is the one the person saw
+
     def test_a_long_first_message_loses_words_around_the_plan_never_the_plan(self):
         long_message = words(900) + "\n\n" + PLAN
         with mock.patch.dict(os.environ, ON):
@@ -220,9 +243,9 @@ class PlanKeptTests(unittest.TestCase):
         self.assertGreater(A.THINK_FIRST_TOKENS, A.POLICY.max_tokens)
 
     def test_the_prompt_asks_for_options_weighed_and_a_plan_with_its_stop_and_its_failure(self):
-        text = prompts.text("case_agent_think_first")
+        text = " ".join(prompts.text("case_agent_think_first").split())  # the prompt's own line breaks are not part of its words
         for words_ in ("The ways it could be solved", "the one you choose", "as many as the work needs", "how its result is checked",
-                       '"Stop when"', '"If a step fails"'):
+                       "each on its own line", '"Stop when"', '"If a step fails"'):
             self.assertIn(words_, text)
         self.assertNotIn("three to five numbered steps", text)
 
